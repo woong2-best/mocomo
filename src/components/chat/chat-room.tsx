@@ -25,8 +25,6 @@ import {
   parseUsedTradeRequestMarker,
   stripUsedTradeRequestMarker,
 } from "@/lib/chat-used-trade-request-marker";
-import { ChatGameShareCard } from "@/components/chat/chat-game-share-card";
-import { ActivityPanel } from "@/components/activities/activity-panel";
 import {
   formatBubbleTime,
   formatDateDivider,
@@ -43,7 +41,7 @@ import {
   isUsedListingAttachment,
   parseChatUsedListing,
 } from "@/lib/chat-used-listing-share";
-import { parseChatGameShare } from "@/lib/chat-game-share";
+import { stripLegacyGameShareMarker } from "@/lib/chat-legacy-game-share";
 import { parseAtmLetter } from "@/lib/chat-atm-letter";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
 import { TransferLetterCard } from "@/components/messages/transfer-letter-stage";
@@ -527,7 +525,7 @@ export function ChatRoomClient({
           );
           const hasAttachments = visibleAttachments.length > 0;
           const postShare = usedShare || tradeRequestId ? null : parseChatPostShare(m.content);
-          const gameShare = parseChatGameShare(m.content);
+          const legacyGameNote = stripLegacyGameShareMarker(m.content);
           const atmLetter = parseAtmLetter(m.content);
           const letterTipId = atmLetter ? null : parseLetterDonationMarker(m.content);
           const hasText = usedShare
@@ -536,8 +534,8 @@ export function ChatRoomClient({
               ? !!tradeCaption
               : postShare
                 ? !!postShare.note
-                : gameShare
-                  ? !!gameShare.note
+                : legacyGameNote !== null
+                  ? !!legacyGameNote
                   : atmLetter || letterTipId
                     ? false
                     : !!m.content?.trim();
@@ -608,7 +606,7 @@ export function ChatRoomClient({
                         />
                       </div>
                     )}
-                    {!hasAttachments && !hasText && !postShare && !gameShare && !atmLetter && !letterTipId && !usedShare && (
+                    {!hasAttachments && !hasText && !postShare && legacyGameNote === null && !atmLetter && !letterTipId && !usedShare && (
                       <div
                         className={cn(
                           "px-3.5 py-2 text-xs italic rounded-2xl",
@@ -642,32 +640,8 @@ export function ChatRoomClient({
                         {usedShare?.note ??
                           tradeCaption ??
                           postShare?.note ??
-                          gameShare?.note ??
+                          legacyGameNote ??
                           m.content}
-                      </div>
-                    )}
-                    {gameShare && (
-                      <div className={cn(hasText && "mt-1")}>
-                        {m.replyTo && !hasAttachments && !hasText && (
-                          <div
-                            className={cn(
-                              "mb-1.5 px-3 pt-2 pb-1 rounded-2xl",
-                              bubbleHighlightClass(m.id),
-                              isMine
-                                ? "rounded-br-md bg-primary text-primary-foreground"
-                                : "rounded-bl-md bg-background border border-border/60"
-                            )}
-                          >
-                            <ChatMessageReplyQuote
-                              replyTo={m.replyTo}
-                              isMine={isMine}
-                              selfUserId={userId}
-                              selfUsername={username}
-                              onJumpToOriginal={jumpToQuotedMessage}
-                            />
-                          </div>
-                        )}
-                        <ChatGameShareCard share={gameShare} isMine={isMine} />
                       </div>
                     )}
                     {atmLetter ? (
@@ -756,7 +730,6 @@ export function ChatRoomClient({
         <p className="text-xs text-amber-700 dark:text-amber-400 px-4 pb-1 text-center">{filterWarning}</p>
       )}
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
-      <ActivityPanel />
       {!readOnly ? <ChatUsedTradePanel roomId={roomId} readOnly={readOnly} /> : null}
       {!readOnly && (
         <div className="shrink-0 border-t border-border/60 bg-background">

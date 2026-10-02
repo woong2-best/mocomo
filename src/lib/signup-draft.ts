@@ -13,7 +13,6 @@ export type SignupDraft = {
   locale: Locale;
   countryCode: string;
   timeZone: string;
-  homeFloor: number;
   birthYear: number;
   birthMonth: number;
   birthDay: number;
@@ -31,9 +30,6 @@ export function loadSignupDraft(): SignupDraft | null {
   try {
     const parsed = JSON.parse(raw) as SignupDraft;
     if (!parsed.email || !parsed.username || !parsed.password) return null;
-    if (typeof parsed.homeFloor !== "number") {
-      parsed.homeFloor = 500;
-    }
     if (
       typeof parsed.birthYear !== "number" ||
       typeof parsed.birthMonth !== "number" ||

@@ -94,7 +94,6 @@ export function SignupVerifyForm() {
         locale: draft.locale,
         countryCode: draft.countryCode,
         timeZone: draft.timeZone,
-        homeFloor: draft.homeFloor,
         birthYear: draft.birthYear,
         birthMonth: draft.birthMonth,
         birthDay: draft.birthDay,

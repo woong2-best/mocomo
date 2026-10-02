@@ -3,7 +3,7 @@
  *  lg 미만: 상단 로고+메뉴 버튼 + 하단 탭 (스마트폰·태블릿)
  */
 
-import { APT_GAME_PATH, REELS_PATH } from "@/lib/site-routes";
+import { REELS_PATH } from "@/lib/site-routes";
 
 export const HEADER_REM = "3.5rem";
 export const MOBILE_NAV_REM = "calc(92px + max(env(safe-area-inset-bottom, 0px), 8px))";
@@ -29,14 +29,13 @@ export function isEventsMapImmersivePath(pathname: string): boolean {
   return pathname === "/events/map";
 }
 
-/** 하단 탭 숨김 — 채팅방·중고 상세·라이브 방·APT 몰입 등 자체 하단 UI */
+/** 하단 탭 숨김 — 채팅방·중고 상세·라이브 방 등 자체 하단 UI */
 export function shouldHideMobileNav(pathname: string): boolean {
   if (/^\/messages\/[^/]+$/.test(pathname)) return true;
   if (/^\/c\/[^/]+/.test(pathname)) return true;
   if (isUsedDetailPath(pathname)) return true;
   if (/^\/voice\/[^/]+$/.test(pathname) && pathname !== "/voice/new") return true;
   if (pathname === "/discover") return true;
-  if (pathname === APT_GAME_PATH) return true;
   if (pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`)) return true;
   if (isEventsMapImmersivePath(pathname)) return true;
   return false;

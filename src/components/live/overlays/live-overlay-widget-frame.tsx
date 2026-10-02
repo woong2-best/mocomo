@@ -3,7 +3,6 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
-import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { LiveOverlayWidget } from "@/lib/live-overlays/types";
@@ -18,13 +17,6 @@ type Props = {
   children: React.ReactNode;
 };
 
-function squareHeightPercent(parentWidth: number, parentHeight: number, wPercent: number) {
-  const { t } = useLocale();
-
-  if (parentHeight <= 0) return wPercent;
-  return ((wPercent / 100) * parentWidth / parentHeight) * 100;
-}
-
 export function LiveOverlayWidgetFrame({
   widget,
   selected,
@@ -34,7 +26,6 @@ export function LiveOverlayWidgetFrame({
   onRemove,
   children,
 }: Props) {
-  const isWheel = widget.type === "wheel";
   const dragRef = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const resizeRef = useRef<{ px: number; py: number; w: number; h: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,15 +49,12 @@ export function LiveOverlayWidgetFrame({
       const parent = containerRef.current.parentElement.getBoundingClientRect();
       const dx = ((e.clientX - dragRef.current.px) / parent.width) * 100;
       const dy = ((e.clientY - dragRef.current.py) / parent.height) * 100;
-      const maxY = isWheel
-        ? 100 - squareHeightPercent(parent.width, parent.height, widget.w)
-        : 100 - widget.h;
       onChange({
         x: clamp(dragRef.current.x + dx, 0, 100 - widget.w),
-        y: clamp(dragRef.current.y + dy, 0, maxY),
+        y: clamp(dragRef.current.y + dy, 0, 100 - widget.h),
       });
     },
-    [isWheel, onChange, widget.h, widget.w]
+    [onChange, widget.h, widget.w]
   );
 
   const onDragPointerUp = useCallback(() => {
@@ -90,17 +78,12 @@ export function LiveOverlayWidgetFrame({
       const parent = containerRef.current.parentElement.getBoundingClientRect();
       const dw = ((e.clientX - resizeRef.current.px) / parent.width) * 100;
       const dh = ((e.clientY - resizeRef.current.py) / parent.height) * 100;
-      if (isWheel) {
-        const nextW = clamp(resizeRef.current.w + dw, 14, 100 - widget.x);
-        onChange({ w: nextW, h: nextW });
-        return;
-      }
       onChange({
         w: clamp(resizeRef.current.w + dw, 12, 100 - widget.x),
         h: clamp(resizeRef.current.h + dh, 10, 100 - widget.y),
       });
     },
-    [isWheel, onChange, widget.x, widget.y]
+    [onChange, widget.x, widget.y]
   );
 
   const onResizePointerUp = useCallback(() => {
@@ -114,14 +97,13 @@ export function LiveOverlayWidgetFrame({
       ref={containerRef}
       className={cn(
         "absolute select-none",
-        isWheel ? "rounded-full" : "",
-        selected && editable && (isWheel ? "ring-2 ring-orange-400 ring-offset-1 ring-offset-transparent rounded-full" : "ring-2 ring-orange-400 ring-offset-1 ring-offset-transparent")
+        selected && editable && "ring-2 ring-orange-400 ring-offset-1 ring-offset-transparent"
       )}
       style={{
         left: `${widget.x}%`,
         top: `${widget.y}%`,
         width: `${widget.w}%`,
-        ...(isWheel ? { aspectRatio: "1 / 1", height: "auto" } : { height: `${widget.h}%` }),
+        height: `${widget.h}%`,
         zIndex: widget.z,
       }}
       onPointerDown={(e) => {
@@ -157,25 +139,8 @@ export function LiveOverlayWidgetFrame({
           </button>
         </div>
       )}
-      <div
-        className={cn(
-          "h-full w-full",
-          isWheel ? "rounded-full overflow-visible" : "overflow-hidden rounded-lg"
-        )}
-      >
-        {children}
-      </div>
-      {editable && selected && isWheel && (
-        <div
-          className="absolute bottom-0 left-0 h-4 w-4 cursor-grab active:cursor-grabbing pointer-events-auto z-30 rounded-tr-full bg-orange-500/90"
-          onPointerDown={onDragPointerDown}
-          onPointerMove={onDragPointerMove}
-          onPointerUp={onDragPointerUp}
-          onPointerCancel={onDragPointerUp}
-          aria-label={t("live.st4crc5")}
-        />
-      )}
-      {editable && selected && !isWheel && (
+      <div className="h-full w-full overflow-hidden rounded-lg">{children}</div>
+      {editable && selected && (
         <div
           className="absolute bottom-0 right-0 h-4 w-4 cursor-se-resize pointer-events-auto z-30 rounded-tl bg-orange-500/90"
           onPointerDown={onResizePointerDown}

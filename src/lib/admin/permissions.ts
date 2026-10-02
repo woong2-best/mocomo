@@ -117,7 +117,6 @@ export function pathPermission(pathname: string): AdminPermission | null {
   if (pathname.startsWith("/admin/audit")) return "audit";
   if (
     pathname.startsWith("/admin/market") ||
-    pathname.startsWith("/admin/economy") ||
     pathname.startsWith("/admin/flowers") ||
     pathname.startsWith("/admin/used-market")
   ) {

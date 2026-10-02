@@ -13,7 +13,6 @@ import {
   BarChart3,
   Settings,
   Gavel,
-  Coins,
   Flower2,
   Landmark,
   Shield,
@@ -65,7 +64,6 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
 export const ADMIN_LEGACY_NAV: AdminNavItem[] = [
   { href: "/admin/market", label: `${MARKET_BRAND_NAME} 분쟁`, icon: Gavel, permission: "legacy.ops" },
   { href: "/admin/finance", label: "매출 · 출금", icon: Landmark, permission: "legacy.ops" },
-  { href: "/admin/economy", label: "APT 경제", icon: Coins, permission: "legacy.ops" },
   { href: "/admin/flowers", label: "Flower Gift", icon: Flower2, permission: "legacy.ops" },
   { href: "/admin/moderation", label: "위험도 대기열", icon: ShieldAlert, permission: "reports" },
   { href: "/admin/suspensions", label: "계정 제재", icon: Shield, permission: "reports" },

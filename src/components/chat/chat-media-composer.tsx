@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useId, useRef, useState, useEffect, useCallback } from "react";
-import { Camera, Gamepad2, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
+import { Camera, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
 import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob } from "@/lib/client-upload";
@@ -9,8 +9,6 @@ import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-up
 import type { ChatAttachmentInput } from "@/lib/chat-attachments";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-
-import { useActivityOptional } from "@/components/activities/activity-provider";
 
 const MAX_VOICE_SEC = 120;
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif";
@@ -41,7 +39,6 @@ export function ChatMediaComposer({
   inputRef,
 }: ChatMediaComposerProps) {
   const { t } = useLocale();
-  const activity = useActivityOptional();
   const galleryInputId = useId();
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -263,20 +260,6 @@ export function ChatMediaComposer({
           </Button>
         </div>
         <div className="flex items-center gap-0.5 shrink-0 pb-0.5">
-          {activity && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full text-muted-foreground"
-              disabled={disabled || uploading || recording}
-              onClick={activity.openPicker}
-              aria-label={t("ui.play_together")}
-              title="Play Together"
-            >
-              <Gamepad2 className="h-5 w-5" />
-            </Button>
-          )}
           <label
             htmlFor={galleryInputId}
             aria-label={t("ui.photo_from_gallery")}

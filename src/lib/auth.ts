@@ -10,7 +10,6 @@ import {
   credentialsUserHasJwtFields,
   hydrateTokenFromCredentialsUser,
 } from "@/lib/auth-credentials";
-import { recordUserDeviceFromRequest } from "@/lib/apt/economy/fraud/fraud-restrictions";
 import { recoverDeletedAccount } from "@/lib/account-deletion-server";
 import { canRecoverAccount, isAccountPastRecovery } from "@/lib/account-deletion";
 import { hydrateUserOAuthProfile, findUserIdByOAuthEmail } from "@/lib/oauth-vault";
@@ -361,8 +360,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return false;
         }
       }
-
-      void recordUserDeviceFromRequest(resolvedUserId);
 
       if (account?.type !== "credentials") {
         const h = await headers();

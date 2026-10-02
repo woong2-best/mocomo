@@ -1,18 +1,15 @@
 import { getCachedSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { NotificationsFeedClient } from "@/components/notifications/notifications-feed-client";
-import {
-  getUnifiedUnreadCount,
-  listUnifiedNotifications,
-} from "@/lib/apt/economy/notification/unified-notifications";
+import { getNotificationUnreadCount, listNotifications } from "@/lib/notification-feed";
 
 export async function NotificationsListAsync() {
   const session = await getCachedSession();
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/notifications");
 
   const [unreadCount, rows] = await Promise.all([
-    getUnifiedUnreadCount(session.user.id),
-    listUnifiedNotifications(session.user.id, { limit: 80 }),
+    getNotificationUnreadCount(session.user.id),
+    listNotifications(session.user.id, { limit: 80 }),
   ]);
 
   return (

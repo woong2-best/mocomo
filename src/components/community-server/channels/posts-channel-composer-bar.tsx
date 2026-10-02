@@ -4,11 +4,10 @@
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Gamepad2, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
+import { Camera, ImagePlus, Loader2, Mic, Send, Square, X } from "lucide-react";
 import type { MediaType } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { CameraCaptureDialog } from "@/components/media/camera-capture-dialog";
-import { useActivityOptional } from "@/components/activities/activity-provider";
 import { createCommunityChannelPost } from "@/actions/community-content";
 import { useCommunityMembership } from "@/components/community-server/community-membership-context";
 import { hasPermission } from "@/lib/community-server/permissions";
@@ -30,7 +29,6 @@ function pickVoiceMime(): string {
 
 export function PostsChannelComposerBar({ communityId }: { communityId: string }) {
   const router = useRouter();
-  const activity = useActivityOptional();
   const galleryInputId = useId();
   const { isMember, isOwner, permissions } = useCommunityMembership();
 
@@ -289,20 +287,6 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
           >
             <Camera className="h-5 w-5" />
           </Button>
-          {activity ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full text-muted-foreground"
-              disabled={uploading || recording}
-              onClick={activity.openPicker}
-              aria-label="게임 함께하기"
-              title="Play Together"
-            >
-              <Gamepad2 className="h-5 w-5" />
-            </Button>
-          ) : null}
           <label
             htmlFor={galleryInputId}
             aria-label="사진 또는 영상"

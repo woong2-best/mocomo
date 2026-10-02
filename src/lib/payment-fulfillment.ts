@@ -1,5 +1,4 @@
 import { revalidatePath } from "next/cache";
-import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { db } from "@/lib/db";
 import { LISTING_FEE_KRW } from "@/lib/goods-shop";
 import { fulfillEventRegistration } from "@/actions/events";
@@ -513,7 +512,6 @@ export async function fulfillPaymentIntent(
     }
     revalidatePath("/studio/market");
     revalidatePath("/studio/library");
-    revalidateAptHub();
   }
 
   if (intent.type === "MARKETPLACE") {

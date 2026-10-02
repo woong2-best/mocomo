@@ -7,7 +7,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import type { SupportTierLevel } from "@prisma/client";
-import { clearLocalHomeData } from "@/lib/apt/local-home-store";
 import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -37,9 +36,7 @@ export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTie
 
   const handleSignOut = () => {
     const userId = session.user.id;
-    void clearLocalHomeData(userId).finally(() => {
-      void performWebSignOut({ userId });
-    });
+    void performWebSignOut({ userId });
   };
 
   return (

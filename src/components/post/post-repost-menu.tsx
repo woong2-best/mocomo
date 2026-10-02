@@ -14,9 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useComposeOptional } from "@/components/compose/compose-provider";
 import { postEngage } from "@/lib/post-engage-client";
-import { buildPostRepostQuoteDraft } from "@/lib/post-share";
-import { buildAptMailboxUrl } from "@/lib/apt/mailbox-compose-route";
-import { isAptPublicEnabled } from "@/lib/apt-public-gate";
 import { cn, formatNumber } from "@/lib/utils";
 import {
   FOLK_DROPDOWN_ITEM_CLASS,
@@ -127,20 +124,6 @@ export function PostRepostMenu({
         quotedAuthorUsername: authorUsername,
         quotedPreview: preview,
       });
-      return;
-    }
-    if (isAptPublicEnabled()) {
-      router.push(
-        buildAptMailboxUrl({
-          initialContent: buildPostRepostQuoteDraft({
-            postId,
-            authorUsername,
-            title,
-            content,
-          }),
-          initialTitle: t("post.quoteAuthor", { username: authorUsername }),
-        })
-      );
     }
   }
 

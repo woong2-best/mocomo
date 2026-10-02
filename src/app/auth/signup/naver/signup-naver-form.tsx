@@ -157,7 +157,6 @@ export function SignupNaverForm() {
         locale,
         countryCode,
         timeZone: tz,
-        homeFloor: check.homeFloor,
         birthYear,
         birthMonth,
         birthDay,

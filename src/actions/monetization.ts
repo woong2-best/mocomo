@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { ProductType, PaymentIntentType } from "@prisma/client";
@@ -57,7 +56,6 @@ export async function confirmStripeCheckout(sessionId: string) {
   if (result.type === "STUDIO_ASSET") {
     revalidatePath("/studio/library");
     revalidatePath("/studio/market");
-    revalidateAptHub();
   }
 
   return {

@@ -16,7 +16,7 @@ import {
   studioInternalPath,
 } from "@/studio/lib/host";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
-import { isAptPublicBlockedPath } from "@/lib/apt-public-gate";
+import { isRemovedGameApiPath, isRemovedGamePagePath } from "@/lib/removed-game-routes";
 import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
 import { getOperatorUsernames } from "@/lib/operator-config";
 import {
@@ -149,10 +149,11 @@ export default edgeAuth(async (req) => {
     return res;
   }
 
-  if (isAptPublicBlockedPath(pathname)) {
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "APT is temporarily unavailable." }, { status: 503 });
-    }
+  if (isRemovedGameApiPath(pathname)) {
+    return NextResponse.json({ error: "This feature has been removed." }, { status: 410 });
+  }
+
+  if (isRemovedGamePagePath(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = DEFAULT_LANDING_PATH;
     url.search = "";

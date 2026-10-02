@@ -5,7 +5,6 @@ export function isFastHubPath(pathname: string): boolean {
   if (!pathname) return false;
   if (isCommunityFeedPath(pathname)) return true;
   if (pathname === EXPLORE_PATH || pathname === "/discover") return true;
-  if (pathname === "/games" || pathname === "/market") return true;
   if (pathname === "/market" || pathname === "/messages") return true;
   if (pathname === "/rankings" || pathname === "/notifications") return true;
   if (pathname === "/voice" || pathname === "/live") return true;
@@ -18,12 +17,8 @@ export function isFastHubPath(pathname: string): boolean {
 const REALTIME_PREFIXES = [
   "/messages",
   "/c/",
-  "/games",
-  "/play/",
-  "/sketch-quiz",
   "/voice",
   "/live",
-  "/apt",
   "/call",
 ] as const;
 

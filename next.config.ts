@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { APT_SCENE_VIEWER_HEADERS, SECURITY_HEADERS } from "./src/lib/security-headers";
+import { SECURITY_HEADERS } from "./src/lib/security-headers";
 
 /** Legacy per-tier HTML slugs only (PNG art lives under /support/tier-art/). */
 const SUPPORT_TIER_SLUG_PATTERN =
@@ -101,40 +101,11 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
-    const aptScenePaths = [
-      "/apt/hero-assets/scene-material-assembly.html",
-      "/apt/materials/:path*",
-      "/apt/glb/:path*",
-      "/apt/hero-assets/scene-composition-config.json",
-      "/apt/reference/:path*",
-    ];
     return [
       {
         source: "/(.*)",
         headers: SECURITY_HEADERS,
       },
-      {
-        source: "/diorama/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      {
-        source: "/apt/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=86400, stale-while-revalidate=604800",
-          },
-        ],
-      },
-      ...aptScenePaths.map((source) => ({
-        source,
-        headers: APT_SCENE_VIEWER_HEADERS,
-      })),
     ];
   },
   images: {

@@ -10,7 +10,7 @@ import {
   parseUsedRegion,
   USED_SHIPPING_REGION,
 } from "@/lib/korea-regions";
-import { findCountry as findWorldCountry } from "@/lib/apt/world/world-countries";
+import { findCountry as findWorldCountry } from "@/lib/world-countries";
 
 /** Legacy KR shipping label — kept for DB backward compatibility */
 export { USED_SHIPPING_REGION };

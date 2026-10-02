@@ -2,7 +2,7 @@ import type { MessageAttachmentType } from "@prisma/client";
 import { atmLetterListPreview } from "@/lib/chat-atm-letter";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
-import { chatGameShareListPreview } from "@/lib/chat-game-share";
+import { stripLegacyGameShareMarker } from "@/lib/chat-legacy-game-share";
 import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 export type ChatAttachmentInput = {
   url: string;
@@ -94,8 +94,8 @@ export function lastMessagePreview(
   if (sharePreview) return sharePreview;
   const listingPreview = chatUsedListingListPreview(content);
   if (listingPreview) return listingPreview;
-  const gamePreview = chatGameShareListPreview(content);
-  if (gamePreview) return gamePreview;
+  const legacyGameNote = stripLegacyGameShareMarker(content);
+  if (legacyGameNote !== null) content = legacyGameNote;
   const letterPreview = atmLetterListPreview(content);
   if (letterPreview) return letterPreview;
   if (parseLetterDonationMarker(content)) return "편지가 도착했습니다";

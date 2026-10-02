@@ -52,12 +52,6 @@ import { canRecoverAccount } from "@/lib/account-deletion";
 import { createHumanChallenge, verifyHumanChallengeAnswer } from "@/lib/human-challenge";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
-import { APT_DEFAULT_FLOOR, APT_LOBBY_FLOOR, APT_TOTAL_FLOORS } from "@/lib/apt/constants";
-import { findCountry } from "@/lib/apt/world/world-countries";
-import {
-  pickAvailableSignupFloor,
-  tryResolvePrecheckedSignupFloor,
-} from "@/actions/apt";
 import { RESERVED_USERNAMES } from "@/lib/username-policy";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
@@ -98,7 +92,6 @@ const signupApplicationSchema = z.object({
   locale: localeField,
   countryCode: z.string().min(2).max(8).default("KR"),
   timeZone: z.string().min(1).max(64).default("UTC"),
-  homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   website: z.string().optional(),
   ...birthDateSignupFields,
 });
@@ -116,7 +109,6 @@ const registerSchema = z.object({
   locale: localeField,
   countryCode: z.string().min(2).max(8).default("KR"),
   timeZone: z.string().min(1).max(64).default("UTC"),
-  homeFloor: z.coerce.number().int().min(APT_LOBBY_FLOOR).max(APT_TOTAL_FLOORS).optional(),
   turnstileToken: z.string().optional(),
   /** 클라이언트 Turnstile 위젯 로드 실패 시 true */
   turnstileUnavailable: z.boolean().optional(),
@@ -414,7 +406,7 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
   const parsed = signupApplicationSchema.safeParse(data);
   if (!parsed.success) return { error: "actions.s15q8461" };
 
-  const { email: rawEmail, username, name, website, countryCode, homeFloor: preferredFloor } = parsed.data;
+  const { email: rawEmail, username, name, website, countryCode } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
 
   const countryBlock = assertCountrySelectable(countryCode);
@@ -423,10 +415,6 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
   if (website?.trim()) {
     return { error: "actions.swkz782" };
   }
-
-  const floorPick = await pickAvailableSignupFloor(countryCode, preferredFloor ?? APT_DEFAULT_FLOOR);
-  if (!floorPick.ok) return { error: floorPick.error };
-  const homeFloor = floorPick.floor;
 
   if (RESERVED_USERNAMES.has(username)) {
     return { error: "actions.stg06cy" };
@@ -447,7 +435,6 @@ export async function validateSignupApplication(data: z.input<typeof signupAppli
   return {
     ok: true as const,
     email,
-    homeFloor,
     message: availability.message,
     resumed: availability.canResume,
   };
@@ -468,7 +455,6 @@ export async function registerUser(
     locale,
     countryCode,
     timeZone: rawTimeZone,
-    homeFloor,
     turnstileToken,
     turnstileUnavailable,
     humanChallengeToken,
@@ -519,20 +505,11 @@ export async function registerUser(
     };
   }
 
-  const floorPromise =
-    availabilityPrechecked && homeFloor != null
-      ? tryResolvePrecheckedSignupFloor(countryCode, homeFloor)
-      : pickAvailableSignupFloor(countryCode, homeFloor ?? APT_DEFAULT_FLOOR);
-
-  const [userByEmailInitial, passwordHash, ip, floorPick] = await Promise.all([
+  const [userByEmailInitial, passwordHash, ip] = await Promise.all([
     resolveUserByEmail(email),
     bcrypt.hash(password, SIGNUP_BCRYPT_ROUNDS),
     getRequestIp(),
-    floorPromise,
   ]);
-
-  if (!floorPick.ok) return { error: floorPick.error };
-  const aptFloor = floorPick.floor;
 
   let userByEmail = userByEmailInitial;
 
@@ -621,38 +598,11 @@ export async function registerUser(
     const code = generateEmailCode();
     await saveSignupAuthCode(email, code);
 
-    const country = findCountry(countryCode) ?? findCountry("KR")!;
-    const [sent] = await Promise.all([
-      sendAuthCodeEmail(email, code, "signup"),
-      db.aptProfile.upsert({
-        where: { userId },
-        create: {
-          userId,
-          housingType: "apartment",
-          countryCode: countryCode.toUpperCase(),
-          homeFloor: aptFloor,
-          latitude: country.lat,
-          longitude: country.lng,
-          regionLabel: `${country.nameKo} APT`,
-          moveInCompletedAt: new Date(),
-        },
-        update: {
-          countryCode: countryCode.toUpperCase(),
-          homeFloor: aptFloor,
-          latitude: country.lat,
-          longitude: country.lng,
-          regionLabel: `${country.nameKo} APT`,
-          moveInCompletedAt: new Date(),
-        },
-      }),
-    ]);
+    const sent = await sendAuthCodeEmail(email, code, "signup");
 
     if (!sent.ok) {
       if (!isResume) {
-        await Promise.all([
-          db.user.delete({ where: { id: userId } }).catch(() => undefined),
-          db.aptProfile.delete({ where: { userId } }).catch(() => undefined),
-        ]);
+        await db.user.delete({ where: { id: userId } }).catch(() => undefined);
       }
       return { error: sent.error ?? "actions.s1j9c1k2" };
     }

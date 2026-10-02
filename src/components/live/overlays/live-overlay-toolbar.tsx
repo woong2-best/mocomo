@@ -3,19 +3,11 @@
 import { createTranslator } from "@/lib/i18n/messages";
 
 const t = createTranslator("en");
-import { CircleDot, Gift, Type, RotateCw, Sparkles, HelpCircle, MessageSquareText, Languages } from "lucide-react";
+import { Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
-import type {
-  LiveOverlayChosungQuizProps,
-  LiveOverlayLotteryProps,
-  LiveOverlayQuizProps,
-  LiveOverlayTextProps,
-  LiveOverlayWheelProps,
-  LiveOverlayWordGuessProps,
-} from "@/lib/live-overlays/types";
-import { toChosung } from "@/lib/live-overlays/chosung";
+import type { LiveOverlayTextProps } from "@/lib/live-overlays/types";
 
 export function LiveOverlayToolbar({
   compact = false,
@@ -25,28 +17,7 @@ export function LiveOverlayToolbar({
   const ctx = useLiveOverlayContextOptional();
   if (!ctx?.isHost) return null;
 
-  const {
-    state,
-    selectedId,
-    addWidget,
-    updateWidget,
-    updateWidgetProps,
-    removeWidget,
-    spinWheel,
-    resetWheel,
-    drawLottery,
-    startQuiz,
-    revealQuiz,
-    resetQuizRound,
-    clearQuizScores,
-    startWordGuess,
-    revealWordGuess,
-    resetWordGuessRound,
-    startChosungQuiz,
-    revealChosungQuiz,
-    resetChosungQuizRound,
-    clearChosungQuizScores,
-  } = ctx;
+  const { state, selectedId, addWidget, updateWidgetProps, removeWidget } = ctx;
 
   const selected = state.widgets.find((w) => w.id === selectedId);
 
@@ -62,26 +33,6 @@ export function LiveOverlayToolbar({
         <span className={`text-xs font-bold ${compact ? "text-white/90" : "text-muted-foreground"}`}>
           {t("live.s1du7aio")}
         </span>
-        <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("quiz")}>
-          <HelpCircle className="h-3.5 w-3.5" />
-          {t("live.s10iqc")}
-        </Button>
-        <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("chosungQuiz")}>
-          <Languages className="h-3.5 w-3.5" />
-          {t("live.s18q17hn")}
-        </Button>
-        <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("wordGuess")}>
-          <MessageSquareText className="h-3.5 w-3.5" />
-          {t("live.sd5ee2a")}
-        </Button>
-        <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("wheel")}>
-          <CircleDot className="h-3.5 w-3.5" />
-          {t("live.sr8tcw")}
-        </Button>
-        <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("lottery")}>
-          <Gift className="h-3.5 w-3.5" />
-          {t("live.s1039w")}
-        </Button>
         <Button type="button" size="sm" variant={compact ? "secondary" : "outline"} className="rounded-lg h-8 gap-1" onClick={() => addWidget("text")}>
           <Type className="h-3.5 w-3.5" />
           {t("live.svlwgx")}
@@ -90,70 +41,13 @@ export function LiveOverlayToolbar({
 
       {selected && (
         <div className={`space-y-2 pt-2 border-t ${compact ? "border-white/15" : "border-border"}`}>
-          <p className="text-[11px] font-medium opacity-80">
-            {selected.type === "wheel"
-              ? t("live.s38gvpu")
-              : t("live.s181qq72")}
-          </p>
+          <p className="text-[11px] font-medium opacity-80">{t("live.s181qq72")}</p>
 
-          {selected.type === "text" && (
-            <TextEditor
-              props={selected.props as LiveOverlayTextProps}
-              compact={compact}
-              onChange={(props) => updateWidgetProps(selected.id, props)}
-            />
-          )}
-          {selected.type === "wheel" && (
-            <WheelEditor
-              props={selected.props as LiveOverlayWheelProps}
-              size={selected.w}
-              compact={compact}
-              onChange={(props) => updateWidgetProps(selected.id, props)}
-              onSizeChange={(w) => updateWidget(selected.id, { w, h: w })}
-              onSpin={() => spinWheel(selected.id)}
-              onReset={() => resetWheel(selected.id)}
-            />
-          )}
-          {selected.type === "lottery" && (
-            <LotteryEditor
-              props={selected.props as LiveOverlayLotteryProps}
-              compact={compact}
-              onChange={(props) => updateWidgetProps(selected.id, props)}
-              onDraw={() => drawLottery(selected.id)}
-            />
-          )}
-          {selected.type === "quiz" && (
-            <QuizEditor
-              props={selected.props as LiveOverlayQuizProps}
-              compact={compact}
-              onChange={(props) => updateWidgetProps(selected.id, props)}
-              onStart={() => startQuiz(selected.id)}
-              onReveal={() => revealQuiz(selected.id)}
-              onReset={() => resetQuizRound(selected.id)}
-              onClearScores={() => clearQuizScores(selected.id)}
-            />
-          )}
-          {selected.type === "wordGuess" && (
-            <WordGuessEditor
-              props={selected.props as LiveOverlayWordGuessProps}
-              compact={compact}
-              onChange={(props) => updateWidgetProps(selected.id, props)}
-              onStart={() => startWordGuess(selected.id)}
-              onReveal={() => revealWordGuess(selected.id)}
-              onReset={() => resetWordGuessRound(selected.id)}
-            />
-          )}
-          {selected.type === "chosungQuiz" && (
-            <ChosungQuizEditor
-              props={selected.props as LiveOverlayChosungQuizProps}
-              compact={compact}
-              onChange={(props) => updateWidgetProps(selected.id, props)}
-              onStart={() => startChosungQuiz(selected.id)}
-              onReveal={() => revealChosungQuiz(selected.id)}
-              onReset={() => resetChosungQuizRound(selected.id)}
-              onClearScores={() => clearChosungQuizScores(selected.id)}
-            />
-          )}
+          <TextEditor
+            props={selected.props as LiveOverlayTextProps}
+            compact={compact}
+            onChange={(props) => updateWidgetProps(selected.id, props)}
+          />
 
           <Button
             type="button"
@@ -172,221 +66,6 @@ export function LiveOverlayToolbar({
           {t("live.s16lmseu")}
         </p>
       )}
-    </div>
-  );
-}
-
-function QuizEditor({
-  props,
-  compact,
-  onChange,
-  onStart,
-  onReveal,
-  onReset,
-  onClearScores,
-}: {
-  props: LiveOverlayQuizProps;
-  compact: boolean;
-  onChange: (p: LiveOverlayQuizProps) => void;
-  onStart: () => void;
-  onReveal: () => void;
-  onReset: () => void;
-  onClearScores: () => void;
-}) {
-  const inputCls = compact ? "h-8 bg-black/40 border-white/20 text-white" : "h-9";
-  const textareaCls = `w-full rounded-lg border px-2 py-1.5 text-xs ${compact ? "bg-black/40 border-white/20 text-white" : "border-input bg-background"}`;
-
-  return (
-    <div className="space-y-2">
-      <Input value={props.title} onChange={(e) => onChange({ ...props, title: e.target.value })} placeholder={t("live.s1m6bxsp")} className={inputCls} />
-      <Input value={props.question} onChange={(e) => onChange({ ...props, question: e.target.value })} placeholder={t("live.swxyc")} className={inputCls} />
-      {props.options.map((opt, i) => (
-        <div key={i} className="flex gap-1 items-center">
-          <span className="text-[10px] w-4 shrink-0">{i + 1}</span>
-          <Input
-            value={opt}
-            onChange={(e) => {
-              const options = [...props.options] as [string, string, string, string];
-              options[i] = e.target.value;
-              onChange({ ...props, options });
-            }}
-            placeholder={t("live.sxzul", { v0: i + 1 })}
-            className={inputCls}
-          />
-          <input
-            type="radio"
-            checked={props.correctIndex === i}
-            onChange={() => onChange({ ...props, correctIndex: i })}
-            title={t("live.sz0jk")}
-          />
-        </div>
-      ))}
-      <label className="text-[10px] flex items-center gap-2">
-        {t("live.ss0qpl4")}
-        <input
-          type="range"
-          min={10}
-          max={90}
-          value={props.durationSec}
-          onChange={(e) => onChange({ ...props, durationSec: Number(e.target.value) })}
-        />
-        {props.durationSec}초
-      </label>
-      <label className="text-[10px] flex items-center gap-2">
-        {t("live.snkpo6g")}
-        <input
-          type="number"
-          min={1}
-          max={100}
-          value={props.points}
-          onChange={(e) => onChange({ ...props, points: Number(e.target.value) || 10 })}
-          className="w-14 rounded border px-1"
-        />
-      </label>
-      <div className="flex flex-wrap gap-1.5">
-        <Button type="button" size="sm" className="rounded-lg h-8 flex-1" disabled={props.phase === "active"} onClick={onStart}>
-          {t("explore.start")}
-        </Button>
-        <Button type="button" size="sm" variant="secondary" className="rounded-lg h-8 flex-1" onClick={onReveal}>
-          {t("live.snkkxuv")}
-        </Button>
-        <Button type="button" size="sm" variant="outline" className="rounded-lg h-8 flex-1" onClick={onReset}>
-          {t("live.svei8")}
-        </Button>
-        <Button type="button" size="sm" variant="outline" className="rounded-lg h-8 flex-1" onClick={onClearScores}>
-          {t("live.s6bxus4")}
-        </Button>
-      </div>
-      <p className="text-[10px] opacity-70">{t("live.1_4_a_d_o")}</p>
-    </div>
-  );
-}
-
-function WordGuessEditor({
-  props,
-  compact,
-  onChange,
-  onStart,
-  onReveal,
-  onReset,
-}: {
-  props: LiveOverlayWordGuessProps;
-  compact: boolean;
-  onChange: (p: LiveOverlayWordGuessProps) => void;
-  onStart: () => void;
-  onReveal: () => void;
-  onReset: () => void;
-}) {
-  const inputCls = compact ? "h-8 bg-black/40 border-white/20 text-white" : "h-9";
-
-  return (
-    <div className="space-y-2">
-      <Input value={props.title} onChange={(e) => onChange({ ...props, title: e.target.value })} placeholder={t("live.s1okgkad")} className={inputCls} />
-      <Input value={props.category} onChange={(e) => onChange({ ...props, category: e.target.value })} placeholder={t("games.categories")} className={inputCls} />
-      <Input value={props.answer} onChange={(e) => onChange({ ...props, answer: e.target.value })} placeholder={t("live.skxg5l0")} className={inputCls} />
-      <Input value={props.hint} onChange={(e) => onChange({ ...props, hint: e.target.value })} placeholder={t("live.s11tik")} className={inputCls} />
-      <label className="text-[10px] flex items-center gap-2">
-        {t("live.ss0qpl4")}
-        <input
-          type="range"
-          min={15}
-          max={120}
-          value={props.durationSec}
-          onChange={(e) => onChange({ ...props, durationSec: Number(e.target.value) })}
-        />
-        {props.durationSec}초
-      </label>
-      <div className="flex gap-1.5">
-        <Button type="button" size="sm" className="rounded-lg h-8 flex-1" disabled={props.phase === "active"} onClick={onStart}>
-          {t("explore.start")}
-        </Button>
-        <Button type="button" size="sm" variant="secondary" className="rounded-lg h-8 flex-1" onClick={onReveal}>
-          {t("live.snkkxuv")}
-        </Button>
-        <Button type="button" size="sm" variant="outline" className="rounded-lg h-8 flex-1" onClick={onReset}>
-          {t("live.svei8")}
-        </Button>
-      </div>
-      <p className="text-[10px] opacity-70">{t("live.sqfhd7q")}</p>
-    </div>
-  );
-}
-
-function ChosungQuizEditor({
-  props,
-  compact,
-  onChange,
-  onStart,
-  onReveal,
-  onReset,
-  onClearScores,
-}: {
-  props: LiveOverlayChosungQuizProps;
-  compact: boolean;
-  onChange: (p: LiveOverlayChosungQuizProps) => void;
-  onStart: () => void;
-  onReveal: () => void;
-  onReset: () => void;
-  onClearScores: () => void;
-}) {
-  const inputCls = compact ? "h-8 bg-black/40 border-white/20 text-white" : "h-9";
-
-  return (
-    <div className="space-y-2">
-      <Input value={props.title} onChange={(e) => onChange({ ...props, title: e.target.value })} placeholder={t("live.s1okgkad")} className={inputCls} />
-      <Input value={props.category} onChange={(e) => onChange({ ...props, category: e.target.value })} placeholder={t("games.categories")} className={inputCls} />
-      <Input
-        value={props.answer}
-        onChange={(e) => {
-          const answer = e.target.value;
-          onChange({ ...props, answer, chosung: toChosung(answer) });
-        }}
-        placeholder={t("live.s1g6u4z1")}
-        className={inputCls}
-      />
-      {props.chosung && (
-        <p className="text-center text-lg font-black tracking-widest text-sky-300 py-1">
-          {props.chosung}
-        </p>
-      )}
-      <Input value={props.hint} onChange={(e) => onChange({ ...props, hint: e.target.value })} placeholder={t("live.s1qyb3xg")} className={inputCls} />
-      <label className="text-[10px] flex items-center gap-2">
-        {t("live.ss0qpl4")}
-        <input
-          type="range"
-          min={15}
-          max={90}
-          value={props.durationSec}
-          onChange={(e) => onChange({ ...props, durationSec: Number(e.target.value) })}
-        />
-        {props.durationSec}초
-      </label>
-      <label className="text-[10px] flex items-center gap-2">
-        {t("live.snkpo6g")}
-        <input
-          type="number"
-          min={1}
-          max={100}
-          value={props.points}
-          onChange={(e) => onChange({ ...props, points: Number(e.target.value) || 10 })}
-          className="w-14 rounded border px-1"
-        />
-      </label>
-      <div className="flex flex-wrap gap-1.5">
-        <Button type="button" size="sm" className="rounded-lg h-8 flex-1" disabled={props.phase === "active"} onClick={onStart}>
-          {t("explore.start")}
-        </Button>
-        <Button type="button" size="sm" variant="secondary" className="rounded-lg h-8 flex-1" onClick={onReveal}>
-          {t("live.snkkxuv")}
-        </Button>
-        <Button type="button" size="sm" variant="outline" className="rounded-lg h-8 flex-1" onClick={onReset}>
-          {t("live.svei8")}
-        </Button>
-        <Button type="button" size="sm" variant="outline" className="rounded-lg h-8 flex-1" onClick={onClearScores}>
-          {t("live.s6bxus4")}
-        </Button>
-      </div>
-      <p className="text-[10px] opacity-70">{t("live.s10gf0fd")}</p>
     </div>
   );
 }
@@ -438,104 +117,3 @@ function TextEditor({
   );
 }
 
-function WheelEditor({
-  props,
-  size,
-  compact,
-  onChange,
-  onSizeChange,
-  onSpin,
-  onReset,
-}: {
-  props: LiveOverlayWheelProps;
-  size: number;
-  compact: boolean;
-  onChange: (p: LiveOverlayWheelProps) => void;
-  onSizeChange: (w: number) => void;
-  onSpin: () => void;
-  onReset: () => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="text-[10px] flex items-center gap-2">
-        {t("live.s10eo4")}
-        <input
-          type="range"
-          min={14}
-          max={45}
-          value={size}
-          onChange={(e) => onSizeChange(Number(e.target.value))}
-          className="flex-1"
-        />
-      </label>
-      <textarea
-        value={props.segments.map((s) => s.label).join("\n")}
-        onChange={(e) => {
-          const labels = e.target.value.split("\n");
-          onChange({
-            ...props,
-            segments: labels.map((label, i) => ({
-              id: props.segments[i]?.id ?? String(i + 1),
-              label,
-              weight: 1,
-            })),
-          });
-        }}
-        rows={6}
-        placeholder={t("live.n1_n2_n3_n4")}
-        className={`w-full rounded-lg border px-2 py-1.5 text-xs ${compact ? "bg-black/40 border-white/20 text-white" : "border-input bg-background"}`}
-      />
-      <div className="flex gap-1.5">
-        <Button type="button" size="sm" className="rounded-lg h-8 gap-1 flex-1" disabled={props.spinning} onClick={onSpin}>
-          <RotateCw className={`h-3.5 w-3.5 ${props.spinning ? "animate-spin" : ""}`} />
-          {t("live.sr8low")}
-        </Button>
-        <Button type="button" size="sm" variant="secondary" className="rounded-lg h-8 flex-1" disabled={props.spinning} onClick={onReset}>
-          {t("live.suvxgs")}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function LotteryEditor({
-  props,
-  compact,
-  onChange,
-  onDraw,
-}: {
-  props: LiveOverlayLotteryProps;
-  compact: boolean;
-  onChange: (p: LiveOverlayLotteryProps) => void;
-  onDraw: () => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <Input
-        value={props.title}
-        onChange={(e) => onChange({ ...props, title: e.target.value })}
-        placeholder={t("live.s1cb10k9")}
-        className={compact ? "h-8 bg-black/40 border-white/20 text-white" : "h-9"}
-      />
-      <textarea
-        value={props.entries.join("\n")}
-        onChange={(e) => onChange({ ...props, entries: e.target.value.split("\n") })}
-        rows={5}
-        placeholder={t("live.n_1_n_2")}
-        className={`w-full rounded-lg border px-2 py-1.5 text-xs ${compact ? "bg-black/40 border-white/20 text-white" : "border-input bg-background"}`}
-      />
-      <label className="text-[10px] flex items-center gap-1">
-        <input
-          type="checkbox"
-          checked={props.removeWinner}
-          onChange={(e) => onChange({ ...props, removeWinner: e.target.checked })}
-        />
-        {t("live.sgtztk7")}
-      </label>
-      <Button type="button" size="sm" className="rounded-lg h-8 gap-1 w-full" disabled={props.drawing} onClick={onDraw}>
-        <Sparkles className="h-3.5 w-3.5" />
-        {t("live.sqsgnsc")}
-      </Button>
-    </div>
-  );
-}

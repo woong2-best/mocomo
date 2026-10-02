@@ -28,7 +28,6 @@ const ROOT_PATHS = new Set([
   "/",
   DEFAULT_LANDING_PATH,
   EXPLORE_PATH,
-  "/games",
   "/notifications",
   "/messages",
   "/discover",
@@ -55,15 +54,6 @@ function titleForPath(
   if (pathname.startsWith("/auth/")) return t("settings.account");
   if (pathname === EXPLORE_PATH) return t("nav.explore");
   if (isCommunityFeedPath(pathname)) return t("nav.home");
-  if (pathname === "/games") return t("nav.games");
-  if (pathname.startsWith("/games/")) {
-    if (pathname === "/games/ranking") return t("ui.game_rankings");
-    if (pathname === "/games/history") return t("games.history");
-    if (pathname === "/games/achievements") return t("ui.achievements");
-    if (pathname === "/games/season") return t("ui.season");
-    if (pathname === "/games/live") return t("games.spectate");
-    return "GAME";
-  }
   if (pathname === "/voice/new") return t("ui.create_broadcast");
   if (pathname.startsWith("/live/clips")) return t("ui.upload_clip");
   if (pathname === "/live") return t("nav.live");
@@ -72,8 +62,6 @@ function titleForPath(
   if (pathname === "/cosplay/apply") return t("settings.cosplayApply");
   if (pathname.startsWith("/cosplay")) return t("nav.cosplay");
   if (pathname === "/messages/new") return t("messages.newTitle");
-  if (pathname === "/apt/house") return t("nav.home");
-  if (pathname === "/apt/cohabitation") return t("ui.roommates");
   if (pathname === "/notifications") return t("nav.notifications");
   if (pathname === "/messages") return t("nav.messages");
   if (pathname === "/market/new") return t("nav.compose");
@@ -92,8 +80,6 @@ function titleForPath(
   if (pathname === "/events" || pathname === "/events/new") return t("ui.create_ad");
   if (pathname === "/communities") return t("nav.communities");
   if (pathname === "/communities/new") return t("ui.create_qna");
-  if (pathname === "/sketch-quiz") return t("ui.sketch_quiz");
-  if (pathname.startsWith("/play/")) return t("games.title");
   if (pathname === "/voice") return t("ui.voice_live");
   if (pathname.match(/^\/voice\/[^/]+$/) && pathname !== "/voice/new") return t("nav.liveStudio");
   if (pathname === "/star") return t("nav.star");

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { revalidateAptHub } from "@/lib/apt/revalidate-hub";
 import { requireAuth } from "@/lib/auth";
 import {
   confirmCheckoutPaymentIntent,
@@ -36,7 +35,6 @@ function revalidateAfterPayment(type: string) {
   if (type === "STUDIO_ASSET") {
     revalidatePath("/studio/library");
     revalidatePath("/studio/market");
-    revalidateAptHub();
   }
   if (type === "MARKETPLACE") {
     revalidatePath("/market");

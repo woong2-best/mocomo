@@ -1,4 +1,4 @@
-export type PreviewPresetId = "pastel" | "cozy" | "apt";
+export type PreviewPresetId = "pastel" | "cozy";
 
 export const PREVIEW_PRESETS: Record<
   PreviewPresetId,
@@ -17,13 +17,6 @@ export const PREVIEW_PRESETS: Record<
     hemiSky: 0xffecd9,
     hemiGround: 0xe8d4c4,
     floor: 0xf0e0d0,
-  },
-  apt: {
-    label: "APT 홈",
-    background: 0xf5f0ff,
-    hemiSky: 0xe8f0ff,
-    hemiGround: 0xd8e8f8,
-    floor: 0xeae4f8,
   },
 };
 

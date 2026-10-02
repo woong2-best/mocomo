@@ -3,8 +3,6 @@
 import type { Session } from "next-auth";
 import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
 import { AccountSwitchSync } from "@/components/providers/account-switch-sync";
-import { LocalHomeSessionSync } from "@/components/providers/local-home-session-sync";
-
 export function SessionProvider({
   children,
   session,
@@ -19,7 +17,6 @@ export function SessionProvider({
       refetchInterval={0}
     >
       <AccountSwitchSync />
-      <LocalHomeSessionSync />
       {children}
     </NextAuthSessionProvider>
   );

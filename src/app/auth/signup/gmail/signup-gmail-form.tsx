@@ -158,7 +158,6 @@ export function SignupGmailForm() {
         locale,
         countryCode,
         timeZone: tz,
-        homeFloor: check.homeFloor,
         birthYear,
         birthMonth,
         birthDay,

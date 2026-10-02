@@ -16,7 +16,6 @@ import { LiveHostPublishBlocked } from "@/components/live/live-host-publish-bloc
 import { LiveHostCollabPreview } from "@/components/live/live-collab-publish-studio";
 import { LiveOverlayLayer } from "@/components/live/overlays/live-overlay-layer";
 import { LiveOverlayToolbar } from "@/components/live/overlays/live-overlay-toolbar";
-import { LiveGamesHubLink } from "@/components/live/overlays/live-games-hub-link";
 import { useLiveOverlayContextOptional } from "@/components/live/overlays/live-overlay-context";
 import { useFaceFilterPipeline } from "@/hooks/use-face-filter-pipeline";
 import { CloudflareWhipPublisher } from "@/lib/cloudflare-whip-publish";
@@ -913,7 +912,6 @@ export function LiveBrowserStudio({
   const broadcastControls = (
     <>
       <LiveOverlayToolbar compact={immersive} />
-      <LiveGamesHubLink compact={immersive} />
 
       {!screenOn && !vtuberMode && (
         <FaceFilterStrip

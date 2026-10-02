@@ -14,7 +14,6 @@ import {
   shouldHideNativeAppNav,
   shouldHideNativeAppHeader,
 } from "@/lib/native-app-shell";
-import { isAptImmersivePath } from "@/lib/apt-route";
 import { REELS_PATH } from "@/lib/site-routes";
 import { nativeRouteVariants } from "@/lib/motion-presets";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -37,7 +36,6 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const hideHeader = shouldHideNativeAppHeader(pathname);
   const mainPb = nativeAppMainPadding(pathname);
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
-  const isAptImmersive = isAptImmersivePath(pathname ?? "");
   const isReelsImmersive =
     pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`);
 
@@ -79,10 +77,6 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
 
   if (isVoiceRoom) {
     return <main className="min-h-dvh bg-background">{pageMotion}</main>;
-  }
-
-  if (isAptImmersive) {
-    return <main className="fixed inset-0 z-40 overflow-hidden bg-[#0a0a12]">{children}</main>;
   }
 
   if (isReelsImmersive) {
