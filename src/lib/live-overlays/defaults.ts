@@ -43,7 +43,7 @@ function newId() {
 
 const defaultProps: Record<LiveOverlayWidgetType, LiveOverlayWidget["props"]> = {
   text: {
-    content: "방송 텍스트",
+    content: "Broadcast text",
     fontSize: 28,
     color: "#ffffff",
     background: "rgba(0,0,0,0.55)",
