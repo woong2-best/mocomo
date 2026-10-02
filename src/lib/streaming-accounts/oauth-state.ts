@@ -38,31 +38,31 @@ export function verifyStreamingOAuthState(
   expectedPlatform: string
 ): { userId: string } | { error: string } {
   const parts = state.split(".");
-  if (parts.length !== 2) return { error: "잘못된 OAuth 상태입니다." };
+  if (parts.length !== 2) return { error: "Invalid OAuth state." };
   const [body, sig] = parts;
-  if (!body || !sig) return { error: "잘못된 OAuth 상태입니다." };
+  if (!body || !sig) return { error: "Invalid OAuth state." };
   const expected = sign(body);
   try {
     const a = Buffer.from(sig);
     const b = Buffer.from(expected);
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      return { error: "OAuth 상태 서명이 유효하지 않습니다." };
+      return { error: "OAuth state signature is invalid." };
     }
   } catch {
-    return { error: "OAuth 상태 서명이 유효하지 않습니다." };
+    return { error: "OAuth state signature is invalid." };
   }
   try {
     const payload = JSON.parse(
       Buffer.from(body, "base64url").toString("utf8")
     ) as StatePayload;
-    if (payload.exp < Date.now()) return { error: "OAuth 세션이 만료되었습니다." };
+    if (payload.exp < Date.now()) return { error: "OAuth session expired." };
     if (payload.platform !== expectedPlatform) {
-      return { error: "플랫폼이 일치하지 않습니다." };
+      return { error: "Platform does not match." };
     }
-    if (!payload.userId) return { error: "사용자 정보가 없습니다." };
+    if (!payload.userId) return { error: "User information is missing." };
     return { userId: payload.userId };
   } catch {
-    return { error: "OAuth 상태를 해석할 수 없습니다." };
+    return { error: "Could not parse OAuth state." };
   }
 }
 

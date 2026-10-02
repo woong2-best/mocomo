@@ -49,7 +49,7 @@ function parseYoutubeChannelRef(raw: string): {
   customUrl?: string;
 } | { error: string } {
   const input = raw.trim();
-  if (!input) return { error: "YouTube 채널 URL 또는 @핸들을 입력해 주세요." };
+  if (!input) return { error: "Enter a YouTube channel URL or @handle." };
   if (YT_CHANNEL_ID.test(input)) return { channelId: input };
   if (YT_HANDLE.test(input)) return { handle: input.slice(1) };
   if (/^[\w.-]{3,30}$/.test(input) && !input.includes(".")) {
@@ -64,7 +64,7 @@ function parseYoutubeChannelRef(raw: string): {
       host !== "m.youtube.com" &&
       host !== "youtube-nocookie.com"
     ) {
-      return { error: "youtube.com 채널 URL만 지원합니다." };
+      return { error: "Only youtube.com channel URLs are supported." };
     }
     const parts = parsed.pathname.split("/").filter(Boolean);
     if (parts[0]?.startsWith("@")) return { handle: parts[0].slice(1) };
@@ -74,9 +74,9 @@ function parseYoutubeChannelRef(raw: string): {
     if (parts[0] === "c" && parts[1]) return { customUrl: parts[1] };
     if (parts[0] === "user" && parts[1]) return { customUrl: parts[1] };
   } catch {
-    return { error: "유효한 YouTube 채널 URL이 아닙니다." };
+    return { error: "Not a valid YouTube channel URL." };
   }
-  return { error: "YouTube 채널 URL 또는 @핸들을 입력해 주세요. (영상 URL 아님)" };
+  return { error: "Enter a YouTube channel URL or @handle. (Not a video URL)" };
 }
 
 async function fetchYoutubeChannelByApi(params: {
@@ -220,7 +220,7 @@ async function resolveYoutubeChannel(
 
   return {
     error:
-      "YouTube 채널을 찾을 수 없습니다. 채널 URL(예: https://www.youtube.com/@핸들)을 확인해 주세요.",
+      "YouTube channel not found. Check the channel URL (e.g., https://www.youtube.com/@handle).",
   };
 }
 
@@ -281,7 +281,7 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
 
   async exchangeOAuthCode(code, redirectUri, _opts?) {
     const creds = googleClientCreds();
-    if (!creds) throw new Error("YouTube OAuth가 설정되지 않았습니다.");
+    if (!creds) throw new Error("YouTube OAuth is not configured.");
 
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -331,12 +331,12 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
     try {
       channelJson = JSON.parse(channelBody) as typeof channelJson;
     } catch {
-      throw new Error("YouTube 채널 응답을 해석할 수 없습니다.");
+      throw new Error("Could not parse YouTube channel response.");
     }
     const item = channelJson.items?.[0];
     if (!item?.id) {
       throw new Error(
-        "이 Google 계정에 YouTube 채널이 없습니다. youtube.com에서 채널을 만든 뒤 같은 계정으로 다시 연결해 주세요."
+        "This Google account has no YouTube channel. Create a channel on youtube.com, then reconnect with the same account."
       );
     }
 
@@ -360,7 +360,7 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
   },
 
   parseManualChannelInput() {
-    return { error: "YouTube는 Google 로그인으로만 연결할 수 있습니다." };
+    return { error: "YouTube can only be connected with Google sign-in." };
   },
 
   async verifyProfileCode() {
@@ -437,7 +437,7 @@ export async function diagnoseYoutubeVerification(
     return {
       ok: false,
       error:
-        "YouTube 채널 설명에 검증 코드가 없습니다. YouTube 스튜디오 → 맞춤설정 → 기본 정보의 설명에 코드를 넣고 게시하세요.",
+        "Verification code not found in YouTube channel description. Add the code under YouTube Studio → Customization → Basic info and publish.",
     };
   }
   return { ok: true };

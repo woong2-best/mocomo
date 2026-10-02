@@ -41,7 +41,7 @@ function unwrapContent<T>(json: ChzzkApiEnvelope<T> | T): T {
 
 async function exchangeChzzkToken(body: Record<string, string>): Promise<ChzzkTokenContent> {
   const creds = chzzkClientCreds();
-  if (!creds) throw new Error("치지직 OAuth가 설정되지 않았습니다.");
+  if (!creds) throw new Error("CHZZK OAuth is not configured.");
 
   const res = await fetch(`${CHZZK_OPEN_API}/auth/v1/token`, {
     method: "POST",
@@ -59,12 +59,12 @@ async function exchangeChzzkToken(body: Record<string, string>): Promise<ChzzkTo
     const msg =
       (json && "message" in json && json.message) ||
       `치지직 토큰 교환 실패 (${res.status})`;
-    throw new Error(typeof msg === "string" ? msg : "치지직 토큰 교환 실패");
+    throw new Error(typeof msg === "string" ? msg : "CHZZK token exchange failed");
   }
 
   const content = unwrapContent(json ?? {});
   if (!content.accessToken) {
-    throw new Error("치지직 Access Token을 받지 못했습니다.");
+    throw new Error("Did not receive CHZZK access token.");
   }
   return content;
 }
@@ -140,7 +140,7 @@ export const chzzkStreamingProvider: StreamingPlatformProvider = {
 
   async exchangeOAuthCode(code, redirectUri, opts) {
     const state = opts?.state?.trim();
-    if (!state) throw new Error("치지직 OAuth state가 없습니다.");
+    if (!state) throw new Error("CHZZK OAuth state is missing.");
 
     const tokenContent = await exchangeChzzkToken({
       grantType: "authorization_code",
@@ -150,7 +150,7 @@ export const chzzkStreamingProvider: StreamingPlatformProvider = {
     });
 
     const creds = chzzkClientCreds();
-    if (!creds) throw new Error("치지직 OAuth가 설정되지 않았습니다.");
+    if (!creds) throw new Error("CHZZK OAuth is not configured.");
 
     const userRes = await fetch(`${CHZZK_OPEN_API}/open/v1/users/me`, {
       headers: {
@@ -161,13 +161,13 @@ export const chzzkStreamingProvider: StreamingPlatformProvider = {
       cache: "no-store",
     });
     if (!userRes.ok) {
-      throw new Error("치지직 채널 정보를 가져올 수 없습니다.");
+      throw new Error("Could not fetch CHZZK channel information.");
     }
 
     const userJson = (await userRes.json()) as ChzzkApiEnvelope<ChzzkUserMe>;
     const me = unwrapContent(userJson);
     if (!me.channelId?.trim()) {
-      throw new Error("치지직 채널을 확인할 수 없습니다.");
+      throw new Error("Could not verify CHZZK channel.");
     }
 
     const channelId = me.channelId.trim();
@@ -195,7 +195,7 @@ export const chzzkStreamingProvider: StreamingPlatformProvider = {
   },
 
   parseManualChannelInput() {
-    return { error: "치지직은 네이버(치지직) 계정 OAuth로만 연결할 수 있습니다." };
+    return { error: "CHZZK can only be connected via Naver (CHZZK) account OAuth." };
   },
 
   async verifyProfileCode(channel, verificationCode) {
@@ -238,7 +238,7 @@ export const chzzkStreamingProvider: StreamingPlatformProvider = {
   async resolveLiveSource(account) {
     const channelId = account.channelId.trim();
     if (!channelId) {
-      return { error: "치지직 채널 ID가 없습니다." };
+      return { error: "CHZZK channel ID is missing." };
     }
     return {
       provider: "CHZZK" as const,
@@ -257,7 +257,7 @@ export async function enrichChzzkChannel(
   if (!info?.channelId) {
     return {
       error:
-        "치지직 채널을 찾을 수 없습니다. OAuth로 다시 연결해 주세요.",
+        "CHZZK channel not found. Reconnect with OAuth.",
     };
   }
   return {
@@ -277,7 +277,7 @@ export async function diagnoseChzzkVerification(
     return {
       ok: false,
       error:
-        "치지직에서 채널 정보를 읽지 못했습니다. OAuth로 다시 연결해 주세요.",
+        "Could not read channel information from CHZZK. Reconnect with OAuth.",
     };
   }
   const liveTitle = await fetchChzzkLiveTitle(channelId);
@@ -288,7 +288,7 @@ export async function diagnoseChzzkVerification(
     return {
       ok: false,
       error:
-        "검증 코드가 일치하지 않습니다. 치지직 OAuth 연결을 사용해 주세요.",
+        "Verification code does not match. Use CHZZK OAuth connection.",
     };
   }
   return { ok: true };

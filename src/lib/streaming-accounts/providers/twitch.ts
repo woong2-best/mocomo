@@ -33,7 +33,7 @@ export const twitchStreamingProvider: StreamingPlatformProvider = {
 
   async exchangeOAuthCode(code, redirectUri, _opts?) {
     const creds = twitchCreds();
-    if (!creds) throw new Error("Twitch OAuth가 설정되지 않았습니다.");
+    if (!creds) throw new Error("Twitch OAuth is not configured.");
 
     const tokenRes = await fetch("https://id.twitch.tv/oauth2/token", {
       method: "POST",
@@ -63,7 +63,7 @@ export const twitchStreamingProvider: StreamingPlatformProvider = {
         "Client-Id": creds.clientId,
       },
     });
-    if (!userRes.ok) throw new Error("Twitch 사용자 정보를 가져올 수 없습니다.");
+    if (!userRes.ok) throw new Error("Could not fetch Twitch user information.");
     const userJson = (await userRes.json()) as {
       data?: Array<{
         id: string;
@@ -73,7 +73,7 @@ export const twitchStreamingProvider: StreamingPlatformProvider = {
       }>;
     };
     const user = userJson.data?.[0];
-    if (!user) throw new Error("Twitch 계정을 확인할 수 없습니다.");
+    if (!user) throw new Error("Could not verify Twitch account.");
 
     const channel: StreamingChannelInfo = {
       channelId: user.login.toLowerCase(),
@@ -95,7 +95,7 @@ export const twitchStreamingProvider: StreamingPlatformProvider = {
   },
 
   parseManualChannelInput() {
-    return { error: "Twitch는 OAuth로만 연결할 수 있습니다." };
+    return { error: "Twitch can only be connected via OAuth." };
   },
 
   async verifyProfileCode() {
@@ -138,7 +138,7 @@ export const twitchStreamingProvider: StreamingPlatformProvider = {
     });
     if ("error" in parsed) return parsed;
     if (parsed.externalId.toLowerCase() !== account.channelId.toLowerCase()) {
-      return { error: "Twitch 채널 ID가 일치하지 않습니다." };
+      return { error: "Twitch channel ID does not match." };
     }
     return parsed;
   },
