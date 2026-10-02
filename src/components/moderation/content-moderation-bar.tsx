@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useTransition, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -44,7 +47,7 @@ export function ContentModerationBar({
           ? await adminForceDeletePost(targetId)
           : targetType === "USED_LISTING"
             ? await adminForceDeleteUsedListing(targetId)
-            : { error: "지원하지 않는 유형입니다." };
+            : { error: t("moderation.s15qdxqo") };
 
       if (res.error) {
         setActionError(errorText(res.error));
@@ -77,7 +80,7 @@ export function ContentModerationBar({
             />
           ) : (
             <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-              <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}>신고</Link>
+              <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`}>{t("report.sy3gg")}</Link>
             </Button>
           )
         ) : null}
@@ -95,8 +98,8 @@ export function ContentModerationBar({
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5">
             <p className="text-xs text-destructive">
               {targetType === "USED_LISTING"
-                ? "이 중고 글을 강제 삭제할까요?"
-                : "이 게시물을 강제 삭제할까요?"}
+                ? t("moderation.sn9itzc")
+                : t("moderation.skdxcir")}
             </p>
             <Button
               type="button"
@@ -106,7 +109,7 @@ export function ContentModerationBar({
               disabled={pending}
               onClick={executeForceDelete}
             >
-              {pending ? "삭제 중…" : "삭제"}
+              {pending ? t("moderation.s1wbcp9i") : t("toast.delete")}
             </Button>
             <Button
               type="button"
