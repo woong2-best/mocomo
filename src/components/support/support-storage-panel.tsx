@@ -62,8 +62,7 @@ export async function SupportStoragePanel() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatUsd(item.pricePaid)} 구매
-                    {item.gift && ` · @${item.gift.receiver.username}에게 전송`}
+                    {formatUsd(item.pricePaid)}Buy{item.gift && ` · @${item.gift.receiver.username}에게 전송`}
                   </p>
                 </div>
               </div>
