@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useEffect } from "react";
 import Link from "next/link";
@@ -27,10 +30,10 @@ export default function WalletError({
           다시 시도
         </Button>
         <Button type="button" variant="secondary" asChild>
-          <Link href="/wallet?topup=1">MOCO 충전</Link>
+          <Link href="/wallet?topup=1">{i18n("lib.gems.moco_3")}</Link>
         </Button>
         <Button type="button" variant="outline" asChild>
-          <Link href="/">홈으로</Link>
+          <Link href="/">{i18n("events.swcstk")}</Link>
         </Button>
       </div>
     </div>
