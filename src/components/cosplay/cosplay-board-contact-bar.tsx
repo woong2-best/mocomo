@@ -1,4 +1,6 @@
 "use client";
+const i18n = createTranslator("en");
+
 
 
 import { createTranslator } from "@/lib/i18n/messages";
@@ -44,7 +46,7 @@ export function CosplayBoardContactBar({
   return (
     <div className="px-4 py-3 border-t border-[#d6d6d6] dark:border-border bg-[#f0f4ff] dark:bg-muted/30 flex flex-wrap items-center gap-3">
       <p className="text-xs text-muted-foreground flex-1 min-w-[12rem]">
-        「{postTitle}」 문의 — @{authorUsername}
+        「{postTitle}{i18n("cosplay.s13p0xbb")}{authorUsername}
       </p>
       {isSignedIn && canMessage ? (
         <Button
@@ -55,11 +57,11 @@ export function CosplayBoardContactBar({
           onClick={contact}
         >
           <Mail className="h-3.5 w-3.5" />
-          {pending ? t("discovery.seed2mt") : t("cosplay.sy6i8yh")}
+          {pending ? i18n("discovery.seed2mt") : i18n("cosplay.sy6i8yh")}
         </Button>
       ) : (
         <Button size="sm" variant="secondary" className="rounded-lg" asChild>
-          <Link href={`/auth/signin?callbackUrl=/u/${authorUsername}`}>{t("cosplay.s1j6pm0w")}</Link>
+          <Link href={`/auth/signin?callbackUrl=/u/${authorUsername}`}>{i18n("cosplay.s1j6pm0w")}</Link>
         </Button>
       )}
       {error && <p className="text-xs text-destructive w-full">{error}</p>}

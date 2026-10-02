@@ -1,4 +1,6 @@
 "use client";
+const i18n = createTranslator("en");
+
 
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -20,8 +22,8 @@ import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { NativePageTitle } from "@/components/layout/app-page-chrome";
 
 const MODES: { id: CosplayBoardMode; label: string }[] = [
-  { id: "rental", label: t("cosplay.s1erulvc") },
-  { id: "purchase", label: t("cosplay.suins") },
+  { id: "rental", label: i18n("cosplay.s1erulvc") },
+  { id: "purchase", label: i18n("cosplay.suins") },
 ];
 
 function BoardRow({ post, index }: { post: CosplayBoardListItem; index: number }) {
@@ -34,7 +36,7 @@ function BoardRow({ post, index }: { post: CosplayBoardListItem; index: number }
     >
       <td className="py-2 px-2 text-center text-[11px] text-muted-foreground tabular-nums">
         {post.isNotice ? (
-          <span className="font-bold text-[#c0392b]">{t("lib.community-server.suiy3")}</span>
+          <span className="font-bold text-[#c0392b]">{i18n("lib.community-server.suiy3")}</span>
         ) : (
           index
         )}
@@ -126,7 +128,7 @@ export function CosplayBoard({
               <Camera className="h-5 w-5 text-pink-500" />
               코스프레 마켓
             </h1>
-            <p className="text-xs text-muted-foreground mt-1">{t("cosplay.s1qrjokj")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{i18n("cosplay.s1qrjokj")}</p>
           </div>
         </NativePageTitle>
         <div className="flex flex-wrap gap-2">
@@ -146,14 +148,14 @@ export function CosplayBoard({
       </div>
 
       {!dbReady && (
-        <DbSetupBanner title={t("cosplay.db_supabase_sql_z5")} />
+        <DbSetupBanner title={i18n("cosplay.db_supabase_sql_z5")} />
       )}
 
       <div className="flex items-center justify-center">
         <div
           className="inline-flex rounded-full border-2 border-[#3b4890]/30 bg-[#eef1fb] dark:bg-muted/40 p-1 shadow-sm"
           role="tablist"
-          aria-label={t("cosplay.sul9ncw")}
+          aria-label={i18n("cosplay.sul9ncw")}
         >
           {MODES.map((item) => {
             const active = mode === item.id;
@@ -186,21 +188,21 @@ export function CosplayBoard({
       >
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[#d6d6d6] dark:border-border bg-[#f7f7f7] dark:bg-muted/30 text-[11px] text-muted-foreground">
           <span>
-            {mode === "rental" ? t("cosplay.s1erulvc") : t("cosplay.suins")} 게시판 · 총{" "}
+            {mode === "rental" ? i18n("cosplay.s1erulvc") : i18n("cosplay.suins")}{i18n("cosplay.s1h5zrx0")}{" "}
             <strong className="text-foreground">{totalCount}</strong>개
           </span>
-          <span className="hidden sm:inline">{t("cosplay.s1d03b25")}</span>
+          <span className="hidden sm:inline">{i18n("cosplay.s1d03b25")}</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[320px] border-collapse">
             <thead>
               <tr className="bg-[#3b4890] text-white text-[11px]">
-                <th className="w-12 py-2 px-2 font-semibold">{t("cosplay.sx8s0")}</th>
-                <th className="py-2 px-2 text-left font-semibold">{t("cosplay.sz28d")}</th>
-                <th className="w-24 py-2 px-2 font-semibold hidden sm:table-cell">{t("cosplay.sqg3cw")}</th>
-                <th className="w-16 py-2 px-2 font-semibold hidden md:table-cell">{t("cosplay.sv5fg")}</th>
-                <th className="w-14 py-2 px-2 font-semibold hidden md:table-cell">{t("home.views")}</th>
+                <th className="w-12 py-2 px-2 font-semibold">{i18n("cosplay.sx8s0")}</th>
+                <th className="py-2 px-2 text-left font-semibold">{i18n("cosplay.sz28d")}</th>
+                <th className="w-24 py-2 px-2 font-semibold hidden sm:table-cell">{i18n("cosplay.sqg3cw")}</th>
+                <th className="w-16 py-2 px-2 font-semibold hidden md:table-cell">{i18n("cosplay.sv5fg")}</th>
+                <th className="w-14 py-2 px-2 font-semibold hidden md:table-cell">{i18n("home.views")}</th>
               </tr>
             </thead>
             <tbody>
@@ -215,7 +217,7 @@ export function CosplayBoard({
                         </Link>
                       </>
                     ) : (
-                      t("cosplay.s1q6oc5j")
+                      i18n("cosplay.s1q6oc5j")
                     )}
                   </td>
                 </tr>
