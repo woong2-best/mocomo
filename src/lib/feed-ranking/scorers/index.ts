@@ -62,7 +62,7 @@ export const inNetworkScorer: Scorer<FeedQuery, PostCandidate> = {
   async score(query, candidates) {
     const boost = getNumericParam(query.params, "InNetworkBoost");
     return candidates.map((c) =>
-      c.inNetwork ? addSignal(c, "in_network", 1, boost, "팔로우 중") : c
+      c.inNetwork ? addSignal(c, "in_network", 1, boost, "Following") : c
     );
   },
 };
