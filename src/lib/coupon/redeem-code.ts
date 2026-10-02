@@ -15,15 +15,15 @@ async function appendRedeemHistory(couponId: string, userId: string) {
 /** 사용자가 코드 입력으로 쿠폰 수령 — API 경량 import (admin/services/coupons 순환 참조 방지) */
 export async function redeemCouponCode(userId: string, rawCode: string) {
   const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (code.length < 4) return { error: "유효하지 않은 코드입니다." };
+  if (code.length < 4) return { error: "Invalid code." };
 
   const coupon = await db.coupon.findUnique({ where: { code } });
-  if (!coupon || !coupon.active) return { error: "쿠폰을 찾을 수 없습니다." };
+  if (!coupon || !coupon.active) return { error: "Coupon not found." };
   if (coupon.endsAt && coupon.endsAt.getTime() < Date.now()) {
-    return { error: "만료된 쿠폰입니다." };
+    return { error: "This coupon has expired." };
   }
   if (coupon.maxTotalUses != null && coupon.usedCount >= coupon.maxTotalUses) {
-    return { error: "지급 한도가 소진된 쿠폰입니다." };
+    return { error: "This coupon has reached its redemption limit." };
   }
 
   try {
@@ -51,6 +51,6 @@ export async function redeemCouponCode(userId: string, rawCode: string) {
     });
     return { success: true as const, assignment };
   } catch {
-    return { error: "이미 등록한 쿠폰입니다." };
+    return { error: "You have already registered this coupon." };
   }
 }
