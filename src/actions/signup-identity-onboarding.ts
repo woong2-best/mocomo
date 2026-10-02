@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import bcrypt from "bcryptjs";
@@ -30,20 +33,20 @@ export async function completeSignupProfileOnboarding(input: {
   const name = input.name.trim();
 
   if (!isValidUsername(username)) {
-    return { error: "아이디는 영문·숫자·_ 3~20자입니다." };
+    return { error: t("actions.3_20_2") };
   }
   if (RESERVED_USERNAMES.has(username)) {
-    return { error: "사용할 수 없는 아이디입니다." };
+    return { error: t("actions.s18qr0hw") };
   }
   if (!name) {
-    return { error: "닉네임을 입력해 주세요." };
+    return { error: t("actions.s6j9brb") };
   }
   const check = validateUsernameAndName(username, name);
   if (!check.ok) return { error: check.error };
 
   const taken = await findUserByUsernameInsensitive(username);
   if (taken && taken.id !== user.id) {
-    return { error: `@${username} 아이디는 이미 사용 중입니다.` };
+    return { error: t("actions.sxgzuw7", { v0: username }) };
   }
 
   await db.user.update({
@@ -64,14 +67,14 @@ export async function completeSignupPasswordOnboarding(input: {
   const user = await requireAuthForAction();
   const password = input.password.trim();
   if (password.length < 8) {
-    return { error: "비밀번호는 8자 이상이어야 합니다." };
+    return { error: t("auth.passwordMinLength") };
   }
 
   const row = await db.user.findUnique({
     where: { id: user.id },
     select: { passwordHash: true },
   });
-  if (!row) return { error: "사용자를 찾을 수 없습니다." };
+  if (!row) return { error: t("actions.svypth4") };
   if (row.passwordHash) {
     await clearSignupNeedsIdentity();
     redirect(signupIdentityContinuePath(input.dest));

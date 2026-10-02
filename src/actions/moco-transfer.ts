@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -11,7 +14,7 @@ async function limitTransfer(userId: string) {
   const { checkRateLimit, apiLimiter } = await import("@/lib/ratelimit");
   const limited = await checkRateLimit(apiLimiter, `moco-transfer:${userId}`);
   if (!limited.success) {
-    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." as const };
+    return { error: t("actions.s121u7h2") as const };
   }
   return null;
 }

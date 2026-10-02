@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { cookies } from "next/headers";
@@ -237,7 +240,7 @@ export async function updateWebtoonPublishDay(seriesId: string, publishDay: Webt
   const user = await requireAuth();
   const series = await db.creatorSeries.findUnique({ where: { id: seriesId } });
   if (!series || series.authorId !== user.id || series.kind !== "WEBTOON") {
-    return { error: "웹툰 시리즈를 찾을 수 없습니다." };
+    return { error: t("actions.s1aqsoms") };
   }
   await db.creatorSeries.update({
     where: { id: seriesId },
@@ -252,7 +255,7 @@ export async function updateWebtoonGenre(seriesId: string, genre: WebtoonGenre) 
   const user = await requireAuth();
   const series = await db.creatorSeries.findUnique({ where: { id: seriesId } });
   if (!series || series.authorId !== user.id || series.kind !== "WEBTOON") {
-    return { error: "웹툰 시리즈를 찾을 수 없습니다." };
+    return { error: t("actions.s1aqsoms") };
   }
   await db.creatorSeries.update({
     where: { id: seriesId },
@@ -271,8 +274,8 @@ export async function createWebtoonSeries(input: {
   genre: WebtoonGenre;
 }) {
   const user = await requireAuth();
-  if (!input.title.trim()) return { error: "제목을 입력해 주세요." };
-  if (!input.coverUrl.trim()) return { error: "표지가 필요합니다." };
+  if (!input.title.trim()) return { error: t("actions.sojdmy3") };
+  if (!input.coverUrl.trim()) return { error: t("actions.s1crylb1") };
 
   const series = await db.creatorSeries.create({
     data: {

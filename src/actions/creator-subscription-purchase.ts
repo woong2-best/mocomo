@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { db } from "@/lib/db";
 import { splitPlatformFee } from "@/lib/settlement";
 
@@ -12,10 +15,10 @@ export async function fulfillCreatorSubscriptionPurchase(
     where: { id: creatorId },
     select: { id: true, username: true, creatorSubscriptionPriceKrw: true },
   });
-  if (!creator) return { error: "크리에이터를 찾을 수 없습니다." };
-  if (creator.id === subscriberId) return { error: "본인은 구독할 수 없습니다." };
+  if (!creator) return { error: t("actions.sbsk5n5") };
+  if (creator.id === subscriberId) return { error: t("actions.s1ahhnm") };
   if (creator.creatorSubscriptionPriceKrw !== amount) {
-    return { error: "구독 가격이 일치하지 않습니다." };
+    return { error: t("actions.s1e5byuf") };
   }
 
   const periodEnd = new Date();

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -104,7 +107,7 @@ export async function getUsedMarketAppealDetail(appealId: string) {
       admin: { select: { username: true } },
     },
   });
-  if (!appeal) return { error: "이의 신청을 찾을 수 없습니다." as const };
+  if (!appeal) return { error: t("actions.s1uyjy12") as const };
 
   const [sanctionLogs, bids] = await Promise.all([
     db.usedMarketSanctionLog.findMany({
@@ -132,24 +135,24 @@ export async function getUsedMarketAppealDetail(appealId: string) {
 
 const APPEAL_STATUS_MESSAGES: Partial<Record<AppealStatus, { title: string; body: string }>> = {
   UNDER_REVIEW: {
-    title: "중고거래 이의 신청 검토 중",
-    body: "담당자가 이의 신청을 검토하고 있습니다.",
+    title: t("actions.s1f30pbl"),
+    body: t("actions.spxp91j"),
   },
   INFO_REQUESTED: {
-    title: "중고거래 이의 신청 — 추가 자료 요청",
-    body: "이의 신청 검토를 위해 추가 자료가 필요합니다. 이메일 또는 고객센터로 회신해 주세요.",
+    title: t("actions.s1sloj1x"),
+    body: t("actions.s1fhlh87"),
   },
   APPROVED: {
-    title: "중고거래 이의 신청 승인",
-    body: "이의 신청이 승인되어 중고거래 이용 제한이 해제되었습니다.",
+    title: t("actions.shcnxfj"),
+    body: t("actions.s13e0y7n"),
   },
   REJECTED: {
-    title: "중고거래 이의 신청 기각",
-    body: "제출하신 소명 자료를 검토한 결과, 이용 제한 조치가 유지됩니다.",
+    title: t("actions.shcka9d"),
+    body: t("actions.sw6240p"),
   },
   CLOSED: {
-    title: "중고거래 이의 신청 종료",
-    body: "이의 신청 건이 종료 처리되었습니다.",
+    title: t("actions.shcou13"),
+    body: t("actions.s12oocmp"),
   },
 };
 
@@ -177,7 +180,7 @@ export async function updateUsedMarketAppealStatus(
       },
     },
   });
-  if (!appeal) return { error: "이의 신청을 찾을 수 없습니다." };
+  if (!appeal) return { error: t("actions.s1uyjy12") };
 
   const note = decisionNote?.trim() || undefined;
   const decided = status === "APPROVED" || status === "REJECTED" || status === "CLOSED";
@@ -207,14 +210,14 @@ export async function updateUsedMarketAppealStatus(
         actorId: admin.id,
         targetId: appeal.userId,
         action: "used_market_unban",
-        reason: note ?? `중고거래 이의 제기 승인 (${appealId})`,
+        reason: note ?? t("actions.suu31vt", { v0: appealId }),
       },
     });
   }
 
   const msg = APPEAL_STATUS_MESSAGES[status];
   if (msg) {
-    const body = note ? `${msg.body}\n\n처리 사유: ${note}` : msg.body;
+    const body = note ? t("actions.n_n", { v0: msg.body, v1: note }) : msg.body;
     await createNotification({
       userId: appeal.userId,
       type: "SYSTEM",

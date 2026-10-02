@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -8,7 +11,7 @@ import { db } from "@/lib/db";
 export async function blockUserAction(targetUserId: string, username: string) {
   const user = await requireAuthMinimal();
   if (user.id === targetUserId) {
-    return { error: "자기 자신은 차단할 수 없습니다." };
+    return { error: t("actions.sqig0gb") };
   }
 
   await db.$transaction([
@@ -51,7 +54,7 @@ export async function unblockUserAction(targetUserId: string, username: string) 
 export async function toggleMuteUserAction(targetUserId: string, username: string) {
   const user = await requireAuthMinimal();
   if (user.id === targetUserId) {
-    return { error: "자기 자신은 뮤트할 수 없습니다." };
+    return { error: t("actions.s1ciavav") };
   }
 
   const existing = await db.userMute.findUnique({

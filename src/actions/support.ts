@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { cache } from "react";
@@ -19,7 +22,7 @@ export async function tipCreatorAction(
   _amount: number,
   _message?: string
 ) {
-  return { error: "결제 창을 통해 후원해 주세요." };
+  return { error: t("actions.s1tfxq3u") };
 }
 
 export const getCreatorSupportSummary = cache(async function getCreatorSupportSummary(creatorId: string) {

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import type { LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
@@ -82,7 +85,7 @@ export async function createExternalLiveStream(data: {
       if (kids.madeForKids) {
         return {
           error:
-            "Made for Kids로 표시된 YouTube 영상은 정책상 임베드할 수 없습니다. 다른 라이브를 연결해 주세요.",
+            t("actions.made_for_kids_youtube"),
         };
       }
     }
@@ -137,7 +140,7 @@ export async function createExternalLiveStream(data: {
     const title =
       platformMeta.title?.trim() ||
       data.name?.trim() ||
-      `${account.channelName} 라이브`;
+      t("home.featureLive", { v0: account.channelName });
     const description =
       platformMeta.description?.trim().slice(0, 500) ||
       data.description?.trim().slice(0, 500) ||
@@ -239,13 +242,13 @@ export async function mintLiveOverlayUrls(channelId: string) {
     },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: "호스트만 오버레이 URL을 발급할 수 있습니다." };
+    return { error: t("actions.url_2") };
   }
   const broadcastSid = overlayBroadcastSid(channel.createdAt);
   const chatToken = mintOverlayToken(channelId, "chat", { broadcastSid });
   const donationToken = mintOverlayToken(channelId, "donation", { broadcastSid });
   if (!chatToken || !donationToken) {
-    return { error: "LIVE_OVERLAY_SECRET 또는 AUTH_SECRET이 필요합니다." };
+    return { error: t("actions.live_overlay_secret_auth_secret") };
   }
 
   const youtubeNative =

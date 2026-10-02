@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -21,7 +24,7 @@ export async function getUsedMarketBanStats(userId: string) {
       auctionLastPaymentDefaultAt: true,
     },
   });
-  if (!user) return { error: "사용자를 찾을 수 없습니다." };
+  if (!user) return { error: t("actions.svypth4") };
 
   const defaultRate =
     user.auctionWinCount > 0
@@ -89,7 +92,7 @@ export async function adminUnbanUsedMarket(targetId: string) {
       actorId: admin.id,
       targetId,
       action: "used_market_unban",
-      reason: "관리자 차단 해제",
+      reason: t("actions.sidwpn0"),
     },
   });
   revalidatePath("/admin/used-market");

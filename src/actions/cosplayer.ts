@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -23,7 +26,7 @@ function isPersistablePhotoUrl(url: string) {
 
 const applySchema = z.object({
   bio: z.string().min(1).max(BIO_MAX),
-  photoUrl: z.string().min(1).refine(isPersistablePhotoUrl, { message: "사진을 업로드해 주세요." }),
+  photoUrl: z.string().min(1).refine(isPersistablePhotoUrl, { message: t("actions.s19yn70z") }),
 });
 
 export async function getCosplayerApplyContext() {
@@ -43,7 +46,7 @@ export async function getCosplayerApplyContext() {
 export async function applyAsCosplayer(data: z.infer<typeof applySchema>) {
   const user = await requireAuth();
   const parsed = applySchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값을 확인해주세요." };
+  if (!parsed.success) return { error: t("actions.s161j9bt") };
 
   const result = await applyAsCosplayerForUser(user.id, parsed.data);
   if ("error" in result) return { error: result.error };
@@ -61,10 +64,10 @@ export async function updateCosplayerProfile(data: {
     where: { userId: user.id },
     include: { photos: true, animeLinks: true },
   });
-  if (!profile) return { error: "코스어 프로필이 없습니다. 먼저 신청해주세요." };
+  if (!profile) return { error: t("actions.s6tmd3u") };
 
   if (data.bio && data.bio.length > BIO_MAX) {
-    return { error: `자기소개는 ${BIO_MAX}자까지입니다.` };
+    return { error: t("actions.svebzp", { v0: BIO_MAX }) };
   }
 
   await db.cosplayerProfile.update({
@@ -76,7 +79,7 @@ export async function updateCosplayerProfile(data: {
 
   if (data.photoUrl) {
     if (!isPersistablePhotoUrl(data.photoUrl)) {
-      return { error: "유효한 사진을 업로드해 주세요." };
+      return { error: t("actions.s1mpyx3b") };
     }
     await db.cosplayPhoto.deleteMany({ where: { profileId: profile.id } });
     await db.cosplayPhoto.create({

@@ -1,7 +1,10 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 const RETIRED =
-  "가상 재화 기능은 종료되었습니다. 후원·구매는 각 화면에서 Stripe로 바로 결제해 주세요.";
+  t("actions.stripe_7");
 
 export async function listMocoTopupPackages() {
   return [] as const;

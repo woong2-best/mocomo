@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { after } from "next/server";
@@ -125,7 +128,7 @@ export async function createLiveStream(data: {
     const title =
       data.name?.trim() ||
       profileDefaults?.defaultTitle?.trim() ||
-      "라이브 방송";
+      t("actions.stunxr8");
     const joinPassword = generateLiveJoinPassword();
     const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
 
@@ -167,7 +170,7 @@ export async function createLiveStream(data: {
     }
 
     if (data.broadcastMode === "VOICE") {
-      return { error: "보이스 라이브는 더 이상 지원하지 않습니다. 영상 방송을 이용해 주세요." };
+      return { error: t("actions.s1j24gfh") };
     }
 
     if (!isScheduled) {
@@ -272,10 +275,10 @@ export async function startScheduledLiveStream(channelId: string) {
     select: { createdBy: true, liveStatus: true, name: true },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: "예약 방송을 찾을 수 없거나 권한이 없습니다." };
+    return { error: t("actions.s7g1tki") };
   }
   if (channel.liveStatus !== "SCHEDULED") {
-    return { error: "예약 상태의 방송만 시작할 수 있습니다." };
+    return { error: t("actions.suuax4e") };
   }
   const joinPassword = generateLiveJoinPassword();
   const joinPasswordHash = await hashLiveJoinPassword(joinPassword);
@@ -355,12 +358,12 @@ export async function enterLiveAsHost(channelId: string) {
     select: { createdBy: true, liveStatus: true },
   });
 
-  if (!channel) return { error: "종료되었거나 없는 방송입니다." };
+  if (!channel) return { error: t("actions.smc02ba") };
   if (channel.createdBy !== user.id) {
-    return { error: "호스트만 스튜디오에 입장할 수 있습니다." };
+    return { error: t("actions.s1i7tjgl") };
   }
   if (channel.liveStatus === "ENDED") {
-    return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
+    return { error: t("actions.sm7zety") };
   }
 
   void autoEndAbandonedLiveChannels();
@@ -382,7 +385,7 @@ export async function startBrowserLiveBroadcast(
 
   const tabId = publisherTabId?.trim();
   if (!tabId || tabId.length > 64) {
-    return { error: "방송 세션이 올바르지 않습니다. 페이지를 새로고침해 주세요." };
+    return { error: t("actions.sba5111") };
   }
 
   const channel = await db.voiceChannel.findUnique({
@@ -397,10 +400,10 @@ export async function startBrowserLiveBroadcast(
     },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: "호스트만 방송을 시작할 수 있습니다." };
+    return { error: t("actions.sdidqz8") };
   }
   if (channel.liveStatus === "ENDED") {
-    return { error: "종료된 방송입니다. 새 방송을 만들어 주세요." };
+    return { error: t("actions.sm7zety") };
   }
 
   const owner = channel.livePublisherTabId?.trim() || null;
@@ -410,7 +413,7 @@ export async function startBrowserLiveBroadcast(
   }
 
   if (channel.broadcastMode === "VOICE") {
-    return { error: "보이스 라이브는 영상 송출 API를 사용할 수 없습니다." };
+    return { error: t("actions.api") };
   }
 
   const wasLive = channel.isLive;
@@ -438,7 +441,7 @@ export async function startBrowserLiveBroadcast(
 
 /** 보이스 라이브 — 기능 종료 */
 export async function startVoiceLiveBroadcast(_channelId: string) {
-  return { error: "보이스 라이브는 더 이상 지원하지 않습니다. 영상 방송을 이용해 주세요." };
+  return { error: t("actions.s1j24gfh") };
 }
 
 /** 시청 입장 — LIVE 또는 준비(SCHEDULED) 중 대기실 */
@@ -449,7 +452,7 @@ export async function enterLiveAsViewer(channelId: string) {
     select: { isLive: true, liveStatus: true, createdBy: true, maxUsers: true },
   });
 
-  if (!channel) return { error: "종료되었거나 없는 방송입니다." };
+  if (!channel) return { error: t("actions.smc02ba") };
   if (channel.createdBy === user.id) {
     return enterLiveAsHost(channelId);
   }
@@ -462,8 +465,8 @@ export async function enterLiveAsViewer(channelId: string) {
     return {
       error:
         channel.liveStatus === "ENDED"
-          ? "종료된 방송입니다."
-          : "이 방송에 입장할 수 없습니다.",
+          ? t("actions.s2g95v4")
+          : t("actions.sgtdjdz"),
     };
   }
 
@@ -471,22 +474,22 @@ export async function enterLiveAsViewer(channelId: string) {
   if (!access.allowed) {
     if (access.reason === "TIER_REQUIRED" && access.minViewerTier) {
       return {
-        error: `비공개 방송입니다. 이 스트리머에게 ${tierLabelKo(access.minViewerTier)} 등급 이상 후원이 필요합니다.`,
+        error: t("actions.s14pvixa", { v0: tierLabelKo(access.minViewerTier) }),
         code: "TIER_REQUIRED" as const,
       };
     }
     if (access.reason === "ADULT_VERIFICATION_REQUIRED") {
       return {
-        error: "성인 인증된 회원만 시청할 수 있는 방송입니다.",
+        error: t("actions.s1ys1tfq"),
         code: "ADULT_VERIFICATION_REQUIRED" as const,
       };
     }
-    return { error: "시청할 수 없습니다." };
+    return { error: t("actions.skbjbt6") };
   }
 
   const active = await countActiveLiveViewers(channelId);
   if (active >= channel.maxUsers) {
-    return { error: "시청 인원이 가득 찼습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: t("actions.s8ixmw9") };
   }
 
   await upsertLiveMember(channelId, user.id, "VIEWER");
@@ -507,21 +510,21 @@ export async function applyLiveCollabPassword(channelId: string, password: strin
     },
   });
 
-  if (!channel || !channel.isLive) return { error: "종료되었거나 없는 방송입니다." };
+  if (!channel || !channel.isLive) return { error: t("actions.smc02ba") };
   if (channel.createdBy === user.id) {
-    return { error: "호스트는 합방 신청이 필요 없습니다." };
+    return { error: t("actions.s15ts5lg") };
   }
 
   if (!channel.joinPasswordHash) {
-    return { error: "합방 비밀번호가 아직 설정되지 않았습니다." };
+    return { error: t("actions.s12b78wr") };
   }
 
   const ok = await verifyLiveJoinPassword(password, channel.joinPasswordHash);
-  if (!ok) return { error: "합방 비밀번호가 일치하지 않습니다." };
+  if (!ok) return { error: t("actions.s3em03b") };
 
   const active = await countActiveLiveViewers(channelId);
   if (active >= channel.maxUsers) {
-    return { error: "시청 인원이 가득 찼습니다." };
+    return { error: t("actions.seq8s89") };
   }
 
   await upsertLiveMember(channelId, user.id, "CO_HOST");
@@ -539,7 +542,7 @@ export async function joinLiveStreamWithPassword(channelId: string, password: st
     where: { id: channelId },
     select: { createdBy: true, isLive: true, liveStatus: true },
   });
-  if (!channel) return { error: "종료되었거나 없는 방송입니다." };
+  if (!channel) return { error: t("actions.smc02ba") };
   if (channel.createdBy === user.id) {
     return enterLiveAsHost(channelId);
   }
@@ -547,8 +550,8 @@ export async function joinLiveStreamWithPassword(channelId: string, password: st
     return {
       error:
         channel.liveStatus === "ENDED"
-          ? "종료된 방송입니다."
-          : "아직 방송이 시작되지 않았습니다.",
+          ? t("actions.s2g95v4")
+          : t("actions.swx97rb"),
     };
   }
   if (!password.trim()) {
@@ -609,13 +612,13 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
   const user = await requireAuth({ writeKind: "live" });
 
   const access = await resolveLiveChannelAccess(channelId, user.id);
-  if (!access.allowed) return { error: "방송에 참여한 뒤 채팅할 수 있습니다." };
+  if (!access.allowed) return { error: t("actions.s16rsb28") };
 
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: { slowModeSeconds: true, chatBannedWords: true },
   });
-  if (!channel) return { error: "방송을 찾을 수 없습니다." };
+  if (!channel) return { error: t("actions.s1f2gsut") };
 
   const filtered = filterLiveChatContent(content, ensureStringArray(channel.chatBannedWords));
   if (!filtered.ok) return { error: filtered.error };
@@ -646,10 +649,10 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
     if (last) {
       const elapsed = (Date.now() - last.createdAt.getTime()) / 1000;
       if (elapsed < channel.slowModeSeconds) {
-        return { error: `슬로우 모드: ${Math.ceil(channel.slowModeSeconds - elapsed)}초 후에 다시 보낼 수 있습니다.` };
+        return { error: t("actions.s1ekuvbf", { v0: Math.ceil(channel.slowModeSeconds - elapsed) }) };
       }
       if (looksLikeSpamDuplicate(last.content, text)) {
-        return { error: "같은 메시지를 연속으로 보낼 수 없습니다." };
+        return { error: t("actions.si5t0ub") };
       }
     }
   }
@@ -668,10 +671,10 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
     if (/LiveChatMessage|does not exist|relation/i.test(msg)) {
       return {
         error:
-          "채팅 DB가 준비되지 않았습니다. Supabase SQL Editor에서 supabase-fix-all.sql을 실행해 주세요.",
+          t("actions.db_supabase_sql_editor_supabase"),
       };
     }
-    return { error: "채팅 저장에 실패했습니다." };
+    return { error: t("actions.s1d22o25") };
   }
 }
 
@@ -745,7 +748,7 @@ export async function deleteLiveChatMessage(channelId: string, messageId: string
   });
   const isSiteMod = dbUser?.role === "MODERATOR" || dbUser?.role === "ADMIN";
   if (!perm.ok && !isSiteMod) {
-    return { error: "채팅 삭제 권한이 없습니다." };
+    return { error: t("actions.s5gbayd") };
   }
 
   await db.liveChatMessage.deleteMany({
@@ -773,10 +776,10 @@ export async function ensureObsIngress(channelId: string, force = false) {
 
 export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcastMode) {
   if (mode === "VOICE") {
-    return { error: "보이스 라이브는 더 이상 지원하지 않습니다." };
+    return { error: t("actions.sxsbfvm") };
   }
   if (mode === "EXTERNAL") {
-    return { error: "외부 방송은 전용 연결 화면에서 만들어 주세요." };
+    return { error: t("actions.sjbv6ih") };
   }
   const fp = assertFirstPartyLiveEnabled();
   if (!fp.ok) return { error: fp.error };
@@ -787,7 +790,7 @@ export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcas
     select: { createdBy: true, isLive: true },
   });
   if (!channel || channel.createdBy !== user.id) {
-    return { error: "호스트만 송출 방식을 변경할 수 있습니다." };
+    return { error: t("actions.s12ky2rv") };
   }
   await db.voiceChannel.update({
     where: { id: channelId },
@@ -802,7 +805,7 @@ export async function setLiveBroadcastMode(channelId: string, mode: LiveBroadcas
 export async function endLiveStream(channelId: string) {
   const user = await requireAuth();
   const perm = await requireBroadcastPermission(user.id, channelId, "broadcast.end");
-  if (!perm.ok) return { error: "방송 종료는 방송 소유자만 할 수 있습니다." };
+  if (!perm.ok) return { error: t("actions.s1ih9c62") };
 
   await endHostBroadcastChannel(channelId, user.id);
 
@@ -903,7 +906,7 @@ export async function updateLiveStreamSettings(
   const permEdit = await requireBroadcastPermission(user.id, channelId, "broadcast.edit");
   const permChat = await requireBroadcastPermission(user.id, channelId, "chat.settings");
   if (!permEdit.ok && !permChat.ok) {
-    return { error: "방송 설정을 변경할 권한이 없습니다." };
+    return { error: t("actions.s3qggj9") };
   }
 
   const contentRating =

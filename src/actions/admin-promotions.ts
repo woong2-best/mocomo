@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -21,9 +24,9 @@ import type { PromotionRule } from "@/lib/promotion/rules";
 
 function errMsg(e: unknown) {
   if (e instanceof AdminAccessError) {
-    return e.status === 401 ? "로그인이 필요합니다." : "권한이 없습니다.";
+    return e.status === 401 ? t("actions.s1mzxopt") : t("actions.st3onev");
   }
-  return e instanceof Error ? e.message : "오류가 발생했습니다.";
+  return e instanceof Error ? e.message : t("actions.s1su4v2o");
 }
 
 export async function adminListPromotionsAction(query: {
@@ -43,7 +46,7 @@ export async function adminGetPromotionAction(id: string) {
   try {
     await requireAdminPermission("coupons");
     const data = await getPromotionDetail(id);
-    if (!data) return { ok: false as const, error: "프로모션을 찾을 수 없습니다." };
+    if (!data) return { ok: false as const, error: t("actions.s1spuww5") };
     return { ok: true as const, data };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };
@@ -114,7 +117,7 @@ export async function adminAssignPromotionAction(promotionId: string, targets: s
       });
       if (u) ids.push(u.id);
     }
-    if (ids.length === 0) return { error: "지급 대상 유저를 찾을 수 없습니다." };
+    if (ids.length === 0) return { error: t("actions.s1faxhl9") };
     const res = await assignPromotion(actor, promotionId, ids, {
       skipRules: true,
       notify: true,

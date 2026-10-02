@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -53,7 +56,7 @@ export async function sendFlowerGift(input: {
     revalidatePath("/support");
     return { success: true as const, transferId: "transferId" in res ? res.transferId : undefined };
   } catch {
-    return { error: "선물 처리에 실패했습니다. 다시 시도해 주세요." };
+    return { error: t("actions.szto7t7") };
   }
 }
 
@@ -78,7 +81,7 @@ export async function redeemFlowerGift(input: {
       netAmountKrw: "netAmountKrw" in res ? res.netAmountKrw : undefined,
     };
   } catch {
-    return { error: "환전 요청에 실패했습니다." };
+    return { error: t("actions.s1kr4atg") };
   }
 }
 

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { db } from "@/lib/db";
@@ -17,8 +20,8 @@ export async function fulfillPostMediaPurchase(
       },
     },
   });
-  if (!media) return { error: "미디어를 찾을 수 없습니다." };
-  if (media.post.authorId === buyerId) return { error: "본인 콘텐츠는 구매할 수 없습니다." };
+  if (!media) return { error: t("actions.sbz5e1p") };
+  if (media.post.authorId === buyerId) return { error: t("actions.s1i85y9b") };
 
   const isInstantUnlock =
     media.post.instantPurchasePriceKrw > 0 &&
@@ -27,10 +30,10 @@ export async function fulfillPostMediaPurchase(
 
   if (!isInstantUnlock) {
     if (media.priceKrw <= 0 && media.post.instantPurchasePriceKrw !== amount) {
-      return { error: "무료 미디어는 구매가 필요 없습니다." };
+      return { error: t("actions.s1siyy5j") };
     }
     if (media.priceKrw > 0 && media.priceKrw !== amount && media.post.instantPurchasePriceKrw !== amount) {
-      return { error: "가격이 일치하지 않습니다." };
+      return { error: t("actions.s5c55hc") };
     }
   }
 

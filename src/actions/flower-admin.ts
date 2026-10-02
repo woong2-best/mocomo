@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -52,7 +55,7 @@ export async function adminRejectFlowerRedeem(redeemId: string, note: string) {
     targetType: "flower_redeem",
     targetId: redeemId,
   });
-  const res = await rejectFlowerRedeem(redeemId, admin.id, note || "관리자 거절");
+  const res = await rejectFlowerRedeem(redeemId, admin.id, note || t("actions.s1jy60no"));
   revalidatePath("/admin/flowers");
   return res;
 }
@@ -64,8 +67,8 @@ export async function adminRevokeFlowerAsset(assetId: string, reason: string) {
     targetId: assetId,
   });
   const asset = await db.flowerAsset.findUnique({ where: { id: assetId } });
-  if (!asset) return { error: "자산을 찾을 수 없습니다." };
-  if (asset.status === "REDEEMED") return { error: "이미 환전된 자산입니다." };
+  if (!asset) return { error: t("actions.s15scfbx") };
+  if (asset.status === "REDEEMED") return { error: t("actions.s1euwijd") };
 
   await db.flowerAsset.update({
     where: { id: assetId },
@@ -88,7 +91,7 @@ export async function adminLookupFlowerUser(username: string) {
     where: { username: username.replace(/^@/, "") },
     select: { id: true, username: true },
   });
-  if (!user) return { error: "사용자를 찾을 수 없습니다." };
+  if (!user) return { error: t("actions.svypth4") };
 
   const [assets, ledger, redeems] = await Promise.all([
     db.flowerAsset.findMany({

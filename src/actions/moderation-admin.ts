@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -203,8 +206,8 @@ export async function applyModerationSanction(
   reason: string
 ) {
   const admin = await requireStaff("MODERATOR");
-  if (!canApplySanction(admin.role, sanction)) return { error: "권한이 없습니다." };
-  if (!reason.trim()) return { error: "제재 사유를 입력해 주세요." };
+  if (!canApplySanction(admin.role, sanction)) return { error: t("actions.st3onev") };
+  if (!reason.trim()) return { error: t("actions.s1dcx65m") };
 
   const target = await db.user.findUnique({
     where: { id: targetUserId },
@@ -215,7 +218,7 @@ export async function applyModerationSanction(
       priorSanctionCount: true,
     },
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: t("actions.svypth4") };
 
   const before = {
     accountStatus: target.accountStatus,
@@ -228,7 +231,7 @@ export async function applyModerationSanction(
     await createNotification({
       userId: targetUserId,
       type: "SYSTEM",
-      title: "운영원칙 위반 경고",
+      title: t("actions.s1kewsat"),
       body: reason.trim(),
     });
     const warningCount = (await countUserWarnings(targetUserId)) + 1;
@@ -239,7 +242,7 @@ export async function applyModerationSanction(
       await createNotification({
         userId: targetUserId,
         type: "SYSTEM",
-        title: "계정 영구 정지 — 반복 위반",
+        title: t("actions.s3uz7uk"),
         body: escalationReason,
         link: "/appeal",
       });
@@ -324,7 +327,7 @@ export async function applyModerationSanction(
     await createNotification({
       userId: targetUserId,
       type: "SYSTEM",
-      title: "계정 제재 안내",
+      title: t("actions.s17l7uct"),
       body: reason.trim(),
       link: "/appeal",
     });
@@ -342,15 +345,15 @@ export async function createStaffMember(input: {
   displayName?: string;
 }) {
   const creator = await requireStaff("SUPER_ADMIN");
-  if (!canCreateStaff(creator.role)) return { error: "권한이 없습니다." };
-  if (!canCreateRole(creator.role, input.role)) return { error: "해당 권한을 부여할 수 없습니다." };
-  if (!input.reason.trim()) return { error: "사유를 입력해 주세요." };
+  if (!canCreateStaff(creator.role)) return { error: t("actions.st3onev") };
+  if (!canCreateRole(creator.role, input.role)) return { error: t("actions.s1tqj1jc") };
+  if (!input.reason.trim()) return { error: t("actions.sxs95y2") };
 
   const target = await db.user.findUnique({
     where: { id: input.userId },
     select: { id: true, email: true, name: true, role: true },
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: t("actions.svypth4") };
 
   await db.user.update({
     where: { id: input.userId },
@@ -422,7 +425,7 @@ export async function recordAiModerationResult(params: {
       riskDelta: totalDelta,
       confidence: params.confidence ?? 0.8,
       recommendedAction: totalDelta >= 80 ? "read_only" : totalDelta >= 40 ? "limited" : "warning",
-      recommendedReason: top ? `${top.reason} 감지` : "AI 정책 위반 가능성",
+      recommendedReason: top ? t("actions.sudgw", { v0: top.reason }) : t("actions.s161jx88"),
       rawResult: params.categories as object,
     },
   });

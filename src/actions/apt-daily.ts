@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -16,8 +19,8 @@ function startOfToday() {
 /** 집 좋아요 토글 — 오늘의 집·주간 베스트 집계 */
 export async function toggleAptHomeLike(hostUserId: string) {
   const user = await getCachedCurrentUser();
-  if (!user) return { ok: false as const, error: "로그인이 필요합니다." };
-  if (user.id === hostUserId) return { ok: false as const, error: "본인 집에는 좋아요할 수 없습니다." };
+  if (!user) return { ok: false as const, error: t("actions.s1mzxopt") };
+  if (user.id === hostUserId) return { ok: false as const, error: t("actions.s5r0mx7") };
 
   const existing = await db.aptHomeLike.findUnique({
     where: { hostId_likerId: { hostId: hostUserId, likerId: user.id } },
@@ -37,8 +40,8 @@ export async function toggleAptHomeLike(hostUserId: string) {
 /** 즐겨찾는 집 / 이웃 추가·제거 */
 export async function toggleAptFavoriteHome(hostUserId: string) {
   const user = await getCachedCurrentUser();
-  if (!user) return { ok: false as const, error: "로그인이 필요합니다." };
-  if (user.id === hostUserId) return { ok: false as const, error: "본인 집은 즐겨찾기할 수 없습니다." };
+  if (!user) return { ok: false as const, error: t("actions.s1mzxopt") };
+  if (user.id === hostUserId) return { ok: false as const, error: t("actions.s1lr4tmo") };
 
   const existing = await db.aptFavoriteHome.findUnique({
     where: { userId_hostId: { userId: user.id, hostId: hostUserId } },

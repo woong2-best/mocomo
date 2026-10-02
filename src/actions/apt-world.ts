@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { getCachedCurrentUser } from "@/lib/auth";
@@ -101,7 +104,7 @@ export async function getPublicHome(userId: string): Promise<PublicHomeDto | nul
 
 export async function setHomePublic(publicVisible: boolean) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
 
   await db.aptProfile.upsert({
     where: { userId: user.id },

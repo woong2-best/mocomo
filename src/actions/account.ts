@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { requireAuthForAction } from "@/lib/auth";
@@ -14,11 +17,11 @@ export async function requestAccountDeletion(
     const sessionUser = await requireAuthForAction();
     userId = sessionUser.id;
   } catch {
-    return { error: "로그인이 필요합니다." };
+    return { error: t("actions.s1mzxopt") };
   }
 
   const full = await loadAccountDeletionUser(userId);
-  if (!full) return { error: "계정을 찾을 수 없습니다." };
+  if (!full) return { error: t("actions.s1hwfc9a") };
 
   return requestAccountDeletionForUser(full, data);
 }

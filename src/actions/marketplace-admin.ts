@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -69,7 +72,7 @@ export async function adminSetMarketplaceOrderStatus(
   });
 
   const order = await db.marketplaceOrder.findUnique({ where: { id: orderId } });
-  if (!order) return { error: "주문을 찾을 수 없습니다." };
+  if (!order) return { error: t("actions.sr119vd") };
 
   if (status === "DELIVERED") {
     const delivered = await markMarketplaceOrderDelivered({
@@ -123,14 +126,14 @@ export async function adminSetMarketplaceOrderStatus(
   await createNotification({
     userId: order.buyerId,
     type: "SYSTEM",
-    title: "관리자가 주문 상태를 변경했습니다",
+    title: t("actions.s159g2it"),
     body: status,
     link: `/market/orders/${orderId}`,
   });
   await createNotification({
     userId: order.sellerId,
     type: "SYSTEM",
-    title: "관리자가 주문 상태를 변경했습니다",
+    title: t("actions.s159g2it"),
     body: status,
     link: `/market/orders/${orderId}`,
   });
@@ -150,7 +153,7 @@ export async function adminClearMarketplaceReview(orderId: string) {
     where: { id: orderId },
     include: { items: true },
   });
-  if (!order) return { error: "주문을 찾을 수 없습니다." };
+  if (!order) return { error: t("actions.sr119vd") };
 
   const needsShip = order.items.some((i) => i.listingType !== "DIGITAL");
   await db.marketplaceOrder.update({
@@ -209,7 +212,7 @@ export async function adminHoldMarketplaceSettlement(orderId: string, reason: st
   await holdSettlementForDispute(orderId, admin.id);
   await db.marketplaceOrder.update({
     where: { id: orderId },
-    data: { settlementHeldReason: reason.trim() || "관리자 정산 보류" },
+    data: { settlementHeldReason: reason.trim() || t("actions.s46vrjh") },
   });
   await logMarketplaceAudit({
     orderId,
@@ -261,7 +264,7 @@ export async function reportMarketplaceListing(input: {
     where: { id: input.listingId },
     select: { id: true, sellerId: true, sellerProfileId: true },
   });
-  if (!listing) return { error: "상품을 찾을 수 없습니다." };
+  if (!listing) return { error: t("actions.s1fhot7o") };
 
   const profile =
     listing.sellerProfileId
@@ -290,7 +293,7 @@ export async function reportMarketplaceListing(input: {
       await applyMarketplaceSanction({
         sellerProfileId: profile.id,
         escalate: true,
-        reason: `누적 신고 ${reportCount}건 — 자동 제재`,
+        reason: t("actions.so53jua", { v0: reportCount }),
         actorId: null,
       });
     }
@@ -392,9 +395,9 @@ export async function approveMarketplaceSeller(profileId: string) {
   });
 
   const profile = await db.marketplaceSellerProfile.findUnique({ where: { id: profileId } });
-  if (!profile) return { error: "판매자를 찾을 수 없습니다." };
+  if (!profile) return { error: t("actions.s1iqcuip") };
   if (!profile.onboardingCompletedAt) {
-    return { error: "온보딩이 완료되지 않은 판매자입니다." };
+    return { error: t("actions.si33ydi") };
   }
 
   const now = new Date();
@@ -411,8 +414,8 @@ export async function approveMarketplaceSeller(profileId: string) {
   await createNotification({
     userId: profile.userId,
     type: "system",
-    title: "판매자 승인 완료",
-    body: `${MARKET_BRAND_FULL} 판매자가 승인되었습니다. 이제 상품을 등록할 수 있습니다.`,
+    title: t("actions.s1to4sud"),
+    body: t("actions.s1woj4y6", { v0: MARKET_BRAND_FULL }),
     link: "/market/seller",
   }).catch(() => null);
 
@@ -436,10 +439,10 @@ export async function rejectMarketplaceSeller(profileId: string, reason: string)
   });
 
   const note = reason.trim().slice(0, 500);
-  if (!note) return { error: "거절 사유를 입력해 주세요." };
+  if (!note) return { error: t("actions.soypale") };
 
   const profile = await db.marketplaceSellerProfile.findUnique({ where: { id: profileId } });
-  if (!profile) return { error: "판매자를 찾을 수 없습니다." };
+  if (!profile) return { error: t("actions.s1iqcuip") };
 
   const now = new Date();
   await db.marketplaceSellerProfile.update({
@@ -457,8 +460,8 @@ export async function rejectMarketplaceSeller(profileId: string, reason: string)
   await createNotification({
     userId: profile.userId,
     type: "system",
-    title: "판매자 승인 거절",
-    body: `판매자 신청이 거절되었습니다. 사유: ${note}`,
+    title: t("actions.s1to0hp1"),
+    body: t("actions.s9fi288", { v0: note }),
     link: "/market/seller/register",
   }).catch(() => null);
 
@@ -486,7 +489,7 @@ export async function exportMarketplaceDisputeLegalBundle(disputeId: string) {
     where: { id: disputeId },
     include: { order: { select: { id: true, tradeLegalRecord: true } } },
   });
-  if (!dispute) return { error: "분쟁을 찾을 수 없습니다." };
+  if (!dispute) return { error: t("actions.s1hvx3ui") };
 
   if (!dispute.tradeEvidenceSnapshot) {
     await refreshTradeLegalRecord(dispute.orderId);

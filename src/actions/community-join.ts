@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -82,13 +85,13 @@ export async function joinCommunityServer(
         joinPasswordHash: true,
       },
     });
-    if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!community) return { error: t("actions.s1foa8q5") };
 
     const banned = await db.communityBan.findUnique({
       where: { communityId_userId: { communityId, userId: user.id } },
     });
     if (banned && (!banned.expiresAt || banned.expiresAt > new Date())) {
-      return { error: "이 커뮤니티에 참여할 수 없습니다." };
+      return { error: t("actions.s1im9z4z") };
     }
 
     const existing = await db.communityMember.findUnique({
@@ -113,24 +116,24 @@ export async function joinCommunityServer(
     if (community.joinPasswordHash) {
       const pin = joinPassword?.trim() ?? "";
       if (!isValidCommunityJoinPassword(pin)) {
-        return { error: "4자리 숫자 비밀번호를 입력해 주세요." };
+        return { error: t("actions.s8e796l") };
       }
       const ok = await verifyCommunityJoinPassword(pin, community.joinPasswordHash);
-      if (!ok) return { error: "비밀번호가 올바르지 않습니다." };
+      if (!ok) return { error: t("actions.sa72c6f") };
     }
 
     if (community.joinMode === "INVITE_ONLY") {
       const code = inviteCode?.trim();
-      if (!code) return { error: "초대 링크가 필요한 커뮤니티입니다." };
+      if (!code) return { error: t("actions.s107xdto") };
       const invite = await db.communityInvite.findFirst({
         where: { communityId, code },
       });
-      if (!invite) return { error: "유효하지 않은 초대 링크입니다." };
+      if (!invite) return { error: t("actions.s1b8wpie") };
       if (invite.expiresAt && invite.expiresAt < new Date()) {
-        return { error: "만료된 초대 링크입니다." };
+        return { error: t("actions.sz7t1p8") };
       }
       if (invite.maxUses != null && invite.useCount >= invite.maxUses) {
-        return { error: "초대 링크 사용 횟수가 초과되었습니다." };
+        return { error: t("actions.sm834fk") };
       }
       await db.communityInvite.update({
         where: { id: invite.id },
@@ -155,7 +158,7 @@ export async function joinCommunityServer(
       return {
         success: true,
         pending: true,
-        message: "가입 요청이 접수되었습니다. 승인 후 알림을 받게 됩니다.",
+        message: t("actions.si3hw63"),
       };
     }
 
@@ -201,10 +204,10 @@ export async function updateCommunityJoinMode(communityId: string, joinMode: Com
       where: { id: communityId },
       select: { creatorId: true, slug: true },
     });
-    if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!community) return { error: t("actions.s1foa8q5") };
     if (community.creatorId !== user.id) {
       const can = await loadMemberPermissions(communityId, user.id, false);
-      if (!can.setJoinMode) return { error: "가입 방식 변경 권한이 없습니다." };
+      if (!can.setJoinMode) return { error: t("actions.smlv0id") };
     }
 
     await db.community.update({
@@ -229,10 +232,10 @@ export async function updateCommunityJoinPassword(
       where: { id: communityId },
       select: { creatorId: true, slug: true },
     });
-    if (!community) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!community) return { error: t("actions.s1foa8q5") };
     if (community.creatorId !== user.id) {
       const can = await loadMemberPermissions(communityId, user.id, false);
-      if (!can.setJoinMode) return { error: "가입 비밀번호 변경 권한이 없습니다." };
+      if (!can.setJoinMode) return { error: t("actions.sxdufwd") };
     }
 
     if (password === null || password === "") {
@@ -246,7 +249,7 @@ export async function updateCommunityJoinPassword(
 
     const pin = password.trim();
     if (!isValidCommunityJoinPassword(pin)) {
-      return { error: "비밀번호는 숫자 4자리여야 합니다." };
+      return { error: t("actions.skj7xjg") };
     }
 
     const joinPasswordHash = await hashCommunityJoinPassword(pin);
@@ -265,7 +268,7 @@ export async function createCommunityInvite(communityId: string) {
   try {
     const user = await requireAuthForAction();
     const perms = await loadMemberPermissions(communityId, user.id, false);
-    if (!perms.inviteMembers) return { error: "초대 권한이 없습니다." };
+    if (!perms.inviteMembers) return { error: t("actions.sozb6fz") };
 
     const code = randomBytes(8).toString("hex");
     const invite = await db.communityInvite.create({
@@ -290,7 +293,7 @@ export async function assertCanAssignOwner(communityId: string, memberId: string
     where: { memberId, role: { communityId, type: "OWNER" } },
   });
   if (!alreadyOwner && currentOwners >= MAX_OWNERS) {
-    return { error: `Owner는 최대 ${MAX_OWNERS}명까지 지정할 수 있습니다.` };
+    return { error: t("actions.owner", { v0: MAX_OWNERS }) };
   }
   return { ok: true as const };
 }
@@ -300,7 +303,7 @@ export async function getCommunityJoinRequests(communityId: string) {
     const user = await requireAuthForAction();
     const perms = await loadMemberPermissions(communityId, user.id, false);
     if (!perms.manageJoinRequests && !perms.approveMembers) {
-      return { requests: [], error: "권한이 없습니다." };
+      return { requests: [], error: t("actions.st3onev") };
     }
 
     const rows = await db.communityJoinRequest.findMany({
@@ -344,12 +347,12 @@ export async function reviewCommunityJoinRequest(
       include: { community: { select: { id: true, slug: true, creatorId: true, memberCount: true } } },
     });
     if (!request || request.status !== "PENDING") {
-      return { error: "요청을 찾을 수 없습니다." };
+      return { error: t("actions.s16gsg46") };
     }
 
     const perms = await loadMemberPermissions(request.communityId, user.id, false);
     if (!perms.manageJoinRequests && !perms.approveMembers) {
-      return { error: "권한이 없습니다." };
+      return { error: t("actions.st3onev") };
     }
 
     if (action === "reject") {

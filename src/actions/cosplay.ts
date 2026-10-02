@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -30,8 +33,8 @@ export async function addCosplayPhoto(data: {
 }) {
   const user = await requireAuth();
   const cosProfile = await db.cosplayerProfile.findUnique({ where: { userId: user.id } });
-  if (!cosProfile) return { error: "코스어 프로필이 없습니다." };
-  if (!isPersistablePhotoUrl(data.url)) return { error: "유효한 사진을 업로드해 주세요." };
+  if (!cosProfile) return { error: t("actions.s1yv6i7b") };
+  if (!isPersistablePhotoUrl(data.url)) return { error: t("actions.s1mpyx3b") };
 
   const photo = await db.cosplayPhoto.create({
     data: {
@@ -56,7 +59,7 @@ export async function deleteCosplayPhoto(photoId: string) {
     where: { id: photoId },
     include: { profile: { select: { userId: true } } },
   });
-  if (!photo || photo.profile.userId !== user.id) return { error: "삭제할 수 없습니다." };
+  if (!photo || photo.profile.userId !== user.id) return { error: t("actions.s1a6zmoc") };
 
   await db.cosplayPhoto.delete({ where: { id: photoId } });
 

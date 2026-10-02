@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -15,7 +18,7 @@ import { listAnimeHistory } from "@/lib/anime-history";
 export async function createAnime(data: z.infer<typeof animeUpdateSchema>) {
   const user = await requireAuth();
   const parsed = animeUpdateSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값을 확인해주세요." };
+  if (!parsed.success) return { error: t("actions.s161j9bt") };
 
   const { editSummary: _editSummary, ...createPayload } = parsed.data;
   const result = await createAnimeForUser(user.id, createPayload);
@@ -24,7 +27,7 @@ export async function createAnime(data: z.infer<typeof animeUpdateSchema>) {
     where: { slug: result.anime.slug },
     select: { id: true, slug: true, title: true },
   });
-  if (!anime) return { error: "저장 후 문서를 불러오지 못했습니다." };
+  if (!anime) return { error: t("actions.sy2gjjf") };
   return { anime };
 }
 
@@ -48,11 +51,11 @@ const goodsSchema = z.object({
 export async function addAnimeGoods(data: z.infer<typeof goodsSchema>) {
   await requireAuth();
   const parsed = goodsSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값을 확인해주세요." };
+  if (!parsed.success) return { error: t("actions.s161j9bt") };
 
   const { animeId, title, type, price, imageUrl, linkUrl } = parsed.data;
   const anime = await db.anime.findUnique({ where: { id: animeId }, select: { slug: true } });
-  if (!anime) return { error: "애니를 찾을 수 없습니다." };
+  if (!anime) return { error: t("actions.s1bhyab1") };
 
   const goods = await db.animeGoods.create({
     data: {
@@ -75,7 +78,7 @@ export async function deleteAnimeGoods(goodsId: string) {
     where: { id: goodsId },
     include: { anime: { select: { slug: true } } },
   });
-  if (!row) return { error: "굿즈를 찾을 수 없습니다." };
+  if (!row) return { error: t("actions.sqcn5bi") };
 
   await db.animeGoods.delete({ where: { id: goodsId } });
   revalidatePath(`/anime/${row.anime.slug}`);
@@ -137,10 +140,10 @@ export async function restoreAnimeRevision(revisionId: string) {
 export async function requestAnimeDeletion(slug: string, reason: string) {
   const user = await requireAuth();
   const text = reason.trim();
-  if (text.length < 10) return { error: "삭제 사유를 10자 이상 입력해 주세요." };
+  if (text.length < 10) return { error: t("actions.slk3399") };
 
   const anime = await db.anime.findUnique({ where: { slug }, select: { id: true } });
-  if (!anime) return { error: "애니를 찾을 수 없습니다." };
+  if (!anime) return { error: t("actions.s1bhyab1") };
 
   await db.animeDeleteRequest.create({
     data: { animeId: anime.id, requesterId: user.id, reason: text },
@@ -179,7 +182,7 @@ export async function resolveAnimeDeleteRequest(requestId: string, status: "APPR
     where: { id: requestId },
     include: { anime: { select: { slug: true } } },
   });
-  if (!req) return { error: "요청을 찾을 수 없습니다." };
+  if (!req) return { error: t("actions.s16gsg46") };
 
   if (status === "APPROVED") {
     await db.anime.delete({ where: { id: req.animeId } });

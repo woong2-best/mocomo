@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -22,21 +25,21 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
 
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.auctionState !== "PRICE_NEGOTIATION") {
-    return { error: "가격 협상 중인 경매가 아닙니다." };
+    return { error: t("actions.sjyqady") };
   }
 
   const price = Math.floor(amount);
   if (!Number.isFinite(price) || price <= 0 || price > maxUsedListingPrice(listing.currency)) {
-    return { error: "가격을 올바르게 입력해 주세요." };
+    return { error: t("actions.s4api9p") };
   }
   if (!isNegotiationParticipant(listing, user.id)) {
-    return { error: "권한이 없습니다." };
+    return { error: t("actions.st3onev") };
   }
   if (!listing.activeNegotiationRoomId) {
-    return { error: "거래방이 없습니다." };
+    return { error: t("actions.s14bligm") };
   }
   if (listing.negotiationDueAt && listing.negotiationDueAt.getTime() < Date.now()) {
-    return { error: "협상 기한이 지났습니다." };
+    return { error: t("actions.s2db9e9") };
   }
 
   await db.$transaction(async (tx) => {
@@ -63,7 +66,7 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
     data: {
       roomId: listing.activeNegotiationRoomId,
       senderId: user.id,
-      content: `💰 가격 제안: ${formatUsedPrice(price, listing.currency)}`,
+      content: t("actions.s18wizt0", { v0: formatUsedPrice(price, listing.currency) }),
     },
   });
   await db.chatRoom.update({
@@ -74,7 +77,7 @@ export async function proposeUsedAuctionPrice(listingId: string, amount: number)
   await sendUsedAuctionNotification({
     userId: otherId,
     type: "price_offer",
-    title: "가격 제안 도착",
+    title: t("actions.sxwvteq"),
     body: `${listing.title} · ${formatUsedPrice(price, listing.currency)}`,
     link,
     actorId: user.id,
@@ -96,17 +99,17 @@ export async function acceptUsedAuctionPrice(offerId: string) {
     include: { listing: true },
   });
   if (!offer || offer.status !== "PENDING") {
-    return { error: "유효한 제안이 아닙니다." };
+    return { error: t("actions.s489u0p") };
   }
   const listing = offer.listing;
   if (listing.auctionState !== "PRICE_NEGOTIATION") {
-    return { error: "협상이 종료되었습니다." };
+    return { error: t("actions.sd121ao") };
   }
   if (!isNegotiationParticipant(listing, user.id)) {
-    return { error: "권한이 없습니다." };
+    return { error: t("actions.st3onev") };
   }
   if (offer.proposerId === user.id) {
-    return { error: "본인 제안은 수락할 수 없습니다." };
+    return { error: t("actions.s1w3upmy") };
   }
 
   await db.$transaction(async (tx) => {
@@ -134,14 +137,14 @@ export async function acceptUsedAuctionPrice(offerId: string) {
     data: {
       roomId: offer.roomId,
       senderId: user.id,
-      content: `✅ ${formatUsedPrice(offer.amount, listing.currency)}에 합의했습니다. 결제를 진행해 주세요.`,
+      content: t("actions.s14y13cc", { v0: formatUsedPrice(offer.amount, listing.currency) }),
     },
   });
 
   await sendUsedAuctionNotification({
     userId: offer.proposerId,
     type: "price_accept",
-    title: "가격 수락",
+    title: t("actions.s1j1igxo"),
     body: `${listing.title} · ${formatUsedPrice(offer.amount, listing.currency)}`,
     link,
     actorId: user.id,
@@ -159,9 +162,9 @@ export async function rejectUsedAuctionPrice(offerId: string) {
     where: { id: offerId },
     include: { listing: true },
   });
-  if (!offer || offer.status !== "PENDING") return { error: "유효한 제안이 아닙니다." };
-  if (!isNegotiationParticipant(offer.listing, user.id)) return { error: "권한이 없습니다." };
-  if (offer.proposerId === user.id) return { error: "본인 제안은 거절할 수 없습니다." };
+  if (!offer || offer.status !== "PENDING") return { error: t("actions.s489u0p") };
+  if (!isNegotiationParticipant(offer.listing, user.id)) return { error: t("actions.st3onev") };
+  if (offer.proposerId === user.id) return { error: t("actions.s1eyjtyv") };
 
   await db.usedPriceOffer.update({
     where: { id: offerId },
@@ -172,14 +175,14 @@ export async function rejectUsedAuctionPrice(offerId: string) {
     data: {
       roomId: offer.roomId,
       senderId: user.id,
-      content: `❌ ${formatUsedPrice(offer.amount, offer.listing.currency)} 제안을 거절했습니다.`,
+      content: t("actions.s1hhfdn5", { v0: formatUsedPrice(offer.amount, offer.listing.currency) }),
     },
   });
 
   await sendUsedAuctionNotification({
     userId: offer.proposerId,
     type: "price_reject",
-    title: "가격 제안 거절",
+    title: t("actions.sxwujpx"),
     body: offer.listing.title,
     link: `/messages/${offer.roomId}?usedListing=${offer.listingId}`,
     actorId: user.id,
@@ -194,10 +197,10 @@ export async function declineUsedAuctionNegotiation(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.auctionState !== "PRICE_NEGOTIATION") {
-    return { error: "협상 중인 경매가 아닙니다." };
+    return { error: t("actions.s1cyzlot") };
   }
   if (listing.negotiationBuyerId !== user.id) {
-    return { error: "차순위 입찰자만 거래를 거절할 수 있습니다." };
+    return { error: t("actions.s102fc5s") };
   }
 
   await db.usedAuctionBid.updateMany({

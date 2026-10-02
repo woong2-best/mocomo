@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -78,7 +81,7 @@ export async function purchaseAptShopItem(itemId: string): Promise<
   | { error: string }
 > {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
 
   const economy = await loadEconomySnapshot(user.id);
   const owned = economy.inventory.find((i) => i.itemId === itemId && i.quantity > 0);
@@ -87,17 +90,17 @@ export async function purchaseAptShopItem(itemId: string): Promise<
   }
 
   const priceInfo = await resolveGoldShopPrice(itemId);
-  if (!priceInfo) return { error: "판매하지 않는 상품입니다." };
+  if (!priceInfo) return { error: t("actions.s1ydu7ra") };
   if (
     priceInfo.limitedStock != null &&
     priceInfo.soldCount >= priceInfo.limitedStock
   ) {
-    return { error: "한정 수량이 모두 판매되었습니다." };
+    return { error: t("actions.s12h4yl1") };
   }
 
   const price = priceInfo.goldPrice;
   if (economy.wallet.gold < price) {
-    return { error: `골드가 부족합니다. (${price.toLocaleString()}G 필요)` };
+    return { error: t("actions.s1uu07xm", { v0: price.toLocaleString() }) };
   }
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
@@ -105,7 +108,7 @@ export async function purchaseAptShopItem(itemId: string): Promise<
     await assertShopEnabled();
     await assertFraudAllowed(ownerId, "shop");
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "구매할 수 없습니다." };
+    return { error: e instanceof Error ? e.message : t("actions.stnso8z") };
   }
   try {
     await purchaseShopItemAtomic(
@@ -118,7 +121,7 @@ export async function purchaseAptShopItem(itemId: string): Promise<
     );
   } catch (e) {
     return {
-      error: e instanceof Error ? e.message : "구매에 실패했습니다.",
+      error: e instanceof Error ? e.message : t("actions.s9vs8mx"),
     };
   }
 
@@ -133,7 +136,7 @@ export async function consumeAptStorageItem(
   opId?: string
 ): Promise<AptEconomyActionResult | { ok: true; skipped: true }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
   if (!shouldConsumeStorage(itemId)) return { ok: true, skipped: true };
 
   const res = await consumeStorageItem(user.id, itemId, amount, opId);
@@ -149,7 +152,7 @@ export async function returnAptStorageItem(
   opId?: string
 ): Promise<AptEconomyActionResult | { ok: true; skipped: true }> {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
   if (!shouldConsumeStorage(itemId)) return { ok: true, skipped: true };
 
   const res = await returnStorageItem(user.id, itemId, amount, opId);
@@ -180,7 +183,7 @@ export async function grantAptWalletRewards(delta: {
   const user = await getCachedCurrentUser();
   if (!user) return null;
   const ownerId = await resolveAptHomeOwnerId(user.id);
-  await adjustWallet(ownerId, delta, { type: "mission", memo: "미션 보상" });
+  await adjustWallet(ownerId, delta, { type: "mission", memo: t("actions.s1d21ij1") });
   const economy = await loadEconomySnapshot(user.id);
   revalidateAptHub();
   return { ok: true, economy };

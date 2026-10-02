@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -59,7 +62,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         await sendUsedAuctionNotification({
           userId: listing.sellerId,
           type: "ended",
-          title: "경매 유찰 (낙찰가 미달)",
+          title: t("actions.s9b5b2l"),
           body: captureCheck.error,
           link: `/market/${listingId}`,
         });
@@ -67,8 +70,8 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
           listingId,
           sellerId: listing.sellerId,
           winnerId: null,
-          title: "경매 유찰",
-          body: `${listing.title} — 낙찰가가 조건에 미달해 유찰되었습니다.`,
+          title: t("actions.s1nlj8jt"),
+          body: t("actions.s3i00dq", { v0: listing.title }),
         });
         revalidatePath(`/market/${listingId}`);
         return;
@@ -87,8 +90,8 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
         listingId,
         sellerId: listing.sellerId,
         winnerId,
-        title: "경매 유찰",
-        body: `${listing.title} — 다른 입찰자가 낙찰되었습니다.`,
+        title: t("actions.s1nlj8jt"),
+        body: t("actions.s1ttal0p", { v0: listing.title }),
       });
     } else {
       await onAuctionEndedVoidHolds(listingId, null);
@@ -102,7 +105,7 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
       await sendUsedAuctionNotification({
         userId: listing.sellerId,
         type: "ended",
-        title: listing.bidCount > 0 ? "경매 유찰" : "경매 종료 (입찰 없음)",
+        title: listing.bidCount > 0 ? t("actions.s1nlj8jt") : t("actions.s13pvn06"),
         body: listing.title,
         link: `/market/${listingId}`,
       });
@@ -111,8 +114,8 @@ export async function finalizeExpiredAuctionIfNeeded(listingId: string) {
           listingId,
           sellerId: listing.sellerId,
           winnerId: null,
-          title: "경매 유찰",
-          body: `${listing.title} — 낙찰되지 않았습니다.`,
+          title: t("actions.s1nlj8jt"),
+          body: t("actions.s1g82v1c", { v0: listing.title }),
         });
       }
     }
@@ -163,7 +166,7 @@ export async function placeUsedAuctionBid(
 
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });
     if (!listing || listing.saleType !== "AUCTION") {
-      return { error: "경매 상품이 아닙니다." };
+      return { error: t("actions.s13bzg0h") };
     }
     const tradeErr = await assertUsedMarketTradeAccess({
       userId: user.id,
@@ -194,7 +197,7 @@ export async function placeUsedAuctionBid(
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "bid",
-      title: "새 입찰",
+      title: t("actions.socc6g3"),
       body: `${listing.title} · ${priceLabel}`,
       link,
       actorId: user.id,
@@ -205,8 +208,8 @@ export async function placeUsedAuctionBid(
       await sendUsedAuctionNotification({
         userId: prevBidderId,
         type: "outbid",
-        title: "더 높은 입찰",
-        body: `${listing.title} — ${priceLabel}로 더 높은 입찰이 들어왔습니다.`,
+        title: t("actions.s1cfgi5t"),
+        body: t("actions.s1sx1i50", { v0: listing.title, v1: priceLabel }),
         link,
         actorId: user.id,
       });
@@ -217,8 +220,8 @@ export async function placeUsedAuctionBid(
         listingId,
         sellerId: listing.sellerId,
         type: "extended",
-        title: "경매 마감 연장",
-        body: `${listing.title} — 마감 직전 입찰로 종료 시각이 연장되었습니다.`,
+        title: t("actions.sfl40z8"),
+        body: t("actions.sg6zl9o", { v0: listing.title }),
       });
     }
 
@@ -248,7 +251,7 @@ export async function placeUsedAuctionBid(
     return { success: true, amount: result.amount, extended: result.extended };
   } catch (e) {
     console.error("[placeUsedAuctionBid]", e);
-    return { error: "입찰에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: t("actions.sp4jlrg") };
   }
 }
 
@@ -258,16 +261,16 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
   if (accessErr) return { error: accessErr };
 
   if (!termsAccepted) {
-    return { error: "즉시구매 전 결제 의무 및 이용 제한 안내에 동의해 주세요." };
+    return { error: t("actions.s1abxyv8") };
   }
 
   try {
     await finalizeExpiredAuctionIfNeeded(listingId);
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });
     if (!listing || listing.saleType !== "AUCTION") {
-      return { error: "경매 상품이 아닙니다." };
+      return { error: t("actions.s13bzg0h") };
     }
-    if (listing.sellerId === user.id) return { error: "본인 상품은 구매할 수 없습니다." };
+    if (listing.sellerId === user.id) return { error: t("actions.suz2ksc") };
     const tradeErr = await assertUsedMarketTradeAccess({
       userId: user.id,
       buyerCountry: user.countryCode,
@@ -275,7 +278,7 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
     });
     if (tradeErr) return { error: tradeErr };
     if (!isAuctionLive(listing)) {
-      return { error: "마감된 경매입니다." };
+      return { error: t("actions.s1n2ycjk") };
     }
     const adultErr = assertUsedAdultForRestricted(
       user,
@@ -285,7 +288,7 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
 
     const buyNow = listing.buyNowPrice;
     if (buyNow == null || buyNow <= 0) {
-      return { error: "즉시구매가가 설정되지 않았습니다." };
+      return { error: t("actions.s7l4arh") };
     }
 
     await db.$transaction(async (tx) => {
@@ -323,8 +326,8 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
       listingId,
       sellerId: listing.sellerId,
       winnerId: user.id,
-      title: "즉시구매로 경매 종료",
-      body: `${listing.title} — 다른 분이 즉시구매했습니다.`,
+      title: t("actions.stggiz5"),
+      body: t("actions.sselpvu", { v0: listing.title }),
     });
     revalidatePath(`/market/${listingId}`);
     revalidatePath("/market");
@@ -332,7 +335,7 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
     return { success: true, amount: buyNow };
   } catch (e) {
     console.error("[buyNowUsedAuction]", e);
-    return { error: "즉시구매에 실패했습니다." };
+    return { error: t("actions.s1r7pyee") };
   }
 }
 
@@ -377,10 +380,10 @@ export async function getMyUsedAuctionBids(userId: string) {
 export async function cancelUsedAuction(listingId: string) {
   const user = await requireAuth();
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.sellerId !== user.id) return { error: "권한이 없습니다." };
-  if (listing.saleType !== "AUCTION") return { error: "경매 상품이 아닙니다." };
+  if (!listing || listing.sellerId !== user.id) return { error: t("actions.st3onev") };
+  if (listing.saleType !== "AUCTION") return { error: t("actions.s13bzg0h") };
   if ((listing.bidCount ?? 0) > 0) {
-    return { error: "입찰이 있는 경매는 취소할 수 없습니다." };
+    return { error: t("actions.s1u7cgav") };
   }
 
   await db.usedListing.update({

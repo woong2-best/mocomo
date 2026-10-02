@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -14,7 +17,7 @@ export async function adminLoadStreamingAccounts(query: {
   try {
     await requireAdminPermission("live", { action: "DASHBOARD_VIEW" });
   } catch {
-    return { ok: false as const, error: "권한이 없습니다." };
+    return { ok: false as const, error: t("actions.st3onev") };
   }
 
   const page = Math.max(1, query.page ?? 1);
@@ -93,7 +96,7 @@ export async function adminRevokeStreamingAccount(accountId: string, reason: str
     where: { id: accountId },
     select: { id: true, userId: true, channelName: true },
   });
-  if (!account) return { error: "계정을 찾을 수 없습니다." };
+  if (!account) return { error: t("actions.s1hwfc9a") };
 
   await db.connectedStreamingAccount.update({
     where: { id: accountId },

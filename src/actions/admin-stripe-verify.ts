@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { db } from "@/lib/db";
@@ -23,7 +26,7 @@ export type StripeVerifyDashboard = {
 };
 
 const STRIPE_TEST_CARD =
-  "4242 4242 4242 4242 · 만료/ CVC 임의 · 우편번호 임의 (Stripe 테스트 모드)";
+  t("actions.4242_4242_4242_4242_cvc");
 
 export async function getStripeVerifyDashboard(): Promise<StripeVerifyDashboard> {
   await requireAdmin({ action: "ADMIN_SECURITY_CHANGE", targetType: "stripe_verify", metadata: { view: true } });
@@ -37,7 +40,7 @@ export async function getStripeVerifyDashboard(): Promise<StripeVerifyDashboard>
   });
 
   const origin = getAppOrigin();
-  const webhookLocalHint = `로컬 웹훅: stripe listen --forward-to ${origin}/api/webhooks/stripe`;
+  const webhookLocalHint = t("actions.stripe_listen_forward_to_api", { v0: origin });
 
   return {
     diagnostics,
@@ -57,7 +60,7 @@ export async function startStripePremiumSmokeCheckout(purchaseTermsAccepted?: bo
   });
 
   if (!isPaymentsConfigured()) {
-    return { error: "Stripe 키가 설정되지 않았습니다." };
+    return { error: t("actions.stripe") };
   }
 
   return createStripeCheckoutForUser({
@@ -65,7 +68,7 @@ export async function startStripePremiumSmokeCheckout(purchaseTermsAccepted?: bo
     email: admin.email,
     type: "PREMIUM",
     amount: PREMIUM_USD_CENTS,
-    orderName: "[테스트] MoCoMo Premium (Stripe 검증)",
+    orderName: t("actions.mocomo_premium_stripe"),
     metadata: { stripeVerify: true, scenario: "premium" },
     platform: "web",
     purchaseTermsAccepted: purchaseTermsAccepted === true,
@@ -86,16 +89,16 @@ export async function startStripeTipSmokeCheckout(input: {
   });
 
   if (!isPaymentsConfigured()) {
-    return { error: "Stripe 키가 설정되지 않았습니다." };
+    return { error: t("actions.stripe") };
   }
 
   const receiver = await db.user.findFirst({
     where: { username: input.receiverUsername.trim() },
     select: { id: true, username: true },
   });
-  if (!receiver) return { error: "후원 대상 사용자를 찾을 수 없습니다." };
+  if (!receiver) return { error: t("actions.sw72p7x") };
   if (receiver.id === admin.id) {
-    return { error: "후원 테스트는 본인이 아닌 다른 계정을 선택하세요." };
+    return { error: t("actions.sjpjjks") };
   }
 
   const amount = Math.max(MIN_TIP_USD_CENTS, Math.floor(input.amountUsdCents ?? MIN_TIP_USD_CENTS));
@@ -105,12 +108,12 @@ export async function startStripeTipSmokeCheckout(input: {
     email: admin.email,
     type: "TIP",
     amount,
-    orderName: `[테스트] @${receiver.username} 후원`,
+    orderName: t("actions.stzgvn8", { v0: receiver.username }),
     metadata: {
       ...tipMetadataForCheckout({
         receiverId: receiver.id,
         username: receiver.username,
-        message: input.message?.trim() || "Stripe 후원 테스트",
+        message: input.message?.trim() || t("actions.stripe_2"),
         returnPath: "/admin/finance/stripe-verify",
       }),
       stripeVerify: true,

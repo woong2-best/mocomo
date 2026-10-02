@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -28,7 +31,7 @@ const appealSchema = z.object({
 
 export async function getAppealContext() {
   const session = await auth();
-  if (!session?.user?.id) return { error: "로그인이 필요합니다." as const };
+  if (!session?.user?.id) return { error: t("actions.s1mzxopt") as const };
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
@@ -44,9 +47,9 @@ export async function getAppealContext() {
       isBanned: true,
     },
   });
-  if (!user) return { error: "사용자를 찾을 수 없습니다." as const };
+  if (!user) return { error: t("actions.svypth4") as const };
   if (!isReadOnlySuspended(user.accountStatus) && !isServiceBanned(user)) {
-    return { error: "현재 제재 상태가 아닙니다." as const };
+    return { error: t("actions.sdjz9fu") as const };
   }
 
   const openAppeal = await db.accountAppeal.findFirst({
@@ -64,15 +67,15 @@ export async function getAppealContext() {
 export async function submitAccountAppeal(data: z.infer<typeof appealSchema>) {
   const user = await requireAuth({ writeKind: "appeal" });
   const parsed = appealSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값을 확인해 주세요." };
+  if (!parsed.success) return { error: t("actions.slqeo1f") };
 
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: { accountStatus: true, suspensionReason: true, isBanned: true },
   });
-  if (!dbUser) return { error: "사용자를 찾을 수 없습니다." };
+  if (!dbUser) return { error: t("actions.svypth4") };
   if (!isReadOnlySuspended(dbUser.accountStatus) && !isServiceBanned(dbUser)) {
-    return { error: "현재 제재 상태가 아닙니다." };
+    return { error: t("actions.sdjz9fu") };
   }
 
   const existing = await db.accountAppeal.findFirst({
@@ -81,7 +84,7 @@ export async function submitAccountAppeal(data: z.infer<typeof appealSchema>) {
       status: { in: [...OPEN_APPEAL_STATUSES] },
     },
   });
-  if (existing) return { error: "이미 검토 중인 이의 제기가 있습니다." };
+  if (existing) return { error: t("actions.sqrzgtm") };
 
   const appeal = await db.accountAppeal.create({
     data: {
@@ -108,8 +111,8 @@ export async function submitAccountAppeal(data: z.infer<typeof appealSchema>) {
   await createNotification({
     userId: user.id,
     type: "SYSTEM",
-    title: "이의 제기 접수",
-    body: "이의 제기가 정상적으로 접수되었습니다.",
+    title: t("actions.s1kuqu7r"),
+    body: t("actions.sn86lin"),
     link: `/appeal/${appeal.id}`,
   });
 
@@ -192,22 +195,22 @@ export async function updateAppealStatus(
 
   if (status === "APPROVED") {
     const { restoreUserAccount } = await import("@/actions/admin");
-    await restoreUserAccount(appeal.userId, note ?? "이의 제기 승인");
+    await restoreUserAccount(appeal.userId, note ?? t("actions.s1kupyjz"));
   }
 
   const messages: Partial<Record<AppealStatus, string>> = {
-    RECEIVED: "이의 제기가 정상적으로 접수되었습니다.",
-    UNDER_REVIEW: "담당자가 이의 제기를 검토하고 있습니다.",
-    INFO_REQUESTED: "추가 자료가 필요합니다.",
-    APPROVED: "이의 제기가 승인되었습니다.",
-    REJECTED: "이의 제기가 기각되었습니다.",
+    RECEIVED: t("actions.sn86lin"),
+    UNDER_REVIEW: t("actions.s1jwg26u"),
+    INFO_REQUESTED: t("actions.s1i8dco9"),
+    APPROVED: t("actions.s2u0np8"),
+    REJECTED: t("actions.s1xwhhta"),
   };
   const body = messages[status];
   if (body) {
     await createNotification({
       userId: appeal.userId,
       type: "SYSTEM",
-      title: "이의 제기 안내",
+      title: t("actions.s1kuq9q4"),
       body,
       link: `/appeal/${appeal.id}`,
     });

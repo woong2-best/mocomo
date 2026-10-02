@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { db } from "@/lib/db";
@@ -91,10 +94,10 @@ export async function shareContentViaDm(data: {
 
   const uniqueIds = [...new Set(data.recipientIds.map((id) => id.trim()).filter(Boolean))];
   if (uniqueIds.length === 0) {
-    return { ok: false, error: "받는 사람을 선택해 주세요." };
+    return { ok: false, error: t("actions.s9il86a") };
   }
   if (uniqueIds.length > MAX_RECIPIENTS) {
-    return { ok: false, error: `한 번에 최대 ${MAX_RECIPIENTS}명까지 보낼 수 있습니다.` };
+    return { ok: false, error: t("actions.s6xjtg", { v0: MAX_RECIPIENTS }) };
   }
 
   const note = (data.note ?? "").trim().slice(0, MAX_NOTE_LEN);
@@ -103,20 +106,20 @@ export async function shareContentViaDm(data: {
   let content: string;
   if (postId) {
     if (postId.length > 40 || !/^[a-z0-9]+$/i.test(postId)) {
-      return { ok: false, error: "잘못된 게시물입니다." };
+      return { ok: false, error: t("actions.s7lym4y") };
     }
     const exists = await db.post.findFirst({
       where: { id: postId, visibility: "PUBLIC" },
       select: { id: true },
     });
     if (!exists) {
-      return { ok: false, error: "게시물을 찾을 수 없습니다." };
+      return { ok: false, error: t("actions.sgr97ft") };
     }
     content = encodePostShareMessage(postId, note);
   } else {
     const shareMessage = (data.shareMessage ?? "").trim().slice(0, MAX_SHARE_LEN);
     if (!shareMessage) {
-      return { ok: false, error: "공유할 내용이 없습니다." };
+      return { ok: false, error: t("actions.suugoyf") };
     }
     content = note ? `${note}\n\n${shareMessage}` : shareMessage;
   }
@@ -132,7 +135,7 @@ export async function shareContentViaDm(data: {
       continue;
     }
     if (!("room" in dm) || !dm.room) {
-      errors.push("대화를 열 수 없습니다.");
+      errors.push(t("actions.strs82f"));
       continue;
     }
     try {
@@ -141,14 +144,14 @@ export async function shareContentViaDm(data: {
       if (!firstRoomId) firstRoomId = dm.room.id;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
-      errors.push(msg === MESSAGE_REQUEST_BLOCKED ? msg : "메시지 전송에 실패했습니다.");
+      errors.push(msg === MESSAGE_REQUEST_BLOCKED ? msg : t("actions.s1ubqmdo"));
     }
   }
 
   if (sentCount === 0 || !firstRoomId) {
     return {
       ok: false,
-      error: errors[0] ?? "메시지 전송에 실패했습니다.",
+      error: errors[0] ?? t("actions.s1ubqmdo"),
     };
   }
 

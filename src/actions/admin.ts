@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -58,7 +61,7 @@ export async function suspendUserPermanently(targetId: string, reason: string) {
     where: { id: targetId },
     select: { accountStatus: true },
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: t("actions.svypth4") };
 
   await db.user.update({
     where: { id: targetId },
@@ -96,7 +99,7 @@ export async function suspendUserTemporary(targetId: string, reason: string, unt
     where: { id: targetId },
     select: { accountStatus: true },
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: t("actions.svypth4") };
 
   await db.user.update({
     where: { id: targetId },
@@ -132,7 +135,7 @@ export async function restoreUserAccount(targetId: string, note?: string) {
     where: { id: targetId },
     select: { accountStatus: true },
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: t("actions.svypth4") };
 
   await db.user.update({
     where: { id: targetId },
@@ -153,7 +156,7 @@ export async function restoreUserAccount(targetId: string, note?: string) {
     actorId: admin.id,
     previousStatus: target.accountStatus,
     newStatus: "ACTIVE",
-    reason: note ?? "관리자 복구",
+    reason: note ?? t("actions.s1jy8ok3"),
   });
 
   revalidatePath("/admin");
@@ -167,7 +170,7 @@ export async function banUser(targetId: string, reason: string, until?: Date) {
     where: { id: targetId },
     select: { accountStatus: true },
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: t("actions.svypth4") };
 
   await db.user.update({
     where: { id: targetId },
@@ -198,7 +201,7 @@ export async function banUser(targetId: string, reason: string, until?: Date) {
 }
 
 export async function unbanUser(targetId: string) {
-  return restoreUserAccount(targetId, "이용 금지 해제");
+  return restoreUserAccount(targetId, t("actions.shwyfl1"));
 }
 
 export async function resolveReport(reportId: string, status: ReportStatus) {
@@ -333,7 +336,7 @@ export async function adminForceDeleteEventMapRecommendation(
       lng: true,
     },
   });
-  if (!rec) return { error: "추천 장소를 찾을 수 없습니다." };
+  if (!rec) return { error: t("actions.s19la0h0") };
 
   await db.eventMapUserRecommendation.delete({ where: { id } });
   await db.modLog.create({
@@ -341,7 +344,7 @@ export async function adminForceDeleteEventMapRecommendation(
       actorId: admin.id,
       targetId: rec.userId,
       action: "force_delete_event_map_recommendation",
-      reason: modReason ?? "관리자 강제 삭제",
+      reason: modReason ?? t("actions.s11pkj1o"),
       metadata: {
         recommendationId: rec.id,
         title: rec.title,
@@ -370,7 +373,7 @@ export async function adminForceDeletePost(postId: string, modReason?: string) {
     where: { id: postId },
     select: { id: true, authorId: true, title: true },
   });
-  if (!post) return { error: "게시물을 찾을 수 없습니다." };
+  if (!post) return { error: t("actions.sgr97ft") };
 
   await db.post.delete({ where: { id: postId } });
   await db.modLog.create({
@@ -378,7 +381,7 @@ export async function adminForceDeletePost(postId: string, modReason?: string) {
       actorId: admin.id,
       targetId: post.authorId,
       action: "force_delete_post",
-      reason: modReason ?? "관리자 강제 삭제",
+      reason: modReason ?? t("actions.s11pkj1o"),
       metadata: { postId, title: post.title },
     },
   });
@@ -395,7 +398,7 @@ export async function adminForceDeleteUsedListing(listingId: string, modReason?:
     where: { id: listingId },
     select: { id: true, sellerId: true, title: true },
   });
-  if (!listing) return { error: "중고 글을 찾을 수 없습니다." };
+  if (!listing) return { error: t("actions.s1frmqks") };
 
   await db.usedListing.delete({ where: { id: listingId } });
   await db.modLog.create({
@@ -403,7 +406,7 @@ export async function adminForceDeleteUsedListing(listingId: string, modReason?:
       actorId: admin.id,
       targetId: listing.sellerId,
       action: "force_delete_used_listing",
-      reason: modReason ?? "관리자 강제 삭제",
+      reason: modReason ?? t("actions.s11pkj1o"),
       metadata: { listingId, title: listing.title },
     },
   });
@@ -423,9 +426,9 @@ export async function adminForceDeleteByReport(
   let result: { error?: string; success?: boolean };
 
   if (targetType === "POST") {
-    result = await adminForceDeletePost(targetId, "신고 처리 — 게시물 삭제");
+    result = await adminForceDeletePost(targetId, t("actions.sb8mzp7"));
   } else if (targetType === "USED_LISTING") {
-    result = await adminForceDeleteUsedListing(targetId, "신고 처리 — 중고 글 삭제");
+    result = await adminForceDeleteUsedListing(targetId, t("actions.s3rw2iw"));
   } else if (targetType === "LIVE_CHAT") {
     await db.liveChatMessage.deleteMany({ where: { id: targetId } });
     result = { success: true };
@@ -437,7 +440,7 @@ export async function adminForceDeleteByReport(
     await db.voiceMember.deleteMany({ where: { channelId: targetId } });
     result = { success: true };
   } else {
-    return { error: "이 유형은 자동 삭제를 지원하지 않습니다. 유저 정지 등 다른 조치를 사용해 주세요." };
+    return { error: t("actions.s1y1i5zv") };
   }
 
   if (result.error) return result;

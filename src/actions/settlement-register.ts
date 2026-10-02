@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { requireAuth } from "@/lib/auth";
@@ -8,7 +11,7 @@ export async function registerCreatorSettlement(_raw: unknown) {
   void _raw;
   return {
     error:
-      "앱 내 계좌 직접 등록(Custom Connect)은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+      t("actions.custom_connect_stripe_express"),
     code: "CUSTOM_CONNECT_DEPRECATED" as const,
   };
 }

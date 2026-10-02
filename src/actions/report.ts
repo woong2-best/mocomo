@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { db } from "@/lib/db";
@@ -37,7 +40,7 @@ export async function submitContentReport(data: {
   targetType: ReportTargetType;
   targetId: string;
   reason: ReportReasonId;
-  /** Hierarchical path label for admin review (e.g. "스캠·사기 › 스팸") */
+  /** Hierarchical path label for admin review (e.g. t("actions.s1b277zv")) */
   reasonPath?: string;
   details?: string;
   reportedUserId?: string;
@@ -51,7 +54,7 @@ export async function submitContentReport(data: {
     data.reason;
   const details = data.details?.trim();
 
-  if (!data.targetId.trim()) return { error: "신고 대상을 찾을 수 없습니다." };
+  if (!data.targetId.trim()) return { error: t("actions.s1wr72la") };
 
   const recent = await db.report.findFirst({
     where: {
@@ -61,7 +64,7 @@ export async function submitContentReport(data: {
       createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     },
   });
-  if (recent) return { error: "이미 최근에 신고한 콘텐츠입니다." };
+  if (recent) return { error: t("actions.s1m45g3p") };
 
   let moderationCaseId: string | undefined;
   let reportedUserId = data.reportedUserId;
@@ -105,5 +108,5 @@ export async function submitContentReport(data: {
     },
   });
 
-  return { success: true, message: "신고가 접수되었습니다. 검토 후 조치하겠습니다." };
+  return { success: true, message: t("actions.so53py5") };
 }

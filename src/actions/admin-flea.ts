@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -89,7 +92,7 @@ export async function adminForceEndFleaEvent(eventId: string) {
 export async function adminDeleteFleaEvent(eventId: string) {
   const admin = await requireAdmin();
   const ok = await deleteFleaEvent(eventId, admin.id);
-  if (!ok) return { error: "진행 중인 판매가 있거나 이벤트를 찾을 수 없습니다." };
+  if (!ok) return { error: t("actions.s1xpzfyj") };
   revalidate();
   return { ok: true as const };
 }

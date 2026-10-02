@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -142,13 +145,13 @@ export async function getAptProfile(): Promise<AptProfileDto | null> {
 
 export async function completeAptMoveIn(payload: MoveInPayload) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
 
   const housingType = "apartment";
   const floor = housingType === "apartment" ? clampFloor(payload.homeFloor ?? APT_DEFAULT_FLOOR) : 0;
 
   if (await isFloorOccupied(payload.countryCode, floor, user.id)) {
-    return { error: `${floor}층은 이미 입주 중입니다. 다른 층을 선택해 주세요.` };
+    return { error: t("actions.s1956kg8", { v0: floor }) };
   }
 
   const plans = defaultPlans();
@@ -194,13 +197,13 @@ export async function completeAptMoveIn(payload: MoveInPayload) {
     return { ok: true as const, housingType };
   } catch (e) {
     console.error("[completeAptMoveIn]", e);
-    return { error: "입주 저장에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: t("actions.sf2ws33") };
   }
 }
 
 export async function saveAptFloorPlan(floor: number, rooms: AptRoom[]) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
 
   const existing = await db.aptProfile.findUnique({ where: { userId: user.id } });
   const plans = parseJson<Record<number, AptRoom[]>>(existing?.floorPlans, defaultPlans());
@@ -249,15 +252,15 @@ export async function saveAptSimulationState(payload: {
 
 export async function placeAptTv() {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
 
   const profile = await getAptProfile();
-  if (!profile) return { error: "프로필 없음" };
+  if (!profile) return { error: t("actions.s1ok12y") };
 
   const floor = profile.homeFloor;
   const rooms = getRoomsForFloor(profile.floorPlans, floor);
   const living = rooms.find((r) => r.type === "living");
-  if (!living) return { error: "거실이 없습니다." };
+  if (!living) return { error: t("actions.ssdgwyr") };
 
   const furniture: FurnitureItem[] = [
     ...profile.furniture.filter((f) => f.type !== "tv"),
@@ -276,7 +279,7 @@ export async function placeAptTv() {
 
 export async function saveAptHouseBuild(state: HouseBuildState) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
 
   try {
     await db.aptProfile.upsert({
@@ -293,7 +296,7 @@ export async function saveAptHouseBuild(state: HouseBuildState) {
     return { ok: true as const };
   } catch (e) {
     console.error("[saveAptHouseBuild]", e);
-    return { error: "건설 저장에 실패했습니다." };
+    return { error: t("actions.s1y34v5o") };
   }
 }
 
@@ -360,7 +363,7 @@ async function isFloorOccupied(countryCode: string, floor: number, excludeUserId
 export async function checkFloorAvailableForSignup(countryCode: string, floor: number) {
   const clamped = clampFloor(floor);
   if (await isFloorOccupied(countryCode, clamped)) {
-    return { ok: false as const, error: `${clamped}층은 이미 입주 중입니다. 다른 층을 선택해 주세요.` };
+    return { ok: false as const, error: t("actions.s1956kg8", { v0: clamped }) };
   }
   return { ok: true as const, floor: clamped };
 }
@@ -407,7 +410,7 @@ export async function pickAvailableSignupFloor(
   const taken = await loadOccupiedSignupFloors(countryCode);
   const floor = pickNearestFreeFloor(start, taken);
   if (floor == null) {
-    return { ok: false as const, error: "지금은 입주 가능한 층이 없습니다. 잠시 후 다시 시도해 주세요." };
+    return { ok: false as const, error: t("actions.s12hab9i") };
   }
   return { ok: true as const, floor };
 }

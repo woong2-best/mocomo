@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { z } from "zod";
@@ -12,7 +15,7 @@ const schema = z
     callRequestAudience: audience.optional(),
   })
   .refine((value) => value.messageRequestAudience || value.callRequestAudience, {
-    message: "변경할 설정이 없습니다.",
+    message: t("actions.s59uesp"),
   });
 
 export async function updateContactAudience(data: {
@@ -20,10 +23,10 @@ export async function updateContactAudience(data: {
   callRequestAudience?: "EVERYONE" | "FOLLOWING_ONLY";
 }) {
   const parsed = schema.safeParse(data);
-  if (!parsed.success) return { error: "입력값을 확인해 주세요." as const };
+  if (!parsed.success) return { error: t("actions.slqeo1f") as const };
 
   const session = await auth();
-  if (!session?.user?.id) return { error: "로그인이 필요합니다." as const };
+  if (!session?.user?.id) return { error: t("actions.s1mzxopt") as const };
 
   const settings = await saveContactSettings(session.user.id, parsed.data);
   return { settings };

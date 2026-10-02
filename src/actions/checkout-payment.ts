@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -48,7 +51,7 @@ async function checkoutRateLimit(userId: string, bucket: string) {
   const { checkRateLimit, authLimiter } = await import("@/lib/ratelimit");
   const limited = await checkRateLimit(authLimiter, `${bucket}:${userId}`);
   if (!limited.success) {
-    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: t("actions.s121u7h2") };
   }
   return null;
 }
@@ -74,7 +77,7 @@ export async function payWithMoco(orderId: string, purchaseTermsAccepted?: boole
   const limited = await checkoutRateLimit(user.id, "moco-pay");
   if (limited) return limited;
   if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
-    return { error: "잘못된 결제 요청입니다." };
+    return { error: t("actions.s5oooc3") };
   }
   const result = await payCheckoutWithMoco(user.id, orderId, {
     purchaseTermsAccepted,
@@ -121,7 +124,7 @@ export async function payWithGems(orderId: string, purchaseTermsAccepted?: boole
   const limited = await checkoutRateLimit(user.id, "gem-pay");
   if (limited) return limited;
   if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
-    return { error: "잘못된 결제 요청입니다." };
+    return { error: t("actions.s5oooc3") };
   }
 
   const result = await payCheckoutWithGemsFromOrder(user.id, orderId, {
@@ -131,8 +134,8 @@ export async function payWithGems(orderId: string, purchaseTermsAccepted?: boole
 
   if ("error" in result && result.error) {
     const messages: Record<string, string> = {
-      INSUFFICIENT_GEMS_BALANCE: "MOCO 잔액이 부족합니다. 지갑에서 잔액을 확인하고 충전해 주세요.",
-      INSUFFICIENT_MOCO_BALANCE: "MOCO 잔액이 부족합니다. 지갑에서 잔액을 확인하고 충전해 주세요.",
+      INSUFFICIENT_GEMS_BALANCE: t("actions.moco"),
+      INSUFFICIENT_MOCO_BALANCE: t("actions.moco"),
     };
     return { error: messages[result.error] ?? result.error };
   }
@@ -147,7 +150,7 @@ export async function payWithGems(orderId: string, purchaseTermsAccepted?: boole
     };
   }
 
-  return { error: "결제에 실패했습니다." };
+  return { error: t("actions.shqh9l1") };
 }
 
 export async function createStripeCheckoutRedirect(input: {

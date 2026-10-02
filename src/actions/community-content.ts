@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -33,9 +36,9 @@ export async function createCommunityChannelPost(
   try {
     const user = await requireAuth();
     const ctx = await modPerms(communityId, user.id);
-    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!ctx) return { error: t("actions.s1foa8q5") };
     if (!ctx.isOwner && !hasPermission(ctx.perms, "createPosts")) {
-      return { error: "게시글 작성 권한이 없습니다." };
+      return { error: t("actions.s1fx0t93") };
     }
 
     const content = data.content?.trim() ?? "";
@@ -49,7 +52,7 @@ export async function createCommunityChannelPost(
       isAnonymous: Boolean(data.isAnonymous),
     });
     if (result.error) return { error: result.error };
-    if (!result.postId) return { error: "게시에 실패했습니다." };
+    if (!result.postId) return { error: t("actions.s1l7khy9") };
 
     void logCommunityAudit({
       communityId,
@@ -69,14 +72,14 @@ export async function deleteCommunityPost(postId: string, communityId: string) {
   try {
     const user = await requireAuth();
     const ctx = await modPerms(communityId, user.id);
-    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
-    if (!hasPermission(ctx.perms, "deletePosts")) return { error: "권한이 없습니다." };
+    if (!ctx) return { error: t("actions.s1foa8q5") };
+    if (!hasPermission(ctx.perms, "deletePosts")) return { error: t("actions.st3onev") };
 
     const post = await db.post.findFirst({
       where: { id: postId, communityId },
       select: { id: true, authorId: true },
     });
-    if (!post) return { error: "게시글을 찾을 수 없습니다." };
+    if (!post) return { error: t("actions.s1cdkrl9") };
 
     await db.post.delete({ where: { id: postId } });
     void logCommunityAudit({
@@ -97,9 +100,9 @@ export async function pinCommunityPost(postId: string, communityId: string, pinn
   try {
     const user = await requireAuth();
     const ctx = await modPerms(communityId, user.id);
-    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!ctx) return { error: t("actions.s1foa8q5") };
     if (!hasPermission(ctx.perms, "announce") && !hasPermission(ctx.perms, "pinMessages")) {
-      return { error: "권한이 없습니다." };
+      return { error: t("actions.st3onev") };
     }
 
     await db.post.updateMany({
@@ -124,14 +127,14 @@ export async function deleteCommunityComment(commentId: string, communityId: str
   try {
     const user = await requireAuth();
     const ctx = await modPerms(communityId, user.id);
-    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
-    if (!hasPermission(ctx.perms, "deleteComments")) return { error: "권한이 없습니다." };
+    if (!ctx) return { error: t("actions.s1foa8q5") };
+    if (!hasPermission(ctx.perms, "deleteComments")) return { error: t("actions.st3onev") };
 
     const comment = await db.comment.findFirst({
       where: { id: commentId, post: { communityId } },
       select: { id: true },
     });
-    if (!comment) return { error: "댓글을 찾을 수 없습니다." };
+    if (!comment) return { error: t("actions.s1jrxufe") };
 
     await db.comment.delete({ where: { id: commentId } });
     void logCommunityAudit({
@@ -152,8 +155,8 @@ export async function deleteCommunityChatMessage(messageId: string, communityId:
   try {
     const user = await requireAuth();
     const ctx = await modPerms(communityId, user.id);
-    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
-    if (!hasPermission(ctx.perms, "deleteMessages")) return { error: "권한이 없습니다." };
+    if (!ctx) return { error: t("actions.s1foa8q5") };
+    if (!hasPermission(ctx.perms, "deleteMessages")) return { error: t("actions.st3onev") };
 
     const msg = await db.message.findFirst({
       where: {
@@ -162,7 +165,7 @@ export async function deleteCommunityChatMessage(messageId: string, communityId:
       },
       select: { id: true, roomId: true },
     });
-    if (!msg) return { error: "메시지를 찾을 수 없습니다." };
+    if (!msg) return { error: t("actions.s1dddxj1") };
 
     await db.message.delete({ where: { id: messageId } });
     void logCommunityAudit({
@@ -238,7 +241,7 @@ export async function resolveCommunityReport(
     const user = await requireAuth();
     const ctx = await modPerms(communityId, user.id);
     if (!ctx || !hasPermission(ctx.perms, "handleReports")) {
-      return { error: "권한이 없습니다." };
+      return { error: t("actions.st3onev") };
     }
 
     await db.report.update({
@@ -371,22 +374,22 @@ export async function createCommunityEvent(
   try {
     const user = await requireAuth();
     const ctx = await modPerms(communityId, user.id);
-    if (!ctx) return { error: "커뮤니티를 찾을 수 없습니다." };
+    if (!ctx) return { error: t("actions.s1foa8q5") };
     if (!hasPermission(ctx.perms, "manageEvents") && !hasPermission(ctx.perms, "manageServer")) {
-      return { error: "이벤트 생성 권한이 없습니다." };
+      return { error: t("actions.s8yy0s3") };
     }
 
     const title = data.title?.trim();
     const description = data.description?.trim();
-    if (!title || title.length < 2) return { error: "제목을 입력해 주세요." };
-    if (!description || description.length < 5) return { error: "설명을 5자 이상 입력해 주세요." };
+    if (!title || title.length < 2) return { error: t("actions.sojdmy3") };
+    if (!description || description.length < 5) return { error: t("actions.sdp425") };
 
     const startsAt = new Date(data.startsAt);
     const endsAt = new Date(data.endsAt);
     if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
-      return { error: "날짜가 올바르지 않습니다." };
+      return { error: t("actions.s1hmc1h3") };
     }
-    if (endsAt <= startsAt) return { error: "종료일은 시작일 이후여야 합니다." };
+    if (endsAt <= startsAt) return { error: t("actions.s1yi5u57") };
 
     const event = await db.event.create({
       data: {

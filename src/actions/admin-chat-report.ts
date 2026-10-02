@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { db } from "@/lib/db";
@@ -47,7 +50,7 @@ export async function getChatReportEvidence(reportId: string) {
   });
 
   if (!report || report.targetType !== "CHAT_ROOM" || !report.chatRoomId) {
-    return { error: "채팅 신고 기록을 찾을 수 없습니다." as const };
+    return { error: t("actions.sgnfacr") as const };
   }
 
   const roomId = report.chatRoomId;

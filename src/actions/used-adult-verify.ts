@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { requireAuth } from "@/lib/auth";
@@ -21,6 +24,6 @@ export async function verifyUsedAdultAge(_data: {
   agreeTerms: boolean;
 }) {
   return {
-    error: "수동 생년월일 입력은 종료되었습니다. 휴대폰 본인인증을 이용해 주세요.",
+    error: t("actions.sebgqum"),
   };
 }

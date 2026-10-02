@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -111,7 +114,7 @@ async function initMarketplacePurchase(
 
   if (routing.mode === "BLOCKED") {
     return {
-      error: routing.blockedReason ?? "마켓플레이스는 Stripe 지원 국가에서만 이용할 수 있습니다.",
+      error: routing.blockedReason ?? t("actions.stripe_3"),
     };
   }
 
@@ -137,17 +140,17 @@ async function initMarketplacePurchase(
   });
 
   if (!listing || listing.status !== "ACTIVE") {
-    return { error: "판매 중인 상품이 아닙니다." };
+    return { error: t("actions.s1t0nl25") };
   }
   const listingRating = listing.contentRating ?? (listing.isNsfw ? "ADULT" : "GENERAL");
   const { assertPaymentNotForAdultContent } = await import("@/lib/adult-monetization-ban");
   const adultListingBlock = assertPaymentNotForAdultContent(listingRating);
   if (adultListingBlock) return adultListingBlock;
   if (listing.sellerId === buyer.id) {
-    return { error: "본인 상품은 구매할 수 없습니다." };
+    return { error: t("actions.suz2ksc") };
   }
   if (listing.sellerProfile?.status === "SUSPENDED" || listing.sellerProfile?.status === "REJECTED") {
-    return { error: "현재 구매할 수 없는 판매자입니다." };
+    return { error: t("actions.s1rknfwv") };
   }
 
   const needsShipping = listing.type !== "DIGITAL";
@@ -163,7 +166,7 @@ async function initMarketplacePurchase(
   }
 
   if (listing.type !== "DIGITAL" && listing.stock < quantity) {
-    return { error: "재고가 부족합니다." };
+    return { error: t("actions.s18hc6oe") };
   }
 
   const sellerProfileCheck = await db.marketplaceSellerProfile.findUnique({
@@ -174,12 +177,12 @@ async function initMarketplacePurchase(
     sellerProfileCheck?.sanctionLevel === "PERMANENT_BAN" ||
     sellerProfileCheck?.sanctionLevel === "SALES_SUSPENDED"
   ) {
-    return { error: "판매가 제한된 판매자입니다." };
+    return { error: t("actions.s1d7xyb5") };
   }
 
   if (needsShipping) {
     if (!input.shipName?.trim() || !input.shipCountry?.trim() || !input.shipAddress1?.trim()) {
-      return { error: "배송지(이름·국가·주소)를 입력해 주세요." };
+      return { error: t("actions.s1qpamyx") };
     }
     const dest = normalizeShipCountry(input.shipCountry);
     if (!dest) {
@@ -204,7 +207,7 @@ async function initMarketplacePurchase(
   const totalAmount = fees.totalAmount;
 
   if (!listing.seller.stripeConnectAccountId) {
-    return { error: "판매자 Stripe Connect 온보딩이 완료되지 않았습니다." };
+    return { error: t("actions.stripe_connect") };
   }
 
   const shippingFields = {
@@ -376,7 +379,7 @@ async function createMarketplaceCheckoutSession(
               price_data: {
                 currency: init.currency,
                 unit_amount: init.shippingAmount,
-                product_data: { name: "배송비" },
+                product_data: { name: t("actions.ssiacz") },
               },
               quantity: 1,
             },
@@ -405,7 +408,7 @@ async function createMarketplaceCheckoutSession(
   };
 
   const session = await stripe.checkout.sessions.create(sessionParams);
-  if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
+  if (!session.url) return { error: t("actions.s6bk4av") };
 
   await db.marketplaceOrder.update({
     where: { id: init.order.id },
@@ -435,7 +438,7 @@ export async function prepareMarketplacePaymentForBuyer(
   if (adultBlock) return adultBlock;
 
   if (!isStripeConfigured()) {
-    return { error: "Stripe 결제가 설정되지 않았습니다." };
+    return { error: t("actions.stripe_4") };
   }
 
   const customerId = await getOrCreateStripeCustomer(buyer.id, buyer.email);
@@ -498,7 +501,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
   opts?: { purchaseTermsAccepted?: boolean }
 ) {
   if (!isStripeConfigured()) {
-    return { error: "Stripe 결제가 설정되지 않았습니다." };
+    return { error: t("actions.stripe_4") };
   }
 
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
@@ -516,20 +519,20 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
     where: { id: paymentIntentDbId },
   });
   if (!paymentIntent || paymentIntent.userId !== buyer.id) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: t("actions.s1am6wzc") };
   }
   if (paymentIntent.type !== "MARKETPLACE") {
-    return { error: "마켓 결제가 아닙니다." };
+    return { error: t("actions.scn01bw") };
   }
   if (paymentIntent.status === "PAID") {
-    return { error: "이미 결제된 주문입니다." };
+    return { error: t("actions.s1batyd1") };
   }
 
   const meta = paymentIntent.metadata as Record<string, string | undefined>;
   const marketplaceOrderId = meta.marketplaceOrderId;
   const listingId = meta.listingId;
   if (!marketplaceOrderId || !listingId) {
-    return { error: "주문 정보가 올바르지 않습니다." };
+    return { error: t("actions.s1ooy78e") };
   }
 
   const order = await db.marketplaceOrder.findUnique({
@@ -537,7 +540,7 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
     include: { items: true },
   });
   if (!order || order.buyerId !== buyer.id || order.status !== "AWAITING_PAYMENT") {
-    return { error: "주문을 찾을 수 없습니다." };
+    return { error: t("actions.sr119vd") };
   }
 
   const listing = await db.marketplaceListing.findUnique({
@@ -555,10 +558,10 @@ export async function createMarketplaceCheckoutSessionForPaymentIntent(
       sellerProfile: { select: { id: true, status: true } },
     },
   });
-  if (!listing) return { error: "상품을 찾을 수 없습니다." };
+  if (!listing) return { error: t("actions.s1fhot7o") };
 
   if (listing.status !== "ACTIVE") {
-    return { error: "판매가 중단된 상품입니다." };
+    return { error: t("actions.s8d3w03") };
   }
 
   const item = order.items[0];

@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { headers } from "next/headers";
@@ -68,7 +71,7 @@ export async function adminKillAllEconomyFeatures(reason?: string) {
       fleaEnabled: false,
       iapEnabled: false,
     },
-    reason?.trim() || "긴급 전체 차단",
+    reason?.trim() || t("actions.s5t8mxx"),
     ip
   );
   revalidate();
@@ -89,7 +92,7 @@ export async function adminRestoreAllEconomyFeatures(reason?: string) {
       fleaEnabled: true,
       iapEnabled: true,
     },
-    reason?.trim() || "전체 기능 복구",
+    reason?.trim() || t("actions.smt1tpu"),
     ip
   );
   revalidate();

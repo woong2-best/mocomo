@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -41,7 +44,7 @@ export const getBondeeRoom = async () => {
 
 export async function saveBondeeHome(state: BondeeHomeState) {
   const user = await getCachedCurrentUser();
-  if (!user) return { error: "로그인이 필요합니다." };
+  if (!user) return { error: t("actions.s1mzxopt") };
 
   const ownerId = await resolveAptHomeOwnerId(user.id);
   const existing = await db.aptProfile.findUnique({ where: { userId: ownerId } });
