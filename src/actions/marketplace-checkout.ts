@@ -1190,7 +1190,7 @@ export async function cancelMarketplaceOrder(orderId: string) {
   }
   if (order.status === "PAID" || order.status === "PREPARING") {
     // 결제 후 취소 → 환불 요청으로 전환
-    return requestMarketplaceRefund(orderId, "배송 전 주문 취소");
+    return requestMarketplaceRefund(orderId, "Cancelled.");
   }
   await db.marketplaceOrder.update({
     where: { id: orderId },
