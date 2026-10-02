@@ -119,7 +119,7 @@ export async function executeOnDemandWithdrawal(
     return {
       ok: false,
       code: gate.skipStatus ?? "PAYOUT_GATE",
-      message: gate.skipReason ?? "정산 계좌 설정을 완료해 주세요.",
+      message: gate.skipReason ?? "Complete payout account setup.",
       status: 403,
     };
   }
@@ -166,7 +166,7 @@ export async function executeOnDemandWithdrawal(
           bucket: "SETTLEMENT_MOCO",
           delta: -quote.withdrawMoco,
           balanceAfter: updated.settlementMocoPoints,
-          reason: "Reward 온디맨드 출금",
+          reason: "Reward on-demand withdrawal",
           referenceType: "moco_on_demand_withdrawal",
           referenceId: row.id,
         },
@@ -179,7 +179,7 @@ export async function executeOnDemandWithdrawal(
       return {
         ok: false,
         code: "INSUFFICIENT_BALANCE",
-        message: "정산 MOCO 잔액이 부족합니다.",
+        message: "Insufficient settlement MOCO balance.",
         status: 402,
       };
     }
@@ -273,7 +273,7 @@ export async function executeOnDemandWithdrawal(
           bucket: "SETTLEMENT_MOCO",
           delta: quote.withdrawMoco,
           balanceAfter: restored.settlementMocoPoints,
-          reason: "Reward 온디맨드 출금 실패 반환",
+          reason: "Reward on-demand withdrawal failure reversal",
           referenceType: "moco_on_demand_withdrawal_reversal",
           referenceId: withdrawal.id,
         },

@@ -33,7 +33,7 @@ export async function notifyRewardGateSkip(userId: string, skipReason: string) {
   await createNotification({
     userId,
     type: "system",
-    title: "Reward 정산이 보류되었습니다",
+    title: "Reward settlement is on hold",
     body: skipReason,
     link: "/wallet",
   }).catch(() => null);

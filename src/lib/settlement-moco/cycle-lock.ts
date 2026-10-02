@@ -68,7 +68,7 @@ export async function lockCreatorSettlementCycleInTx(
       bucket: "SETTLEMENT_MOCO",
       delta: -available,
       balanceAfter: updated.settlementMocoPoints,
-      reason: "월간 정산 Lock (Available → Processing)",
+      reason: "Monthly settlement lock (Available → Processing)",
       referenceType: "moco_settlement_cycle",
       referenceId: cycle.id,
       metadata: {

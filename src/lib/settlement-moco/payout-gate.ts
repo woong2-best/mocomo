@@ -58,7 +58,7 @@ export function evaluateStripeAccountForRewardPayout(
       taxRequirementsDue: false,
       needsExpressMigration: false,
       skipStatus: REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED,
-      skipReason: "Stripe Connect 계정이 없습니다. Express 온보딩을 완료해 주세요.",
+      skipReason: "No Stripe Connect account. Complete Express onboarding.",
     };
   }
 
@@ -79,7 +79,7 @@ export function evaluateStripeAccountForRewardPayout(
       needsExpressMigration: true,
       skipStatus: REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED,
       skipReason:
-        "레거시 Custom 계정입니다. Stripe Express 온보딩으로 재연동해 주세요.",
+        "Legacy Custom account. Reconnect with Stripe Express onboarding.",
     };
   }
 
@@ -99,7 +99,7 @@ export function evaluateStripeAccountForRewardPayout(
       taxRequirementsDue,
       needsExpressMigration: false,
       skipStatus: REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED,
-      skipReason: "Stripe Express 온보딩이 완료되지 않았습니다.",
+      skipReason: "Stripe Express onboarding is not complete.",
     };
   }
 
@@ -115,7 +115,7 @@ export function evaluateStripeAccountForRewardPayout(
       needsExpressMigration: false,
       skipStatus: REWARD_BATCH_STATUS.SKIPPED_TAX_INCOMPLETE,
       skipReason:
-        "세무 정보(W-9/W-8BEN 등)가 미비합니다. Stripe Express에서 세무 정보를 완료해 주세요.",
+        "Tax information (W-9/W-8BEN, etc.) is incomplete. Complete tax info in Stripe Express.",
     };
   }
 
@@ -130,7 +130,7 @@ export function evaluateStripeAccountForRewardPayout(
       taxRequirementsDue: false,
       needsExpressMigration: false,
       skipStatus: REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED,
-      skipReason: "Stripe 추가 정보 제출이 필요합니다.",
+      skipReason: "Stripe requires additional information.",
     };
   }
 
@@ -161,7 +161,7 @@ export async function checkCreatorRewardPayoutGate(userId: string): Promise<Payo
       taxRequirementsDue: false,
       needsExpressMigration: false,
       skipStatus: REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED,
-      skipReason: "Stripe가 설정되지 않았습니다.",
+      skipReason: "Stripe is not configured.",
     };
   }
 
@@ -199,7 +199,7 @@ export async function checkCreatorRewardPayoutGate(userId: string): Promise<Payo
       needsExpressMigration: true,
       skipStatus: REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED,
       skipReason:
-        "레거시 Custom 계정입니다. Stripe Express 온보딩으로 재연동해 주세요.",
+        "Legacy Custom account. Reconnect with Stripe Express onboarding.",
     };
     await persistTaxGateSnapshot(userId, gate, user.countryCode ?? "US");
     return gate;
@@ -227,7 +227,7 @@ export async function checkCreatorRewardPayoutGate(userId: string): Promise<Payo
       taxRequirementsDue: false,
       needsExpressMigration: false,
       skipStatus: REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED,
-      skipReason: "Stripe 계정 상태를 확인할 수 없습니다.",
+      skipReason: "Could not verify Stripe account status.",
     };
     await persistTaxGateSnapshot(userId, gate, user.countryCode ?? "US");
     return gate;
@@ -275,7 +275,7 @@ export async function getCreatorPayoutDashboard(userId: string): Promise<Creator
       reasons: [
         {
           code: "NO_CONNECT_ACCOUNT",
-          message: "Stripe Connect 계정이 없습니다. 정산 계좌 연동을 시작해 주세요.",
+          message: "No Stripe Connect account. Start payout account linking.",
         },
       ],
     };
@@ -291,19 +291,19 @@ export async function getCreatorPayoutDashboard(userId: string): Promise<Creator
     if (account.type === "custom" || profile?.needsExpressMigration) {
       reasons.push({
         code: "EXPRESS_MIGRATION",
-        message: "이전 Custom 계정입니다. Stripe Express로 다시 연동해 주세요.",
+        message: "Previous Custom account. Reconnect with Stripe Express.",
       });
     }
     if (!account.details_submitted) {
       reasons.push({
         code: "DETAILS_NOT_SUBMITTED",
-        message: "본인 확인·계좌·세무 정보 제출이 완료되지 않았습니다.",
+        message: "Identity verification, bank account, and tax information submission are incomplete.",
       });
     }
     if (!account.payouts_enabled) {
       reasons.push({
         code: "PAYOUTS_DISABLED",
-        message: "Stripe가 아직 정산 지급(payouts_enabled)을 허용하지 않습니다.",
+        message: "Stripe has not enabled payouts yet (payouts_enabled).",
       });
     }
     if (disabledReason) {
@@ -348,7 +348,7 @@ export async function getCreatorPayoutDashboard(userId: string): Promise<Creator
         : [
             {
               code: "STRIPE_STATUS_UNAVAILABLE",
-              message: "Stripe 계정 상태를 확인하지 못했습니다. 잠시 후 다시 열어 주세요.",
+              message: "Could not verify Stripe account status. Open again in a moment.",
             },
           ],
     };
@@ -367,7 +367,7 @@ async function persistTaxGateSnapshot(
     create: {
       userId,
       countryCode: countryCode.toUpperCase(),
-      legalName: "Stripe 온보딩",
+      legalName: "Stripe onboarding",
       dateOfBirth: new Date("1990-01-01"),
       addressLine1: "—",
       city: "—",

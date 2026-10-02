@@ -23,4 +23,4 @@ export const MIN_REWARD_PAYOUT_USD_CENTS = Number(process.env.MIN_REWARD_PAYOUT_
 
 export type TaxFormType = "W8BEN" | "W9";
 
-export const REWARD_TERMS_LABEL = "크리에이터 활동 성과 보수(Reward)";
+export const REWARD_TERMS_LABEL = "Creator activity performance reward (Reward)";

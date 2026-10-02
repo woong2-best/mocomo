@@ -77,7 +77,7 @@ export function calcRewardAmount(input: {
 
 export function validateW9Ssn(ssn: string): string | null {
   const digits = ssn.replace(/\D/g, "");
-  if (digits.length !== 9) return "SSN/ITIN 9자리를 입력해 주세요.";
+  if (digits.length !== 9) return "Enter a 9-digit SSN/ITIN.";
   return null;
 }
 
