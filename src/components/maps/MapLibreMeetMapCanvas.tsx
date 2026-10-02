@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef } from "react";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, Popup as MapLibrePopup, StyleSpecification } from "maplibre-gl";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
@@ -58,10 +61,10 @@ function escapeHtml(value: string) {
 function popupHtml(popup: MarkerPopup) {
   const links = [
     popup.searchUrl
-      ? `<a href="${escapeHtml(popup.searchUrl)}" target="_blank" rel="noopener noreferrer">Google 검색</a>`
+      ? `<a href="${escapeHtml(popup.searchUrl)}" target="_blank" rel="noopener noreferrer">{t("maps.google")}</a>`
       : "",
     popup.mapUrl
-      ? `<a href="${escapeHtml(popup.mapUrl)}" target="_blank" rel="noopener noreferrer">Google 지도</a>`
+      ? `<a href="${escapeHtml(popup.mapUrl)}" target="_blank" rel="noopener noreferrer">{t("lib.subculture.event.pins.s09e5120ba1")}</a>`
       : "",
   ].filter(Boolean);
   const linkBlock = links.length ? `<div class="meet-map-popup-links">${links.join("")}</div>` : "";

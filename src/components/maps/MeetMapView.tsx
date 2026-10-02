@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, MapPin, Navigation } from "lucide-react";
@@ -75,7 +78,7 @@ export function MeetMapView({
         place: meetPlace,
         coords: activeCoords,
       });
-    return { title: pinTitle || locationQuery || "거래 장소", searchUrl, mapUrl };
+    return { title: pinTitle || locationQuery || t("lib.maps.s1m4rnnj"), searchUrl, mapUrl };
   }, [
     mode,
     activeCoords,
@@ -125,7 +128,7 @@ export function MeetMapView({
   );
 
   const handleMapEngineError = useCallback((message: string) => {
-    setMapError(message || "지도를 불러오지 못했습니다.");
+    setMapError(message || t("maps.sorxqsi"));
   }, []);
 
   const handleMapReady = useCallback(() => {
@@ -174,7 +177,7 @@ export function MeetMapView({
         error?: string;
       };
       if (!res.ok || body.lat == null || body.lng == null) {
-        setResolveError(errorText(body.error ?? "장소를 찾지 못했습니다."));
+        setResolveError(errorText(body.error ?? t("maps.sb4vse5")));
         return;
       }
       const next = { lat: body.lat, lng: body.lng };
@@ -185,7 +188,7 @@ export function MeetMapView({
       setDisplayCoords(next);
       setResolveError("");
     } catch {
-      setResolveError("검색에 실패했습니다.");
+      setResolveError(t("maps.s8mzv60"));
     } finally {
       setSearching(false);
     }
@@ -207,7 +210,7 @@ export function MeetMapView({
   if (shipping) {
     return (
       <p className="text-xs text-muted-foreground rounded-xl border border-dashed p-4 text-center">
-        전국 배송 거래는 지도 없이 배송으로 진행해 주세요.
+        {t("maps.s97zpw")}
       </p>
     );
   }
@@ -220,7 +223,7 @@ export function MeetMapView({
             <Input
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="주소 또는 장소 이름 (지도 검색)"
+              placeholder={t("maps.s847ju1")}
               className="rounded-xl h-10 text-sm"
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void searchPlace())}
             />
@@ -231,7 +234,7 @@ export function MeetMapView({
               disabled={searching}
               onClick={() => void searchPlace()}
             >
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "검색"}
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : t("lib.search.fast.s4f5a3f69b7")}
             </Button>
           </div>
           <Button
@@ -242,7 +245,7 @@ export function MeetMapView({
             onClick={() => void fetchCurrentLocation()}
           >
             <Navigation className="h-3.5 w-3.5" />
-            내 위치
+            {t("maps.smbbxs0")}
           </Button>
         </div>
       )}
@@ -256,7 +259,7 @@ export function MeetMapView({
         {!mapReady && !mapError ? (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            <span className="sr-only">지도 불러오는 중</span>
+            <span className="sr-only">{t("maps.suny9r5")}</span>
           </div>
         ) : null}
         <MapLibreMeetMapCanvas
@@ -273,7 +276,7 @@ export function MeetMapView({
         {!activeCoords && mode === "pick" && (
           <div className="absolute bottom-2 left-2 right-2 z-10 pointer-events-none">
             <p className="text-[11px] text-center px-2 py-1 rounded-lg bg-background/90 border shadow-sm">
-              지도를 탭하거나 검색해서 거래 장소 핀을 찍어 주세요
+              {t("maps.s1otcmgg")}
             </p>
           </div>
         )}
@@ -286,8 +289,7 @@ export function MeetMapView({
       {mode === "pick" && (
         <p className="text-xs text-muted-foreground flex items-start gap-1">
           <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          위 칸은 지도 검색용입니다. 건물·출입구 등 상세는 아래 주소 상세에만 적어 주세요. 외부
-          지도 링크는 Google 지도로 열립니다.
+          {t("maps.google_4")}
         </p>
       )}
     </div>
