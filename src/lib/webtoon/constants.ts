@@ -12,23 +12,23 @@ export const WEBTOON_WEEK_DAYS: WebtoonPublishDay[] = [
 ];
 
 export const WEBTOON_DAY_LABEL: Record<WebtoonPublishDay, string> = {
-  MON: "월",
-  TUE: "화",
-  WED: "수",
-  THU: "목",
-  FRI: "금",
-  SAT: "토",
-  SUN: "일",
+  MON: "Mon",
+  TUE: "Tue",
+  WED: "Wed",
+  THU: "Thu",
+  FRI: "Fri",
+  SAT: "Sat",
+  SUN: "Sun",
 };
 
 export const WEBTOON_DAY_FULL: Record<WebtoonPublishDay, string> = {
-  MON: "월요웹툰",
-  TUE: "화요웹툰",
-  WED: "수요웹툰",
-  THU: "목요웹툰",
-  FRI: "금요웹툰",
-  SAT: "토요웹툰",
-  SUN: "일요웹툰",
+  MON: "Monday webtoons",
+  TUE: "Tuesday webtoons",
+  WED: "Wednesday webtoons",
+  THU: "Thursday webtoons",
+  FRI: "Friday webtoons",
+  SAT: "Saturday webtoons",
+  SUN: "Sunday webtoons",
 };
 
 const JS_DAY_TO_WEBTOON: WebtoonPublishDay[] = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -66,27 +66,27 @@ export const WEBTOON_GENRES: WebtoonGenre[] = [
 ];
 
 export const WEBTOON_GENRE_LABEL: Record<WebtoonGenre, string> = {
-  SCHOOL: "학원",
-  ACTION: "액션",
+  SCHOOL: "School",
+  ACTION: "Action",
   SF: "SF",
-  STORY: "스토리",
-  FANTASY: "판타지",
-  BL_GL: "BL/백합",
-  COMEDY: "개그/코미디",
-  PURE_LOVE: "연애/순정",
-  DRAMA: "드라마",
-  ROMANCE: "로맨스",
-  HISTORICAL: "시대극",
-  SPORTS: "스포츠",
-  SLICE_OF_LIFE: "일상",
-  MYSTERY: "추리/미스터리",
-  HORROR: "공포/스릴러",
-  ADULT: "성인",
-  OMNIBUS: "옴니버스",
-  EPISODE: "에피소드",
-  MARTIAL_ARTS: "무협",
-  SHONEN: "소년",
-  OTHER: "기타",
+  STORY: "Story",
+  FANTASY: "Fantasy",
+  BL_GL: "BL/Yuri",
+  COMEDY: "Comedy",
+  PURE_LOVE: "Romance/Drama",
+  DRAMA: "Drama",
+  ROMANCE: "Romance",
+  HISTORICAL: "Historical",
+  SPORTS: "Sports",
+  SLICE_OF_LIFE: "Slice of life",
+  MYSTERY: "Mystery",
+  HORROR: "Horror/Thriller",
+  ADULT: "Mature",
+  OMNIBUS: "Anthology",
+  EPISODE: "Episodic",
+  MARTIAL_ARTS: "Martial arts",
+  SHONEN: "Shonen",
+  OTHER: "Other",
 };
 
 const WEBTOON_GENRE_SET = new Set<string>(WEBTOON_GENRES);
