@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePeerCall } from "@/lib/peer-call/use-peer-call";
@@ -71,7 +74,7 @@ function DmVideoSplitStage({
               </AvatarFallback>
             </Avatar>
             {phase === "outgoing" && (
-              <p className="text-center text-sm text-white/55">연결 대기 중…</p>
+              <p className="text-center text-sm text-white/55">{t("call.s6y69qd")}</p>
             )}
           </div>
         )}
@@ -201,7 +204,7 @@ export function PeerCallRoom({
           peer={peer}
           isVideo={video}
           phase="outgoing"
-          subtitle={video ? "영상 연결 중…" : "음성 연결 중…"}
+          subtitle={video ? t("call.s121ftcl") : t("call.s1ygtvdm")}
         />
         <div className="absolute inset-x-0 bottom-0 z-20 pb-safe pt-4">
           <PeerCallControlBar

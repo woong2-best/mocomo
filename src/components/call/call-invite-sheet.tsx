@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,18 +22,18 @@ export function CallInviteSheet({
   const [query, setQuery] = useState("");
 
   return (
-    <CallBottomSheet open={open} onClose={onClose} title="초대하기">
+    <CallBottomSheet open={open} onClose={onClose} title={t("call.sqm7zdc")}>
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="검색"
+          placeholder={t("lib.search.fast.s4f5a3f69b7")}
           className="h-11 rounded-xl border-0 bg-white/10 pl-10 text-white placeholder:text-white/40 focus-visible:ring-white/20"
         />
       </div>
 
-      <p className="mb-2 text-xs font-semibold text-white/50">통화 중</p>
+      <p className="mb-2 text-xs font-semibold text-white/50">{t("call.srbmgkw")}</p>
       <div className="flex items-center gap-3 rounded-xl px-1 py-2">
         <Avatar className="h-11 w-11">
           <AvatarImage src={peer.image ?? undefined} />
@@ -40,7 +43,7 @@ export function CallInviteSheet({
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{peer.username}</p>
-          <p className="text-xs text-white/50">참여 중</p>
+          <p className="text-xs text-white/50">{t("call.sqkatnp")}</p>
         </div>
       </div>
 

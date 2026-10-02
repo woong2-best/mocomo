@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -187,7 +190,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
         if (isCallPhase(current) && current.call.id === data.callId) {
           if (lastTerminalRef.current !== data.callId) {
             lastTerminalRef.current = data.callId;
-            setError("상대방이 통화를 거절했습니다.");
+            setError(t("call.s1qt6c2c"));
           }
           dismissCallUi();
         }
@@ -233,7 +236,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       if (!isCallPhase(current) || current.call.id !== callId) return;
       if (locallyDismissedCallIdsRef.current.has(callId)) return;
       if (kind === "declined" && current.phase !== "active") {
-        setError("상대방이 통화를 거절했습니다.");
+        setError(t("call.s1qt6c2c"));
       }
       dismissCallUi(callId);
       const finish =
@@ -463,7 +466,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
           status: perm === "denied" ? "denied" : "unknown",
           message:
             perm === "denied"
-              ? "마이크 권한이 꺼져 있습니다. 설정에서 허용해 주세요."
+              ? t("call.sqnjif7")
               : undefined,
         });
       }
@@ -480,7 +483,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
             status: camPerm === "denied" ? "denied" : "unknown",
             message:
               camPerm === "denied"
-                ? "카메라 권한이 꺼져 있습니다. 설정에서 허용해 주세요."
+                ? t("call.s1g8931j")
                 : undefined,
           });
         }
@@ -499,12 +502,12 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       callType: CallType = "AUDIO",
       peerHint?: CallParticipant
     ) => {
-      if (!userId) return { error: "로그인이 필요합니다." };
+      if (!userId) return { error: t("lib.moco-donation.s1mzxopt") };
       setError("");
 
       const peer: CallParticipant = peerHint ?? {
         id: calleeId,
-        username: "상대방",
+        username: t("call.st3v6y"),
         image: null,
       };
       const gen = ++startCallGenRef.current;
@@ -538,15 +541,15 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
 
       if (!micResult.ok) {
         resetCall();
-        return { error: micResult.message ?? "마이크 확인이 필요합니다." };
+        return { error: micResult.message ?? t("call.s1k4088") };
       }
       if (callType === "VIDEO" && !camResult.ok) {
         resetCall();
-        return { error: camResult.message ?? "카메라 확인이 필요합니다." };
+        return { error: camResult.message ?? t("call.s1ik22to") };
       }
       if (result.error || !result.call) {
         resetCall();
-        return { error: result.error ?? "통화를 시작할 수 없습니다." };
+        return { error: result.error ?? t("call.syk7o2r") };
       }
 
       const callPeer = peerForUser(result.call, userId);
@@ -571,13 +574,13 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     ]);
     if (!micResult.ok) {
       setMic(micResult);
-      setError(micResult.message ?? "마이크 확인 후 받을 수 있습니다.");
+      setError(micResult.message ?? t("call.s8bhwwv"));
       return;
     }
     setMic(micResult);
     if (needsCam && !camResult.ok) {
       setCamera(camResult);
-      setError(camResult.message ?? "카메라 확인 후 받을 수 있습니다.");
+      setError(camResult.message ?? t("call.s5wwjaz"));
       return;
     }
     if (needsCam) setCamera(camResult);
@@ -655,7 +658,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const selfPeer = useMemo<CallParticipant>(
     () => ({
       id: userId ?? "",
-      username: session?.user?.username ?? session?.user?.name ?? "나",
+      username: session?.user?.username ?? session?.user?.name ?? t("flower.syvs"),
       image: session?.user?.image ?? null,
     }),
     [userId, session?.user?.username, session?.user?.name, session?.user?.image]

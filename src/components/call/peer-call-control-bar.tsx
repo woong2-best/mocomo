@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Mic, MicOff, PhoneOff, SwitchCamera, Video, VideoOff, Volume2, VolumeX } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -63,7 +66,7 @@ export function PeerCallControlBar({
           {video && (
             <ControlIcon
               active={cameraEnabled}
-              label={cameraEnabled ? "카메라 끄기" : "카메라 켜기"}
+              label={cameraEnabled ? t("call.s1qk00s0") : t("call.s1qk59nc")}
               onClick={onToggleCamera}
             >
               {cameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
@@ -72,27 +75,27 @@ export function PeerCallControlBar({
 
           <ControlIcon
             active={micEnabled}
-            label={micEnabled ? "마이크 끄기" : "마이크 켜기"}
+            label={micEnabled ? t("voice-live.sqg2zbg") : t("voice-live.sqg886s")}
             onClick={onToggleMic}
           >
             {micEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
           </ControlIcon>
 
           {video && (
-            <ControlIcon label="카메라 전환" onClick={onFlipCamera}>
+            <ControlIcon label={t("media.s1qk4a54")} onClick={onFlipCamera}>
               <SwitchCamera className="h-5 w-5" />
             </ControlIcon>
           )}
 
           <ControlIcon
             active={speakerOn}
-            label={speakerOn ? "스피커 끄기" : "스피커 켜기"}
+            label={speakerOn ? t("call.shhcshs") : t("call.shhi1d4")}
             onClick={() => setSpeakerOn((v) => !v)}
           >
             {speakerOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
           </ControlIcon>
 
-          <ControlIcon danger label="통화 종료" onClick={onHangup}>
+          <ControlIcon danger label={t("call.s1to4lew")} onClick={onHangup}>
             <PhoneOff className="h-5 w-5" />
           </ControlIcon>
         </div>

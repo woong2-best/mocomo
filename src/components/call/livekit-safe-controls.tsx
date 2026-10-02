@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useLocalParticipant } from "@livekit/components-react";
 import { Button } from "@/components/ui/button";
@@ -28,12 +31,12 @@ export function LivekitSafeControls({ video = false }: { video?: boolean }) {
     <div className="flex flex-wrap justify-center gap-2 px-3 py-2">
       <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => void toggleMic()}>
         {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-        {micOn ? "마이크" : "음소거"}
+        {micOn ? t("lib.live.host.controls.sd5f5e78818") : t("lib.community-server.su4r74")}
       </Button>
       {video && (
         <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => void toggleCam()}>
           {camOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-          {camOn ? "카메라 끔" : "카메라"}
+          {camOn ? t("lib.live.host.controls.sadd01642b3") : t("lib.live.host.controls.se0d8b86ab8")}
         </Button>
       )}
     </div>

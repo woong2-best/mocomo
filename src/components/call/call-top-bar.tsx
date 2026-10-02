@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { ChevronDown, MoreHorizontal, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +25,7 @@ export function CallTopBar({ onMinimize, onInvite, onSettings, className }: Prop
         type="button"
         onClick={onMinimize}
         className="flex h-10 w-10 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
-        aria-label="통화 최소화"
+        aria-label={t("call.s1axl35v")}
       >
         <ChevronDown className="h-6 w-6" />
       </button>
@@ -32,7 +35,7 @@ export function CallTopBar({ onMinimize, onInvite, onSettings, className }: Prop
           type="button"
           onClick={onInvite}
           className="flex h-10 w-10 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
-          aria-label="초대하기"
+          aria-label={t("call.sqm7zdc")}
         >
           <UserPlus className="h-5 w-5" />
         </button>
@@ -40,7 +43,7 @@ export function CallTopBar({ onMinimize, onInvite, onSettings, className }: Prop
           type="button"
           onClick={onSettings}
           className="flex h-10 w-10 items-center justify-center rounded-full text-white/90 hover:bg-white/10"
-          aria-label="설정"
+          aria-label={t("settings.title")}
         >
           <MoreHorizontal className="h-5 w-5" />
         </button>
