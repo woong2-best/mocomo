@@ -1,6 +1,6 @@
-import { errorText } from "@/lib/i18n/error-text";
-﻿"use client";
+"use client";
 
+import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
