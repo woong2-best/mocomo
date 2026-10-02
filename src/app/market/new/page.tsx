@@ -1,3 +1,4 @@
+import { errorText } from "@/lib/i18n/error-text";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -22,9 +23,9 @@ export default async function UsedNewPage() {
   if (regionErr) {
     return (
       <AppPageChrome maxWidth="lg" spacing="sm" className="py-8 text-center">
-        <p className="text-muted-foreground">{usedMarketBlockedRegionMsg(locale)}</p>
+        <p className="text-muted-foreground">{errorText(usedMarketBlockedRegionMsg())}</p>
         <Link href="/market" className="text-primary underline text-sm">
-          {locale === "en" ? `Back to ${MARKET_BRAND_NAME}` : `${MARKET_BRAND_NAME} 홈으로`}
+          {`Back to ${MARKET_BRAND_NAME}`}
         </Link>
       </AppPageChrome>
     );

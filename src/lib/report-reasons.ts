@@ -283,16 +283,7 @@ export function getPostReportCopy(
   locale: Locale | string | undefined,
   kind: "post" | "chat" = "post"
 ): PostReportCopy {
-  if (locale === "ko") {
-    return {
-      reasons: REPORT_REASONS,
-      taxonomy: POST_REPORT_TAXONOMY,
-      rootQuestion: kind === "chat" ? CHAT_REPORT_ROOT_QUESTION : POST_REPORT_ROOT_QUESTION,
-      disclaimer: POST_REPORT_DISCLAIMER,
-      reviewHint: POST_REPORT_REVIEW_HINT,
-      otherDetailsPrompt: POST_REPORT_OTHER_DETAILS_PROMPT,
-    };
-  }
+  
   return {
     reasons: REPORT_REASONS_EN,
     taxonomy: POST_REPORT_TAXONOMY_EN,

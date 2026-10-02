@@ -1,6 +1,7 @@
 "use client";
 
 
+import { isAuthRequiredError } from "@/lib/error-codes";
 import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -314,7 +315,7 @@ export function ComposeForm({
           message: t("toast.publishFailed"),
           detail: t("toast.retry"),
         });
-        if (res.status === 401 || msg.includes("로그인")) {
+        if (res.status === 401 || isAuthRequiredError(result.error)) {
           onNeedSignIn?.();
         }
         return;

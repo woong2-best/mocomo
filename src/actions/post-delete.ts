@@ -10,7 +10,7 @@ export async function deleteOwnPost(
   postId: string
 ): Promise<{ ok?: true; error?: string; authorUsername?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: "actions.s1mzxopt" };
+  if (!userId) return { error: "common.error.authRequired" };
 
   const post = await db.post.findUnique({
     where: { id: postId },

@@ -73,6 +73,7 @@
     "android:build": "cd android && gradlew.bat assembleRelease",
     "android:debug": "npx cap sync android && cd android && gradlew.bat assembleDebug",
     "android:bundle": "npx cap sync android && cd android && gradlew.bat bundleRelease",
+    "test:i18n": "tsx --test \"src/lib/__tests__/error-text.test.ts\"",
     "test:watermark": "tsx --test \"src/lib/watermark/__tests__/*.test.ts\"",
     "test:card-authorization": "vitest run src/lib/marketplace/__tests__/card-authorization.test.ts",
     "typecheck:payment": "tsc --noEmit -p tsconfig.payment-check.json",

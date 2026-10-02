@@ -86,7 +86,7 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const paidIds = collectPaidAttachmentIds(messages);
   const purchasedIds = await getPurchasedMessageAttachmentIds(session.user.id, paidIds);
   const initialMessages = serializeChatMessages(messages, session.user.id, purchasedIds);
-  const lockHint = locale === "ko" ? CHAT_REPORT_LOCK_MESSAGE_KO : CHAT_REPORT_LOCK_MESSAGE_EN;
+  const lockHint = CHAT_REPORT_LOCK_MESSAGE_EN;
   const readOnlyHint = roomLocked
     ? lockHint
     : dmBlocked

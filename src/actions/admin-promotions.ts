@@ -21,7 +21,7 @@ import type { PromotionRule } from "@/lib/promotion/rules";
 
 function errMsg(e: unknown) {
   if (e instanceof AdminAccessError) {
-    return e.status === 401 ? "actions.s1mzxopt" : "actions.st3onev";
+    return e.status === 401 ? "common.error.authRequired" : "actions.st3onev";
   }
   return e instanceof Error ? e.message : "actions.s1su4v2o";
 }

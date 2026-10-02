@@ -35,8 +35,5 @@ export function requireContentRating(value: unknown): ContentRating | { error: s
 }
 
 export function contentRatingLabel(rating: ContentRating, locale = "ko"): string {
-  if (locale === "en") {
-    return rating === "ADULT" ? "Adult content" : "General";
-  }
-  return rating === "ADULT" ? "성인 콘텐츠" : "일반";
+      return rating === "ADULT" ? "Adult content" : "General";
 }

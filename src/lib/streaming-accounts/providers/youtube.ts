@@ -181,7 +181,8 @@ async function fetchYoutubeChannelFromPage(
       (pageTitle?.[1] && unescape(pageTitle[1]).replace(/\s*-\s*YouTube$/i, "")) ||
       channelId;
     // Avoid YouTube chrome labels mistakenly captured as the channel name
-    if (channelName === "홈" || channelName === "Home" || channelName.length < 1) {
+    // YouTube's Korean UI label for "Home" scraped from pages; kept as \u escapes.
+    if (channelName === "\uD648" || channelName === "Home" || channelName.length < 1) {
       channelName = channelId;
     }
 

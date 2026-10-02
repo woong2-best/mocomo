@@ -24,7 +24,7 @@ export function assertUsedMarketVerified(
   if (!user) return null;
   if (isUsedMarketEligible(user)) return null;
   return {
-    error: usedMarketVerificationRequiredMsg(user.countryCode, locale),
+    error: usedMarketVerificationRequiredMsg(user.countryCode),
     redirectTo: usedMarketVerifyPath("/market/new", user.countryCode),
   };
 }

@@ -44,7 +44,7 @@ export async function updateWatermarkSettings(data: {
   if (!parsed.success) return { error: "actions.slqeo1f" };
 
   const session = await auth();
-  if (!session?.user?.id) return { error: "actions.s1mzxopt" };
+  if (!session?.user?.id) return { error: "common.error.authRequired" };
 
   await db.user.update({
     where: { id: session.user.id },

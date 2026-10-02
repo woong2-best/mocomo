@@ -1,5 +1,6 @@
 "use client";
 
+import { isHumanChallengeRetryError } from "@/lib/error-codes";
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -105,11 +106,7 @@ export function SignupVerifyForm() {
 
       if (result.error) {
         setError(errorText(result.error));
-        const retry =
-          result.error.includes("정답") ||
-          result.error.includes("만료") ||
-          result.error.toLowerCase().includes("correct") ||
-          result.error.toLowerCase().includes("expired");
+        const retry = isHumanChallengeRetryError(result.error);
         if (retry) {
           await loadChallenge(draft.locale);
         }

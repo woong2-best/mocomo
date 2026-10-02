@@ -48,6 +48,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   const [preferred, setPreferred] = useState<DiscoveryGender[]>(initial.preferredGenders);
   const [pitch, setPitch] = useState(initial.pitch ?? "");
   const [msg, setMsg] = useState("");
+  const [msgIsError, setMsgIsError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [lat, setLat] = useState<number | null>(initial.lat);
@@ -67,11 +68,14 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
         setLat(data.lat);
         setLng(data.lng);
         setMsg("위치 좌표를 저장했습니다.");
+      setMsgIsError(false);
       } else {
         setMsg("위치를 찾지 못했습니다. 도시명을 다시 입력해 주세요.");
+      setMsgIsError(true);
       }
     } catch {
       setMsg("위치 검색에 실패했습니다.");
+      setMsgIsError(true);
     } finally {
       setGeoLoading(false);
     }
@@ -80,6 +84,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
   async function fetchCurrentLocation() {
     setGeoLoading(true);
     setMsg("");
+    setMsgIsError(false);
     try {
       const coords = await getCurrentCoords();
       setLat(coords.lat);
@@ -92,14 +97,18 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
         if (res.ok && data.label) {
           setCity(data.label);
           setMsg("현재 위치를 설정했습니다.");
+      setMsgIsError(false);
         } else {
           setMsg("위치 좌표를 저장했습니다.");
+      setMsgIsError(false);
         }
       } catch {
         setMsg("위치 좌표를 저장했습니다.");
+      setMsgIsError(false);
       }
     } catch (err) {
       setMsg(geolocationErrorMessage(err));
+      setMsgIsError(true);
     } finally {
       setGeoLoading(false);
     }
@@ -109,6 +118,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
     e.preventDefault();
     setLoading(true);
     setMsg("");
+    setMsgIsError(false);
     const result = await updateDiscoverySettings({
       enabled,
       gender,
@@ -127,8 +137,10 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
     });
     if (result && "error" in result && result.error) {
       setMsg(errorText(result.error));
+      setMsgIsError(true);
     } else {
       setMsg("저장되었습니다.");
+      setMsgIsError(false);
       router.refresh();
     }
     setLoading(false);
@@ -376,7 +388,7 @@ export function DiscoverySettingsForm({ initial }: { initial: DiscoverySettings 
       </Card>
 
       {msg && (
-        <p className={cn("text-sm text-center", msg.includes("실패") || msg.includes("못") ? "text-destructive" : "text-emerald-600")}>
+        <p className={cn("text-sm text-center", msgIsError ? "text-destructive" : "text-emerald-600")}>
           {msg}
         </p>
       )}

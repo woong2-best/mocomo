@@ -43,9 +43,7 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
     }
     if (!birthDateFieldsValid(birth)) {
       setError(
-        locale === "ko"
-          ? "생년월일을 확인해 주세요. (연 4자리, 월·일 각 2자리)"
-          : "Check your date of birth (4-digit year, 2-digit month and day)."
+        "Check your date of birth (4-digit year, 2-digit month and day)."
       );
       return;
     }
@@ -69,18 +67,10 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
   }
 
   const title =
-    locale === "ko"
-      ? "회원가입 완료"
-      : locale === "ja"
-        ? "会員登録の完了"
-        : "Finish signing up";
+    "Finish signing up";
 
   const desc =
-    locale === "ko"
-      ? `${BRAND.name} 이용을 위해 생년월일과 약관 동의가 필요합니다. 입력하기 전에는 계정이 만들어지지 않습니다.`
-      : locale === "ja"
-        ? `${BRAND.name} のご利用には生年月日と規約同意が必要です。`
-        : `Enter your date of birth and accept the terms to create your ${BRAND.name} account.`;
+    `Enter your date of birth and accept the terms to create your ${BRAND.name} account.`;
 
   const birthOk = birthDateFieldsValid(birth);
   const canSubmit =
@@ -119,11 +109,7 @@ export function CompleteOAuthSignupForm({ dest, account }: Props) {
             <Button type="submit" className="w-full rounded-xl" disabled={!canSubmit}>
               {loading
                 ? "…"
-                : locale === "ko"
-                  ? "동의하고 시작하기"
-                  : locale === "ja"
-                    ? "同意して始める"
-                    : "Agree and join"}
+                : ("Agree and join")}
             </Button>
           </form>
         </CardContent>

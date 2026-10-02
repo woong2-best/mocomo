@@ -142,6 +142,7 @@ async function generateWithGemini(
     "gemini-flash-latest",
   ];
   let lastError = "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+  let lastErrorIsGeneric = true;
 
   for (const model of models) {
     try {
@@ -173,8 +174,9 @@ async function generateWithGemini(
               : res.status === 404
                 ? null
                 : "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.";
-        if (nextError && (res.status === 429 || res.status === 403 || lastError.includes("실패"))) {
+        if (nextError && (res.status === 429 || res.status === 403 || lastErrorIsGeneric)) {
           lastError = nextError;
+          lastErrorIsGeneric = res.status !== 429 && res.status !== 403;
         }
         continue;
       }
@@ -185,12 +187,14 @@ async function generateWithGemini(
       const content = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
       if (!content) {
         lastError = "AI 응답이 비어 있습니다.";
+        lastErrorIsGeneric = false;
         continue;
       }
 
       const draft = parseDraft(content);
       if (!draft) {
         lastError = "AI 응답을 해석하지 못했습니다.";
+        lastErrorIsGeneric = false;
         continue;
       }
 
@@ -199,6 +203,7 @@ async function generateWithGemini(
     } catch (e) {
       console.warn("[used-listing-ai] gemini", model, e);
       lastError = "AI 요청 시간이 초과되었습니다.";
+      lastErrorIsGeneric = false;
     }
   }
 

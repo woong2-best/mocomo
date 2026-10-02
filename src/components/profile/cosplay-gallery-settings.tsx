@@ -34,15 +34,18 @@ export function CosplayGallerySettings({
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [msgIsError, setMsgIsError] = useState(false);
 
   async function handleDelete(photoId: string) {
     if (!confirm("이 사진을 갤러리에서 삭제할까요?")) return;
     setDeletingId(photoId);
     setMsg("");
+    setMsgIsError(false);
     const result = await deleteCosplayPhoto(photoId);
     setDeletingId(null);
     if ("error" in result && result.error) {
       setMsg(errorText(result.error));
+      setMsgIsError(true);
       return;
     }
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
@@ -53,11 +56,13 @@ export function CosplayGallerySettings({
     const url = pending[0]?.url?.trim();
     if (!url || url.startsWith("blob:")) {
       setMsg("사진을 업로드해 주세요.");
+      setMsgIsError(true);
       return;
     }
 
     setUploading(true);
     setMsg("");
+    setMsgIsError(false);
     const result = await addCosplayPhoto({
       url,
       character: character.trim() || undefined,
@@ -67,6 +72,7 @@ export function CosplayGallerySettings({
 
     if ("error" in result && result.error) {
       setMsg(errorText(result.error));
+      setMsgIsError(true);
       return;
     }
     if (result.photo) {
@@ -179,7 +185,7 @@ export function CosplayGallerySettings({
         </div>
 
         {msg && (
-          <p className={`text-sm ${msg.includes("삭제") || msg.includes("없") ? "text-destructive" : "text-primary"}`}>
+          <p className={`text-sm ${msgIsError ? "text-destructive" : "text-primary"}`}>
             {msg}
           </p>
         )}

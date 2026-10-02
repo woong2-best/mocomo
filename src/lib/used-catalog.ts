@@ -44,7 +44,8 @@ export function compactWorkKey(input: string | null | undefined): string {
 /** DB 저장·URL용 — 띄어쓰기 없이, 비어 있으면 null */
 export function normalizeWorkTitle(input: string | null | undefined): string | null {
   const compact = compactWorkKey(input);
-  if (!compact || compact === "전체작품") return null;
+  // Legacy value stored by older clients (Korean "all works"); kept as \u escapes.
+  if (!compact || compact === "\uC804\uCCB4\uC791\uD488") return null;
   return compact.slice(0, 120);
 }
 

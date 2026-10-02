@@ -70,7 +70,7 @@ export async function getUsedMarketPhoneStatusForUser(userId: string) {
 
 export async function sendUsedMarketPhoneOtpForUser(user: UserSlice, rawPhone: string) {
   if (!isUsedMarketPhoneCountry(user.countryCode)) {
-    return { error: usedMarketBlockedRegionMsg("ko") };
+    return { error: usedMarketBlockedRegionMsg() };
   }
   const region = user.countryCode.toUpperCase();
 
@@ -140,7 +140,7 @@ export async function verifyUsedMarketPhoneOtpForUser(
   code: string
 ) {
   if (!isUsedMarketPhoneCountry(user.countryCode)) {
-    return { error: usedMarketBlockedRegionMsg("ko") };
+    return { error: usedMarketBlockedRegionMsg() };
   }
   const region = user.countryCode.toUpperCase();
   const phone = normalizeMobilePhone(rawPhone, region);

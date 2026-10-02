@@ -19,8 +19,7 @@ type UsedRegionFilterProps = {
 function countryLabel(code: string, locale: string): string {
   const row = ALLOWED_COUNTRIES.find((c) => c.code === code);
   if (!row) return code;
-  if (locale === "en") return row.nameEn;
-  return row.nameKo;
+  return row.nameEn;
 }
 
 export function UsedRegionFilter({
@@ -54,7 +53,7 @@ export function UsedRegionFilter({
       <div className="space-y-2">
         <Input
           className="h-9 rounded-lg text-xs"
-          placeholder={locale === "en" ? "City or area (optional)" : "도시·지역 (선택)"}
+          placeholder={"City or area (optional)"}
           defaultValue={isUsedShippingRegion(currentRegion) ? "" : currentRegion}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -69,7 +68,7 @@ export function UsedRegionFilter({
           className="text-[10px] text-muted-foreground underline"
           onClick={() => apply({ region: "Shipping", sido: null })}
         >
-          {locale === "en" ? "Shipping only" : "배송 거래만"}
+          {"Shipping only"}
         </button>
         <p className="text-[10px] text-muted-foreground">
           {usedMarketPhoneCountryLabel(viewerCountry, locale)}

@@ -86,7 +86,7 @@ export function UsedRegionSelect({
           value={cc}
           onChange={changeCountry}
           locale={locale}
-          searchPlaceholder={locale === "en" ? "Search country" : "국가 검색"}
+          searchPlaceholder={"Search country"}
           className={selectClass}
         />
       </div>
@@ -123,7 +123,7 @@ export function UsedRegionSelect({
       ) : (
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {locale === "en" ? "City" : locale === "ja" ? "市区町村" : "시·도시"}
+            {"City"}
           </label>
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm">
@@ -146,14 +146,14 @@ export function UsedRegionSelect({
                   )
                 }
               />
-              {locale === "en" ? "Meet in a city" : "직거래 도시"}
+              {"Meet in a city"}
             </label>
             {!isUsedShippingRegion(value) ? (
               <Input
                 value={isUsedShippingRegion(value) ? "" : value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={
-                  locale === "en" ? "e.g. Los Angeles, Tokyo, London" : "예: Tokyo, London, New York"
+                  "e.g. Los Angeles, Tokyo, London"
                 }
                 className="rounded-xl h-11"
               />

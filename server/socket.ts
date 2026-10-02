@@ -407,7 +407,7 @@ io.on("connection", (socket: AuthedSocket) => {
     const content = filtered.text;
     const attachments = sanitizeChatAttachments(data.attachments);
     if (!content && !attachments.length) {
-      socket.emit("error", { message: "첨부 파일 URL이 유효하지 않습니다." });
+      socket.emit("error", { message: "The attachment URL is not valid." });
       return;
     }
 

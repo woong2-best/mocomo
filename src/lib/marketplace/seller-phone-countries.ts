@@ -18,7 +18,7 @@ export function isSellerPhoneCountry(code: string): code is SellerPhoneCountryCo
 export function sellerPhoneCountryLabel(code: string, locale: "ko" | "en" = "ko"): string {
   const row = SELLER_PHONE_COUNTRIES.find((c) => c.code === code.toUpperCase());
   if (!row) return code;
-  return locale === "en" ? row.labelEn : row.labelKo;
+  return row.labelEn;
 }
 
 export function sellerPhoneDialLabel(code: string): string {

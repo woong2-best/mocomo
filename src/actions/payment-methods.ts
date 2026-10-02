@@ -14,7 +14,7 @@ function actionAuthError(e: unknown): string {
   if (!(e instanceof Error)) return "actions.se2gpcp";
   switch (e.message) {
     case "UNAUTHORIZED":
-      return "actions.s1mzxopt";
+      return "common.error.authRequired";
     case "BANNED":
       return "actions.s12qpsrn";
     case "ACCOUNT_DELETED":

@@ -28,9 +28,7 @@ export function CompleteBirthDateForm({ dest }: { dest?: string }) {
     e.preventDefault();
     if (!birthDateFieldsValid(birth)) {
       setError(
-        locale === "ko"
-          ? "생년월일을 확인해 주세요. (연 4자리, 월·일 각 2자리)"
-          : "Check your date of birth (4-digit year, 2-digit month and day)."
+        "Check your date of birth (4-digit year, 2-digit month and day)."
       );
       return;
     }
@@ -56,18 +54,10 @@ export function CompleteBirthDateForm({ dest }: { dest?: string }) {
   }
 
   const title =
-    locale === "ko"
-      ? "생년월일 입력"
-      : locale === "ja"
-        ? "生年月日の入力"
-        : "Date of birth";
+    "Date of birth";
 
   const desc =
-    locale === "ko"
-      ? `${BRAND.name} 이용을 위해 생년월일이 필요합니다. 성인 콘텐츠·유료 기능 연령 확인에 사용됩니다.`
-      : locale === "ja"
-        ? `${BRAND.name} のご利用には生年月日が必要です。`
-        : `We need your date of birth to use ${BRAND.name} and verify age for mature content.`;
+    `We need your date of birth to use ${BRAND.name} and verify age for mature content.`;
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -86,20 +76,12 @@ export function CompleteBirthDateForm({ dest }: { dest?: string }) {
               </p>
             ) : null}
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {locale === "ko" ? (
-                <>
-                  계속하면{" "}
-                  <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
-                    {t("legal.terms")}
-                  </Link>
-                  의 연령·허위 정보 조항에 동의한 것으로 간주됩니다.
-                </>
-              ) : (
+              {(
                 t("auth.termsAgreement")
               )}
             </p>
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
-              {loading ? "…" : locale === "ko" ? "저장하고 계속" : "Continue"}
+              {loading ? "…" : "Continue"}
             </Button>
           </form>
         </CardContent>

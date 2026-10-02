@@ -23,7 +23,7 @@ function formatWhen(iso: string | null, locale: string | undefined) {
   if (!iso) return none;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return none;
-  const tag = locale === "ko" ? "ko-KR" : "en-US";
+  const tag = "en-US";
   return date.toLocaleString(tag, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 

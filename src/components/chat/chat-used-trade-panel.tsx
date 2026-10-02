@@ -32,7 +32,7 @@ function meetDayLabel(offset: number, locale: string | undefined) {
   if (offset === 1) return t("ui.tomorrow");
   const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
   const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const dayName = locale === "ko" ? daysKo[date.getDay()] : daysEn[date.getDay()];
+  const dayName = daysEn[date.getDay()];
   return `${date.getMonth() + 1}/${date.getDate()} (${dayName})`;
 }
 

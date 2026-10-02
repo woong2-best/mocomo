@@ -263,11 +263,7 @@ export function SignupGmailForm() {
             />
             <SignupBirthDateFields locale={locale} values={birth} onChange={setBirth} />
             <p className="text-xs text-muted-foreground rounded-xl bg-muted/50 px-3 py-2 leading-relaxed">
-              {locale === "ko"
-                ? "??? ?? ? ??? ??? ??? ??? ?????. ??? ??? ?? ???."
-                : locale === "ja"
-                  ? "??????????????????????????"
-                  : "After email verification you?ll set a required profile icon. Banner is optional."}
+              {"After email verification you?ll set a required profile icon. Banner is optional."}
             </p>
             <div className="grid grid-cols-1 gap-2">
               <label className="space-y-1">
@@ -324,19 +320,7 @@ export function SignupGmailForm() {
             )}
 
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {locale === "ko" ? (
-                <>
-                  ???? ?{" "}
-                  <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
-                    {t("legal.terms")}
-                  </Link>
-                  ,{" "}
-                  <Link href="/legal/privacy" className="text-primary hover:underline" target="_blank">
-                    {t("legal.privacy")}
-                  </Link>
-                  ? ??? ??? ?????.
-                </>
-              ) : (
+              {(
                 t("auth.termsAgreement")
               )}
             </p>

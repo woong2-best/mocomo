@@ -74,7 +74,7 @@ export function normalizeShipCountry(code: string | null | undefined): Marketpla
 export function shipCountryLabel(code: string, locale: "ko" | "en" = "ko"): string {
   const row = MARKETPLACE_SHIP_COUNTRIES.find((c) => c.code === code.toUpperCase());
   if (!row) return code;
-  return locale === "en" ? row.labelEn : row.labelKo;
+  return row.labelEn;
 }
 
 export function listAllMarketplaceCarriers(): MarketplaceCarrier[] {

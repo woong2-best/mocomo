@@ -1,11 +1,11 @@
 import { assertUsedMarketCountryAllowed, isKoreaUsedMarketCountry } from "@/lib/used-regions-global";
+import { ERROR_CODES } from "@/lib/error-codes";
+import { translate } from "@/lib/i18n/messages";
 import { usedMarketVerificationRequiredMsg } from "@/lib/used-bank-auth";
 
-export const USED_MARKET_BAN_MESSAGE =
-  "경매 낙찰 후 결제를 완료하지 않아 중고거래 이용이 제한되었습니다. 경매는 판매자와 다른 입찰자에게 큰 피해를 줄 수 있으므로, 낙찰 후 결제 의무를 반드시 이행해야 합니다.";
+export const USED_MARKET_BAN_MESSAGE = translate("en", ERROR_CODES.usedMarketBanned);
 
-export const USED_MARKET_BAN_APPEAL_HINT =
-  "시스템 오류, 판매자의 부당한 요청 등 정당한 사유가 있는 경우 제재 통지일로부터 7일 이내에 이의 신청을 제출할 수 있습니다.";
+export const USED_MARKET_BAN_APPEAL_HINT = translate("en", "used.market.banAppealHint");
 
 /** @deprecated use USED_BANK_REQUIRED_MSG or USED_PHONE_REQUIRED_MSG */
 export { USED_BANK_REQUIRED_MSG as USED_PHONE_REQUIRED_MSG } from "@/lib/used-bank-auth";
@@ -24,7 +24,7 @@ export function isUsedMarketBanned(user: { usedMarketBannedAt?: Date | null }): 
 }
 
 export function assertUsedMarketNotBanned(user: UsedMarketUserSlice): string | null {
-  if (isUsedMarketBanned(user)) return USED_MARKET_BAN_MESSAGE;
+  if (isUsedMarketBanned(user)) return ERROR_CODES.usedMarketBanned;
   return null;
 }
 
@@ -35,7 +35,7 @@ function assertUsedListingActivityAccess(user: UsedMarketUserSlice): string | nu
   const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
   if (regionErr) return regionErr;
   if (!isKoreaUsedMarketCountry(user.countryCode) && !user.phoneVerified) {
-    return usedMarketVerificationRequiredMsg(user.countryCode, "ko");
+    return usedMarketVerificationRequiredMsg(user.countryCode);
   }
   return null;
 }

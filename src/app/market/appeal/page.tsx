@@ -7,7 +7,7 @@ import { getUsedMarketAppealContext } from "@/actions/used-market-appeal";
 export default async function UsedMarketAppealPage() {
   const ctx = await getUsedMarketAppealContext();
   if ("error" in ctx) {
-    if (ctx.error === "actions.s1mzxopt") {
+    if (ctx.error === "common.error.authRequired") {
       redirect("/auth/signin?callbackUrl=/market/appeal");
     }
     redirect("/market");

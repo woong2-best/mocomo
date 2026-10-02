@@ -90,7 +90,7 @@ export default function NewVoicePage() {
   function tierOptionLabel(level: SupportTierLevel): string {
     const tier = SUPPORT_TIERS.find((row) => row.level === level);
     if (!tier) return level;
-    const label = locale === "ko" ? tier.labelKo : tier.label;
+    const label = tier.label;
     return t("live.create.minTierSupporter", { tier: label });
   }
 

@@ -28,7 +28,7 @@ const appealSchema = z.object({
 
 export async function getAppealContext() {
   const session = await auth();
-  if (!session?.user?.id) return { error: "actions.s1mzxopt" as const };
+  if (!session?.user?.id) return { error: "common.error.authRequired" as const };
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },

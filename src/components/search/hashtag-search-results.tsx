@@ -32,13 +32,7 @@ export async function HashtagSearchResults({
   ]);
 
   const emptyMsg =
-    locale === "en"
-      ? "No posts with this hashtag yet."
-      : locale === "ja"
-        ? "このハッシュタグの投稿はまだありません。"
-        : locale === "zh"
-          ? "暂无带此话题标签的帖子。"
-          : t("search.smwrs57");
+    "No posts with this hashtag yet.";
 
   return (
     <HashtagSearchFeed

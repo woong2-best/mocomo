@@ -64,8 +64,9 @@ export function parseChatPostShare(
   const postId = pathMatch[1];
   // Classic buildPostShareMessage dump — hide raw body, show card only
   const looksLikeAutoShare =
-    /님의 게시물/.test(text) ||
-    /^@\w[\w.-]*님의/.test(text) ||
+    // Legacy matcher for Korean auto-share text already stored in chat history (kept as \u escapes).
+    /\uB2D8\uC758 \uAC8C\uC2DC\uBB3C/.test(text) ||
+    /^@\w[\w.-]*\uB2D8\uC758/.test(text) ||
     (text.match(/https?:\/\//g)?.length ?? 0) >= 1;
 
   if (looksLikeAutoShare) {

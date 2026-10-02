@@ -17,5 +17,6 @@ export function manualAuthRenewReasonFromError(error: unknown): string {
 /** Settlement BLOCKED for payment recovery (not dispute/admin). */
 export function isPaymentSettlementBlockReason(reason: string | null | undefined): boolean {
   if (!reason?.trim()) return false;
-  return /캡처|승인 갱신|카드|capture|re-?auth|결제|3ds|requires_3ds/i.test(reason);
+  // Also matches Korean reasons already stored in the DB (kept as \u escapes).
+  return /\uCEA1\uCC98|\uC2B9\uC778 \uAC31\uC2E0|\uCE74\uB4DC|capture|re-?auth|\uACB0\uC81C|3ds|requires_3ds/i.test(reason);
 }

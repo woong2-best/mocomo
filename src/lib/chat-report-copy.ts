@@ -4,5 +4,5 @@ export const CHAT_REPORT_LOCK_MESSAGE_EN =
   "This conversation was locked after a report was filed. Messages can no longer be sent; records are preserved.";
 
 export function chatReportLockMessage(locale: string): string {
-  return locale === "ko" ? CHAT_REPORT_LOCK_MESSAGE_KO : CHAT_REPORT_LOCK_MESSAGE_EN;
+  return CHAT_REPORT_LOCK_MESSAGE_EN;
 }

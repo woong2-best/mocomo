@@ -21,13 +21,9 @@ type Props = {
 export function SignupBirthDateFields({ locale, required = true, values, onChange }: Props) {
   const id = useId();
   const label =
-    locale === "ko" ? "생년월일" : locale === "ja" ? "生年月日" : "Date of birth";
+    "Date of birth";
   const hint =
-    locale === "ko"
-      ? "허위 생년월일 기재 시 약관에 따라 계정이 제한될 수 있습니다."
-      : locale === "ja"
-        ? "虚偽の生年月日は利用規約に基づきアカウント制限の対象となります。"
-        : "False date of birth may lead to account restrictions under our Terms of Service.";
+    "False date of birth may lead to account restrictions under our Terms of Service.";
 
   const setYear = useCallback(
     (raw: string) => {

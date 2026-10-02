@@ -1,5 +1,6 @@
 "use client";
 
+import { isAuthRequiredError } from "@/lib/error-codes";
 import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
@@ -35,7 +36,7 @@ export function UsedListingStarButton({
       }
       if ("error" in res) {
         const msg = res.error ?? "";
-        if (msg.includes("로그인") || msg.includes("인증")) {
+        if (isAuthRequiredError(msg)) {
           router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
           return;
         }

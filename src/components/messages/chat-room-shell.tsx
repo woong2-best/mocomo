@@ -86,7 +86,7 @@ export function ChatRoomShell({
     setRoomLocked(true);
   }, []);
   const lockHint =
-    locale === "ko" ? CHAT_REPORT_LOCK_MESSAGE_KO : CHAT_REPORT_LOCK_MESSAGE_EN;
+    CHAT_REPORT_LOCK_MESSAGE_EN;
   const effectiveReadOnlyHint = roomLocked ? readOnlyHint ?? lockHint : readOnlyHint;
 
   const chatColumn = (

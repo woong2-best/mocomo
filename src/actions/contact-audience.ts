@@ -23,7 +23,7 @@ export async function updateContactAudience(data: {
   if (!parsed.success) return { error: "actions.slqeo1f" as const };
 
   const session = await auth();
-  if (!session?.user?.id) return { error: "actions.s1mzxopt" as const };
+  if (!session?.user?.id) return { error: "common.error.authRequired" as const };
 
   const settings = await saveContactSettings(session.user.id, parsed.data);
   return { settings };

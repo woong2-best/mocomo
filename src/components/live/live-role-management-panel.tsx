@@ -134,7 +134,7 @@ export function LiveRoleManagementPanel({ channelId }: { channelId: string }) {
     void load();
   }
 
-  const dateLocale = locale === "ko" ? "ko-KR" : "en-US";
+  const dateLocale = "en-US";
 
   if (loading) {
     return (

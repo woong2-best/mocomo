@@ -14,7 +14,7 @@ export async function requestAccountDeletion(
     const sessionUser = await requireAuthForAction();
     userId = sessionUser.id;
   } catch {
-    return { error: "actions.s1mzxopt" };
+    return { error: "common.error.authRequired" };
   }
 
   const full = await loadAccountDeletionUser(userId);

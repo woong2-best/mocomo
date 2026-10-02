@@ -36,23 +36,11 @@ export function UsedPhoneVerifyForm({
 
   const countryLabel = usedMarketPhoneCountryLabel(region, locale);
   const intro =
-    locale === "en" ? (
+    (
       <>
         Verify your mobile number for the used marketplace in{" "}
         <strong className="text-foreground">{countryLabel}</strong>. We send a 6-digit code by SMS.{" "}
         <strong className="text-foreground">One number per account</strong>.
-      </>
-    ) : locale === "ja" ? (
-      <>
-        <strong className="text-foreground">{countryLabel}</strong>
-        のフリマ利用には携帯電話番号のSMS認証が必要です。
-        <strong className="text-foreground">アカウントごとに1つの番号</strong>のみ使用できます。
-      </>
-    ) : (
-      <>
-        <strong className="text-foreground">{countryLabel}</strong> 중고거래 이용을 위해 휴대폰 SMS
-        인증이 필요합니다. <strong className="text-foreground">계정당 번호 하나</strong>만 등록할 수
-        있습니다.
       </>
     );
 
@@ -104,7 +92,7 @@ export function UsedPhoneVerifyForm({
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Phone className="h-4 w-4 text-primary" />
-          {locale === "en" ? "Phone verification" : locale === "ja" ? "携帯認証" : "휴대폰 인증"}
+          {"Phone verification"}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -126,7 +114,7 @@ export function UsedPhoneVerifyForm({
             <Input
               inputMode="numeric"
               autoComplete="one-time-code"
-              placeholder={locale === "en" ? "6-digit code" : "6자리 인증번호"}
+              placeholder={"6-digit code"}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               className="rounded-xl h-11 tracking-widest"
@@ -145,12 +133,12 @@ export function UsedPhoneVerifyForm({
                 onClick={() => void requestOtp()}
               >
                 <ShieldCheck className="h-4 w-4" />
-                {locale === "en" ? "Send code" : locale === "ja" ? "認証コード送信" : "인증번호 받기"}
+                {"Send code"}
               </Button>
             ) : (
               <>
                 <Button type="submit" className="rounded-xl flex-1" disabled={loading || code.length < 6}>
-                  {locale === "en" ? "Verify" : locale === "ja" ? "認証する" : "인증 완료"}
+                  {"Verify"}
                 </Button>
                 <Button
                   type="button"
@@ -159,7 +147,7 @@ export function UsedPhoneVerifyForm({
                   disabled={loading}
                   onClick={() => void resetPending()}
                 >
-                  {locale === "en" ? "Change number" : "번호 변경"}
+                  {"Change number"}
                 </Button>
               </>
             )}

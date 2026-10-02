@@ -83,12 +83,12 @@ const EVENT_COUNTRY_ISO: Record<SubcultureEventCountry, string> = Object.fromEnt
 
 export function eventCountryDisplayLabel(country: SubcultureEventCountry, locale: Locale): string {
   if (country === "other") {
-    if (locale === "ko") return "글로벌";
-    if (locale === "ja") return "グローバル";
-    if (locale === "zh") return "全球";
+    
+    
+    
     return "Global";
   }
-  const nameLocale = locale === "ko" ? "ko" : "en";
+  const nameLocale = "en";
   return countryDisplayName(EVENT_COUNTRY_ISO[country], nameLocale);
 }
 
@@ -255,10 +255,7 @@ export function subcultureCountrySummary(userCountryCode: string, locale: Locale
   const target = userCountryToEventCountry(userCountryCode);
   const label = eventCountryDisplayLabel(target, locale);
   const flag = eventCountryFlag(target);
-  if (locale === "en") return `${flag} ${label} subculture events — official auto-sync`;
-  if (locale === "ja") return `${flag} ${label}のサブカルイベント — 公式自動収集`;
-  if (locale === "zh") return `${flag} ${label}亚文化·动漫活动 — 官网自动同步`;
-  return `${flag} ${label} 서브컬처·애니 행사 — 공식 사이트 자동 수집`;
+  return `${flag} ${label} subculture events — official auto-sync`;
 }
 
 export function isKoreaEventCountry(country: SubcultureEventCountry): boolean {

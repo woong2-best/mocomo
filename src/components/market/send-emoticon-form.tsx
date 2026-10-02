@@ -21,16 +21,19 @@ export function SendEmoticonForm({
   const [username, setUsername] = useState("");
   const router = useRouter();
   const [msg, setMsg] = useState("");
+  const [msgIsError, setMsgIsError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMsg("");
+    setMsgIsError(false);
     const res = await sendEmoticonToStreamer(itemId, username);
     setLoading(false);
     if ("error" in res && res.error) {
       setMsg(errorText(res.error));
+      setMsgIsError(true);
       return;
     }
     setMsg(`전송 완료! 스트리머에게 ${Math.floor(pricePaid * 0.9).toLocaleString()}원이 적립됩니다.`);
@@ -56,7 +59,7 @@ export function SendEmoticonForm({
           보내기
         </Button>
       </div>
-      {msg && <p className={`text-xs ${msg.includes("완료") ? "text-primary" : "text-destructive"}`}>{msg}</p>}
+      {msg && <p className={`text-xs ${msgIsError ? "text-destructive" : "text-primary"}`}>{msg}</p>}
     </form>
   );
 }

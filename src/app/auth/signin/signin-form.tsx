@@ -223,9 +223,7 @@ export function SignInForm({
     const nextSession = await waitForClientSession();
     if (!nextSession?.user?.id) {
       setError(
-        locale === "ko"
-          ? "로그인 세션이 생성되지 않았습니다. 다시 시도해 주세요."
-          : "Could not create a login session. Please try again."
+        "Could not create a login session. Please try again."
       );
       return;
     }
@@ -288,9 +286,7 @@ export function SignInForm({
             )}
             {needsSignupNotice ? (
               <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200/80 rounded-xl px-3 py-2 dark:text-amber-100 dark:bg-amber-950/40 dark:border-amber-800/60">
-                {locale === "ko"
-                  ? "아직 MoCoMo 계정이 없습니다. 회원가입을 이어서 진행합니다…"
-                  : "No MoCoMo account yet — continuing signup…"}
+                {"No MoCoMo account yet — continuing signup…"}
               </p>
             ) : null}
             {accountExistsNotice ? (
@@ -305,9 +301,7 @@ export function SignInForm({
             ) : null}
             {oauthFailedNotice ? (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">
-                {locale === "ko"
-                  ? "인증에 실패했습니다. Google로 다시 시도해 주세요."
-                  : "Authentication failed. Please try again with Google."}
+                {"Authentication failed. Please try again with Google."}
               </p>
             ) : null}
 
@@ -327,7 +321,7 @@ export function SignInForm({
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">
-                  {locale === "ko" ? "또는" : "or"}
+                  {"or"}
                 </span>
               </div>
             </div>
@@ -382,19 +376,7 @@ export function SignInForm({
             </p>
 
             <p className="text-[11px] text-center text-muted-foreground leading-relaxed px-1">
-              {locale === "ko" ? (
-                <>
-                  계속하면{" "}
-                  <Link href="/legal/terms" className="text-primary hover:underline" target="_blank">
-                    {t("legal.terms")}
-                  </Link>
-                  ,{" "}
-                  <Link href="/legal/privacy" className="text-primary hover:underline" target="_blank">
-                    {t("legal.privacy")}
-                  </Link>
-                  에 동의한 것으로 간주됩니다.
-                </>
-              ) : (
+              {(
                 t("auth.termsAgreement")
               )}
             </p>

@@ -1,6 +1,7 @@
 "use client";
 
 
+import { isPhoneVerificationError } from "@/lib/error-codes";
 import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -14,14 +15,6 @@ import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
 
 
-function needsVerification(error: string) {
-  return (
-    error.includes("인증") ||
-    error.includes("verification") ||
-    error.includes("입금 계좌") ||
-    error.includes("휴대폰")
-  );
-}
 
 export function UsedTradeChatButton({
   listingId,
@@ -41,7 +34,7 @@ export function UsedTradeChatButton({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (needsVerification(res.error)) {
+      if (isPhoneVerificationError(res.error)) {
         router.push(usedMarketVerifyPath(`/market/${listingId}`, countryCode));
         return;
       }

@@ -127,7 +127,7 @@ function formatMeetAt(iso: string, locale: string | undefined) {
   if (Number.isNaN(date.getTime())) return "";
   const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
   const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const days = locale === "ko" ? daysKo : daysEn;
+  const days = daysEn;
   const hh = String(date.getHours()).padStart(2, "0");
   const mm = String(date.getMinutes()).padStart(2, "0");
   return `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]}) ${hh}:${mm}`;

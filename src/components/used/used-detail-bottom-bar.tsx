@@ -1,6 +1,7 @@
 "use client";
 
 
+import { isPhoneVerificationError } from "@/lib/error-codes";
 import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -22,9 +23,6 @@ import { ShieldAlert } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
 
 
-function needsPhoneVerification(error: string) {
-  return error.includes("휴대폰") || error.includes("phone verification");
-}
 
 export function UsedDetailBottomBar({
   listingId,
@@ -65,7 +63,7 @@ export function UsedDetailBottomBar({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (needsPhoneVerification(res.error)) {
+      if (isPhoneVerificationError(res.error)) {
         router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
         return;
       }

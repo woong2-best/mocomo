@@ -11,10 +11,7 @@ import { useClientPlatform } from "@/components/providers/client-platform-provid
 import { cn } from "@/lib/utils";
 
 function formatPostCount(n: number, locale: string) {
-  if (locale === "en") return `${n.toLocaleString()} post${n === 1 ? "" : "s"}`;
-  if (locale === "ja") return `${n.toLocaleString()}件の投稿`;
-  if (locale === "zh") return `${n.toLocaleString()} 条帖子`;
-  return t("search.s1opryw8", { v0: n.toLocaleString() });
+  return `${n.toLocaleString()} post${n === 1 ? "" : "s"}`;
 }
 
 function parseSortFromUrl(): HashtagSort {
@@ -68,25 +65,10 @@ export function HashtagSearchFeed({
   );
 
   const tabs: { id: HashtagSort; label: string }[] =
-    locale === "en"
-      ? [
+    [
           { id: "top", label: "Top" },
           { id: "latest", label: "Latest" },
-        ]
-      : locale === "ja"
-        ? [
-            { id: "top", label: "トップ" },
-            { id: "latest", label: "最新" },
-          ]
-        : locale === "zh"
-          ? [
-              { id: "top", label: "热门" },
-              { id: "latest", label: "最新" },
-            ]
-          : [
-              { id: "top", label: t("search.syvug") },
-              { id: "latest", label: t("search.s10004") },
-            ];
+        ];
 
   const posts = sort === "top" ? postsTop : postsLatest;
 
@@ -101,7 +83,7 @@ export function HashtagSearchFeed({
           "sticky z-40 flex border-b border-border/80 bg-background/95 backdrop-blur-md -mx-4 px-4",
           isNativeApp ? "top-[calc(3.25rem+env(safe-area-inset-top,0px))]" : "top-14"
         )}
-        aria-label={locale === "en" ? "Hashtag filters" : t("search.s1odgw3s")}
+        aria-label={"Hashtag filters"}
       >
         {tabs.map((tab) => {
           const active = sort === tab.id;

@@ -2150,5 +2150,13 @@
   "live.cloudflareConnecting": "Connecting to Cloudflare Stream…",
   "wallet.transferStatusEnterRecipient": "Enter the recipient username and the MOCO amount to send.",
   "live.external.resolveFailed": "Couldn't verify the linked live account.",
-  "used.error.phoneVerificationRequired": "Verify your phone number before bidding."
+  "used.error.phoneVerificationRequired": "Mobile phone verification is required for the used marketplace.",
+  "common.error.authRequired": "You need to sign in.",
+  "auth.humanChallenge.missing": "Please complete the human check quiz.",
+  "auth.humanChallenge.expired": "The quiz expired. Refresh and try again.",
+  "auth.humanChallenge.timeout": "The quiz timed out. Refresh and try again.",
+  "auth.humanChallenge.wrong": "That's not correct. Try again.",
+  "used.error.marketBanned": "Your access to the used marketplace is restricted because you did not complete payment after winning an auction. Auctions can seriously harm sellers and other bidders, so winners must complete payment.",
+  "used.error.regionUnavailable": "The used marketplace is unavailable in your region.",
+  "used.market.banAppealHint": "If you have a valid reason, such as a system error or an unfair request from a seller, you can submit an appeal within 7 days of the restriction notice."
 }

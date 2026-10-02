@@ -343,7 +343,7 @@ export async function notifyMentionsInText(params: {
       userId: u.id,
       actorId: params.actorId,
       type: "mention",
-      title: "멘션",
+      title: "Mention",
       body: `${label}님이 ${ctx}에서 회원님을 언급했습니다.`,
       link: params.link,
     });
@@ -605,8 +605,8 @@ export async function notifyChatMessage(params: {
     where: { id: params.senderId },
     select: userPublicSelectMinimal,
   });
-  const label = sender?.username ? `@${sender.username}` : "새 메시지";
-  const preview = (params.content ?? "").trim().slice(0, 80) || "미디어를 보냈습니다.";
+  const label = sender?.username ? `@${sender.username}` : "New message";
+  const preview = (params.content ?? "").trim().slice(0, 80) || "Sent media.";
   const link = `/messages/${params.roomId}`;
   const isDm = params.roomType === "DM";
   const type = isDm ? "dm" : "dm_group";
@@ -615,7 +615,7 @@ export async function notifyChatMessage(params: {
     userId: m.userId,
     actorId: params.senderId,
     type,
-    title: isDm ? "쪽지" : "그룹 메시지",
+    title: isDm ? "Direct message" : "Group message",
     body: `${label}: ${preview}`,
     link,
   }));
@@ -629,7 +629,7 @@ export async function notifyChatMessage(params: {
         userId: uid,
         actorId: params.senderId,
         type: "mention",
-        title: "멘션",
+        title: "Mention",
         body: `${label}님이 메시지에서 회원님을 언급했습니다.`,
         link,
       });

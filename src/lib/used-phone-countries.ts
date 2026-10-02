@@ -17,8 +17,8 @@ export function usedMarketPhoneCountryLabel(countryCode: string, locale: Locale 
   const cc = countryCode.toUpperCase();
   const entry = ALLOWED_COUNTRIES.find((c) => c.code.toUpperCase() === cc);
   if (!entry) {
-    return locale === "ko" ? "지원 국가" : "Supported country";
+    return "Supported country";
   }
-  if (locale === "ko") return entry.nameKo;
+  
   return entry.nameEn;
 }

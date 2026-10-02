@@ -564,7 +564,7 @@ export function GemBalancePanel({
                       {p.remainingGems < p.gems ? t("wallet.topup.partiallyUsed") : ""}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {new Date(p.createdAt).toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US")} ·{" "}
+                      {new Date(p.createdAt).toLocaleDateString("en-US")} ·{" "}
                       {t("wallet.topup.remaining")}{" "}
                       {formatMocoDisplay(p.remainingGems)}
                     </p>

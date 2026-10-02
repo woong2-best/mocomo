@@ -25,7 +25,7 @@ function revalidateProfile(username: string, postId: string) {
 /** 본인 게시물을 프로필 메인에 고정 (기존 isPinned + profileMainPostId) */
 export async function pinPostToProfile(postId: string): Promise<{ ok?: true; error?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: "actions.s1mzxopt" };
+  if (!userId) return { error: "common.error.authRequired" };
 
   const post = await assertOwnPost(postId, userId);
   if (!post) return { error: "actions.sq8pidk" };
@@ -58,7 +58,7 @@ export async function pinPostToProfile(postId: string): Promise<{ ok?: true; err
 
 export async function unpinPostFromProfile(postId: string): Promise<{ ok?: true; error?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: "actions.s1mzxopt" };
+  if (!userId) return { error: "common.error.authRequired" };
 
   const post = await assertOwnPost(postId, userId);
   if (!post) return { error: "actions.s1yc3fyi" };
@@ -93,7 +93,7 @@ export async function featurePostOnMyProfile(
   postId: string
 ): Promise<{ ok?: true; error?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: "actions.s1mzxopt" };
+  if (!userId) return { error: "common.error.authRequired" };
 
   const post = await db.post.findUnique({
     where: { id: postId },
@@ -155,7 +155,7 @@ export async function unfeaturePostFromMyProfile(
   postId: string
 ): Promise<{ ok?: true; error?: string }> {
   const userId = await getAuthUserId();
-  if (!userId) return { error: "actions.s1mzxopt" };
+  if (!userId) return { error: "common.error.authRequired" };
 
   const me = await db.user.findUnique({
     where: { id: userId },
