@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Heart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { eventDday, eventTypeLabel } from "@/lib/event-registration";
@@ -66,7 +69,7 @@ export function EventCard({
           {eventTypeLabel(event.type)}
         </p>
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
-          {event.title || "이벤트 제목"}
+          {event.title || t("events.s7ws085")}
         </h3>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">

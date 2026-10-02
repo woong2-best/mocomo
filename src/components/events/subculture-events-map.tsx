@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useEffect, useRef, useState } from "react";
 import type {
@@ -82,28 +85,28 @@ function buildPinPopupHtml(pin: MapEventPin): string {
     ? `<img src="${escapeHtml(imageUrl)}" alt="" class="subculture-map-popup-img" loading="lazy" decoding="async" />`
     : "";
   const roadViewBlock = roadViewUrl
-    ? `<figure class="subculture-map-popup-roadview"><img src="${escapeHtml(roadViewUrl)}" alt="로드뷰" loading="lazy" decoding="async" /><figcaption>로드뷰</figcaption></figure>`
+    ? `<figure class="subculture-map-popup-roadview"><img src="${escapeHtml(roadViewUrl)}" alt="${i18n("events.srvxf4")}" loading="lazy" decoding="async" /><figcaption>${i18n("events.srvxf4")}</figcaption></figure>`
     : "";
 
   const dateStr =
     pin.category === "maid_cafe" || pin.category === "user_recommendation"
       ? pin.category === "user_recommendation"
-        ? "추천"
-        : "상설"
+        ? i18n("events.smhkszs")
+        : i18n("lib.subculture.event.phase.s5990c92fa0")
       : format(new Date(pin.startsAt), "M/d", { locale: ko });
   const phaseBadge =
     pin.phase === "ongoing"
-      ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">진행 중</span>'
+      ? `<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">${i18n("lib.subculture.event.phase.s7890cafc8d")}</span>`
       : pin.phase === "upcoming"
-        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--upcoming">예정</span>'
+        ? `<span class="subculture-map-popup-badge subculture-map-popup-badge--upcoming">${i18n("lib.subculture.event.phase.s7ba9542c96")}</span>`
         : "";
   const official =
     pin.source === "official" || pin.source === "auto"
-      ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--official">공식 자동</span>'
+      ? `<span class="subculture-map-popup-badge subculture-map-popup-badge--official">${i18n("events.s1pl2cip")}</span>`
       : pin.category === "maid_cafe"
-        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--maid">메이드 카페</span>'
+        ? `<span class="subculture-map-popup-badge subculture-map-popup-badge--maid">${i18n("lib.subculture.event.types.s9bc998107e")}</span>`
         : pin.category === "user_recommendation"
-          ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">유저 추천</span>'
+          ? `<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">${i18n("events.smhkszs")}</span>`
           : "";
   const countryLabel = eventCountryFlag(pin.country);
   const venueBlock = pin.venueName
@@ -162,7 +165,7 @@ function fitMapToPins(
 export function SubcultureEventsMap({
   pins,
   className,
-  heightClassName = "h-44",
+  heightClassName = `h-44`,
   interactive = true,
   showNavigationControls,
   immersive = false,
@@ -182,21 +185,7 @@ export function SubcultureEventsMap({
   /** +/- 줌 버튼 (기본: immersive 전체화면 지도만) */
   showNavigationControls?: boolean;
   immersive?: boolean;
-  onPinClick?: (pin: MapEventPin) => void;
-  /** 지도 클릭 (추천 핀 추가 모드) */
-  onMapClick?: (coords: { lat: number; lng: number }) => void;
-  /** true면 지도 클릭으로 좌표 선택 */
-  pinDropMode?: boolean;
-  /** Globe void decor — hide Mars overlay once user zooms past ~city level */
-  onZoomChange?: (zoom: number) => void;
-  defaultView?: { lat: number; lng: number; zoom: number };
-  /** true면 fitBounds 생략하고 defaultView 그대로 사용 (지구본 초기 각도) */
-  respectDefaultView?: boolean;
-  /** false면 Esri 등 타일 저작권 표시 숨김 (사이드바 미리보기) */
-  showAttribution?: boolean;
-}) {
-  const navigationControls = showNavigationControls ?? false;
-  const containerRef = useRef<HTMLDivElement>(null);
+  onPinClick?: (pin: MapEventPin) =>${i18n("events.void_onmapclick_coords_lat_number")}<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<MapLibreMarker[]>([]);
   const onZoomChangeRef = useRef(onZoomChange);
@@ -247,7 +236,7 @@ export function SubcultureEventsMap({
         if (showAttribution) {
           map.addControl(
             new maplibregl.AttributionControl({ compact: true }),
-            immersive ? "bottom-left" : "bottom-right"
+            immersive ? `bottom-left" : "bottom-right"
           );
         }
         if (navigationControls) {

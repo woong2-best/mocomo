@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 
 import { errorText } from "@/lib/i18n/error-text";
@@ -107,11 +110,11 @@ function EventsMapSidePanel({
 
   const handleSubmitRecommendation = async () => {
     if (!pendingCoords || !title.trim()) {
-      setFormError("장소 이름을 입력해 주세요.");
+      setFormError(i18n("events.s1s1bl0n"));
       return;
     }
     if (!session?.user) {
-      setFormError("로그인 후 추천 장소를 등록할 수 있습니다.");
+      setFormError(i18n("events.s14jarhq"));
       return;
     }
     setSubmitting(true);
@@ -129,7 +132,7 @@ function EventsMapSidePanel({
       });
       const body = (await res.json()) as { pin?: MapEventPin; error?: string };
       if (!res.ok || !body.pin) {
-        setFormError(errorText(body.error ?? "저장에 실패했습니다."));
+        setFormError(errorText(body.error ?? i18n("events.sog10vg")));
         return;
       }
       onRecommendationCreated(body.pin);
@@ -138,7 +141,7 @@ function EventsMapSidePanel({
       setTitle("");
       setNote("");
     } catch {
-      setFormError("저장에 실패했습니다.");
+      setFormError(i18n("events.sog10vg"));
     } finally {
       setSubmitting(false);
     }
@@ -177,7 +180,7 @@ function EventsMapSidePanel({
         </div>
         {activeTab === "recommendation" && (
           <div className="flex items-center justify-between px-3 pb-2">
-            <p className="text-[10px] text-emerald-300/90">유저 추천 · 초록 핀</p>
+            <p className="text-[10px] text-emerald-300/90">{i18n("events.s1ftadli")}</p>
             <Button
               type="button"
               size="sm"
@@ -190,7 +193,7 @@ function EventsMapSidePanel({
                   return;
                 }
                 if (!session?.user) {
-                  setFormError("로그인 후 추천 장소를 등록할 수 있습니다.");
+                  setFormError(i18n("events.s14jarhq"));
                   return;
                 }
                 onAddModeChange(true);
@@ -220,14 +223,14 @@ function EventsMapSidePanel({
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="장소 이름"
+            placeholder={i18n("events.snpdgax")}
             maxLength={80}
             className="h-9 rounded-lg bg-black/30 border-white/15 text-white placeholder:text-white/40"
           />
           <Input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="한 줄 메모 (선택)"
+            placeholder={i18n("events.s11pg0k0")}
             maxLength={200}
             className="h-9 rounded-lg bg-black/30 border-white/15 text-white placeholder:text-white/40"
           />
@@ -240,7 +243,7 @@ function EventsMapSidePanel({
               disabled={submitting}
               onClick={() => void handleSubmitRecommendation()}
             >
-              {submitting ? "저장 중…" : "등록"}
+              {submitting ? i18n("calendar.saving") : i18n("events.svsek")}
             </Button>
             <Button
               type="button"
@@ -271,10 +274,10 @@ function EventsMapSidePanel({
           <Card className="rounded-xl bg-white/5 border-white/10 text-white">
             <CardContent className="p-6 text-center text-white/70 text-sm">
               {activeTab === "recommendation"
-                ? "아직 추천 장소가 없습니다."
+                ? i18n("events.s198jf6v")
                 : activeTab === "maid_cafe"
-                  ? "등록된 메이드 카페가 없습니다."
-                  : "등록된 행사가 없습니다."}
+                  ? i18n("events.szflaob")
+                  : i18n("events.s1psw04w")}
             </CardContent>
           </Card>
         ) : (
@@ -293,7 +296,7 @@ function EventsMapSidePanel({
           type="button"
           onClick={onTogglePanel}
           className="events-map-panel-toggle self-center shrink-0"
-          aria-label="패널 접기"
+          aria-label={i18n("events.s1umwltj")}
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -304,7 +307,7 @@ function EventsMapSidePanel({
           type="button"
           onClick={onTogglePanel}
           className="events-map-panel-toggle events-map-panel-toggle--collapsed self-center shrink-0"
-          aria-label="패널 펼치기"
+          aria-label={i18n("events.s5vp5cs")}
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -420,7 +423,7 @@ export function EventsMapView({
         <MapOverlayChip className="pointer-events-auto px-3 py-2 sm:px-4 sm:py-2.5">
           <h1 className="text-sm sm:text-base font-bold flex items-center gap-2">
             <MapPin className="h-5 w-5 text-violet-300 shrink-0" />
-            <span>서브컬처·애니 행사 지도</span>
+            <span>{i18n("events.s1qg3so4")}</span>
           </h1>
         </MapOverlayChip>
       </div>
