@@ -343,7 +343,7 @@ export async function payFlowerRedeem(
       transferId = transfer.id;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "transfer failed";
-      return { error: `Stripe 정산 실패: ${msg}` };
+      return { error: `Stripe payout failed: {v0} ${msg}` };
     }
   } else {
     await creditSellerEarning(redeem.userId, redeem.netAmountKrw, {
