@@ -31,17 +31,17 @@ async function executeGemSpend(
 ) {
   const gems = usdCentsToMocoRequired(amountUsdCents);
   if (gems <= 0) {
-    return { error: "유효하지 않은 결제 금액입니다." as const };
+    return { error: "Invalid payment amount." as const };
   }
 
   if (type === "POST_MEDIA") {
     const mediaId = String(metadata.mediaId ?? "");
-    if (!mediaId) return { error: "미디어 정보가 없습니다." as const };
+    if (!mediaId) return { error: "Media information is missing." as const };
     return spendGemsOnPostMedia({ fanId: userId, mediaId, gems });
   }
 
   const receiverId = String(metadata.receiverId ?? "");
-  if (!receiverId) return { error: "후원 대상이 없습니다." as const };
+  if (!receiverId) return { error: "No tip recipient specified." as const };
 
   const message = typeof metadata.message === "string" ? metadata.message : undefined;
   const channelId =
@@ -73,7 +73,7 @@ export async function payCheckoutWithGemsFromOrder(
   opts?: { purchaseTermsAccepted?: boolean; platform?: PurchaseTermsPlatform }
 ) {
   if (!orderId || typeof orderId !== "string" || orderId.length > 64) {
-    return { error: "잘못된 결제 요청입니다." as const };
+    return { error: "Invalid payment request." as const };
   }
 
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
@@ -89,10 +89,10 @@ export async function payCheckoutWithGemsFromOrder(
 
   const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
   if (!intent || intent.userId !== userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." as const };
+    return { error: "Payment information not found." as const };
   }
   if (!GEM_ELIGIBLE.includes(intent.type)) {
-    return { error: "MOCO로 결제할 수 없는 유형입니다." as const };
+    return { error: "This type cannot be paid with MOCO." as const };
   }
   if (intent.status === "PAID") {
     return {
@@ -116,7 +116,7 @@ export async function payCheckoutWithGemsFromOrder(
     select: { status: true, userId: true, type: true, amount: true, metadata: true },
   });
   if (!fresh || fresh.userId !== userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." as const };
+    return { error: "Payment information not found." as const };
   }
   if (fresh.status === "PAID") {
     return {
@@ -159,5 +159,5 @@ export async function payCheckoutWithGems(_input: {
   amountUsdCents: number;
   metadata: Record<string, unknown>;
 }) {
-  return { error: "orderId가 필요합니다. 결제 화면을 다시 열어 주세요." as const };
+  return { error: "orderId is required. Reopen the checkout screen." as const };
 }

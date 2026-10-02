@@ -119,7 +119,7 @@ export function parseMocoTopupCount(raw: string | number): number | null {
 /** 서버 전용 — 클라이언트 금액·환율 입력 불가 */
 export function quoteGemTopup(mocoInput: number): GemTopupQuote {
   if (!Number.isFinite(mocoInput) || !Number.isInteger(mocoInput)) {
-    return { ok: false, error: "MOCO는 1 단위 정수로만 충전할 수 있습니다." };
+    return { ok: false, error: "MOCO top-ups must be whole numbers of 1 MOCO or more." };
   }
   const moco = mocoInput;
   if (moco < MIN_MOCO_TOPUP_COUNT) {
@@ -127,7 +127,7 @@ export function quoteGemTopup(mocoInput: number): GemTopupQuote {
   }
   const ledger = quoteMocoTopupLedger(moco);
   if (ledger.grossAmountCents > MOCO_TOPUP_STRIPE_MAX_USD_CENTS) {
-    return { ok: false, error: "결제 가능한 최대 금액을 초과했습니다." };
+    return { ok: false, error: "Amount exceeds the maximum allowed for checkout." };
   }
   return {
     ok: true,
@@ -156,7 +156,7 @@ export const GEM_TOPUP_PACKAGES = [] as const;
 
 /** Legal copy — MOCO 충전 결제 직전 필수 체크 (Stripe dispute evidence) */
 export const MOCO_PURCHASE_TERMS_COPY =
-  "[필수] 본 상품은 가상재화(MOCO) 지급 및 '실시간 기여 탑 등록 서비스'가 결합된 패키지 상품입니다. 결제 완료 즉시 사이트 내 기여 탑에 유저 정보가 실시간으로 기록(서비스 공급 완료)되므로, 전자상거래법 제17조 제2항에 의거하여 결제 후에는 유저의 사용 여부와 관계없이 단순 변심으로 인한 환불이 절대 불가능함에 동의합니다.";
+  "Done.";
 
 /** MOCO 충전 UI — PG 수수료 안내 (체크박스와 분리) */
 export const MOCO_PURCHASE_PG_FEE_NOTE =

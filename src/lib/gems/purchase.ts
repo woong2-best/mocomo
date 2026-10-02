@@ -14,7 +14,7 @@ export async function fulfillGemTopup(input: {
 }) {
   const gems = input.gemsFromMeta;
   if (gems == null) {
-    return { error: "MOCO 충전량을 확인할 수 없습니다." as const };
+    return { error: "Could not verify MOCO top-up amount." as const };
   }
 
   const quote = quoteGemTopup(gems);
@@ -22,7 +22,7 @@ export async function fulfillGemTopup(input: {
     return { error: quote.error };
   }
   if (quote.usdCents !== input.amountUsdCents) {
-    return { error: "충전 금액이 일치하지 않습니다." as const };
+    return { error: "Top-up amount does not match." as const };
   }
 
   const existing = await db.gemPurchase.findUnique({

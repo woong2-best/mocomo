@@ -71,20 +71,20 @@ export async function spendMocoOnLetterDonation(input: {
   message: string;
 }) {
   if (input.fanId === input.creatorId) {
-    return { error: "자기 자신에게 편지를 보낼 수 없습니다." as const };
+    return { error: "You cannot send a letter to yourself." as const };
   }
   if (!Number.isInteger(input.moco) || input.moco < LETTER_DONATION_MIN_MOCO) {
     return { error: `최소 ${LETTER_DONATION_MIN_MOCO} MOCO부터 보낼 수 있습니다.` as const };
   }
 
   const message = input.message.trim();
-  if (!message) return { error: "편지 내용을 입력해 주세요." as const };
+  if (!message) return { error: "Enter letter content." as const };
   if (message.length > LETTER_DONATION_MESSAGE_MAX) {
     return { error: `편지는 ${LETTER_DONATION_MESSAGE_MAX}자까지 입력할 수 있습니다.` as const };
   }
 
   const roomId = input.roomId.trim();
-  if (!roomId) return { error: "메시지 방이 필요합니다." as const };
+  if (!roomId) return { error: "A message room is required." as const };
 
   const [member, creator] = await Promise.all([
     db.chatMember.findUnique({
@@ -96,8 +96,8 @@ export async function spendMocoOnLetterDonation(input: {
       select: { id: true, username: true },
     }),
   ]);
-  if (!member) return { error: "메시지 방에 참여 중일 때만 편지를 보낼 수 있습니다." as const };
-  if (!creator) return { error: "받는 사람을 찾을 수 없습니다." as const };
+  if (!member) return { error: "You can send letters only while participating in the message room." as const };
+  if (!creator) return { error: "Recipient not found." as const };
 
   const payout = await assertCreatorPayoutsEnabled(input.creatorId);
   if (!payout.ok) return { error: payout.error, code: payout.code };
@@ -107,7 +107,7 @@ export async function spendMocoOnLetterDonation(input: {
     select: { userId: true },
   });
   if (!receiverMember) {
-    return { error: "받는 사람이 이 대화방에 없습니다." as const };
+    return { error: "The recipient is not in this conversation." as const };
   }
 
   const amountCents = gemsToAmountCents(input.moco);
@@ -188,10 +188,10 @@ export async function claimLetterDonationMoco(input: {
       sender: { select: { username: true, name: true } },
     },
   });
-  if (!tip) return { error: "후원을 찾을 수 없습니다." as const, status: 404 as const };
+  if (!tip) return { error: "Tip not found." as const, status: 404 as const };
 
   if (input.viewerId !== tip.receiverId && input.viewerId !== tip.senderId) {
-    return { error: "권한이 없습니다." as const, status: 403 as const };
+    return { error: "Permission denied." as const, status: 403 as const };
   }
 
   const moco = Math.max(0, Math.floor(tip.amount / MOCO_USD_CENTS));
@@ -242,7 +242,7 @@ export async function claimLetterDonationMoco(input: {
   await creditSettlementMoco({
     userId: tip.receiverId,
     amount: giftEvent.gems,
-    reason: "편지 후원 개봉 · MOCO 수령",
+    reason: "Letter tip opened · MOCO received",
     referenceType: "letter_donation_open",
     referenceId: tip.id,
     metadata: { giftEventId: giftEvent.id, tipId: tip.id },

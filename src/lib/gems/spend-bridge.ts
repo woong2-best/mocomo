@@ -75,7 +75,7 @@ export async function spendGemsOnProfileTip(input: {
     where: { id: input.creatorId },
     select: { username: true },
   });
-  if (!receiver) return { error: "크리에이터를 찾을 수 없습니다." as const };
+  if (!receiver) return { error: "Creator not found." as const };
 
   const tip = await db.tip.create({
     data: {
@@ -187,16 +187,16 @@ export async function spendGemsOnPostMedia(input: {
       post: { select: { authorId: true, instantPurchasePriceKrw: true, id: true } },
     },
   });
-  if (!media) return { error: "미디어를 찾을 수 없습니다." as const };
+  if (!media) return { error: "Media not found." as const };
   if (media.post.authorId === input.fanId) {
-    return { error: "본인 콘텐츠는 구매할 수 없습니다." as const };
+    return { error: "You cannot buy your own content." as const };
   }
 
   const priceCents = media.priceKrw > 0 ? media.priceKrw : media.post.instantPurchasePriceKrw;
-  if (priceCents <= 0) return { error: "무료 미디어는 구매가 필요 없습니다." as const };
+  if (priceCents <= 0) return { error: "Free media does not require purchase." as const };
   const requiredMoco = usdCentsToMocoRequired(priceCents);
   if (input.gems !== requiredMoco) {
-    return { error: "가격이 일치하지 않습니다." as const };
+    return { error: "Price does not match." as const };
   }
 
   const existing = await db.postMediaPurchase.findUnique({
