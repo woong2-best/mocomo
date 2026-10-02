@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 /**
  * OFAC country policy facade — comprehensive vs targeted tiers kept separate from Stripe lists.
  */
@@ -40,7 +43,7 @@ export const OFAC_TARGETED_SANCTION_NOTICE_EN =
   "Enhanced compliance screening applies in your region. Stripe Connect onboarding may require additional verification.";
 
 export const OFAC_TARGETED_SANCTION_NOTICE_KO =
-  "해당 지역은 강화된 컴플라이언스 심사 대상입니다. Stripe Connect 온보딩 시 추가 확인이 필요할 수 있습니다.";
+  t("lib.compliance.stripe_connect");
 
 /**
  * Signup / locale / payment geo block — comprehensive embargo only.
