@@ -15,23 +15,23 @@ export const EMOJI_QUICK_PICK = [
 ];
 
 export const SHAPE_KINDS: { id: ShapeKind; label: string }[] = [
-  { id: "rect", label: "사각형" },
-  { id: "circle", label: "원" },
-  { id: "triangle", label: "삼각형" },
-  { id: "line", label: "선" },
-  { id: "arrow", label: "화살표" },
-  { id: "star", label: "별" },
-  { id: "heart", label: "하트" },
-  { id: "speech", label: "말풍선" },
+  { id: "rect", label: "Rectangle" },
+  { id: "circle", label: "Circle" },
+  { id: "triangle", label: "Triangle" },
+  { id: "line", label: "Line" },
+  { id: "arrow", label: "Arrow" },
+  { id: "star", label: "Star" },
+  { id: "heart", label: "Heart" },
+  { id: "speech", label: "Speech bubble" },
 ];
 
 export const BRUSH_TOOLS: { id: BrushToolId; label: string }[] = [
-  { id: "pen", label: "펜" },
-  { id: "pencil", label: "연필" },
-  { id: "highlighter", label: "형광펜" },
-  { id: "brush", label: "붓" },
-  { id: "neon", label: "네온" },
-  { id: "eraser", label: "지우개" },
+  { id: "pen", label: "Pen" },
+  { id: "pencil", label: "Pencil" },
+  { id: "highlighter", label: "Highlighter" },
+  { id: "brush", label: "Brush" },
+  { id: "neon", label: "Neon" },
+  { id: "eraser", label: "Eraser" },
 ];
 
 export const STICKER_CATEGORIES = STICKER_MANIFEST.map((c) => ({

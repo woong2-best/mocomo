@@ -68,7 +68,7 @@ function canvasToBlob(
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("이미지보내기에 실패했습니다."))),
+      (blob) => (blob ? resolve(blob) : reject(new Error("Failed to send image."))),
       mimeType,
       quality
     );
