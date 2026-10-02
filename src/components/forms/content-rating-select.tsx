@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import type { ContentRating } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { contentRatingLabel } from "@/lib/content-rating";
@@ -50,8 +53,8 @@ export function ContentRatingSelect({
               <span className="block text-sm font-semibold">{contentRatingLabel(rating)}</span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
                 {rating === "GENERAL"
-                  ? "유료 판매·후원·구독 가능 (약관 준수)"
-                  : "게시만 가능 · 유료 거래 전면 금지"}
+                  ? t("forms.s9udwy4")
+                  : t("forms.shmxsv8")}
               </span>
             </span>
           </label>
