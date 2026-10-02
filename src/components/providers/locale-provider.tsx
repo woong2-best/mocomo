@@ -17,7 +17,12 @@ import {
   normalizeLocale,
   type Locale,
 } from "@/lib/i18n/config";
-import { createTranslator, prefetchLocaleTable, type MessageKey } from "@/lib/i18n/messages";
+import {
+  createTranslator,
+  loadLocaleTableAsync,
+  prefetchLocaleTable,
+  type MessageKey,
+} from "@/lib/i18n/messages";
 import { updateUserLocale } from "@/actions/locale";
 import { readClientCookie, setClientLocaleCookies } from "@/lib/i18n/client-cookies";
 import { DEFAULT_TIMEZONE, normalizeTimeZone, TIMEZONE_COOKIE } from "@/lib/i18n/timezone";
@@ -53,7 +58,18 @@ export function LocaleProvider({
   const [locale, setLocaleState] = useState<Locale>(normalizeLocale(initialLocale, DEFAULT_GUEST_LOCALE));
   const [countryCode, setCountryCode] = useState(initialCountryCode.toUpperCase());
   const [timeZone, setTimeZone] = useState(normalizeTimeZone(initialTimeZone));
+  const [catalogReady, setCatalogReady] = useState(0);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadLocaleTableAsync(locale).then(() => {
+      if (!cancelled) setCatalogReady((n) => n + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   useEffect(() => {
     const cookieCountry = readClientCookie(COUNTRY_COOKIE)?.toUpperCase();
@@ -102,7 +118,7 @@ export function LocaleProvider({
       hydrateFromSession,
       t: createTranslator(locale),
     }),
-    [locale, countryCode, timeZone, setLocale, hydrateFromSession]
+    [locale, countryCode, timeZone, setLocale, hydrateFromSession, catalogReady]
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;

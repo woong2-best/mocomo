@@ -61,8 +61,7 @@ export default async function SettingsPage() {
       </Card>
 
       <LocaleSettingsForm
-        initialLocale={user?.locale ?? "ko"}
-        initialCountryCode={user?.countryCode ?? "KR"}
+        initialCountryCode={user?.countryCode ?? "US"}
         initialTimeZone={user?.timeZone ?? "UTC"}
       />
 
