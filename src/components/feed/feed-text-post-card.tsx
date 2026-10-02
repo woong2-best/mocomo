@@ -5,9 +5,9 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { enUS, ko } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Star } from "lucide-react";
@@ -25,18 +25,21 @@ import { MotionPop } from "@/components/motion/motion-primitives";
 import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
 import { QnaQuestionMark } from "@/components/post/qna-question-mark";
 
-function postTypeLabel(type: string, locale: string): string | undefined {
-  const labels: Record<string, [string, string]> = {
-    COSPLAY: ["코스프레", "Cosplay"],
-    FANART: ["팬아트", "Fan art"],
-    REVIEW: ["리뷰", "Review"],
-    MEME: ["밈", "Meme"],
-    NEWS: ["뉴스", "News"],
-    PHOTO: ["사진", "Photo"],
-    VIDEO: ["영상", "Video"],
+function postTypeLabel(
+  type: string,
+  t: (key: string) => string
+): string | undefined {
+  const keys: Record<string, string> = {
+    COSPLAY: "feed.postType.cosplay",
+    FANART: "feed.postType.fanart",
+    REVIEW: "feed.postType.review",
+    MEME: "feed.postType.meme",
+    NEWS: "feed.postType.news",
+    PHOTO: "feed.postType.photo",
+    VIDEO: "feed.postType.video",
   };
-  const pair = labels[type];
-  return pair ? uiText(locale, pair[0], pair[1]) : undefined;
+  const key = keys[type];
+  return key ? t(key) : undefined;
 }
 
 export function FeedTextPostCard({
@@ -120,7 +123,7 @@ export function FeedTextPostCard({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {post.postType && post.postType !== "GENERAL" && (
                     <span className="folk-tag">
-                      {postTypeLabel(post.postType, locale) || post.postType}
+                      {postTypeLabel(post.postType, t) || post.postType}
                     </span>
                   )}
                 </div>
@@ -131,7 +134,7 @@ export function FeedTextPostCard({
             <span className="text-[10px] text-muted-foreground">
               {formatDistanceToNow(createdAt, {
                 addSuffix: true,
-                locale: locale === "ko" ? ko : enUS,
+                locale: enUS,
               })}
             </span>
             <PostOwnerMenu
@@ -235,13 +238,13 @@ export function FeedTextPostCard({
             onClick={handleStar}
             aria-label={
               starred
-                ? uiText(locale, "STAR에서 제거", "Remove from STAR")
-                : uiText(locale, "STAR에 저장", "Save to STAR")
+                ? t("ui.remove_from_star")
+                : t("ui.save_to_star")
             }
             title={
               starred
-                ? uiText(locale, "STAR에 저장됨", "Saved to STAR")
-                : uiText(locale, "STAR에 저장", "Save to STAR")
+                ? t("ui.saved_to_star")
+                : t("ui.save_to_star")
             }
             className={cn(
               "transition-colors min-h-8 min-w-8 flex items-center justify-center",

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export function ChatUsedTradeMeetCompletionCard({
   requestId,
@@ -40,12 +39,12 @@ export function ChatUsedTradeMeetCompletionCard({
 
   return (
     <div className="mx-1 mb-2 max-w-[280px] rounded-2xl border border-border/70 bg-[#0f1524] p-3 text-white">
-      <p className="text-sm font-extrabold">{uiText(locale, "거래가 완료되었나요?", "Was the trade completed?")}</p>
+      <p className="text-sm font-extrabold">{t("ui.was_the_trade_completed")}</p>
       {selfConfirmed ? (
         <p className="mt-2 text-xs font-semibold text-white/70">
           {peerConfirmed
-            ? uiText(locale, "거래가 완료되었습니다.", "Trade marked complete.")
-            : uiText(locale, "완료로 응답했습니다. 상대 확인을 기다려 주세요.", "You confirmed. Waiting for the other party.")}
+            ? t("ui.trade_marked_complete")
+            : t("ui.you_confirmed_waiting_for_the_other")}
         </p>
       ) : (
         <div className="mt-3 flex justify-center gap-4">
@@ -54,7 +53,7 @@ export function ChatUsedTradeMeetCompletionCard({
             disabled={busy}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-red-600 disabled:opacity-50"
             onClick={() => void respond("decline")}
-            aria-label={uiText(locale, "미완료", "Not completed")}
+            aria-label={t("ui.not_completed")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -63,7 +62,7 @@ export function ChatUsedTradeMeetCompletionCard({
             disabled={busy}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-green-600 disabled:opacity-50"
             onClick={() => void respond("confirm")}
-            aria-label={uiText(locale, "완료", "Completed")}
+            aria-label={t("ui.completed")}
           >
             <Check className="h-5 w-5" />
           </button>

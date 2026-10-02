@@ -3,47 +3,77 @@ import { QNA_MY_CATEGORY_ID, type QnaMyCategoryId } from "@/lib/qna-my-category"
 import { QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId } from "@/lib/qna-nsfw-category";
 import type { Locale } from "@/lib/i18n/config";
 import { COMMUNITY_CATEGORY_EN } from "@/lib/community-labels-i18n";
-import { uiText } from "@/lib/i18n/ui-text";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
 
 export { QNA_MY_CATEGORY_ID, type QnaMyCategoryId, QNA_NSFW_CATEGORY_ID, type QnaNsfwCategoryId };
+
+const CATEGORY_EMOJI: Record<CommunityCategory, string> = {
+  FREE: "💬",
+  HUMOR: "😂",
+  GAME: "🎮",
+  SPORTS: "⚽",
+  CREATOR: "📡",
+  MUSIC: "🎵",
+  CREATIVE: "🎨",
+  SUBCULTURE: "✨",
+  IT: "💻",
+  FOOD: "🍜",
+  LAW: "⚖️",
+  TRAVEL: "✈️",
+  POLITICS: "🏛️",
+  MEDICAL: "🏥",
+  INFO: "❓",
+  CUSTOM: "➕",
+  ANIME: "✨",
+  COMIC: "✨",
+  COSPLAY: "✨",
+  GOODS: "✨",
+  FIGURE: "✨",
+  VTUBER: "📡",
+  AI: "📡",
+  UTAITE: "🎵",
+  VOCALOID: "🎵",
+  FANART: "🎨",
+};
+
+const MAIN_COMMUNITY_CATEGORIES: CommunityCategory[] = [
+  "FREE",
+  "HUMOR",
+  "GAME",
+  "SPORTS",
+  "CREATOR",
+  "MUSIC",
+  "CREATIVE",
+  "SUBCULTURE",
+  "IT",
+  "FOOD",
+  "LAW",
+  "TRAVEL",
+  "POLITICS",
+  "MEDICAL",
+  "INFO",
+];
 
 export const COMMUNITY_CATEGORY_OPTIONS: {
   id: CommunityCategory;
   label: string;
   emoji: string;
-  /** 탭·선택 UI에 표시할 짧은 이름 */
   shortLabel: string;
-}[] = [
-  { id: "FREE", label: "자유", shortLabel: "자유", emoji: "💬" },
-  { id: "HUMOR", label: "유머 / 이슈", shortLabel: "유머·이슈", emoji: "😂" },
-  { id: "GAME", label: "게임", shortLabel: "게임", emoji: "🎮" },
-  { id: "SPORTS", label: "스포츠", shortLabel: "스포츠", emoji: "⚽" },
-  {
-    id: "CREATOR",
-    label: "크리에이터 (스트리머 / 버튜버)",
-    shortLabel: "크리에이터",
-    emoji: "📡",
-  },
-  {
-    id: "MUSIC",
-    label: "음악 (보카로 / 우타이테)",
-    shortLabel: "음악",
-    emoji: "🎵",
-  },
-  { id: "CREATIVE", label: "창작 / 팬아트", shortLabel: "창작·팬아트", emoji: "🎨" },
-  { id: "SUBCULTURE", label: "서브컬쳐", shortLabel: "서브컬쳐", emoji: "✨" },
-  { id: "IT", label: "IT / 장비", shortLabel: "IT·장비", emoji: "💻" },
-  { id: "FOOD", label: "음식 / 맛집", shortLabel: "음식·맛집", emoji: "🍜" },
-  { id: "LAW", label: "법률", shortLabel: "Law", emoji: "⚖️" },
-  { id: "TRAVEL", label: "여행", shortLabel: "여행", emoji: "✈️" },
-  { id: "POLITICS", label: "정치", shortLabel: "정치", emoji: "🏛️" },
-  { id: "MEDICAL", label: "의료", shortLabel: "의료", emoji: "🏥" },
-  { id: "INFO", label: "정보 / 질문", shortLabel: "정보·질문", emoji: "❓" },
-];
+}[] = MAIN_COMMUNITY_CATEGORIES.map((id) => {
+  const en = COMMUNITY_CATEGORY_EN[id];
+  return {
+    id,
+    label: en.label,
+    shortLabel: en.shortLabel,
+    emoji: CATEGORY_EMOJI[id],
+  };
+});
 
 /** QnA feed horizontal tabs — preset categories + NSFW (age-gated in UI). */
 export const QNA_FEED_CATEGORY_TABS = [
-  { id: "ALL" as const, label: "전체", shortLabel: "전체", emoji: "" },
+  { id: "ALL" as const, label: "All", shortLabel: "All", emoji: "" },
   ...COMMUNITY_CATEGORY_OPTIONS,
   { id: QNA_NSFW_CATEGORY_ID, label: "NSFW", shortLabel: "NSFW", emoji: "🔞" },
   { id: QNA_MY_CATEGORY_ID, label: "My", shortLabel: "My", emoji: "👤" },
@@ -68,7 +98,7 @@ export function qnaCreateSelectionToApi(selection: QnaCreateCategorySelection): 
   return { category: selection, isNsfw: false };
 }
 
-/** 이전 taxonomy → v3 매핑 (마이그레이션 전 데이터 표시용) */
+/** Legacy taxonomy → v3 mapping (pre-migration display). */
 const LEGACY_COMMUNITY_CATEGORY_MAP: Partial<Record<CommunityCategory, CommunityCategory>> = {
   ANIME: "SUBCULTURE",
   COMIC: "SUBCULTURE",
@@ -102,9 +132,9 @@ export function normalizeCommunityCategory(value: string): CommunityCategory | n
 export function communityCategoryLabel(
   category: string,
   customCategoryLabel?: string | null,
-  locale: Locale | string = "ko"
+  _locale: Locale | string = "en"
 ): string {
-  return resolveCommunityCategoryDisplay(category, customCategoryLabel, locale).label;
+  return resolveCommunityCategoryDisplay(category, customCategoryLabel, _locale).label;
 }
 
 export function communityCategoryMeta(category: string) {
@@ -115,10 +145,10 @@ export function communityCategoryMeta(category: string) {
 export function resolveCommunityCategoryDisplay(
   category: string,
   customCategoryLabel?: string | null,
-  locale: Locale | string = "ko"
+  _locale: Locale | string = "en"
 ): { label: string; shortLabel: string; emoji: string } {
   if (category === "CUSTOM") {
-    const label = customCategoryLabel?.trim() || uiText(locale, "직접 입력", "Custom");
+    const label = customCategoryLabel?.trim() || t("auth.emailCustom");
     return { label, shortLabel: label, emoji: "➕" };
   }
   const meta = communityCategoryMeta(category);
@@ -127,10 +157,7 @@ export function resolveCommunityCategoryDisplay(
     const en =
       COMMUNITY_CATEGORY_EN[normalized as keyof typeof COMMUNITY_CATEGORY_EN] ??
       COMMUNITY_CATEGORY_EN[meta.id];
-    if (locale !== "ko" && en) {
-      return { label: en.label, shortLabel: en.shortLabel, emoji: meta.emoji };
-    }
-    return { label: meta.label, shortLabel: meta.shortLabel, emoji: meta.emoji };
+    return { label: en.label, shortLabel: en.shortLabel, emoji: meta.emoji };
   }
   return { label: category, shortLabel: category, emoji: "🏷️" };
 }
@@ -138,7 +165,7 @@ export function resolveCommunityCategoryDisplay(
 export function communityCategoryTabLabel(
   category: string,
   customCategoryLabel?: string | null,
-  locale: Locale | string = "ko"
+  locale: Locale | string = "en"
 ): string {
   const display = resolveCommunityCategoryDisplay(category, customCategoryLabel, locale);
   return `${display.emoji} ${display.shortLabel}`;
@@ -146,15 +173,15 @@ export function communityCategoryTabLabel(
 
 export function validateCustomCategoryLabel(
   label: string | undefined | null,
-  locale: Locale | string = "ko"
+  _locale: Locale | string = "en"
 ): string | null {
   const trimmed = label?.trim();
-  if (!trimmed) return uiText(locale, "카테고리 이름을 입력해 주세요.", "Enter a category name.");
+  if (!trimmed) return t("ui.enter_a_category_name");
   if (trimmed.length < 2) {
-    return uiText(locale, "카테고리 이름은 2자 이상 입력해 주세요.", "Category name must be at least 2 characters.");
+    return t("ui.category_name_must_be_at_least");
   }
   if (trimmed.length > 24) {
-    return uiText(locale, "카테고리 이름은 24자 이하로 입력해 주세요.", "Category name must be 24 characters or fewer.");
+    return t("ui.category_name_must_be_24_characters");
   }
   return null;
 }
@@ -162,13 +189,11 @@ export function validateCustomCategoryLabel(
 /** QnA feed tab label (ALL preset) */
 export function qnaFeedTabDisplay(
   tabId: string,
-  locale: Locale | string = "ko"
+  _locale: Locale | string = "en"
 ): { label: string; shortLabel: string; emoji: string } {
   if (tabId === "ALL") {
     const en = COMMUNITY_CATEGORY_EN.ALL;
-    return locale === "ko"
-      ? { label: "전체", shortLabel: "전체", emoji: "" }
-      : { label: en.label, shortLabel: en.shortLabel, emoji: "" };
+    return { label: en.label, shortLabel: en.shortLabel, emoji: "" };
   }
   if (tabId === QNA_NSFW_CATEGORY_ID) {
     return { label: "NSFW", shortLabel: "NSFW", emoji: "🔞" };
@@ -176,5 +201,5 @@ export function qnaFeedTabDisplay(
   if (tabId === QNA_MY_CATEGORY_ID) {
     return { label: "My", shortLabel: "My", emoji: "👤" };
   }
-  return resolveCommunityCategoryDisplay(tabId, null, locale);
+  return resolveCommunityCategoryDisplay(tabId, null, _locale);
 }

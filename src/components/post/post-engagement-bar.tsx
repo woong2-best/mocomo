@@ -14,7 +14,6 @@ import { formatNumber, cn } from "@/lib/utils";
 import { MotionPop } from "@/components/motion/motion-primitives";
 import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engage";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export function PostEngagementBar({
   postId,
@@ -138,8 +137,8 @@ export function PostEngagementBar({
             onClick={handleStar}
             aria-label={
               starred
-                ? uiText(locale, "STAR에서 제거", "Remove from STAR")
-                : uiText(locale, "STAR에 저장", "Save to STAR")
+                ? t("ui.remove_from_star")
+                : t("ui.save_to_star")
             }
             className={cn(
               "transition-colors min-h-8 min-w-8 flex items-center justify-center rounded-lg",

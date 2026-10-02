@@ -11,7 +11,7 @@ import {
 } from "@/lib/comment-optimistic-sync";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 export function CommentForm({
   postId,
@@ -74,7 +74,7 @@ export function CommentForm({
         throw new Error(
           typeof body.error === "string"
             ? body.error
-            : uiText(locale, "댓글 등록에 실패했습니다.", "Couldn't post comment.")
+            : t("ui.couldn_t_post_comment")
         );
       }
       const realId =
@@ -88,7 +88,7 @@ export function CommentForm({
       setError(
         err instanceof Error
           ? err.message
-          : uiText(locale, "댓글 등록에 실패했습니다.", "Couldn't post comment.")
+          : t("ui.couldn_t_post_comment")
       );
     } finally {
       setSubmitting(false);
@@ -120,7 +120,7 @@ export function CommentForm({
           placeholder={
             placeholder ??
             (parentId
-              ? uiText(locale, "답글 달기...", "Write a reply…")
+              ? t("ui.write_a_reply")
               : t("post.writeComment"))
           }
           className={cn(
@@ -129,12 +129,12 @@ export function CommentForm({
           )}
         />
         <Button type="submit" size="sm" disabled={!content.trim() || submitting}>
-          {uiText(locale, "등록", "Post")}
+          {t("star.badge.post")}
         </Button>
       </div>
       {content.trim() ? (
         <p className="px-1 text-[11px] text-muted-foreground">
-          {uiText(locale, "Enter 등록 · Shift+Enter 줄바꿈", "Enter to post · Shift+Enter for newline")}
+          {t("ui.enter_to_post_shift_enter_for")}
         </p>
       ) : null}
       {error && <p className="text-xs text-destructive">{error}</p>}

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Repeat2 } from "lucide-react";
 import { userDisplayName } from "@/lib/user-public-select";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export function RepostBanner({
   user,
@@ -19,7 +18,7 @@ export function RepostBanner({
       <Link href={`/u/${user.username}`} className="truncate hover:underline">
         {label}
       </Link>
-      <span className="shrink-0">{uiText(locale, "님이 재게시함", " reposted")}</span>
+      <span className="shrink-0">{t("ui.reposted")}</span>
     </p>
   );
 }

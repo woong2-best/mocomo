@@ -15,7 +15,7 @@ import { PostDetailMedia } from "@/components/post/post-detail-media";
 import { QuotePostPreviewCard } from "@/components/post/quote-post-preview-card";
 import { BlockedQuotedPostCard } from "@/components/post/blocked-quoted-post-card";
 import { readQuotedPost } from "@/lib/quoted-post";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 export function PostDetailCard({
   post,
@@ -53,13 +53,13 @@ export function PostDetailCard({
             className="inline-flex text-[12px] font-bold text-[#3b4890] dark:text-primary hover:underline"
           >
             {post.community.name}{" "}
-            {uiText(locale, "갤러리", "gallery")}
+            {t("ui.gallery")}
           </Link>
         ) : null}
         {post.isPinned && (
           <p className="text-sm text-muted-foreground flex items-center gap-1.5 font-medium">
             <Pin className="h-4 w-4" />
-            {uiText(locale, "프로필에 고정된 게시물", "Pinned to profile")}
+            {t("ui.pinned_to_profile")}
           </p>
         )}
         <div className="flex items-start gap-3">

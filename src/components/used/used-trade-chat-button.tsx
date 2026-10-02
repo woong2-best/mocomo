@@ -7,7 +7,7 @@ import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 function needsVerification(error: string) {
   return (
@@ -59,8 +59,8 @@ export function UsedTradeChatButton({
       >
         <MessageSquare className="h-5 w-5" />
         {loading
-          ? uiText(locale, "연결 중…", "Connecting…")
-          : uiText(locale, "채팅하기", "Chat")}
+          ? t("live.external.connecting")
+          : t("ui.chat")}
       </Button>
     </div>
   );

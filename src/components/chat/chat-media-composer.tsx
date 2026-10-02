@@ -9,7 +9,7 @@ import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-up
 import type { ChatAttachmentInput } from "@/lib/chat-attachments";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 import { useActivityOptional } from "@/components/activities/activity-provider";
 
 const MAX_VOICE_SEC = 120;
@@ -40,7 +40,7 @@ export function ChatMediaComposer({
   disabled,
   inputRef,
 }: ChatMediaComposerProps) {
-  const { locale } = useLocale();
+  const { t } = useLocale();
   const activity = useActivityOptional();
   const galleryInputId = useId();
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -82,7 +82,7 @@ export function ChatMediaComposer({
       await onSendAttachments([{ url, type: "IMAGE", name: file.name }], caption);
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : uiText(locale, "사진 전송에 실패했습니다.", "Couldn't send photo.")
+        e instanceof Error ? e.message : t("ui.couldn_t_send_photo")
       );
     } finally {
       setUploading(false);
@@ -98,7 +98,7 @@ export function ChatMediaComposer({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !isGalleryImageFile(file, true)) {
-      setError(uiText(locale, "이미지 파일을 선택해 주세요.", "Choose an image file."));
+      setError(t("ui.choose_an_image_file"));
       return;
     }
     setUploading(true);
@@ -111,7 +111,7 @@ export function ChatMediaComposer({
       await onSendAttachments([{ url, type: "IMAGE", name: prepared.name }], caption);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : uiText(locale, "사진 전송에 실패했습니다.", "Couldn't send photo.")
+        err instanceof Error ? err.message : t("ui.couldn_t_send_photo")
       );
     } finally {
       setUploading(false);
@@ -158,7 +158,7 @@ export function ChatMediaComposer({
         chunksRef.current = [];
         if (!sendVoiceRef.current) return;
         if (blob.size < 800) {
-          setError(uiText(locale, "녹음이 너무 짧습니다.", "Recording too short."));
+          setError(t("ui.recording_too_short"));
           return;
         }
         setUploading(true);
@@ -170,7 +170,7 @@ export function ChatMediaComposer({
           await onSendAttachments([{ url, type: "AUDIO", name: `voice.${ext}` }], caption);
         } catch (err) {
           setError(
-            err instanceof Error ? err.message : uiText(locale, "음성 전송에 실패했습니다.", "Couldn't send voice message.")
+            err instanceof Error ? err.message : t("ui.couldn_t_send_voice_message")
           );
         } finally {
           setUploading(false);
@@ -191,9 +191,9 @@ export function ChatMediaComposer({
     } catch (e) {
       const name = e instanceof Error ? e.name : "";
       if (name === "NotAllowedError") {
-        setError(uiText(locale, "마이크 권한을 허용해 주세요.", "Allow microphone access."));
+        setError(t("ui.allow_microphone_access"));
       } else {
-        setError(uiText(locale, "음성 녹음을 시작할 수 없습니다.", "Couldn't start voice recording."));
+        setError(t("ui.couldn_t_start_voice_recording"));
       }
       stopMicStream();
     }
@@ -216,7 +216,12 @@ export function ChatMediaComposer({
         <div className="flex items-center justify-center gap-3 mb-2 py-2 rounded-xl bg-folk-terracotta/10 border border-folk-terracotta/20">
           <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
           <span className="text-sm font-medium text-red-700 dark:text-red-300 tabular-nums">
-            {uiText(locale, `녹음 중 ${recordSec}s / ${MAX_VOICE_SEC}s`, `Recording ${recordSec}s / ${MAX_VOICE_SEC}s`)}
+            <span>
+              {t("chat.recordingProgress", {
+                current: String(recordSec),
+                max: String(MAX_VOICE_SEC),
+              })}
+            </span>
           </span>
           <Button
             type="button"
@@ -226,7 +231,7 @@ export function ChatMediaComposer({
             onClick={() => stopRecording(false)}
           >
             <X className="h-3.5 w-3.5 mr-1" />
-            {uiText(locale, "취소", "Cancel")}
+            {t("calendar.cancel")}
           </Button>
           <Button
             type="button"
@@ -234,7 +239,7 @@ export function ChatMediaComposer({
             className="h-8 rounded-lg text-xs bg-folk-terracotta hover:bg-red-700"
             onClick={() => stopRecording(true)}
           >
-            {uiText(locale, "보내기", "Send")}
+            {t("ui.send")}
           </Button>
         </div>
       )}
@@ -252,7 +257,7 @@ export function ChatMediaComposer({
             className="h-10 w-10 rounded-full text-muted-foreground"
             disabled={disabled || uploading || recording}
             onClick={() => setCameraOpen(true)}
-            aria-label={uiText(locale, "사진 찍기", "Take photo")}
+            aria-label={t("ui.take_photo")}
           >
             <Camera className="h-5 w-5" />
           </Button>
@@ -266,7 +271,7 @@ export function ChatMediaComposer({
               className="h-10 w-10 rounded-full text-muted-foreground"
               disabled={disabled || uploading || recording}
               onClick={activity.openPicker}
-              aria-label={uiText(locale, "게임 함께하기", "Play together")}
+              aria-label={t("ui.play_together")}
               title="Play Together"
             >
               <Gamepad2 className="h-5 w-5" />
@@ -274,7 +279,7 @@ export function ChatMediaComposer({
           )}
           <label
             htmlFor={galleryInputId}
-            aria-label={uiText(locale, "갤러리에서 사진", "Photo from gallery")}
+            aria-label={t("ui.photo_from_gallery")}
             className={cn(
               "inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground cursor-pointer hover:bg-muted/60 transition-colors",
               (disabled || uploading || recording) && "pointer-events-none opacity-50"
@@ -294,8 +299,8 @@ export function ChatMediaComposer({
             onClick={toggleRecording}
             aria-label={
               recording
-                ? uiText(locale, "녹음 종료", "Stop recording")
-                : uiText(locale, "음성 메시지", "Voice message")
+                ? t("ui.stop_recording")
+                : t("ui.voice_message")
             }
           >
             {recording ? <Square className="h-5 w-5 fill-current" /> : <Mic className="h-5 w-5" />}
@@ -306,14 +311,14 @@ export function ChatMediaComposer({
           {uploading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
               <Loader2 className="h-4 w-4 animate-spin" />
-              {uiText(locale, "전송 중…", "Sending…")}
+              {t("ui.sending")}
             </div>
           ) : (
             <textarea
               ref={inputRef}
               value={value}
               onChange={(e) => onChange(e.target.value)}
-              placeholder={uiText(locale, "메시지를 입력하세요", "Write a message")}
+              placeholder={t("ui.write_a_message")}
               rows={1}
               disabled={disabled || recording}
               className="flex-1 resize-none bg-transparent text-sm leading-snug outline-none placeholder:text-muted-foreground max-h-28 min-h-[24px] py-0.5"
@@ -341,7 +346,7 @@ export function ChatMediaComposer({
           )}
           onClick={onSendText}
           disabled={!canSendText}
-          aria-label={uiText(locale, "보내기", "Send")}
+          aria-label={t("ui.send")}
         >
           <Send className="h-5 w-5" />
         </Button>

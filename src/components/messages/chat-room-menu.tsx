@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ContentReportFlow } from "@/components/report/content-report-flow";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export function ChatRoomMenu({
   roomId,
@@ -37,7 +36,7 @@ export function ChatRoomMenu({
           <button
             type="button"
             className="p-2 rounded-full hover:bg-muted/80 shrink-0"
-            aria-label={uiText(locale, "대화 메뉴", "Conversation menu")}
+            aria-label={t("ui.conversation_menu")}
           >
             <MoreVertical className="h-5 w-5" />
           </button>
@@ -48,7 +47,7 @@ export function ChatRoomMenu({
             onSelect={() => setReportOpen(true)}
           >
             <Flag className="h-4 w-4" />
-            {uiText(locale, "신고하기", "Report")}
+            {t("report.title")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

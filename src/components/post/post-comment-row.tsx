@@ -17,7 +17,6 @@ import { blockUserAction } from "@/actions/user-relationship";
 import type { SupportTierLevel } from "@prisma/client";
 import { cn, formatNumber } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export type PostCommentRowData = {
   id: string;
@@ -90,7 +89,7 @@ export function PostCommentRow({
         liked?: boolean;
         error?: string;
       };
-      if (!res.ok) throw new Error(body.error || uiText(locale, "실패", "Failed"));
+      if (!res.ok) throw new Error(body.error || t("ui.failed"));
       const finalLiked = !!body.liked;
       const finalCount =
         typeof body.likeCount === "number" ? body.likeCount : optimisticCount;
@@ -125,7 +124,7 @@ export function PostCommentRow({
       commentId: comment.id,
     });
     window.alert(
-      res.error ?? uiText(locale, "신고가 접수되었습니다.", "Report submitted.")
+      res.error ?? t("ui.report_submitted")
     );
   }
 
@@ -135,7 +134,7 @@ export function PostCommentRow({
       window.alert(res.error);
       return;
     }
-    window.alert(uiText(locale, "차단되었습니다.", "User blocked."));
+    window.alert(t("post.menu.blockDone"));
   }
 
   return (
@@ -156,7 +155,7 @@ export function PostCommentRow({
         />
         {likeCount > 0 ? (
           <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
-            {uiText(locale, `좋아요 ${formatNumber(likeCount)}개`, `${formatNumber(likeCount)} likes`)}
+            <span>{t("post.likeCount", { count: formatNumber(likeCount) })}</span>
           </p>
         ) : null}
       </div>
@@ -167,7 +166,7 @@ export function PostCommentRow({
               <button
                 type="button"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label={uiText(locale, "댓글 메뉴", "Comment menu")}
+                aria-label={t("ui.comment_menu")}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </button>
@@ -178,10 +177,10 @@ export function PostCommentRow({
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => void report()}>
-                    {uiText(locale, "신고", "Report")}
+                    {t("report.title")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => void block()}>
-                    {uiText(locale, "차단", "Block")}
+                    {t("live.studio.ban")}
                   </DropdownMenuItem>
                 </>
               ) : null}
@@ -197,8 +196,8 @@ export function PostCommentRow({
           )}
           aria-label={
             liked
-              ? uiText(locale, "좋아요 취소", "Unlike")
-              : uiText(locale, "좋아요", "Like")
+              ? t("ui.unlike")
+              : t("ui.like")
           }
           aria-pressed={liked}
           disabled={!viewerId || likeBusy}

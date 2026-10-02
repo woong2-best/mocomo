@@ -13,7 +13,7 @@ import { UsedAuctionCountdown } from "@/components/used/used-auction-countdown";
 import { UsedListingThumb } from "@/components/used/used-listing-thumb";
 import { UsedListingStarButton } from "@/components/used/used-listing-star-button";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 type Listing = {
   id: string;
@@ -54,7 +54,7 @@ export function UsedListingCard({
   viewerUserId?: string | null;
   viewerShowNsfw?: boolean;
 }) {
-  const { locale } = useLocale();
+  const { t } = useLocale();
   const imgs = listingImages(listing.images);
   const thumb = imgs[0];
   const auction = isAuctionListing(listing);
@@ -77,7 +77,7 @@ export function UsedListingCard({
   const showPrice = auction ? displayAuctionPrice(listing as Parameters<typeof displayAuctionPrice>[0]) : listing.price;
   const isOwner = !!viewerUserId && viewerUserId === listing.sellerId;
   const region =
-    displayUsedRegion(listing.region) || uiText(locale, "지역 미정", "Region TBD");
+    displayUsedRegion(listing.region) || t("ui.region_tbd");
 
   return (
     <article className="group relative bg-card ring-1 ring-inset ring-border/50">
@@ -92,8 +92,8 @@ export function UsedListingCard({
           {auction ? (
             <span className="absolute left-1.5 top-1.5 rounded bg-zinc-950/80 px-1.5 py-0.5 text-[10px] font-extrabold text-orange-400">
               {live
-                ? uiText(locale, "경매중", "Live auction")
-                : uiText(locale, "경매", "Auction")}
+                ? t("ui.live_auction")
+                : t("ui.auction")}
             </span>
           ) : null}
           {auction && listing.auctionEndsAt && listing.status === "SELLING" ? (
@@ -112,13 +112,13 @@ export function UsedListingCard({
         <div className="space-y-0.5 p-2">
           <p className="line-clamp-2 text-[13px] font-bold leading-4">{listing.title}</p>
           <p className="text-sm font-extrabold text-folk-terracotta">
-            {auction && (listing.bidCount ?? 0) > 0 ? uiText(locale, "현재 ", "Current ") : ""}
+            {auction && (listing.bidCount ?? 0) > 0 ? t("ui.current") : ""}
             {formatUsedPrice(showPrice, listing.currency)}
           </p>
           <p className="truncate text-[11px] font-semibold text-muted-foreground">{region}</p>
           {live && (listing.bidCount ?? 0) > 0 ? (
             <p className="text-[11px] font-semibold text-muted-foreground">
-              {uiText(locale, `입찰 ${listing.bidCount}`, `${listing.bidCount} bids`)}
+              {t("used.bidCount", { count: String(listing.bidCount ?? 0) })}
             </p>
           ) : null}
         </div>

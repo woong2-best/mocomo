@@ -15,7 +15,7 @@ import {
 import type { UsedListingStatus, UsedRestrictedKind } from "@prisma/client";
 import { ShieldAlert } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 function needsPhoneVerification(error: string) {
   return error.includes("휴대폰") || error.includes("phone verification");
@@ -93,7 +93,7 @@ export function UsedDetailBottomBar({
     const rooms = res.rooms ?? [];
     setSellerRooms(rooms);
     if (rooms.length === 0) {
-      setBarError(uiText(locale, "아직 문의 채팅이 없습니다.", "No inquiry chats yet."));
+      setBarError(t("ui.no_inquiry_chats_yet"));
       return;
     }
     if (rooms.length === 1) {
@@ -119,8 +119,8 @@ export function UsedDetailBottomBar({
           {loading
             ? t("common.loading")
             : chatCount > 0
-              ? uiText(locale, `메시지 보내기 · ${chatCount}`, `Message · ${chatCount}`)
-              : uiText(locale, "메시지 보내기", "Message seller")}
+              ? t("used.messageWithChatCount", { count: String(chatCount) })
+              : t("ui.message_seller")}
         </Button>
         {sellerRooms && sellerRooms.length > 1 && (
           <ul className="mt-2 max-h-32 overflow-y-auto rounded-xl border divide-y text-sm">
@@ -150,7 +150,7 @@ export function UsedDetailBottomBar({
           disabled
           className="h-12 w-full rounded-[10px] bg-muted font-bold text-muted-foreground"
         >
-          {uiText(locale, "거래완료", "Trade completed")}
+          {t("ui.trade_completed")}
         </Button>
       </div>
     );
@@ -165,7 +165,7 @@ export function UsedDetailBottomBar({
           disabled
           className="h-12 w-full rounded-[10px] bg-muted font-bold text-muted-foreground"
         >
-          {uiText(locale, "예약됨", "Reserved")}
+          {t("ui.reserved")}
         </Button>
       </div>
     );
@@ -180,13 +180,13 @@ export function UsedDetailBottomBar({
           <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
             <Link href={usedAdultVerifyUrl(listingId, restrictedKind)}>
               <ShieldAlert className="h-5 w-5" />
-              {uiText(locale, "성인 인증 후 채팅", "Verify age to chat")}
+              {t("ui.verify_age_to_chat")}
             </Link>
           </Button>
         ) : (
           <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
             <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
-              {uiText(locale, "로그인 후 성인 인증", "Sign in to verify age")}
+              {t("ui.sign_in_to_verify_age")}
             </Link>
           </Button>
         )}
@@ -203,7 +203,7 @@ export function UsedDetailBottomBar({
       {existingRoom ? (
         <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
           <Link href={`/messages/${existingRoom}`}>
-            {uiText(locale, "메시지 보내기", "Message seller")}
+            {t("ui.message_seller")}
           </Link>
         </Button>
       ) : isLoggedIn ? (
@@ -215,13 +215,13 @@ export function UsedDetailBottomBar({
           onClick={() => void openChat()}
         >
           {loading
-            ? uiText(locale, "연결 중…", "Connecting…")
-            : uiText(locale, "메시지 보내기", "Message seller")}
+            ? t("live.external.connecting")
+            : t("ui.message_seller")}
         </Button>
       ) : (
         <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
           <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
-            {uiText(locale, "로그인 후 채팅", "Sign in to chat")}
+            {t("ui.sign_in_to_chat")}
           </Link>
         </Button>
       )}

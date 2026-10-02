@@ -1,10 +1,7 @@
 import type { MessageAttachmentType } from "@prisma/client";
 import { CreatorBulkDmJobStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import {
-  DM_CONTENT_FILTER_WARNING_KO,
-  validateCreatorMarketingText,
-} from "@/lib/chat-content-filter";
+import { validateCreatorMarketingText } from "@/lib/chat-content-filter";
 import {
   normalizeChatAttachmentUrl,
   parseChatAttachmentType,
@@ -413,4 +410,3 @@ export async function processCreatorBulkDmJob(jobId: string) {
   }
 }
 
-export { DM_CONTENT_FILTER_WARNING_KO };

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, ShoppingBag, X } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 type TradeRequest = {
   id: string;
   listingId: string;
@@ -67,12 +66,12 @@ export function ChatUsedTradeRequestCard({
     : request.buyerId === selfUserId;
   const statusLabel =
     request.status === "PENDING"
-      ? uiText(locale, "대기 중", "Pending")
+      ? t("ui.pending")
       : request.status === "APPROVED"
-        ? uiText(locale, "예약됨", "Reserved")
+        ? t("ui.reserved")
         : request.status === "REJECTED"
-          ? uiText(locale, "거절됨", "Declined")
-          : uiText(locale, "취소됨", "Cancelled");
+          ? t("ui.declined")
+          : t("ui.cancelled");
 
   const href = `/market/${request.listingId}`;
 
@@ -83,12 +82,12 @@ export function ChatUsedTradeRequestCard({
     >
       <div className="flex items-center gap-2 px-3 pt-3">
         <ShoppingBag className="h-5 w-5 text-sky-400 shrink-0" />
-        <p className="text-sm font-extrabold">{uiText(locale, "중고 거래 요청", "Used trade request")}</p>
+        <p className="text-sm font-extrabold">{t("ui.used_trade_request")}</p>
       </div>
       <p className="px-3 pt-2 text-[13px] font-semibold text-white/90">
         {sentByMe
-          ? uiText(locale, "거래 일정을 보냈습니다.", "You sent a trade schedule.")
-          : uiText(locale, "거래 일정이 도착했습니다.", "A trade schedule arrived.")}
+          ? t("ui.you_sent_a_trade_schedule")
+          : t("ui.a_trade_schedule_arrived")}
       </p>
       {request.meetAt ? (
         <p className="px-3 text-xs font-semibold text-white/60">{formatMeetAt(request.meetAt, locale)}</p>
@@ -101,7 +100,7 @@ export function ChatUsedTradeRequestCard({
             disabled={busy}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white disabled:opacity-50"
             onClick={() => void respond("reject")}
-            aria-label={uiText(locale, "거절", "Decline")}
+            aria-label={t("collab.reject")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -110,7 +109,7 @@ export function ChatUsedTradeRequestCard({
             disabled={busy}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-green-600 text-white disabled:opacity-50"
             onClick={() => void respond("approve")}
-            aria-label={uiText(locale, "승인", "Approve")}
+            aria-label={t("ui.approve")}
           >
             <Check className="h-5 w-5" />
           </button>
