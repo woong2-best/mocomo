@@ -48,7 +48,7 @@ export const twitchStreamingProvider: StreamingPlatformProvider = {
     });
     if (!tokenRes.ok) {
       const err = await tokenRes.text().catch(() => "");
-      throw new Error(`Twitch 토큰 교환 실패: ${err.slice(0, 200)}`);
+      throw new Error(`Twitch token exchange failed: ${err.slice(0, 200)}`);
     }
     const tokenJson = (await tokenRes.json()) as {
       access_token: string;

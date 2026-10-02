@@ -296,7 +296,7 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
     });
     if (!tokenRes.ok) {
       const err = await tokenRes.text().catch(() => "");
-      throw new Error(`YouTube 토큰 교환 실패: ${err.slice(0, 200)}`);
+      throw new Error(`YouTube token exchange failed: ${err.slice(0, 200)}`);
     }
     const tokenJson = (await tokenRes.json()) as {
       access_token: string;
@@ -319,7 +319,7 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
             ? " youtube.readonly 권한이 포함되지 않았습니다. Google 동의 화면에서 YouTube 권한을 허용해 주세요."
             : "";
       throw new Error(
-        `YouTube 채널 정보를 가져올 수 없습니다.${apiHint} (${channelRes.status})`
+        `Not found.${apiHint} (${channelRes.status})`
       );
     }
     let channelJson: {

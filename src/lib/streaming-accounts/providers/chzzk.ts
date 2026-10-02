@@ -58,7 +58,7 @@ async function exchangeChzzkToken(body: Record<string, string>): Promise<ChzzkTo
   if (!res.ok) {
     const msg =
       (json && "message" in json && json.message) ||
-      `치지직 토큰 교환 실패 (${res.status})`;
+      `Something went wrong. Please try again.${res.status})`;
     throw new Error(typeof msg === "string" ? msg : "CHZZK token exchange failed");
   }
 
