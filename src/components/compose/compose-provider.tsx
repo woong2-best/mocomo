@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   createContext,
   useCallback,
@@ -26,7 +29,7 @@ const ComposeForm = dynamic(
     loading: () => (
       <div className="flex items-center justify-center py-16 text-sm text-muted-foreground gap-2">
         <Loader2 className="h-4 w-4 animate-spin" />
-        작성 도구 불러오는 중…
+        {t("compose.sjop4o9")}
       </div>
     ),
   }
@@ -192,7 +195,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
                   <div className="flex justify-end px-2 pt-2 shrink-0">
                     <DialogPrimitive.Close
                       className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      aria-label="닫기"
+                      aria-label={t("common.close")}
                     >
                       <X className="h-5 w-5" />
                     </DialogPrimitive.Close>
@@ -226,11 +229,11 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
                   </div>
                   <div className="flex items-center justify-between px-4 pb-2 shrink-0">
                     <DialogPrimitive.Title className="text-lg font-bold">
-                      {viaMailbox ? "우편함" : "글쓰기"}
+                      {viaMailbox ? t("nav.mailbox") : t("feed.compose")}
                     </DialogPrimitive.Title>
                     <DialogPrimitive.Close
                       className="rounded-full p-2 hover:bg-muted"
-                      aria-label="닫기"
+                      aria-label={t("common.close")}
                     >
                       <X className="h-5 w-5" />
                     </DialogPrimitive.Close>

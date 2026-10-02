@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState, useTransition } from "react";
 import { UserPlus, X, Search, Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -133,8 +136,8 @@ export function ComposeCollaboratorPicker({
               iconBtnClass,
               selected.length > 0 && "text-folk-cobalt bg-folk-cobalt/10 hover:bg-folk-cobalt/15"
             )}
-            aria-label={labels?.add ?? "공동작업자 추가"}
-            title={labels?.add ?? "공동작업자 추가"}
+            aria-label={labels?.add ?? t("compose.collabAdd")}
+            title={labels?.add ?? t("compose.collabAdd")}
           >
             <UserPlus className="h-[18px] w-[18px]" />
           </button>
@@ -147,28 +150,28 @@ export function ComposeCollaboratorPicker({
             className="gap-1.5 rounded-full"
           >
             <UserPlus className="h-3.5 w-3.5" />
-            {labels?.add ?? "공동작업자 추가"}
+            {labels?.add ?? t("compose.collabAdd")}
             {selected.length > 0 ? ` (${selected.length}/${max})` : ""}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{labels?.add ?? "공동작업자 추가"}</DialogTitle>
+          <DialogTitle>{labels?.add ?? t("compose.collabAdd")}</DialogTitle>
         </DialogHeader>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={labels?.search ?? "닉네임, 아이디, UID 검색"}
+            placeholder={labels?.search ?? t("compose.collabSearch")}
             className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm"
             autoFocus
           />
         </div>
         {selected.length >= max && (
           <p className="text-xs text-muted-foreground">
-            {labels?.maxReached ?? `최대 ${max}명까지 초대할 수 있습니다.`}
+            {labels?.maxReached ?? t("compose.s1eacmci", { v0: max })}
           </p>
         )}
         <ul className="max-h-64 space-y-1 overflow-y-auto">

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { PenSquare } from "lucide-react";
 import { ComposeOpenButton } from "@/components/compose/compose-open-button";
 import { cn } from "@/lib/utils";
@@ -26,7 +29,7 @@ export function CommunityComposeButton({
       )}
     >
       {variant === "primary" && <PenSquare className="h-4 w-4" />}
-      {children ?? (variant === "primary" ? "글쓰기" : "첫 글 올리기")}
+      {children ?? (variant === "primary" ? t("feed.compose") : t("cosplay.s16wni3f"))}
     </ComposeOpenButton>
   );
 }
