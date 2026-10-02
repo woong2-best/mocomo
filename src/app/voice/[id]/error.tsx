@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
@@ -22,21 +25,21 @@ export default function VoiceRoomError({
 
   const hint =
     error.message?.includes("map") || error.message?.includes("map is not a function")
-      ? "화면 구성 오류입니다. 강력 새로고침(Ctrl+Shift+R) 후 다시 입장해 주세요."
-      : error.message?.trim() || "일시적인 오류일 수 있습니다.";
+      ? i18n("app.voice.ctrl_shift_r")
+      : error.message?.trim() || i18n("app.voice.s1ih0y0s");
 
   return (
     <AppErrorState
-      title="스튜디오를 열지 못했습니다"
+      title={i18n("app.voice.sbsa93w")}
       description={hint}
       icon={Monitor}
       variant="destructive"
       onRetry={() => reset()}
       primaryOnClick={channelId ? () => window.location.reload() : undefined}
       primaryHref={channelId ? undefined : "/live"}
-      primaryLabel={channelId ? "페이지 새로고침" : "라이브 홈"}
+      primaryLabel={channelId ? i18n("app.voice.s1nx7peg") : i18n("avatar.sx1ht4s")}
       secondaryHref={channelId ? "/live" : undefined}
-      secondaryLabel={channelId ? "라이브 홈" : undefined}
+      secondaryLabel={channelId ? i18n("avatar.sx1ht4s") : undefined}
     />
   );
 }

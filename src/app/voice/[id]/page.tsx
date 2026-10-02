@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { getCachedSession } from "@/lib/auth";
 import { LiveRoomEntry } from "@/components/live/live-room-entry";
 import { ExternalLiveRoomClient } from "@/components/live/external-live-room-client";
@@ -45,12 +48,12 @@ export default async function VoiceRoomPage({
   if (!liveFlags) {
     return (
       <LiveRoomErrorState
-        title="방송을 찾을 수 없습니다"
-        description="삭제되었거나 주소가 잘못되었을 수 있어요."
+        title={t("app.voice.sm9oy0p")}
+        description={t("app.voice.s9z2a9y")}
         primaryHref="/live"
-        primaryLabel="라이브 홈"
+        primaryLabel={t("avatar.sx1ht4s")}
         secondaryHref="/voice"
-        secondaryLabel="음성 목록"
+        secondaryLabel={t("app.voice.smarh4f")}
       />
     );
   }
@@ -70,10 +73,10 @@ export default async function VoiceRoomPage({
   if (liveStatus === "ENDED") {
     return (
       <LiveRoomErrorState
-        title="방송이 종료되었습니다"
-        description="다른 라이브 방송을 둘러보세요."
+        title={t("app.voice.s9huk9i")}
+        description={t("app.voice.sr2cb9a")}
         primaryHref="/live"
-        primaryLabel="라이브 홈"
+        primaryLabel={t("avatar.sx1ht4s")}
       />
     );
   }
@@ -81,12 +84,12 @@ export default async function VoiceRoomPage({
   if (!hostCanEnter && !viewerCanEnter) {
     return (
       <LiveRoomErrorState
-        title="방송에 입장할 수 없습니다"
-        description="비공개 방송이거나 아직 시작 전일 수 있어요."
+        title={t("app.voice.s1aufdyz")}
+        description={t("app.voice.sb4je3h")}
         primaryHref="/live"
-        primaryLabel="라이브 홈"
+        primaryLabel={t("avatar.sx1ht4s")}
         secondaryHref="/voice/new"
-        secondaryLabel="내 방송 만들기"
+        secondaryLabel={t("app.voice.sf3w458")}
       />
     );
   }
@@ -100,7 +103,7 @@ export default async function VoiceRoomPage({
   if (!meta) {
     return (
       <LiveRoomErrorState
-        title="스튜디오를 불러오지 못했습니다"
+        title={t("app.voice.s124x9lc")}
         description={
           <>
             잠시 후 다시 시도해 주세요. 문제가 계속되면{" "}
@@ -109,9 +112,9 @@ export default async function VoiceRoomPage({
           </>
         }
         primaryHref="/voice/new"
-        primaryLabel="방송 다시 만들기"
+        primaryLabel={t("app.voice.s1e9q4qg")}
         secondaryHref="/live"
-        secondaryLabel="라이브 홈"
+        secondaryLabel={t("avatar.sx1ht4s")}
       />
     );
   }
@@ -130,10 +133,10 @@ export default async function VoiceRoomPage({
     if (!resolved) {
       return (
         <LiveRoomErrorState
-          title="외부 방송 정보를 찾을 수 없습니다"
-          description="호스트가 방송 URL을 다시 연결해야 할 수 있어요."
+          title={t("app.voice.s14yvkje")}
+          description={t("app.voice.url")}
           primaryHref="/live"
-          primaryLabel="라이브 홈"
+          primaryLabel={t("avatar.sx1ht4s")}
         />
       );
     }
