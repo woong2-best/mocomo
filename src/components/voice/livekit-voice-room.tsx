@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import {
   LiveKitRoom,
@@ -24,14 +27,14 @@ export function LivekitVoiceRoom({
   useEffect(() => {
     fetch(`/api/livekit/token?room=${encodeURIComponent(channelId)}`)
       .then(async (res) => {
-        if (!res.ok) throw new Error("토큰 발급 실패");
+        if (!res.ok) throw new Error(t("voice.s1nw40ef"));
         return res.json();
       })
       .then((data) => {
         setToken(data.token);
         setServerUrl(data.serverUrl);
       })
-      .catch(() => setError("LiveKit 연결에 실패했습니다. 환경 변수를 확인하세요."));
+      .catch(() => setError(t("voice.livekit")));
   }, [channelId]);
 
   if (error) {
