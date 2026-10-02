@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -92,7 +95,7 @@ export function ProfileSettingsForm({
     const username = normalizeUsername(usernameRaw);
     const usernameChanged = username !== normalizeUsername(initial.username);
     if (usernameChanged && !isValidUsername(username)) {
-      setMsg("아이디는 영문·숫자·_ 3~20자입니다.");
+      setMsg(t("lib.profile.update.service.s5e994a2425"));
       setLoading(false);
       return;
     }
@@ -113,7 +116,7 @@ export function ProfileSettingsForm({
       (birthYearStr || birthMonthStr || birthDayStr) &&
       !(birthYearStr && birthMonthStr && birthDayStr);
     if (hasPartial) {
-      setMsg("생년월일은 연·월·일을 모두 입력하거나, 모두 비워 주세요.");
+      setMsg(t("profile.s1i8t4hd"));
       setLoading(false);
       return;
     }
@@ -148,7 +151,7 @@ export function ProfileSettingsForm({
     } else {
       await sessionState?.update?.();
       router.refresh();
-      setMsg("저장되었습니다.");
+      setMsg(t("profile.s12la3bm"));
     }
     setLoading(false);
   }
@@ -177,7 +180,7 @@ export function ProfileSettingsForm({
             </Avatar>
             <div className="pb-1 min-w-0">
               <p className="font-bold truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground">미리보기</p>
+              <p className="text-xs text-muted-foreground">{t("support.sohlxtc")}</p>
             </div>
           </div>
         </CardContent>
@@ -185,7 +188,7 @@ export function ProfileSettingsForm({
 
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle>프로필 수정</CardTitle>
+          <CardTitle>{t("settings.editProfile")}</CardTitle>
           <p className="text-sm text-muted-foreground">
             사진·동영상 배너는 마이페이지와 앱 왼쪽 메뉴에 표시됩니다. 동영상은 무음 자동 재생, 최대 10초.
           </p>
@@ -221,7 +224,7 @@ export function ProfileSettingsForm({
             />
 
             <div>
-              <label className="text-sm font-medium">표시 이름</label>
+              <label className="text-sm font-medium">{t("profile.s2jy9bk")}</label>
               <Input name="name" defaultValue={initial.name} className="mt-1 rounded-xl" />
               <p className="mt-1 text-xs text-muted-foreground">
                 닉네임은 언제든지 변경할 수 있습니다.
@@ -229,7 +232,7 @@ export function ProfileSettingsForm({
             </div>
 
             <div>
-              <label className="text-sm font-medium">아이디</label>
+              <label className="text-sm font-medium">{t("auth.emailLocalPart")}</label>
               <div className="mt-1 flex items-stretch overflow-hidden rounded-xl border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
                 <span className="flex shrink-0 items-center pl-3 pr-1 text-sm text-muted-foreground select-none">
                   @
@@ -251,25 +254,25 @@ export function ProfileSettingsForm({
               </p>
             </div>
             <div>
-              <label className="text-sm font-medium">소개</label>
+              <label className="text-sm font-medium">{t("profile.sxv68")}</label>
               <textarea
                 name="bio"
                 defaultValue={initial.bio}
                 maxLength={160}
                 className="mt-1 w-full min-h-[100px] rounded-xl border border-border bg-background p-3 text-sm"
-                placeholder="자기소개 (160자)"
+                placeholder={t("profile.160")}
               />
             </div>
             <div className="rounded-xl border border-border/60 p-4 space-y-3 bg-muted/20">
               <div>
-                <label className="text-sm font-medium">생일</label>
+                <label className="text-sm font-medium">{t("profile.sxwe7")}</label>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   중고거래 성인 인증에도 사용됩니다. 프로필에는 월·일만 공개할 수 있어요.
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-x-2 gap-y-2 pt-1">
                 <div className="min-w-0">
-                  <label className="block text-xs leading-normal text-muted-foreground">연도</label>
+                  <label className="block text-xs leading-normal text-muted-foreground">{t("profile.synkk")}</label>
                   <Input
                     name="birthYear"
                     type="text"
@@ -284,7 +287,7 @@ export function ProfileSettingsForm({
                   />
                 </div>
                 <div className="min-w-0">
-                  <label className="block text-xs leading-normal text-muted-foreground">월</label>
+                  <label className="block text-xs leading-normal text-muted-foreground">{t("lib.webtoon.s139w")}</label>
                   <Input
                     name="birthMonth"
                     type="text"
@@ -299,7 +302,7 @@ export function ProfileSettingsForm({
                   />
                 </div>
                 <div className="min-w-0">
-                  <label className="block text-xs leading-normal text-muted-foreground">일</label>
+                  <label className="block text-xs leading-normal text-muted-foreground">{t("lib.webtoon.s13ek")}</label>
                   <Input
                     name="birthDay"
                     type="text"
@@ -325,18 +328,18 @@ export function ProfileSettingsForm({
               </label>
             </div>
             <div>
-              <label className="text-sm font-medium">위치</label>
-              <Input name="location" defaultValue={initial.location} placeholder="서울, 대한민국" className="mt-1 rounded-xl" />
+              <label className="text-sm font-medium">{t("profile.syzf8")}</label>
+              <Input name="location" defaultValue={initial.location} placeholder={t("profile.s1nzjqhp")} className="mt-1 rounded-xl" />
             </div>
             <div>
-              <label className="text-sm font-medium">웹사이트</label>
+              <label className="text-sm font-medium">{t("profile.spwnk5z")}</label>
               <Input name="website" defaultValue={initial.website} placeholder="https://..." className="mt-1 rounded-xl" />
             </div>
-            <Input name="mainCharacter" defaultValue={initial.mainCharacter} placeholder="대표 캐릭터" className="rounded-xl" />
+            <Input name="mainCharacter" defaultValue={initial.mainCharacter} placeholder={t("profile.sav9khb")} className="rounded-xl" />
             <Input
               name="favoriteTags"
               defaultValue={initial.favoriteTags}
-              placeholder="좋아하는 작품 (쉼표 구분)"
+              placeholder={t("profile.scpx4gr")}
               className="rounded-xl"
             />
             <label className="flex items-center gap-2 text-sm">
@@ -344,7 +347,7 @@ export function ProfileSettingsForm({
               NSFW 콘텐츠 표시
             </label>
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
-              {loading ? "저장 중..." : "저장"}
+              {loading ? t("auth.saving") : t("settings.save")}
             </Button>
             {msg && (
               <p
@@ -367,14 +370,14 @@ export function ProfileSettingsForm({
       ) : (
         <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle>코스프레 갤러리</CardTitle>
+            <CardTitle>{t("profile.sb9u3dk")}</CardTitle>
             <p className="text-sm text-muted-foreground">
               코스어로 등록하면 코스프레 사진을 올리고 갤러리를 관리할 수 있습니다.
             </p>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="rounded-xl">
-              <Link href="/cosplay/apply">코스어 등록하기</Link>
+              <Link href="/cosplay/apply">{t("profile.sg5pv6o")}</Link>
             </Button>
           </CardContent>
         </Card>

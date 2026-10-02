@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -83,7 +86,7 @@ export function ProfileActionMenu({
       window.setTimeout(() => setCopied(false), 2000);
       setMenuOpen(false);
     } catch {
-      setError("링크 복사에 실패했습니다.");
+      setError(t("share.srsq7vp"));
     }
   }
 
@@ -140,7 +143,7 @@ export function ProfileActionMenu({
         setReportError(errorText(res.error));
         return;
       }
-      setReportMessage(res.message ?? "신고가 접수되었습니다.");
+      setReportMessage(res.message ?? t("reels.s1xj77n8"));
       setReportDetails("");
       window.setTimeout(() => {
         setReportOpen(false);
@@ -154,7 +157,7 @@ export function ProfileActionMenu({
   const menuActions: MenuAction[] = [
     {
       key: "copy",
-      label: copied ? "링크 복사됨" : "프로필 링크 복사하기",
+      label: copied ? t("share.swp53h8") : t("profile.s1idetbk"),
       icon: copied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />,
       run: copyProfileLink,
     },
@@ -194,7 +197,7 @@ export function ProfileActionMenu({
     <>
       <button
         type="button"
-        aria-label="프로필 메뉴"
+        aria-label={t("profile.s1ohyvo")}
         className={cn(
           "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors",
           className
@@ -220,11 +223,11 @@ export function ProfileActionMenu({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
-              <DialogTitle className="text-sm font-bold">프로필 옵션</DialogTitle>
+              <DialogTitle className="text-sm font-bold">{t("profile.s1ok2k7")}</DialogTitle>
               <DialogPrimitive.Close
                 type="button"
                 className="rounded-full p-1.5 hover:bg-muted/80"
-                aria-label="닫기"
+                aria-label={t("common.close")}
               >
                 <X className="h-4 w-4" />
               </DialogPrimitive.Close>
@@ -268,7 +271,7 @@ export function ProfileActionMenu({
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <p className="text-sm font-medium">신고 사유</p>
+              <p className="text-sm font-medium">{t("post.menu.reportReason")}</p>
               <select
                 className="w-full h-10 rounded-xl border border-border bg-background px-3 text-sm"
                 value={reportReason}
@@ -282,10 +285,10 @@ export function ProfileActionMenu({
               </select>
             </div>
             <div className="space-y-1.5">
-              <p className="text-sm font-medium">추가 설명 (선택)</p>
+              <p className="text-sm font-medium">{t("post.menu.reportDetails")}</p>
               <textarea
                 className="w-full min-h-[80px] rounded-xl border border-border p-3 text-sm"
-                placeholder="상세 내용을 적어 주세요"
+                placeholder={t("post.menu.reportDetailsPlaceholder")}
                 value={reportDetails}
                 onChange={(e) => setReportDetails(e.target.value)}
                 maxLength={500}
@@ -299,7 +302,7 @@ export function ProfileActionMenu({
               disabled={reportPending}
               onClick={submitReport}
             >
-              {reportPending ? "접수 중…" : "신고 제출"}
+              {reportPending ? t("profile.spf824u") : t("report.submit")}
             </Button>
           </div>
         </DialogContent>

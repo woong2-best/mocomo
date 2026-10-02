@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -119,7 +122,7 @@ export function ProfileHeader({
             />
             {user.countryCode ? <CountryFlag code={user.countryCode} size={16} className="ml-0.5" /> : null}
             {user.postsLocked ? (
-              <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-label="잠금" />
+              <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-label={t("settings.postsLockOn")} />
             ) : null}
             <CreatorFollowerBadge badge={creatorBadge} size="sm" showLabel={false} />
             {showLive ? (
@@ -192,7 +195,7 @@ export function ProfileHeader({
               />
               {user.countryCode ? <CountryFlag code={user.countryCode} size={20} className="ml-0.5" /> : null}
               {user.postsLocked ? (
-                <Lock className="h-4 w-4 text-muted-foreground shrink-0" aria-label="잠금" />
+                <Lock className="h-4 w-4 text-muted-foreground shrink-0" aria-label={t("settings.postsLockOn")} />
               ) : null}
               {isSuspendedProfile ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
@@ -202,7 +205,7 @@ export function ProfileHeader({
               <CreatorFollowerBadge badge={creatorBadge} size="md" />
             </div>
             {user.userBadges.length > 0 && (
-              <BadgeCheck className="h-5 w-5 text-sky-500 shrink-0" aria-label="뱃지" />
+              <BadgeCheck className="h-5 w-5 text-sky-500 shrink-0" aria-label={t("profile.sx4nx")} />
             )}
           </div>
           <p className="text-muted-foreground">@{user.username}</p>
@@ -223,7 +226,7 @@ export function ProfileHeader({
         )}
 
         {!isSelf && mutedByViewer && !isBlocked && (
-          <p className="mt-2 text-xs text-muted-foreground">뮤트된 사용자입니다.</p>
+          <p className="mt-2 text-xs text-muted-foreground">{t("profile.satlbew")}</p>
         )}
 
         {user.profile?.bio && (
@@ -262,13 +265,13 @@ export function ProfileHeader({
           )}
           <span className="flex items-center gap-1">
             <Calendar className="h-4 w-4 shrink-0" />
-            {format(user.createdAt, "yyyy년 M월", { locale: ko })} 가입
+            {format(user.createdAt, t("profile.yyyy_m"), { locale: ko })} 가입
           </span>
         </div>
 
         {user.profile?.mainCharacter && (
           <p className="mt-2 text-sm">
-            <span className="text-muted-foreground">최애 </span>
+            <span className="text-muted-foreground">{t("profile.s100hw")} </span>
             {user.profile.mainCharacter}
           </p>
         )}
@@ -277,11 +280,11 @@ export function ProfileHeader({
           <div className="flex shrink-0 gap-4 text-sm">
             <Link href={`/u/${user.username}/connections?tab=following`} className="hover:underline">
               <span className="font-bold text-foreground">{user._count.following}</span>{" "}
-              <span className="text-muted-foreground">팔로잉</span>
+              <span className="text-muted-foreground">{t("lib.user.connections.s44bb989270")}</span>
             </Link>
             <Link href={`/u/${user.username}/connections?tab=followers`} className="hover:underline">
               <span className="font-bold text-foreground">{user._count.followers}</span>{" "}
-              <span className="text-muted-foreground">팔로워</span>
+              <span className="text-muted-foreground">{t("lib.user.connections.s88942fcf78")}</span>
             </Link>
           </div>
           <ProfileHeaderFeedActions />

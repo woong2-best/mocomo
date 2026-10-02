@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRef, useState } from "react";
 import { ImagePlus, Link2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,31 +30,31 @@ const CONFIG: Record<
   }
 > = {
   avatar: {
-    label: "프로필 사진",
+    label: t("profile.s1oj6bw"),
     aspect: 1,
     maxWidth: 512,
     maxHeight: 512,
     uploadFilename: "profile-avatar.jpg",
-    cropTitle: "프로필 사진 자르기",
-    cropDescription: "드래그·확대·90° 회전·뒤집기·자유 각도로 맞춘 뒤 적용하세요.",
+    cropTitle: t("profile.s1og4tq0"),
+    cropDescription: t("profile.syrh4so"),
   },
   banner: {
-    label: "배너 이미지",
+    label: t("profile.s1qwzit0"),
     aspect: 3,
     maxWidth: 1500,
     maxHeight: 500,
     uploadFilename: "profile-banner.jpg",
-    cropTitle: "배너 자르기",
-    cropDescription: "가로 3:1 영역에 맞게 드래그·확대·회전·뒤집기 후 적용하세요.",
+    cropTitle: t("profile.s1qwzipw"),
+    cropDescription: t("profile.3_1"),
   },
   cover: {
-    label: "목록 카드 커버",
+    label: t("profile.s1j4rpxo"),
     aspect: 4 / 3,
     maxWidth: 960,
     maxHeight: 720,
     uploadFilename: "community-cover.jpg",
-    cropTitle: "카드 커버 자르기",
-    cropDescription: "커뮤니티 목록 카드(4:3)에 맞게 조정한 뒤 적용하세요.",
+    cropTitle: t("profile.s1rkwzd0"),
+    cropDescription: t("profile.4_3"),
   },
 };
 
@@ -87,7 +90,7 @@ export function ProfileImageField({
     if (!file) return;
     const allowed = ACCEPT.split(",");
     if (!allowed.includes(file.type)) {
-      setUploadError("JPEG, PNG, WebP, GIF 이미지만 업로드할 수 있습니다.");
+      setUploadError(t("profile.jpeg_png_webp_gif"));
       return;
     }
     setPicking(true);
@@ -102,7 +105,7 @@ export function ProfileImageField({
       setCropSrc(src);
       setCropOpen(true);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "업로드에 실패했습니다.");
+      setUploadError(err instanceof Error ? err.message : t("profile.sfe0ez0"));
     } finally {
       setPicking(false);
     }
@@ -123,7 +126,7 @@ export function ProfileImageField({
             onClick={() => setShowUrl((v) => !v)}
           >
             <Link2 className="h-3.5 w-3.5 mr-1" />
-            {showUrl ? "URL 숨기기" : "URL로 입력"}
+            {showUrl ? t("profile.url") : t("profile.url_2")}
           </Button>
         ) : null}
       </div>
@@ -178,7 +181,7 @@ export function ProfileImageField({
           onClick={() => fileRef.current?.click()}
         >
           {picking ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-          {uploadOnly ? "파일 업로드" : "사진 올리기"}
+          {uploadOnly ? t("lib.community-server.s979e1h") : t("profile.s1rw344o")}
         </Button>
         {value && (
           <Button type="button" variant="ghost" size="sm" className="rounded-xl text-muted-foreground" onClick={() => onChange("")}>
@@ -194,7 +197,7 @@ export function ProfileImageField({
           type="url"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="https://... 또는 /uploads/..."
+          placeholder={t("profile.https_uploads")}
           className="rounded-xl text-sm"
         />
       ) : null}

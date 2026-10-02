@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { ProfilePostCard } from "@/components/profile/profile-post-card";
@@ -133,13 +136,13 @@ export function ProfileTimeline({
         json = await res.json();
       } catch {
         autoLoadBlockedRef.current = true;
-        setLoadError("응답을 해석하지 못했습니다.");
+        setLoadError(t("profile.sln9rzt"));
         return;
       }
       if (!res.ok) {
         autoLoadBlockedRef.current = true;
         setLoadError(
-          res.status === 403 ? "비공개 탭입니다." : json.error ?? "불러오기에 실패했습니다."
+          res.status === 403 ? t("profile.sumb0n9") : json.error ?? t("profile.sebv8ht")
         );
         return;
       }
@@ -151,7 +154,7 @@ export function ProfileTimeline({
       setRepostedIds((prev) => mergeIds(prev, json.repostedIds));
     } catch {
       autoLoadBlockedRef.current = true;
-      setLoadError("네트워크 오류가 발생했습니다.");
+      setLoadError(t("profile.s18n7wbo"));
     } finally {
       loadingRef.current = false;
       setLoading(false);
@@ -203,7 +206,7 @@ export function ProfileTimeline({
             <ProfilePostCard
               key={`reply-${item.comment.id}`}
               post={item.post}
-              meta="답글"
+              meta={t("profile.sve7f")}
               paymentsEnabled={paymentsEnabled}
               authorId={authorId}
               subscriptionPriceKrw={subscriptionPriceKrw}
@@ -216,7 +219,7 @@ export function ProfileTimeline({
           <ProfilePostCard
             key={`like-${item.post.id}`}
             post={item.post}
-            meta="좋아요한 게시물"
+            meta={t("profile.sb887vx")}
             paymentsEnabled={paymentsEnabled}
             authorId={authorId}
             subscriptionPriceKrw={subscriptionPriceKrw}
@@ -238,7 +241,7 @@ export function ProfileTimeline({
           </>
         )}
         {done && items.length > 0 && !loadError && (
-          <p className="text-xs text-muted-foreground">더 이상 없습니다</p>
+          <p className="text-xs text-muted-foreground">{t("profile.s1es3a9e")}</p>
         )}
       </div>
     </>

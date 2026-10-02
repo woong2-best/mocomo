@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { UserCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,8 +32,8 @@ export function UserConnectionRow({
     (viewingOwnList || user.followsViewer);
 
   const followLabel =
-    user.followsViewer && !user.viewerFollows ? "맞팔로우하기" : "팔로우";
-  const followingLabel = "팔로잉";
+    user.followsViewer && !user.viewerFollows ? t("profile.s92ac9u") : t("profile.svtgiw");
+  const followingLabel = t("lib.user.connections.s44bb989270");
 
   return (
     <li className="flex gap-3 px-4 py-3 border-b border-border/60 hover:bg-muted/20 transition-colors">

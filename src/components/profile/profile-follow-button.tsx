@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState } from "react";
 import { UserPlus, UserCheck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,10 +16,10 @@ export function ProfileFollowButton({
   initialRequested = false,
   postsLocked = false,
   onFollowingChange,
-  followLabel = "팔로우",
-  followingLabel = "팔로잉",
-  requestLabel = "요청",
-  requestedLabel = "요청됨",
+  followLabel = t("profile.svtgiw"),
+  followingLabel = t("lib.user.connections.s44bb989270"),
+  requestLabel = t("profile.sywex"),
+  requestedLabel = t("profile.su2wfj"),
   syncFollowingOnMount = false,
   listOwnerUsername,
   className,

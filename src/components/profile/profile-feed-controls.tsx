@@ -1,14 +1,17 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { Film, ImageIcon, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
 import type { ProfileMediaKind, ProfileSort } from "@/lib/profile-queries";
 
 const SORT_OPTIONS: { id: ProfileSort; label: string }[] = [
-  { id: "new", label: "새로운" },
-  { id: "popular", label: "인기 순" },
-  { id: "oldest", label: "오래된 순" },
+  { id: "new", label: t("profile.st4za8") },
+  { id: "popular", label: t("profile.spv96t0") },
+  { id: "oldest", label: t("profile.sh9wwbo") },
 ];
 
 /** Compact sort links on the following/followers row. */
@@ -45,9 +48,9 @@ const KIND_OPTIONS: {
   label: string;
   Icon: typeof LayoutGrid;
 }[] = [
-  { id: "all", label: "전체", Icon: LayoutGrid },
-  { id: "photo", label: "사진", Icon: ImageIcon },
-  { id: "video", label: "비디오", Icon: Film },
+  { id: "all", label: t("lib.live.categories.s934dd25ec5"), Icon: LayoutGrid },
+  { id: "photo", label: t("lib.creator.work.labels.s2f826f3ee6"), Icon: ImageIcon },
+  { id: "video", label: t("profile.ssr5jo"), Icon: Film },
 ];
 
 /**
@@ -68,7 +71,7 @@ export function ProfileFeedControls() {
       <div aria-hidden className="liquid-glass-tone" />
       <div
         role="tablist"
-        aria-label="미디어 종류"
+        aria-label={t("profile.s5az1q3")}
         className="liquid-glass liquid-glass-pill inline-flex max-w-full p-1"
       >
         {KIND_OPTIONS.map(({ id, label, Icon }) => {

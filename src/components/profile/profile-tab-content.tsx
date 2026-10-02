@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -49,11 +52,11 @@ function initialPayloadToTabPayload(initial: ProfileTabInitialPayload): TabPaylo
 }
 
 const emptyMessages: Record<ProfileTab, string> = {
-  posts: "아직 게시물이 없습니다.",
-  replies: "아직 남긴 답글이 없습니다.",
-  media: "아직 올린 사진·영상이 없습니다.",
-  likes: "좋아요한 게시물이 없습니다.",
-  wiki: "위키 기여가 없습니다.",
+  posts: t("profile.s10mkyr2"),
+  replies: t("profile.sjm9kzf"),
+  media: t("profile.s4yj3g1"),
+  likes: t("profile.s1fug18q"),
+  wiki: t("profile.svzcahz"),
 };
 
 function queryKey(tab: ProfileTab, sort: ProfileSort, kind: ProfileMediaKind) {
@@ -74,7 +77,7 @@ function ProfileWikiList({ data, emptyMessage }: { data: WikiData; emptyMessage:
     <div className="divide-y divide-border/60">
       {data.created.length > 0 && (
         <section className="space-y-2 p-4">
-          <h2 className="text-sm font-semibold text-muted-foreground">작성한 문서</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">{t("profile.s13rkueg")}</h2>
           <ul className="space-y-2">
             {data.created.map((a) => (
               <li key={a.slug}>
@@ -91,7 +94,7 @@ function ProfileWikiList({ data, emptyMessage }: { data: WikiData; emptyMessage:
       )}
       {data.edited.length > 0 && (
         <section className="space-y-2 p-4">
-          <h2 className="text-sm font-semibold text-muted-foreground">편집 참여</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">{t("profile.sxe3a3")}</h2>
           <ul className="space-y-2">
             {data.edited.map((r) => (
               <li key={r.id}>
@@ -173,7 +176,7 @@ export function ProfileTabContent({
     fetch(url)
       .then(async (res) => {
         const json = await res.json();
-        if (!res.ok) throw new Error(errorText(json.error ?? "불러오기에 실패했습니다."));
+        if (!res.ok) throw new Error(errorText(json.error ?? t("profile.sebv8ht")));
         if (cancelled) return;
 
         let next: TabPayload;
@@ -199,7 +202,7 @@ export function ProfileTabContent({
         setDisplay({ key: activeKey, payload: next });
       })
       .catch((err: Error) => {
-        if (!cancelled) setLoadError(err.message || "불러오기에 실패했습니다.");
+        if (!cancelled) setLoadError(err.message || t("profile.sebv8ht"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

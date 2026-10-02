@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { getUserWikiContributions } from "@/actions/anime";
 
@@ -5,14 +8,14 @@ export async function ProfileWikiContributions({ userId }: { userId: string }) {
   const { created, edited } = await getUserWikiContributions(userId);
 
   if (created.length === 0 && edited.length === 0) {
-    return <p className="p-8 text-center text-muted-foreground text-sm">위키 기여가 없습니다.</p>;
+    return <p className="p-8 text-center text-muted-foreground text-sm">{t("profile.svzcahz")}</p>;
   }
 
   return (
     <div className="divide-y divide-border/60">
       {created.length > 0 && (
         <section className="p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">작성한 문서</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">{t("profile.s13rkueg")}</h2>
           <ul className="space-y-2">
             {created.map((a) => (
               <li key={a.slug}>
@@ -29,7 +32,7 @@ export async function ProfileWikiContributions({ userId }: { userId: string }) {
       )}
       {edited.length > 0 && (
         <section className="p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">편집 참여</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">{t("profile.sxe3a3")}</h2>
           <ul className="space-y-2">
             {edited.map((r) => (
               <li key={r.id}>

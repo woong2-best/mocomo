@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
 import { StartDmButton } from "@/components/messages/start-dm-button";
 
@@ -24,7 +27,7 @@ export function ProfileHeaderActionBar({
         initialFollowing={initialFollowing}
         initialRequested={initialRequested}
         postsLocked={postsLocked}
-        followingLabel="팔로잉"
+        followingLabel={t("lib.user.connections.s44bb989270")}
         syncFollowingOnMount
       />
       {canMessage ? <StartDmButton userId={userId} variant="profile" /> : null}
