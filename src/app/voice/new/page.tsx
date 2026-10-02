@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { LiveBroadcastMode, LiveStreamCategory, LiveVisibility, SupportTierLevel } from "@prisma/client";
 import { SUPPORT_TIERS } from "@/lib/tiers";
-import { tierLabelKo } from "@/lib/live-viewer-access";
 import { BROADCAST_PICK_CATEGORIES } from "@/lib/live-categories";
 import { createLiveStream, releaseStaleHostLiveSessions } from "@/actions/live-stream";
 import { getLiveStudioSettings } from "@/actions/live-studio";
@@ -15,13 +14,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Radio, ChevronLeft, KeyRound, Copy, Check, Calendar, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { useLocale } from "@/components/providers/locale-provider";
+import type { MessageKey } from "@/lib/i18n/message-keys";
 
-const PRESETS = [
-  "🎙 애니덕질 라이브",
-  "코스프레 촬영 Behind",
-  "애니 같이 보기",
-  "버튜버 잡담",
-];
+const PRESET_KEYS = [
+  "live.create.preset1",
+  "live.create.preset2",
+  "live.create.preset3",
+  "live.create.preset4",
+] as const satisfies readonly MessageKey[];
 
 const LIVE_PW_KEY = (id: string) => `mocomo_live_pw_${id}`;
 const LIVE_CREATED_UI_KEY = "mocomo_live_created_ui";
@@ -66,9 +67,11 @@ const BROADCAST_CATEGORIES = BROADCAST_PICK_CATEGORIES;
 
 export default function NewVoicePage() {
   const router = useRouter();
+  const { t, locale } = useLocale();
+  const presets = useMemo(() => PRESET_KEYS.map((key) => t(key)), [t]);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [name, setName] = useState(PRESETS[0]);
+  const [name, setName] = useState("");
   const [category, setCategory] = useState<LiveStreamCategory>("JUST_CHATTING");
   const [liveVisibility, setLiveVisibility] = useState<LiveVisibility>("PUBLIC");
   const [minViewerTier, setMinViewerTier] = useState<SupportTierLevel>("BRONZE");
@@ -78,10 +81,18 @@ export default function NewVoicePage() {
   const [prepNotice, setPrepNotice] = useState("");
   const [blockingChannelId, setBlockingChannelId] = useState<string | null>(null);
   const [releasing, setReleasing] = useState(false);
+
+  function tierOptionLabel(level: SupportTierLevel): string {
+    const tier = SUPPORT_TIERS.find((row) => row.level === level);
+    if (!tier) return level;
+    const label = locale === "ko" ? tier.labelKo : tier.label;
+    return t("live.create.minTierSupporter", { tier: label });
+  }
+
   async function runSessionPrepare() {
     const res = await releaseStaleHostLiveSessions();
     if (res.released?.length) {
-      setPrepNotice(`이전 방송 ${res.released.length}건을 정리했습니다. 새 방송을 시작할 수 있습니다.`);
+      setPrepNotice(t("live.create.sessionsCleaned", { count: String(res.released.length) }));
     }
     if (!res.ok && res.error) setSubmitError(res.error);
   }
@@ -91,12 +102,15 @@ export default function NewVoicePage() {
     void getLiveStudioSettings()
       .then((s) => {
         if (s.defaultTitle?.trim()) setName(s.defaultTitle.trim());
+        else setName((prev) => prev || presets[0] || "");
         if (s.defaultCategory && s.defaultCategory !== "VIRTUAL") {
           setCategory(s.defaultCategory);
         }
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        setName((prev) => prev || presets[0] || "");
+      });
+  }, [presets]);
 
   useEffect(() => {
     if (created) return;
@@ -146,7 +160,7 @@ export default function NewVoicePage() {
       setBlockingChannelId(null);
 
       if (!result.channel) {
-        setSubmitError("방송 방을 만들지 못했습니다. 다시 시도해 주세요.");
+        setSubmitError(t("live.create.createRoomFailed"));
         return;
       }
 
@@ -162,7 +176,7 @@ export default function NewVoicePage() {
       }
 
       if (!result.joinPassword) {
-        setSubmitError("합방 비밀번호를 만들지 못했습니다. 예약 시간이 미래인지 확인해 주세요.");
+        setSubmitError(t("live.create.passwordFailed"));
         return;
       }
 
@@ -178,7 +192,7 @@ export default function NewVoicePage() {
       router.push(`/voice/${result.channel.id}`);
       return;
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "방송 시작에 실패했습니다.");
+      setSubmitError(err instanceof Error ? err.message : t("live.create.startFailed"));
     } finally {
       setLoading(false);
     }
@@ -210,12 +224,10 @@ export default function NewVoicePage() {
       <div className="space-y-6">
         <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-6 text-center space-y-4">
           <Calendar className="h-10 w-10 mx-auto text-sky-600" />
-          <h2 className="text-xl font-bold">방송 예약 완료</h2>
-          <p className="text-sm text-muted-foreground">
-            예약 시간에 스튜디오에서 방송을 시작할 수 있습니다.
-          </p>
+          <h2 className="text-xl font-bold">{t("live.create.scheduledTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("live.create.scheduledDesc")}</p>
           <Button className="rounded-xl" variant="outline" asChild>
-            <Link href="/live">라이브 홈</Link>
+            <Link href="/live">{t("live.create.scheduledHome")}</Link>
           </Button>
         </div>
       </div>
@@ -229,24 +241,20 @@ export default function NewVoicePage() {
       <div className="space-y-6">
         <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 text-center space-y-4">
           <KeyRound className="h-10 w-10 mx-auto text-green-600" />
-          <h2 className="text-xl font-bold">방송 준비 완료</h2>
-          <p className="text-sm text-muted-foreground">
-            스튜디오에서 <strong>방송 시작</strong>을 누르고{" "}
-            카메라·마이크를 허용하면 라이브 목록에 노출됩니다.
-            {" "}(OBS·다중 송출 불필요)
-          </p>
+          <h2 className="text-xl font-bold">{t("live.create.readyTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("live.create.readyDesc")}</p>
           <div className="space-y-1">
-            <p className="text-[11px] font-medium text-muted-foreground">합방 비밀번호 (공동 방송용)</p>
+            <p className="text-[11px] font-medium text-muted-foreground">{t("live.create.collabPasswordLabel")}</p>
             <p className="text-3xl font-mono font-bold tracking-[0.35em] text-foreground">{created.password}</p>
           </div>
           <div className="flex gap-2 justify-center flex-wrap">
             <Button variant="outline" className="rounded-xl gap-2" onClick={copyPassword}>
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "복사됨" : "비밀번호 복사"}
+              {copied ? t("live.create.copied") : t("live.create.copyPassword")}
             </Button>
             <Button className="rounded-xl gap-2" onClick={goToStudio}>
               <Radio className="h-4 w-4" />
-              스튜디오 입장
+              {t("live.create.enterStudio")}
             </Button>
           </div>
           <button
@@ -254,7 +262,7 @@ export default function NewVoicePage() {
             className="text-xs text-muted-foreground underline underline-offset-2"
             onClick={dismissCreated}
           >
-            설정 화면으로 돌아가기
+            {t("live.create.backToSetup")}
           </button>
         </div>
       </div>
@@ -268,7 +276,7 @@ export default function NewVoicePage() {
       <Link href="/live">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
-          라이브
+          {t("live.navBack")}
         </Button>
       </Link>
 
@@ -278,14 +286,14 @@ export default function NewVoicePage() {
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-folk-terracotta text-white">
               <Radio className="h-5 w-5" />
             </span>
-            라이브 방송 만들기
+            {t("live.create.pageTitle")}
           </h1>
         </NativePageTitle>
       </div>
 
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-base">방송 설정</CardTitle>
+          <CardTitle className="text-base">{t("live.create.settingsTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -300,7 +308,7 @@ export default function NewVoicePage() {
                 <div className="flex flex-wrap gap-2">
                   {blockingChannelId && (
                     <Button type="button" variant="outline" size="sm" className="rounded-lg" asChild>
-                      <Link href={`/voice/${blockingChannelId}`}>스튜디오로 이동</Link>
+                      <Link href={`/voice/${blockingChannelId}`}>{t("live.create.goToStudio")}</Link>
                     </Button>
                   )}
                   <Button
@@ -320,16 +328,16 @@ export default function NewVoicePage() {
                       });
                       await runSessionPrepare();
                       setReleasing(false);
-                      setPrepNotice("방송 슬롯을 강제 정리했습니다. 다시 「방송 시작」을 눌러 주세요.");
+                      setPrepNotice(t("live.create.slotsReleased"));
                     }}
                   >
-                    {releasing ? "정리 중…" : "방송 슬롯 강제 정리"}
+                    {releasing ? t("live.create.releasing") : t("live.create.forceReleaseSlots")}
                   </Button>
                 </div>
               </div>
             )}
             <div className="flex flex-wrap gap-2">
-              {PRESETS.map((p) => (
+              {presets.map((p) => (
                 <button
                   key={p}
                   type="button"
@@ -346,18 +354,15 @@ export default function NewVoicePage() {
               name="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="방송 제목"
+              placeholder={t("live.create.titlePlaceholder")}
               required
             />
             <div className="flex items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
               <Video className="h-4 w-4 shrink-0 text-primary" />
-              <span>
-                브라우저에서 <strong className="text-foreground">웹캠·화면 공유</strong>로 Cloudflare CDN에 바로
-                송출합니다.
-              </span>
+              <span>{t("live.create.browserStreamHint")}</span>
             </div>
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">시청 공개 범위</p>
+              <p className="text-xs font-medium text-muted-foreground">{t("live.create.visibilityLabel")}</p>
               <div className="flex gap-2 p-1 rounded-xl bg-muted/40 border">
                 <button
                   type="button"
@@ -367,7 +372,7 @@ export default function NewVoicePage() {
                   )}
                   onClick={() => setLiveVisibility("PUBLIC")}
                 >
-                  공개 (누구나 시청)
+                  {t("live.create.visibilityPublic")}
                 </button>
                 <button
                   type="button"
@@ -377,7 +382,7 @@ export default function NewVoicePage() {
                   )}
                   onClick={() => setLiveVisibility("PRIVATE")}
                 >
-                  비공개 (등급 제한)
+                  {t("live.create.visibilityPrivate")}
                 </button>
               </div>
               {liveVisibility === "PRIVATE" && (
@@ -386,16 +391,16 @@ export default function NewVoicePage() {
                   value={minViewerTier}
                   onChange={(e) => setMinViewerTier(e.target.value as SupportTierLevel)}
                 >
-                  {SUPPORT_TIERS.filter((t) => t.minAmount >= 50).map((t) => (
-                    <option key={t.level} value={t.level}>
-                      {tierLabelKo(t.level)} 이상 후원자
+                  {SUPPORT_TIERS.filter((row) => row.minAmount >= 50).map((row) => (
+                    <option key={row.level} value={row.level}>
+                      {tierOptionLabel(row.level)}
                     </option>
                   ))}
                 </select>
               )}
             </div>
             <div className="rounded-xl border border-red-500/35 bg-red-500/5 p-3 space-y-2">
-              <p className="text-xs font-semibold text-red-900 dark:text-red-100">19+ 성인 방송</p>
+              <p className="text-xs font-semibold text-red-900 dark:text-red-100">{t("live.create.adultTitle")}</p>
               <label className="text-xs flex items-start gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -404,9 +409,9 @@ export default function NewVoicePage() {
                   onChange={(e) => setIsNsfw(e.target.checked)}
                 />
                 <span>
-                  성인(19+) 방송으로 시작
+                  {t("live.create.adultCheckbox")}
                   <span className="block text-[10px] text-muted-foreground mt-1 leading-snug">
-                    본인인증된 시청자만 입장할 수 있고, 썸네일에 19+ 표시가 붙습니다.
+                    {t("live.create.adultHint")}
                   </span>
                 </span>
               </label>
@@ -425,12 +430,12 @@ export default function NewVoicePage() {
                 </button>
               ))}
             </div>
-            <Input name="tags" placeholder="태그 (선택)" />
-            <Input name="thumbnailUrl" placeholder="썸네일 URL (선택)" />
-            <Input name="description" placeholder="방송 설명 (선택)" />
-            <Input name="donationGoalKrw" type="number" placeholder="후원 목표 원 (선택)" min={1000} step={1000} />
+            <Input name="tags" placeholder={t("live.create.tagsPlaceholder")} />
+            <Input name="thumbnailUrl" placeholder={t("live.create.thumbnailPlaceholder")} />
+            <Input name="description" placeholder={t("live.create.descriptionPlaceholder")} />
+            <Input name="donationGoalKrw" type="number" placeholder={t("live.create.donationGoalPlaceholder")} min={1000} step={1000} />
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-foreground">최대 시청자</span>
+              <span className="text-xs font-medium text-foreground">{t("live.create.maxViewersLabel")}</span>
               <Input
                 name="maxUsers"
                 type="number"
@@ -439,23 +444,21 @@ export default function NewVoicePage() {
                 defaultValue={200}
                 className="rounded-xl"
               />
-              <p className="text-[10px] text-muted-foreground">
-                이 방에 동시에 들어올 수 있는 시청자 수 (기본 200명)
-              </p>
+              <p className="text-[10px] text-muted-foreground">{t("live.create.maxViewersHint")}</p>
             </label>
             <details className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
               <summary className="cursor-pointer font-medium text-foreground">
-                나중에 시작 — 예약 방송 (선택)
+                {t("live.create.scheduleSummary")}
               </summary>
               <div className="mt-2 space-y-1.5">
-                <span className="text-[10px] text-muted-foreground">시작 날짜·시간</span>
+                <span className="text-[10px] text-muted-foreground">{t("live.create.scheduleDatetimeLabel")}</span>
                 <Input name="scheduledAt" type="datetime-local" className="rounded-xl" />
-                <p>비우면 지금 바로 방송 준비. 시간을 넣으면 /live 에 예약 목록으로만 올라갑니다.</p>
+                <p>{t("live.create.scheduleHint")}</p>
               </div>
             </details>
             <Button type="submit" className="w-full rounded-xl gap-2" disabled={loading}>
               <Radio className="h-4 w-4" />
-              {loading ? "만드는 중…" : "방송 시작"}
+              {loading ? t("live.create.submitLoading") : t("live.create.submit")}
             </Button>
           </form>
         </CardContent>

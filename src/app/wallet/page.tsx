@@ -12,7 +12,6 @@ import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import { MIN_MOCO_TOPUP_COUNT } from "@/lib/gems/constants";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { getServerTranslator } from "@/lib/i18n/server";
-import { uiText } from "@/lib/i18n/ui-text";
 
 const EMPTY_EARNINGS = (): WalletEarningsAnalytics => {
   const year = new Date().getFullYear();
@@ -120,11 +119,7 @@ export default async function WalletPage({
             reasons: [
               {
                 code: "NO_CONNECT_ACCOUNT",
-                message: uiText(
-                  locale,
-                  "Stripe Connect 계정이 없습니다. 정산 계좌 연동을 시작해 주세요.",
-                  "No Stripe Connect account. Set up payout details to get started."
-                ),
+                message: t("ui.no_stripe_connect_account_set_up"),
               },
             ],
           },

@@ -7,8 +7,10 @@ import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chr
 import { ChevronLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export default async function ExternalLiveNewPage() {
+  const { t } = await getServerTranslator();
   const session = await getCachedSession();
   if (!session?.user?.id) {
     redirect("/auth/signin?callbackUrl=/live/external/new");
@@ -18,29 +20,26 @@ export default async function ExternalLiveNewPage() {
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
-      <NativePageTitle>라이브 방송 시작</NativePageTitle>
+      <NativePageTitle>{t("live.startBroadcast")}</NativePageTitle>
       <div className="mb-3">
         <Link
           href="/live"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
-          라이브
+          {t("live.navBack")}
         </Link>
       </div>
 
       {accounts.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">스트리밍 계정 인증 필요</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              보안상 URL을 직접 붙여넣을 수 없습니다. 먼저 본인 소유의 YouTube·Twitch
-              계정을 연결하고 소유권을 인증해 주세요.
-            </p>
+            <CardTitle className="text-lg">{t("live.external.noAccountsTitle")}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t("live.external.noAccountsDesc")}</p>
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href="/settings/streaming-accounts">스트리밍 계정 연결하기</Link>
+              <Link href="/settings/streaming-accounts">{t("live.external.connectCta")}</Link>
             </Button>
           </CardContent>
         </Card>

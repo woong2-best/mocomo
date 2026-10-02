@@ -3,11 +3,15 @@ import { getCachedSession } from "@/lib/auth";
 import { getLiveStudioSettings } from "@/actions/live-studio";
 import { LiveStudioPanel } from "@/components/live/live-studio-panel";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
+import { getServerTranslator } from "@/lib/i18n/server";
 
-export const metadata = {
-  title: "라이브 스튜디오 | MoCoMo",
-  description: "채팅 공지 · 카테고리 · 스태프 · 시청자 차단",
-};
+export async function generateMetadata() {
+  const { t } = await getServerTranslator();
+  return {
+    title: `${t("live.studio.title")} | MoCoMo`,
+    description: t("live.studio.metaDescription"),
+  };
+}
 
 export default async function LiveStudioPage() {
   if (!isLiveFeatureEnabled()) redirect("/settings");

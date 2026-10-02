@@ -3,9 +3,9 @@ import { ContributionTowerView } from "@/components/contribution-tower/contribut
 import { listContributionTowerBlocks } from "@/lib/contribution-tower/service";
 
 export const metadata: Metadata = {
-  title: "실시간 기여 탑 — MoCoMo",
+  title: "Live contribution tower — MoCoMo",
   description:
-    "MOCO 충전마다 쌓이는 MoCoMo 실시간 기여 탑. 결제 완료 즉시 프로필이 등록되는 패키지 서비스입니다.",
+    "MoCoMo live contribution tower — one block per MOCO top-up. Profiles register instantly after payment.",
 };
 
 export const dynamic = "force-dynamic";

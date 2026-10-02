@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-import { uiText } from "@/lib/i18n/ui-text";
 
 export function OfflineBanner({ className }: { className?: string }) {
   const { locale } = useLocale();
@@ -32,11 +31,7 @@ export function OfflineBanner({ className }: { className?: string }) {
       )}
     >
       <WifiOff className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      {uiText(
-        locale,
-        "오프라인입니다. 연결되면 자동으로 동기화됩니다.",
-        "You're offline. Changes will sync when you're back online."
-      )}
+      {t("ui.you_re_offline_changes_will_sync")}
     </div>
   );
 }

@@ -16,7 +16,7 @@ import { isLiveFeatureEnabled, isLiveNavHref } from "@/lib/live-feature";
 import { isNavItemActive, resolveMyPageHref } from "@/lib/nav-active";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { springSnappy } from "@/lib/motion-presets";
-import { uiText } from "@/lib/i18n/ui-text";
+
 
 type MobileDrawerNavProps = {
   open: boolean;
@@ -66,7 +66,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
           <>
             <motion.button
               type="button"
-              aria-label={uiText(locale, "메뉴 닫기", "Close menu")}
+              aria-label={t("ui.close_menu")}
               className="mobile-drawer-scrim"
               initial={reduced ? false : { opacity: 0 }}
               animate={reduced ? undefined : { opacity: 1 }}
@@ -77,7 +77,7 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
             <motion.aside
               role="dialog"
               aria-modal="true"
-              aria-label={uiText(locale, "사이드 메뉴", "Side menu")}
+              aria-label={t("ui.side_menu")}
               className="mobile-drawer-panel folk-sidebar-panel"
               style={{ width: PANEL_WIDTH }}
               initial={reduced ? false : { x: "-100%" }}
@@ -91,13 +91,13 @@ export function MobileDrawerNav({ open, onOpenChange }: MobileDrawerNavProps) {
                 size="icon"
                 className="mobile-drawer-close"
                 onClick={() => onOpenChange(false)}
-                aria-label={uiText(locale, "메뉴 닫기", "Close menu")}
+                aria-label={t("ui.close_menu")}
               >
                 <X className="h-5 w-5" />
               </Button>
 
               <div className="folk-sidebar-nav-stack mobile-drawer-nav-stack">
-                <nav className="folk-sidebar-nav" aria-label={uiText(locale, "주요 메뉴", "Main menu")}>
+                <nav className="folk-sidebar-nav" aria-label={t("common.mainNav")}>
                   {items.map(({ href, icon: Icon, labelKey }) => {
                     const active = isNavItemActive(pathname, href, navHrefs, ownProfilePath);
 
@@ -155,10 +155,10 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
       size="icon"
       className="lg:hidden h-10 w-10 rounded-full shrink-0"
       onClick={onClick}
-      aria-label={uiText(locale, "메뉴 보기", "Open menu")}
+      aria-label={t("ui.open_menu")}
     >
       <Menu className="h-6 w-6" strokeWidth={2} />
-      <span className="sr-only">{uiText(locale, "메뉴", "Menu")}</span>
+      <span className="sr-only">{t("common.menu")}</span>
     </Button>
   );
 }
