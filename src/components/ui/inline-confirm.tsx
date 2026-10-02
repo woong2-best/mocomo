@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export function InlineConfirm({
   message,
   confirmLabel = "확인",
-  cancelLabel = "취소",
+  cancelLabel = "Cancelled.",
   variant = "destructive",
   size = "sm",
   disabled,
