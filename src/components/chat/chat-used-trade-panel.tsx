@@ -30,7 +30,7 @@ function meetDayLabel(offset: number, locale: string | undefined) {
   date.setDate(date.getDate() + offset);
   if (offset === 0) return t("calendar.today");
   if (offset === 1) return t("ui.tomorrow");
-  const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
+  const daysKo = [t("lib.webtoon.s13ek"), t("lib.webtoon.s139w"), t("lib.webtoon.s16c4"), t("lib.webtoon.s12c8"), t("lib.webtoon.s10vd"), t("lib.webtoon.sydk"), t("lib.webtoon.s15eo")];
   const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const dayName = daysEn[date.getDay()];
   return `${date.getMonth() + 1}/${date.getDate()} (${dayName})`;

@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 
 import { errorText } from "@/lib/i18n/error-text";
@@ -151,16 +154,16 @@ export function GroupRoomPanel({
 
       {isCosplayer && isOwner ? (
         <details className="text-xs">
-          <summary className="cursor-pointer font-medium text-muted-foreground">공지 · 투표 만들기</summary>
+          <summary className="cursor-pointer font-medium text-muted-foreground">{t("chat.s1jb7ydi")}</summary>
           <div className="mt-2 space-y-2">
             <Input
-              placeholder="공지 제목"
+              placeholder={t("chat.s1qgc736")}
               value={annTitle}
               onChange={(e) => setAnnTitle(e.target.value)}
               className="h-8 rounded-lg text-xs"
             />
             <textarea
-              placeholder="공지 내용"
+              placeholder={t("chat.s1qg8a4q")}
               value={annBody}
               onChange={(e) => setAnnBody(e.target.value)}
               className="w-full min-h-[60px] rounded-lg border border-input bg-background px-2 py-1 text-xs"
@@ -175,7 +178,7 @@ export function GroupRoomPanel({
               공지 등록
             </Button>
             <Input
-              placeholder="투표 질문"
+              placeholder={t("chat.s1v8miu8")}
               value={pollQ}
               onChange={(e) => setPollQ(e.target.value)}
               className="h-8 rounded-lg text-xs"
@@ -227,7 +230,7 @@ export function GroupRoomPanel({
           onClick={() => void handleVoice()}
         >
           <Phone className="h-4 w-4" />
-          {voiceLive ? "단체 통화 참여" : "단체 통화 시작"}
+          {voiceLive ? t("chat.szz1v4x") : t("chat.szz0a5e")}
         </Button>
       ) : null}
 

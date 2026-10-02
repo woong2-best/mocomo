@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { useState } from "react";
 import type { ChatAttachmentView } from "@/lib/chat-attachments";
@@ -238,7 +241,7 @@ export function ChatMessageAttachments({
             <ChatImage
               key={a.id}
               attachment={a}
-              alt={a.name ?? "사진"}
+              alt={a.name ?? t("lib.creator.work.labels.s2f826f3ee6")}
               isMine={isMine}
               sellerUsername={sellerUsername}
               onPurchaseSuccess={onPurchaseSuccess}

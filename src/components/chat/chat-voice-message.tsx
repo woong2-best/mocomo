@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
@@ -94,7 +97,7 @@ export function ChatVoiceMessage({ url, isMine }: { url: string; isMine: boolean
             ? "bg-primary-foreground/20 hover:bg-primary-foreground/30"
             : "bg-muted hover:bg-muted/80"
         )}
-        aria-label={playing ? "일시정지" : "재생"}
+        aria-label={playing ? t("media.spzasrv") : t("media.sz0s1")}
       >
         {playing ? (
           <Pause className="h-4 w-4 fill-current" />

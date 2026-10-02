@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { X } from "lucide-react";
 import type { ChatMessageView } from "@/lib/chat-message-normalize";
@@ -24,7 +27,7 @@ export function ChatReplyComposerBar({
       <div className="min-w-0 flex-1">
         <p className="text-[11px] text-muted-foreground">
           <span className="text-primary font-semibold">
-            {isSelf ? "나" : target.sender.username}
+            {isSelf ? t("flower.syvs") : target.sender.username}
           </span>
           에 답장
         </p>
@@ -40,7 +43,7 @@ export function ChatReplyComposerBar({
         size="icon"
         className="h-8 w-8 shrink-0 rounded-full text-muted-foreground"
         onClick={onCancel}
-        aria-label="답장 취소"
+        aria-label={t("chat.sem8zg4")}
       >
         <X className="h-4 w-4" />
       </Button>

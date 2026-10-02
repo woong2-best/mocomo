@@ -125,7 +125,7 @@ export function ChatUsedTradeRequestCard({
 function formatMeetAt(iso: string, locale: string | undefined) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
+  const daysKo = [t("lib.webtoon.s13ek"), t("lib.webtoon.s139w"), t("lib.webtoon.s16c4"), t("lib.webtoon.s12c8"), t("lib.webtoon.s10vd"), t("lib.webtoon.sydk"), t("lib.webtoon.s15eo")];
   const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const days = daysEn;
   const hh = String(date.getHours()).padStart(2, "0");

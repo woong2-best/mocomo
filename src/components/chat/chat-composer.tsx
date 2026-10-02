@@ -1,4 +1,7 @@
-﻿"use client";
+"use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +12,7 @@ export function ChatComposer({
   onChange,
   onSend,
   disabled,
-  placeholder = "메시지를 입력하세요",
+  placeholder = t("community-server.s2pusd4"),
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -50,7 +53,7 @@ export function ChatComposer({
           )}
           onClick={onSend}
           disabled={disabled || !value.trim()}
-          aria-label="보내기"
+          aria-label={t("share.ssjcvk")}
         >
           <Send className="h-5 w-5" />
         </Button>
