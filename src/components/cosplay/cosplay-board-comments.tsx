@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -105,13 +108,13 @@ export function CosplayBoardComments({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={3}
-              placeholder="댓글을 입력하세요"
+              placeholder={t("post.writeComment")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-y"
               maxLength={2000}
             />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <Button type="submit" size="sm" disabled={pending} className="rounded-lg">
-              {pending ? "등록 중…" : "댓글 등록"}
+              {pending ? t("events.skg4uo9") : t("cosplay.sbu6lof")}
             </Button>
           </form>
         ) : (

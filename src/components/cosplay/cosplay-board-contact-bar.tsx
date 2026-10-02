@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -52,11 +55,11 @@ export function CosplayBoardContactBar({
           onClick={contact}
         >
           <Mail className="h-3.5 w-3.5" />
-          {pending ? "연결 중…" : "DM 보내기"}
+          {pending ? t("discovery.seed2mt") : t("cosplay.sy6i8yh")}
         </Button>
       ) : (
         <Button size="sm" variant="secondary" className="rounded-lg" asChild>
-          <Link href={`/auth/signin?callbackUrl=/u/${authorUsername}`}>로그인 후 문의</Link>
+          <Link href={`/auth/signin?callbackUrl=/u/${authorUsername}`}>{t("cosplay.s1j6pm0w")}</Link>
         </Button>
       )}
       {error && <p className="text-xs text-destructive w-full">{error}</p>}

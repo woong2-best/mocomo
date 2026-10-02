@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -30,7 +33,7 @@ export function CosplayerApplyForm({ username }: { username: string }) {
 
     const photoUrl = photo[0]?.url?.trim();
     if (!photoUrl || photoUrl.startsWith("blob:")) {
-      setError("대표 사진을 업로드해 주세요.");
+      setError(t("cosplay.s1pp1hu7"));
       setLoading(false);
       return;
     }
@@ -56,7 +59,7 @@ export function CosplayerApplyForm({ username }: { username: string }) {
       <Card className="rounded-2xl border-primary/30">
         <CardContent className="p-8 text-center space-y-4">
           <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
-          <h2 className="text-xl font-bold">코스어 등록 완료</h2>
+          <h2 className="text-xl font-bold">{t("cosplay.s2uea5c")}</h2>
           <p className="text-sm text-muted-foreground">
             프로필 설정에서 코스 작품·캐릭터를 추가할 수 있습니다.
           </p>
@@ -85,7 +88,7 @@ export function CosplayerApplyForm({ username }: { username: string }) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium">대표 사진 * (1장만)</label>
+            <label className="text-sm font-medium">{t("cosplay.swvjmqn")}</label>
             <PostMediaComposer
               className="mt-2"
               items={photo}
@@ -111,7 +114,7 @@ export function CosplayerApplyForm({ username }: { username: string }) {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={5}
-              placeholder="코스 스타일, 좋아하는 작품, 행사 일정 등"
+              placeholder={t("cosplay.sz9gkz9")}
               className="mt-1 w-full rounded-xl border border-border bg-background p-3 text-sm"
             />
           </div>
@@ -123,7 +126,7 @@ export function CosplayerApplyForm({ username }: { username: string }) {
             className="w-full rounded-xl"
             disabled={loading || uploadingPhoto || photo.length === 0 || !bio.trim()}
           >
-            {loading ? "등록 중..." : "코스어 등록하기"}
+            {loading ? t("cosplay.s1a1r4r5") : t("profile.sg5pv6o")}
           </Button>
         </form>
       </CardContent>

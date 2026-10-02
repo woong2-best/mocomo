@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
@@ -15,8 +18,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const MODES: { id: CosplayBoardMode; label: string }[] = [
-  { id: "rental", label: "코스프레 대여" },
-  { id: "purchase", label: "구매" },
+  { id: "rental", label: t("cosplay.s1erulvc") },
+  { id: "purchase", label: t("cosplay.suins") },
 ];
 
 export function CosplayBoardPostForm({ defaultMode }: { defaultMode: CosplayBoardMode }) {
@@ -29,7 +32,7 @@ export function CosplayBoardPostForm({ defaultMode }: { defaultMode: CosplayBoar
   const [workTitle, setWorkTitle] = useState("");
   const [character, setCharacter] = useState("");
   const [sizeLabel, setSizeLabel] = useState("");
-  const initialRegion = formatUsedRegion(KOREA_SIDO[0].short, getSigunguList(KOREA_SIDO[0].id)[0] ?? "종로구");
+  const initialRegion = formatUsedRegion(KOREA_SIDO[0].short, getSigunguList(KOREA_SIDO[0].id)[0] ?? t("cosplay.su9n85"));
   const [region, setRegion] = useState(initialRegion);
   const [images, setImages] = useState<string[]>([]);
   const [mediaUploading, setMediaUploading] = useState(false);
@@ -42,7 +45,7 @@ export function CosplayBoardPostForm({ defaultMode }: { defaultMode: CosplayBoar
     setError("");
 
     if (mediaUploading) {
-      setError("사진 업로드가 진행 중입니다. 잠시 후 다시 시도해 주세요.");
+      setError(t("cosplay.s1npk3ea"));
       setLoading(false);
       return;
     }
@@ -96,11 +99,11 @@ export function CosplayBoardPostForm({ defaultMode }: { defaultMode: CosplayBoar
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">제목</label>
+        <label className="text-sm font-medium">{t("cosplay.sz28d")}</label>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={mode === "rental" ? "예: [대여] 원신 나히다 풀셋" : "예: [판매] 체인소맨 파워 풀셋"}
+          placeholder={mode === "rental" ? t("cosplay.s19c0ll7") : t("cosplay.s1qjobpr")}
           maxLength={200}
           required
         />
@@ -108,20 +111,20 @@ export function CosplayBoardPostForm({ defaultMode }: { defaultMode: CosplayBoar
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-sm font-medium">작품명</label>
+          <label className="text-sm font-medium">{t("cosplay.su9he6")}</label>
           <Input
             value={workTitle}
             onChange={(e) => setWorkTitle(e.target.value)}
-            placeholder="예: 원신, 블루 아카이브"
+            placeholder={t("cosplay.sgvq80y")}
             maxLength={120}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">캐릭터</label>
+          <label className="text-sm font-medium">{t("lib.avatar-2d.sv5xgz")}</label>
           <Input
             value={character}
             onChange={(e) => setCharacter(e.target.value)}
-            placeholder="예: 나히다, 아리사"
+            placeholder={t("cosplay.s1a5rix6")}
             maxLength={80}
           />
         </div>
@@ -130,43 +133,43 @@ export function CosplayBoardPostForm({ defaultMode }: { defaultMode: CosplayBoar
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            {mode === "rental" ? "1일 대여료 (원)" : "판매가 (원)"}
+            {mode === "rental" ? t("cosplay.s1a9qgi4") : t("cosplay.s1gxnrpp")}
           </label>
           <Input
             type="number"
             min={0}
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            placeholder="비우면 협의"
+            placeholder={t("cosplay.s1v0ok1r")}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">가격 표시 (선택)</label>
+          <label className="text-sm font-medium">{t("cosplay.srreff1")}</label>
           <Input
             value={priceLabel}
             onChange={(e) => setPriceLabel(e.target.value)}
-            placeholder="예: 1일 25,000원, 협의"
+            placeholder={t("cosplay.1_25_000")}
             maxLength={80}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">사이즈</label>
+          <label className="text-sm font-medium">{t("cosplay.st6zi8")}</label>
           <Input
             value={sizeLabel}
             onChange={(e) => setSizeLabel(e.target.value)}
-            placeholder="예: M, Free"
+            placeholder={t("cosplay.m_free")}
             maxLength={40}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">거래 지역</label>
+        <label className="text-sm font-medium">{t("cosplay.s1m4s1et")}</label>
         <UsedRegionSelect value={region} onChange={setRegion} />
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">상세 내용</label>
+        <label className="text-sm font-medium">{t("cosplay.s1vqyzz2")}</label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -175,8 +178,8 @@ export function CosplayBoardPostForm({ defaultMode }: { defaultMode: CosplayBoar
           minLength={10}
           placeholder={
             mode === "rental"
-              ? "대여 조건, 보증금, 픽업/반납 방법, 포함 품목 등을 적어 주세요."
-              : "상품 상태, 포함 품목, 거래 방법 등을 적어 주세요."
+              ? t("cosplay.s1kzsbhc")
+              : t("cosplay.s1xtrpib")
           }
           className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm resize-y min-h-[10rem]"
         />
@@ -193,10 +196,10 @@ export function CosplayBoardPostForm({ defaultMode }: { defaultMode: CosplayBoar
 
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={loading || mediaUploading} className="rounded-xl">
-          {loading ? "등록 중…" : "등록하기"}
+          {loading ? t("events.skg4uo9") : t("cosplay.snlmhd0")}
         </Button>
         <Button type="button" variant="outline" className="rounded-xl" asChild>
-          <Link href={mode === "purchase" ? "/cosplay?mode=purchase" : "/cosplay"}>취소</Link>
+          <Link href={mode === "purchase" ? "/cosplay?mode=purchase" : "/cosplay"}>{t("toast.cancel")}</Link>
         </Button>
       </div>
     </form>
