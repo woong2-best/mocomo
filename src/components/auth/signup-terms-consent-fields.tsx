@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { SIGNUP_PRIVACY_PATH, SIGNUP_TERMS_PATH } from "@/lib/signup-legal-links";
 
@@ -40,7 +43,7 @@ function ConsentRow({
         rel="noopener noreferrer"
         className="text-sm font-semibold text-muted-foreground hover:text-primary shrink-0"
       >
-        보기 ›
+        {t("auth.sojhe52")}
       </Link>
     </div>
   );
@@ -58,17 +61,17 @@ export function SignupTermsConsentFields({
       <ConsentRow
         checked={termsAccepted}
         onChange={onTermsChange}
-        label="이용약관 동의"
+        label={t("auth.s8bsht3")}
         href={SIGNUP_TERMS_PATH}
       />
       <ConsentRow
         checked={privacyAccepted}
         onChange={onPrivacyChange}
-        label="개인정보 처리방침 동의 (접속 IP·기기 정보 수집 포함)"
+        label={t("auth.s1upcuwy")}
         href={SIGNUP_PRIVACY_PATH}
       />
       <p className="px-1 pb-2 text-[12px] leading-relaxed text-muted-foreground">
-        가입 시 서비스 보안·부정 이용 방지를 위해 접속 IP 주소가 자동 수집·보관됩니다.
+        {t("auth.svb0dy")}
       </p>
     </div>
   );

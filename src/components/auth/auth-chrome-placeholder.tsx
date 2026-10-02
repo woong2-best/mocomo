@@ -1,12 +1,15 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { cn } from "@/lib/utils";
 
 /** Mobile floating tab bar — same footprint as real tabs. */
 export function FloatingTabNavPlaceholder({ className }: { className?: string }) {
   return (
     <nav
-      aria-label="주요 메뉴"
+      aria-label={t("common.mainNav")}
       aria-busy="true"
       className={cn("floating-tab-nav-shell lg:hidden", className)}
     >
