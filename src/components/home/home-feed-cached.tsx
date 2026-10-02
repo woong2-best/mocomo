@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -30,7 +33,7 @@ async function fetchHomeFeedPage(): Promise<FeedPage> {
   const res = await fetch("/api/feed?limit=12", { credentials: "include" });
   const json = (await res.json()) as FeedPage & { error?: string };
   if (!res.ok || !Array.isArray(json.items)) {
-    throw new Error(errorText(json.error ?? "피드를 불러오지 못했습니다."));
+    throw new Error(errorText(json.error ?? t("home.soc7cxy")));
   }
   return {
     items: json.items,
@@ -108,7 +111,7 @@ export function HomeFeedCached() {
   if (!hasCachedPaint && query.isError) {
     return (
       <p className="text-xs text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded-xl px-3 py-2 mb-4">
-        지금은 피드를 불러올 수 없습니다. 잠시 후 새로고침해 주세요.
+        {t("home.s15xfz79")}
       </p>
     );
   }

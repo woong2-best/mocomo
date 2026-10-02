@@ -44,7 +44,7 @@ export function HomePageClient({
 
       {!dbOk && (
         <p className="text-xs text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded-xl px-3 py-2 mb-4">
-          지금은 피드를 불러올 수 없습니다. 잠시 후 새로고침해 주세요.
+          {t("home.s15xfz79")}
         </p>
       )}
 
