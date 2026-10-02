@@ -87,7 +87,7 @@ export async function transferPurchasedMocoToUser(input: {
         userId: input.senderId,
         amountMoco: input.amount,
         type: "PEER_TRANSFER",
-        reason: `MOCO 전달 · @${recipient.username}`,
+        reason: `MOCO transfer · @{v0}${recipient.username}`,
         referenceId,
         metadata: { recipientId: recipient.id, recipientUsername: recipient.username },
       });
@@ -95,7 +95,7 @@ export async function transferPurchasedMocoToUser(input: {
       const credited = await creditSettlementMocoInTx(tx, {
         userId: recipient.id,
         amount: input.amount,
-        reason: `다른 사용자에게 받은 MOCO · @${input.senderUsername}`,
+        reason: `MOCO received from another user · @{v0}${input.senderUsername}`,
         referenceType: "peer_transfer",
         referenceId,
         metadata: { senderId: input.senderId, senderUsername: input.senderUsername },
