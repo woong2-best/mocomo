@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -94,7 +97,7 @@ export function UsedPriceNegotiationPanel({
   }
 
   async function declineDeal() {
-    if (!confirm("거래를 거절할까요?")) return;
+    if (!confirm(t("used.sxzmscb"))) return;
     setBusy(true);
     const res = await declineUsedAuctionNegotiation(listingId);
     setBusy(false);
@@ -106,15 +109,15 @@ export function UsedPriceNegotiationPanel({
     <section className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-bold">가격 협상</h3>
+          <h3 className="text-sm font-bold">{t("used.s1j1lx2f")}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             최고 입찰 {formatUsedPrice(currentTopBid, currency)} (미결제)
-            {secondBidAmount != null && ` · 차순위 ${formatUsedPrice(secondBidAmount, currency)}`}
+            {secondBidAmount != null && t("used.s3o1ehz", { v0: formatUsedPrice(secondBidAmount, currency) })}
           </p>
         </div>
         {negotiationDueAt && (
           <div className="text-right">
-            <p className="text-[10px] text-muted-foreground">협상 남은 시간</p>
+            <p className="text-[10px] text-muted-foreground">{t("used.s1xermxs")}</p>
             <UsedAuctionPaymentCountdown dueAt={negotiationDueAt} className="text-sm" />
           </div>
         )}
@@ -126,7 +129,7 @@ export function UsedPriceNegotiationPanel({
             <span className="font-semibold">
               {pending.proposer.name || pending.proposer.username}
             </span>
-            님의 제안: <span className="font-bold">{formatUsedPrice(pending.amount, currency)}</span>
+            {t("used.sc1l2em")} <span className="font-bold">{formatUsedPrice(pending.amount, currency)}</span>
           </p>
           {pending.proposerId !== viewerId && (
             <div className="flex gap-2">
@@ -136,7 +139,7 @@ export function UsedPriceNegotiationPanel({
                 disabled={busy}
                 onClick={() => void accept(pending.id)}
               >
-                수락
+                {t("collab.accept")}
               </Button>
               <Button
                 type="button"
@@ -145,42 +148,42 @@ export function UsedPriceNegotiationPanel({
                 disabled={busy}
                 onClick={() => void reject(pending.id)}
               >
-                거절
+                {t("collab.reject")}
               </Button>
             </div>
           )}
           {pending.proposerId === viewerId && (
-            <p className="text-xs text-muted-foreground">상대의 응답을 기다리는 중…</p>
+            <p className="text-xs text-muted-foreground">{t("used.s1dp3f82")}</p>
           )}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">진행 중인 제안이 없습니다. 가격을 제안해 보세요.</p>
+        <p className="text-xs text-muted-foreground">{t("used.s107qbn2")}</p>
       )}
 
       <div className="flex gap-2">
         <Input
           type="number"
           inputMode="numeric"
-          placeholder="제안 가격 (USD)"
+          placeholder={t("used.usd")}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="h-10"
         />
         <Button type="button" disabled={busy} onClick={() => void submitProposal()}>
-          제안
+          {t("used.sz4bw")}
         </Button>
       </div>
 
       {isBuyer && (
         <Button type="button" variant="ghost" size="sm" className="text-destructive" disabled={busy} onClick={() => void declineDeal()}>
-          거래 거절
+          {t("used.s1m4n2c0")}
         </Button>
       )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
       <p className="text-[10px] text-muted-foreground">
-        양측이 동일 가격에 동의하면 거래가 확정됩니다. 24시간 내 합의하지 않으면 자동 종료됩니다.
+        {t("used.s42flby")}
       </p>
     </section>
   );

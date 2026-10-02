@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -60,7 +63,7 @@ export function UsedPhoneVerifyForm({
       return;
     }
     setSent(true);
-    setMessage("message" in res && res.message ? res.message : "인증번호를 보냈습니다.");
+    setMessage("message" in res && res.message ? res.message : t("used.s7bkpfu"));
   }
 
   async function submitCode(e: React.FormEvent) {

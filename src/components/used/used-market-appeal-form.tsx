@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
@@ -40,7 +43,7 @@ export function UsedMarketAppealForm({
   openAppeal: OpenAppeal | null;
 }) {
   const router = useRouter();
-  const [title, setTitle] = useState("경매 낙찰 미결제 제재 이의 신청");
+  const [title, setTitle] = useState(t("used.s15w6v1h"));
   const [content, setContent] = useState("");
   const [contactEmail, setContactEmail] = useState(userEmail ?? "");
   const [busy, setBusy] = useState(false);
@@ -60,7 +63,7 @@ export function UsedMarketAppealForm({
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
           <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-2 text-sm">
-            <p className="font-semibold">이의 신청 검토 중</p>
+            <p className="font-semibold">{t("used.sjvbd8o")}</p>
             <p className="text-muted-foreground leading-relaxed">
               「{openAppeal.title}」 접수 건이 검토 중입니다. 중복 제출은 불가합니다.
             </p>
@@ -70,7 +73,7 @@ export function UsedMarketAppealForm({
           </div>
         </div>
         <Button asChild variant="outline" className="rounded-xl">
-          <Link href={`mailto:${LEGAL_CONTACT_EMAIL}`}>고객센터 이메일 문의</Link>
+          <Link href={`mailto:${LEGAL_CONTACT_EMAIL}`}>{t("used.sd8hc1f")}</Link>
         </Button>
       </div>
     );
@@ -80,13 +83,12 @@ export function UsedMarketAppealForm({
     return (
       <div className="space-y-4 text-center py-6">
         <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto" />
-        <h2 className="text-xl font-bold">이의 신청이 접수되었습니다</h2>
+        <h2 className="text-xl font-bold">{t("used.s1xu8tc5")}</h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          담당자가 증빙 자료와 함께 검토합니다. 결과는 등록하신 이메일 또는 서비스 알림으로
-          안내드립니다.
+          {t("used.soscxro")}
         </p>
         <Button type="button" variant="outline" className="rounded-xl" onClick={() => router.refresh()}>
-          새로고침
+          {t("auth.reload")}
         </Button>
       </div>
     );
@@ -97,12 +99,12 @@ export function UsedMarketAppealForm({
       <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 space-y-2">
         <p className="font-semibold text-destructive flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
-          중고거래 이용 제한
+          {t("used.s1pqwjk2")}
         </p>
         <p className="text-sm text-muted-foreground leading-relaxed">{USED_MARKET_BAN_MESSAGE}</p>
         <p className="text-xs text-muted-foreground">
           제재 적용: {new Date(banInfo.bannedAt).toLocaleString("ko-KR")}
-          {banInfo.listingTitle ? ` · 관련 경매: ${banInfo.listingTitle}` : ""}
+          {banInfo.listingTitle ? t("used.sgce31g", { v0: banInfo.listingTitle }) : ""}
         </p>
         <p className="text-xs text-muted-foreground leading-relaxed">{USED_MARKET_BAN_APPEAL_HINT}</p>
       </div>
@@ -132,7 +134,7 @@ export function UsedMarketAppealForm({
       >
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="appeal-title">
-            제목
+            {t("used.sz28d")}
           </label>
           <Input
             id="appeal-title"
@@ -145,14 +147,14 @@ export function UsedMarketAppealForm({
 
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="appeal-content">
-            소명 내용 (50자 이상)
+            {t("used.s1mp44vh")}
           </label>
           <Textarea
             id="appeal-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="rounded-xl min-h-[160px]"
-            placeholder="제재 사유에 대한 설명, 시스템 오류·판매자 요청 등 정당한 사유, 증빙 가능한 사실을 구체적으로 작성해 주세요."
+            placeholder={t("used.s1t0zpoa")}
             maxLength={5000}
           />
           <p className="text-xs text-muted-foreground">{content.trim().length} / 5000자</p>
@@ -160,7 +162,7 @@ export function UsedMarketAppealForm({
 
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="appeal-email">
-            연락 이메일
+            {t("used.s1qfevpl")}
           </label>
           <Input
             id="appeal-email"
@@ -179,7 +181,7 @@ export function UsedMarketAppealForm({
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <Button type="submit" className="w-full h-12 rounded-xl font-semibold" disabled={!canSubmit}>
-          {busy ? "접수 중…" : "이의 신청 제출"}
+          {busy ? t("used.spf824u") : t("used.s148ea9j")}
         </Button>
       </form>
 
@@ -193,7 +195,7 @@ export function UsedMarketAppealForm({
         <p>
           입찰 시 동의 문구: {USED_AUCTION_BID_CONSENT_LABEL}{" "}
           <Link href="/legal/terms" className="text-primary hover:underline">
-            이용약관 제8조
+            {t("used.s19498lo")}
           </Link>
         </p>
       </div>

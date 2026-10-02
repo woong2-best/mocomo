@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -35,8 +38,7 @@ export function UsedAuctionTradeComplete({
     return (
       <section className="rounded-xl border border-border/70 bg-muted/20 p-3">
         <p className="text-sm font-semibold leading-5 text-foreground">
-          약속 시간에 거래 메시지에서 현장 도착 인증을 눌러 주세요. 양쪽이 인증되면 암호코드로 거래를
-          끝냅니다.
+          {t("used.sy4pxx9")}
         </p>
       </section>
     );
@@ -45,8 +47,7 @@ export function UsedAuctionTradeComplete({
   return (
     <section className="space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3">
       <p className="text-sm font-semibold leading-5 text-foreground">
-        거래가 끝나면 판매자와 낙찰자가 각각 거래 완료를 눌러 주세요. 둘 다 누르면 보증금 2 MOCO가 각각
-        돌아옵니다.
+        {t("used.2_moco")}
       </p>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
       <Button
@@ -65,7 +66,7 @@ export function UsedAuctionTradeComplete({
           router.refresh();
         }}
       >
-        {mineConfirmed ? "상대방 확인 대기" : busy ? "처리 중…" : "거래 완료"}
+        {mineConfirmed ? t("used.sx3okvr") : busy ? t("post.menu.blockReportSubmitting") : t("used.s1m4rdhc")}
       </Button>
     </section>
   );

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -69,14 +72,14 @@ export function UsedAiDraftButton({
       };
 
       if (!res.ok || !data.draft) {
-        setError(data.error || "AI 글 생성에 실패했습니다.");
+        setError(data.error || t("used.sxacyed"));
         return;
       }
 
       onApply(data.draft);
-      setMessage("사진을 보고 설명을 작성했습니다. 내용을 확인한 뒤 등록해 주세요.");
+      setMessage(t("used.s3bandm"));
     } catch {
-      setError("네트워크 오류가 발생했습니다.");
+      setError(t("used.s18n7wbo"));
     } finally {
       setLoading(false);
     }
@@ -87,11 +90,10 @@ export function UsedAiDraftButton({
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-violet-700 dark:text-violet-300">
-            AI 상품 설명
+            {t("used.s1azzq9u")}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            올린 사진을 보고 상품 설명(제목·가격 초안 포함)을 대신 써 드립니다. Google
-            Gemini 무료 API 키로 동작합니다.
+            {t("used.google_gemini_api")}
           </p>
         </div>
         <Button
@@ -110,13 +112,13 @@ export function UsedAiDraftButton({
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
-          {loading ? "분석 중…" : "AI로 설명 쓰기"}
+          {loading ? t("used.s1j2rjq4") : t("used.s1ucd1bn")}
         </Button>
       </div>
 
       {readyImages.length === 0 && (
         <p className="text-[11px] text-muted-foreground">
-          사진을 1장 이상 업로드하면 AI 작성을 사용할 수 있습니다.
+          {t("used.1_ai")}
         </p>
       )}
       {message && <p className="text-xs text-violet-700 dark:text-violet-300">{message}</p>}

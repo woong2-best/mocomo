@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { getMyUsedDashboard } from "@/actions/used-market";
 import { getMyUsedAuctionBids } from "@/actions/used-auction";
@@ -19,7 +22,7 @@ export async function UsedMyContent({ userId }: { userId: string }) {
           판매중 ({selling.length})
         </h2>
         {selling.length === 0 ? (
-          <p className="text-sm text-muted-foreground">판매중인 글이 없어요.</p>
+          <p className="text-sm text-muted-foreground">{t("used.s13btbcf")}</p>
         ) : (
           <UsedListingGrid listings={selling} viewerUserId={userId} />
         )}
@@ -27,14 +30,14 @@ export async function UsedMyContent({ userId }: { userId: string }) {
 
       {reserved.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-amber-700 mb-3">예약중</h2>
+          <h2 className="text-sm font-semibold text-amber-700 mb-3">{t("used.stywqk")}</h2>
           <UsedListingGrid listings={reserved} viewerUserId={userId} />
         </section>
       )}
 
       {sold.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3">거래완료</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t("used.smituls")}</h2>
           <UsedListingGrid listings={sold} viewerUserId={userId} />
         </section>
       )}
@@ -56,7 +59,7 @@ export async function UsedMyContent({ userId }: { userId: string }) {
                   <p className="text-xs text-muted-foreground mt-1">
                     내 입찰 {formatUsedPrice(b.amount, b.listing.currency)}
                     {isAuctionListing(b.listing) && b.listing.currentBidderId === userId
-                      ? " · 최고가"
+                      ? t("used.sitjw4z")
                       : ""}
                   </p>
                 </Link>
@@ -73,7 +76,7 @@ export async function UsedMyContent({ userId }: { userId: string }) {
           관심목록 ({favorites.length})
         </h2>
         {favorites.length === 0 ? (
-          <p className="text-sm text-muted-foreground">관심 상품이 없어요.</p>
+          <p className="text-sm text-muted-foreground">{t("used.s189vs27")}</p>
         ) : (
           <UsedListingGrid
             listings={favorites.map((f) => ({ ...f.listing, favorited: true }))}

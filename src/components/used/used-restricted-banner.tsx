@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { usedRestrictedLabel, isUsedRestrictedKind } from "@/lib/used-youth-protection";
@@ -25,14 +28,14 @@ export function UsedRestrictedBanner({
           청소년 보호 · {label}
         </p>
         <p className="text-muted-foreground leading-relaxed">
-          이 상품은 만 19세 이상 성인 인증 후 구매·입찰·거래 문의가 가능합니다.
+          {t("used.ss5fkpr")}
         </p>
         {!adultVerified && (
           <Link
             href={verifyHref}
             className="inline-flex text-sm font-semibold text-primary underline underline-offset-2"
           >
-            성인 인증하기
+            {t("used.sw0nf12")}
           </Link>
         )}
       </div>

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
@@ -56,7 +59,7 @@ export function UsedWtbAlertList({ alerts: initial }: { alerts: WtbAlertRow[] })
   if (alerts.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        등록된 WTB 알림이 없어요. 상품 상세에서 조건을 등록할 수 있어요.
+        {t("used.wtb")}
       </p>
     );
   }
@@ -70,7 +73,7 @@ export function UsedWtbAlertList({ alerts: initial }: { alerts: WtbAlertRow[] })
         >
           <div className="min-w-0 flex-1">
             <Link href={searchHref(a)} className="font-medium text-sm hover:underline line-clamp-2">
-              {alertSummary(a) || "조건 알림"}
+              {alertSummary(a) || t("used.so57afg")}
             </Link>
             {a.maxPrice != null && a.maxPrice > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -91,7 +94,7 @@ export function UsedWtbAlertList({ alerts: initial }: { alerts: WtbAlertRow[] })
             className="shrink-0 text-muted-foreground"
             disabled={busyId === a.id}
             onClick={() => void remove(a.id)}
-            aria-label="WTB 알림 해제"
+            aria-label={t("used.wtb_2")}
           >
             <BellOff className="h-4 w-4" />
           </Button>

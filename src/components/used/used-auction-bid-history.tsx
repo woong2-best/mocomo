@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { getUsedAuctionBids } from "@/actions/used-auction";
 import { formatUsedPrice, formatUsedTimeAgo } from "@/lib/used-market";
@@ -52,10 +55,10 @@ export function UsedAuctionBidHistory({ listingId, currency, initialBids }: Used
   }, [listingId, initialBids]);
 
   if (loading) {
-    return <p className="text-xs text-muted-foreground py-2">입찰 내역 불러오는 중…</p>;
+    return <p className="text-xs text-muted-foreground py-2">{t("used.s1dpxdzj")}</p>;
   }
   if (bids.length === 0) {
-    return <p className="text-xs text-muted-foreground py-2">아직 입찰이 없습니다.</p>;
+    return <p className="text-xs text-muted-foreground py-2">{t("used.s1926wg9")}</p>;
   }
 
   return (
@@ -64,7 +67,7 @@ export function UsedAuctionBidHistory({ listingId, currency, initialBids }: Used
         <li key={b.id} className="flex items-center justify-between px-3 py-2.5 bg-card">
           <span className="text-muted-foreground">
             {i === 0 ? (
-              <span className="text-orange-500 font-semibold mr-1">최고</span>
+              <span className="text-orange-500 font-semibold mr-1">{t("used.szvno")}</span>
             ) : null}
             {maskBidderName(b.bidder.username)}
           </span>

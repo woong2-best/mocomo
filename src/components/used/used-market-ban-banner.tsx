@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import { USED_MARKET_BAN_APPEAL_HINT, USED_MARKET_BAN_MESSAGE } from "@/lib/used-market-access";
 import { USED_MARKET_APPEAL_PATH } from "@/lib/used-auction-legal";
@@ -20,7 +23,7 @@ export function UsedMarketBanBanner({
       <div className="flex gap-3">
         <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
         <div className="space-y-1 text-sm min-w-0">
-          <p className="font-semibold text-destructive">중고거래 이용 제한</p>
+          <p className="font-semibold text-destructive">{t("used.s1pqwjk2")}</p>
           <p className="text-muted-foreground leading-relaxed">{USED_MARKET_BAN_MESSAGE}</p>
           {bannedAt && (
             <p className="text-xs text-muted-foreground">
@@ -32,7 +35,7 @@ export function UsedMarketBanBanner({
         </div>
       </div>
       <Button asChild size="sm" variant="outline" className="self-start rounded-lg">
-        <Link href={USED_MARKET_APPEAL_PATH}>이의 신청 · 문의하기</Link>
+        <Link href={USED_MARKET_APPEAL_PATH}>{t("used.syla3zs")}</Link>
       </Button>
     </div>
   );

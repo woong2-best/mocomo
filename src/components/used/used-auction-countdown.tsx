@@ -1,13 +1,16 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useState } from "react";
 import { auctionCountdownParts, type AuctionCountdownParts } from "@/lib/used-auction";
 
 const CLOCK_CELLS = [
-  ["days", "일"],
-  ["hours", "시"],
-  ["minutes", "분"],
-  ["seconds", "초"],
+  ["days", t("used.s13ek")],
+  ["hours", t("used.s12ho")],
+  ["minutes", t("used.s11fo")],
+  ["seconds", t("used.s14i0")],
 ] as const;
 
 export function UsedAuctionCountdown({
@@ -42,7 +45,7 @@ export function UsedAuctionCountdown({
         className={`inline-flex items-center rounded-md bg-zinc-950 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums tracking-wider ${
           parts.ended ? "text-zinc-400" : "text-orange-400"
         } ${className}`}
-        aria-label={parts.ended ? "경매 마감" : `남은 시간 ${parts.text}`}
+        aria-label={parts.ended ? t("used.s1nlgsht") : t("used.s5kjods", { v0: parts.text })}
       >
         {parts.ended ? "00:00:00:00" : parts.text}
       </span>
@@ -52,7 +55,7 @@ export function UsedAuctionCountdown({
   return (
     <div
       className={`inline-flex items-end gap-1 ${className}`}
-      aria-label={parts.ended ? "경매 마감" : `남은 시간 ${parts.text}`}
+      aria-label={parts.ended ? t("used.s1nlgsht") : t("used.s5kjods", { v0: parts.text })}
     >
       {CLOCK_CELLS.map(([key, label], index) => (
         <span key={key} className="inline-flex items-end gap-1">

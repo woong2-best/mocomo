@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { createSubcultureWtbAlert } from "@/actions/subculture-wtb";
@@ -54,7 +57,7 @@ export function UsedWtbAlertPanel({
   if (done) {
     return (
       <p className="rounded-[14px] border-2 border-dashed border-folk-cobalt/25 px-3 py-3 text-[13px] font-bold text-folk-cobalt">
-        WTB 알림이 등록됐어요.
+        {t("used.wtb_3")}
       </p>
     );
   }
@@ -65,27 +68,27 @@ export function UsedWtbAlertPanel({
 
   return (
     <section className="space-y-2 rounded-[14px] border-2 border-dashed border-folk-cobalt/25 p-3">
-      <h2 className="text-sm font-extrabold text-folk-cobalt">WTB 알림 받기</h2>
+      <h2 className="text-sm font-extrabold text-folk-cobalt">{t("used.wtb_4")}</h2>
       <p className="text-xs leading-[18px] text-muted-foreground">{summary} 조건의 새 글이 올라오면 알려 드려요.</p>
       {!loggedIn ? (
         <p className="text-xs text-muted-foreground">
           <a href="/auth/signin" className="font-bold text-folk-cobalt underline">
-            로그인
+            {t("auth.signIn")}
           </a>
-          후 WTB 알림을 등록할 수 있어요.
+          {t("used.wtb_5")}
         </p>
       ) : (
         <>
           <Input
             type="number"
             min={0}
-            placeholder="희망 최대가 (선택)"
+            placeholder={t("used.s11zgz1z")}
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
             className="h-11 rounded-[14px] border-2 border-folk-cobalt/20 bg-card font-semibold"
           />
           <Input
-            placeholder="메모 (선택)"
+            placeholder={t("used.sc1somo")}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="h-11 rounded-[14px] border-2 border-folk-cobalt/20 bg-card font-semibold"
@@ -97,7 +100,7 @@ export function UsedWtbAlertPanel({
             onClick={() => void submit()}
             className="h-11 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90"
           >
-            {loading ? "등록 중…" : "WTB 알림 등록"}
+            {loading ? t("used.skg4uo9") : t("used.wtb_6")}
           </Button>
         </>
       )}

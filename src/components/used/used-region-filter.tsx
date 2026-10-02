@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { KOREA_SIDO, USED_SHIPPING_REGION, formatUsedRegion, getSidoById, getSigunguList } from "@/lib/korea-regions";
 import { usedShippingRegionLabel } from "@/lib/used-regions-global";
@@ -109,7 +112,7 @@ export function UsedRegionFilter({
             else apply({ sido: id, region: null });
           }}
         >
-          <option value="">시·도 전체</option>
+          <option value="">{t("used.s1q03uuf")}</option>
           {KOREA_SIDO.map((s) => (
             <option key={s.id} value={s.id}>
               {s.short}
@@ -133,7 +136,7 @@ export function UsedRegionFilter({
             if (s) apply({ region: formatUsedRegion(s.short, unit), sido: null });
           }}
         >
-          <option value="">시·군·구 전체</option>
+          <option value="">{t("used.s2dzhae")}</option>
           {sigunguList.map((u) => (
             <option key={u} value={u}>
               {u}

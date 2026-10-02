@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import {
   SUBCULTURE_LOT_TEMPLATES,
   type LotTemplate,
@@ -34,7 +37,7 @@ export function UsedLotTemplatePicker({
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">Lot·세트 템플릿</p>
+      <p className="text-sm font-medium">{t("used.lot")}</p>
       <div className="flex flex-wrap gap-2">
         {SUBCULTURE_LOT_TEMPLATES.map((t) => (
           <button
@@ -54,7 +57,7 @@ export function UsedLotTemplatePicker({
         ))}
       </div>
       <p className="text-[10px] text-muted-foreground">
-        템플릿을 누르면 등록 형식·상품 종류가 자동 설정됩니다.
+        {t("used.s14zcmh3")}
       </p>
     </div>
   );

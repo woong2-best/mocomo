@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { isPhoneVerificationError } from "@/lib/error-codes";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -47,7 +50,7 @@ export function UsedListingQuickChat({
   return (
     <button
       type="button"
-      aria-label="판매자에게 메시지"
+      aria-label={t("used.s1dr7x5c")}
       disabled={loading}
       onClick={(e) => void onChat(e)}
       className={cn(

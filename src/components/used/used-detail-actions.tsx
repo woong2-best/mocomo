@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -59,7 +62,7 @@ export function UsedDetailActions({
   if (isSeller) {
     return (
       <div className="space-y-2 p-4 border-t bg-background">
-        <p className="text-xs text-muted-foreground font-medium">내 판매 관리</p>
+        <p className="text-xs text-muted-foreground font-medium">{t("used.s19ist8s")}</p>
         <div className="flex flex-wrap gap-2">
           {status !== "RESERVED" && (
             <button
@@ -68,7 +71,7 @@ export function UsedDetailActions({
               onClick={() => setStatus("RESERVED")}
               className="flex-1 min-w-[100px] h-10 rounded-xl border border-border bg-muted text-sm font-semibold"
             >
-              예약중
+              {t("used.stywqk")}
             </button>
           )}
           {status !== "SOLD" && (
@@ -78,7 +81,7 @@ export function UsedDetailActions({
               onClick={() => setStatus("SOLD")}
               className="flex-1 min-w-[100px] h-10 rounded-xl bg-neutral-800 text-white text-sm font-semibold"
             >
-              거래완료
+              {t("used.smituls")}
             </button>
           )}
           {status !== "SELLING" && (
@@ -88,13 +91,13 @@ export function UsedDetailActions({
               onClick={() => setStatus("SELLING")}
               className="flex-1 min-w-[100px] h-10 rounded-xl border text-sm"
             >
-              판매중
+              {t("used.svtnel")}
             </button>
           )}
         </div>
         {confirmDelete ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-2">
-            <p className="text-xs text-destructive">글을 삭제할까요? 되돌릴 수 없습니다.</p>
+            <p className="text-xs text-destructive">{t("used.s1chvwe5")}</p>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -103,16 +106,16 @@ export function UsedDetailActions({
                 disabled={busy}
                 onClick={() => void confirmRemove()}
               >
-                삭제
+                {t("toast.delete")}
               </Button>
               <Button type="button" size="sm" variant="outline" onClick={() => setConfirmDelete(false)}>
-                취소
+                {t("toast.cancel")}
               </Button>
             </div>
           </div>
         ) : (
           <button type="button" onClick={remove} className="w-full text-xs text-destructive py-2">
-            글 삭제
+            {t("used.slz0ysv")}
           </button>
         )}
       </div>
@@ -122,7 +125,7 @@ export function UsedDetailActions({
   if (status !== "SELLING") {
     return (
       <div className="p-4 border-t bg-muted/30 text-center text-sm text-muted-foreground">
-        {status === "RESERVED" ? "다른 분과 예약 중이에요" : "거래가 완료된 상품이에요"}
+        {status === "RESERVED" ? t("used.smjq94m") : t("used.s1vcgrrx")}
       </div>
     );
   }
@@ -135,7 +138,7 @@ export function UsedDetailActions({
         className={`h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 ${
           favorited ? "bg-red-50 border-red-200 text-folk-terracotta" : "border-border"
         }`}
-        aria-label="관심"
+        aria-label={t("used.suhv0")}
       >
         <Heart className={`h-5 w-5 ${favorited ? "fill-current" : ""}`} />
       </button>
@@ -143,7 +146,7 @@ export function UsedDetailActions({
         <UsedTradeChatButton listingId={listingId} />
       ) : (
         <Button asChild variant="secondary" size="lg" className="flex-1 h-12">
-          <a href={`/auth/signin?callbackUrl=/market/${listingId}`}>로그인 후 채팅</a>
+          <a href={`/auth/signin?callbackUrl=/market/${listingId}`}>{t("used.s1j6skpt")}</a>
         </Button>
       )}
     </div>

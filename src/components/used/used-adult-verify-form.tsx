@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ADULT_MIN_AGE } from "@/lib/adult-verification/constants";
@@ -28,7 +31,7 @@ export function UsedAdultVerifyForm({
       router.push(callbackUrl);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "인증에 실패했습니다.");
+      setError(e instanceof Error ? e.message : t("used.sd3f0vg"));
     } finally {
       setLoading(false);
     }
@@ -39,11 +42,11 @@ export function UsedAdultVerifyForm({
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3">
         <ShieldAlert className="h-6 w-6 text-amber-600 shrink-0" />
         <div className="text-sm space-y-1">
-          <p className="font-semibold text-amber-800 dark:text-amber-200">청소년 보호</p>
+          <p className="font-semibold text-amber-800 dark:text-amber-200">{t("used.sgmnqcf")}</p>
           <p className="text-muted-foreground leading-relaxed">
             {restrictedLabel
-              ? `「${restrictedLabel}」 상품은 `
-              : "술·담배·성인용품·유료 거래는 "}
+              ? t("used.s19u613u", { v0: restrictedLabel })
+              : t("used.s1xa36bf")}
             만 {ADULT_MIN_AGE}세 이상만 이용할 수 있습니다. 휴대폰 본인인증으로 연령을 확인합니다.
           </p>
         </div>
@@ -61,7 +64,7 @@ export function UsedAdultVerifyForm({
         disabled={loading || adultGate.pending}
         onClick={() => void startVerification()}
       >
-        {loading || adultGate.pending ? "인증 진행 중…" : "휴대폰 본인인증 시작"}
+        {loading || adultGate.pending ? t("used.s19jsxmd") : t("used.s6vrjis")}
       </Button>
 
       <AdultVerificationDialog

@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -76,7 +79,7 @@ export function UsedBankVerifyForm({
       return;
     }
     if ("alreadyVerified" in res && res.alreadyVerified) {
-      setMessage(res.message ?? "이미 인증된 계좌입니다.");
+      setMessage(res.message ?? t("used.s11yopdm"));
       router.push(callbackUrl);
       router.refresh();
       return;
@@ -84,9 +87,9 @@ export function UsedBankVerifyForm({
     setSent(true);
     const remain =
       "sendsRemaining" in res && typeof res.sendsRemaining === "number"
-        ? ` (오늘 ${res.sendsRemaining}회 남음)`
+        ? t("used.swnbfql", { v0: res.sendsRemaining })
         : "";
-    setMessage((res.message ?? "1원을 보냈습니다.") + remain);
+    setMessage((res.message ?? t("used.s1tfj1nw")) + remain);
     if ("devCode" in res && res.devCode) setCode(res.devCode);
   }
 
@@ -101,7 +104,7 @@ export function UsedBankVerifyForm({
       return;
     }
     if ("displayAccount" in res) {
-      setMessage(`${res.displayAccount} 인증이 완료되었습니다.`);
+      setMessage(t("used.s1nh0k92", { v0: res.displayAccount }));
     }
     router.push(callbackUrl);
     router.refresh();

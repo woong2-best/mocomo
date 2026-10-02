@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useMemo, useState } from "react";
 import {
   KOREA_SIDO,
@@ -81,7 +84,7 @@ export function UsedRegionSelect({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">거래 국가</label>
+        <label className="text-sm font-medium">{t("used.s1m4n2uj")}</label>
         <CountrySelect
           value={cc}
           onChange={changeCountry}
@@ -93,7 +96,7 @@ export function UsedRegionSelect({
 
       {isKoreaUsedMarketCountry(cc) ? (
         <div className="space-y-2">
-          <label className="text-sm font-medium">시·군·구</label>
+          <label className="text-sm font-medium">{t("used.s1gdss0a")}</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <select className={selectClass} value={sidoId} onChange={(e) => applySido(e.target.value)}>
               {KOREA_SIDO.map((s) => (

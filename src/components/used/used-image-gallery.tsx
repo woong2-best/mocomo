@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { SensitiveMediaFrame } from "@/components/media/sensitive-media-frame";
@@ -61,7 +64,7 @@ export function UsedImageGallery({
               type="button"
               className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 text-white flex items-center justify-center z-10"
               onClick={() => setIdx((i) => (i - 1 + images.length) % images.length)}
-              aria-label="이전"
+              aria-label={t("used.sz0uo")}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -69,7 +72,7 @@ export function UsedImageGallery({
               type="button"
               className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 text-white flex items-center justify-center z-10"
               onClick={() => setIdx((i) => (i + 1) % images.length)}
-              aria-label="다음"
+              aria-label={t("seller.next")}
             >
               <ChevronRight className="h-5 w-5" />
             </button>

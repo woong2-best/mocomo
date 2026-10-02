@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useSearchParams } from "next/navigation";
 import {
   SUBCULTURE_CONDITION_GRADES,
@@ -36,9 +39,9 @@ export function UsedSubcultureFilters({ onNavigate, isPending }: Props) {
           onChange={(e) => apply({ condition: e.target.value || null })}
           className="h-9 min-w-0 rounded-lg border border-border bg-background px-1.5 text-[11px] sm:px-2 sm:text-xs"
           disabled={isPending}
-          aria-label="상태"
+          aria-label={t("used.sxxkr")}
         >
-          <option value="">상태 (전체)</option>
+          <option value="">{t("used.s1xg4kgm")}</option>
           {SUBCULTURE_CONDITION_GRADES.map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
@@ -50,9 +53,9 @@ export function UsedSubcultureFilters({ onNavigate, isPending }: Props) {
           onChange={(e) => apply({ limited: e.target.value || null })}
           className="h-9 min-w-0 rounded-lg border border-border bg-background px-1.5 text-[11px] sm:px-2 sm:text-xs"
           disabled={isPending}
-          aria-label="한정"
+          aria-label={t("used.s11e0p")}
         >
-          <option value="">한정 (전체)</option>
+          <option value="">{t("used.s13opco")}</option>
           {SUBCULTURE_LIMITED_KINDS.filter((o) => o.id !== "STANDARD").map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
@@ -64,9 +67,9 @@ export function UsedSubcultureFilters({ onNavigate, isPending }: Props) {
           onChange={(e) => apply({ trade: e.target.value || null })}
           className="h-9 min-w-0 rounded-lg border border-border bg-background px-1.5 text-[11px] sm:px-2 sm:text-xs"
           disabled={isPending}
-          aria-label="거래"
+          aria-label={t("used.suc6g")}
         >
-          <option value="">거래 (전체)</option>
+          <option value="">{t("used.s9vvetl")}</option>
           {SUBCULTURE_TRADE_MODES.filter((o) => o.id !== "SELL").map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
@@ -80,7 +83,7 @@ export function UsedSubcultureFilters({ onNavigate, isPending }: Props) {
           onClick={clearAll}
           className="text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
         >
-          필터 초기화
+          {t("used.svz86t4")}
         </button>
       ) : null}
     </section>

@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { isAuthRequiredError } from "@/lib/error-codes";
 import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -40,7 +43,7 @@ export function UsedListingStarButton({
           router.push(`/auth/signin?callbackUrl=/market/${listingId}`);
           return;
         }
-        window.alert(msg || "STAR에 저장하지 못했습니다.");
+        window.alert(msg || t("used.star"));
         return;
       }
       setStarred(res.starred);
@@ -63,7 +66,7 @@ export function UsedListingStarButton({
           : "rounded-lg p-2 hover:bg-muted",
         className
       )}
-      aria-label={starred ? "STAR 해제" : "STAR 저장"}
+      aria-label={starred ? t("used.star_2") : t("used.star_3")}
       aria-pressed={starred}
     >
       <Star

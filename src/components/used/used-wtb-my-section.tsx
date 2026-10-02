@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { getMySubcultureWtbAlerts } from "@/actions/subculture-wtb";
 import { UsedWtbAlertList } from "@/components/used/used-wtb-alert-list";
 import Link from "next/link";
@@ -24,7 +27,7 @@ export async function UsedWtbMySection() {
         </h2>
         {alerts.length > 0 && (
           <Link href="/market/wtb" className="text-xs font-semibold text-primary hover:underline">
-            전체 보기
+            {t("explore.viewAll")}
           </Link>
         )}
       </div>
