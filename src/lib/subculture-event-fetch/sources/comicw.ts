@@ -9,7 +9,7 @@ function parseComicwTitle(rawTitle: string, id: number): string {
   if (afterSlash && /코믹월드/i.test(afterSlash)) return afterSlash;
   const match = raw.match(/코믹월드[\s\S]*$/i);
   if (match) return match[0].trim();
-  return `코믹월드 ${id}`;
+  return `Comic World ${id}`;
 }
 
 function discoverEventIds(html: string): number[] {
@@ -36,7 +36,7 @@ export async function fetchComicWorldEvents(): Promise<FetchedSubcultureEvent[]>
       if (new Date(range.endsAt).getTime() < now - 86400000) continue;
 
       const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-      const title = titleMatch ? parseComicwTitle(titleMatch[1], id) : `코믹월드 ${id}`;
+      const title = titleMatch ? parseComicwTitle(titleMatch[1], id) : `Comic World ${id}`;
 
       const venueHint = stripHtml(html);
       let venue = venueByKeyword(venueHint) ?? venueByKeyword(title);
