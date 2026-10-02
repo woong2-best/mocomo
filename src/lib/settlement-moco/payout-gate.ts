@@ -309,19 +309,19 @@ export async function getCreatorPayoutDashboard(userId: string): Promise<Creator
     if (disabledReason) {
       reasons.push({
         code: "ACCOUNT_DISABLED",
-        message: `Stripe 계정 제한: ${disabledReason}`,
+        message: `Stripe account restriction: {v0} ${disabledReason}`,
       });
     }
     if (pastDue.length > 0) {
       reasons.push({
         code: "PAST_DUE",
-        message: `기한이 지난 제출 항목: ${pastDue.join(", ")}`,
+        message: `Overdue submission items: {v0} ${pastDue.join(", ")}`,
       });
     }
     if (currentlyDue.length > 0) {
       reasons.push({
         code: "CURRENTLY_DUE",
-        message: `추가 제출이 필요합니다: ${currentlyDue.join(", ")}`,
+        message: `Additional submission required: {v0} ${currentlyDue.join(", ")}`,
       });
     }
 
