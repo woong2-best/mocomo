@@ -66,7 +66,7 @@ export function MocoPayOption({
         <div className="min-w-0 flex-1">
           <p className="font-bold text-sm">{t("payments.moco")}</p>
           <p className="text-xs text-muted-foreground">
-            보유 {formatMocoDisplay(mocoBalance)} · 필요 {formatMocoDisplay(mocoRequired)}
+            보유 {formatMocoDisplay(mocoBalance)}Please check your input and try again.{formatMocoDisplay(mocoRequired)}
           </p>
         </div>
       </div>
