@@ -3,7 +3,7 @@ import { isTextWorthTranslating } from "@/lib/translate-text-filter";
 
 /** UI 언어별 원문 언어 표기 (트위터 "원문 언어 영어" 스타일) */
 const SOURCE_LANGUAGE_LABELS: Partial<Record<Locale, Partial<Record<Locale, string>>>> = {
-  ko: { ko: "한국어", en: "영어", ja: "일본어", zh: "중국어" },
+  ko: { ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese" },
   en: { ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese" },
   ja: { ko: "韓国語", en: "英語", ja: "日本語", zh: "中国語" },
   zh: { ko: "韩语", en: "英语", ja: "日语", zh: "中文" },

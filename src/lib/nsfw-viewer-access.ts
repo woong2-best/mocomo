@@ -31,10 +31,10 @@ export type PostNsfwBlocked = { nsfwBlocked: true };
 export const NSFW_PUBLISH_BLOCKED_MSG = `만 ${ADULT_MIN_AGE}세 이상 계정만 성인 콘텐츠를 게시할 수 있습니다.`;
 
 export const NSFW_VIEW_BLOCKED_MSG =
-  "성인 콘텐츠는 로그인 후 생년월일 기준 만 19세 이상 계정에서만 볼 수 있습니다.";
+  "Adult content is only available to signed-in accounts aged 19+ by birth date.";
 
 export const NSFW_BIRTHDATE_REQUIRED_MSG =
-  "성인 콘텐츠 이용을 위해 프로필에 생년월일을 등록해 주세요.";
+  "Add your birth date to your profile to access adult content.";
 
 function hasNsfwBypassRole(role: UserRole | null | undefined): boolean {
   return !!role && NSFW_BYPASS_ROLES.has(role);

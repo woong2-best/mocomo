@@ -133,7 +133,7 @@ export async function checkEmailSendRateLimit(email: string, ip: string) {
     "email-send",
     normalized,
     EMAIL_SENDS_PER_HOUR,
-    "이메일 인증 요청이 너무 많습니다. 1시간 후 다시 시도해 주세요."
+    "Too many verification emails. Try again in 1 hour."
   );
   if (!hourly.ok) return hourly;
 
@@ -141,14 +141,14 @@ export async function checkEmailSendRateLimit(email: string, ip: string) {
     "email-send-day",
     normalized,
     EMAIL_SENDS_PER_DAY,
-    "오늘 이메일 인증 요청 한도를 초과했습니다. 내일 다시 시도해 주세요."
+    "You've reached today's email verification limit. Try again tomorrow."
   );
   if (!daily.ok) return daily;
 
   if (authLimiter && ip !== "unknown") {
     const ipCheck = await checkRateLimit(authLimiter, `email-ip:${ip}`);
     if (!ipCheck.success) {
-      return { ok: false as const, error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+      return { ok: false as const, error: "Too many requests. Please try again in a moment." };
     }
   }
 
@@ -168,7 +168,7 @@ export async function recordEmailSendRateLimit(email: string, ip: string): Promi
 
 /** 휴대폰 SMS: 계정·번호 각 하루 3회 */
 export async function checkPhoneSmsRateLimit(userId: string, phoneE164: string) {
-  const msg = `휴대폰 인증번호는 하루에 ${PHONE_SMS_PER_DAY}번까지만 요청할 수 있습니다. 내일 다시 시도해 주세요.`;
+  const msg = `Please sign in to continue. ${PHONE_SMS_PER_DAY}번까지만 요청할 수 있습니다. 내일 다시 시도해 주세요.`;
 
   const byUser = await enforceDbDailyLimit("phone-sms-user", userId, PHONE_SMS_PER_DAY, msg);
   if (!byUser.ok) return byUser;
@@ -195,7 +195,7 @@ export async function checkLoginRateLimit(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const normalized = email.trim().toLowerCase();
   const window = loginWindowKey();
-  const msg = "로그인 시도가 너무 많습니다. 15분 후 다시 시도해 주세요.";
+  const msg = "Too many sign-in attempts. Try again in 15 minutes.";
 
   if (authLimiter) {
     const checks = await Promise.all([

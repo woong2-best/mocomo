@@ -45,7 +45,7 @@ export async function createStripeCheckoutForUser(input: {
   if (!isStripeConfigured()) {
     return {
       error:
-        "결제가 설정되지 않았습니다. STRIPE_SECRET_KEY와 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY를 설정하세요.",
+        "Payments are not configured. Set STRIPE_SECRET_KEY and NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.",
     };
   }
 
@@ -83,7 +83,7 @@ export async function createStripeCheckoutForUser(input: {
     customerId = await getOrCreateStripeCustomer(input.userId, input.email);
   } catch (err) {
     console.error("[stripe-checkout] customer", err instanceof Error ? err.message : "error");
-    return { error: "결제 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: "Could not open the checkout page. Try again in a moment." };
   }
 
   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
@@ -129,7 +129,7 @@ export async function createStripeCheckoutForUser(input: {
     const taxAddressMissing = /head office address|automatic tax/i.test(message);
     if (!taxAddressMissing) {
       console.error("[stripe-checkout] session", message || "error");
-      return { error: "결제 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요." };
+      return { error: "Could not open the checkout page. Try again in a moment." };
     }
     try {
       session = await stripe.checkout.sessions.create(sessionParams);
@@ -138,18 +138,18 @@ export async function createStripeCheckoutForUser(input: {
         "[stripe-checkout] session retry",
         retryErr instanceof Error ? retryErr.message : "error"
       );
-      return { error: "결제 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요." };
+      return { error: "Could not open the checkout page. Try again in a moment." };
     }
   }
 
-  if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
+  if (!session.url) return { error: "Could not create checkout page." };
 
   return { checkoutUrl: session.url, orderId: intent.id };
 }
 
 export async function confirmStripeCheckoutForUser(userId: string, sessionId: string) {
   if (!isPaymentsConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "Payments aren't configured." };
   }
 
   const verified = await verifyStripeCheckoutSession(sessionId);
@@ -157,7 +157,7 @@ export async function confirmStripeCheckoutForUser(userId: string, sessionId: st
 
   const intent = await db.paymentIntent.findUnique({ where: { id: verified.orderId } });
   if (!intent || intent.userId !== userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "Payment information not found." };
   }
 
   if (intent.type === "CREATOR_SUBSCRIPTION") {

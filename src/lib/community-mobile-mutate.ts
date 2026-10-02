@@ -35,15 +35,15 @@ export async function createCommunityForUser(
 ): Promise<{ community: { id: string; slug: string; name: string } } | { error: string }> {
   const name = data.name?.trim();
   if (!name || name.length < 2) {
-    return { error: "커뮤니티 이름은 2자 이상 입력해 주세요." };
+    return { error: "Community name must be at least 2 characters." };
   }
   if (name.length > 80) {
-    return { error: "커뮤니티 이름은 80자 이하로 입력해 주세요." };
+    return { error: "Community name must be 80 characters or fewer." };
   }
 
   const category = data.category as CommunityCategory;
   if (!isCommunityCategory(category)) {
-    return { error: "카테고리를 선택해 주세요." };
+    return { error: "Select a category." };
   }
 
   let customCategoryLabel: string | null = null;
@@ -121,7 +121,7 @@ export async function createCommunityForUser(
         throw inner;
       }
     }
-    return { error: "커뮤니티 주소가 겹칩니다. 이름을 바꿔 주세요." };
+    return { error: "That community URL is taken. Choose a different name." };
   } catch (e) {
     console.error("[createCommunityForUser]", e);
     return { error: prismaErrorMessage(e) };
@@ -171,7 +171,7 @@ export async function updateCommunityBrandingForUser(
       bannerVideoUrl: true,
     },
   });
-  if (!community) return { error: "커뮤니티를 찾을 수 없습니다.", status: 404 };
+  if (!community) return { error: "Community not found.", status: 404 };
 
   const branding = await getCommunityBrandingPermissions(
     community.id,
@@ -180,16 +180,16 @@ export async function updateCommunityBrandingForUser(
   );
 
   if (data.iconUrl !== undefined && !branding.canEditIcon) {
-    return { error: "대표 이미지 변경 권한이 없습니다.", status: 403 };
+    return { error: "You can't change the profile image.", status: 403 };
   }
   if (data.coverUrl !== undefined && !branding.canEditIcon) {
-    return { error: "카드 커버 변경 권한이 없습니다.", status: 403 };
+    return { error: "You can't change the card cover.", status: 403 };
   }
   if (data.bannerUrl !== undefined && !branding.canEditBanner) {
-    return { error: "배너 변경 권한이 없습니다.", status: 403 };
+    return { error: "You can't change the banner.", status: 403 };
   }
   if (data.bannerVideoUrl !== undefined && !branding.canEditBanner) {
-    return { error: "배너 변경 권한이 없습니다.", status: 403 };
+    return { error: "You can't change the banner.", status: 403 };
   }
   if (
     data.iconUrl === undefined &&
@@ -197,7 +197,7 @@ export async function updateCommunityBrandingForUser(
     data.bannerUrl === undefined &&
     data.bannerVideoUrl === undefined
   ) {
-    return { error: "변경할 이미지가 없습니다.", status: 400 };
+    return { error: "No image to update.", status: 400 };
   }
 
   const bannerUrl = data.bannerUrl !== undefined ? data.bannerUrl || null : undefined;

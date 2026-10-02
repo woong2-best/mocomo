@@ -17,18 +17,18 @@ function parseModerationResult(data: {
   if (!result?.flagged) return { ok: true, categories };
 
   if (categories.sexual || categories["sexual/minors"]) {
-    return { ok: false, error: "음란·선정적 표현이 감지되어 전송할 수 없습니다.", categories };
+    return { ok: false, error: "Sexual or explicit content was detected. Message not sent.", categories };
   }
   if (categories.harassment || categories["harassment/threatening"]) {
-    return { ok: false, error: "괴롭힘·욕설이 감지되어 전송할 수 없습니다.", categories };
+    return { ok: false, error: "Harassment or profanity was detected. Message not sent.", categories };
   }
   if (categories.hate) {
-    return { ok: false, error: "혐오 표현이 감지되어 전송할 수 없습니다.", categories };
+    return { ok: false, error: "Hate speech was detected. Message not sent.", categories };
   }
   if (categories.violence || categories["violence/graphic"]) {
-    return { ok: false, error: "폭력적 표현이 감지되어 전송할 수 없습니다.", categories };
+    return { ok: false, error: "Violent content was detected. Message not sent.", categories };
   }
-  return { ok: false, error: "부적절한 내용이 감지되어 전송할 수 없습니다.", categories };
+  return { ok: false, error: "Inappropriate content was detected. Message not sent.", categories };
 }
 
 async function callModerationApi(text: string, timeoutMs: number): Promise<ModerationResult> {

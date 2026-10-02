@@ -31,7 +31,7 @@ export async function toggleFollowForUser(
   targetUserId: string,
   opts?: { targetUsername?: string; listOwnerUsername?: string }
 ): Promise<FollowToggleResult> {
-  if (actorId === targetUserId) return { error: "자기 자신은 팔로우할 수 없습니다." };
+  if (actorId === targetUserId) return { error: "You cannot follow yourself." };
 
   const blockErr = await assertUserBlockInteractionAllowed(actorId, targetUserId);
   if (blockErr) return blockErr;
@@ -40,7 +40,7 @@ export async function toggleFollowForUser(
     where: { id: targetUserId },
     select: { username: true, postsLocked: true },
   });
-  if (!target) return { error: "사용자를 찾을 수 없습니다." };
+  if (!target) return { error: "User not found." };
 
   const resolvedUsername = opts?.targetUsername?.trim() || target.username;
 

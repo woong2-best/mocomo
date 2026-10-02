@@ -188,10 +188,10 @@ export async function updateUserByResolvedEmail(
 }
 export function signupBlockMessage(user: ResolvedUser) {
   if (user.deletedAt && user.scheduledPurgeAt && canRecoverAccount(user)) {
-    return "이 이메일은 탈퇴한 계정입니다. 복구 기간 내에는 새로 가입할 수 없습니다. 로그인하여 계정을 복구해 주세요.";
+    return "This email belongs to a deleted account. You cannot sign up again during the recovery period. Sign in to restore your account.";
   }
   if (!user.passwordHash) {
-    return "이 이메일은 이미 등록되어 있습니다. Google 또는 Discord로 로그인하거나, 비밀번호 찾기를 이용해 주세요.";
+    return "This email is already registered. Sign in with Google or Discord, or use password recovery.";
   }
-  return "이 이메일은 이미 가입되어 있습니다. 로그인하거나 비밀번호 찾기를 이용하세요.";
+  return "This email is already registered. Sign in or use password recovery.";
 }

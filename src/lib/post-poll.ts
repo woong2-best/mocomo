@@ -1,13 +1,13 @@
 /** 게시글 투표 — 트위터 스타일 마감 시간 프리셋 (분) */
 export const POST_POLL_DURATION_OPTIONS = [
-  { label: "5분", minutes: 5 },
-  { label: "30분", minutes: 30 },
-  { label: "1시간", minutes: 60 },
-  { label: "6시간", minutes: 360 },
-  { label: "12시간", minutes: 720 },
-  { label: "1일", minutes: 1440 },
-  { label: "3일", minutes: 4320 },
-  { label: "7일", minutes: 10080 },
+  { label: "5 minutes", minutes: 5 },
+  { label: "30 minutes", minutes: 30 },
+  { label: "1 hour", minutes: 60 },
+  { label: "6 hours", minutes: 360 },
+  { label: "12 hours", minutes: 720 },
+  { label: "1 day", minutes: 1440 },
+  { label: "3 days", minutes: 4320 },
+  { label: "7 days", minutes: 10080 },
 ] as const;
 
 export const DEFAULT_POLL_DURATION_MINUTES = 1440;
@@ -33,14 +33,14 @@ export function isPostPollClosed(poll: { closesAt: Date | string; closed: boolea
 
 export function validatePostPollInput(input: CreatePostPollInput): string | null {
   const opts = input.options.map((o) => o.trim()).filter(Boolean);
-  if (opts.length < 2) return "투표 선택지는 2개 이상 필요합니다.";
-  if (opts.length > 4) return "투표 선택지는 최대 4개까지입니다.";
-  if (opts.some((o) => o.length > 50)) return "선택지는 50자 이내로 입력해 주세요.";
+  if (opts.length < 2) return "Polls need at least 2 choices.";
+  if (opts.length > 4) return "Polls can have at most 4 choices.";
+  if (opts.some((o) => o.length > 50)) return "Each choice must be 50 characters or less.";
   const unique = new Set(opts.map((o) => o.toLowerCase()));
-  if (unique.size !== opts.length) return "선택지 내용이 중복되면 안 됩니다.";
+  if (unique.size !== opts.length) return "Choice text must not duplicate.";
   const allowed = POST_POLL_DURATION_OPTIONS.map((d) => d.minutes);
   if (!allowed.includes(input.durationMinutes as (typeof allowed)[number])) {
-    return "투표 마감 시간이 올바르지 않습니다.";
+    return "Invalid poll end time.";
   }
   return null;
 }
@@ -50,9 +50,9 @@ export function pollClosesAtFromDuration(minutes: number): Date {
 }
 
 export function formatPollTimeLeft(closesAt: Date | string, closed: boolean): string {
-  if (closed || isPostPollClosed({ closesAt, closed })) return "종료됨";
+  if (closed || isPostPollClosed({ closesAt, closed })) return "Ended";
   const ms = new Date(closesAt).getTime() - Date.now();
-  if (ms <= 0) return "종료됨";
+  if (ms <= 0) return "Ended";
   const totalMins = Math.max(1, Math.ceil(ms / 60000));
   const days = Math.floor(totalMins / (60 * 24));
   const hours = Math.floor((totalMins % (60 * 24)) / 60);
@@ -192,10 +192,10 @@ export async function castPostPollVote(
   });
 
   if (!post?.poll) {
-    return { ok: false, status: 404, error: "투표를 찾을 수 없습니다." };
+    return { ok: false, status: 404, error: "Poll not found." };
   }
   if (post.authorId === userId) {
-    return { ok: false, status: 403, error: "작성자는 자신의 투표에 참여할 수 없습니다." };
+    return { ok: false, status: 403, error: "Authors can't vote on their own poll." };
   }
 
   const poll = post.poll;
@@ -203,10 +203,10 @@ export async function castPostPollVote(
     if (!poll.closed) {
       await db.postPoll.update({ where: { id: poll.id }, data: { closed: true } });
     }
-    return { ok: false, status: 400, error: "투표가 종료되었습니다." };
+    return { ok: false, status: 400, error: "This poll has ended." };
   }
   if (!poll.options.some((o) => o.id === optionId)) {
-    return { ok: false, status: 400, error: "선택지가 올바르지 않습니다." };
+    return { ok: false, status: 400, error: "Invalid choice." };
   }
 
   await db.postPollVote.upsert({
@@ -219,6 +219,6 @@ export async function castPostPollVote(
     where: { id: poll.id },
     select: postPollSelect,
   });
-  if (!fresh) return { ok: false, status: 404, error: "투표를 찾을 수 없습니다." };
+  if (!fresh) return { ok: false, status: 404, error: "Poll not found." };
   return { ok: true, poll: mapPostPollRow(fresh, optionId) };
 }

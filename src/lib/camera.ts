@@ -19,7 +19,7 @@ export async function probeCameraPermission(): Promise<PermissionState | "unknow
 export async function quickCameraCheck(): Promise<CameraCheckResult> {
   const perm = await probeCameraPermission();
   if (perm === "granted") {
-    return { ok: true, status: "granted", deviceLabel: "카메라 준비됨" };
+    return { ok: true, status: "granted", deviceLabel: "Camera ready" };
   }
   return ensureCameraAccess();
 }
@@ -30,7 +30,7 @@ export async function ensureCameraAccess(): Promise<CameraCheckResult> {
     return {
       ok: false,
       status: "unavailable",
-      message: "이 환경에서는 카메라를 사용할 수 없습니다.",
+      message: "Camera isn't available in this environment.",
     };
   }
 
@@ -40,7 +40,7 @@ export async function ensureCameraAccess(): Promise<CameraCheckResult> {
       audio: false,
     });
     const track = stream.getVideoTracks()[0];
-    const deviceLabel = track?.label?.trim() || "연결된 카메라";
+    const deviceLabel = track?.label?.trim() || "Connected camera";
     stream.getTracks().forEach((t) => t.stop());
     return { ok: true, status: "granted", deviceLabel };
   } catch (e) {
@@ -49,20 +49,20 @@ export async function ensureCameraAccess(): Promise<CameraCheckResult> {
       return {
         ok: false,
         status: "denied",
-        message: "카메라 권한이 필요합니다. 브라우저 주소창 옆 🔒에서 카메라를 허용해 주세요.",
+        message: "Camera permission required. Allow camera access from the lock icon next to the address bar.",
       };
     }
     if (name === "NotFoundError" || name === "DevicesNotFoundError") {
       return {
         ok: false,
         status: "unavailable",
-        message: "카메라를 찾을 수 없습니다. 기기에 카메라가 있는지 확인해 주세요.",
+        message: "No camera found. Check that your device has a camera.",
       };
     }
     return {
       ok: false,
       status: "unavailable",
-      message: "카메라를 사용할 수 없습니다. 다른 앱이 카메라를 쓰고 있지 않은지 확인해 주세요.",
+      message: "Camera unavailable. Make sure another app isn't using it.",
     };
   }
 }

@@ -88,7 +88,7 @@ export function drawCreditWatermark(
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("이미지 인코딩에 실패했습니다."))),
+      (blob) => (blob ? resolve(blob) : reject(new Error("Failed to encode the image."))),
       type,
       quality
     );
@@ -111,7 +111,7 @@ export async function applyImageWatermarkBlob(
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     bitmap.close();
-    throw new Error("Canvas를 사용할 수 없습니다.");
+    throw new Error("Canvas is not available.");
   }
 
   ctx.drawImage(bitmap, 0, 0);

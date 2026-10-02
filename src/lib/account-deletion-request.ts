@@ -28,15 +28,15 @@ export async function requestAccountDeletionForUser(
   data: AccountDeletionInput
 ) {
   const parsed = accountDeletionInputSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값이 올바르지 않습니다." as const };
+  if (!parsed.success) return { error: "Invalid input." as const };
 
   const { password, reason, confirmUsername, confirmDelete } = parsed.data;
 
-  if (user.deletedAt) return { error: "이미 탈퇴 처리된 계정입니다." as const };
-  if (isSiteOperator(user)) return { error: "운영자 계정은 여기서 탈퇴할 수 없습니다." as const };
+  if (user.deletedAt) return { error: "This account has already been deleted." as const };
+  if (isSiteOperator(user)) return { error: "Operator accounts can't be deleted here." as const };
 
   if (confirmUsername.trim().toLowerCase() !== user.username.toLowerCase()) {
-    return { error: "아이디(닉네임)가 일치하지 않습니다. 정확히 입력해 주세요." as const };
+    return { error: "Username (nickname) doesn't match. Enter it exactly." as const };
   }
 
   if (confirmDelete.trim() !== ACCOUNT_DELETE_CONFIRM_TEXT) {
@@ -47,10 +47,10 @@ export async function requestAccountDeletionForUser(
 
   if (user.passwordHash) {
     if (!password?.trim()) {
-      return { error: "비밀번호를 입력해 주세요." as const };
+      return { error: "Enter your password." as const };
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return { error: "비밀번호가 올바르지 않습니다." as const };
+    if (!valid) return { error: "Incorrect password." as const };
   }
 
   const { scheduledPurgeAt } = await markAccountForDeletion(user.id, reason);

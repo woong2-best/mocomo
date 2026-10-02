@@ -1,10 +1,10 @@
 export type SubcultureEventPhase = "ongoing" | "upcoming" | "past" | "permanent";
 
 export const SUBCULTURE_EVENT_PHASE_LABELS: Record<SubcultureEventPhase, string> = {
-  ongoing: "진행 중",
-  upcoming: "예정",
-  past: "종료",
-  permanent: "상설",
+  ongoing: "Ongoing",
+  upcoming: "Upcoming",
+  past: "Ended",
+  permanent: "Permanent",
 };
 
 /** 행사 일정 기준 표시 단계 — 지도·목록 필터용 */

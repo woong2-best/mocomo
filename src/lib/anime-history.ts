@@ -25,7 +25,7 @@ export async function listAnimeHistory(slug: string): Promise<
       creator: { select: { username: true } },
     },
   });
-  if (!anime) return { error: "문서를 찾을 수 없습니다." };
+  if (!anime) return { error: "Document not found." };
 
   const revisions = await db.animeRevision.findMany({
     where: { animeId: anime.id },

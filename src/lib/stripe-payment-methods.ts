@@ -140,7 +140,7 @@ export async function createSetupCheckoutSession(input: {
   returnPath?: string;
 }) {
   if (!isStripeConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "Payments aren't configured." };
   }
 
   const urls = stripeSetupReturnUrls(input.platform ?? "web", input.returnPath);
@@ -168,35 +168,35 @@ export async function createSetupCheckoutSession(input: {
       session = await createSession(customerId);
     }
 
-    if (!session.url) return { error: "카드 등록 세션을 만들지 못했습니다." };
+    if (!session.url) return { error: "Could not create card setup session." };
     return { checkoutUrl: session.url, sessionId: session.id };
   } catch (e) {
     console.error("[createSetupCheckoutSession]", e);
     if (e instanceof Stripe.errors.StripeError) {
       console.error("[createSetupCheckoutSession] stripe", e.type, e.code, e.message);
     }
-    return { error: "카드 등록 세션을 만들지 못했습니다. 잠시 후 다시 시도해 주세요." };
+    return { error: "Could not create card setup session. Try again in a moment." };
   }
 }
 
 export async function confirmSetupCheckoutSession(userId: string, sessionId: string) {
-  if (!isStripeConfigured()) return { error: "결제가 설정되지 않았습니다." };
+  if (!isStripeConfigured()) return { error: "Payments aren't configured." };
 
   const stripe = getStripe();
   const session = await stripe.checkout.sessions.retrieve(sessionId, {
     expand: ["setup_intent"],
   });
 
-  if (session.mode !== "setup") return { error: "잘못된 세션입니다." };
-  if (session.metadata?.userId !== userId) return { error: "세션 사용자가 일치하지 않습니다." };
-  if (session.status !== "complete") return { error: "카드 등록이 완료되지 않았습니다." };
+  if (session.mode !== "setup") return { error: "Invalid session." };
+  if (session.metadata?.userId !== userId) return { error: "Session user does not match." };
+  if (session.status !== "complete") return { error: "Card setup not completed." };
 
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { stripeCustomerId: true },
   });
   if (!user?.stripeCustomerId || session.customer !== user.stripeCustomerId) {
-    return { error: "고객 정보가 일치하지 않습니다." };
+    return { error: "Customer information does not match." };
   }
 
   const setupIntent =
@@ -223,18 +223,18 @@ export async function confirmSetupCheckoutSession(userId: string, sessionId: str
 }
 
 export async function detachPaymentMethod(userId: string, paymentMethodId: string) {
-  if (!isStripeConfigured()) return { error: "결제가 설정되지 않았습니다." };
+  if (!isStripeConfigured()) return { error: "Payments aren't configured." };
 
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { stripeCustomerId: true },
   });
-  if (!user?.stripeCustomerId) return { error: "등록된 카드가 없습니다." };
+  if (!user?.stripeCustomerId) return { error: "No card on file." };
 
   const stripe = getStripe();
   const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
   if (pm.customer !== user.stripeCustomerId) {
-    return { error: "본인 카드만 삭제할 수 있습니다." };
+    return { error: "You can delete only your own cards." };
   }
 
   await stripe.paymentMethods.detach(paymentMethodId);
@@ -250,18 +250,18 @@ export async function detachPaymentMethod(userId: string, paymentMethodId: strin
 }
 
 export async function setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
-  if (!isStripeConfigured()) return { error: "결제가 설정되지 않았습니다." };
+  if (!isStripeConfigured()) return { error: "Payments aren't configured." };
 
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { stripeCustomerId: true },
   });
-  if (!user?.stripeCustomerId) return { error: "등록된 카드가 없습니다." };
+  if (!user?.stripeCustomerId) return { error: "No card on file." };
 
   const stripe = getStripe();
   const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
   if (pm.customer !== user.stripeCustomerId) {
-    return { error: "본인 카드만 선택할 수 있습니다." };
+    return { error: "You can select only your own cards." };
   }
 
   await stripe.customers.update(user.stripeCustomerId, {

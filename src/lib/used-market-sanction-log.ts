@@ -36,17 +36,17 @@ export async function recordAuctionPaymentTimeoutSanction(
     const reasonDetail = [
       USED_MARKET_BAN_MESSAGE,
       "",
-      `상품: ${listing.title}`,
+      `Item: ${listing.title}`,
       `경매 마감: ${listing.auctionEndsAt?.toISOString() ?? "—"}`,
       `결제 기한: ${listing.paymentDueAt?.toISOString() ?? "—"}`,
       `제재 적용: ${now.toISOString()}`,
       `낙찰가: ${winningBidAmount}`,
       userBid
         ? `해당 이용자 최고 입찰: ${userBid.amount} (${userBid.createdAt.toISOString()})`
-        : "해당 이용자 입찰 기록 없음",
+        : "No bid history for this user",
       userBid?.termsAcceptedAt
         ? `입찰 동의 시각: ${userBid.termsAcceptedAt.toISOString()}`
-        : "입찰 동의 시각: 기록 없음",
+        : "Bid consent time: no record",
     ].join("\n");
 
     const log = await db.usedMarketSanctionLog.create({

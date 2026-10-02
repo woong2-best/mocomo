@@ -76,7 +76,7 @@ export const GLOBAL_DISCOVERY_REGIONS: GlobalDiscoveryRegion[] = [
     acceptLanguage: "ko-KR,ko;q=0.9,en;q=0.5",
     center: { lat: 36.5, lng: 127.8 },
     zoom: 7,
-    queries: ["애니메이션 행사", "코믹월드", "서브컬처 페스티벌", "메이드 카페"],
+    queries: ["Anime events", "Comic World", "Subculture festival", "Maid cafe"],
   },
   {
     country: "jp",

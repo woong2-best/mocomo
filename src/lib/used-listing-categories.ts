@@ -38,7 +38,7 @@ export function parseUsedSellCategories(input: unknown, fallback?: string | null
     ),
   ];
   if (unique.length === 0) {
-    return { error: "카테고리를 하나 이상 선택해 주세요." as const };
+    return { error: "Select at least one category." as const };
   }
   const primary = (unique.find((id) => ENUM_CATS.has(id)) ?? "GOODS") as UsedListingCategory;
   return { primary, extra: unique };

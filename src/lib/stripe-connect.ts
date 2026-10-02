@@ -46,7 +46,7 @@ export async function createCustomConnectAccount(
   void _input;
   return {
     error:
-      "Custom Connect 계정 생성은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+      "Creating Custom Connect accounts is no longer supported. Use Stripe Express onboarding.",
   };
 }
 
@@ -61,7 +61,7 @@ export async function updateCustomConnectAccount(
   void _input;
   return {
     error:
-      "Custom Connect 계정 갱신은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+      "Updating Custom Connect accounts is no longer supported. Use Stripe Express onboarding.",
   };
 }
 
@@ -130,20 +130,20 @@ export async function stripeConnectStatusFromApi(accountId: string | null | unde
   if (!isStripeConnectConfigured()) {
     return {
       ready: false,
-      message: "Stripe 설정 후 Reward 정산이 가능합니다.",
+      message: "Reward payouts are available after Stripe is configured.",
     };
   }
   if (!accountId) {
     return {
       ready: false,
-      message: "정산 등록이 필요합니다.",
+      message: "Payout registration required.",
     };
   }
   const snap = await pullAndSyncStripeConnectAccount(accountId);
   if (!snap) {
     return {
       ready: false,
-      message: "정산 상태를 확인할 수 없습니다.",
+      message: "Could not verify payout status.",
     };
   }
   const { stripeConnectStatusLabel } = await import("@/lib/marketplace/stripe-connect-sync");
@@ -158,18 +158,18 @@ export function stripeConnectStatus(accountId: string | null | undefined) {
   if (!isStripeConnectConfigured()) {
     return {
       ready: false,
-      message: "Stripe 설정 후 Reward 정산이 가능합니다.",
+      message: "Reward payouts are available after Stripe is configured.",
     };
   }
   if (!accountId) {
     return {
       ready: false,
-      message: "정산 등록이 필요합니다.",
+      message: "Payout registration required.",
     };
   }
   return {
     ready: true,
-    message: "정산 계좌가 등록되어 있습니다.",
+    message: "Payout account is registered.",
   };
 }
 
@@ -197,7 +197,7 @@ export async function attachKrBankToConnectAccount(_input: {
   void _input;
   return {
     error:
-      "앱 내 계좌 바인딩은 더 이상 지원하지 않습니다. Stripe Express 온보딩에서 계좌를 등록해 주세요.",
+      "In-app account binding is no longer supported. Register your account in Stripe Express onboarding.",
   };
 }
 

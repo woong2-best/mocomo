@@ -6,11 +6,11 @@ export type CreatorSubscriberTier = "NONE" | "BRONZE" | "SILVER" | "GOLD" | "DIA
 export const DEFAULT_CREATOR_SUBSCRIPTION_PRICE_KRW = DEFAULT_CREATOR_SUBSCRIPTION_USD_CENTS;
 
 export const SUBSCRIBER_TIER_LABELS: Record<CreatorSubscriberTier, string> = {
-  NONE: "없음",
-  BRONZE: "브론즈 (1개월+)",
-  SILVER: "실버 (3개월+)",
-  GOLD: "골드 (6개월+)",
-  DIAMOND: "다이아 (12개월+)",
+  NONE: "None",
+  BRONZE: "Bronze (1+ months)",
+  SILVER: "Silver (3+ months)",
+  GOLD: "Gold (6+ months)",
+  DIAMOND: "Diamond (12+ months)",
 };
 
 export const CONTENT_VISIBILITY_OPTIONS: {
@@ -18,12 +18,12 @@ export const CONTENT_VISIBILITY_OPTIONS: {
   label: string;
   hint: string;
 }[] = [
-  { value: "PUBLIC", label: "전체 공개", hint: "누구나 열람" },
-  { value: "SUBSCRIBERS", label: "구독자 공개", hint: "활성 구독자" },
-  { value: "SUBSCRIBER_1M", label: "1개월+ 구독자", hint: "브론즈 이상" },
-  { value: "SUBSCRIBER_3M", label: "3개월+ 구독자", hint: "실버 이상" },
-  { value: "SUBSCRIBER_6M", label: "6개월+ 구독자", hint: "골드 이상" },
-  { value: "SUBSCRIBER_12M", label: "12개월+ 구독자", hint: "다이아" },
+  { value: "PUBLIC", label: "Public", hint: "Visible to everyone" },
+  { value: "SUBSCRIBERS", label: "Subscribers only", hint: "Active subscribers" },
+  { value: "SUBSCRIBER_1M", label: "1+ month subscribers", hint: "Bronze and above" },
+  { value: "SUBSCRIBER_3M", label: "3+ month subscribers", hint: "Silver and above" },
+  { value: "SUBSCRIBER_6M", label: "6+ month subscribers", hint: "Gold and above" },
+  { value: "SUBSCRIBER_12M", label: "12+ month subscribers", hint: "Diamond" },
 ];
 
 export function monthsSubscribed(subscribedSince: Date, now = new Date()): number {

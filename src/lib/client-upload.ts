@@ -59,7 +59,7 @@ async function presignedUpload(
           ? "로그인이 필요합니다. 다시 로그인해 주세요."
           : presignRes.status === 429
             ? "업로드 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
-            : "업로드 URL을 받지 못했습니다."),
+            : "Couldn't get upload URL."),
     };
   }
 
@@ -80,7 +80,7 @@ async function presignedUpload(
 
   if (!put.ok) {
     return {
-      error: `스토리지 업로드에 실패했습니다. (${put.status})`,
+      error: `Something went wrong. Please try again.${put.status})`,
     };
   }
   return { publicUrl };
@@ -156,7 +156,7 @@ export async function uploadImageBlob(
   const direct = await presignedUpload(file, file.name, file.type || contentType, "image");
   if ("publicUrl" in direct) return direct.publicUrl;
 
-  throw new Error(localBody.error || direct.error || "이미지 업로드에 실패했습니다.");
+  throw new Error(localBody.error || direct.error || "Image upload failed.");
 }
 
 /** Upload video — Storage 직접 업로드 우선 (Vercel 본문 한도·대용량) */
@@ -178,7 +178,7 @@ export async function uploadVideoBlob(
     throw new Error(
       direct.error ||
         localBody.error ||
-        "영상 업로드에 실패했습니다. 용량(일반 50MB·프리미엄 100MB)과 로그인 상태를 확인해 주세요."
+        "Video upload failed. Check size (50MB standard · 100MB premium) and sign-in status."
     );
   }
 
@@ -191,7 +191,7 @@ export async function uploadVideoBlob(
   throw new Error(
     localBody.error ||
       direct.error ||
-      "영상 업로드에 실패했습니다. 용량(일반 50MB·프리미엄 100MB)과 로그인 상태를 확인해 주세요."
+      "Video upload failed. Check size (50MB standard · 100MB premium) and sign-in status."
   );
 }
 
@@ -207,5 +207,5 @@ export async function uploadAudioBlob(blob: Blob, filename: string): Promise<str
   const direct = await presignedUpload(file, filename, contentType, "audio");
   if ("publicUrl" in direct) return direct.publicUrl;
 
-  throw new Error(localBody.error || direct.error || "음성 업로드에 실패했습니다.");
+  throw new Error(localBody.error || direct.error || "Voice upload failed.");
 }

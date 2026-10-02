@@ -23,7 +23,7 @@ export async function verifyTurnstileToken(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isTurnstileConfigured()) {
     if (process.env.NODE_ENV === "production") {
-      return { ok: false, error: "보안 확인이 설정되지 않았습니다. 잠시 후 다시 시도해 주세요." };
+      return { ok: false, error: "Security check isn't configured. Please try again shortly." };
     }
     return { ok: true };
   }
@@ -33,7 +33,7 @@ export async function verifyTurnstileToken(
     if (options?.widgetUnavailable && process.env.NODE_ENV !== "production") {
       return { ok: true };
     }
-    return { ok: false, error: "아래 보안 확인(로봇이 아님)을 완료해 주세요." };
+    return { ok: false, error: "Complete the security check below (confirm you're not a robot)." };
   }
 
   const secret = process.env.TURNSTILE_SECRET_KEY!.trim();
@@ -51,9 +51,9 @@ export async function verifyTurnstileToken(
     const data = (await res.json()) as TurnstileVerifyResponse;
     if (data.success) return { ok: true };
     console.warn("[turnstile] verify failed", data["error-codes"]);
-    return { ok: false, error: "보안 확인에 실패했습니다. 새로고침 후 다시 시도해 주세요." };
+    return { ok: false, error: "Security check failed. Refresh and try again." };
   } catch (e) {
     console.error("[turnstile]", e);
-    return { ok: false, error: "보안 확인 서버 오류입니다. 잠시 후 다시 시도해 주세요." };
+    return { ok: false, error: "Security check server error. Please try again shortly." };
   }
 }

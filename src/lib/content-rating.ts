@@ -29,7 +29,7 @@ export function parseContentRating(value: unknown): ContentRating | null {
 export function requireContentRating(value: unknown): ContentRating | { error: string } {
   const parsed = parseContentRating(value);
   if (!parsed) {
-    return { error: "콘텐츠 유형(일반/성인)을 선택해 주세요." };
+    return { error: "Select content type (general/adult)." };
   }
   return parsed;
 }

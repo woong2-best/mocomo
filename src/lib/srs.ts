@@ -75,10 +75,10 @@ export function getSrsHlsPublicConfigured(): boolean {
 export function srsConfigError(): string | null {
   if (isSrsConfigured()) return null;
   if (!process.env.SRS_RTMP_URL?.trim()) {
-    return "SRS RTMP가 설정되지 않았습니다. SRS_RTMP_URL을 설정해 주세요.";
+    return "SRS RTMP is not configured. Set SRS_RTMP_URL.";
   }
   if (!getSrsHlsPublicConfigured()) {
-    return "HLS 재생 URL이 없습니다. NEXT_PUBLIC_SRS_HLS_BASE_URL을 설정해 주세요.";
+    return "No HLS playback URL. Set NEXT_PUBLIC_SRS_HLS_BASE_URL.";
   }
   return null;
 }

@@ -25,16 +25,16 @@ export async function resolveWhepPlaybackUrlForViewer(
   if (channel.createdBy !== userId) {
     const access = await resolveLiveChannelAccess(channelId, userId);
     if (!access.allowed) {
-      return { error: "시청 권한이 없습니다.", status: 403 };
+      return { error: "You don't have permission to watch.", status: 403 };
     }
     if (resolveChannelIngestEngine(channel) !== "cloudflare") {
-      return { error: "Cloudflare 방송이 아닙니다.", status: 400 };
+      return { error: "Not a Cloudflare stream.", status: 400 };
     }
   }
 
   const cfUid = liveInputUidFromIngressId(channel.rtmpIngressId);
   if (!cfUid) {
-    return { error: "재생 URL 준비 중", status: 409, notReady: true };
+    return { error: "Preparing playback URL", status: 409, notReady: true };
   }
 
   let whepUrl = buildCloudflareWhepPlaybackUrl(cfUid);
@@ -46,7 +46,7 @@ export async function resolveWhepPlaybackUrlForViewer(
     whepUrl = (await getCloudflareWhepPlaybackUrl(cfUid)) ?? "";
   }
   if (!whepUrl) {
-    return { error: "재생 URL 준비 중", status: 409, notReady: true };
+    return { error: "Preparing playback URL", status: 409, notReady: true };
   }
 
   return { whepUrl };

@@ -82,20 +82,20 @@ export async function sendMobileEmailAuthCode(email: string, mode: "signup" | "r
 
   if (!user) {
     if (mode === "reset") {
-      return { error: "등록되지 않은 이메일입니다.", code: "EMAIL_NOT_REGISTERED" as const };
+      return { error: "Email not registered.", code: "EMAIL_NOT_REGISTERED" as const };
     }
     return {
       success: true,
-      message: "등록된 이메일이면 인증 코드를 보냈습니다. (스팸함도 확인해 주세요)",
+      message: "If this email is registered, we sent a verification code. (Check spam too.)",
     };
   }
 
   if (mode === "signup" && user.emailVerified) {
-    return { error: "이미 인증된 계정입니다. 로그인하거나 비밀번호 찾기를 이용하세요." };
+    return { error: "This account is already verified. Sign in or use password reset." };
   }
 
   if (!isEmailConfigured()) {
-    return { error: "이메일 발송 설정(RESEND_API_KEY)이 없습니다." };
+    return { error: "Email delivery isn't configured (RESEND_API_KEY)." };
   }
 
   const code = generateEmailCode();
@@ -113,7 +113,7 @@ export async function sendMobileEmailAuthCode(email: string, mode: "signup" | "r
   const sent = await sendAuthCodeEmail(normalized, code, mode);
   if (!sent.ok) {
     await db.verificationToken.deleteMany({ where: { identifier: authId } });
-    return { error: sent.error ?? "인증 코드 발송 실패" };
+    return { error: sent.error ?? "Failed to send verification code" };
   }
 
   await recordEmailSendRateLimit(normalized, ip);
@@ -123,13 +123,13 @@ export async function sendMobileEmailAuthCode(email: string, mode: "signup" | "r
     message:
       mode === "reset"
         ? "이메일로 6자리 인증 코드를 보냈습니다. 코드 확인 후 새 비밀번호를 설정하세요."
-        : "이메일로 6자리 인증 코드를 보냈습니다. 코드 확인 후 가입 비밀번호로 로그인하세요.",
+        : "We emailed a 6-digit code. After verifying, sign in with your password.",
   };
 }
 
 export async function registerMobileUser(data: z.input<typeof registerBodySchema>) {
   const parsed = registerBodySchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
+  if (!parsed.success) return { error: "Invalid input." };
 
   return registerUser(
     {
@@ -162,7 +162,7 @@ function toMobileAuthUser(user: {
 
 export async function verifyMobileSignupAndLogin(data: z.input<typeof verifySignupSchema>) {
   const parsed = verifySignupSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
+  if (!parsed.success) return { error: "Invalid input." };
 
   const email = parsed.data.email.trim().toLowerCase();
   const result = await completeAuthWithCode(email, parsed.data.code, { mode: "signup" });
@@ -188,13 +188,13 @@ export async function verifyMobileSignupAndLogin(data: z.input<typeof verifySign
       user: toMobileAuthUser(user),
     };
   } catch {
-    return { error: "인증은 완료됐지만 로그인에 실패했습니다. 다시 로그인해 주세요." };
+    return { error: "Verified, but sign-in failed. Please sign in again." };
   }
 }
 
 export async function completeMobilePasswordReset(data: z.input<typeof resetCompleteSchema>) {
   const parsed = resetCompleteSchema.safeParse(data);
-  if (!parsed.success) return { error: "입력값이 올바르지 않습니다." };
+  if (!parsed.success) return { error: "Invalid input." };
 
   const email = parsed.data.email.trim().toLowerCase();
   const result = await completeAuthWithCode(email, parsed.data.code, {
@@ -225,7 +225,7 @@ export async function completeMobilePasswordReset(data: z.input<typeof resetComp
   } catch {
     return {
       success: true,
-      message: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.",
+      message: "Password changed. Sign in with your new password.",
     };
   }
 }

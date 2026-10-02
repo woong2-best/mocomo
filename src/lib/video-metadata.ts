@@ -17,7 +17,7 @@ export function loadVideoFromBlob(blob: Blob): Promise<HTMLVideoElement> {
 
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error("영상 정보를 읽는 데 시간이 너무 오래 걸립니다."));
+      reject(new Error("Reading video metadata is taking too long."));
     }, META_TIMEOUT_MS);
 
     const cleanup = () => {
@@ -34,7 +34,7 @@ export function loadVideoFromBlob(blob: Blob): Promise<HTMLVideoElement> {
     const onError = () => {
       cleanup();
       URL.revokeObjectURL(url);
-      reject(new Error("영상을 불러올 수 없습니다. 다른 형식(mp4)으로 시도해 주세요."));
+      reject(new Error("Couldn't load the video. Try another format (mp4)."));
     };
 
     video.addEventListener("loadedmetadata", onReady);

@@ -20,25 +20,25 @@ export type PaymentHistoryItem = {
 };
 
 const TYPE_LABELS: Record<PaymentIntentType, string> = {
-  TIP: "후원",
-  PRODUCT: "디지털 상품",
-  PREMIUM: "프리미엄",
-  EMOTICON: "이모티콘",
-  LISTING_FEE: "등록 수수료",
-  VENDOR_ONBOARDING_FEE: "판매자 입점비",
-  PHYSICAL_GOODS: "굿즈",
-  EVENT_REGISTRATION: "이벤트",
-  CREATOR_EPISODE: "유료 회차",
-  POST_MEDIA: "유료 미디어",
-  MESSAGE_MEDIA: "DM 팬아트",
-  CREATOR_SUBSCRIPTION: "멤버십 구독",
-  STUDIO_ASSET: "Studio 자산",
-  MARKETPLACE: "마켓",
-  USED_AUCTION_BID_HOLD: "경매 입찰 hold",
+  TIP: "Tip",
+  PRODUCT: "Digital product",
+  PREMIUM: "Premium",
+  EMOTICON: "Emoticons",
+  LISTING_FEE: "Registration fee",
+  VENDOR_ONBOARDING_FEE: "Seller onboarding fee",
+  PHYSICAL_GOODS: "Goods",
+  EVENT_REGISTRATION: "Event",
+  CREATOR_EPISODE: "Paid episode",
+  POST_MEDIA: "Paid media",
+  MESSAGE_MEDIA: "DM fan art",
+  CREATOR_SUBSCRIPTION: "Membership subscription",
+  STUDIO_ASSET: "Studio asset",
+  MARKETPLACE: "Marketplace",
+  USED_AUCTION_BID_HOLD: "Auction bid hold",
   FLOWER: "Flower",
-  MOCO_TOPUP: "MOCO 충전",
-  GEM_TOPUP: "MOCO 충전",
-  CALL_BOOKING: "통화 예약",
+  MOCO_TOPUP: "MOCO top-up ({v0})",
+  GEM_TOPUP: "MOCO top-up ({v0})",
+  CALL_BOOKING: "Currency reservation",
 };
 
 function metaStr(meta: Record<string, unknown>, key: string): string | null {
@@ -157,7 +157,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
   const userByUsername = new Map(usersByName.map((u) => [u.username, u]));
 
   function snippet(text: string | null | undefined, max = 36) {
-    if (!text) return "게시물";
+    if (!text) return "Post";
     const t = text.replace(/\s+/g, " ").trim();
     return t.length <= max ? t : `${t.slice(0, max)}…`;
   }
@@ -169,7 +169,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
     let creatorUsername: string | null = metaStr(meta, "username");
     let creatorDisplayName: string | null = null;
     let contentTitle = orderName ?? TYPE_LABELS[intent.type] ?? intent.type;
-    let contentSubtitle: string | null = "전자지급";
+    let contentSubtitle: string | null = "E-money";
     let href: string | null = null;
     let referenceType: string | null = null;
 
@@ -181,15 +181,15 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
         creatorUsername = receiver.username;
         creatorDisplayName = receiver.name;
       }
-      contentTitle = creatorDisplayName ?? (creatorUsername ? `@${creatorUsername}` : "크리에이터");
-      contentSubtitle = metaStr(meta, "message") ?? "후원";
+      contentTitle = creatorDisplayName ?? (creatorUsername ? `@${creatorUsername}` : "Creator");
+      contentSubtitle = metaStr(meta, "message") ?? "Tip";
       href = creatorUsername ? `/u/${creatorUsername}` : "/support";
     }
 
     if (intent.type === "MESSAGE_MEDIA") {
       referenceType = "message_media";
-      contentTitle = orderName ?? "DM 팬아트";
-      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "팬아트 구매";
+      contentTitle = orderName ?? "DM fan art";
+      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "Fan art purchase";
       href = creatorUsername ? `/u/${creatorUsername}` : "/messages";
     }
 
@@ -208,10 +208,10 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
             : `${snippet(post.content)} · 미디어`;
         href = `/post/${post.id}`;
       } else if (creatorUsername) {
-        contentTitle = orderName ?? "유료 미디어";
+        contentTitle = orderName ?? "Paid media";
         href = `/u/${creatorUsername}`;
       }
-      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "유료 미디어";
+      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "Paid media";
     }
 
     if (intent.type === "CREATOR_EPISODE") {
@@ -224,15 +224,15 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
         contentTitle = ep.title;
         href = `/works/e/${ep.id}`;
       }
-      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "회차 구매";
+      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "Episode purchase";
     }
 
     if (intent.type === "CREATOR_SUBSCRIPTION") {
       referenceType = "creator_subscription";
       const u = creatorUsername ? userByUsername.get(creatorUsername) : null;
       if (u) creatorDisplayName = u.name;
-      contentTitle = creatorDisplayName ?? (creatorUsername ? `@${creatorUsername}` : "멤버십");
-      contentSubtitle = "월간 구독";
+      contentTitle = creatorDisplayName ?? (creatorUsername ? `@${creatorUsername}` : "Membership");
+      contentSubtitle = "Monthly subscription";
       href = creatorUsername ? `/u/${creatorUsername}` : null;
     }
 
@@ -245,7 +245,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
         creatorDisplayName = product.seller.name;
         contentTitle = product.title;
       }
-      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "디지털 상품";
+      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "Digital product";
       href = "/support";
     }
 
@@ -256,15 +256,15 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
       if (order) {
         creatorUsername = order.seller.username;
         creatorDisplayName = order.seller.name;
-        contentTitle = order.items[0]?.titleSnapshot ?? "마켓 주문";
+        contentTitle = order.items[0]?.titleSnapshot ?? "Marketplace order";
         href = `/market/orders/${orderId}`;
       }
-      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "마켓";
+      contentSubtitle = creatorUsername ? `@${creatorUsername}` : "Marketplace";
     }
 
     if (intent.type === "MOCO_TOPUP") {
-      contentTitle = "MOCO 충전";
-      contentSubtitle = "잔액 충전";
+      contentTitle = "MOCO top-up ({v0})";
+      contentSubtitle = "Balance top-up";
       href = "/wallet";
     }
 

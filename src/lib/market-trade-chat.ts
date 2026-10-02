@@ -18,22 +18,22 @@ import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 /** 상품 상세에서만 여는 마켓 메시지. 일반 DM 방을 재사용하지 않는다. */
 export async function openMarketListingChat(actorId: string, listingId: string) {
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
-  if (!listing) return { error: "게시글을 찾을 수 없습니다." as const };
-  if (listing.status === "SOLD") return { error: "이미 거래 완료된 상품입니다." as const };
+  if (!listing) return { error: "Listing not found." as const };
+  if (listing.status === "SOLD") return { error: "This item has already been sold." as const };
   if (isAuctionLive(listing)) {
-    return { error: "경매 진행 중에는 메시지 대신 입찰을 이용해 주세요." as const };
+    return { error: "During an auction, please bid instead of sending messages." as const };
   }
 
   const winnerId = listing.winningBidderId ?? listing.currentBidderId;
   let buyerId: string;
   if (listing.saleType === "AUCTION") {
-    if (!winnerId) return { error: "낙찰자가 없습니다." as const };
+    if (!winnerId) return { error: "No winning bidder." as const };
     if (listing.sellerId !== actorId && winnerId !== actorId) {
-      return { error: "판매자와 낙찰자만 거래 메시지를 열 수 있습니다." as const };
+      return { error: "Only the seller and winning bidder can open trade messages." as const };
     }
     buyerId = winnerId;
   } else {
-    if (listing.sellerId === actorId) return { error: "본인 글에는 메시지를 보낼 수 없습니다." as const };
+    if (listing.sellerId === actorId) return { error: "You can't message your own listing." as const };
     buyerId = actorId;
   }
 
@@ -136,6 +136,6 @@ export async function openMarketListingChat(actorId: string, listingId: string) 
       listingId,
       error: error instanceof Error ? error.message : "open_failed",
     });
-    return { error: "거래 메시지를 열 수 없습니다." as const };
+    return { error: "Couldn't open trade messages." as const };
   }
 }

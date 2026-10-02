@@ -80,12 +80,12 @@ type UserRow = {
 /** Same gate as the web `signIn` callback, including in-window recovery. */
 async function assertUsable(user: UserRow): Promise<void> {
   if (isServiceBanned(user)) {
-    throw new MobileGoogleAuthError("banned", "이용이 제한된 계정입니다.", 403);
+    throw new MobileGoogleAuthError("banned", "This account is restricted.", 403);
   }
   if (!user.deletedAt) return;
 
   if (isAccountPastRecovery(user)) {
-    throw new MobileGoogleAuthError("account_deleted", "삭제된 계정입니다.", 403);
+    throw new MobileGoogleAuthError("account_deleted", "This account has been deleted.", 403);
   }
   if (canRecoverAccount(user)) {
     await recoverDeletedAccount(user.id);
@@ -93,7 +93,7 @@ async function assertUsable(user: UserRow): Promise<void> {
   }
   throw new MobileGoogleAuthError(
     "account_pending_recovery",
-    "탈퇴 처리 중인 계정입니다. 30일 이내 로그인하면 탈퇴를 취소할 수 있습니다.",
+    "This account is pending deletion. Sign in within 30 days to cancel deletion.",
     403
   );
 }
@@ -137,7 +137,7 @@ export async function resolveMobileGoogleAuth(input: {
   if (!isOAuthEncryptionConfigured()) {
     throw new MobileGoogleAuthError(
       "oauth_unavailable",
-      "Google 로그인이 서버에 설정되지 않았습니다.",
+      "Google sign-in isn't configured on the server.",
       503
     );
   }
@@ -146,14 +146,14 @@ export async function resolveMobileGoogleAuth(input: {
   if (!claims) {
     throw new MobileGoogleAuthError(
       "invalid_token",
-      "Google 인증 정보를 확인하지 못했습니다.",
+      "Couldn't verify Google credentials.",
       401
     );
   }
   if (!claims.email || !claims.emailVerified) {
     throw new MobileGoogleAuthError(
       "email_not_verified",
-      "이메일이 확인되지 않은 Google 계정입니다.",
+      "This Google account's email isn't verified.",
       403
     );
   }
@@ -207,13 +207,13 @@ export async function resolveMobileGoogleAuth(input: {
       });
       user = await loadUser(createdUser.id);
       if (!user) {
-        throw new MobileGoogleAuthError("signup_failed", "계정을 만들지 못했습니다.", 500);
+        throw new MobileGoogleAuthError("signup_failed", "Couldn't create the account.", 500);
       }
     } catch (e) {
       if (e instanceof MobileGoogleAuthError) throw e;
       throw new MobileGoogleAuthError(
         "signup_failed",
-        e instanceof Error ? e.message : "계정을 만들지 못했습니다.",
+        e instanceof Error ? e.message : "Couldn't create the account.",
         400
       );
     }

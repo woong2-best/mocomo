@@ -65,7 +65,7 @@ export async function addChatMemberByUsername(
   rawHandle: string
 ): Promise<AddChatMemberResult> {
   const handle = rawHandle.trim().replace(/^@+/, "").slice(0, 64);
-  if (!handle) return { error: "아이디를 입력해 주세요." };
+  if (!handle) return { error: "Enter a username." };
 
   const room = await db.chatRoom.findUnique({
     where: { id: roomId },
@@ -77,12 +77,12 @@ export async function addChatMemberByUsername(
       _count: { select: { members: true } },
     },
   });
-  if (!room) return { error: "대화방을 찾을 수 없습니다." };
+  if (!room) return { error: "Conversation not found." };
   if (room.type !== "DM" && room.type !== "GROUP") {
-    return { error: "이 대화에는 사람을 추가할 수 없습니다." };
+    return { error: "People can't be added to this chat." };
   }
   if (room.communityId || room.voiceChannelId) {
-    return { error: "이 대화에는 사람을 추가할 수 없습니다." };
+    return { error: "People can't be added to this chat." };
   }
 
   const actorMember = await db.chatMember.findUnique({
@@ -97,17 +97,17 @@ export async function addChatMemberByUsername(
 
   const target = await findInviteeByHandle(handle);
   if (!target || isServiceBanned(target)) {
-    return { error: "해당 아이디의 사용자를 찾을 수 없습니다." };
+    return { error: "No user found with that username." };
   }
   if (target.id === actorId) {
-    return { error: "자기 자신은 추가할 수 없습니다." };
+    return { error: "You can't add yourself." };
   }
 
   const already = await db.chatMember.findUnique({
     where: { roomId_userId: { roomId, userId: target.id } },
     select: { userId: true },
   });
-  if (already) return { error: "이미 대화에 있는 사용자입니다." };
+  if (already) return { error: "This user is already in the chat." };
 
   const notice = inviteNotice(target.username);
 

@@ -6,17 +6,17 @@ import { ADULT_MIN_AGE } from "@/lib/adult-verification/constants";
 export { ADULT_MIN_AGE as USED_ADULT_MIN_AGE } from "@/lib/adult-verification/constants";
 
 export const USED_RESTRICTED_OPTIONS = [
-  { value: "NONE" as const, label: "해당 없음 (일반 상품)" },
-  { value: "ALCOHOL" as const, label: "술·주류" },
-  { value: "TOBACCO" as const, label: "담배·니코틴 제품" },
-  { value: "ADULT" as const, label: "성인용품" },
+  { value: "NONE" as const, label: "Not applicable (general item)" },
+  { value: "ALCOHOL" as const, label: "Alcohol" },
+  { value: "TOBACCO" as const, label: "Tobacco and nicotine products" },
+  { value: "ADULT" as const, label: "Adult products" },
 ] as const;
 
 export const USED_ADULT_REQUIRED_MSG =
-  "술·담배·성인용품은 만 19세 이상(생년월일 등록) 계정만 구매·입찰·거래 문의가 가능합니다.";
+  "Alcohol, tobacco, and adult items require an account with date of birth showing age 19+ to buy, bid, or inquire.";
 
 export const USED_ADULT_SELLER_MSG =
-  "해당 품목을 등록하려면 프로필에 만 19세 이상 생년월일을 등록해 주세요.";
+  "To list this item, add a date of birth showing age 19+ on your profile.";
 
 export function isUsedRestrictedKind(
   kind: UsedRestrictedKind | string | null | undefined
@@ -25,9 +25,9 @@ export function isUsedRestrictedKind(
 }
 
 export function usedRestrictedLabel(kind: UsedRestrictedKind | string): string {
-  if (kind === "ALCOHOL") return "술·주류";
-  if (kind === "TOBACCO") return "담배";
-  if (kind === "ADULT") return "성인용품";
+  if (kind === "ALCOHOL") return "Alcohol";
+  if (kind === "TOBACCO") return "Tobacco";
+  if (kind === "ADULT") return "Adult products";
   return "";
 }
 

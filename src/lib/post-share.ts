@@ -38,7 +38,7 @@ export function buildPostShareMessage(input: {
   const preview =
     input.title?.trim() ||
     input.content?.trim().replace(/\s+/g, " ").slice(0, 100) ||
-    "게시물";
+    "Post";
   return `@${input.authorUsername}님의 게시물\n${preview}\n${url}`;
 }
 
@@ -53,8 +53,8 @@ export function buildPostQuoteDraft(input: {
   const preview =
     input.title?.trim() ||
     input.content?.trim().replace(/\s+/g, " ").slice(0, 120) ||
-    "게시물";
-  const prefix = input.hasVideo ? "🎬 영상 게시물 공유" : "📎 게시물 공유";
+    "Post";
+  const prefix = input.hasVideo ? "🎬 영상 게시물 공유" : "📎 Share post";
   return `${prefix}\n\n${preview}\n\n@${input.authorUsername}\n${url}`;
 }
 
@@ -69,6 +69,6 @@ export function buildPostRepostQuoteDraft(input: {
   const preview =
     input.title?.trim() ||
     input.content?.trim().replace(/\s+/g, " ").slice(0, 140) ||
-    "게시물";
+    "Post";
   return `\n\n— @${input.authorUsername}: ${preview}\n${url}`;
 }

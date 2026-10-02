@@ -1,6 +1,6 @@
 export const ANONYMOUS_AUTHOR_ID = "anonymous";
 export const ANONYMOUS_AUTHOR_USERNAME = "anonymous";
-export const ANONYMOUS_DISPLAY_NAME = "익명";
+export const ANONYMOUS_DISPLAY_NAME = "Anonymous";
 
 type AuthorLike = {
   id: string;

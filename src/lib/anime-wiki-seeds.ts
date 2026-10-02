@@ -19,7 +19,7 @@ export type AnimeWikiSeed = {
 
 export const ANIME_WIKI_SEEDS: AnimeWikiSeed[] = [
   {
-    title: "갑철성의 카바네리",
+    title: "Kabaneri of the Iron Fortress",
     titleEn: "Kabaneri of the Iron Fortress",
     genre: "ACTION",
     studio: "WIT STUDIO",
@@ -49,12 +49,12 @@ export const ANIME_WIKI_SEEDS: AnimeWikiSeed[] = [
 **갑철성** — 증기 기관과 철판으로 무장한 열차 도시. 역마다 교역·정비·방어가 이루어진다.
 
 **카바네리** — 감염됐으나 인간의 의지를 유지하는 존재. 인간과 카바네 양쪽에서 적대받기 쉽다.`,
-    characters: ["생驹", "無名(이름 없는)", "美馬", "菖蒲", "来栖"],
-    tags: ["액션", "스팀펑크", "좀비", "WIT STUDIO", "오리지널"],
+    characters: ["Ikoma", "Mumei (Nameless)", "美馬", "菖蒲", "来栖"],
+    tags: ["Action", "Steampunk", "Zombie", "WIT STUDIO", "Original"],
     infobox: KABANERI_INFOBOX,
   },
   {
-    title: "귀멸의 칼날",
+    title: "Demon Slayer",
     titleEn: "Demon Slayer Kimetsu no Yaiba",
     genre: "ACTION",
     studio: "ufotable",
@@ -83,10 +83,10 @@ export const ANIME_WIKI_SEEDS: AnimeWikiSeed[] = [
 
 上弦·下弦 오니는 고유한 **血鬼術**을 사용한다. 태양에 약한 오니는 인간을 사냥해 자신을 강화한다.`,
     characters: ["竈門炭治郎", "竈門禰豆子", "我妻善逸", "嘴平伊之助", "冨岡義勇", "煉獄杏寿郎"],
-    tags: ["액션", "판타지", "ufotable", "Jump", "대히트"],
+    tags: ["Action", "Fantasy", "ufotable", "Jump", "Hit series"],
   },
   {
-    title: "진격의 거인",
+    title: "Attack on Titan",
     titleEn: "Attack on Titan",
     genre: "ACTION",
     studio: "MAPPA / WIT STUDIO",
@@ -110,11 +110,11 @@ export const ANIME_WIKI_SEEDS: AnimeWikiSeed[] = [
 
 벽 밖 조사와 진실 규명을 담당. **立体機動装置**로 거인의 약점인 목덜미를 공격한다.`,
     characters: ["エレン・イェーガー", "ミカサ・アッカーマン", "アルミン・アルレルト", "リヴァイ", "エルヴィン・スミス"],
-    tags: ["액션", "다크", "거인", "WIT", "MAPPA"],
+    tags: ["Action", "Dark", "Giants", "WIT", "MAPPA"],
     isProtected: true,
   },
   {
-    title: "그 비스크 돌은 사랑을 한다",
+    title: "My Dress-Up Darling",
     titleEn: "My Dress-Up Darling",
     genre: "ROMANCE",
     studio: "CloverWorks",
@@ -138,10 +138,10 @@ export const ANIME_WIKI_SEEDS: AnimeWikiSeed[] = [
 
 작품은 실제 코스프레 커뮤니티의 **의상 제작·촬영·SNS** 문화를 사실적으로 묘사한다. 헤ア·메이크·소품까지 세심하게 다룬다.`,
     characters: ["五条新菜", "喜多川海夢", "乾紗寿叶", "乾心寿", "五条薫"],
-    tags: ["로맨스", "코스프레", "CloverWorks", "일상"],
+    tags: ["Romance", "Cosplay", "CloverWorks", "Slice of life"],
   },
   {
-    title: "너의 이름은.",
+    title: "Your Name.",
     titleEn: "Your Name",
     genre: "ROMANCE",
     studio: "CoMix Wave Films",
@@ -161,10 +161,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 三葉가 사는 가공의 시골 마을. **口噛み酒**와 신사 의식, 유성과 연결된 비밀을 품는다.`,
     characters: ["立花瀧", "宮水三葉", "奥寺美紀", "勅使河原克彦", "阿部"],
-    tags: ["로맨스", "신해성", "극장판", "RADWIMPS"],
+    tags: ["Romance", "Mitsuha Miyamizu", "Theatrical film", "RADWIMPS"],
   },
   {
-    title: "토라도라!",
+    title: "Toradora!",
     titleEn: "Toradora",
     genre: "ROMANCE",
     studio: "J.C.STAFF",
@@ -181,10 +181,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 大河는 **「掌中のタイガー」**라 불리며, 작품 제목 Toradora(호랑이+도라)의 유래가 된다.`,
     characters: ["逢坂大河", "高須龍児", "櫛枝実乃梨", "川嶋亜美", "北村祐作"],
-    tags: ["로맨스", "학원", "J.C.STAFF", "명작"],
+    tags: ["Romance", "School", "J.C.STAFF", "Classic"],
   },
   {
-    title: "케이온!",
+    title: "K-On!",
     titleEn: "K-On",
     genre: "COMEDY",
     studio: "Kyoto Animation",
@@ -201,10 +201,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 「Don't say lazy」「Go! Go! Maniac」 등 극중 밴드 **放課後ティータイム**의 곡이 실제로 발매되었다.`,
     characters: ["平沢唯", "秋山澪", "田井中律", "琴吹紬", "中野梓"],
-    tags: ["코미디", "음악", "KyoAni", "밴드", "治癒"],
+    tags: ["Comedy", "Music", "KyoAni", "밴드", "治癒"],
   },
   {
-    title: "스파이 패밀리",
+    title: "Spy x Family",
     titleEn: "Spy x Family",
     genre: "COMEDY",
     studio: "WIT STUDIO / CloverWorks",
@@ -224,10 +224,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 | 원작 | 遠藤達哉 (Jump+) |
 | 키워드 | 가족, 코미디, Cold War |`,
     characters: ["ロイド・フォージャー", "アーニャ・フォージャー", "ヨル・フォージャー", "ボンド", "フランキー"],
-    tags: ["코미디", "스파이", "가족", "Jump", "WIT"],
+    tags: ["Comedy", "스파이", "가족", "Jump", "WIT"],
   },
   {
-    title: "장송의 프리렌",
+    title: "Frieren: Beyond Journey's End",
     titleEn: "Frieren Beyond Journeys End",
     genre: "FANTASY",
     studio: "Madhouse",
@@ -251,7 +251,7 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 인간의 감정을 이해하지 못하는 존재로 묘사되며, 작품의 철학적 대립축을 이룬다.`,
     characters: ["フリーレン", "フェルン", "シュタルク", "ヒンメル", "ハイター", "エーヴァ"],
-    tags: ["판타지", "명작", "Madhouse", "2023"],
+    tags: ["Fantasy", "Classic", "Madhouse", "2023"],
     isProtected: true,
   },
   {
@@ -275,10 +275,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 **魔女**들과 연관된 세계관. **試煉**과 **大罪** Motif가 시즌마다 전개된다.`,
     characters: ["ナツキ・スバル", "エミリア", "レム", "ラム", "ベアトリス", "ロズワール"],
-    tags: ["이세계", "타임루프", "White Fox", "대히트"],
+    tags: ["Isekai", "타임루프", "White Fox", "Hit series"],
   },
   {
-    title: "슈타인즈 게이트",
+    title: "Steins;Gate",
     titleEn: "Steins Gate",
     genre: "SCI_FI",
     studio: "White Fox",
@@ -298,7 +298,7 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 **α·β** 등 수많은 세계선이 존재. **Reading Steiner** 능력자만은 세계선 변경의 기억을 유지한다.`,
     characters: ["岡部倫太郎", "牧瀬紅莉栖", "椎名まゆり", "橋田至", "阿万音鈴羽"],
-    tags: ["SF", "타임트래블", "명작", "White Fox"],
+    tags: ["SF", "타임트래블", "Classic", "White Fox"],
     isProtected: true,
   },
   {
@@ -325,7 +325,7 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
     tags: ["SF", "Production IG", "범죄", "디스토피아"],
   },
   {
-    title: "봇치 더 록!",
+    title: "Bocchi the Rock!",
     titleEn: "Bocchi the Rock",
     genre: "SLICE_OF_LIFE",
     studio: "CloverWorks",
@@ -342,10 +342,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 **結束バンド** — ぼっちちゃん(기타·보컬), にじika(드럼), 喜多(보컬·기타), 虹夏(베이스).`,
     characters: ["後藤ひとり", "伊地知虹夏", "喜多郁代", "山田リョウ", "PAさん"],
-    tags: ["일상", "음악", "밴드", "CloverWorks", "2022"],
+    tags: ["Slice of life", "Music", "밴드", "CloverWorks", "2022"],
   },
   {
-    title: "바이올렛 에버가든",
+    title: "Violet Evergarden",
     titleEn: "Violet Evergarden",
     genre: "SLICE_OF_LIFE",
     studio: "Kyoto Animation",
@@ -362,7 +362,7 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 **外伝**·**劇場版**으로 이야기가 완결된다.`,
     characters: ["ヴァイオレット・エヴァーガーデン", "ギルベルト・ブーガンビリア", "クラウディア・ホプキンス", "リト", "カトレア"],
-    tags: ["드라마", "KyoAni", "代筆", "명작"],
+    tags: ["Drama", "KyoAni", "代筆", "Classic"],
   },
   {
     title: "Another",
@@ -382,10 +382,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 {{collapse|스포일러|클래스에 **「余り者(extra)」**가 한 명 섞이면, 그 해 반 친구·가족이 비극적 사고로 죽어간다고 전해진다.}}`,
     characters: ["榊原恒一", "見崎鳴", "赤沢泉美", "望月優", "勅使河原直哉"],
-    tags: ["호러", "미스터리", "학원", "PA WORKS"],
+    tags: ["Horror", "Mystery", "School", "PA WORKS"],
   },
   {
-    title: "기생수",
+    title: "Parasyte",
     titleEn: "Parasyte",
     genre: "HORROR",
     studio: "Madhouse",
@@ -402,10 +402,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 한국 팬덤에서는 **「똥손」** 등으로 유머러스하게 부르기도 한다.`,
     characters: ["泉新一", "ミギー", "島田秀雄", "田宮良子", "君島加奈"],
-    tags: ["호러", "SF", "Madhouse", "명작"],
+    tags: ["Horror", "SF", "Madhouse", "Classic"],
   },
   {
-    title: "하이큐!!",
+    title: "Haikyu!!",
     titleEn: "Haikyuu",
     genre: "SPORTS",
     studio: "Production I.G",
@@ -426,10 +426,10 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 | 音駒 | Nekoma, 고양이 vs 까마귀 |
 | 白鳥沢 | 강호, **牛島若利** |`,
     characters: ["日向翔陽", "影山飛雄", "月島蛍", "西谷夕", "及川徹", "牛島若利"],
-    tags: ["스포츠", "배구", "Production IG", "Jump"],
+    tags: ["Sports", "배구", "Production IG", "Jump"],
   },
   {
-    title: "블루 록",
+    title: "Blue Lock",
     titleEn: "Blue Lock",
     genre: "SPORTS",
     studio: "8bit",
@@ -446,7 +446,7 @@ RADWIMPS의 **「前前前世」** 등 OST가 작품과 함께 대히트했다.`
 
 **「エゴ」** — 팀플레이와 개인의 욕망 사이의 긴장.`,
     characters: ["潔世一", "蜂楽廻", "千切豹馬", "凪誠士郎", "糸師凛", "國神錬介"],
-    tags: ["스포츠", "축구", "8bit", "2022"],
+    tags: ["Sports", "축구", "8bit", "2022"],
   },
 ];
 

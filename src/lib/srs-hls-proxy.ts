@@ -273,7 +273,7 @@ export async function probeSrsManifest(streamKey: string): Promise<{
       rtmpPublish: onAir || true,
       manifestUrl: manifest.url,
       flvUrl,
-      error: "HLS 세그먼트 대기 중 (FLV 재생 권장)",
+      error: "Waiting for HLS segments (FLV playback recommended)",
     };
   }
 

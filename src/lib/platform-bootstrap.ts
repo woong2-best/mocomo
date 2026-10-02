@@ -30,12 +30,12 @@ export async function ensurePlatformBootstrap(prisma: PrismaClient) {
   if ((await prisma.event.count()) === 0) {
     await prisma.event.create({
       data: {
-        title: "MoCoMo 오픈 기념 팬아트",
-        description: "첫 게시물과 팬아트를 올려 보세요!",
+        title: "MoCoMo launch fan art",
+        description: "Post your first post and fan art!",
         type: "fanart",
         startsAt: new Date(),
         endsAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-        prize: "프리미엄 1개월",
+        prize: "1 month Premium",
       },
     });
   }

@@ -3,10 +3,10 @@ import { isAdultContent } from "@/lib/content-rating";
 
 /** 성인·NSFW 콘텐츠 유료화 금지 — 플랫폼 전역 (결제·판매·후원·구독 등) */
 export const ADULT_MONETIZATION_BANNED_MESSAGE =
-  "성인·NSFW 콘텐츠는 MoCoMo에서 판매·후원·구독·유료 열람 등 어떠한 형태의 유료 거래도 할 수 없습니다. 이용약관 및 결제 정책을 확인해 주세요.";
+  "Adult and NSFW content can't be sold, tipped, subscribed to, paywalled, or monetized in any way on MoCoMo. See the Terms of Service and payment policy.";
 
 export const ADULT_MONETIZATION_BANNED_SHORT =
-  "성인 콘텐츠는 유료 판매·후원이 금지되어 있습니다.";
+  "Paid sales and tips for adult content are not allowed.";
 
 export function assertAdultContentNotMonetized(
   contentRating: ContentRating | boolean | null | undefined,

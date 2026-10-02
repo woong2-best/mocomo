@@ -34,15 +34,15 @@ export function LiveHostMediaControls() {
     <div className="flex flex-wrap gap-2">
       <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => void toggleMic()}>
         {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-        {micOn ? "마이크" : "음소거"}
+        {micOn ? "마이크" : "Mute members"}
       </Button>
       <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => void toggleCam()}>
         {camOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-        {camOn ? "카메라 끔" : "카메라"}
+        {camOn ? "카메라 끔" : "Camera"}
       </Button>
       <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" onClick={() => void toggleScreen()}>
         <MonitorUp className="h-4 w-4" />
-        {screenOn ? "화면공유 끔" : "화면 공유"}
+        {screenOn ? "화면공유 끔" : "Share screen"}
       </Button>
     </div>
   );

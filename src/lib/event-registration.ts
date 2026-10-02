@@ -50,34 +50,34 @@ export function eventRegistrationFeeLabel(
 }
 
 export const EVENT_TYPES = [
-  { id: "fanart", label: "팬아트" },
-  { id: "cosplay", label: "코스프레" },
-  { id: "goods", label: "굿즈" },
-  { id: "meetup", label: "오프라인" },
-  { id: "virtual", label: "버츄얼" },
-  { id: "other", label: "이벤트" },
+  { id: "fanart", label: "Fan art" },
+  { id: "cosplay", label: "Cosplay" },
+  { id: "goods", label: "Goods" },
+  { id: "meetup", label: "Offline" },
+  { id: "virtual", label: "Virtual" },
+  { id: "other", label: "Event" },
 ] as const;
 
 export type EventTypeId = (typeof EVENT_TYPES)[number]["id"];
 
 /** 상단 카테고리 라인 (부가 기능 안내) */
 export const EVENT_CATEGORY_LINE = [
-  "팬아트",
-  "코스프레",
-  "굿즈",
-  "오프라인",
-  "버츄얼",
+  "Fan art",
+  "Cosplay",
+  "Goods",
+  "Offline",
+  "Virtual",
 ] as const;
 
 /** 필터 태그 — #해시 형태 */
 export const EVENT_FILTER_TAGS = [
-  { id: "all", label: "전체", hash: null },
-  { id: "fanart", label: "팬아트", hash: "#팬아트" },
-  { id: "cosplay", label: "코스프레", hash: "#코스프레" },
-  { id: "goods", label: "굿즈", hash: "#굿즈" },
-  { id: "virtual", label: "버츄얼", hash: "#버츄얼" },
-  { id: "meetup", label: "행사", hash: "#행사" },
-  { id: "other", label: "이벤트", hash: "#이벤트" },
+  { id: "all", label: "All", hash: null },
+  { id: "fanart", label: "Fan art", hash: "#fanart" },
+  { id: "cosplay", label: "Cosplay", hash: "#cosplay" },
+  { id: "goods", label: "Goods", hash: "#goods" },
+  { id: "virtual", label: "Virtual", hash: "#virtual" },
+  { id: "meetup", label: "Convention", hash: "#convention" },
+  { id: "other", label: "Event", hash: "#event" },
 ] as const;
 
 export type EventLinkInput = { label: string; url: string };
@@ -97,6 +97,6 @@ export function eventDday(endsAt: Date | string): string {
     (startOfEnd.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24)
   );
   if (diff === 0) return "D-Day";
-  if (diff < 0) return "종료";
+  if (diff < 0) return "Ended";
   return `D-${diff}`;
 }

@@ -72,7 +72,7 @@ export async function approveFollowRequestForUser(
     },
     select: { id: true, requester: { select: { username: true } } },
   });
-  if (!req) return { error: "요청을 찾을 수 없습니다." };
+  if (!req) return { error: "Request not found." };
 
   await db.$transaction(async (tx) => {
     try {
@@ -107,7 +107,7 @@ export async function rejectFollowRequestForUser(
   const deleted = await db.followRequest.deleteMany({
     where: { requesterId, targetId: userId },
   });
-  if (deleted.count === 0) return { error: "요청을 찾을 수 없습니다." };
+  if (deleted.count === 0) return { error: "Request not found." };
 
   const me = await db.user.findUnique({
     where: { id: userId },

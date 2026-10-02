@@ -7,10 +7,10 @@ export async function verifyStripeCheckoutSession(sessionId: string) {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
 
   const orderId = session.metadata?.orderId;
-  if (!orderId) return { ok: false as const, error: "주문 정보가 없습니다." };
+  if (!orderId) return { ok: false as const, error: "No order information." };
 
   const amount = session.amount_total;
-  if (amount == null) return { ok: false as const, error: "결제 금액을 확인할 수 없습니다." };
+  if (amount == null) return { ok: false as const, error: "Could not verify payment amount." };
 
   const paymentRef = session.payment_intent
     ? typeof session.payment_intent === "string"
@@ -30,5 +30,5 @@ export async function verifyStripeCheckoutSession(sessionId: string) {
     }
   }
 
-  return { ok: false as const, error: "결제가 완료되지 않았습니다." };
+  return { ok: false as const, error: "Payment not completed." };
 }

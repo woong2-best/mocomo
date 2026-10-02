@@ -29,7 +29,7 @@ export async function fetchLivekitCredentials(
   }
 
   if (!res.ok) {
-    const msg = body.error ?? `연결 실패 (${res.status})`;
+    const msg = body.error ?? `Something went wrong. Please try again.${res.status})`;
     const retry5xx = res.status >= 500 && attempt < 2;
     if (retry5xx) {
       await new Promise((r) => setTimeout(r, 500));
@@ -39,7 +39,7 @@ export async function fetchLivekitCredentials(
   }
 
   if (!body.token || !body.serverUrl) {
-    throw new Error(body.error ?? "LiveKit 응답이 올바르지 않습니다.");
+    throw new Error(body.error ?? "Invalid LiveKit response.");
   }
 
   return {

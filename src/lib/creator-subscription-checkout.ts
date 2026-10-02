@@ -30,10 +30,10 @@ export async function createCreatorSubscriptionCheckoutForUser(input: {
   recurringDonationTermsAccepted?: boolean;
 }) {
   void input;
-  return { error: "크리에이터 정기 후원 기능은 종료되었습니다." };
+  return { error: "Creator subscriptions have been discontinued." };
 
   if (!isStripeConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "Payments aren't configured." };
   }
 
   const checkoutInput = {
@@ -119,7 +119,7 @@ export async function createCreatorSubscriptionCheckoutForUser(input: {
     cancel_url: urls.cancelUrl,
   });
 
-  if (!session.url) return { error: "결제 페이지를 만들 수 없습니다." };
+  if (!session.url) return { error: "Could not create checkout page." };
 
   await db.paymentIntent.update({
     where: { id: intent.id },
@@ -131,18 +131,18 @@ export async function createCreatorSubscriptionCheckoutForUser(input: {
 
 export async function confirmCreatorSubscriptionCheckout(userId: string, sessionId: string) {
   if (!isPaymentsConfigured()) {
-    return { error: "결제가 설정되지 않았습니다." };
+    return { error: "Payments aren't configured." };
   }
 
   const stripe = getStripe();
   const session = await stripe.checkout.sessions.retrieve(sessionId);
 
   const orderId = session.metadata?.orderId;
-  if (!orderId) return { error: "주문 정보가 없습니다." };
+  if (!orderId) return { error: "No order information." };
 
   const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
   if (!intent || intent.userId !== userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "Payment information not found." };
   }
 
   if (intent.status === "PAID") {
@@ -155,7 +155,7 @@ export async function confirmCreatorSubscriptionCheckout(userId: string, session
   }
 
   if (session.payment_status !== "paid" && session.status !== "complete") {
-    return { error: "결제가 완료되지 않았습니다." };
+    return { error: "Payment not completed." };
   }
 
   const purchaseConsent = await assertPurchaseTermsConsentRecorded(userId, orderId);
@@ -167,7 +167,7 @@ export async function confirmCreatorSubscriptionCheckout(userId: string, session
   const subRef = session.subscription;
   const stripeSubscriptionId = typeof subRef === "string" ? subRef : null;
   if (!stripeSubscriptionId) {
-    return { error: "구독 정보를 확인할 수 없습니다." };
+    return { error: "Could not verify subscription information." };
   }
 
   const amount = session.amount_total ?? intent.amount;

@@ -3,27 +3,27 @@
 export const REPEAT_VIOLATORS_WARNING_THRESHOLD = 3;
 
 export const REPEAT_VIOLATORS_POLICY = {
-  title: "반복 위반자 정책 (Repeat Violators Policy)",
+  title: "Repeat Violators Policy",
   summary:
-    "동일 계정에 운영원칙 위반 경고가 3회 누적되면 영구 정지 및 수익·정산 차단을 적용합니다.",
+    "After three community-guideline warnings on the same account, we apply permanent suspension and block payouts and settlements.",
   steps: [
     {
-      warnings: "1~2회",
-      action: "콘텐츠 삭제, 경고 알림, 위험도 점수 상승",
+      warnings: "1–2 times",
+      action: "Content removal, warning notice, higher risk score",
     },
     {
-      warnings: "3회",
-      action: "영구 정지, 크리에이터·판매자 수익 차단, Stripe Connect 정산 중단",
+      warnings: "3 times",
+      action: "Permanent suspension, creator/seller payout block, Stripe Connect settlement halt",
     },
     {
-      warnings: "중대 위반",
-      action: "경고 없이 즉시 영구 정지, 수익 차단, 필요 시 법 집행 기관 신고",
+      warnings: "Severe violation",
+      action: "Immediate permanent suspension without warning, payout block, law-enforcement report when needed",
     },
   ],
   severeViolationReasons: [
-    "아동·청소년 성착취·유해 콘텐츠",
-    "테러·폭력적 극단주의 선동",
-    "대규모 사기·피싱",
+    "Child sexual abuse and exploitation",
+    "Terrorism and violent extremism",
+    "Large-scale fraud and phishing",
   ],
 } as const;
 

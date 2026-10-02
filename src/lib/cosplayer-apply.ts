@@ -30,20 +30,20 @@ export async function applyAsCosplayerForUser(
   const photoUrl = data.photoUrl?.trim() ?? "";
 
   if (!bio || bio.length > BIO_MAX) {
-    return { error: "자기소개를 확인해 주세요." };
+    return { error: "Check your bio." };
   }
   if (!isPersistablePhotoUrl(photoUrl)) {
-    return { error: "사진을 업로드해 주세요." };
+    return { error: "Upload a photo." };
   }
 
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { username: true },
   });
-  if (!user) return { error: "사용자를 찾을 수 없습니다." };
+  if (!user) return { error: "User not found." };
 
   const existing = await db.cosplayerProfile.findUnique({ where: { userId } });
-  if (existing) return { error: "이미 코스어로 등록되어 있습니다." };
+  if (existing) return { error: "You're already registered as a cosplayer." };
 
   await db.cosplayerProfile.create({
     data: {

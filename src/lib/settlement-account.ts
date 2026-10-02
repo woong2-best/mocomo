@@ -1,5 +1,5 @@
 export const SETTLEMENT_ACCOUNT_REQUIRED_MSG =
-  "Reward 정산 등록이 필요합니다. 마이페이지에서 계좌번호·실명·주소를 입력해 정산을 등록해 주세요.";
+  "Reward payout registration is required. Enter your bank account, legal name, and address on My Page to register for payouts.";
 
 export const SETTLEMENT_ACCOUNT_REQUIRED_CODE = "SETTLEMENT_ACCOUNT_REQUIRED";
 

@@ -41,7 +41,7 @@ export async function registerCreatorSettlementForUser(
   void _meta;
   return {
     error:
-      "앱 내 계좌 직접 등록(Custom Connect)은 더 이상 지원하지 않습니다. Stripe Express 온보딩을 이용해 주세요.",
+      "Direct in-app bank registration (Custom Connect) is no longer supported. Use Stripe Express onboarding.",
     code: "CUSTOM_CONNECT_DEPRECATED" as const,
   };
 }
@@ -75,7 +75,7 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
       reasons: [
         {
           code: "NO_CONNECT_ACCOUNT",
-          message: "Stripe Connect 계정이 없습니다. 정산 계좌 연동을 시작해 주세요.",
+          message: "No Stripe Connect account. Start payout account linking.",
         },
       ],
     },

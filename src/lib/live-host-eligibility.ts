@@ -34,7 +34,7 @@ export async function assertLiveHostEligible(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const eligibility = await fetchLiveHostEligibility(userId);
   if (!eligibility.eligible) {
-    return { ok: false, error: eligibility.message ?? "라이브 방송 권한이 없습니다." };
+    return { ok: false, error: eligibility.message ?? "You don't have permission to go live." };
   }
   return { ok: true };
 }

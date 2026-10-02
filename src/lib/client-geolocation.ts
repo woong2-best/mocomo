@@ -45,12 +45,12 @@ export async function getCurrentCoords(): Promise<GeoCoords> {
 
 export function geolocationErrorMessage(err: unknown): string {
   if (err instanceof Error) {
-    if (err.message === "UNSUPPORTED") return "이 기기에서는 위치를 사용할 수 없습니다.";
-    if (err.message === "PERMISSION_DENIED") return "위치 권한을 허용해 주세요.";
+    if (err.message === "UNSUPPORTED") return "Location isn't available on this device.";
+    if (err.message === "PERMISSION_DENIED") return "Allow location permission.";
   }
   const code = (err as GeolocationPositionError | undefined)?.code;
-  if (code === 1) return "위치 권한을 허용해 주세요.";
-  if (code === 2) return "위치를 가져올 수 없습니다. GPS·네트워크를 확인해 주세요.";
-  if (code === 3) return "위치 요청 시간이 초과되었습니다. 다시 시도해 주세요.";
-  return "현재 위치를 가져오지 못했습니다.";
+  if (code === 1) return "Allow location permission.";
+  if (code === 2) return "Couldn't get location. Check GPS and network.";
+  if (code === 3) return "Location request timed out. Try again.";
+  return "Couldn't get current location.";
 }

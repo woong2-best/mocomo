@@ -1,13 +1,13 @@
 import type { AccountStatus } from "@prisma/client";
 
 export const ACCOUNT_SUSPENDED_POST_MESSAGE =
-  "계정이 정지되어 게시물을 작성할 수 없습니다.";
+  "Your account is suspended and can't post.";
 export const ACCOUNT_SUSPENDED_LIKE_MESSAGE =
-  "계정이 정지되어 좋아요를 누를 수 없습니다.";
+  "Your account is suspended and can't like posts.";
 export const ACCOUNT_SUSPENDED_WRITE_MESSAGE =
-  "계정이 정지되어 이 작업을 수행할 수 없습니다.";
+  "Your account is suspended and can't perform this action.";
 export const ACCOUNT_SUSPENDED_SIGNUP_MESSAGE =
-  "정지된 계정과 연결된 정보로는 새로운 계정을 생성할 수 없습니다.";
+  "You can't create a new account with information linked to a suspended account.";
 
 export type AccountWriteKind =
   | "default"
@@ -65,17 +65,17 @@ export function assertAccountCanWrite(
 export function accountStatusLabel(status: AccountStatus): string {
   switch (status) {
     case "ACTIVE":
-      return "정상";
+      return "Normal";
     case "LIMITED":
-      return "일부 제한";
+      return "Partial restrictions";
     case "READ_ONLY":
-      return "읽기 전용";
+      return "Read-only";
     case "TEMP_SUSPENDED":
-      return "일시 정지";
+      return "Temporarily suspended";
     case "PERMANENT_SUSPENDED":
-      return "영구 정지";
+      return "Permanent suspension";
     case "BANNED":
-      return "이용 금지";
+      return "Banned";
     default:
       return status;
   }
@@ -84,17 +84,17 @@ export function accountStatusLabel(status: AccountStatus): string {
 export function appealStatusLabel(status: string): string {
   switch (status) {
     case "RECEIVED":
-      return "접수됨";
+      return "Received";
     case "UNDER_REVIEW":
-      return "검토 중";
+      return "Under review";
     case "INFO_REQUESTED":
-      return "추가 자료 요청";
+      return "Additional info requested";
     case "APPROVED":
-      return "승인";
+      return "Approved";
     case "REJECTED":
-      return "기각";
+      return "Denied";
     case "CLOSED":
-      return "종료됨";
+      return "Ended";
     default:
       return status;
   }

@@ -38,7 +38,7 @@ export async function uploadBufferToSupabase(
 ): Promise<{ publicUrl: string } | { error: string }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
-    return { error: "Supabase Storage가 설정되지 않았습니다." };
+    return { error: "Supabase Storage isn't configured." };
   }
 
   const key = storageObjectKey(userId, category, filename);
@@ -51,10 +51,10 @@ export async function uploadBufferToSupabase(
     if (error.message?.includes("Bucket not found")) {
       return {
         error:
-          "Storage 버킷이 없습니다. Supabase SQL Editor에서 scripts/supabase-fix-all.sql 섹션 L을 실행해 주세요.",
+          "Storage bucket missing. Run section L of scripts/supabase-fix-all.sql in the Supabase SQL Editor.",
       };
     }
-    return { error: error.message || "Storage 업로드에 실패했습니다." };
+    return { error: error.message || "Storage upload failed." };
   }
 
   return { publicUrl: publicStorageUrl(key) };

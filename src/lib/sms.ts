@@ -40,7 +40,7 @@ async function sendKrSmsViaSolapi(phoneE164: string, text: string): Promise<Send
     return {
       ok: false,
       error:
-        "SMS 발송 설정이 없습니다. SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER_PHONE을 설정해 주세요.",
+        "SMS is not configured. Set SOLAPI_API_KEY, SOLAPI_API_SECRET, and SOLAPI_SENDER_PHONE.",
     };
   }
 
@@ -58,11 +58,11 @@ async function sendKrSmsViaSolapi(phoneE164: string, text: string): Promise<Send
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      return { ok: false, error: body || `SMS 발송 실패 (${res.status})` };
+      return { ok: false, error: body || `Something went wrong. Please try again.${res.status})` };
     }
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "SMS 발송 오류" };
+    return { ok: false, error: e instanceof Error ? e.message : "SMS send error" };
   }
 }
 
@@ -79,7 +79,7 @@ async function sendIntlSmsViaTwilio(phoneE164: string, text: string): Promise<Se
     return {
       ok: false,
       error:
-        "해외 SMS 설정이 없습니다. TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER을 설정해 주세요.",
+        "International SMS is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER.",
     };
   }
 
@@ -102,11 +102,11 @@ async function sendIntlSmsViaTwilio(phoneE164: string, text: string): Promise<Se
     );
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
-      return { ok: false, error: errBody || `SMS 발송 실패 (${res.status})` };
+      return { ok: false, error: errBody || `Something went wrong. Please try again.${res.status})` };
     }
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "SMS 발송 오류" };
+    return { ok: false, error: e instanceof Error ? e.message : "SMS send error" };
   }
 }
 
@@ -141,7 +141,7 @@ export function resolveSmsProvider(phoneE164: string): SmsProvider | null {
 
 /** Solapi(한국) · Twilio(해외) — 미설정 시 개발 환경에서만 콘솔 로그 */
 export async function sendAuthSms(phoneE164: string, code: string): Promise<SendSmsResult> {
-  const text = `[MoCoMo] 인증번호: ${code} (3분 내 입력)`;
+  const text = `Please sign in to continue. ${code} (3분 내 입력)`;
   const provider = resolveSmsProvider(phoneE164);
   if (!provider) {
     if (isKrPhone(phoneE164)) {
@@ -151,7 +151,7 @@ export async function sendAuthSms(phoneE164: string, code: string): Promise<Send
     return {
       ok: false,
       error:
-        "해외 SMS Provider가 설정되지 않았습니다. 해외 판매자는 휴대폰 인증 없이 가입할 수 있습니다.",
+        "International SMS provider is not configured. Overseas sellers can sign up without phone verification.",
     };
   }
   return provider.send(phoneE164, text);

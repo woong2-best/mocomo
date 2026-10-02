@@ -15,25 +15,25 @@ export const MAX_ANTI_SNIPE_EXTENSIONS = 5;
 export const AUCTION_DURATION_HOURS = 72;
 
 export const AUCTION_DURATION_OPTIONS = [
-  { hours: AUCTION_DURATION_HOURS, label: "3일" },
+  { hours: AUCTION_DURATION_HOURS, label: "3 days" },
 ] as const;
 
 export const BID_INCREMENT_PRESETS = [
-  { value: 500, label: "500원" },
-  { value: 1_000, label: "1,000원" },
-  { value: 5_000, label: "5,000원" },
-  { value: 10_000, label: "1만 원" },
-  { value: 50_000, label: "5만 원" },
-  { value: 100_000, label: "10만 원" },
+  { value: 500, label: "₩500" },
+  { value: 1_000, label: "₩1,000" },
+  { value: 5_000, label: "₩5,000" },
+  { value: 10_000, label: "₩10,000" },
+  { value: 50_000, label: "₩50,000" },
+  { value: 100_000, label: "₩100,000" },
 ] as const;
 
 /** 저가 카드·lot 경매용 */
 export const BID_INCREMENT_PRESETS_TCG_KRW = [
-  { value: 100, label: "100원" },
-  { value: 500, label: "500원" },
-  { value: 1_000, label: "1,000원" },
-  { value: 5_000, label: "5,000원" },
-  { value: 10_000, label: "1만 원" },
+  { value: 100, label: "₩100" },
+  { value: 500, label: "₩500" },
+  { value: 1_000, label: "₩1,000" },
+  { value: 5_000, label: "₩5,000" },
+  { value: 10_000, label: "₩10,000" },
 ] as const;
 
 export const BID_INCREMENT_PRESETS_TCG_USD = [

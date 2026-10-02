@@ -36,36 +36,36 @@ export function isUsedListingAiConfigured() {
 }
 
 function buildPrompt(input: UsedListingAiInput): string {
-  const categoryLabel = input.category ? usedCategoryLabel(input.category) : "미정";
-  const productLabel = usedProductTypeLabel(input.productType) || "미정";
+  const categoryLabel = input.category ? usedCategoryLabel(input.category) : "Undecided";
+  const productLabel = usedProductTypeLabel(input.productType) || "Undecided";
   const saleLabel =
-    input.isFree ? "나눔(무료)" : input.saleType === "AUCTION" ? "경매" : "일반 판매";
+    input.isFree ? "나눔(무료)" : input.saleType === "AUCTION" ? "경매" : "General sale";
 
   return [
-    "당신은 한국 중고거래 앱(당근마켓·MoCoMo)의 판매 글 작성 도우미입니다.",
-    "업로드된 사진과 메모를 바탕으로 구매자가 신뢰할 수 있는 판매 글 초안을 작성하세요.",
+    "You help write listings for a Korean used-market app (Karrot Market, MoCoMo).",
+    "Using uploaded photos and notes, draft a trustworthy listing buyers can rely on.",
     "",
-    "규칙:",
-    "- 제목: 8~40자, 핵심 품목·상태·작품명 포함, 과장·클릭베이트 금지",
-    "- 설명: 3~6문단, 상태/구성품/하자/거래 방식(직거래·배송)을 구체적으로",
-    "- 애니·굿즈·피규어·코스프레 맥락이면 작품명·캐릭터를 자연스럽게 반영",
-    "- 확실하지 않은 정보는 추측하지 말고 「확인 필요」로 표기",
-    "- 이모지는 0~2개만, 친근하지만 정중한 말투",
+    "Rules:",
+    "- title: 8–40 chars; include item, condition, series; no hype or clickbait",
+    "- description: 3–6 paragraphs; be specific about condition, included items, defects, and meetup/shipping",
+    "- if anime/goods/figure/cosplay context, naturally mention series and character names",
+    "- don't guess; mark uncertain details as \"needs verification\"",
+    "- use 0–2 emojis; friendly but polite tone",
     input.isFree
       ? "- 가격 제안은 null (나눔)"
-      : "- suggestedPrice: 합리적인 원화 정수 (시장가 참고, 없으면 null)",
+      : "- suggestedPrice: reasonable KRW integer (market reference; null if unknown)",
     "",
     `카테고리: ${categoryLabel}`,
     `상품 종류: ${productLabel}`,
-    `작품/IP: ${input.workTitle?.trim() || "미입력"}`,
-    `거래 지역: ${input.region?.trim() || "미입력"}`,
+    `작품/IP: ${input.workTitle?.trim() || "Not entered"}`,
+    `거래 지역: ${input.region?.trim() || "Not entered"}`,
     `판매 방식: ${saleLabel}`,
     input.partialTitle?.trim() ? `사용자 제목 메모: ${input.partialTitle.trim()}` : "",
     input.partialDescription?.trim()
       ? `사용자 설명 메모: ${input.partialDescription.trim()}`
       : "",
     "",
-    'JSON만 반환: {"title":"...","description":"...","suggestedPrice":숫자 또는 null}',
+    'Return JSON only: {"title":"...","description":"...","suggestedPrice": number or null}',
   ]
     .filter(Boolean)
     .join("\n");
@@ -118,7 +118,7 @@ async function generateWithGemini(
   images: string[]
 ): Promise<{ draft?: UsedListingAiDraft; error?: string }> {
   const key = geminiKey();
-  if (!key) return { error: "GEMINI_API_KEY 없음" };
+  if (!key) return { error: "GEMINI_API_KEY missing" };
 
   const prompt = buildPrompt(input);
   const parts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [
@@ -133,7 +133,7 @@ async function generateWithGemini(
   }
 
   if (parts.length < 2) {
-    return { error: "사진을 불러오지 못했습니다. 업로드가 끝난 뒤 다시 시도해 주세요." };
+    return { error: "Couldn't load photos. Try again after uploads finish." };
   }
 
   const models = [
@@ -141,7 +141,7 @@ async function generateWithGemini(
     "gemini-2.5-flash-lite",
     "gemini-flash-latest",
   ];
-  let lastError = "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+  let lastError = "AI draft generation failed. Please try again shortly.";
   let lastErrorIsGeneric = true;
 
   for (const model of models) {
@@ -173,7 +173,7 @@ async function generateWithGemini(
               ? "Gemini API 키가 유효하지 않습니다. Vercel GEMINI_API_KEY를 확인해 주세요."
               : res.status === 404
                 ? null
-                : "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+                : "AI draft generation failed. Please try again shortly.";
         if (nextError && (res.status === 429 || res.status === 403 || lastErrorIsGeneric)) {
           lastError = nextError;
           lastErrorIsGeneric = res.status !== 429 && res.status !== 403;
@@ -186,14 +186,14 @@ async function generateWithGemini(
       };
       const content = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
       if (!content) {
-        lastError = "AI 응답이 비어 있습니다.";
+        lastError = "The AI response was empty.";
         lastErrorIsGeneric = false;
         continue;
       }
 
       const draft = parseDraft(content);
       if (!draft) {
-        lastError = "AI 응답을 해석하지 못했습니다.";
+        lastError = "Couldn't parse the AI response.";
         lastErrorIsGeneric = false;
         continue;
       }
@@ -202,7 +202,7 @@ async function generateWithGemini(
       return { draft };
     } catch (e) {
       console.warn("[used-listing-ai] gemini", model, e);
-      lastError = "AI 요청 시간이 초과되었습니다.";
+      lastError = "The AI request timed out.";
       lastErrorIsGeneric = false;
     }
   }
@@ -215,7 +215,7 @@ async function generateWithOpenAI(
   images: string[]
 ): Promise<{ draft?: UsedListingAiDraft; error?: string }> {
   const key = openaiKey();
-  if (!key) return { error: "OPENAI_API_KEY 없음" };
+  if (!key) return { error: "OPENAI_API_KEY missing" };
 
   const userContent: Array<
     | { type: "text"; text: string }
@@ -244,7 +244,7 @@ async function generateWithOpenAI(
           {
             role: "system",
             content:
-              "중고거래 판매 글 초안만 작성합니다. 반드시 유효한 JSON 객체 하나만 출력합니다.",
+              "Write only a used-market listing draft. Output exactly one valid JSON object.",
           },
           { role: "user", content: userContent },
         ],
@@ -254,21 +254,21 @@ async function generateWithOpenAI(
     });
 
     if (!res.ok) {
-      return { error: "AI 글 생성에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+      return { error: "AI draft generation failed. Please try again shortly." };
     }
 
     const data = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
     };
     const content = data.choices?.[0]?.message?.content;
-    if (!content) return { error: "AI 응답이 비어 있습니다." };
+    if (!content) return { error: "The AI response was empty." };
 
     const draft = parseDraft(content);
-    if (!draft) return { error: "AI 응답을 해석하지 못했습니다." };
+    if (!draft) return { error: "Couldn't parse the AI response." };
     if (input.isFree) draft.suggestedPrice = null;
     return { draft };
   } catch {
-    return { error: "AI 요청 시간이 초과되었습니다." };
+    return { error: "The AI request timed out." };
   }
 }
 
@@ -278,7 +278,7 @@ export async function generateUsedListingDraft(
   if (!isUsedListingAiConfigured()) {
     return {
       error:
-        "AI 키가 없습니다. Vercel에 GEMINI_API_KEY(무료)를 추가해 주세요. aistudio.google.com/apikey 에서 발급",
+        "No AI key configured. Add GEMINI_API_KEY (free) on Vercel — get one at aistudio.google.com/apikey",
     };
   }
 
@@ -287,7 +287,7 @@ export async function generateUsedListingDraft(
     .slice(0, 4);
 
   if (images.length === 0) {
-    return { error: "AI 글쓰기는 업로드된 사진이 1장 이상 필요합니다." };
+    return { error: "AI writing requires at least one uploaded photo." };
   }
 
   if (geminiKey()) {
@@ -299,5 +299,5 @@ export async function generateUsedListingDraft(
     return generateWithOpenAI(input, images);
   }
 
-  return { error: "AI 설정을 확인해 주세요." };
+  return { error: "Check your AI settings." };
 }

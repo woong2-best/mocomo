@@ -30,7 +30,7 @@ export async function payCheckoutWithMoco(
   opts?: { purchaseTermsAccepted?: boolean; platform?: PurchaseTermsPlatform }
 ) {
   if (opts?.platform === "mobile") {
-    return { error: "모바일 앱에서는 MOCO 바로 결제를 사용할 수 없습니다." };
+    return { error: "MOCO instant checkout isn't available in the mobile app." };
   }
 
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
@@ -46,10 +46,10 @@ export async function payCheckoutWithMoco(
 
   const intent = await db.paymentIntent.findUnique({ where: { id: orderId } });
   if (!intent || intent.userId !== userId) {
-    return { error: "결제 정보를 찾을 수 없습니다." };
+    return { error: "Payment information not found." };
   }
   if (MOCO_PAY_BLOCKED.includes(intent.type)) {
-    return { error: "모코 충전은 카드 결제만 가능합니다." };
+    return { error: "MOCO top-ups require card payment." };
   }
   if (intent.status === "PAID") {
     return {
@@ -62,14 +62,14 @@ export async function payCheckoutWithMoco(
 
   const mocoRequired = krwToMoco(intent.amount);
   if (mocoRequired <= 0) {
-    return { error: "모코로 결제할 수 없는 금액입니다." };
+    return { error: "This amount can't be paid with MOCO." };
   }
 
   const fresh = await db.paymentIntent.findUnique({
     where: { id: orderId },
     select: { status: true, userId: true, type: true, amount: true },
   });
-  if (!fresh || fresh.userId !== userId) return { error: "결제 정보를 찾을 수 없습니다." };
+  if (!fresh || fresh.userId !== userId) return { error: "Payment information not found." };
   if (fresh.status === "PAID") {
     return {
       success: true as const,
@@ -81,7 +81,7 @@ export async function payCheckoutWithMoco(
 
   const snap = await getMocoBalanceSnapshot(userId);
   if (snap.availableMocoBalance < mocoRequired) {
-    return { error: "MOCO 잔액이 부족합니다." };
+    return { error: "Insufficient MOCO balance." };
   }
 
   // Unified purchased MOCO burn (mocoPoints → gemBalance FIFO). Client-sent balances are never trusted.
@@ -97,7 +97,7 @@ export async function payCheckoutWithMoco(
       });
     });
   } catch {
-    return { error: "MOCO 잔액이 부족합니다." };
+    return { error: "Insufficient MOCO balance." };
   }
 
   const paymentRef = `moco:${intent.id}`;

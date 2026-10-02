@@ -59,7 +59,7 @@ export async function activateUsedAuctionStripeOrder(
     },
   });
   if (!listing || listing.saleType !== "AUCTION") {
-    return { error: "경매 상품이 아닙니다." };
+    return { error: "This isn't an auction item." };
   }
   if (listing.marketplaceOrderId) {
     return { skipped: true, reason: "already_active" };
@@ -76,12 +76,12 @@ export async function activateUsedAuctionStripeOrder(
   }
 
   if (!isStripeConfigured()) {
-    return { error: "Stripe가 설정되지 않았습니다." };
+    return { error: "Stripe is not configured." };
   }
 
   const pi = await retrieveMarketplacePaymentIntent(bid.stripePaymentIntentId);
   if (!pi || !isMarketplacePaymentAuthorized(pi)) {
-    return { error: "낙찰자 카드 hold가 유효하지 않습니다. 재승인이 필요합니다." };
+    return { error: "Winner's card hold isn't valid. Re-authorization required." };
   }
 
   const winAmount = bid.amount;
@@ -92,7 +92,7 @@ export async function activateUsedAuctionStripeOrder(
   );
 
   if (pi.amount !== totalAmount && pi.amount !== (bid.holdAmount ?? totalAmount)) {
-    return { error: "Hold 금액과 낙찰가가 일치하지 않습니다." };
+    return { error: "Hold amount doesn't match the winning bid." };
   }
   const payAmount = pi.amount;
 
@@ -326,7 +326,7 @@ export async function attemptAutoHoldAndActivateOrder(
   const methods = await listSavedPaymentMethods(bidderId);
   const pm = methods.find((m) => m.isDefault) ?? methods[0];
   if (!pm) {
-    return { error: "등록된 카드가 없습니다.", code: "no_card" };
+    return { error: "No card on file.", code: "no_card" };
   }
 
   const paid = await payUsedAuctionBidHoldWithSavedCard(bidderId, prepared.orderId, pm.id);
@@ -341,7 +341,7 @@ export async function attemptAutoHoldAndActivateOrder(
     return { error: paid.error, code: "hold_failed" };
   }
   if (!("ok" in paid)) {
-    return { error: "입찰 hold에 실패했습니다.", code: "hold_failed" };
+    return { error: "Bid hold failed.", code: "hold_failed" };
   }
 
   await db.usedAuctionBid.updateMany({
@@ -357,7 +357,7 @@ export async function attemptAutoHoldAndActivateOrder(
 
   const activated = await activateUsedAuctionStripeOrder(listingId, bidderId);
   if ("error" in activated) return { error: activated.error, code: "hold_failed" };
-  if ("skipped" in activated) return { error: "주문 활성화를 건너뛰었습니다.", code: "hold_failed" };
+  if ("skipped" in activated) return { error: "Skipped order activation.", code: "hold_failed" };
   return { ok: true, orderId: activated.orderId };
 }
 
@@ -384,15 +384,15 @@ export async function finalizeUsedAuctionWinner(input: {
   if ("ok" in activated && activated.ok) {
     const orderLink = usedOrderLink(activated.orderId);
     await setupWinnerTradeChat(input.listingId, input.winnerId, [
-      "🎉 경매 낙찰 — 결제 승인 완료",
+      "🎉 Auction won — payment authorized",
       "",
-      "배송은 주문 페이지에서 추적 번호를 등록해 주세요.",
+      "Add a tracking number on the order page for shipping.",
       `주문: ${orderLink}`,
     ]).catch(() => {});
     await sendUsedAuctionNotification({
       userId: input.winnerId,
       type: "won",
-      title: "경매 낙찰 — 주문 생성됨",
+      title: "Auction won — order created",
       body: `${input.title} · ${formatUsedPrice(input.amount, input.currency)}`,
       link: orderLink,
     });
@@ -404,7 +404,7 @@ export async function finalizeUsedAuctionWinner(input: {
       await sendUsedAuctionNotification({
         userId: sellerRow.sellerId,
         type: "ended",
-        title: "경매 낙찰 — 배송 준비",
+        title: "Auction won — prepare shipment",
         body: `${input.title} · ${formatUsedPrice(input.amount, input.currency)}`,
         link: orderLink,
       });
@@ -415,17 +415,17 @@ export async function finalizeUsedAuctionWinner(input: {
   const config = await getUsedAuctionConfig();
   await beginAuctionPaymentWindow(input.listingId, input.winnerId, config);
   await setupWinnerTradeChat(input.listingId, input.winnerId, [
-    "🎉 경매 낙찰 안내",
+    "🎉 Auction win notice",
     "",
     `결제는 ${config.paymentDeadlineHours}시간 이내에 완료해 주세요.`,
-    "기한 내 미결제 시 중고거래 이용이 제한됩니다.",
+    "Missing payment by the deadline may restrict marketplace access.",
   ]).catch(() => {});
 
   const link = `/market/${input.listingId}`;
   await sendUsedAuctionNotification({
     userId: input.winnerId,
     type: "won",
-    title: "경매 낙찰 — 결제 필요",
+    title: "Auction won — payment required",
     body: `${input.title} · ${formatUsedPrice(input.amount, input.currency)} · ${config.paymentDeadlineHours}시간 이내 결제`,
     link,
   });
@@ -438,7 +438,7 @@ export async function finalizeUsedAuctionWinner(input: {
     await sendUsedAuctionNotification({
       userId: listing.sellerId,
       type: "ended",
-      title: "경매 낙찰 완료",
+      title: "Auction win complete",
       body: `${input.title} · ${formatUsedPrice(input.amount, input.currency)}`,
       link,
     });

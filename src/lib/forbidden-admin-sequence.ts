@@ -5,7 +5,7 @@ import { getOperatorUsernames, isSiteOperatorAccount } from "@/lib/operator-conf
 const FORBIDDEN_LETTERS = ["a", "d", "m", "i", "n"] as const;
 
 export const FORBIDDEN_ADMIN_SEQUENCE_MESSAGE =
-  "닉네임 또는 표시 이름에 사용할 수 없는 문자 조합이 있습니다. 다른 닉네임·이름으로 다시 시도해 주세요.";
+  "Your nickname or display name contains a disallowed character combination. Try a different nickname or name.";
 
 export function containsForbiddenAdminSequence(text: string): boolean {
   if (!text) return false;

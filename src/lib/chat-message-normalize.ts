@@ -40,15 +40,15 @@ export function getChatMessageReplyPreview(
   if (listingPreview) return listingPreview;
   const letterPreview = atmLetterListPreview(m.content);
   if (letterPreview) return letterPreview;
-  if (parseLetterDonationMarker(m.content)) return "편지가 도착했습니다";
+  if (parseLetterDonationMarker(m.content)) return "A letter has arrived";
   const text = m.content?.trim();
   if (text) return text.length > 100 ? `${text.slice(0, 100)}…` : text;
   const att = m.attachments?.[0];
-  if (!att) return "메시지";
-  if (att.type === "IMAGE" || att.type === "GIF") return "사진";
-  if (att.type === "VIDEO") return "동영상";
-  if (att.type === "AUDIO") return "음성 메시지";
-  return "첨부 파일";
+  if (!att) return "Message";
+  if (att.type === "IMAGE" || att.type === "GIF") return "Photo";
+  if (att.type === "VIDEO") return "Video";
+  if (att.type === "AUDIO") return "Voice message";
+  return "Attachment";
 }
 
 function normalizeReplyTo(raw: unknown): ChatMessageView["replyTo"] {

@@ -211,7 +211,7 @@ export async function toggleAnimeStarForUser(
     where: { id: animeId },
     select: { id: true },
   });
-  if (!anime) return { error: "문서를 찾을 수 없습니다." };
+  if (!anime) return { error: "Document not found." };
 
   const existing = await db.animeStar.findUnique({
     where: { userId_animeId: { userId, animeId } },

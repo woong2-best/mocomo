@@ -13,22 +13,22 @@ import {
 
 /** Flat reason ids used for risk scoring + API validation */
 export const REPORT_REASONS = [
-  { id: "SPAM", label: "스팸·광고" },
-  { id: "ABUSE", label: "욕설·괴롭힘" },
-  { id: "HARASSMENT", label: "괴롭힘" },
-  { id: "HATE", label: "혐오 표현" },
-  { id: "VIOLENCE", label: "폭력" },
-  { id: "FRAUD", label: "사기·불법 거래" },
-  { id: "PRIVACY", label: "개인정보" },
-  { id: "COPYRIGHT", label: "저작권" },
-  { id: "SEXUAL", label: "음란물" },
-  { id: "IMPERSONATION", label: "사칭" },
-  { id: "SELF_HARM", label: "자살·자해" },
-  { id: "FALSE_INFO", label: "거짓 정보" },
-  { id: "UNDERAGE", label: "미성년자 관련" },
-  { id: "POLITICAL", label: "정치적 허위·조작" },
-  { id: "REGULATED", label: "규제 품목" },
-  { id: "OTHER", label: "기타" },
+  { id: "SPAM", label: "Spam · ads" },
+  { id: "ABUSE", label: "Abuse · harassment" },
+  { id: "HARASSMENT", label: "Harassment" },
+  { id: "HATE", label: "Hate speech" },
+  { id: "VIOLENCE", label: "Violence" },
+  { id: "FRAUD", label: "Fraud · illegal trade" },
+  { id: "PRIVACY", label: "Privacy" },
+  { id: "COPYRIGHT", label: "Copyright" },
+  { id: "SEXUAL", label: "Adult content" },
+  { id: "IMPERSONATION", label: "Impersonation" },
+  { id: "SELF_HARM", label: "Self-harm" },
+  { id: "FALSE_INFO", label: "False information" },
+  { id: "UNDERAGE", label: "Minors" },
+  { id: "POLITICAL", label: "Political manipulation" },
+  { id: "REGULATED", label: "Regulated goods" },
+  { id: "OTHER", label: "Other" },
 ] as const;
 
 export type ReportReasonId = (typeof REPORT_REASONS)[number]["id"];
@@ -97,7 +97,7 @@ export const POST_REPORT_TAXONOMY: ReportTaxonomyNode[] = [
       },
       {
         id: "scam_impersonation",
-        label: "사칭",
+        label: "Impersonation",
         childQuestion: "어떤 유형의 사칭인가요?",
         children: [
           {
@@ -168,7 +168,7 @@ export const POST_REPORT_TAXONOMY: ReportTaxonomyNode[] = [
         childQuestion: "어떤 유형인가요?",
         children: [
           { id: "violence_threat", label: "폭력 위협 또는 조장", reasonId: "VIOLENCE" },
-          { id: "violence_hate", label: "혐오 표현", reasonId: "HATE" },
+          { id: "violence_hate", label: "Hate speech", reasonId: "HATE" },
           { id: "violence_abuse", label: "학대·잔혹 행위", reasonId: "ABUSE" },
         ],
       },

@@ -29,9 +29,9 @@ export function formatProfileBirthday(
 ): string {
   const includeYear = options?.includeYear ?? options?.isSelf ?? false;
   if (includeYear) {
-    return format(birth, "yyyy년 M월 d일", { locale: ko });
+    return format(birth, "MMMM d, yyyy", { locale: ko });
   }
-  return format(birth, "M월 d일", { locale: ko });
+  return format(birth, "MMMM d", { locale: ko });
 }
 
 export function parseBirthDateFields(
@@ -44,9 +44,9 @@ export function parseBirthDateFields(
   const d = dayStr.trim();
   if (!y && !m && !d) return { birth: null };
   if (!y || !m || !d) {
-    return { birth: null, error: "생년월일을 모두 입력하거나, 비우고 저장해 주세요." };
+    return { birth: null, error: "Enter your full birth date or leave all fields blank and save." };
   }
   const birth = parseBirthDateInput(Number(y), Number(m), Number(d));
-  if (!birth) return { birth: null, error: "올바른 생년월일을 입력해 주세요." };
+  if (!birth) return { birth: null, error: "Enter a valid birth date." };
   return { birth };
 }

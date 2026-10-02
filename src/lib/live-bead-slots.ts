@@ -7,14 +7,14 @@ export type LiveBeadSlot =
   | { kind: "empty"; key: string; tone: number };
 
 const EMPTY_HINTS = [
-  "다음 방송",
-  "빈 슬롯",
-  "곧 시작",
-  "준비 중",
-  "오프라인",
-  "예약 가능",
-  "조용한 채널",
-  "대기 중",
+  "Next stream",
+  "Empty slot",
+  "Starting soon",
+  "Getting ready",
+  "Offline",
+  "Available to book",
+  "Quiet channel",
+  "Waiting",
 ] as const;
 
 export function emptySlotHint(tone: number): string {

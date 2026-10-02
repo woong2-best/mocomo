@@ -26,18 +26,18 @@ import {
 const BANK_VERIFY_TTL_MS = 10 * 60 * 1000;
 
 export const BANK_ALREADY_VERIFIED_MSG =
-  "이 계정은 이미 계좌 인증이 완료된 상태입니다. 계정당 계좌는 하나만 등록할 수 있습니다.";
+  "This account is already verified. Only one bank account per account.";
 
 export const BANK_ONE_ACCOUNT_MSG =
-  "이 계좌는 이미 다른 계정에 등록되어 있습니다. 계좌 하나당 계정 하나만 사용할 수 있습니다.";
+  "This account is registered to another user. One bank account per user.";
 
 export const BANK_PENDING_OTHER_MSG =
-  "다른 계좌로 인증을 진행 중입니다. 기존 계좌로 완료하거나, 인증 만료 후 계좌를 변경해 주세요.";
+  "Verification is in progress with another account. Finish with the existing account or change accounts after it expires.";
 
-export const BANK_KR_ACCOUNT_ONLY_MSG = "국내(한국) 은행 계좌만 등록할 수 있습니다.";
+export const BANK_KR_ACCOUNT_ONLY_MSG = "Only domestic (Korean) bank accounts can be registered.";
 
 export const BANK_EMAIL_REQUIRED_MSG =
-  "계좌 인증 전에 이메일 인증을 완료해 주세요.";
+  "Complete email verification before bank verification.";
 
 export type BankVerificationUser = {
   id: string;
@@ -168,19 +168,19 @@ export async function startBankVerificationForUser(
     return { error: BANK_KR_ACCOUNT_ONLY_MSG };
   }
   if (accountNum.length < 8 || accountNum.length > 16) {
-    return { error: "올바른 계좌번호를 입력해 주세요." };
+    return { error: "Enter a valid account number." };
   }
 
   const accountFingerprint = bankAccountFingerprint(bankCode, accountNum);
   const accountLast4 = accountNum.slice(-4);
 
   if (user.bankVerifiedAt) {
-    const label = user.settlementBankCode ? apickBankLabel(user.settlementBankCode) : "은행";
+    const label = user.settlementBankCode ? apickBankLabel(user.settlementBankCode) : "Bank";
     const masked = user.settlementAccountLast4
       ? `${label} ${maskBankAccount(user.settlementAccountLast4)}`
-      : "등록된 계좌";
+      : "Registered account";
     return {
-      message: `이미 인증된 계좌입니다. (${masked})`,
+      message: `Please sign in to continue.${masked})`,
       alreadyVerified: true as const,
       displayAccount: masked,
     };
@@ -256,7 +256,7 @@ export async function startBankVerificationForUser(
 
   const verifyCode = parseVerifyCodeFromApickMemo(transfer.memo);
   if (verifyCode.length !== 4) {
-    return { error: "입금통장메모에서 인증코드를 확인할 수 없습니다. 다시 시도해 주세요." };
+    return { error: "Couldn't read the verification code from the deposit memo. Try again." };
   }
 
   const payload = {
@@ -317,22 +317,22 @@ export async function verifyBankCodeForUser(
   const accountNum = normalizeBankAccountNum(rawAccountNum);
   const code = rawCode.trim().replace(/\D/g, "");
   if (!isApickBankCode(bankCode)) return { error: BANK_KR_ACCOUNT_ONLY_MSG };
-  if (code.length !== 4) return { error: "입금통장메모 4자리 숫자를 입력해 주세요." };
+  if (code.length !== 4) return { error: "Enter the 4-digit number from the deposit memo." };
 
   const accountFingerprint = bankAccountFingerprint(bankCode, accountNum);
   const accountLast4 = accountNum.slice(-4);
 
   if (user.bankVerifiedAt) {
-    const label = user.settlementBankCode ? apickBankLabel(user.settlementBankCode) : "은행";
+    const label = user.settlementBankCode ? apickBankLabel(user.settlementBankCode) : "Bank";
     const masked = user.settlementAccountLast4
       ? `${label} ${maskBankAccount(user.settlementAccountLast4)}`
-      : "등록된 계좌";
+      : "Registered account";
     return { success: true as const, displayAccount: masked };
   }
 
   const pending = await readPendingBank(user.id);
   if (!pending) {
-    return { error: "인증이 만료되었습니다. 다시 1원 인증을 요청해 주세요." };
+    return { error: "Verification expired. Request 1-won verification again." };
   }
   if (pending.bankCode !== bankCode || pending.accountFingerprint !== accountFingerprint) {
     return { error: BANK_PENDING_OTHER_MSG };
@@ -355,7 +355,7 @@ export async function verifyBankCodeForUser(
     orderBy: { expires: "desc" },
   });
   if (!row || row.expires < new Date()) {
-    return { error: "인증코드가 만료되었습니다. 다시 요청해 주세요." };
+    return { error: "Verification code expired. Request a new one." };
   }
   if (!codesEqual(row.token, code)) {
     await recordBankVerifyFailure(user.id, accountFingerprint);
@@ -366,7 +366,7 @@ export async function verifyBankCodeForUser(
       ip,
       meta: { remaining: attempt.remaining - 1 },
     });
-    return { error: "인증코드가 일치하지 않습니다." };
+    return { error: "Verification code doesn't match." };
   }
 
   const conflict = await findBankRegisteredByOtherUser(accountFingerprint, user.id);

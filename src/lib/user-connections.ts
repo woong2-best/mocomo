@@ -1,10 +1,10 @@
 export const CONNECTION_TABS = [
-  { id: "verified", label: "인증 팔로워" },
-  { id: "known", label: "아는 팔로워" },
-  { id: "followers", label: "팔로워" },
-  { id: "following", label: "팔로잉" },
-  { id: "subscribers", label: "구독자" },
-  { id: "subscriptions", label: "구독 중" },
+  { id: "verified", label: "Verified followers" },
+  { id: "known", label: "Followers you know" },
+  { id: "followers", label: "Followers" },
+  { id: "following", label: "Following" },
+  { id: "subscribers", label: "Subscribers" },
+  { id: "subscriptions", label: "Subscribed" },
 ] as const;
 
 export type ConnectionTab = (typeof CONNECTION_TABS)[number]["id"];
@@ -19,28 +19,28 @@ export const CONNECTION_EMPTY: Record<
   { title: string; description: string }
 > = {
   verified: {
-    title: "아직 아무것도 없습니다",
-    description: "인증 팔로워 목록을 확인하세요.",
+    title: "Nothing here yet",
+    description: "View your verified followers.",
   },
   known: {
-    title: "아직 아무것도 없습니다",
-    description: "내가 아는 팔로워가 여기에 표시됩니다.",
+    title: "Nothing here yet",
+    description: "Followers you know appear here.",
   },
   followers: {
-    title: "아직 팔로워가 없습니다",
-    description: "팔로워가 생기면 여기에 표시됩니다.",
+    title: "No followers yet",
+    description: "Followers will appear here.",
   },
   following: {
-    title: "아직 팔로잉이 없습니다",
-    description: "팔로우한 사람이 여기에 표시됩니다.",
+    title: "Not following anyone yet",
+    description: "People you follow appear here.",
   },
   subscribers: {
-    title: "아직 구독자가 없습니다",
-    description: "구독자 목록은 여기에서 확인할 수 있습니다.",
+    title: "No subscribers yet",
+    description: "Your subscriber list appears here.",
   },
   subscriptions: {
-    title: "아직 구독이 없습니다",
-    description: "구독 중인 모든 사람의 목록은 여기에서 확인할 수 있습니다.",
+    title: "No subscriptions yet",
+    description: "Everyone you subscribe to appears here.",
   },
 };
 

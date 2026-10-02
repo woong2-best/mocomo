@@ -4,7 +4,7 @@ import { normalizeSdp } from "@/lib/webrtc-sdp";
 
 export class WhepNotReadyError extends Error {
   constructor() {
-    super("방송 송출 연결 중… 잠시 후 자동으로 재생됩니다");
+    super("Connecting to broadcast… Playback starts automatically shortly.");
     this.name = "WhepNotReadyError";
   }
 }
@@ -28,7 +28,7 @@ function waitForIceGathering(pc: RTCPeerConnection, maxWaitMs = 600): Promise<vo
 
 function waitForIncomingTrack(pc: RTCPeerConnection, timeoutMs = 8000): Promise<void> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("영상 트랙 수신 시간 초과")), timeoutMs);
+    const timer = setTimeout(() => reject(new Error("Video track receive timeout")), timeoutMs);
     const onTrack = () => {
       clearTimeout(timer);
       pc.removeEventListener("track", onTrack);
@@ -69,7 +69,7 @@ export async function attachCloudflareWhepPlayback(
   await waitForIceGathering(pc);
 
   const rawSdp = pc.localDescription?.sdp;
-  if (!rawSdp) throw new Error("SDP offer 생성 실패");
+  if (!rawSdp) throw new Error("Failed to create SDP offer");
   const sdp = normalizeSdp(rawSdp);
 
   const res = await fetch(`/api/live/${channelId}/whep`, {

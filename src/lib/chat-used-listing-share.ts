@@ -98,5 +98,5 @@ export function chatUsedListingListPreview(
     const short = parsed.note.length > 40 ? `${parsed.note.slice(0, 40)}…` : parsed.note;
     return short;
   }
-  return parsed.titleHint || "중고 상품";
+  return parsed.titleHint || "Used item";
 }

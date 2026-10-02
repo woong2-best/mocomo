@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 const BLOCK_LOOKUP_CAP = 500;
 
-export const USER_BLOCK_INTERACTION_ERROR = "차단된 사용자와는 상호작용할 수 없습니다.";
+export const USER_BLOCK_INTERACTION_ERROR = "You can't interact with blocked users.";
 
 /** 차단 관계(양방향)에 있는 사용자 ID — 요청당 1회 조회 */
 export async function loadBidirectionalBlockIds(viewerId: string): Promise<string[]> {
@@ -72,7 +72,7 @@ export function filterOutBlockedUserIds<T>(
 /** @alias loadBidirectionalBlockIds — 명세 호환 이름 */
 export const getBidirectionalBlockedUserIds = loadBidirectionalBlockIds;
 
-export const QUOTED_POST_BLOCKED_MESSAGE = "차단된 사용자의 게시물입니다";
+export const QUOTED_POST_BLOCKED_MESSAGE = "Post from a blocked user";
 
 export function prismaExcludeBlockedAuthors(blocked: Set<string>) {
   return prismaExcludeBlockedUserIds(blocked, "authorId");

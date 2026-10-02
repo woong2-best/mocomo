@@ -8,12 +8,12 @@ export {
 
 /** 글쓰기 상품 종류 — 앱 UsedCreateScreen과 동일. */
 export const USED_SELL_KINDS = [
-  { id: "FIGURE", label: "피규어" },
+  { id: "FIGURE", label: "Figures" },
   { id: "TCG", label: "TCG" },
-  { id: "GOODS", label: "굿즈" },
-  { id: "BOOK", label: "도서" },
-  { id: "COSPLAY", label: "코스프레" },
-  { id: "DIGITAL", label: "디지털" },
+  { id: "GOODS", label: "Goods" },
+  { id: "BOOK", label: "Books" },
+  { id: "COSPLAY", label: "Cosplay" },
+  { id: "DIGITAL", label: "Digital" },
 ] as const;
 
 export const USED_CONDITION_OPTIONS = [

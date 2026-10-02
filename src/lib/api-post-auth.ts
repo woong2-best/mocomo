@@ -19,20 +19,20 @@ const userSelect = {
 export async function requireApiUser(options?: { writeKind?: AccountWriteKind }) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { error: NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 }) };
+    return { error: NextResponse.json({ error: "Sign-in required." }, { status: 401 }) };
   }
   const user = await db.user.findUnique({
     where: { id: session.user.id },
     select: userSelect,
   });
   if (!user) {
-    return { error: NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 }) };
+    return { error: NextResponse.json({ error: "Sign-in required." }, { status: 401 }) };
   }
   if (isServiceBanned(user)) {
-    return { error: NextResponse.json({ error: "이용이 제한된 계정입니다." }, { status: 403 }) };
+    return { error: NextResponse.json({ error: "This account is restricted." }, { status: 403 }) };
   }
   if (user.deletedAt) {
-    return { error: NextResponse.json({ error: "탈퇴한 계정입니다." }, { status: 403 }) };
+    return { error: NextResponse.json({ error: "This account has been deleted." }, { status: 403 }) };
   }
   try {
     assertAccountCanWrite(user, options?.writeKind ?? "default");

@@ -41,7 +41,7 @@ export function firstPartyLiveDisabledResponse(message?: string) {
   return {
     error:
       message ??
-      "자체 송출(MoCoMo 서버 방송)은 종료되었습니다. 유튜브·트위치 등 외부 방송 연동을 이용해 주세요.",
+      "Self-broadcasting on MoCoMo servers has ended. Please use external integrations such as YouTube or Twitch.",
   };
 }
 

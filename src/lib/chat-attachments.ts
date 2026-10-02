@@ -98,17 +98,17 @@ export function lastMessagePreview(
   if (legacyGameNote !== null) content = legacyGameNote;
   const letterPreview = atmLetterListPreview(content);
   if (letterPreview) return letterPreview;
-  if (parseLetterDonationMarker(content)) return "편지가 도착했습니다";
+  if (parseLetterDonationMarker(content)) return "A letter has arrived";
   if (content?.trim()) return content.trim();
-  if (!attachments?.length) return "대화를 시작해 보세요";
+  if (!attachments?.length) return "Start a conversation";
   const hasImage = attachments.some((a) => a.type === "IMAGE" || a.type === "GIF");
   const hasAudio = attachments.some((a) => a.type === "AUDIO");
   const hasVideo = attachments.some((a) => a.type === "VIDEO");
   const hasPaid = attachments.some((a) => "priceKrw" in a && (a as { priceKrw?: number }).priceKrw);
-  if (hasPaid && (hasImage || hasVideo)) return "🔒 팬아트";
-  if (hasImage && hasAudio) return "사진 · 음성";
-  if (hasImage) return "사진";
-  if (hasAudio) return "음성 메시지";
-  if (hasVideo) return "동영상";
-  return "첨부 파일";
+  if (hasPaid && (hasImage || hasVideo)) return "🔒 Fan art";
+  if (hasImage && hasAudio) return "Photo · Voice";
+  if (hasImage) return "Photo";
+  if (hasAudio) return "Voice message";
+  if (hasVideo) return "Video";
+  return "Attachment";
 }

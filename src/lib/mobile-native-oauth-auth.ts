@@ -91,11 +91,11 @@ type UserRow = {
 
 async function assertUsable(user: UserRow): Promise<void> {
   if (isServiceBanned(user)) {
-    throw new MobileNativeOAuthError("banned", "이용이 제한된 계정입니다.", 403);
+    throw new MobileNativeOAuthError("banned", "This account is restricted.", 403);
   }
   if (!user.deletedAt) return;
   if (isAccountPastRecovery(user)) {
-    throw new MobileNativeOAuthError("account_deleted", "삭제된 계정입니다.", 403);
+    throw new MobileNativeOAuthError("account_deleted", "This account has been deleted.", 403);
   }
   if (canRecoverAccount(user)) {
     await recoverDeletedAccount(user.id);
@@ -103,7 +103,7 @@ async function assertUsable(user: UserRow): Promise<void> {
   }
   throw new MobileNativeOAuthError(
     "account_pending_recovery",
-    "탈퇴 처리 중인 계정입니다. 30일 이내 로그인하면 탈퇴를 취소할 수 있습니다.",
+    "This account is pending deletion. Sign in within 30 days to cancel deletion.",
     403
   );
 }
@@ -132,7 +132,7 @@ async function fetchLineProfile(accessToken: string): Promise<ProviderProfile> {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new MobileNativeOAuthError("invalid_token", "LINE 인증 정보를 확인하지 못했습니다.", 401);
+    throw new MobileNativeOAuthError("invalid_token", "Couldn't verify LINE credentials.", 401);
   }
   const data = (await res.json()) as {
     userId?: string;
@@ -140,7 +140,7 @@ async function fetchLineProfile(accessToken: string): Promise<ProviderProfile> {
     pictureUrl?: string;
   };
   if (!data.userId) {
-    throw new MobileNativeOAuthError("invalid_token", "LINE 프로필을 읽지 못했습니다.", 401);
+    throw new MobileNativeOAuthError("invalid_token", "Couldn't read the LINE profile.", 401);
   }
   return {
     sub: data.userId,
@@ -156,7 +156,7 @@ async function fetchNaverProfile(accessToken: string): Promise<ProviderProfile> 
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new MobileNativeOAuthError("invalid_token", "네이버 인증 정보를 확인하지 못했습니다.", 401);
+    throw new MobileNativeOAuthError("invalid_token", "Couldn't verify Naver credentials.", 401);
   }
   const data = (await res.json()) as {
     resultcode?: string;
@@ -169,7 +169,7 @@ async function fetchNaverProfile(accessToken: string): Promise<ProviderProfile> 
   };
   const profile = data.response;
   if (data.resultcode !== "00" || !profile?.id) {
-    throw new MobileNativeOAuthError("invalid_token", "네이버 프로필을 읽지 못했습니다.", 401);
+    throw new MobileNativeOAuthError("invalid_token", "Couldn't read the Naver profile.", 401);
   }
   return {
     sub: profile.id,
@@ -226,7 +226,7 @@ export async function resolveMobileNativeOAuthAuth(input: {
   if (input.provider === "line" && !isOAuthEncryptionConfigured()) {
     throw new MobileNativeOAuthError(
       "oauth_unavailable",
-      "LINE 로그인이 서버에 설정되지 않았습니다.",
+      "LINE sign-in isn't configured on the server.",
       503
     );
   }
@@ -289,13 +289,13 @@ export async function resolveMobileNativeOAuthAuth(input: {
       });
       user = await loadUser(createdUser.id);
       if (!user) {
-        throw new MobileNativeOAuthError("signup_failed", "계정을 만들지 못했습니다.", 500);
+        throw new MobileNativeOAuthError("signup_failed", "Couldn't create the account.", 500);
       }
     } catch (e) {
       if (e instanceof MobileNativeOAuthError) throw e;
       throw new MobileNativeOAuthError(
         "signup_failed",
-        e instanceof Error ? e.message : "계정을 만들지 못했습니다.",
+        e instanceof Error ? e.message : "Couldn't create the account.",
         400
       );
     }

@@ -97,5 +97,5 @@ export function chatPostShareListPreview(
       parsed.note.length > 40 ? `${parsed.note.slice(0, 40)}…` : parsed.note;
     return short;
   }
-  return "게시물 공유";
+  return "Share post";
 }
