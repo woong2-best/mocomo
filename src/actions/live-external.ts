@@ -20,6 +20,8 @@ import {
   getAccountTokens,
   resolveVerifiedLiveSource,
 } from "@/lib/streaming-accounts/service";
+import { getServerTranslator } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 export async function createExternalLiveStream(data: {
   /** Optional — ignored when platform title is available. */
@@ -34,8 +36,9 @@ export async function createExternalLiveStream(data: {
   goLive?: boolean;
 }) {
   try {
+    const { t } = await getServerTranslator();
     if (!isExternalLiveEnabled()) {
-      return { error: "외부 방송 연동이 비활성화되어 있습니다." };
+      return { error: t("live.external.disabled") };
     }
 
     const user = await requireAuthMinimal();
@@ -44,7 +47,7 @@ export async function createExternalLiveStream(data: {
 
     const accountId = data.connectedAccountId?.trim();
     if (!accountId) {
-      return { error: "인증된 스트리밍 계정을 선택해 주세요." };
+      return { error: t("live.external.pickAccount") };
     }
 
     const account = await db.connectedStreamingAccount.findUnique({
@@ -52,24 +55,22 @@ export async function createExternalLiveStream(data: {
     });
 
     if (!account || account.userId !== user.id) {
-      return { error: "스트리밍 계정을 찾을 수 없습니다." };
+      return { error: t("live.external.accountNotFound") };
     }
     if (!account.verified || account.revokedAt) {
-      return {
-        error:
-          "인증되지 않았거나 해제된 스트리밍 계정입니다. 설정에서 계정을 다시 연결해 주세요.",
-      };
+      return { error: t("live.external.accountUnverified") };
     }
 
     const liveProvider = platformToLiveExternal(account.platform);
     if (!liveProvider) {
-      return {
-        error: "이 플랫폼은 외부 라이브 임베드를 아직 지원하지 않습니다.",
-      };
+      return { error: t("live.external.platformUnsupported") };
     }
 
     const resolved = await resolveVerifiedLiveSource(accountId, user.id);
-    if ("error" in resolved) return { error: resolved.error };
+    if ("errorKey" in resolved && resolved.errorKey) {
+      return { error: t(resolved.errorKey as MessageKey) };
+    }
+    if ("error" in resolved && resolved.error) return { error: resolved.error };
     const parsed = resolved;
 
     if (parsed.provider === "YOUTUBE") {
@@ -272,10 +273,8 @@ export async function mintStudioObsChatUrl() {
     select: { id: true },
   });
   if (!channel) {
-    return {
-      error:
-        "진행 중인 방송이 없습니다. 방송을 시작한 뒤 여기서 OBS 채팅 URL을 복사하세요.",
-    };
+    const { t } = await getServerTranslator();
+    return { errorKey: "live.obsChat.noActiveBroadcast" as const, error: t("live.obsChat.noActiveBroadcast") };
   }
   return mintLiveOverlayUrls(channel.id);
 }
