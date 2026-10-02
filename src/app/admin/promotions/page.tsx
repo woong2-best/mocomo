@@ -40,7 +40,7 @@ export default async function AdminPromotionsPage({
           코드 없이 계정에 귀속 · 정산 시 우선순위 자동 적용 · 실DB CRUD
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">로딩…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
         <AdminPromotionsTable
           items={res.data.items}
           total={res.data.total}

@@ -80,7 +80,7 @@ export default async function AdminUserAccessLogsPage({
           defaultValue={sp.success ?? ""}
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
         >
-          <option value="">전체 결과</option>
+          <option value="">All results</option>
           <option value="true">{t("app.admin.sxt5w")}</option>
           <option value="false">{t("reels.syb44")}</option>
         </select>
@@ -97,7 +97,7 @@ export default async function AdminUserAccessLogsPage({
               <th className="p-2">회원</th>
               <th className="p-2">IP</th>
               <th className="p-2">{t("app.admin.spcsbw1")}</th>
-              <th className="p-2">채널</th>
+              <th className="p-2">Channel</th>
               <th className="p-2">{t("app.admin.sx2ok")}</th>
               <th className="p-2">브라우저</th>
               <th className="p-2">OS</th>

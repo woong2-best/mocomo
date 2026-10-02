@@ -32,7 +32,7 @@ export default async function AdminSettlementDetailPage({
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">금액</CardTitle>
+          <CardTitle className="text-base">Amount</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-2 text-sm">
           <span className="text-muted-foreground">{t("lib.platform.spwb1vk")}</span>

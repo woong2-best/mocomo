@@ -24,13 +24,13 @@ export default async function AdminLoginLogsPage() {
               <th className="p-2">계정</th>
               <th className="p-2">IP</th>
               <th className="p-2">{t("settings.country")}</th>
-              <th className="p-2">브라우저</th>
+              <th className="p-2">Browser</th>
               <th className="p-2">OS</th>
               <th className="p-2">기기</th>
               <th className="p-2">Passkey</th>
               <th className="p-2">TOTP</th>
-              <th className="p-2">결과</th>
-              <th className="p-2">실패 사유</th>
+              <th className="p-2">Results</th>
+              <th className="p-2">Failure reason</th>
             </tr>
           </thead>
           <tbody>

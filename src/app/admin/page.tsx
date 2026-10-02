@@ -155,7 +155,7 @@ export default async function AdminDashboardPage() {
         <DashboardCard title={t("admin.s1eiyn0")}>
           <ul className="space-y-2 text-sm">
             {recentLogins.length === 0 ? (
-              <li className="text-muted-foreground">기록 없음 (로그인 후 집계)</li>
+              <li className="text-muted-foreground">No records (aggregated after sign-in)</li>
             ) : (
               recentLogins.map((u) => (
                 <li key={u.id} className="flex justify-between gap-2 border-b border-border/40 pb-2">

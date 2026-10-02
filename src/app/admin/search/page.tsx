@@ -62,7 +62,7 @@ export default async function AdminSearchPage() {
               <tr>
                 <th className="p-2">{t("reels.sy36w")}</th>
                 <th className="p-2">{t("lib.video-editor.syuqw")}</th>
-                <th className="p-2">정규화</th>
+                <th className="p-2">Normalized</th>
                 <th className="p-2">Topic</th>
                 <th className="p-2">결과</th>
                 <th className="p-2">국가</th>

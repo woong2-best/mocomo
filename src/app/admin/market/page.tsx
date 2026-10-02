@@ -86,7 +86,7 @@ export default async function AdminMarketPage() {
       <section className="mb-8 space-y-3">
         <h2 className="font-semibold">{t("app.admin.sg3k7q9")}</h2>
         {center.disputes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">열린 분쟁이 없습니다.</p>
+          <p className="text-sm text-muted-foreground">No open disputes.</p>
         ) : (
           center.disputes.map((d) => <AdminDisputeCard key={d.id} dispute={d} />)
         )}

@@ -51,7 +51,7 @@ export default async function AdminUserDetailPage({
       <DashboardCard title={t("settings.profile")}>
         <p className="text-sm whitespace-pre-wrap">{user.profile?.bio || t("app.admin.sjfjqg2")}</p>
         <p className="mt-2 text-xs text-muted-foreground">
-          가입 {user.createdAt.toISOString()} · 최근 로그인{" "}
+          가입 {user.createdAt.toISOString()}Please sign in to continue.{" "}
           {user.lastLoginAt?.toISOString() ?? "—"}
         </p>
         {user.wallet ? (
