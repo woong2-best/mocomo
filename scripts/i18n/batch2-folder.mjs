@@ -13,7 +13,13 @@ if (!folder || !prefix || !label) {
 }
 
 execSync("node scripts/i18n/build-ko-en-index.mjs", { stdio: "inherit" });
-execSync(`node scripts/i18n/migrate-folder-hangul.mjs ${folder} ${prefix}`, { stdio: "inherit" });
+try {
+  execSync(`node scripts/i18n/migrate-folder-hangul.mjs ${folder} ${prefix}`, { stdio: "inherit" });
+} catch {
+  console.error("migrate failed", folder);
+  execSync(`git checkout -- ${folder}`, { stdio: "inherit" });
+  process.exit(2);
+}
 
 let tscOk = false;
 try {
@@ -28,7 +34,7 @@ try {
     console.error("tsc failed for folder", folder);
     console.error(relevant.slice(0, 15).join("\n"));
     execSync(`git checkout -- ${folder}`, { stdio: "inherit" });
-    execSync("git checkout -- src/lib/i18n/locales/en.json", { stdio: "inherit" }).catch?.();
+    execSync("git checkout -- src/lib/i18n/locales/en.json", { stdio: "inherit" });
     console.log("SKIPPED", folder);
     process.exit(2);
   }
