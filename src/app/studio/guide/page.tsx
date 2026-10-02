@@ -9,12 +9,12 @@ export default function StudioGuidePage() {
       <section className="rounded-2xl border border-pink-100 bg-white p-6">
         <h2 className="font-semibold text-pink-600">Design principles</h2>
         <ul className="mt-3 space-y-2 text-sm">
-          <li><strong>Pastel palette</strong> — 부드럽고 밝은 톤</li>
+          <li><strong>Pastel palette</strong> — soft, bright tones</li>
           <li><strong>Cute design</strong> — restrained cartoon proportions</li>
-          <li><strong>둥근 형태</strong> — avoid sharp corners</li>
+          <li><strong>Rounded shapes</strong> — avoid sharp corners</li>
           <li><strong>Low poly</strong> — 50,000 polygons or fewer</li>
           <li><strong>카툰 렌더링</strong> — PBR 과다·사실 조명 지양</li>
-          <li><strong>아늑한 분위기</strong> — APT·홈 씬과 조화</li>
+          <li><strong>Cozy mood</strong> — APT·홈 씬과 조화</li>
         </ul>
       </section>
 
