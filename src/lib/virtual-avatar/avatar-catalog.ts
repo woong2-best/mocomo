@@ -177,7 +177,7 @@ function hairItem(i: number): CatalogItem {
   const id = `hair_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: HAIR_NAMES[i] ?? `헤어 ${i + 1}`,
+    name: HAIR_NAMES[i] ?? `Hair ${i + 1}`,
     category: "hair",
     price: free ? 0 : 4 + (i % 8),
     tags: free ? ["free"] : i % 5 === 0 ? ["hot"] : i % 7 === 0 ? ["new"] : undefined,
@@ -204,7 +204,7 @@ function topItem(i: number): CatalogItem {
   const id = `top_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: TOP_NAMES[i] ?? `상의 ${i + 1}`,
+    name: TOP_NAMES[i] ?? `Tops ${i + 1}`,
     category: "top",
     price: free ? 0 : 5 + (i % 6),
     tags: free ? ["free"] : i === 2 ? ["hot"] : undefined,
@@ -231,7 +231,7 @@ function bottomItem(i: number): CatalogItem {
   const id = `bottom_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: BOTTOM_NAMES[i] ?? `하의 ${i + 1}`,
+    name: BOTTOM_NAMES[i] ?? `Bottoms ${i + 1}`,
     category: "bottom",
     price: free ? 0 : 4 + (i % 5),
     tags: free ? ["free"] : undefined,
@@ -255,7 +255,7 @@ function fullOutfitItem(i: number): CatalogItem {
   const id = `full_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: FULL_OUTFIT_NAMES[i] ?? `한벌 ${i + 1}`,
+    name: FULL_OUTFIT_NAMES[i] ?? `Outfits ${i + 1}`,
     category: "fullOutfit",
     price: 8 + (i % 6),
     tags: i === 0 ? ["hot", "new"] : i === 3 ? ["new"] : undefined,
@@ -282,7 +282,7 @@ function shoesItem(i: number): CatalogItem {
   const id = `shoes_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: SHOE_NAMES[i] ?? `신발 ${i + 1}`,
+    name: SHOE_NAMES[i] ?? `Shoes ${i + 1}`,
     category: "shoes",
     price: free ? 0 : 3 + (i % 4),
     tags: free ? ["free"] : undefined,
@@ -304,7 +304,7 @@ function headwearItem(i: number): CatalogItem {
   const id = `head_${String(i + 1).padStart(3, "0")}`;
   return {
     id,
-    name: HEADWEAR_NAMES[i] ?? `헤드웨어 ${i + 1}`,
+    name: HEADWEAR_NAMES[i] ?? `Headwear ${i + 1}`,
     category: "headwear",
     price: 3 + (i % 5),
     tags: i === 4 ? ["hot"] : undefined,
@@ -327,7 +327,7 @@ function accessoryItem(i: number): CatalogItem {
   const bones: CatalogAttachment["bone"][] = ["neck", "head", "head", "chest", "hips", "leftHand"];
   return {
     id,
-    name: ACCESSORY_NAMES[i] ?? `액세서리 ${i + 1}`,
+    name: ACCESSORY_NAMES[i] ?? `Accessories ${i + 1}`,
     category: "accessory",
     price: 2 + (i % 6),
     tags: i === 3 ? ["new"] : undefined,
@@ -356,7 +356,7 @@ function makeupItem(i: number): CatalogItem {
   const free = i === 0;
   return {
     id: `makeup_${String(i + 1).padStart(3, "0")}`,
-    name: MAKEUP_NAMES[i] ?? `메이크업 ${i + 1}`,
+    name: MAKEUP_NAMES[i] ?? `Makeup ${i + 1}`,
     category: "makeup",
     price: free ? 0 : 5 + (i % 4),
     tags: free ? ["free"] : i === 1 ? ["hot"] : undefined,
