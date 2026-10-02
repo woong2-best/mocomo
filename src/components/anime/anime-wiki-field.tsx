@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRef, useState } from "react";
 import { Eye, EyeOff, ImagePlus, Link2, Loader2 } from "lucide-react";
 import { WikiContent, WIKI_EDITOR_HELP } from "@/components/anime/wiki-content";
@@ -38,7 +41,7 @@ export function AnimeWikiField({
       const insert = `\n![${file.name.replace(/\.[^.]+$/, "")}](${url})\n`;
       setValue((v) => v + insert);
     } catch {
-      setUploadError("이미지 업로드에 실패했습니다.");
+      setUploadError(t("lib.client.upload.s0581cdc92e"));
     } finally {
       setUploading(false);
     }
@@ -47,11 +50,11 @@ export function AnimeWikiField({
   function insertVideoLink() {
     const trimmed = videoUrl.trim();
     if (!trimmed) {
-      setUploadError("영상 링크를 붙여넣어 주세요.");
+      setUploadError(t("anime.s15oqwxv"));
       return;
     }
     if (!extractYoutubeId(trimmed)) {
-      setUploadError("유튜브 링크를 붙여넣어 주세요.");
+      setUploadError(t("anime.s1qniagj"));
       return;
     }
     setValue((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}${trimmed}\n\n`);
@@ -91,7 +94,7 @@ export function AnimeWikiField({
             onClick={() => setPreview((p) => !p)}
           >
             {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {preview ? "미리보기 끄기" : "미리보기"}
+            {preview ? t("anime.s1wwhs7w") : t("support.sohlxtc")}
           </Button>
         </div>
       </div>
@@ -103,7 +106,7 @@ export function AnimeWikiField({
             setVideoUrl(e.target.value);
             setUploadError("");
           }}
-          placeholder="영상 링크 붙여넣기 (유튜브)"
+          placeholder={t("anime.sr7fl2u")}
           className="rounded-xl h-8 max-w-md text-sm"
         />
         <Button
@@ -114,7 +117,7 @@ export function AnimeWikiField({
           onClick={insertVideoLink}
         >
           <Link2 className="h-3.5 w-3.5" />
-          본문에 넣기
+          {t("anime.s8h0lq5")}
         </Button>
       </div>
       {uploadError ? (
@@ -135,11 +138,11 @@ export function AnimeWikiField({
         />
         {preview && (
           <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 min-h-[160px] overflow-y-auto">
-            <p className="text-[10px] font-semibold text-muted-foreground mb-2">실시간 미리보기</p>
+            <p className="text-[10px] font-semibold text-muted-foreground mb-2">{t("anime.s1xa6ah0")}</p>
             {value.trim() ? (
               <WikiContent source={value} />
             ) : (
-              <p className="text-xs text-muted-foreground">내용을 입력하면 미리보기가 표시됩니다.</p>
+              <p className="text-xs text-muted-foreground">{t("anime.s1nmyy3w")}</p>
             )}
           </div>
         )}

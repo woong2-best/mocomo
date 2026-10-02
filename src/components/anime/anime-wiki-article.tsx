@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import type { AnimeGenre } from "@prisma/client";
 import { AnimeWikiInfobox } from "@/components/anime/anime-wiki-infobox";
@@ -72,10 +75,10 @@ export function AnimeWikiArticle({
         <div className="space-y-6 min-w-0 order-2 lg:order-1">
           {headings.length > 0 && (
             <nav
-              aria-label="목차"
+              aria-label={t("anime.swvbz")}
               className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm"
             >
-              <p className="font-semibold mb-2 text-foreground">목차</p>
+              <p className="font-semibold mb-2 text-foreground">{t("anime.swvbz")}</p>
               <ol className="space-y-1 list-none pl-0">
                 {headings.map((h) => (
                   <li key={h.id} className={h.level === 3 ? "pl-3" : undefined}>
@@ -94,7 +97,7 @@ export function AnimeWikiArticle({
             </section>
           ) : (
             <section className="rounded-2xl border border-dashed border-border/70 p-8 text-center text-sm text-muted-foreground">
-              아직 본문이 없습니다. 로그인 후 <strong>편집</strong>으로 내용을 채워 주세요.
+              {t("anime.s13mfdlg")} <strong>{t("lib.media-editor.s114bd")}</strong>{t("anime.s1q5w2il")}
             </section>
           )}
 
@@ -106,7 +109,7 @@ export function AnimeWikiArticle({
 
           {characters.length > 0 && (
             <section id="characters" className="pt-2 border-t border-border/50">
-              <h2 className="text-lg font-bold mb-3">등장인물</h2>
+              <h2 className="text-lg font-bold mb-3">{t("anime.snnsrrs")}</h2>
               <ul className="flex flex-wrap gap-2">
                 {characters.map((name) => (
                   <li key={name} className="text-sm px-3 py-1.5 rounded-full bg-muted/50 border border-border/40">
@@ -131,7 +134,7 @@ export function AnimeWikiArticle({
         <aside className="order-1 lg:order-2 lg:sticky lg:top-[5rem] lg:self-start space-y-3">
           <div className="rounded-2xl border border-border/70 bg-card/80 overflow-hidden shadow-sm">
             <div className="px-3 py-2 border-b border-border/60 bg-muted/30 text-center">
-              <p className="text-xs font-semibold text-muted-foreground">문서 정보</p>
+              <p className="text-xs font-semibold text-muted-foreground">{t("anime.s1a3gksb")}</p>
             </div>
             {coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -147,12 +150,12 @@ export function AnimeWikiArticle({
             )}
             <dl className="px-3 py-3 space-y-2 text-sm border-b border-border/50">
               <div>
-                <dt className="text-xs text-muted-foreground">제목</dt>
+                <dt className="text-xs text-muted-foreground">{t("cosplay.sz28d")}</dt>
                 <dd className="font-semibold leading-snug">{title}</dd>
                 {titleEn && <dd className="text-xs text-muted-foreground mt-0.5">{titleEn}</dd>}
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">분류</dt>
+                <dt className="text-xs text-muted-foreground">{t("anime.sx93o")}</dt>
                 <dd>
                   <Link
                     href={`/anime/list/${genreToParam(genre)}`}
@@ -164,12 +167,12 @@ export function AnimeWikiArticle({
               </div>
               {studio && (
                 <div>
-                  <dt className="text-xs text-muted-foreground">제작사</dt>
+                  <dt className="text-xs text-muted-foreground">{t("anime.sua6af")}</dt>
                   <dd>{studio}</dd>
                 </div>
               )}
               <div>
-                <dt className="text-xs text-muted-foreground">최근 수정</dt>
+                <dt className="text-xs text-muted-foreground">{t("anime.s17kxw59")}</dt>
                 <dd className="text-xs">{formattedDate}</dd>
               </div>
             </dl>

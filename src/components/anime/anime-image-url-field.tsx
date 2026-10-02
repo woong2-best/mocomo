@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +15,7 @@ export function AnimeImageUrlField({
   label,
   defaultValue = "",
   previewAspect = "square",
-  uploadLabel = "사진 업로드",
+  uploadLabel = t("anime.s1rw0t19"),
 }: {
   name: string;
   label: string;
@@ -33,7 +36,7 @@ export function AnimeImageUrlField({
       const uploaded = await uploadImageBlob(prepared, prepared.name || `${name}.webp`);
       setUrl(uploaded);
     } catch {
-      setUploadError("이미지 업로드에 실패했습니다. 다시 시도해 주세요.");
+      setUploadError(t("anime.s27xnoi"));
     } finally {
       setUploading(false);
     }
@@ -71,7 +74,7 @@ export function AnimeImageUrlField({
               ) : (
                 <ImagePlus className="h-4 w-4" />
               )}
-              {uploading ? "업로드 중…" : uploadLabel}
+              {uploading ? t("compose.uploading") : uploadLabel}
             </span>
           </Button>
         </label>
@@ -84,7 +87,7 @@ export function AnimeImageUrlField({
             onClick={() => setUrl("")}
           >
             <X className="h-3.5 w-3.5" />
-            제거
+            {t("collab.remove")}
           </Button>
         )}
       </div>

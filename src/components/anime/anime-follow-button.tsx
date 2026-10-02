@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useRef, useState } from "react";
 import { toggleAnimeFollow } from "@/actions/anime";
 import { Button } from "@/components/ui/button";
@@ -45,7 +48,7 @@ export function AnimeFollowButton({
       onClick={() => void toggle()}
       aria-pressed={following}
     >
-      {following ? "팔로잉" : "팔로우"}
+      {following ? t("lib.user.connections.s44bb989270") : t("profile.svtgiw")}
     </Button>
   );
 }

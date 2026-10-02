@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useState } from "react";
@@ -69,17 +72,17 @@ export function AnimeGoodsPanel({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">위키 굿즈 정보</p>
+        <p className="text-sm text-muted-foreground">{t("anime.s1g84jrq")}</p>
         <Link
           href={`/market?anime=${encodeURIComponent(slug)}`}
           className="text-sm font-semibold text-primary hover:underline"
         >
-          중고거래에서 찾기 →
+          {t("anime.s6nt6m9")}
         </Link>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {goods.length === 0 ? (
-          <p className="text-muted-foreground col-span-full">굿즈 정보 없음</p>
+          <p className="text-muted-foreground col-span-full">{t("anime.s9peykw")}</p>
         ) : (
           goods.map((g) => (
             <Card key={g.id}>
@@ -96,7 +99,7 @@ export function AnimeGoodsPanel({
                   )}
                   {g.linkUrl && (
                     <a href={g.linkUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary mt-1 inline-block">
-                      링크
+                      {t("anime.swqmj")}
                     </a>
                   )}
                 </div>
@@ -108,7 +111,7 @@ export function AnimeGoodsPanel({
                     className="shrink-0 text-destructive"
                     disabled={deletingId === g.id}
                     onClick={() => handleDelete(g.id)}
-                    aria-label="굿즈 삭제"
+                    aria-label={t("anime.s1sj6uue")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -122,18 +125,18 @@ export function AnimeGoodsPanel({
       {canEdit ? (
         <Card className="rounded-2xl border-dashed">
           <CardContent className="p-4">
-            <p className="text-sm font-medium mb-3">굿즈 추가 (누구나 편집 가능)</p>
+            <p className="text-sm font-medium mb-3">{t("anime.s1tkhzs")}</p>
             <form onSubmit={handleAdd} className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
-                <Input name="title" placeholder="제목 *" required className="rounded-xl" />
-                <Input name="type" placeholder="종류 (피규어, Blu-ray 등) *" required className="rounded-xl" />
-                <Input name="price" type="number" min={0} placeholder="가격 (원)" className="rounded-xl" />
-                <Input name="imageUrl" type="url" placeholder="이미지 URL" className="rounded-xl" />
-                <Input name="linkUrl" type="url" placeholder="구매 링크" className="rounded-xl sm:col-span-2" />
+                <Input name="title" placeholder={t("anime.spzylzr")} required className="rounded-xl" />
+                <Input name="type" placeholder={t("anime.blu_ray")} required className="rounded-xl" />
+                <Input name="price" type="number" min={0} placeholder={t("anime.srv8ui")} className="rounded-xl" />
+                <Input name="imageUrl" type="url" placeholder={t("anime.url")} className="rounded-xl" />
+                <Input name="linkUrl" type="url" placeholder={t("anime.s1q9ozcj")} className="rounded-xl sm:col-span-2" />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" size="sm" disabled={loading}>
-                {loading ? "추가 중..." : "굿즈 등록"}
+                {loading ? t("anime.s1m27ywh") : t("anime.s1sj4rvn")}
               </Button>
             </form>
           </CardContent>
@@ -144,9 +147,9 @@ export function AnimeGoodsPanel({
             href={`/auth/signin?callbackUrl=${encodeURIComponent(`/anime/${slug}?tab=goods`)}`}
             className="text-primary hover:underline"
           >
-            로그인
+            {t("auth.signIn")}
           </a>
-          하면 굿즈도 추가·삭제할 수 있어요.
+          {t("anime.ssswwfz")}
         </p>
       )}
     </div>

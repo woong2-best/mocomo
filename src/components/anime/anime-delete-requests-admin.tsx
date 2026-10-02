@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { resolveAnimeDeleteRequest } from "@/actions/anime";
@@ -29,7 +32,7 @@ export function AnimeDeleteRequestsAdmin({
   }
 
   if (requests.length === 0) {
-    return <p className="text-sm text-muted-foreground">대기 중인 삭제 요청이 없습니다.</p>;
+    return <p className="text-sm text-muted-foreground">{t("anime.s1f80m6u")}</p>;
   }
 
   return (
@@ -47,8 +50,8 @@ export function AnimeDeleteRequestsAdmin({
             </div>
             <div className="flex flex-wrap gap-2">
               <InlineConfirm
-                message="이 문서를 삭제합니다. 계속할까요?"
-                confirmLabel="승인·삭제"
+                message={t("anime.ssq050")}
+                confirmLabel={t("anime.s57iq4n")}
                 pending={busy === r.id}
                 onConfirm={() => void resolve(r.id, "APPROVED")}
                 renderTrigger={(request) => (
@@ -59,13 +62,13 @@ export function AnimeDeleteRequestsAdmin({
                     disabled={busy === r.id}
                     onClick={request}
                   >
-                    승인·삭제
+                    {t("anime.s57iq4n")}
                   </Button>
                 )}
               />
               <InlineConfirm
-                message="삭제 요청을 거절할까요?"
-                confirmLabel="거절"
+                message={t("anime.sonp7x1")}
+                confirmLabel={t("collab.reject")}
                 variant="outline"
                 pending={busy === r.id}
                 onConfirm={() => void resolve(r.id, "REJECTED")}
@@ -77,7 +80,7 @@ export function AnimeDeleteRequestsAdmin({
                     disabled={busy === r.id}
                     onClick={request}
                   >
-                    거절
+                    {t("collab.reject")}
                   </Button>
                 )}
               />

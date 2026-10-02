@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { History } from "lucide-react";
@@ -16,10 +19,10 @@ const TAB_IDS = ["info", "cosplayers", "goods", "community"] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 const tabs: { id: TabId; label: string }[] = [
-  { id: "info", label: "정보" },
-  { id: "cosplayers", label: "관련 코스어" },
-  { id: "goods", label: "굿즈" },
-  { id: "community", label: "커뮤니티" },
+  { id: "info", label: t("lib.community-server.sz2in") },
+  { id: "cosplayers", label: t("anime.spppofg") },
+  { id: "goods", label: t("lib.marketplace.sum7d") },
+  { id: "community", label: t("notifications.sqvrsyw") },
 ];
 
 function normalizeTab(value: string | undefined): TabId {
@@ -124,7 +127,7 @@ export function AnimeDetailTabs({
           )}
         >
           <History className="h-3.5 w-3.5" />
-          기록
+          {t("anime.sun1p")}
         </Link>
         {showEditLink && (
           <Link
@@ -132,7 +135,7 @@ export function AnimeDetailTabs({
             prefetch
             className="ml-auto px-3 py-2 text-sm font-medium text-muted-foreground hover:text-primary whitespace-nowrap"
           >
-            편집
+            {t("lib.media-editor.s114bd")}
           </Link>
         )}
       </nav>
@@ -156,7 +159,7 @@ export function AnimeDetailTabs({
             {cosplayers.length > 0 && (
               <section className="pt-4 border-t border-border/50">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-semibold">관련 코스어</h2>
+                  <h2 className="text-lg font-semibold">{t("anime.spppofg")}</h2>
                   <button
                     type="button"
                     onClick={() => selectTab("cosplayers")}
@@ -191,7 +194,7 @@ export function AnimeDetailTabs({
         {activeTab === "cosplayers" && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cosplayers.length === 0 ? (
-              <p className="text-muted-foreground col-span-full">연결된 코스어가 없습니다.</p>
+              <p className="text-muted-foreground col-span-full">{t("anime.s19gei4j")}</p>
             ) : (
               cosplayers.map((link) => (
                 <Link key={link.id} href={`/cosplay/${link.profile.user.username}`}>

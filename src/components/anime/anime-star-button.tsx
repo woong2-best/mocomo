@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
@@ -47,7 +50,7 @@ export function AnimeStarButton({
           : "border-border bg-background/70 text-foreground hover:bg-muted",
         className
       )}
-      aria-label={starred ? "STAR 해제" : "STAR 저장"}
+      aria-label={starred ? t("anime.star") : t("anime.star_2")}
       aria-pressed={starred}
     >
       <Star className={cn("h-4 w-4", starred && "fill-amber-400 text-amber-400")} />

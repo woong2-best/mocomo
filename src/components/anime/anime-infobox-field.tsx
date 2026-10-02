@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { AnimeWikiInfobox } from "@/components/anime/anime-wiki-infobox";
@@ -30,7 +33,7 @@ export function AnimeInfoboxField({
           onClick={() => setPreview((p) => !p)}
         >
           {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          {preview ? "미리보기 끄기" : "미리보기"}
+          {preview ? t("anime.s1wwhs7w") : t("support.sohlxtc")}
         </Button>
       </div>
       <p className="text-[10px] text-muted-foreground leading-snug whitespace-pre-wrap">{WIKI_INFOBOX_HELP}</p>
@@ -40,16 +43,16 @@ export function AnimeInfoboxField({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           rows={14}
-          placeholder={`=== 작품 정보 ===\n장르 | 액션, 판타지\n감독 | ...`}
+          placeholder={t("anime.n_n")}
           className="w-full rounded-xl border border-border bg-background p-3 text-sm font-mono leading-relaxed resize-y min-h-[220px]"
         />
         {preview && (
           <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 min-h-[220px] overflow-y-auto">
-            <p className="text-[10px] font-semibold text-muted-foreground mb-2">작품 정보표 미리보기</p>
+            <p className="text-[10px] font-semibold text-muted-foreground mb-2">{t("anime.s1s9lsd8")}</p>
             {value.trim() ? (
               <AnimeWikiInfobox source={value} />
             ) : (
-              <p className="text-xs text-muted-foreground">위 형식으로 입력하면 작품 정보표가 표시됩니다.</p>
+              <p className="text-xs text-muted-foreground">{t("anime.s10255ut")}</p>
             )}
           </div>
         )}

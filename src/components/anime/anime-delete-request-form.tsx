@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -34,7 +37,7 @@ export function AnimeDeleteRequestForm({ slug, title }: { slug: string; title: s
       <p className="text-sm text-emerald-600">
         삭제 요청이 접수되었습니다. 운영진이 검토합니다.{" "}
         <Link href="/anime/delete-requests" className="underline">
-          요청 목록
+          {t("anime.skxqldn")}
         </Link>
       </p>
     );
@@ -51,11 +54,11 @@ export function AnimeDeleteRequestForm({ slug, title }: { slug: string; title: s
         required
         minLength={10}
         rows={4}
-        placeholder="삭제 사유 (10자 이상)"
+        placeholder={t("anime.s1jn2tuo")}
         className="w-full rounded-xl border border-border bg-background p-3 text-sm"
       />
       <Button type="submit" disabled={loading} className="rounded-xl">
-        {loading ? "제출 중…" : "삭제 요청 제출"}
+        {loading ? t("report.submitting") : t("anime.shaz1cm")}
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </form>

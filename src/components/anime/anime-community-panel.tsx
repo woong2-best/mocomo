@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
@@ -35,13 +38,13 @@ export function AnimeCommunityPanel({
       });
       const data = (await res.json()) as { postId?: string; error?: string };
       if (!res.ok || !data.postId) {
-        setError(errorText(data.error ?? "게시에 실패했습니다."));
+        setError(errorText(data.error ?? t("anime.s1l7khy9")));
         return;
       }
       setContent("");
       window.location.reload();
     } catch {
-      setError("게시에 실패했습니다.");
+      setError(t("anime.s1l7khy9"));
     } finally {
       setLoading(false);
     }
@@ -51,32 +54,32 @@ export function AnimeCommunityPanel({
     <div className="space-y-4">
       {isLoggedIn ? (
         <form onSubmit={submit} className="space-y-2 rounded-xl border border-border p-3 bg-muted/20">
-          <p className="text-xs text-muted-foreground">이 문서에 대한 토론·의견을 남겨 주세요.</p>
+          <p className="text-xs text-muted-foreground">{t("anime.ss7enyr")}</p>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={3}
-            placeholder="토론 내용…"
+            placeholder={t("anime.s1pthii9")}
             className="w-full rounded-lg border border-border bg-background p-2 text-sm"
             required
           />
           <Button type="submit" size="sm" disabled={loading} className="rounded-lg">
-            {loading ? "게시 중…" : "토론 글 올리기"}
+            {loading ? t("lib.published.toast.store.sfaa0601b2e") : t("anime.s1qeqjzk")}
           </Button>
           {error && <p className="text-xs text-destructive">{error}</p>}
         </form>
       ) : (
         <p className="text-sm text-muted-foreground">
           <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(`/anime/${slug}?tab=community`)}`} className="text-primary underline">
-            로그인
+            {t("auth.signIn")}
           </Link>
-          하면 토론에 참여할 수 있습니다.
+          {t("anime.s9ygmr9")}
         </p>
       )}
 
       <div className="space-y-3">
         {posts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">아직 토론 글이 없습니다.</p>
+          <p className="text-sm text-muted-foreground">{t("anime.swrvvdg")}</p>
         ) : (
           posts.map((p) => (
             <Link key={p.id} href={`/post/${p.id}`}>
