@@ -12,7 +12,6 @@ function row(
 ): UnifiedSettlementHistoryItem {
   if (partial.kind === "on_demand_withdrawal") {
     return {
-      kind: "on_demand_withdrawal",
       status: "COMPLETED",
       withdrawMoco: 100,
       balanceAfterMoco: 0,
@@ -26,7 +25,6 @@ function row(
     } as UnifiedSettlementHistoryItem;
   }
   return {
-    kind: "monthly_cycle",
     periodYear: 2026,
     periodMonth: 1,
     status: "PAID",

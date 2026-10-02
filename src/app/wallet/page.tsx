@@ -109,6 +109,7 @@ export default async function WalletPage({
           earnedMocoTier: "SEED" as const,
           purchasedMocoPoints: 0,
           rewardProgress: rewardTierProgress(0),
+          onDemandPayoutEnabled: false,
           recentRewards: [],
           payoutDashboard: {
             payoutsEnabled: false,
