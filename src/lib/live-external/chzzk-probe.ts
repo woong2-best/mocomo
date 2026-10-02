@@ -36,7 +36,7 @@ export async function probeChzzkEmbed(channelId: string): Promise<ChzzkEmbedProb
       embedUrl,
       reachable: false,
       recommendEmbed: false,
-      note: "NEXT_PUBLIC_CHZZK_EMBED_ENABLED=false — 새 창 폴백",
+      note: "NEXT_PUBLIC_CHZZK_EMBED_ENABLED=false — open in new window fallback",
     };
   }
 

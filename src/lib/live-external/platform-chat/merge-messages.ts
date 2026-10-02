@@ -43,7 +43,7 @@ export const UNIFIED_CHAT_SOURCE_LABEL: Record<UnifiedChatSource, string> = {
   MOCOMO: "MoCoMo",
   TWITCH: "Twitch",
   YOUTUBE: "YouTube",
-  CHZZK: "치지직",
+  CHZZK: "CHZZK",
 };
 
 /** Live chat + OBS overlay — username colors (no platform text badges) */

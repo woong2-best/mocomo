@@ -197,5 +197,5 @@ export async function fetchExternalPlatformMetadata(
 export function providerDisplayName(provider: LiveExternalProvider): string {
   if (provider === "YOUTUBE") return "YouTube";
   if (provider === "TWITCH") return "Twitch";
-  return "치지직";
+  return "CHZZK";
 }

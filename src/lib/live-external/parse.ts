@@ -127,7 +127,7 @@ export function parseExternalLiveSource(
   opts?: { providerHint?: LiveExternalProvider }
 ): ParsedExternalLiveSource | { error: string } {
   const input = raw.trim();
-  if (!input) return { error: "방송 URL 또는 ID를 입력해 주세요." };
+  if (!input) return { error: "Enter a broadcast URL or ID." };
 
   const tryYoutube = () => {
     const id = youtubeVideoId(input);
@@ -166,19 +166,19 @@ export function parseExternalLiveSource(
 
   const hint = opts?.providerHint;
   if (hint === "YOUTUBE") {
-    return tryYoutube() ?? { error: "유효한 YouTube 라이브/영상 URL이 아닙니다." };
+    return tryYoutube() ?? { error: "Not a valid YouTube live or video URL." };
   }
   if (hint === "TWITCH") {
-    return tryTwitch() ?? { error: "유효한 Twitch 채널 URL이 아닙니다." };
+    return tryTwitch() ?? { error: "Not a valid Twitch channel URL." };
   }
   if (hint === "CHZZK") {
-    return tryChzzk() ?? { error: "유효한 치지직 채널 URL이 아닙니다." };
+    return tryChzzk() ?? { error: "Not a valid CHZZK channel URL." };
   }
 
   return (
     tryYoutube() ||
     tryTwitch() ||
-    tryChzzk() || { error: "유튜브·트위치 URL만 지원합니다." }
+    tryChzzk() || { error: "Only YouTube and Twitch URLs are supported." }
   );
 }
 

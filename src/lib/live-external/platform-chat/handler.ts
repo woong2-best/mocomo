@@ -46,7 +46,7 @@ export async function handlePlatformChatRequest(
   }
 ): Promise<PlatformChatHandlerResult> {
   if (!channel.externalProvider || !channel.externalId) {
-    return { ok: false, error: "외부 방송이 아닙니다.", status: 400 };
+    return { ok: false, error: "Not an external broadcast.", status: 400 };
   }
 
   const provider = channel.externalProvider.toUpperCase() as LiveExternalProvider;
