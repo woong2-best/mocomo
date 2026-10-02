@@ -1,4 +1,7 @@
-﻿"use client";
+"use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -124,7 +127,7 @@ export function PostDetailActions({
           <button
             type="button"
             onClick={handleStar}
-            aria-label={starred ? "STAR에서 제거" : "STAR에 저장"}
+            aria-label={starred ? t("post.star") : t("post.star_2")}
             className={cn(
               "min-h-9 min-w-9 flex items-center justify-center",
               starred ? "text-yellow-400" : "text-yellow-500/70 hover:text-yellow-400"
