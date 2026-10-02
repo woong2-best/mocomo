@@ -34,14 +34,14 @@ export function normalizeScheduleWeekdays(raw: unknown): number[] {
 export function formatScheduleMemo(schedule: WeeklySchedule): string {
   const days =
     schedule.weekdays.length > 0
-      ? schedule.weekdays.map((d) => `매주 ${WEEKDAY_KO[d]}`).join(" · ")
+      ? schedule.weekdays.map((d) => `Weekly {v0} ${WEEKDAY_KO[d]}`).join(" · ")
       : "Weekly {v0}";
   const time = schedule.time ? `${schedule.time}` : "";
   const head = [days, time].filter(Boolean).join(" ");
   const note = schedule.note?.trim();
-  if (note && head) return `📺 방송 ${head}\n${note}`;
+  if (note && head) return `📺 Stream {v0} ${head}\n${note}`;
   if (note) return `📺 방송\n${note}`;
-  if (head) return `📺 방송 ${head}`;
+  if (head) return `📺 Stream {v0} ${head}`;
   return "📺 Stream schedule";
 }
 
