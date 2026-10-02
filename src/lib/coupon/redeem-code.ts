@@ -45,7 +45,7 @@ export async function redeemCouponCode(userId: string, rawCode: string) {
     await createNotification({
       userId,
       type: "COUPON",
-      title: `쿠폰 등록: ${coupon.name}`,
+      title: `Coupon registered: {v0} ${coupon.name}`,
       body: formatCouponBenefit(coupon),
       link: "/coupons",
     });
