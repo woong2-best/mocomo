@@ -1,8 +1,11 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "2D 아바타 편집 | MoCoMo",
-  description: "MoCoMo는 2D 아바타 편집기를 기본 스튜디오로 사용합니다.",
+  title: t("app.avatar.2d_mocomo"),
+  description: t("app.avatar.mocomo_2d"),
 };
 
 export default async function Avatar3dStudioPage() {
