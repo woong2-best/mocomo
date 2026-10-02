@@ -75,7 +75,7 @@ export class FaceFilterPipeline {
       if (this.hasDrawnFrame()) return;
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
     }
-    throw new Error("카메라 미리보기를 준비하지 못했습니다. 권한·다른 앱의 카메라 사용 여부를 확인해 주세요.");
+    throw new Error("Could not start the camera preview. Check permission and whether another app is using the camera.");
   }
 
   /** canvas 송출 트랙이 준비될 때까지 대기 */
@@ -86,7 +86,7 @@ export class FaceFilterPipeline {
       if (this.frameCount >= 2 && this.canvas.width > 0 && this.outputStream) return;
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
     }
-    throw new Error("얼굴 필터 영상 준비가 지연되고 있습니다. 필터를 「원본」으로 바꾸거나 잠시 후 다시 시도해 주세요.");
+    throw new Error("Face filter video is taking longer than usual. Switch the filter to Original or try again shortly.");
   }
 
   private async waitForVideoDimensions(timeoutMs = 8000): Promise<void> {
@@ -94,7 +94,7 @@ export class FaceFilterPipeline {
     await new Promise<void>((resolve, reject) => {
       const timer = window.setTimeout(() => {
         cleanup();
-        reject(new Error("카메라 영상 해상도를 읽지 못했습니다."));
+        reject(new Error("Could not read the camera video resolution."));
       }, timeoutMs);
       const onReady = () => {
         if (this.sourceVideo.videoWidth > 0 && this.sourceVideo.videoHeight > 0) {
@@ -188,7 +188,7 @@ export class FaceFilterPipeline {
   capturePhotoBlob(quality = 0.92): Promise<Blob> {
     return new Promise((resolve, reject) => {
       this.canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error("사진 캡처 실패"))),
+        (b) => (b ? resolve(b) : reject(new Error("Photo capture failed"))),
         "image/jpeg",
         quality
       );

@@ -82,7 +82,7 @@ async function loadLandmarkerOnce(): Promise<FaceLandmarker | null> {
     }
   }
 
-  setLoadState("error", lastErr || "얼굴 인식 모듈을 불러오지 못했습니다.");
+  setLoadState("error", lastErr || "Could not load the face detection module.");
   return null;
 }
 
