@@ -36,8 +36,8 @@ export function formatCosplayBoardPriceLabel(
   price: number | null | undefined
 ): string {
   if (price == null || price <= 0) return "Negotiable";
-  const formatted = price.toLocaleString("ko-KR");
-  return mode === "rental" ? `1일 ${formatted}원` : `${formatted}원`;
+  const formatted = price.toLocaleString("en-US");
+  return mode === "rental" ? `${formatted} KRW/day` : `${formatted} KRW`;
 }
 
 export function cosplayBoardListHref(mode: CosplayBoardMode, page?: number) {

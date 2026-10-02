@@ -46,7 +46,7 @@ export default async function AdminCouponDetailPage({
           <li>적용 대상: {c.audience}{c.targetTier ? ` (${c.targetTier})` : ""}</li>
           <li>
             사용 횟수:{" "}
-            {c.maxUsesPerUser == null ? t("app.admin.ssebqs") : `유저당 ${c.maxUsesPerUser}회`}
+            {c.maxUsesPerUser == null ? t("app.admin.ssebqs") : `${c.maxUsesPerUser} uses per user`}
             {c.maxTotalUses != null ? ` · 전체 ${c.maxTotalUses}회` : ""}
           </li>
           <li>

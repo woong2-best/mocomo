@@ -416,7 +416,13 @@ export async function adjustDirectMeet(
     },
   });
   const otherId = loaded.role === "buyer" ? trade.sellerId : trade.buyerId;
-  await notify(otherId, userId, "Meetup time changed", `${trade.listing.title} 약속이 15분 ${direction === "later" ? "Delay" : "Move up"}졌습니다.`, `/messages/${trade.roomId}`);
+  await notify(
+    otherId,
+    userId,
+    "Meetup time changed",
+    `${trade.listing.title}: meetup moved ${direction === "later" ? "15 minutes later" : "15 minutes earlier"}.`,
+    `/messages/${trade.roomId}`
+  );
   return resultFor(trade.id, userId);
 }
 

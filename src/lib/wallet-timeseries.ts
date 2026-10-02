@@ -101,7 +101,7 @@ function advanceBucket(startMs: number, g: Granularity): number {
 
 export function formatAxisLabel(ms: number, g: Granularity): string {
   const d = new Date(ms);
-  if (g === "month") return `${d.getMonth() + 1}월`;
+  if (g === "month") return d.toLocaleString("en-US", { month: "short" });
   if (g === "day") return `${d.getMonth() + 1}/${d.getDate()}`;
   if (g === "hour") return `${String(d.getHours()).padStart(2, "0")}:00`;
   if (g === "minute") return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -110,9 +110,9 @@ export function formatAxisLabel(ms: number, g: Granularity): string {
 
 export function formatTooltipTime(ms: number, g: Granularity): string {
   const d = new Date(ms);
-  if (g === "month") return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+  if (g === "month") return d.toLocaleString("en-US", { year: "numeric", month: "short" });
   if (g === "day") return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
-  return d.toLocaleString("ko-KR", {
+  return d.toLocaleString("en-US", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
