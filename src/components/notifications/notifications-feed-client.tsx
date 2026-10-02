@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -17,13 +20,13 @@ import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
 import { CollabInviteNotificationActions } from "@/components/notifications/collab-invite-notification-actions";
 
 const FILTERS: { id: string; label: string; category: string | null }[] = [
-  { id: "all", label: "전체", category: null },
-  { id: "social", label: "소셜", category: "social" },
-  { id: "market", label: "장터", category: "market" },
-  { id: "live", label: "라이브", category: "live" },
-  { id: "messages", label: "메시지", category: "messages" },
-  { id: "commerce", label: "후원·선물", category: "commerce" },
-  { id: "community", label: "커뮤니티", category: "community" },
+  { id: "all", label: i18n("lib.live.categories.s934dd25ec5"), category: null },
+  { id: "social", label: i18n("notifications.sxzdc"), category: "social" },
+  { id: "market", label: i18n("notifications.sz3u3"), category: "market" },
+  { id: "live", label: i18n("lib.search.fast.sdb12b62c3a"), category: "live" },
+  { id: "messages", label: i18n("lib.chat.message.normalize.s96330a61aa"), category: "messages" },
+  { id: "commerce", label: i18n("notifications.scgnr47"), category: "commerce" },
+  { id: "community", label: i18n("notifications.sqvrsyw"), category: "community" },
 ];
 
 export function NotificationsFeedClient({
@@ -135,7 +138,7 @@ export function NotificationsFeedClient({
 
       {fetchError ? (
         <div className="rounded-2xl border border-dashed p-12 text-center space-y-3">
-          <p className="text-sm text-muted-foreground">알림을 불러오지 못했습니다.</p>
+          <p className="text-sm text-muted-foreground">{i18n("notifications.sns1b26")}</p>
           <Button
             type="button"
             variant="outline"
@@ -164,8 +167,8 @@ export function NotificationsFeedClient({
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
           {filter === "all"
-            ? "알림이 없습니다. 좋아요·댓글·팔로우·쪽지 활동이 여기에 표시됩니다."
-            : "이 카테고리에 알림이 없습니다."}
+            ? i18n("notifications.s1qc3enz")
+            : i18n("notifications.s3yuix3")}
         </div>
       ) : (
         <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden bg-card">

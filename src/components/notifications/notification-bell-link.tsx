@@ -1,4 +1,7 @@
-﻿"use client";
+"use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 
 import Link from "next/link";
 import { Bell } from "lucide-react";
@@ -14,7 +17,7 @@ export function NotificationBellLink({ className }: { className?: string }) {
       asChild
       variant="ghost"
       size="icon"
-      title="알림"
+      title={t("nav.notifications")}
       className={cn("rounded-xl relative", className)}
     >
       <Link href="/notifications">
