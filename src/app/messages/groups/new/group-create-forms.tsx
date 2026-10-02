@@ -81,13 +81,13 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
               onClick={() => copyText(created.joinCode!)}
             >
               <Copy className="h-3.5 w-3.5" />
-              코드 복사
+              Copy code
             </Button>
           </div>
         ) : null}
         {created.password && !created.joinCode ? (
           <div className="rounded-2xl border p-4 text-center space-y-2">
-            <p className="text-sm text-muted-foreground">비밀번호</p>
+            <p className="text-sm text-muted-foreground">Password</p>
             <p className="text-lg font-bold">{created.password}</p>
             <Button
               type="button"
@@ -96,7 +96,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
               className="rounded-xl"
               onClick={() => copyText(created.password!)}
             >
-              비밀번호 복사
+              Copy password
             </Button>
           </div>
         ) : null}
@@ -111,12 +111,12 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
               className="w-full rounded-xl"
               onClick={() => copyText(inviteLink)}
             >
-              링크 복사
+              Copy link
             </Button>
           </div>
         ) : null}
         <Button className="w-full rounded-2xl" onClick={() => router.push(`/messages/${created.roomId}`)}>
-          채팅방 들어가기
+          Open chat
         </Button>
         <Button variant="ghost" className="w-full rounded-2xl" asChild>
           <Link href="/messages">Conversations</Link>
@@ -150,17 +150,17 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
           <form onSubmit={createCosplayer} className="space-y-2">
             <Input name="name" placeholder="Room name (e.g., Genshin cosplayer meetup)" required className="rounded-xl" />
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
-              {loading ? "만드는 중…" : "Create cosplayer group chat"}
+              {loading ? "Creating…" : "Create cosplayer group chat"}
             </Button>
           </form>
         </section>
       ) : (
         <p className="text-sm text-muted-foreground rounded-xl border px-3 py-2">
-          코스어 단체방은{" "}
+          Cosplayer group chats require{" "}
           <Link href="/cosplay/apply" className="text-primary underline">
-            코스어 등록
+            cosplayer registration
           </Link>
-          후 만들 수 있어요.
+          first.
         </p>
       )}
 
@@ -176,7 +176,7 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
           <Input name="name" placeholder="Room name (e.g., Weekend hangout)" required className="rounded-xl" />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="usePassword" className="rounded" />
-            입장 비밀번호 사용
+            Require entry password
           </label>
           <Input
             name="customPassword"
@@ -184,10 +184,10 @@ export function GroupCreateForms({ isCosplayer }: { isCosplayer: boolean }) {
             className="rounded-xl"
           />
           <p className="text-xs text-muted-foreground">
-            체크를 끄면 링크만으로 누구나 입장할 수 있어요.
+            When unchecked, anyone with the link can join.
           </p>
           <Button type="submit" variant="outline" className="w-full rounded-xl" disabled={loading}>
-            {loading ? "만드는 중…" : "Create social group chat"}
+            {loading ? "Creating…" : "Create social group chat"}
           </Button>
         </form>
       </section>

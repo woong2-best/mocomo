@@ -224,10 +224,10 @@ export function VideoTipWizardDialog({
         <DialogHeader className="px-4 pt-4 pb-2 border-b border-white/10">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Film className="h-5 w-5 text-emerald-400" />
-            {displayName} Video 후원
+            {displayName} video tip
           </DialogTitle>
           <p className="text-xs text-white/50">
-            {step}/4 · YouTube Video을 등록하고 재생 구간·금액을 설정한 뒤 후원합니다.
+            {step}/4 · Add a YouTube video, set the clip and amount, then tip.
           </p>
         </DialogHeader>
 
@@ -244,7 +244,7 @@ export function VideoTipWizardDialog({
                 <span className="font-semibold text-sm truncate">{viewerName}</span>
               </div>
               <label className="flex items-center gap-2 text-xs text-white/70 shrink-0 cursor-pointer">
-                익명
+                Anonymous
                 <button
                   type="button"
                   role="switch"
@@ -275,7 +275,7 @@ export function VideoTipWizardDialog({
 
             {previewLoading && (
               <p className="text-xs text-white/50 flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" /> Video 확인 중…
+                <Loader2 className="h-3 w-3 animate-spin" /> Checking video…
               </p>
             )}
             {previewError && <p className="text-xs text-red-400">{previewError}</p>}
@@ -327,7 +327,7 @@ export function VideoTipWizardDialog({
                           />
                           {i === 0 && historyScroll === 0 && (
                             <span className="absolute top-1 right-1 text-[9px] bg-blue-600 px-1.5 py-0.5 rounded-full">
-                              최근
+                              Recent
                             </span>
                           )}
                         </div>
@@ -353,8 +353,8 @@ export function VideoTipWizardDialog({
             )}
 
             <p className="text-[10px] text-white/40 leading-relaxed">
-              퍼가기 허용·지역/연령 제한·스팸 필터에 걸리면 후원할 수 없습니다. 익명 후원은
-              랭킹에 반영되지 않습니다.
+              Tips are blocked if embedding, region/age limits, or spam filters apply. Anonymous
+              tips do not appear on rankings.
             </p>
 
             <Button
@@ -369,7 +369,7 @@ export function VideoTipWizardDialog({
                 if (loaded) setStep(2);
               }}
             >
-              다음
+              Next
             </Button>
           </div>
         )}
@@ -399,7 +399,7 @@ export function VideoTipWizardDialog({
               <div className="flex justify-between text-xs">
                 <span>{t("support.snpzron")}</span>
                 <span className="text-emerald-400 font-semibold tabular-nums">
-                  {durationSec}초 · 최대 {settings.maxSec}초
+                  {durationSec}s · max {settings.maxSec}s
                 </span>
               </div>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -409,14 +409,14 @@ export function VideoTipWizardDialog({
                   onChange={(e) => setPlayToEnd(e.target.checked)}
                   className="rounded border-white/30"
                 />
-                끝까지 재생하기 (최대 {settings.maxSec}초 과금)
+                Play to end (billed up to {settings.maxSec}s)
               </label>
               {!playToEnd && (
                 <>
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-white/50">
-                      <span>시작 {formatSecLabel(startSec)}</span>
-                      <span>끝 {formatSecLabel(endSec)}</span>
+                      <span>Start {formatSecLabel(startSec)}</span>
+                      <span>End {formatSecLabel(endSec)}</span>
                     </div>
                     <input
                       type="range"
@@ -442,14 +442,14 @@ export function VideoTipWizardDialog({
                 </>
               )}
               <p className="text-[10px] text-white/40">
-                초당 {formatUsd(settings.rateKrwPerSec)} × {durationSec}초 ={" "}
-                {formatUsd(baseAmount)} (최소 {formatUsd(settings.minKrw)})
+                {formatUsd(settings.rateKrwPerSec)}/s × {durationSec}s ={" "}
+                {formatUsd(baseAmount)} (min {formatUsd(settings.minKrw)})
               </p>
             </div>
 
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1 rounded-full border-white/20" onClick={() => setStep(1)}>
-                이전
+                Back
               </Button>
               <Button
                 className="flex-1 rounded-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
@@ -458,7 +458,7 @@ export function VideoTipWizardDialog({
                   setStep(3);
                 }}
               >
-                다음
+                Next
               </Button>
             </div>
           </div>
@@ -468,9 +468,9 @@ export function VideoTipWizardDialog({
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <p className="font-semibold text-sm flex items-center gap-1">
-                후원 금액 <Info className="h-3.5 w-3.5 text-white/40" />
+                Tip amount <Info className="h-3.5 w-3.5 text-white/40" />
               </p>
-              <span className="text-[10px] text-white/50">플랫폼 5% · 정산 {formatUsd(effectiveAmount - fee)}</span>
+              <span className="text-[10px] text-white/50">Platform 5% · payout {formatUsd(effectiveAmount - fee)}</span>
             </div>
 
             <div className="rounded-xl bg-black/40 border border-white/10 p-4 flex items-center gap-3">
@@ -515,25 +515,25 @@ export function VideoTipWizardDialog({
                 className="rounded-full border-white/15 text-xs h-8"
                 onClick={() => setAmountOverride(baseAmount)}
               >
-                자동 계산
+                Auto amount
               </Button>
             </div>
 
             <p className="text-xs text-white/50">
-              재생 {durationSec}초 기준 자동 금액 {formatUsd(baseAmount)} · 더 후원하려면 금액을
-              올릴 수 있습니다.
+              Auto amount for {durationSec}s playback: {formatUsd(baseAmount)} · You can tip more
+              if you want.
             </p>
 
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1 rounded-full border-white/20" onClick={() => setStep(2)}>
-                이전
+                Back
               </Button>
               <Button
                 className="flex-1 rounded-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold"
                 disabled={effectiveAmount < baseAmount}
                 onClick={() => setStep(4)}
               >
-                다음
+                Next
               </Button>
             </div>
           </div>
@@ -545,7 +545,7 @@ export function VideoTipWizardDialog({
               <p className="font-medium truncate">{preview.title ?? t("support.youtube")}</p>
               <p className="text-white/50">
                 {formatSecLabel(startSec)} ~ {playToEnd ? t("support.sqopox") : formatSecLabel(endSec)} ·{" "}
-                {durationSec}초
+                {durationSec}s
               </p>
               {description && <p className="text-white/70">&ldquo;{description}&rdquo;</p>}
               <p className="text-emerald-400 font-bold text-base pt-1">
@@ -561,14 +561,14 @@ export function VideoTipWizardDialog({
                 className="mt-0.5 rounded border-white/30"
               />
               <span>
-                결제 및 Video 후원 유의사항에 동의합니다. 호스트 검수 후 방송에 재생됩니다.
+                I agree to payment and video tip terms. Clips play on stream after host review.
               </span>
             </label>
 
             <PayButton
               type="TIP"
               amount={effectiveAmount}
-              orderName={`${displayName} Video 후원`}
+              orderName={`${displayName} video tip`}
               metadata={tipMetadataForCheckout({
                 receiverId: creatorId,
                 message: description.trim() || undefined,
@@ -590,11 +590,11 @@ export function VideoTipWizardDialog({
               className="w-full rounded-full h-12 bg-emerald-500 hover:bg-emerald-600 text-black font-bold gap-2"
             >
               <Play className="h-4 w-4 fill-current" />
-              {formatUsd(effectiveAmount)} 후원하기
+              Tip {formatUsd(effectiveAmount)}
             </PayButton>
 
             <Button variant="ghost" className="w-full text-white/50" onClick={() => setStep(3)}>
-              이전
+              Back
             </Button>
           </div>
         )}
@@ -603,5 +603,5 @@ export function VideoTipWizardDialog({
   );
 }
 
-/** @deprecated VideoTipWizardDialog 사용 */
+/** @deprecated Use VideoTipWizardDialog */
 export const VideoTipCreatorDialog = VideoTipWizardDialog;

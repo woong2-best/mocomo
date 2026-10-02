@@ -44,7 +44,7 @@ export function StreamingAccountsManager({
   const [selectedPlatform, setSelectedPlatform] = useState<string>("YOUTUBE");
   const [error, setError] = useState(bannerError ?? "");
   const [success, setSuccess] = useState(
-    bannerConnected ? `${PLATFORM_LABELS[bannerConnected] ?? bannerConnected} 연결 완료` : ""
+    bannerConnected ? `${PLATFORM_LABELS[bannerConnected] ?? bannerConnected} connected` : ""
   );
   const [pending, startTransition] = useTransition();
 
@@ -107,8 +107,8 @@ export function StreamingAccountsManager({
         <CardHeader>
           <CardTitle className="text-base">{t("streaming-accounts.s16331ud")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            후원을 받으려면 먼저 본인 소유의 스트리밍 계정을 인증해야 합니다. URL만 붙여넣는
-            방식은 사용할 수 없습니다.
+            Verify a streaming account you own before receiving tips. Pasting a URL alone is
+            not supported.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -142,12 +142,12 @@ export function StreamingAccountsManager({
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                   >
-                    채널 보기
+                    View channel
                     <ExternalLink className="h-3 w-3" />
                   </a>
                   {acc.platform === "YOUTUBE" && !acc.verified ? (
                     <p className="text-xs text-muted-foreground">
-                      Google 로그인으로 다시 연결하면 바로 인증됩니다.
+                      Reconnect with Google to verify instantly.
                     </p>
                   ) : null}
                 </div>
@@ -158,12 +158,12 @@ export function StreamingAccountsManager({
                       disabled={pending}
                       onClick={() => onOAuthConnect(acc.platform)}
                     >
-                      Google로 연결
+                      Connect with Google
                     </Button>
                   ) : null}
                   {acc.pendingVerification && acc.platform !== "YOUTUBE" ? (
                     <Button size="sm" disabled={pending} onClick={() => onVerify(acc.id)}>
-                      소유권 확인
+                      Verify ownership
                     </Button>
                   ) : null}
                   <Button
@@ -205,15 +205,15 @@ export function StreamingAccountsManager({
               <p className="text-sm text-muted-foreground">
                 {selectedPlatform === "YOUTUBE"
                   ? t("streaming-accounts.google_4")
-                  : `${PLATFORM_LABELS[selectedPlatform]} 계정으로 로그인하여 채널 소유권을 확인합니다.`}
+                  : `Sign in with ${PLATFORM_LABELS[selectedPlatform]} to verify channel ownership.`}
               </p>
               <Button disabled={pending} onClick={() => onOAuthConnect(selectedPlatform)}>
-                {`${PLATFORM_LABELS[selectedPlatform]} 연결`}
+                {`Connect ${PLATFORM_LABELS[selectedPlatform]}`}
               </Button>
               {selectedPlatform === "YOUTUBE" ? (
                 <p className="text-xs text-muted-foreground">
-                  Google이 ‘확인하지 않은 앱’을 보여 주면 <strong>{t("streaming-accounts.sucyx")}</strong> →{" "}
-                  <strong>{t("streaming-accounts.mocomo_net")}</strong>을 눌러 주세요.
+                  If Google shows an unverified app warning, tap <strong>{t("streaming-accounts.sucyx")}</strong> →{" "}
+                  <strong>{t("streaming-accounts.mocomo_net")}</strong>.
                 </p>
               ) : null}
             </div>
@@ -222,11 +222,11 @@ export function StreamingAccountsManager({
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        라이브 시작은{" "}
+        To go live, choose a verified account under{" "}
         <Link href="/live/external/new" className="text-primary hover:underline">
-          외부 방송 연결
+          External stream setup
         </Link>
-        에서 인증된 계정만 선택할 수 있습니다.
+        .
       </p>
     </div>
   );

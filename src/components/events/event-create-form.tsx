@@ -118,7 +118,7 @@ export function EventCreateForm({
         return;
       }
       if (durationTooLong) {
-        setError(`광고 기간은 최대 ${maxScheduleDays}일까지 가능합니다.`);
+        setError(`Ad schedule can be at most ${maxScheduleDays} days.`);
         return;
       }
       if (insufficientMoco) {
@@ -176,7 +176,7 @@ export function EventCreateForm({
         />
         <Link href="/">
           <Button className="w-full rounded-xl bg-[#A855F7] hover:bg-[#C084FC]">
-            홈으로
+            Back to home
           </Button>
         </Link>
       </div>
@@ -192,14 +192,14 @@ export function EventCreateForm({
         <p className="text-sm text-muted-foreground">
           {isOperator ? (
             <>
-              <strong className="text-foreground">{i18n("events.sn8f9gu")}</strong> — MOCO 차감 없이,{" "}
-              <strong className="text-foreground">until you delete it</strong> 계속 노출됩니다.
+              <strong className="text-foreground">{i18n("events.sn8f9gu")}</strong> — no MOCO charge;{" "}
+              <strong className="text-foreground">stays visible until you delete it</strong>.
             </>
           ) : (
             <>
-              이미지·링크·노출 기간만 등록합니다. 24시간(1일)당{" "}
-              <strong className="text-foreground">{SPONSORED_AD_MOCO_PER_DAY} MOCO</strong> · 등록
-              시 한 번에 차감
+              Register image, link, and schedule only.{" "}
+              <strong className="text-foreground">{SPONSORED_AD_MOCO_PER_DAY} MOCO</strong> per 24h ·
+              charged once at registration
             </>
           )}
         </p>
@@ -258,22 +258,22 @@ export function EventCreateForm({
 
         {durationTooLong ? (
           <p className="text-xs text-destructive">
-            기간은 최대 {EVENT_REGISTRATION_MAX_DAYS}일까지입니다.
+            Schedule can be at most {EVENT_REGISTRATION_MAX_DAYS} days.
           </p>
         ) : startInPast ? (
           <p className="text-xs text-destructive">{i18n("lib.sponsored-ad.s1digvn3")}</p>
         ) : insufficientMoco ? (
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            {durationDays}일({mocoCost} MOCO) 등록에 보유 {purchasedMoco.toLocaleString()} MOCO — 등록
-            시 충전이 필요합니다
+            {durationDays} days ({mocoCost} MOCO) requires {purchasedMoco.toLocaleString()} MOCO balance —
+            top up to register
           </p>
         ) : isOperator ? (
           <p className="text-xs text-muted-foreground">
-            운영자 등록 · 기간 제한 없음 · MOCO 차감 없음
+            Operator registration · no duration cap · no MOCO charge
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            {durationDays}일(24시간 × {durationDays}) · {mocoCost} MOCO 선차감 · 보유{" "}
+            {durationDays} days (24h × {durationDays}) · {mocoCost} MOCO upfront · balance{" "}
             {purchasedMoco.toLocaleString()} MOCO
           </p>
         )}
@@ -311,10 +311,10 @@ export function EventCreateForm({
           {submitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              등록 중…
+              Registering…
             </>
           ) : (
-            isOperator ? i18n("events.sx7ldxn") : `${mocoCost} MOCO로 광고 등록`
+            isOperator ? i18n("events.sx7ldxn") : `Register ad for ${mocoCost} MOCO`
           )}
         </Button>
         <PaymentLegalConsentModal className="mt-3 px-1" />
@@ -323,7 +323,7 @@ export function EventCreateForm({
       <aside className="hidden lg:block">
         <div className="sticky top-24 space-y-3">
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            스폰서 노출 미리보기
+            Sponsored preview
           </p>
           <SponsorAdPreviewFrame
             imageUrl={mainImageUrl || null}

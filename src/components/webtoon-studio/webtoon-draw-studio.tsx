@@ -83,7 +83,7 @@ export function WebtoonDrawStudio() {
     try {
       const blob = await studio.exportMergedPngBlob();
       await uploadImageBlob(blob, `${studio.project.name}-${episodeNo}.png`);
-      setMsg(`${episodeNo}화 PNG 업로드 완료. 연재·등록 스튜디오에서 회차로 등록하세요.`);
+      setMsg(`Episode ${episodeNo} PNG uploaded. Register the episode in the series studio.`);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : t("webtoon-studio.s1vgkz0f"));
     }
@@ -133,11 +133,11 @@ export function WebtoonDrawStudio() {
         </div>
         <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => void studio.saveProjectNow()}>
           <Save className="h-3.5 w-3.5" />
-          로컬 저장
+          Save locally
         </Button>
         <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => void saveCloud()}>
           <Cloud className="h-3.5 w-3.5" />
-          클라우드
+          Cloud
         </Button>
         <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={() => void downloadPng()}>
           <Download className="h-3.5 w-3.5" />
@@ -147,7 +147,7 @@ export function WebtoonDrawStudio() {
           <Button type="button" size="sm" variant="outline" className="h-8 gap-1" asChild>
             <span>
               <Upload className="h-3.5 w-3.5" />
-              가져오기
+              Import
             </span>
           </Button>
           <input
@@ -162,7 +162,7 @@ export function WebtoonDrawStudio() {
           />
         </label>
         <Button type="button" size="sm" className="h-8" onClick={() => setPublishOpen((v) => !v)}>
-          회차 업로드
+          Upload episode
         </Button>
         <div className="ml-auto flex gap-1">
           <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setFullscreen((v) => !v)}>
@@ -171,12 +171,12 @@ export function WebtoonDrawStudio() {
           <Link href="/webtoon/studio/dashboard">
             <Button type="button" size="sm" variant="ghost" className="h-8 text-xs gap-1">
               <BarChart3 className="h-3.5 w-3.5" />
-              통계
+              Stats
             </Button>
           </Link>
           <Link href="/webtoon/studio">
             <Button type="button" size="sm" variant="ghost" className="h-8 text-xs">
-              연재 관리
+              Series
             </Button>
           </Link>
         </div>
@@ -193,7 +193,7 @@ export function WebtoonDrawStudio() {
             <Input type="number" min={0} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="h-8 w-24" />
           </label>
           <Button type="button" size="sm" className="h-8" onClick={() => void uploadForEpisode()}>
-            PNG 업로드
+            Upload PNG
           </Button>
           <p className="text-muted-foreground w-full">{t("webtoon-studio.s1eagkie")}</p>
         </div>
@@ -246,13 +246,13 @@ export function WebtoonDrawStudio() {
               <>
                 <div className="flex flex-wrap gap-1">
                   <Button type="button" size="sm" variant="outline" className="h-7 text-[10px]" onClick={studio.addLayer}>
-                    + 레이어
+                    + Layer
                   </Button>
                   <Button type="button" size="sm" variant="outline" className="h-7 text-[10px]" onClick={studio.duplicateActiveLayer}>
-                    복제
+                    Duplicate
                   </Button>
                   <Button type="button" size="sm" variant="outline" className="h-7 text-[10px]" onClick={studio.mergeSelectedLayers}>
-                    병합
+                    Merge
                   </Button>
                 </div>
                 {[...studio.page.layers].reverse().map((layer, revIdx) => {
@@ -366,19 +366,19 @@ export function WebtoonDrawStudio() {
                   </button>
                 ))}
                 <Button type="button" size="sm" variant="outline" className="w-full h-7 text-[10px]" onClick={studio.createCustomBrush}>
-                  + 사용자 브러시
+                  + Custom brush
                 </Button>
-                <label className="block">크기 {studio.brush.size}</label>
+                <label className="block">Size {studio.brush.size}</label>
                 <input type="range" min={1} max={80} value={studio.brush.size} onChange={(e) => studio.setBrush({ ...studio.brush, size: Number(e.target.value) })} className="w-full" />
-                <label className="block">불투명도 {studio.brush.opacity}%</label>
+                <label className="block">Opacity {studio.brush.opacity}%</label>
                 <input type="range" min={1} max={100} value={studio.brush.opacity} onChange={(e) => studio.setBrush({ ...studio.brush, opacity: Number(e.target.value) })} className="w-full" />
-                <label className="block">간격 {studio.brush.spacing}</label>
+                <label className="block">Spacing {studio.brush.spacing}</label>
                 <input type="range" min={0.02} max={0.5} step={0.01} value={studio.brush.spacing} onChange={(e) => studio.setBrush({ ...studio.brush, spacing: Number(e.target.value) })} className="w-full" />
                 <label className="flex items-center gap-2">
                   <input type="checkbox" checked={studio.brush.pressure} onChange={(e) => studio.setBrush({ ...studio.brush, pressure: e.target.checked })} />
-                  필압
+                  Pressure
                 </label>
-                <label className="block">손떨림 보정 {studio.brush.stabilization}</label>
+                <label className="block">Stabilization {studio.brush.stabilization}</label>
                 <input type="range" min={0} max={8} value={studio.brush.stabilization} onChange={(e) => studio.setBrush({ ...studio.brush, stabilization: Number(e.target.value) })} className="w-full" />
               </>
             )}
@@ -405,7 +405,7 @@ export function WebtoonDrawStudio() {
                   </button>
                 ))}
                 <Button type="button" size="sm" variant="outline" className="w-full mt-2 h-7" onClick={() => studio.setTool("speedLines")}>
-                  속도선 배치
+                  Speed lines
                 </Button>
                 <p className="font-semibold pt-2">{t("lib.webtoon-studio.spf84zg")}</p>
                 {SCREENTONE_PATTERNS.map((p) => (
@@ -431,10 +431,10 @@ export function WebtoonDrawStudio() {
                 <label className="flex items-center gap-2 text-foreground">
                   <input type="checkbox" checked={studio.showGuides} onChange={(e) => studio.setShowGuides(e.target.checked)} />
                   <Grid3X3 className="h-3.5 w-3.5" />
-                  가이드 그리드
+                  Guide grid
                 </label>
                 <Link href="/webtoon/studio/dashboard" className="block text-emerald-600 font-medium">
-                  작가 대시보드 열기 →
+                  Open creator dashboard →
                 </Link>
                 {ROADMAP_SECTIONS.map((s) => (
                   <div key={s.title}>
@@ -468,7 +468,7 @@ export function WebtoonDrawStudio() {
               className="w-24"
             />
             <Button type="button" size="sm" variant="outline" className="h-6 text-[10px]" onClick={studio.addPage}>
-              + 페이지
+              + Page
             </Button>
             {studio.project.pages.map((pg, i) => (
               <button

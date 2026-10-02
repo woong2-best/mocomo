@@ -81,45 +81,45 @@ export default async function MarketplaceListingPage({
 
           <div className="rounded-xl border border-border/60 p-3 text-sm space-y-1">
             <p>
-              판매자{" "}
+              Seller{" "}
               <Link href={`/u/${listing.seller.username}`} className="font-medium hover:underline">
                 {listing.sellerProfile?.displayName ?? `@${listing.seller.username}`}
               </Link>
             </p>
             {listing.sellerProfile && (
               <p className="text-xs text-muted-foreground">
-                평점{" "}
+                Rating{" "}
                 {listing.sellerProfile.ratingAvg > 0
                   ? listing.sellerProfile.ratingAvg.toFixed(1)
                   : "-"}{" "}
-                · 판매 {listing.sellerProfile.salesCount}
+                · {listing.sellerProfile.salesCount} sold
               </p>
             )}
           </div>
 
           <div className="text-sm space-y-1 text-muted-foreground">
-            <p>재고 {listing.stock}</p>
-            {listing.productionDays ? <p>제작기간 {listing.productionDays}일</p> : null}
+            <p>Stock {listing.stock}</p>
+            {listing.productionDays ? <p>Production {listing.productionDays} days</p> : null}
             {listing.type !== "DIGITAL" && (
               <>
                 <p>
-                  배송비{" "}
+                  Shipping{" "}
                   {listing.shippingFeeType === "FREE"
-                    ? "무료"
+                    ? "Free"
                     : formatUsd(listing.shippingFeeFixed)}
                 </p>
                 <p>
-                  배송 가능{" "}
+                  Ships to{" "}
                   {listing.shipToCountries.length > 0
                     ? listing.shipToCountries.map((c) => shipCountryLabel(c)).join(" · ")
                     : listing.shipsWorldwide
-                      ? "지원 국가 전체"
+                      ? "All supported countries"
                       : "Not configured"}
                 </p>
               </>
             )}
             <p className="text-xs">
-              플랫폼 수수료 10% — 판매자 예상 수령 {formatUsd(fees.sellerEarnAmount)}
+              Platform fee 10% — seller receives about {formatUsd(fees.sellerEarnAmount)}
             </p>
           </div>
 

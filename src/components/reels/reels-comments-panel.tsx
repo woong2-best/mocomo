@@ -82,16 +82,16 @@ function formatRelativeKo(iso?: string): string {
   const sec = Math.max(0, Math.floor((Date.now() - t) / 1000));
   if (sec < 60) return i18n("reels.swykf");
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}분`;
+  if (min < 60) return `${min}m`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간`;
+  if (hr < 24) return `${hr}h`;
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}일`;
+  if (day < 7) return `${day}d`;
   const week = Math.floor(day / 7);
-  if (week < 5) return `${week}주`;
+  if (week < 5) return `${week}w`;
   const month = Math.floor(day / 30);
-  if (month < 12) return `${month}개월`;
-  return `${Math.floor(month / 12)}년`;
+  if (month < 12) return `${month}mo`;
+  return `${Math.floor(month / 12)}y`;
 }
 
 function SkeletonRows() {
@@ -114,7 +114,7 @@ function SkeletonRows() {
 function AuthorBadge() {
   return (
     <span className="ml-1 inline-flex items-center rounded bg-white/15 px-1 py-px text-[10px] font-medium text-white/80">
-      작성자
+      Author
     </span>
   );
 }
@@ -214,7 +214,7 @@ function CommentMenu({
   }
 
   async function sanction() {
-    if (!window.confirm(`@${comment.author.username} 계정을 7일 제재할까요?`)) return;
+    if (!window.confirm(`Restrict @${comment.author.username} for 7 days?`)) return;
     const until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await suspendUserTemporary(
       comment.author.id,
@@ -249,7 +249,7 @@ function CommentMenu({
         )}
         {isMine && (
           <DropdownMenuItem className="focus:bg-white/10" onClick={onEdit}>
-            수정
+            Edit
           </DropdownMenuItem>
         )}
         {canDelete && (
@@ -257,20 +257,20 @@ function CommentMenu({
             className="text-red-300 focus:bg-white/10 focus:text-red-200"
             onClick={() => void remove()}
           >
-            삭제
+            Delete
           </DropdownMenuItem>
         )}
         <DropdownMenuItem className="focus:bg-white/10" onClick={() => void copyLink()}>
-          링크 복사
+          Copy link
         </DropdownMenuItem>
         {!isMine && (
           <>
             <DropdownMenuSeparator className="bg-white/10" />
             <DropdownMenuItem className="focus:bg-white/10" onClick={() => void report()}>
-              신고
+              Report
             </DropdownMenuItem>
             <DropdownMenuItem className="focus:bg-white/10" onClick={() => void block()}>
-              차단
+              Block
             </DropdownMenuItem>
           </>
         )}
@@ -278,13 +278,13 @@ function CommentMenu({
           <>
             <DropdownMenuSeparator className="bg-white/10" />
             <DropdownMenuItem className="focus:bg-white/10" onClick={() => void hide()}>
-              숨김
+              Hide
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-red-300 focus:bg-white/10 focus:text-red-200"
               onClick={() => void sanction()}
             >
-              계정 제재
+              Restrict account
             </DropdownMenuItem>
           </>
         )}
@@ -480,7 +480,7 @@ function CommentRow({
             {isPinned && (
               <p className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-white/45">
                 <Pin className="h-3 w-3" />
-                고정됨
+                Pinned
               </p>
             )}
             <p className="text-[13px] leading-snug">
@@ -513,7 +513,7 @@ function CommentRow({
                     className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-black"
                     onClick={() => void saveEdit()}
                   >
-                    저장
+                    Save
                   </button>
                   <button
                     type="button"
@@ -523,7 +523,7 @@ function CommentRow({
                       setEditText(comment.content);
                     }}
                   >
-                    취소
+                    Cancel
                   </button>
                 </div>
               </div>
@@ -576,7 +576,7 @@ function CommentRow({
 
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/40">
           {likeCount > 0 && (
-            <span className="tabular-nums">좋아요 {formatNumber(likeCount)}개</span>
+            <span className="tabular-nums">{formatNumber(likeCount)} likes</span>
           )}
           {comment.likedByAuthor && (
             <span className="text-amber-300/80">{i18n("reels.s167wbcv")}</span>
@@ -588,7 +588,7 @@ function CommentRow({
               onClick={() => setReplyOpen((v) => !v)}
             >
               <ReplyBubbleIcon className="h-3.5 w-3.5" />
-              답글 달기
+              Reply
             </button>
           )}
           {needsTr && (
@@ -623,7 +623,7 @@ function CommentRow({
             <span className="inline-block h-px w-6 bg-white/30" aria-hidden />
             {expanded
               ? i18n("reels.s1wpsoxf")
-              : `Replies ${formatNumber(replyCount)}개 모두 보기`}
+              : `View all ${formatNumber(replyCount)} replies`}
           </button>
         )}
 
@@ -1058,7 +1058,7 @@ export function ReelsCommentsPanel({
     <>
       <header className="flex shrink-0 items-center justify-between gap-2 px-4 pb-1 pt-1">
         <h2 className="text-[15px] font-semibold text-white">
-          댓글{total > 0 ? ` ${formatNumber(total)}` : ""}
+          Comments{total > 0 ? ` ${formatNumber(total)}` : ""}
         </h2>
         <div className="relative flex items-center gap-0.5">
           <button
@@ -1115,7 +1115,7 @@ export function ReelsCommentsPanel({
           <p className="py-6 text-center text-sm text-red-300">{error}</p>
         ) : empty ? (
           <p className="py-10 text-center text-sm text-white/45">
-            아직 댓글이 없습니다. 첫 댓글을 남겨 보세요.
+            No comments yet. Be the first to comment.
           </p>
         ) : (
           <ul className="space-y-5 pb-4">
@@ -1155,7 +1155,7 @@ export function ReelsCommentsPanel({
             href={`/auth/signin?callbackUrl=${encodeURIComponent(`/post/${postId}`)}`}
             className="flex h-10 items-center rounded-full border border-white/15 px-4 text-sm text-white/45"
           >
-            댓글을 쓰려면 로그인하세요
+            Sign in to comment
           </Link>
         )}
       </div>
