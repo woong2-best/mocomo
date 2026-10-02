@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 /** Korean public holidays + calendar display helpers for the profile sidebar. */
 
 export type KrHoliday = {
@@ -9,14 +12,14 @@ export type KrHoliday = {
 
 /** Fixed-date holidays (month-day). */
 const FIXED_HOLIDAYS: Record<string, string> = {
-  "01-01": "신정",
-  "03-01": "삼일절",
-  "05-05": "어린이날",
-  "06-06": "현충일",
-  "08-15": "광복절",
-  "10-03": "개천절",
-  "10-09": "한글날",
-  "12-25": "성탄절",
+  "01-01": t("lib.calendar.sy8tx"),
+  "03-01": t("lib.calendar.st7b9k"),
+  "05-05": t("lib.calendar.sppv0vc"),
+  "06-06": t("lib.calendar.swckqf"),
+  "08-15": t("lib.calendar.sq9tac"),
+  "10-03": t("lib.calendar.sq7fgo"),
+  "10-09": t("lib.calendar.sw3lrw"),
+  "12-25": t("lib.calendar.stbaut"),
 };
 
 /**
@@ -25,49 +28,49 @@ const FIXED_HOLIDAYS: Record<string, string> = {
  */
 const MOVABLE_HOLIDAYS: Record<string, string> = {
   // 2025
-  "2025-01-28": "설날 연휴",
-  "2025-01-29": "설날",
-  "2025-01-30": "설날 연휴",
-  "2025-03-03": "삼일절 대체휴일",
-  "2025-05-05": "어린이날·부처님오신날",
-  "2025-05-06": "어린이날 대체휴일",
-  "2025-10-05": "추석 연휴",
-  "2025-10-06": "추석",
-  "2025-10-07": "추석 연휴",
-  "2025-10-08": "추석 대체휴일",
+  "2025-01-28": t("lib.calendar.s1v65vqg"),
+  "2025-01-29": t("lib.calendar.sxtks"),
+  "2025-01-30": t("lib.calendar.s1v65vqg"),
+  "2025-03-03": t("lib.calendar.suzxgwk"),
+  "2025-05-05": t("lib.calendar.s15ucdwz"),
+  "2025-05-06": t("lib.calendar.s1fpe8vo"),
+  "2025-10-05": t("lib.calendar.s1aulynv"),
+  "2025-10-06": t("lib.calendar.s100zt"),
+  "2025-10-07": t("lib.calendar.s1aulynv"),
+  "2025-10-08": t("lib.calendar.s1m5ic6r"),
   // 2026
-  "2026-02-16": "설날 연휴",
-  "2026-02-17": "설날",
-  "2026-02-18": "설날 연휴",
-  "2026-05-24": "부처님오신날",
-  "2026-05-25": "부처님오신날 대체휴일",
-  "2026-09-24": "추석 연휴",
-  "2026-09-25": "추석",
-  "2026-09-26": "추석 연휴",
-  "2026-10-05": "개천절 대체휴일",
+  "2026-02-16": t("lib.calendar.s1v65vqg"),
+  "2026-02-17": t("lib.calendar.sxtks"),
+  "2026-02-18": t("lib.calendar.s1v65vqg"),
+  "2026-05-24": t("lib.calendar.s1w6oi78"),
+  "2026-05-25": t("lib.calendar.s1l4shyw"),
+  "2026-09-24": t("lib.calendar.s1aulynv"),
+  "2026-09-25": t("lib.calendar.s100zt"),
+  "2026-09-26": t("lib.calendar.s1aulynv"),
+  "2026-10-05": t("lib.calendar.s222ff8"),
   // 2027
-  "2027-02-06": "설날 연휴",
-  "2027-02-07": "설날",
-  "2027-02-08": "설날 연휴",
-  "2027-02-09": "설날 대체휴일",
-  "2027-05-13": "부처님오신날",
-  "2027-09-14": "추석 연휴",
-  "2027-09-15": "추석",
-  "2027-09-16": "추석 연휴",
+  "2027-02-06": t("lib.calendar.s1v65vqg"),
+  "2027-02-07": t("lib.calendar.sxtks"),
+  "2027-02-08": t("lib.calendar.s1v65vqg"),
+  "2027-02-09": t("lib.calendar.s1h292xs"),
+  "2027-05-13": t("lib.calendar.s1w6oi78"),
+  "2027-09-14": t("lib.calendar.s1aulynv"),
+  "2027-09-15": t("lib.calendar.s100zt"),
+  "2027-09-16": t("lib.calendar.s1aulynv"),
   // 2028
-  "2028-01-26": "설날 연휴",
-  "2028-01-27": "설날",
-  "2028-01-28": "설날 연휴",
-  "2028-05-02": "부처님오신날",
-  "2028-10-02": "추석 연휴",
-  "2028-10-03": "추석·개천절",
-  "2028-10-04": "추석 연휴",
-  "2028-10-05": "추석 대체휴일",
+  "2028-01-26": t("lib.calendar.s1v65vqg"),
+  "2028-01-27": t("lib.calendar.sxtks"),
+  "2028-01-28": t("lib.calendar.s1v65vqg"),
+  "2028-05-02": t("lib.calendar.s1w6oi78"),
+  "2028-10-02": t("lib.calendar.s1aulynv"),
+  "2028-10-03": t("lib.calendar.svpj9tm"),
+  "2028-10-04": t("lib.calendar.s1aulynv"),
+  "2028-10-05": t("lib.calendar.s1m5ic6r"),
 };
 
 /** Extra national observances that are not always statutory holidays but shown on classic calendars. */
 const OBSERVANCES: Record<string, string> = {
-  "10-01": "국군의 날",
+  "10-01": t("lib.calendar.s1phzvx1"),
 };
 
 const WEEKDAY_HAN = ["日", "月", "火", "水", "木", "金", "土"] as const;
