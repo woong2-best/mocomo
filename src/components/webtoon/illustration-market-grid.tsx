@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import type { IllustrationMarketItem } from "@/actions/webtoon";
 import { WEBTOON_GENRE_LABEL } from "@/lib/webtoon/constants";
@@ -7,7 +10,7 @@ export function IllustrationMarketGrid({ items }: { items: IllustrationMarketIte
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-12 text-center space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">아직 등록된 작품이 없습니다.</p>
+        <p className="text-sm font-medium text-muted-foreground">{t("anime.catalogEmpty")}</p>
         <p className="text-xs text-muted-foreground">
           작가라면{" "}
           <Link href="/webtoon/studio" className="text-[#0096fa] font-semibold hover:underline">

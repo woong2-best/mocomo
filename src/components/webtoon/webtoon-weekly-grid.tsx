@@ -1,3 +1,6 @@
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import Link from "next/link";
 import type { WebtoonGenre, WebtoonPublishDay } from "@prisma/client";
 import {
@@ -29,15 +32,15 @@ export function WebtoonWeeklyGrid({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">요일별 전체 웹툰</h1>
+          <h1 className="text-xl font-bold">{t("webtoon.sbsgb5v")}</h1>
           <p className="text-xs text-muted-foreground mt-1">
             {activeGenre
               ? `${WEBTOON_GENRE_LABEL[activeGenre]} · 작가가 설정한 연재 요일별로 모아 봅니다.`
-              : "작가가 설정한 연재 요일별로 모아 봅니다."}
+              : t("webtoon.snlthld")}
           </p>
         </div>
         <div className="flex gap-2 text-xs text-muted-foreground">
-          <span className="font-semibold text-foreground">업데이트순</span>
+          <span className="font-semibold text-foreground">{t("webtoon.sfemvfx")}</span>
         </div>
       </div>
 
@@ -64,7 +67,7 @@ export function WebtoonWeeklyGrid({
                 </div>
                 <ul className="p-2 space-y-3 max-h-[70vh] overflow-y-auto">
                   {items.length === 0 ? (
-                    <li className="text-[11px] text-muted-foreground text-center py-6">등록된 웹툰 없음</li>
+                    <li className="text-[11px] text-muted-foreground text-center py-6">{t("webtoon.syjnqfz")}</li>
                   ) : (
                     items.map((s) => {
                       const latest = s.episodes[0];

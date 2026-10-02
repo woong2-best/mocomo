@@ -1,6 +1,9 @@
 "use client";
 
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { errorText } from "@/lib/i18n/error-text";
 import type { WebtoonGenre } from "@prisma/client";
 import { useEffect, useState } from "react";
@@ -48,7 +51,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
     try {
       setCoverUrl(await uploadImageBlob(file, file.name));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "대표 이미지 업로드 실패");
+      setErr(e instanceof Error ? e.message : t("webtoon.s1jd5iav"));
     } finally {
       setLoading(false);
     }
@@ -66,7 +69,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
       setContentUrls((prev) => [...prev, ...urls]);
       if (!coverUrl && urls[0]) setCoverUrl(urls[0]);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "이미지 업로드 실패");
+      setErr(e instanceof Error ? e.message : t("works.s1bw7noj"));
     } finally {
       setLoading(false);
     }
@@ -88,7 +91,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
 
   async function onPublishEpisode() {
     if (!seriesId) {
-      setErr("먼저 포트폴리오를 만들거나 선택해 주세요.");
+      setErr(t("webtoon.s1pmjgtz"));
       return;
     }
     setLoading(true);
@@ -109,7 +112,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
       setErr(errorText(res.error));
       return;
     }
-    setMsg("작품이 등록되었습니다. 일러스트 마켓에 노출됩니다.");
+    setMsg(t("webtoon.sz27lds"));
     setEpisodeNo((n) => n + 1);
     setEpisodeTitle("");
     setContentUrls([]);
@@ -124,25 +127,25 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
       setErr(errorText(res.error));
       return;
     }
-    setMsg("태그(장르)가 변경되었습니다.");
+    setMsg(t("webtoon.s1fh89co"));
   }
 
   return (
     <div className="space-y-8">
       <section className="folk-card p-5 space-y-4">
-        <h2 className="font-bold text-folk-cobalt">1. 포트폴리오 만들기</h2>
+        <h2 className="font-bold text-folk-cobalt">{t("webtoon.sbm6ded")}</h2>
         <p className="text-xs text-muted-foreground">
           작품을 묶을 폴더입니다. 예: 「2026 일러스트」「OC 모음」
         </p>
-        <Input placeholder="포트폴리오 이름" value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl" />
+        <Input placeholder={t("webtoon.szafki8")} value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl" />
         <Textarea
-          placeholder="소개 (선택)"
+          placeholder={t("seller.bio")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="rounded-xl min-h-[80px]"
         />
         <div>
-          <p className="text-xs font-semibold text-muted-foreground mb-2">태그 · 장르</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">{t("webtoon.ss8j1q4")}</p>
           <div className="flex flex-wrap gap-2">
             {WEBTOON_GENRES.map((g) => (
               <button
@@ -188,7 +191,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
       </section>
 
       <section className="folk-card p-5 space-y-4">
-        <h2 className="font-bold text-folk-cobalt">2. 그림 판매 등록</h2>
+        <h2 className="font-bold text-folk-cobalt">{t("webtoon.s1dq8uao")}</h2>
         <p className="text-xs text-muted-foreground">
           일러스트·콘티·다장 업로드 가능. 가격을 0원으로 두면 무료 공개 작품입니다.
         </p>
@@ -206,7 +209,7 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
           </select>
         )}
         <Input
-          placeholder="작품 제목"
+          placeholder={t("works.spskwxi")}
           value={episodeTitle}
           onChange={(e) => setEpisodeTitle(e.target.value)}
           className="rounded-xl"
@@ -217,12 +220,12 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
               type="number"
               min={0}
               step={100}
-              placeholder="가격(원)"
+              placeholder={t("webtoon-studio.s1j1ifjs")}
               value={price}
               onChange={(e) => setPrice(Number(e.target.value))}
               className="rounded-xl"
             />
-            <p className="text-[10px] text-muted-foreground mt-1">0원 = 무료</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{t("webtoon.sd7kwuz")}</p>
           </div>
           <div>
             <Input
@@ -232,11 +235,11 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
               onChange={(e) => setFreePreviewCount(Number(e.target.value))}
               className="rounded-xl"
             />
-            <p className="text-[10px] text-muted-foreground mt-1">미구매 시 공개 장 수</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{t("webtoon.s1sejc6w")}</p>
           </div>
         </div>
         <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">예약 공개 (선택)</span>
+          <span className="text-xs text-muted-foreground">{t("webtoon.szslk36")}</span>
           <Input
             type="datetime-local"
             value={scheduledAt}
@@ -262,13 +265,13 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
           disabled={loading}
           onClick={() => void onPublishEpisode()}
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "작품 등록 · 판매 시작"}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("webtoon.sr3qmp9")}
         </Button>
       </section>
 
       {myWebtoons.length > 0 && (
         <section className="folk-card p-5 space-y-3">
-          <h3 className="font-bold text-sm">내 포트폴리오</h3>
+          <h3 className="font-bold text-sm">{t("webtoon.s1gvl778")}</h3>
           {myWebtoons.map((s) => {
             const row = s as MyWebtoon & { genre?: WebtoonGenre | null };
             return (
