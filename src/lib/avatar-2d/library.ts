@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import type { Flat2dAvatarMeta, Flat2dAvatarSource } from "@/lib/avatar-2d/types";
 
@@ -141,7 +144,7 @@ async function migrateLegacySingleAvatar(index: MoCoMo2dLibraryIndex) {
     await putBlob(thumbBlobKey(id), await createThumbnail(blob));
     const entry: Flat2dLibraryCharacterEntry = {
       id,
-      name: "캐릭터 1",
+      name: i18n("lib.avatar-2d.s1el1x50"),
       width: legacy.width,
       height: legacy.height,
       source: legacy.source,

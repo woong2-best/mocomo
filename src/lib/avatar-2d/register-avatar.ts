@@ -1,4 +1,7 @@
 "use client";
+import { createTranslator } from "@/lib/i18n/messages";
+const i18n = createTranslator("en");
+
 
 import { uploadImageBlob } from "@/lib/client-upload";
 import { setPhotoAvatarRenderMode } from "@/lib/photo-avatar/photo-avatar-storage";
@@ -37,12 +40,12 @@ export async function fileToPngBlob(file: File, maxSize = 1024): Promise<Blob> {
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("캔버스를 만들 수 없습니다.");
+  if (!ctx) throw new Error(i18n("lib.avatar-2d.sunp64r"));
   ctx.clearRect(0, 0, w, h);
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close();
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-  if (!blob) throw new Error("PNG 변환에 실패했습니다.");
+  if (!blob) throw new Error(i18n("lib.avatar-2d.png"));
   return blob;
 }
 
@@ -50,7 +53,7 @@ export function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
-      else reject(new Error("PNG 내보내기 실패"));
+      else reject(new Error(i18n("lib.avatar-2d.png_2")));
     }, "image/png");
   });
 }
