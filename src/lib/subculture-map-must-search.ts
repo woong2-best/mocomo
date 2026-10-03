@@ -81,7 +81,7 @@ export function mustSearchExternalKey(entry: SubcultureMapMustSearchEntry): stri
 
 /** KR 시드에서 이전한 확정 좌표 (geocode 보조) */
 const KR_MUST_SEARCH_FALLBACK_COORDS: Record<string, { lat: number; lng: number }> = {
-  kiraring: { lat: 35.1537751, lng: 129.0652953 },
+  kiraring: { lat: 35.155572, lng: 129.065702 },
   "gakkou-tomo": { lat: 35.1537905, lng: 129.0672449 },
   kuroheart: { lat: 35.1555099, lng: 129.0600667 },
   "mochi-cos": { lat: 35.1573217, lng: 129.061811 },
@@ -157,8 +157,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     category: "maid_cafe",
     country: "kr",
     city: "부산 부산진구",
-    address: "부산진구 동성로25길 35 2층",
-    note: "Address needs checking: no city/province prefix; '동성로' is a well-known downtown Daegu place name",
+    address: "부산광역시 부산진구 전포대로 212 3층",
     id: "kiraring",
   },
   {

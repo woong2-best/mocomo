@@ -6,7 +6,7 @@ const i18n = createTranslator("en");
 
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, MapPin, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,25 +25,6 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
 const MARS_DECOR_MAX_ZOOM = 2.2;
-
-function MapOverlayChip({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl border border-white/15 bg-black/45 backdrop-blur-md shadow-lg text-white",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-}
 
 function filterListPinsByTab(pins: MapEventPin[], tab: EventMapPanelTab): MapEventPin[] {
   if (tab === "maid_cafe") {
@@ -418,15 +399,6 @@ export function EventsMapView({
           />
         </div>
       ) : null}
-
-      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none">
-        <MapOverlayChip className="pointer-events-auto px-3 py-2 sm:px-4 sm:py-2.5">
-          <h1 className="text-sm sm:text-base font-bold flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-violet-300 shrink-0" />
-            <span>{i18n("events.s1qg3so4")}</span>
-          </h1>
-        </MapOverlayChip>
-      </div>
 
       <div className="hidden lg:flex absolute top-4 right-4 bottom-4 z-20 pointer-events-none">
         <EventsMapSidePanel

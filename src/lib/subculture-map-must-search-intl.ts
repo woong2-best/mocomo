@@ -142,22 +142,12 @@ export const SUBCULTURE_MAP_MUST_SEARCH_INTL: SubcultureMapMustSearchEntry[] = [
     sourceUrl: "https://www.dreamlandmaidcafe.com/",
     id: "dreamland-la-habra",
   },
-  {
-    name: "Mirai Maid Cafe",
-    category: "maid_cafe",
-    country: "us",
-    city: "Orlando, FL",
-    address: "Orlando, Florida, USA",
-    note: "Neo Orlando pop-up / event cafe — confirm via miraimaidcafe.com",
-    lat: 28.538336,
-    lng: -81.379234,
-    sourceUrl: "https://miraimaidcafe.com/",
-    id: "mirai-orlando",
-  },
 ];
 
 /** 폐업·이전 — must-search 목록에서 제거된 핀 (sync 시 DB 삭제) */
 export const RETIRED_MUST_SEARCH_EXTERNAL_KEYS = [
   "must-search-tw-maid-taichung-aurore-taichung",
   "must-search-tw-maid-kaohsiung-tsukuyomi-kaohsiung",
+  /** No fixed storefront — convention pop-up only (miraimaidcafe.com) */
+  "must-search-us-maid-mirai-orlando",
 ] as const;
