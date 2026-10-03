@@ -47,13 +47,13 @@ export function ProfileStreamingSettings({
           value={showYoutubeOnProfile ? "on" : "off"}
         />
       ) : null}
-      <label className="flex items-start gap-3 text-sm">
+      <label className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-sm sm:min-h-0 sm:py-0">
         <input
           type="checkbox"
           name={youtube ? "showYoutubeOnProfile" : undefined}
           defaultChecked={showYoutubeOnProfile}
           disabled={!youtube}
-          className="mt-0.5"
+          className="mt-1 h-5 w-5 shrink-0 sm:mt-0.5"
         />
         <span>
           <span className="font-medium">Show YouTube on profile</span>
@@ -72,13 +72,13 @@ export function ProfileStreamingSettings({
           value={showTwitchOnProfile ? "on" : "off"}
         />
       ) : null}
-      <label className="flex items-start gap-3 text-sm">
+      <label className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-sm sm:min-h-0 sm:py-0">
         <input
           type="checkbox"
           name={twitch ? "showTwitchOnProfile" : undefined}
           defaultChecked={showTwitchOnProfile}
           disabled={!twitch}
-          className="mt-0.5"
+          className="mt-1 h-5 w-5 shrink-0 sm:mt-0.5"
         />
         <span>
           <span className="font-medium">Show Twitch on profile</span>

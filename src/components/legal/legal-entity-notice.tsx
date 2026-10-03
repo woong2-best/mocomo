@@ -38,7 +38,7 @@ export function LegalEntityFooterNotice({ className = "" }: { className?: string
       <p>
         Contact · DMCA: <LegalEmail />
       </p>
-      <p className="pt-1 max-w-2xl mx-auto">{THIRD_PARTY_STREAMING_DISCLAIMER}</p>
+      <p className="pt-1 max-w-2xl mx-auto px-3 text-pretty">{THIRD_PARTY_STREAMING_DISCLAIMER}</p>
     </div>
   );
 }

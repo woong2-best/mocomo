@@ -35,7 +35,7 @@ export function ProfileStreamingChannelButtons({
             rel="noopener noreferrer"
             title={link.channelName}
             aria-label={`${meta.label}: ${link.channelName}`}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 shadow-md ring-1 ring-border/60 backdrop-blur-sm transition hover:brightness-110"
+            className="inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-full bg-background/95 shadow-md ring-1 ring-border/60 backdrop-blur-sm transition hover:brightness-110 active:scale-95 sm:h-10 sm:w-10"
           >
             {/* Brand assets: /brand/youtube.png, /brand/twitch.svg */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
