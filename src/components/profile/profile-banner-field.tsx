@@ -4,9 +4,8 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { useRef, useState } from "react";
-import { Film, ImagePlus, Link2, Loader2 } from "lucide-react";
+import { Film, ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ImageEditorDialog } from "@/components/media/editor/image-editor-dialog";
 import { readFileAsObjectUrl } from "@/lib/crop-image";
 import { uploadVideoBlob } from "@/lib/client-upload";
@@ -47,7 +46,6 @@ export function ProfileBannerField({
   const [cropOpen, setCropOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [showUrl, setShowUrl] = useState(false);
   const [error, setError] = useState("");
 
   async function onImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -114,19 +112,7 @@ export function ProfileBannerField({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <label className="text-sm font-medium">{t("profile.s1ytpxdw")}</label>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-xs h-8 rounded-lg"
-          onClick={() => setShowUrl((v) => !v)}
-        >
-          <Link2 className="h-3.5 w-3.5 mr-1" />
-          {showUrl ? t("profile.url") : t("profile.url_2")}
-        </Button>
-      </div>
+      <label className="text-sm font-medium">{t("profile.s1ytpxdw")}</label>
 
       <div
         className={cn(
@@ -180,31 +166,6 @@ export function ProfileBannerField({
 
       <input ref={imageRef} type="file" accept={IMAGE_ACCEPT} className="hidden" onChange={onImageFileChange} />
       <input ref={videoRef} type="file" accept={VIDEO_ACCEPT} className="hidden" onChange={onVideoFileChange} />
-
-      {showUrl ? (
-        <div className="space-y-2">
-          <Input
-            type="url"
-            value={bannerUrl}
-            onChange={(e) => {
-              onBannerUrlChange(e.target.value);
-              if (e.target.value) onBannerVideoUrlChange("");
-            }}
-            placeholder={t("profile.url_https")}
-            className="rounded-xl text-sm"
-          />
-          <Input
-            type="url"
-            value={bannerVideoUrl}
-            onChange={(e) => {
-              onBannerVideoUrlChange(e.target.value);
-              if (e.target.value) onBannerUrlChange("");
-            }}
-            placeholder={t("profile.url_https_2")}
-            className="rounded-xl text-sm"
-          />
-        </div>
-      ) : null}
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

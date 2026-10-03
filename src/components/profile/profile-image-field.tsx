@@ -4,9 +4,8 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { useRef, useState } from "react";
-import { ImagePlus, Link2, Loader2 } from "lucide-react";
+import { ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ImageEditorDialog } from "@/components/media/editor/image-editor-dialog";
 import { readFileAsObjectUrl } from "@/lib/crop-image";
 import { uploadImageBlob } from "@/lib/client-upload";
@@ -81,7 +80,6 @@ export function ProfileImageField({
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropOpen, setCropOpen] = useState(false);
   const [picking, setPicking] = useState(false);
-  const [showUrl, setShowUrl] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -115,21 +113,7 @@ export function ProfileImageField({
     <div className="space-y-3">
       <input type="hidden" name={name} value={value} />
 
-      <div className="flex items-center justify-between gap-2">
-        <label className="text-sm font-medium">{cfg.label}</label>
-        {!uploadOnly ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-xs h-8 rounded-lg"
-            onClick={() => setShowUrl((v) => !v)}
-          >
-            <Link2 className="h-3.5 w-3.5 mr-1" />
-            {showUrl ? t("profile.url") : t("profile.url_2")}
-          </Button>
-        ) : null}
-      </div>
+      <label className="text-sm font-medium">{cfg.label}</label>
 
       {kind === "banner" || kind === "cover" ? (
         <div
@@ -191,16 +175,6 @@ export function ProfileImageField({
       </div>
 
       <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={onFileChange} />
-
-      {showUrl && !uploadOnly ? (
-        <Input
-          type="url"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={t("profile.https_uploads")}
-          className="rounded-xl text-sm"
-        />
-      ) : null}
 
       {uploadError ? (
         <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-2 py-1.5">{uploadError}</p>
