@@ -108,27 +108,6 @@ export const SUBCULTURE_MAP_MUST_SEARCH_INTL: SubcultureMapMustSearchEntry[] = [
     lng: 120.68512,
     id: "tsukuyomi-taichung",
   },
-  {
-    name: "曙光 Aurore Maid Café",
-    category: "maid_cafe",
-    country: "tw",
-    city: "台中市西區",
-    address: "403台灣台中市西區五權路1之67號22樓",
-    lat: 24.14482,
-    lng: 120.66342,
-    id: "aurore-taichung",
-  },
-  // ── Kaohsiung ──
-  {
-    name: "月讀女僕咖啡 五福店",
-    category: "maid_cafe",
-    country: "tw",
-    city: "高雄市新興區",
-    address: "800台灣高雄市新興區五福二路57號22樓",
-    lat: 22.63182,
-    lng: 120.30142,
-    id: "tsukuyomi-kaohsiung",
-  },
   // ── United States ──
   {
     name: "Asayoru Maid Cafe",
@@ -176,3 +155,9 @@ export const SUBCULTURE_MAP_MUST_SEARCH_INTL: SubcultureMapMustSearchEntry[] = [
     id: "mirai-orlando",
   },
 ];
+
+/** 폐업·이전 — must-search 목록에서 제거된 핀 (sync 시 DB 삭제) */
+export const RETIRED_MUST_SEARCH_EXTERNAL_KEYS = [
+  "must-search-tw-maid-taichung-aurore-taichung",
+  "must-search-tw-maid-kaohsiung-tsukuyomi-kaohsiung",
+] as const;

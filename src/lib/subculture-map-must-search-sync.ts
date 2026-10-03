@@ -4,14 +4,27 @@ import {
   isPinCoordinateValid,
 } from "@/lib/subculture-event-geocode";
 import {
+  getActiveMustSearchEntries,
   mustSearchGeocodeQuery,
-  SUBCULTURE_MAP_MUST_SEARCH,
   mustSearchExternalKey,
   mustSearchEntryToFetchedEvent,
+  RETIRED_MUST_SEARCH_EXTERNAL_KEYS,
 } from "@/lib/subculture-map-must-search";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/** 폐업·목록 제외 매장 — DB 핀 삭제 */
+export async function purgeRetiredMustSearchPins(): Promise<number> {
+  try {
+    const removed = await db.subcultureEventPin.deleteMany({
+      where: { externalKey: { in: [...RETIRED_MUST_SEARCH_EXTERNAL_KEYS] } },
+    });
+    return removed.count;
+  } catch {
+    return 0;
+  }
 }
 
 /** sync 때마다 필수 검색 목록 geocode — Nominatim rate limit 준수 */
@@ -25,17 +38,15 @@ export async function geocodeMustSearchSubcultureMapEntries(options?: {
     return 0;
   }
 
-  const max = options?.max ?? SUBCULTURE_MAP_MUST_SEARCH.length;
+  const active = getActiveMustSearchEntries();
+  const max = options?.max ?? active.length;
   let updated = 0;
 
-  const total = SUBCULTURE_MAP_MUST_SEARCH.length;
+  const total = active.length;
   const offset =
     total > 0 ? Math.floor(Date.now() / (60 * 60 * 1000)) % Math.max(1, Math.ceil(total / max)) : 0;
   const start = (offset * max) % total;
-  const rotated = [
-    ...SUBCULTURE_MAP_MUST_SEARCH.slice(start),
-    ...SUBCULTURE_MAP_MUST_SEARCH.slice(0, start),
-  ].slice(0, max);
+  const rotated = [...active.slice(start), ...active.slice(0, start)].slice(0, max);
 
   for (const entry of rotated) {
     const externalKey = mustSearchExternalKey(entry);

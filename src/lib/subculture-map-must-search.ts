@@ -5,7 +5,10 @@
 
 import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
 import type { FetchedSubcultureEvent } from "@/lib/subculture-event-fetch/types";
-import { SUBCULTURE_MAP_MUST_SEARCH_INTL } from "@/lib/subculture-map-must-search-intl";
+import {
+  RETIRED_MUST_SEARCH_EXTERNAL_KEYS,
+  SUBCULTURE_MAP_MUST_SEARCH_INTL,
+} from "@/lib/subculture-map-must-search-intl";
 import { isPinCoordinateValid } from "@/lib/subculture-event-geocode";
 
 export type SubcultureMapMustSearchEntry = {
@@ -24,7 +27,20 @@ export type SubcultureMapMustSearchEntry = {
   lat?: number;
   lng?: number;
   sourceUrl?: string;
+  /** closed — must-search·지도에서 제외 */
+  openStatus?: "open" | "unknown" | "closed";
+  verifyStatus?: "verified" | "unverified";
 };
+
+export { RETIRED_MUST_SEARCH_EXTERNAL_KEYS };
+
+export function isActiveMustSearchEntry(entry: SubcultureMapMustSearchEntry): boolean {
+  return entry.openStatus !== "closed";
+}
+
+export function getActiveMustSearchEntries(): SubcultureMapMustSearchEntry[] {
+  return SUBCULTURE_MAP_MUST_SEARCH.filter(isActiveMustSearchEntry);
+}
 
 const OPEN = "2024-01-01T12:00:00+09:00";
 const ENDS = "2099-12-31T23:59:59+09:00";
@@ -106,7 +122,10 @@ function resolvedMustSearchCoords(entry: SubcultureMapMustSearchEntry): {
   return null;
 }
 
-/** 상설 메이드 카페 — 국내 필수 검색 목록 */
+/**
+ * 상설 메이드 카페 — 국내 필수 검색 목록 (한국어 name/city/address = geocode 키워드)
+ * CSV open_status·verify_status: 기본 unknown / unverified
+ */
 const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
   {
     name: "키라링",
@@ -114,7 +133,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "부산 부산진구",
     address: "부산진구 동성로25길 35 2층",
-    note: "Address needs checking: no city/province prefix; 동성로 is often Daegu — verify",
+    note: "Address needs checking: no city/province prefix; '동성로' is a well-known downtown Daegu place name",
     id: "kiraring",
   },
   {
@@ -123,6 +142,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "부산 부산진구",
     address: "부산 부산진구 서전로68번길 27 3층",
+    id: "hai-kou",
   },
   {
     name: "갓코우 토모",
@@ -147,6 +167,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "부산 부산진구",
     address: "부산 부산진구 서전로58번길 40 지하1층",
+    id: "spunky",
   },
   {
     name: "코이",
@@ -154,6 +175,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "부산 부산진구",
     address: "부산 부산진구 동천로 72 2층",
+    id: "koi",
   },
   {
     name: "모찌 코스",
@@ -177,6 +199,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "부산 부산진구",
     address: "부산 부산진구 서전로10번길 34 2층",
+    id: "sugarace",
   },
   {
     name: "테이타쿠",
@@ -208,6 +231,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "대구 중구",
     address: "대구 중구 동성로2길 18-14 지하 1층",
+    id: "yume-devil",
   },
   {
     name: "나라카",
@@ -223,6 +247,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "대구 중구",
     address: "대구 중구 동성로2길 18-16 지하1층",
+    id: "yume-maid",
   },
   {
     name: "마이니치",
@@ -230,6 +255,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "대구 중구",
     address: "대구 중구 동성로 11 4층",
+    id: "mainichi",
   },
   {
     name: "메이드리밍",
@@ -353,6 +379,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "서울 마포구",
     address: "서울특별시 마포구 와우산로29라길 11 1.5층",
+    id: "noir",
   },
   {
     name: "달링",
@@ -360,6 +387,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "서울 마포구",
     address: "서울 마포구 어울마당로 59 3층",
+    id: "darling",
   },
   {
     name: "로제린",
@@ -376,6 +404,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "서울 마포구",
     address: "서울 마포구 어울마당로5길 6",
+    id: "liveon",
   },
   {
     name: "카와이",
@@ -408,6 +437,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "서울 마포구",
     address: "서울 마포구 와우산로29라길 13-6",
+    id: "debutante",
   },
   {
     name: "모에모에큥",
@@ -423,6 +453,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "서울 마포구",
     address: "서울 마포구 와우산로29라길 20",
+    id: "melti-angel",
   },
   {
     name: "마이바니",
@@ -430,6 +461,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "서울 마포구",
     address: "서울특별시 마포구 와우산로29길 15",
+    id: "my-bunny",
   },
   {
     name: "아이란도 라운지",
@@ -445,6 +477,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "서울 마포구",
     address: "서울 마포구 독막로3길 21 2층",
+    id: "hiraru",
   },
   {
     name: "데레데레",
@@ -452,6 +485,7 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     country: "kr",
     city: "서울 마포구",
     address: "서울 마포구 와우산로11길 9-10 2층",
+    id: "deredere",
   },
   {
     name: "도키 777",
@@ -471,9 +505,19 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
   },
 ];
 
+function withMustSearchDefaults(
+  entry: SubcultureMapMustSearchEntry
+): SubcultureMapMustSearchEntry {
+  return {
+    ...entry,
+    openStatus: entry.openStatus ?? "unknown",
+    verifyStatus: entry.verifyStatus ?? "unverified",
+  };
+}
+
 export const SUBCULTURE_MAP_MUST_SEARCH: SubcultureMapMustSearchEntry[] = [
-  ...SUBCULTURE_MAP_MUST_SEARCH_KR,
-  ...SUBCULTURE_MAP_MUST_SEARCH_INTL,
+  ...SUBCULTURE_MAP_MUST_SEARCH_KR.map(withMustSearchDefaults),
+  ...SUBCULTURE_MAP_MUST_SEARCH_INTL.map(withMustSearchDefaults),
 ];
 
 export function mustSearchGeocodeQuery(entry: SubcultureMapMustSearchEntry): {
@@ -525,5 +569,5 @@ export function mustSearchEntryToFetchedEvent(
 }
 
 export function getMustSearchFetchedSubcultureEvents(): FetchedSubcultureEvent[] {
-  return SUBCULTURE_MAP_MUST_SEARCH.map(mustSearchEntryToFetchedEvent);
+  return getActiveMustSearchEntries().map(mustSearchEntryToFetchedEvent);
 }

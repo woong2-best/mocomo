@@ -21,8 +21,11 @@ import {
 } from "@/lib/subculture-event-geocode";
 import { type MapEventPin } from "@/lib/subculture-event-pins";
 import { inferSubcultureEventPhase } from "@/lib/subculture-event-phase";
-import { geocodeMustSearchSubcultureMapEntries } from "@/lib/subculture-map-must-search-sync";
-import { SUBCULTURE_MAP_MUST_SEARCH } from "@/lib/subculture-map-must-search";
+import {
+  geocodeMustSearchSubcultureMapEntries,
+  purgeRetiredMustSearchPins,
+} from "@/lib/subculture-map-must-search-sync";
+import { getActiveMustSearchEntries } from "@/lib/subculture-map-must-search";
 
 export type { MapEventPin } from "@/lib/subculture-event-pins";
 export { mapLinkForEvent } from "@/lib/subculture-event-pins";
@@ -206,7 +209,7 @@ export async function getSubcultureMapPins(limit = 240): Promise<MapEventPin[]> 
   await syncSubcultureEventsIfDue({ geocodeMax: 3, mustSearchGeocodeMax: 12 });
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v16", String(limit)],
+    ["subculture-map-pins-v17", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
@@ -501,12 +504,17 @@ export async function syncSubcultureEventsIfDue(options?: {
     };
   }
 
+  const activeMustSearchCount = getActiveMustSearchEntries().length;
   const mustSearchGeocodeMax =
     options?.mustSearchGeocodeMax ??
-    (force ? SUBCULTURE_MAP_MUST_SEARCH.length : Math.min(10, SUBCULTURE_MAP_MUST_SEARCH.length));
+    (force ? activeMustSearchCount : Math.min(10, activeMustSearchCount));
 
   const { events, results } = await fetchAllSubcultureEvents();
   await upsertFetchedSubcultureEvents(events);
+  const retiredPurged = await purgeRetiredMustSearchPins();
+  if (retiredPurged > 0) {
+    console.info("[subculture-events] purged retired must-search pins:", retiredPurged);
+  }
   const mustSearchGeocoded = await geocodeMustSearchSubcultureMapEntries({
     max: mustSearchGeocodeMax,
   });
