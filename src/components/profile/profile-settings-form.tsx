@@ -167,13 +167,13 @@ export function ProfileSettingsForm({
   const displayName = initial.name || initial.username;
   const usernameLocked = initial.usernameChangesRemaining <= 0;
   const resetText = initial.usernameChangeResetAt
-    ? new Date(initial.usernameChangeResetAt).toLocaleString("ko-KR")
+    ? new Date(initial.usernameChangeResetAt).toLocaleString("en-US")
     : null;
 
   return (
     <AppPageChrome spacing="sm">
       <Link href="/settings" className="text-sm text-primary hover:underline">
-        ← 설정
+        {t("profile.s49ct8h")}
       </Link>
 
       <Card className="rounded-2xl overflow-hidden">
@@ -204,7 +204,7 @@ export function ProfileSettingsForm({
         <CardHeader>
           <CardTitle>{t("settings.editProfile")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            사진·동Video 배너는 마이페이지와 앱 왼쪽 메뉴에 표시됩니다. 동Video은 무음 자동 재생, 최대 10초.
+            {t("profile.sk80a7t")}
           </p>
         </CardHeader>
         <CardContent>
@@ -241,7 +241,7 @@ export function ProfileSettingsForm({
               <label className="text-sm font-medium">{t("profile.s2jy9bk")}</label>
               <Input name="name" defaultValue={initial.name} className="mt-1 rounded-xl" />
               <p className="mt-1 text-xs text-muted-foreground">
-                닉네임은 언제든지 변경할 수 있습니다.
+                {t("profile.s155sabx")}
               </p>
             </div>
 
@@ -261,10 +261,12 @@ export function ProfileSettingsForm({
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                아이디는 영문·숫자·_ 3~20자이며, {USERNAME_CHANGE_WINDOW_DAYS}일에{" "}
-                {USERNAME_CHANGE_LIMIT}번만 변경할 수 있습니다. 남은 변경{" "}
-                {initial.usernameChangesRemaining}회
-                {usernameLocked && resetText ? ` · 다음 가능 시간: ${resetText}` : ""}
+                {t("profile.usernamePolicy", {
+                  limit: USERNAME_CHANGE_LIMIT,
+                  days: USERNAME_CHANGE_WINDOW_DAYS,
+                  remaining: initial.usernameChangesRemaining,
+                })}
+                {usernameLocked && resetText ? ` ${t("profile.svpdcpy")} ${resetText}` : ""}
               </p>
             </div>
             <div>
@@ -281,7 +283,7 @@ export function ProfileSettingsForm({
               <div>
                 <label className="text-sm font-medium">{t("profile.sxwe7")}</label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  중고거래 성인 인증에도 사용됩니다. 프로필에는 월·일만 공개할 수 있어요.
+                  {t("profile.sda4pyn")}
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-x-2 gap-y-2 pt-1">
@@ -338,7 +340,7 @@ export function ProfileSettingsForm({
                   defaultChecked={initial.showBirthdayOnProfile}
                   disabled={!initial.birthYear && !initial.birthMonth && !initial.birthDay}
                 />
-                프로필에 생일 표시 (월·일)
+                {t("profile.smsesf1")}
               </label>
             </div>
             <div>
@@ -358,7 +360,7 @@ export function ProfileSettingsForm({
             />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="showNsfw" defaultChecked={initial.showNsfw} />
-              NSFW 콘텐츠 표시
+              {t("profile.nsfw")}
             </label>
             <Button type="submit" className="w-full rounded-xl" disabled={loading}>
               {loading ? t("auth.saving") : t("settings.save")}
@@ -386,7 +388,7 @@ export function ProfileSettingsForm({
           <CardHeader>
             <CardTitle>{t("profile.sb9u3dk")}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              코스어로 등록하면 코스프레 사진을 올리고 갤러리를 관리할 수 있습니다.
+              {t("profile.s1hfjx15")}
             </p>
           </CardHeader>
           <CardContent>

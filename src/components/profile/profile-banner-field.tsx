@@ -88,7 +88,7 @@ export function ProfileBannerField({
         return;
       }
       if (profileBannerVideoTooLong(duration)) {
-        setError(`배너 동Video은 ${MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초 이하여야 합니다.`);
+        setError(t("profile.sddxt7w", { v0: MAX_PROFILE_BANNER_VIDEO_DURATION_SEC }));
         return;
       }
       const prepared = await prepareBannerVideoForUpload(file);
@@ -124,8 +124,10 @@ export function ProfileBannerField({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        마이페이지·왼쪽 메뉴 상단에 표시됩니다. 동Video은 무음 자동 재생, 최대{" "}
-        {MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초.
+        {t("profile.s1r3r45k", {
+          v0: MAX_PROFILE_BANNER_VIDEO_DURATION_SEC,
+          v1: BANNER_VIDEO_FORMAT_HINT,
+        })}
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -138,7 +140,7 @@ export function ProfileBannerField({
           onClick={() => imageRef.current?.click()}
         >
           {picking ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-          사진 올리기
+          {t("profile.s1rw344o")}
         </Button>
         <Button
           type="button"
@@ -149,7 +151,7 @@ export function ProfileBannerField({
           onClick={() => videoRef.current?.click()}
         >
           {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-          동Video 올리기
+          {t("profile.uploadVideo")}
         </Button>
         {hasMedia ? (
           <Button
@@ -159,7 +161,7 @@ export function ProfileBannerField({
             className="rounded-xl text-muted-foreground"
             onClick={clearBanner}
           >
-            제거
+            {t("profile.remove")}
           </Button>
         ) : null}
       </div>

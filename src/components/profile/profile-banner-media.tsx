@@ -1,5 +1,8 @@
 "use client";
 
+import { createTranslator } from "@/lib/i18n/messages";
+const t = createTranslator("en");
+
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -108,7 +111,7 @@ export function ProfileBannerMedia({
 
       {videoSrc && videoError ? (
         <div className="absolute inset-x-0 bottom-0 bg-background/80 px-2 py-1 text-center text-[10px] text-muted-foreground backdrop-blur-sm">
-          Video을 재생할 수 없습니다. MP4(H.264·H.265)로 다시 올려 주세요.
+          {t("profile.mp4_h_264_h_265")}
         </div>
       ) : null}
     </div>
@@ -116,5 +119,8 @@ export function ProfileBannerMedia({
 }
 
 export function profileBannerFieldHint(): string {
-  return `배너 동Video은 최대 ${MAX_PROFILE_BANNER_VIDEO_DURATION_SEC}초, 무음 자동 재생됩니다. ${BANNER_VIDEO_FORMAT_HINT}.`;
+  return t("profile.s1r3r45k", {
+    v0: MAX_PROFILE_BANNER_VIDEO_DURATION_SEC,
+    v1: BANNER_VIDEO_FORMAT_HINT,
+  });
 }

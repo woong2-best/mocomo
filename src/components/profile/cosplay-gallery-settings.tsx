@@ -93,14 +93,14 @@ export function CosplayGallerySettings({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Gem className="h-5 w-5 text-pink-500" />
-          코스프레 갤러리
+          {t("profile.sb9u3dk")}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          코스프레 사진을 추가하거나 삭제할 수 있습니다. 변경 사항은{" "}
+          {t("profile.galleryHintStart")}
           <Link href={`/cosplay/${username}`} className="text-primary hover:underline">
-            코스프레 프로필
+            {t("profile.cosplayProfile")}
           </Link>
-          에 바로 반영됩니다.
+          .
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -142,14 +142,14 @@ export function CosplayGallerySettings({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground rounded-xl border border-dashed border-border p-4 text-center">
-            아직 갤러리 사진이 없습니다. 아래에서 추가해 보세요.
+            {t("profile.s1wmdh86")}
           </p>
         )}
 
         <div className="rounded-xl border border-border/60 p-4 space-y-4 bg-muted/20">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Camera className="h-4 w-4 text-pink-500" />
-            사진 추가
+            {t("profile.s1wid6d0")}
           </div>
           <PostMediaComposer
             items={pending}

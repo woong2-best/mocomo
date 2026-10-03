@@ -169,7 +169,7 @@ export function ProfileImageField({
         </Button>
         {value && (
           <Button type="button" variant="ghost" size="sm" className="rounded-xl text-muted-foreground" onClick={() => onChange("")}>
-            제거
+            {t("profile.remove")}
           </Button>
         )}
       </div>
