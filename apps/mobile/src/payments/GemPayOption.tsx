@@ -31,7 +31,7 @@ export function GemPayOption({
   onSuccess,
   onError,
 }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = createStyles();
   const [pending, setPending] = useState(false);
@@ -44,7 +44,7 @@ export function GemPayOption({
       await payCheckoutWithGems(orderId);
       onSuccess();
     } catch (e: unknown) {
-      onError(e instanceof Error ? e.message : u("MOCO 결제에 실패했습니다.", "MOCO payment failed."));
+      onError(e instanceof Error ? e.message : t("m.payments.moco_payment_failed"));
     } finally {
       setPending(false);
     }
@@ -60,20 +60,20 @@ export function GemPayOption({
         },
       ]}
     >
-      <Text style={[styles.title, { color: colors.text }]}>{u("MOCO 잔액으로 결제", "Pay with MOCO balance")}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t("m.payments.pay_with_moco_balance")}</Text>
       <Text style={[styles.meta, { color: colors.textMuted }]}>
-        {u("보유", "Balance")} {formatMoco(gemBalance)} · {u("필요", "Need")} {formatMoco(gemsRequired)}
+        {t("m.payments.balance")} {formatMoco(gemBalance)} · {t("m.payments.need")} {formatMoco(gemsRequired)}
       </Text>
       <Text style={[styles.hint, { color: colors.textMuted }]}>
-        {amountLabel} · {u("즉시 결제", "Instant payment")}
+        {amountLabel} · {t("m.payments.instant_payment")}
       </Text>
       <FolkButton
         label={
           pending
-            ? u("결제 중…", "Paying…")
+            ? t("m.payments.paying")
             : canPay
-              ? u(`${formatMoco(gemsRequired)}로 결제`, `Pay ${formatMoco(gemsRequired)}`)
-              : u("MOCO 잔액 부족", "Insufficient MOCO")
+              ? t("m.payments.pay_formatmoco", { formatMoco: String(formatMoco(gemsRequired)) })
+              : t("m.payments.insufficient_moco")
         }
         onPress={() => void handlePay()}
         loading={pending}
@@ -82,7 +82,7 @@ export function GemPayOption({
       {!canPay ? (
         <Pressable onPress={() => void Linking.openURL(`${API_BASE_URL.replace(/\/$/, "")}/wallet`)}>
           <Text style={[styles.topupLink, { color: colors.cobalt }]}>
-            {u("웹사이트에서 MOCO 충전", "Top up MOCO on the website")}
+            {t("m.payments.top_up_moco_on_the_website")}
           </Text>
         </Pressable>
       ) : null}

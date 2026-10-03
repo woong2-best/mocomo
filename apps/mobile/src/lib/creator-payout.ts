@@ -1,10 +1,8 @@
 import { ApiError, apiRequest } from "@/api/client";
 
-export const CREATOR_PAYOUT_BLOCKED_KO =
-  "해당 크리에이터가 아직 정산 계좌(Stripe)를 연동하지 않아 후원할 수 없습니다.";
+export const CREATOR_PAYOUT_BLOCKED = "m.lib.creator_payout_blocked";
 
-export const CREATOR_PAYOUT_BLOCKED_TOAST_KO =
-  "해당 크리에이터가 정산 계좌를 연동하지 않아 후원할 수 없습니다.";
+export const CREATOR_PAYOUT_BLOCKED_TOAST = "m.lib.creator_payout_blocked_toast";
 
 export function fetchCreatorPayoutReady(target: string) {
   return apiRequest<{ payoutsEnabled: boolean }>(

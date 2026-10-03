@@ -64,7 +64,7 @@ export function SignupOnboardingSheet({
   onFinished,
 }: Props) {
   const { colors } = useTheme();
-  const { locale, t, u } = useI18n();
+  const { locale, t } = useI18n();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>("locale");
   const [busy, setBusy] = useState(false);
@@ -104,7 +104,7 @@ export function SignupOnboardingSheet({
   const pickAvatar = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError(u("권한 필요", "Permission required"), u("사진 라이브러리 접근 권한이 필요합니다.", "Photo library access is required."));
+      showIslandError(t("m.common.permission_required"), t("m.common.photo_library_access_is_required"));
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -131,7 +131,7 @@ export function SignupOnboardingSheet({
       }
       setStep("identity");
     } catch (e) {
-      setError(e instanceof Error ? e.message : u("국가·시간대 저장에 실패했습니다.", "Could not save country and time zone."));
+      setError(e instanceof Error ? e.message : t("m.auth.could_not_save_country_and_time"));
     } finally {
       setBusy(false);
     }
@@ -139,16 +139,16 @@ export function SignupOnboardingSheet({
 
   async function submitAvatar() {
     if (!localUri) {
-      setError(u("프로필 사진을 선택해 주세요.", "Please choose a profile photo."));
+      setError(t("m.auth.please_choose_a_profile_photo"));
       return;
     }
     if (!birthOk || !confirmedBirth) {
-      setError(u("생년월일을 확인해 주세요.", "Please check your date of birth."));
+      setError(t("m.auth.please_check_your_date_of_birth"));
       onClose();
       return;
     }
     if (!identityOk || !passwordOk) {
-      setError(u("아이디·닉네임·비밀번호를 확인해 주세요.", "Please check username, display name, and password."));
+      setError(t("m.auth.please_check_username_display_name_and"));
       setStep("identity");
       return;
     }
@@ -188,7 +188,7 @@ export function SignupOnboardingSheet({
       setImageUrl(url);
       setStep("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : u("프로필 저장에 실패했습니다.", "Could not save profile."));
+      setError(e instanceof Error ? e.message : t("m.auth.could_not_save_profile"));
     } finally {
       setBusy(false);
     }
@@ -227,15 +227,12 @@ export function SignupOnboardingSheet({
               <>
                 <Text style={[styles.title, { color: colors.text }]}>{t("auth.country")}</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  {u(
-                    "국가를 검색해 선택하세요. 시간대는 이 스마트폰 시계를 따릅니다.",
-                    "Search and pick a country. Time zone follows this device clock."
-                  )}
+                  {t("m.auth.search_and_pick_a_country_time")}
                 </Text>
                 <TextInput
                   value={countryQuery}
                   onChangeText={setCountryQuery}
-                  placeholder={u("국가 이름 검색", "Search country name")}
+                  placeholder={t("m.auth.search_country_name")}
                   placeholderTextColor={colors.textMuted}
                   autoCorrect={false}
                   autoCapitalize="none"
@@ -289,12 +286,12 @@ export function SignupOnboardingSheet({
               </>
             ) : step === "identity" ? (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>{u("아이디 · 닉네임", "Username · display name")}</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{t("m.auth.username_display_name")}</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  {u("MoCoMo에서 쓸 아이디와 닉네임을 정해 주세요.", "Choose the username and display name you will use on MoCoMo.")}
+                  {t("m.auth.choose_the_username_and_display_name")}
                 </Text>
                 <Field
-                  label={u("아이디", "Username")}
+                  label={t("m.common.username")}
                   value={username}
                   onChangeText={(v) =>
                     setUsername(v.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20))
@@ -305,10 +302,10 @@ export function SignupOnboardingSheet({
                   autoCapitalize="none"
                 />
                 <Field
-                  label={u("닉네임", "Display name")}
+                  label={t("m.common.display_name")}
                   value={displayName}
                   onChangeText={(v) => setDisplayName(v.slice(0, 40))}
-                  placeholder={u("표시 이름", "Display name")}
+                  placeholder={t("m.common.display_name")}
                   maxLength={40}
                   colors={colors}
                 />
@@ -328,7 +325,7 @@ export function SignupOnboardingSheet({
               <>
                 <Text style={[styles.title, { color: colors.text }]}>{t("auth.passwordSimple")}</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  {u("아이디 로그인에 사용할 비밀번호를 만드세요. (8자 이상)", "Create a password for ID login. (8+ characters)")}
+                  {t("m.auth.create_a_password_for_id_login")}
                 </Text>
                 <Field
                   label={t("auth.passwordSimple")}
@@ -340,7 +337,7 @@ export function SignupOnboardingSheet({
                   secure
                 />
                 <Field
-                  label={u("비밀번호 확인", "Confirm password")}
+                  label={t("m.auth.confirm_password")}
                   value={passwordConfirm}
                   onChangeText={setPasswordConfirm}
                   placeholder="••••••••"
@@ -362,12 +359,9 @@ export function SignupOnboardingSheet({
               </>
             ) : (
               <>
-                <Text style={[styles.title, { color: colors.text }]}>{u("프로필 사진", "Profile photo")}</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{t("m.common.profile_photo")}</Text>
                 <Text style={[styles.sub, { color: colors.textMuted }]}>
-                  {u(
-                    "갤러리에서 사진을 하나 골라 주세요. (배너는 나중에 설정할 수 있어요)",
-                    "Pick one photo from your gallery. (You can set a banner later.)"
-                  )}
+                  {t("m.auth.pick_one_photo_from_your_gallery")}
                 </Text>
 
                 <Pressable style={styles.avatarPick} onPress={() => void pickAvatar()} disabled={busy}>
@@ -377,7 +371,7 @@ export function SignupOnboardingSheet({
                     <View style={[styles.avatarEmpty, { borderColor: colors.border }]}>
                       <Ionicons name="image-outline" size={28} color={colors.textMuted} />
                       <Text style={{ color: colors.textMuted, fontWeight: "700", marginTop: 8 }}>
-                        {u("갤러리에서 선택", "Choose from gallery")}
+                        {t("m.auth.choose_from_gallery")}
                       </Text>
                     </View>
                   )}

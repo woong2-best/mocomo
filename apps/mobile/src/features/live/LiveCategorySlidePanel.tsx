@@ -32,8 +32,8 @@ export function LiveCategorySlidePanel({
   onClose,
   onSelectCategory,
 }: Props) {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [presented, setPresented] = useState(false);

@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -20,15 +21,16 @@ export function LiveMocoDonationMenuSheet({
   onPickSfx,
   hostDisplayName,
 }: Props) {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <KeyboardSheet visible={visible} onClose={onClose} maxHeight="42%" sheetStyle={{ backgroundColor: colors.surface }}>
-      <Text style={styles.title}>MOCO 후원</Text>
+      <Text style={styles.title}>{t("m.live.moco_tip")}</Text>
       <Text style={styles.sub}>
         {hostDisplayName ? `${hostDisplayName} · ` : ""}
-        영상 또는 효과음으로 방송 화면(OBS)에 알림이 표시됩니다.
+        {t("m.live.your_tip_shows_on_the_stream")}
       </Text>
 
       <Pressable
@@ -42,8 +44,8 @@ export function LiveMocoDonationMenuSheet({
           <Ionicons name="logo-youtube" size={22} color="#0d4d2c" />
         </View>
         <View style={styles.rowText}>
-          <Text style={styles.rowTitle}>YouTube 영상 후원</Text>
-          <Text style={styles.rowSub}>URL · 재생 구간 · MOCO 자동 계산</Text>
+          <Text style={styles.rowTitle}>{t("m.live.youtube_video_tip")}</Text>
+          <Text style={styles.rowSub}>{t("m.live.url_play_range_moco_calculated_automatic")}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </Pressable>
@@ -59,8 +61,8 @@ export function LiveMocoDonationMenuSheet({
           <Ionicons name="musical-notes" size={22} color="#E85D04" />
         </View>
         <View style={styles.rowText}>
-          <Text style={styles.rowTitle}>효과음 후원</Text>
-          <Text style={styles.rowSub}>효과음 · MOCO · 화면 메시지(필수)</Text>
+          <Text style={styles.rowTitle}>{t("m.live.sound_effect_tip")}</Text>
+          <Text style={styles.rowSub}>{t("m.live.sound_moco_on_screen_message_required")}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
       </Pressable>

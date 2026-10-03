@@ -50,6 +50,8 @@ import {
   homeCurrencyForCountry,
   KOREA_SIDO,
   KOREA_SIGUNGU_BY_SIDO,
+  DEFAULT_SIGUNGU,
+  DEFAULT_SIDO_SHORT,
   listingCurrencyChoices,
   parseListingPriceInput,
   productTypeForSellKind,
@@ -69,7 +71,7 @@ type LocalListingImage = {
 };
 
 export function UsedCreateScreen() {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors, isDark } = useTheme();
   const ink = isDark ? colors.text : colors.brand;
   const paper = colors.surfaceRaised;
@@ -89,7 +91,7 @@ export function UsedCreateScreen() {
   const [region, setRegion] = useState<string>(USED_SHIPPING_REGION);
   const [regionText, setRegionText] = useState("");
   const [sidoId, setSidoId] = useState<string>(KOREA_SIDO[0]?.id ?? "seoul");
-  const [sigungu, setSigungu] = useState<string>(KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? "종로구");
+  const [sigungu, setSigungu] = useState<string>(KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? DEFAULT_SIGUNGU);
   const [meetPlace, setMeetPlace] = useState("");
   const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
   const [countryCode, setCountryCode] = useState("KR");
@@ -114,12 +116,12 @@ export function UsedCreateScreen() {
         if (!alive || !detail.item) return;
         const item = detail.item;
         if (!item.isOwner) {
-          showIslandError(u("수정 불가", "Can't edit"), u("본인 글만 수정할 수 있습니다.", "You can only edit your own listing."));
+          showIslandError(t("m.marketplace.can_t_edit"), t("m.marketplace.you_can_only_edit_your_own"));
           navigation.goBack();
           return;
         }
         if (item.status !== "SELLING") {
-          showIslandError(u("수정 불가", "Can't edit"), u("거래가 진행 중이어서 수정할 수 없습니다.", "This listing can't be edited while a trade is in progress."));
+          showIslandError(t("m.marketplace.can_t_edit"), t("m.marketplace.this_listing_can_t_be_edited"));
           navigation.goBack();
           return;
         }
@@ -144,7 +146,7 @@ export function UsedCreateScreen() {
           tradeMode: item.tradeMode === "TRADE" ? "TRADE" : "SELL",
         }));
       } catch {
-        if (alive) showIslandError(u("오류", "Error"), u("글 정보를 불러오지 못했습니다.", "Could not load listing details."));
+        if (alive) showIslandError(t("m.common.error"), t("m.marketplace.could_not_load_listing_details"));
       }
     })();
     return () => {
@@ -164,7 +166,7 @@ export function UsedCreateScreen() {
         }
         if (status.countryCode?.toUpperCase() === "KR") {
           const firstSido = KOREA_SIDO[0];
-          const firstCity = KOREA_SIGUNGU_BY_SIDO[firstSido.id]?.[0] ?? "종로구";
+          const firstCity = KOREA_SIGUNGU_BY_SIDO[firstSido.id]?.[0] ?? DEFAULT_SIGUNGU;
           setSidoId(firstSido.id);
           setSigungu(firstCity);
           setRegion(formatUsedRegion(firstSido.short, firstCity));
@@ -191,17 +193,14 @@ export function UsedCreateScreen() {
   async function pickImage() {
     if (imageCount >= MAX_LISTING_IMAGES) {
       showIslandInfo(
-        u("사진 제한", "Photo limit"),
-        u(
-          `사진은 최대 ${MAX_LISTING_IMAGES}장까지 추가할 수 있습니다.`,
-          `You can add up to ${MAX_LISTING_IMAGES} photos.`
-        )
+        t("m.marketplace.photo_limit"),
+        t("m.marketplace.you_can_add_up_to_max", { MAX_LISTING_IMAGES: String(MAX_LISTING_IMAGES) })
       );
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError(u("권한 필요", "Permission needed"), u("사진 라이브러리 접근을 허용해 주세요.", "Allow access to your photo library."));
+      showIslandError(t("m.common.permission_needed"), t("m.marketplace.allow_access_to_your_photo_library"));
       return;
     }
     const remaining = MAX_LISTING_IMAGES - imageCount;
@@ -215,11 +214,8 @@ export function UsedCreateScreen() {
     const batch = result.assets.slice(0, remaining);
     if (batch.length < result.assets.length) {
       showIslandInfo(
-        u("사진 제한", "Photo limit"),
-        u(
-          `${remaining}장만 추가했습니다. (최대 ${MAX_LISTING_IMAGES}장)`,
-          `Added ${remaining} photos only (max ${MAX_LISTING_IMAGES}).`
-        )
+        t("m.marketplace.photo_limit"),
+        t("m.marketplace.added_remaining_photos_only_max_max", { remaining: String(remaining), MAX_LISTING_IMAGES: String(MAX_LISTING_IMAGES) })
       );
     }
     setLocalImages((prev) => [
@@ -247,21 +243,21 @@ export function UsedCreateScreen() {
 
   async function submit() {
     if (!subculture.productType) {
-      showIslandError(u("상품 종류", "Product type"), u("상품 종류를 선택해 주세요.", "Choose a product type."));
+      showIslandError(t("m.common.product_type"), t("m.marketplace.choose_a_product_type"));
       return;
     }
     if (!title.trim()) {
-      showIslandError(u("제목 필요", "Title required"), u("제목을 입력해 주세요.", "Enter a title."));
+      showIslandError(t("m.marketplace.title_required"), t("m.common.enter_a_title"));
       return;
     }
     const priceNum =
       giveaway || isTrade ? 0 : parseListingPriceInput(price, currency);
     if (priceNum < 0) {
-      showIslandError(u("가격", "Price"), u("가격이 올바르지 않습니다.", "Enter a valid price."));
+      showIslandError(t("m.marketplace.price"), t("m.marketplace.enter_a_valid_price"));
       return;
     }
     if (!giveaway && !isTrade && priceNum <= 0) {
-      showIslandError(u("가격", "Price"), u("가격을 입력해 주세요.", "Enter a price."));
+      showIslandError(t("m.marketplace.price"), t("m.marketplace.enter_a_price"));
       return;
     }
     setBusy(true);
@@ -278,7 +274,7 @@ export function UsedCreateScreen() {
       }
       const images = uploaded;
       if (images.length === 0) {
-        showIslandError(u("사진 필요", "Photos required"), u("상품 사진을 추가해 주세요.", "Add at least one product photo."));
+        showIslandError(t("m.marketplace.photos_required"), t("m.marketplace.add_at_least_one_product_photo"));
         setBusy(false);
         return;
       }
@@ -288,7 +284,7 @@ export function UsedCreateScreen() {
           ? sidoId === "__shipping__"
             ? USED_SHIPPING_REGION
             : formatUsedRegion(
-                KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? "서울",
+                KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? DEFAULT_SIDO_SHORT,
                 sigungu
               )
           : region === "Shipping"
@@ -301,7 +297,7 @@ export function UsedCreateScreen() {
         price: priceNum,
         currency,
         category: subculture.productType,
-        categories: [subculture.productType],
+        categories: [subculture.productType] as string[],
         region: submitRegion,
         meetPlace: meetPlace.trim() || undefined,
         meetLat: meetCoords?.lat,
@@ -315,7 +311,7 @@ export function UsedCreateScreen() {
         productType: productTypeForSellKind(subculture.productType),
         conditionGrade: subculture.conditionGrade || undefined,
         tradeMode: subculture.tradeMode === "TRADE" ? "TRADE" : "SELL",
-      } as const;
+      };
 
       const listingId = editId
         ? (await updateMarketplaceListing(editId, payload)).listingId
@@ -323,8 +319,8 @@ export function UsedCreateScreen() {
       await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
       await queryClient.invalidateQueries({ queryKey: ["mobile-marketplace-mine"] });
       showIslandSuccess(
-        editId ? u("수정됨", "Updated") : u("등록됨", "Posted"),
-        editId ? u("글이 수정되었습니다.", "Your listing was updated.") : u("글이 올라갔습니다.", "Your listing is live.")
+        editId ? t("m.marketplace.updated") : t("m.marketplace.posted"),
+        editId ? t("m.marketplace.your_listing_was_updated") : t("m.marketplace.your_listing_is_live")
       );
       navigation.replace("MarketplaceDetail", { id: listingId });
     } catch (e) {
@@ -333,18 +329,18 @@ export function UsedCreateScreen() {
           ? String((e.body as { error: string }).error)
           : e instanceof Error
             ? e.message
-            : u("등록에 실패했습니다.", "Could not publish listing.");
+            : t("m.marketplace.could_not_publish_listing");
       if (
         countryCode.toUpperCase() !== "KR" &&
-        (msg.includes("휴대폰") || msg.includes("인증"))
+        (/phone/i.test(msg) || /verif/i.test(msg))
       ) {
-        showIslandPrompt(u("본인 확인 필요", "Verification required"), msg, {
-          label: u("휴대폰 인증", "Verify phone"),
+        showIslandPrompt(t("m.marketplace.verification_required"), msg, {
+          label: t("m.marketplace.verify_phone"),
           onPress: () =>
             navigation.replace("UsedPhoneVerify", { next: "UsedCreate" }),
         });
       } else {
-        showIslandError(u("오류", "Error"), msg);
+        showIslandError(t("m.common.error"), msg);
       }
     } finally {
       setBusy(false);
@@ -367,11 +363,11 @@ export function UsedCreateScreen() {
   const locationLabel =
     countryCode.toUpperCase() === "KR"
       ? sidoId === "__shipping__"
-        ? u(USED_SHIPPING_REGION, "Nationwide shipping")
+        ? t("m.marketplace.nationwide_shipping")
         : `${KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? ""} ${sigungu}`.trim()
       : region === "Shipping"
-        ? u("배송", "Shipping")
-        : regionText.trim() || u("도시 입력", "Enter city");
+        ? t("m.common.shipping")
+        : regionText.trim() || t("m.marketplace.enter_city");
 
   return (
     <Screen safeBottom>
@@ -381,7 +377,7 @@ export function UsedCreateScreen() {
         </Pressable>
       </View>
       {checking ? (
-        <Text style={{ padding: spacing.md, color: muted, fontWeight: "600" }}>{u("확인 중…", "Checking…")}</Text>
+        <Text style={{ padding: spacing.md, color: muted, fontWeight: "600" }}>{t("m.marketplace.checking")}</Text>
       ) : (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={{ flex: 1 }}>
@@ -410,7 +406,7 @@ export function UsedCreateScreen() {
                   style={styles.photoTile}
                   onPress={() => void pickImage()}
                   accessibilityRole="button"
-                  accessibilityLabel={u("사진 추가", "Add photo")}
+                  accessibilityLabel={t("m.common.add_photo")}
                 >
                   <Ionicons name="camera-outline" size={26} color={ink} />
                   <Text style={styles.photoCount}>
@@ -426,7 +422,7 @@ export function UsedCreateScreen() {
                     onPress={() => removeExistingImage(index)}
                     hitSlop={6}
                     accessibilityRole="button"
-                    accessibilityLabel={u("사진 삭제", "Remove photo")}
+                    accessibilityLabel={t("m.marketplace.remove_photo")}
                   >
                     <Ionicons name="close" size={14} color="#fff" />
                   </Pressable>
@@ -440,7 +436,7 @@ export function UsedCreateScreen() {
                     onPress={() => removeLocalImage(img.id)}
                     hitSlop={6}
                     accessibilityRole="button"
-                    accessibilityLabel={u("사진 삭제", "Remove photo")}
+                    accessibilityLabel={t("m.marketplace.remove_photo")}
                   >
                     <Ionicons name="close" size={14} color="#fff" />
                   </Pressable>
@@ -449,36 +445,33 @@ export function UsedCreateScreen() {
             </ScrollView>
 
             <View style={styles.block}>
-              <Text style={styles.label}>{u("제목", "Title")}</Text>
+              <Text style={styles.label}>{t("m.common.title")}</Text>
               <TextInput
                 style={styles.input}
                 value={title}
                 onChangeText={setTitle}
-                placeholder={u("제목을 입력해 주세요.", "Enter a title.")}
+                placeholder={t("m.common.enter_a_title")}
                 placeholderTextColor={muted}
               />
             </View>
 
             <View style={styles.block}>
-              <Text style={styles.label}>{u("자세한 설명", "Description")}</Text>
+              <Text style={styles.label}>{t("m.common.description")}</Text>
               <TextInput
                 style={[styles.input, styles.multi]}
                 value={description}
                 onChangeText={setDescription}
                 multiline
-                placeholder={u(
-                  "올릴 물건의 내용을 작성해 주세요. 원활하고 안전한 트레이드를 위해 상세한 정보를 입력해 주세요.",
-                  "Describe your item in detail for a smooth, safe trade."
-                )}
+                placeholder={t("m.marketplace.describe_your_item_in_detail_for")}
                 placeholderTextColor={muted}
               />
             </View>
 
             <View style={styles.block}>
-              <Text style={styles.label}>{u("거래 방식", "Listing type")}</Text>
+              <Text style={styles.label}>{t("m.marketplace.listing_type")}</Text>
               <View style={styles.checkWrap}>
                 <MarketCheckOption
-                  label={u("판매하기", "Sell")}
+                  label={t("m.marketplace.sell")}
                   checked={!giveaway && !isTrade}
                   onPress={() => {
                     setGiveaway(false);
@@ -489,7 +482,7 @@ export function UsedCreateScreen() {
                   line={line}
                 />
                 <MarketCheckOption
-                  label={u("나눔하기", "Give away")}
+                  label={t("m.marketplace.give_away")}
                   checked={giveaway}
                   onPress={() => {
                     setGiveaway(true);
@@ -501,7 +494,7 @@ export function UsedCreateScreen() {
                   line={line}
                 />
                 <MarketCheckOption
-                  label={u("교환", "Trade")}
+                  label={t("m.marketplace.trade")}
                   checked={isTrade}
                   onPress={() => {
                     setGiveaway(false);
@@ -515,12 +508,12 @@ export function UsedCreateScreen() {
               </View>
               {!giveaway && !isTrade ? (
                 <>
-                  <Text style={[styles.label, styles.priceSectionLabel]}>{u("가격", "Price")}</Text>
+                  <Text style={[styles.label, styles.priceSectionLabel]}>{t("m.marketplace.price")}</Text>
                   <View style={styles.checkWrap}>
                     {listingCurrencyChoices(countryCode).map((c) => (
                       <MarketCheckOption
                         key={c.id}
-                        label={usedCurrencyLabel(c.id, u)}
+                        label={usedCurrencyLabel(c.id, t)}
                         checked={currency === c.id}
                         onPress={() => {
                           setCurrency(c.id);
@@ -541,7 +534,7 @@ export function UsedCreateScreen() {
                       value={price}
                       onChangeText={setPrice}
                       keyboardType={currency === "usd" ? "decimal-pad" : "number-pad"}
-                      placeholder={u("가격을 입력해 주세요.", "Enter price.")}
+                      placeholder={t("m.marketplace.enter_price")}
                       placeholderTextColor={muted}
                     />
                   </View>
@@ -559,9 +552,9 @@ export function UsedCreateScreen() {
             />
 
             <View style={styles.block}>
-              <Text style={styles.label}>{u("거래 설정", "Trade settings")}</Text>
+              <Text style={styles.label}>{t("m.marketplace.trade_settings")}</Text>
               <View style={styles.placeRow}>
-                <Text style={styles.placeTitle}>{u("거래 희망 장소", "Preferred meetup")}</Text>
+                <Text style={styles.placeTitle}>{t("m.marketplace.preferred_meetup")}</Text>
                 <Text style={styles.placeValue}>{locationLabel}</Text>
               </View>
               {countryCode.toUpperCase() === "KR" ? (
@@ -585,7 +578,7 @@ export function UsedCreateScreen() {
                       />
                     ))}
                     <MarketCheckOption
-                      label={u("전국 배송", "Nationwide shipping")}
+                      label={t("m.marketplace.nationwide_shipping")}
                       checked={sidoId === "__shipping__"}
                       onPress={() => {
                         setSidoId("__shipping__");
@@ -622,7 +615,7 @@ export function UsedCreateScreen() {
                 <>
                   <View style={styles.checkWrap}>
                     <MarketCheckOption
-                      label={u("배송", "Shipping")}
+                      label={t("m.common.shipping")}
                       checked={region === "Shipping"}
                       onPress={() => {
                         setRegion("Shipping");
@@ -633,7 +626,7 @@ export function UsedCreateScreen() {
                       line={line}
                     />
                     <MarketCheckOption
-                      label={u("직거래 도시", "Local meetup city")}
+                      label={t("m.marketplace.local_meetup_city")}
                       checked={region !== "Shipping"}
                       onPress={() => {
                         setRegion("");
@@ -649,7 +642,7 @@ export function UsedCreateScreen() {
                       style={styles.input}
                       value={regionText}
                       onChangeText={setRegionText}
-                      placeholder="예: Tokyo, Los Angeles"
+                      placeholder={t("m.marketplace.e_g_tokyo_los_angeles")}
                       placeholderTextColor={muted}
                     />
                   ) : null}
@@ -670,7 +663,7 @@ export function UsedCreateScreen() {
                 style={[styles.input, { marginTop: 10 }]}
                 value={meetPlace}
                 onChangeText={setMeetPlace}
-                placeholder={u("주소 상세 (예: 2번 출구 스타벅스 앞)", "Meetup details (e.g. in front of café by exit 2)")}
+                placeholder={t("m.marketplace.meetup_details_e_g_in_front")}
                 placeholderTextColor={muted}
                 onFocus={() => onInputFocus(meetPlaceRef.current)}
               />
@@ -678,7 +671,7 @@ export function UsedCreateScreen() {
 
             <View style={styles.block}>
               <MarketCheckOption
-                label={u("NSFW · 민감한 콘텐츠", "NSFW · sensitive content")}
+                label={t("m.marketplace.nsfw_sensitive_content")}
                 checked={isNsfw}
                 onPress={() => setIsNsfw((v) => !v)}
                 ink={ink}
@@ -694,7 +687,7 @@ export function UsedCreateScreen() {
               disabled={busy}
               onPress={() => void submit()}
             >
-              <Text style={styles.submitText}>{busy ? u("등록 중…", "Posting…") : u("작성 완료", "Done")}</Text>
+              <Text style={styles.submitText}>{busy ? t("m.marketplace.posting") : t("m.common.done")}</Text>
             </Pressable>
           </View>
           </View>

@@ -63,8 +63,8 @@ async function uploadPickedImage(asset: ImagePicker.ImagePickerAsset) {
 }
 
 export function CommunityDetailScreen() {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => communityUi(u), [u]);
+  const { t, locale } = useI18n();
+  const copy = useMemo(() => communityUi(t), [t]);
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
@@ -182,7 +182,7 @@ export function CommunityDetailScreen() {
             ) : (
               <View style={[styles.banner, styles.bannerEmpty]}>
                 <Text style={styles.bannerEmptyText}>
-                  {item.canEditBanner ? copy.tapSetBanner : meta?.emoji ?? "🏠"}
+                  {item.canEditBanner ? copy.tapSetBanner : meta?.emoji ?? "?��"}
                 </Text>
               </View>
             )}
@@ -342,7 +342,7 @@ export function CommunityDetailScreen() {
                   </Text>
                   <Text style={styles.postMeta}>
                     {galleryAuthorLabel(p.author.name, p.author.username, true)}
-                    {showLikeCounts ? ` · ♥ ${p.likeCount}` : ""} · 💬 {p.commentCount}
+                    {showLikeCounts ? ` · ${p.likeCount}` : ""} · {p.commentCount}
                   </Text>
                 </Pressable>
               ))

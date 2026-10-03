@@ -1,29 +1,25 @@
-import { uiText } from "@/i18n/ui-text";
+import { translate } from "@/i18n/runtime";
 
 /** Mobile live category pills — mirrors web LIVE_CATEGORY_ORDER (FOLLOWING first, R-18 last). */
 export const MOBILE_LIVE_CATEGORIES = [
-  { id: "ALL", labelKo: "전체", labelEn: "All" },
-  { id: "VIRTUAL", labelKo: "Follow", labelEn: "Follow" },
-  { id: "GAME", labelKo: "GAMING", labelEn: "GAMING" },
-  { id: "JUST_CHATTING", labelKo: "Chat", labelEn: "Chat" },
-  { id: "IRL", labelKo: "FESTIVAL", labelEn: "FESTIVAL" },
-  { id: "MUSIC", labelKo: "MUSIC", labelEn: "MUSIC" },
-  { id: "LIVE", labelKo: "R-18", labelEn: "R-18" },
+  { id: "ALL", labelKey: "m.common.all" },
+  { id: "VIRTUAL", labelKey: "m.common.follow" },
+  { id: "GAME", labelKey: "m.live.gaming" },
+  { id: "JUST_CHATTING", labelKey: "m.common.chat" },
+  { id: "IRL", labelKey: "m.live.festival" },
+  { id: "MUSIC", labelKey: "m.live.music" },
+  { id: "LIVE", labelKey: "m.live.r_18" },
 ] as const;
 
 /** DB enum stays `LIVE`; display label is R-18 (age-gated). */
 export const R18_LIVE_CATEGORY = "LIVE" as const;
 
 export function r18LiveCategoryBlockedTitle(locale?: string): string {
-  return uiText(locale, "성인 전용", "Adults only");
+  return translate("m.common.adults_only");
 }
 
 export function r18LiveCategoryBlockedMsg(locale?: string): string {
-  return uiText(
-    locale,
-    "프로필에 등록된 생년월일 기준 만 19세 이상만 R-18 카테고리를 이용할 수 있습니다.",
-    "You must be 19 or older (based on the birth date on your profile) to use the R-18 category."
-  );
+  return translate("m.live.you_must_be_19_or_older");
 }
 
 export function isR18LiveCategory(id: string | null | undefined): boolean {
@@ -32,10 +28,10 @@ export function isR18LiveCategory(id: string | null | undefined): boolean {
 
 export type MobileLiveCategoryId = (typeof MOBILE_LIVE_CATEGORIES)[number]["id"];
 
-export function liveCategoryLabel(id: string | null | undefined, locale?: string): string {
+export function liveCategoryLabel(id: string | null | undefined, _locale?: string): string {
   const found = MOBILE_LIVE_CATEGORIES.find((c) => c.id === id);
-  if (found) return uiText(locale, found.labelKo, found.labelEn);
-  return uiText(locale, "라이브", "Live");
+  if (found) return translate(found.labelKey);
+  return translate("m.common.live");
 }
 
 /** Folder PNGs for chrome category rail (labels drawn white on top). */
@@ -92,13 +88,13 @@ export function formatViewerCount(n: number, locale?: string): string {
   if (count >= 10000) {
     const man = count / 10000;
     const num = man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "");
-    return uiText(locale, `${num}만명 시청 중`, `${num}0K watching`);
+    return translate("m.live.num_0k_watching", { num: String(num) });
   }
   if (count >= 1000) {
     const num = (count / 1000).toFixed(1).replace(/\.0$/, "");
-    return uiText(locale, `${num}천명 시청 중`, `${num}K watching`);
+    return translate("m.live.num_k_watching", { num: String(num) });
   }
-  return uiText(locale, `${count}명 시청 중`, `${count} watching`);
+  return translate("m.live.count_watching", { count: String(count) });
 }
 
 /** Compact badge — e.g. 9,750 or 1.2K style */
@@ -107,11 +103,11 @@ export function formatViewerCountCompact(n: number, locale?: string): string {
   if (count >= 10000) {
     const man = count / 10000;
     const num = man >= 10 ? Math.round(man) : man.toFixed(1).replace(/\.0$/, "");
-    return uiText(locale, `${num}만`, `${num}0K`);
+    return translate("m.live.num_0k", { num: String(num) });
   }
   if (count >= 1000) {
     const num = (count / 1000).toFixed(1).replace(/\.0$/, "");
-    return uiText(locale, `${num}천`, `${num}K`);
+    return translate("m.live.num_k", { num: String(num) });
   }
   return count.toLocaleString(locale === "ko" ? "ko-KR" : "en-US");
 }
@@ -120,6 +116,6 @@ export function providerLabel(provider: string, locale?: string): string {
   const p = provider.toUpperCase();
   if (p === "YOUTUBE") return "YouTube";
   if (p === "TWITCH") return "Twitch";
-  if (p === "CHZZK") return uiText(locale, "치지직", "CHZZK");
+  if (p === "CHZZK") return translate("m.live.chzzk");
   return provider;
 }

@@ -20,7 +20,9 @@ import { showIslandSuccess } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+import { DEFAULT_COMMERCE_CATEGORY } from "@/data/server-values/commerce-defaults";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { TFn } from "@/i18n/types";
 
 const TYPES = [
   { id: "PHYSICAL" as const },
@@ -28,19 +30,19 @@ const TYPES = [
   { id: "PREORDER" as const },
 ] as const;
 
-function listingTypeLabel(id: (typeof TYPES)[number]["id"], u: (ko: string, en: string) => string): string {
+function listingTypeLabel(id: (typeof TYPES)[number]["id"], t: TFn): string {
   switch (id) {
     case "PHYSICAL":
-      return u("일반상품", "Physical");
+      return t("m.market.physical");
     case "CUSTOM_ORDER":
-      return u("주문제작", "Custom order");
+      return t("m.market.custom_order");
     case "PREORDER":
-      return u("예약판매", "Pre-order");
+      return t("m.market.pre_order");
   }
 }
 
 export function MarketSellItemScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -50,7 +52,7 @@ export function MarketSellItemScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<(typeof TYPES)[number]["id"]>("PHYSICAL");
-  const [category, setCategory] = useState("굿즈");
+  const [category, setCategory] = useState("Goods");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("1");
   const [productionDays, setProductionDays] = useState("7");
@@ -85,7 +87,7 @@ export function MarketSellItemScreen() {
     setError("");
     const priceAmount = parseInt(price.replace(/\D/g, ""), 10);
     if (!title.trim() || !description.trim() || !priceAmount) {
-      setError(u("제목, 설명, 가격을 입력해 주세요.", "Enter title, description, and price."));
+      setError(t("m.market.enter_title_description_and_price"));
       return;
     }
     setBusy(true);
@@ -94,17 +96,17 @@ export function MarketSellItemScreen() {
         title: title.trim(),
         description: description.trim(),
         type,
-        category: category.trim() || "굿즈",
+        category: category.trim() || DEFAULT_COMMERCE_CATEGORY,
         priceAmount,
         stock: type === "PHYSICAL" || type === "PREORDER" ? parseInt(stock, 10) || 1 : undefined,
         productionDays:
           type === "CUSTOM_ORDER" ? parseInt(productionDays, 10) || 7 : undefined,
         isNsfw,
       });
-      showIslandSuccess(u("등록 완료", "Listed"), u("상품이 등록되었습니다.", "Your listing was created."));
+      showIslandSuccess(t("m.market.listed"), t("m.market.your_listing_was_created"));
       navigation.replace("StarMarketDetail", { id: result.listingId });
     } catch (e) {
-      setError(e instanceof Error ? e.message : u("등록에 실패했습니다.", "Could not create listing."));
+      setError(e instanceof Error ? e.message : t("m.market.could_not_create_listing"));
     } finally {
       setBusy(false);
     }
@@ -120,7 +122,7 @@ export function MarketSellItemScreen() {
 
   return (
     <Screen>
-      <AppHeader title={u("판매 등록", "New listing")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.common.new_listing")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <ScrollView
         contentContainerStyle={{
           padding: spacing.md,
@@ -129,12 +131,12 @@ export function MarketSellItemScreen() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.label}>{u("상품 유형", "Product type")}</Text>
+        <Text style={styles.label}>{t("m.common.product_type")}</Text>
         <View style={styles.typeRow}>
           {TYPES.map((item) => (
             <FolkButton
               key={item.id}
-              label={listingTypeLabel(item.id, u)}
+              label={listingTypeLabel(item.id, t)}
               variant={type === item.id ? "primary" : "secondary"}
               onPress={() => setType(item.id)}
               style={{ flex: 1 }}
@@ -142,10 +144,10 @@ export function MarketSellItemScreen() {
           ))}
         </View>
 
-        <Text style={styles.label}>{u("제목", "Title")}</Text>
+        <Text style={styles.label}>{t("m.common.title")}</Text>
         <TextInput style={styles.input} value={title} onChangeText={setTitle} maxLength={120} />
 
-        <Text style={styles.label}>{u("설명", "Description")}</Text>
+        <Text style={styles.label}>{t("m.common.description")}</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
           value={description}
@@ -154,10 +156,10 @@ export function MarketSellItemScreen() {
           textAlignVertical="top"
         />
 
-        <Text style={styles.label}>{u("카테고리", "Category")}</Text>
+        <Text style={styles.label}>{t("m.common.category")}</Text>
         <TextInput style={styles.input} value={category} onChangeText={setCategory} />
 
-        <Text style={styles.label}>{u("가격 (USD)", "Price (USD)")}</Text>
+        <Text style={styles.label}>{t("m.market.price_usd")}</Text>
         <TextInput
           style={styles.input}
           value={price}
@@ -167,7 +169,7 @@ export function MarketSellItemScreen() {
 
         {type !== "CUSTOM_ORDER" ? (
           <>
-            <Text style={styles.label}>{u("재고", "Stock")}</Text>
+            <Text style={styles.label}>{t("m.market.stock")}</Text>
             <TextInput
               style={styles.input}
               value={stock}
@@ -177,7 +179,7 @@ export function MarketSellItemScreen() {
           </>
         ) : (
           <>
-            <Text style={styles.label}>{u("제작 일수", "Production days")}</Text>
+            <Text style={styles.label}>{t("m.market.production_days")}</Text>
             <TextInput
               style={styles.input}
               value={productionDays}
@@ -190,7 +192,7 @@ export function MarketSellItemScreen() {
         <View style={styles.nsfwRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.nsfwLabel}>NSFW</Text>
-            <Text style={styles.nsfwHint}>{u("민감한 콘텐츠가 포함되면 켜 주세요", "Turn on if the listing includes sensitive content.")}</Text>
+            <Text style={styles.nsfwHint}>{t("m.market.turn_on_if_the_listing_includes")}</Text>
           </View>
           <Switch
             value={isNsfw}
@@ -203,16 +205,13 @@ export function MarketSellItemScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <FolkButton
-          label={busy ? u("등록 중…", "Listing…") : u("상품 등록", "Publish listing")}
+          label={busy ? t("m.market.listing") : t("m.market.publish_listing")}
           onPress={() => void submit()}
           disabled={busy}
         />
 
         <Text style={styles.hint}>
-          {u(
-            "이미지·배송 설정 등 상세 옵션은 웹 판매자 센터에서 수정할 수 있습니다.",
-            "Edit images, shipping, and more in the web seller center."
-          )}
+          {t("m.market.edit_images_shipping_and_more_in")}
         </Text>
       </ScrollView>
     </Screen>

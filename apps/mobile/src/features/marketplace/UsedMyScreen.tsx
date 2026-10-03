@@ -30,7 +30,7 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function UsedMyScreen() {
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -67,30 +67,30 @@ export function UsedMyScreen() {
           <View style={[styles.thumb, styles.thumbFallback]} />
         )}
         <View style={styles.meta}>
-          <Text style={styles.badge}>{usedStatusLabel(item.status, u)}</Text>
+          <Text style={styles.badge}>{usedStatusLabel(item.status, t)}</Text>
           <Text style={styles.title} numberOfLines={2}>
             {item.title}
           </Text>
-          <Text style={styles.price}>{formatUsedPrice(item.price, item.currency, u)}</Text>
+          <Text style={styles.price}>{formatUsedPrice(item.price, item.currency, t)}</Text>
           <Text style={styles.sub}>
-            {displayUsedRegion(item.region || "", u) || u("지역 미정", "Location TBD")} ·{" "}
-            {formatUsedTimeAgo(item.createdAt, u)}
+            {displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd")} ·{" "}
+            {formatUsedTimeAgo(item.createdAt, t)}
           </Text>
         </View>
       </Pressable>
     ),
-    [navigation, styles, u]
+    [navigation, styles, t]
   );
 
   return (
     <Screen>
       <AppHeader
-        title={u("판매내역", "Sales history")}
+        title={t("m.marketplace.sales_history")}
         leftLabel={t("common.back")}
         onLeftPress={() => navigation.goBack()}
         rightSlot={
           <Pressable onPress={() => navigation.navigate("UsedCreate")}>
-            <Text style={{ fontWeight: "800", color: colors.brand }}>{u("글쓰기", "New listing")}</Text>
+            <Text style={{ fontWeight: "800", color: colors.brand }}>{t("m.common.new_listing")}</Text>
           </Pressable>
         }
       />
@@ -98,7 +98,7 @@ export function UsedMyScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : query.isError ? (
         <View style={styles.center}>
-          <Text style={styles.error}>{u("내 거래를 불러오지 못했습니다.", "Could not load your listings.")}</Text>
+          <Text style={styles.error}>{t("m.marketplace.could_not_load_your_listings")}</Text>
           <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
         </View>
       ) : (
@@ -111,7 +111,7 @@ export function UsedMyScreen() {
             <View style={{ marginBottom: spacing.md }}>
               <>
                 <Text style={styles.sectionTitle}>
-                  {u("WTB 알림", "WTB alerts")} ({wtbQuery.data?.items.length ?? 0})
+                  {t("m.marketplace.wtb_alerts")} ({wtbQuery.data?.items.length ?? 0})
                 </Text>
                 {wtbQuery.isLoading ? (
                   <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 12 }} />
@@ -120,13 +120,13 @@ export function UsedMyScreen() {
                 )}
               </>
               <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
-                {u("내 글", "My listings")} ({items.length})
+                {t("m.marketplace.my_listings")} ({items.length})
               </Text>
             </View>
           }
           ListEmptyComponent={
             <Text style={styles.muted}>
-              {u("등록한 중고거래 글이 없습니다.", "You have no used-market listings yet.")}
+              {t("m.marketplace.you_have_no_used_market_listings")}
             </Text>
           }
         />

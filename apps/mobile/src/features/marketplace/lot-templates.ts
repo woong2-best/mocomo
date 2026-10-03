@@ -5,28 +5,28 @@ import type { UsedUiText } from "@/features/marketplace/used-catalog";
 export const SUBCULTURE_LOT_TEMPLATES = [
   {
     id: "TCG_LOT",
-    label: "TCG Lot",
+    label: "TCG lot",
     listingFormat: "LOT",
     productType: "TCG_CARD",
-    titleHint: "[Lot] ○○ 세트 카드 ○○장",
+    titleHint: "[Lot] ○○ card set · ○○ cards",
     descriptionHint:
-      "포함 카드 목록, 대표 레어, 전체 장수, 슬리브·탑로더 여부, raw 상태(NM/LP)를 적어 주세요.",
+      "List included cards, key rares, total count, sleeve/toploader, and raw condition (NM/LP).",
   },
   {
     id: "PHOTOCARD_SET",
-    label: "포카 세트",
+    label: "Photocard set",
     listingFormat: "SET",
     productType: "PHOTOCARD",
-    titleHint: "[세트] ○○ 앨범 포카 ○○장",
-    descriptionHint: "멤버·버전·특전 종류, 하자, 원본 구매처를 적어 주세요.",
+    titleHint: "[Set] ○○ album photocards · ○○ pcs",
+    descriptionHint: "Member, version, bonus type, defects, and where you bought them.",
   },
   {
     id: "FIGURE_LOT",
-    label: "피규어 Lot",
+    label: "Figure lot",
     listingFormat: "LOT",
     productType: "FIGURE",
-    titleHint: "[Lot] 피규어·굿즈 ○○점",
-    descriptionHint: "품목 리스트, 박스 유무, 개봉 여부, 누락 부품.",
+    titleHint: "[Lot] figures & goods · ○○ items",
+    descriptionHint: "Item list, box included, opened or not, missing parts.",
   },
 ] as const;
 
@@ -54,19 +54,12 @@ const LOT_TEMPLATE_EN: Record<
 
 export function localizedLotTemplate(
   template: (typeof SUBCULTURE_LOT_TEMPLATES)[number],
-  u: UsedUiText
+  _t?: UsedUiText
 ) {
   const en = LOT_TEMPLATE_EN[template.id];
-  if (!en) {
-    return {
-      label: template.label,
-      titleHint: template.titleHint,
-      descriptionHint: template.descriptionHint,
-    };
-  }
   return {
-    label: u(template.label, en.labelEn),
-    titleHint: u(template.titleHint, en.titleHintEn),
-    descriptionHint: u(template.descriptionHint, en.descriptionHintEn),
+    label: en?.labelEn ?? template.label,
+    titleHint: en?.titleHintEn ?? template.titleHint,
+    descriptionHint: en?.descriptionHintEn ?? template.descriptionHint,
   };
 }

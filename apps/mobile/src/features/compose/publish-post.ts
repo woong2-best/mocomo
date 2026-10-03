@@ -2,7 +2,7 @@ import { createPost } from "@/api/posts";
 import { uploadLocalFile } from "@/api/upload-file";
 import type { CollaboratorDraft, LocalMediaDraft, PollDraft } from "@/features/compose/compose-types";
 import { validatePollDraft } from "@/features/compose/compose-types";
-import { uiText } from "@/i18n/ui-text";
+import { translate } from "@/i18n/runtime";
 
 function guessMime(filename: string, fallback: string) {
   const lower = filename.toLowerCase();
@@ -48,10 +48,10 @@ export async function publishComposePost(input: {
     const pollErr = validatePollDraft(input.poll, locale);
     if (pollErr) throw new Error(pollErr);
     if (!content) {
-      throw new Error(uiText(locale, "투표 질문을 본문에 적어 주세요.", "Write the poll question in the post body."));
+      throw new Error(translate("m.compose.write_the_poll_question_in_the"));
     }
   } else if (!content && input.media.length === 0 && !input.quotedPostId) {
-    throw new Error(uiText(locale, "글 또는 사진을 추가해 주세요.", "Add text or a photo."));
+    throw new Error(translate("m.compose.add_text_or_a_photo"));
   }
 
   const media = [];

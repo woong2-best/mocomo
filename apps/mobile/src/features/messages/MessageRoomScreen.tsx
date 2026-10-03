@@ -44,8 +44,8 @@ import { requestUsedTrade } from "@/api/marketplace";
 import { UsedTradeMeetCompletionCard } from "@/features/messages/UsedTradeMeetCompletionCard";
 import type { Locale } from "@/i18n";
 import { useI18n } from "@/i18n/I18nProvider";
-import { uiText } from "@/i18n/ui-text";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
+import { translate } from "@/i18n/runtime";
 
 const MAX_VOICE_SEC = 120;
 const MEET_DAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
@@ -63,12 +63,14 @@ function parseMeetTimeInput(text: string): { hours: number; minutes: number } | 
 function meetDayLabel(offset: number, locale: Locale) {
   const date = new Date();
   date.setDate(date.getDate() + offset);
-  if (offset === 0) return uiText(locale, "오늘", "Today");
-  if (offset === 1) return uiText(locale, "내일", "Tomorrow");
-  const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
-  const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const dayName = locale === "ko" ? daysKo[date.getDay()] : daysEn[date.getDay()];
-  return `${date.getMonth() + 1}/${date.getDate()} (${dayName})`;
+  if (offset === 0) return translate("m.common.today");
+  if (offset === 1) return translate("m.messages.tomorrow");
+  const tag = locale === "zh-TW" ? "zh-Hant" : locale;
+  try {
+    return new Intl.DateTimeFormat(tag, { month: "numeric", day: "numeric", weekday: "short" }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", { month: "numeric", day: "numeric", weekday: "short" }).format(date);
+  }
 }
 const NEAR_BOTTOM_PX = 140;
 
@@ -83,7 +85,7 @@ type MessageRow = {
 };
 
 export function MessageRoomScreen() {
-  const { locale, t, u } = useI18n();
+  const { locale, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const route = useRoute<RouteProp<RootStackParamList, "MessageRoom">>();
@@ -125,7 +127,7 @@ export function MessageRoomScreen() {
   const pendingStartRef = useRef(false);
   const busy = sending || uploading;
 
-  const title = room?.displayName ?? route.params.title ?? u("대화", "Chat");
+  const title = room?.displayName ?? route.params.title ?? t("m.common.chat");
   const peerImage = room?.displayImage ?? null;
   const peerId = room?.otherUserId ?? null;
   const peerUsername = room?.profileUsername ?? null;
@@ -146,14 +148,14 @@ export function MessageRoomScreen() {
     if (!usedTrade?.canRequestTrade || tradeRequestBusy) return;
     const parsedTime = parseMeetTimeInput(meetTimeText);
     if (!parsedTime) {
-      showIslandError(u("시간", "Time"), u("거래 시간을 HH:MM 형식으로 입력해 주세요.", "Enter trade time as HH:MM."));
+      showIslandError(t("m.messages.time"), t("m.messages.enter_trade_time_as_hh_mm"));
       return;
     }
     const meetAt = meetCustomDate ? new Date(meetCustomDate) : new Date();
     if (!meetCustomDate) meetAt.setDate(meetAt.getDate() + meetDayOffset);
     meetAt.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
     if (meetAt.getTime() < Date.now()) {
-      showIslandError(u("일정", "Schedule"), u("지금보다 이후 시간을 선택해 주세요.", "Pick a time later than now."));
+      showIslandError(t("m.messages.schedule"), t("m.messages.pick_a_time_later_than_now"));
       return;
     }
     setTradeRequestBusy(true);
@@ -161,17 +163,17 @@ export function MessageRoomScreen() {
       await requestUsedTrade(usedTrade.listingId, roomId, meetAt.toISOString());
       await refresh();
       showIslandSuccess(
-        u("거래 요청", "Trade request"),
+        t("m.messages.trade_request"),
         usedTrade.isSeller
-          ? u("구매자에게 거래 일정을 보냈습니다.", "Trade schedule sent to the buyer.")
-          : u("판매자에게 거래 일정을 보냈습니다.", "Trade schedule sent to the seller.")
+          ? t("m.messages.trade_schedule_sent_to_the_buyer")
+          : t("m.messages.trade_schedule_sent_to_the_seller")
       );
     } catch (e) {
-      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("거래 요청에 실패했습니다.", "Could not send trade request."));
+      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.messages.could_not_send_trade_request"));
     } finally {
       setTradeRequestBusy(false);
     }
-  }, [meetCustomDate, meetDayOffset, meetTimeText, refresh, roomId, tradeRequestBusy, u, usedTrade]);
+  }, [meetCustomDate, meetDayOffset, meetTimeText, refresh, roomId, tradeRequestBusy, t, usedTrade]);
 
   const rows = useMemo<MessageRow[]>(
     () =>
@@ -234,12 +236,12 @@ export function MessageRoomScreen() {
         await send(caption ?? "", [{ url, type: "IMAGE", name: asset.fileName ?? undefined }], replyId);
         scrollEnd();
       } catch (e) {
-        showIslandError(u("전송 실패", "Send failed"), e instanceof Error ? e.message : u("사진을 보내지 못했습니다.", "Could not send photo."));
+        showIslandError(t("m.messages.send_failed"), e instanceof Error ? e.message : t("m.messages.could_not_send_photo"));
       } finally {
         setUploading(false);
       }
     },
-    [draft, replyTo, send, scrollEnd, u]
+    [draft, replyTo, send, scrollEnd, t]
   );
 
   const registerVoiceControls = useCallback((controls: VoiceControls) => {
@@ -270,7 +272,7 @@ export function MessageRoomScreen() {
 
   const startCall = useCallback(() => {
     if (!peerId) {
-      showIslandError(u("통화 불가", "Cannot call"), u("상대 정보를 아직 불러오지 못했습니다.", "Peer info is not loaded yet."));
+      showIslandError(t("m.messages.cannot_call"), t("m.messages.peer_info_is_not_loaded_yet"));
       return;
     }
     navigation.navigate("DmCall", {
@@ -280,7 +282,7 @@ export function MessageRoomScreen() {
       displayName: title,
       displayImage: peerImage,
     });
-  }, [navigation, peerId, peerImage, roomId, title, u]);
+  }, [navigation, peerId, peerImage, roomId, title, t]);
 
   const serverLocked = room?.isLocked === true;
   const roomLocked = roomLockedLocal || serverLocked;
@@ -289,17 +291,11 @@ export function MessageRoomScreen() {
     !messagingBlocked &&
     (room?.type !== "DM" || room.canMessage !== false);
   const composerLockNote = roomLocked
-    ? u(
-        "신고가 접수되어 대화가 잠겼습니다.",
-        "This conversation was locked after a report was filed."
-      )
+    ? t("m.messages.this_conversation_was_locked_after_a")
     : messagingBlocked
       ? (blockMessage ??
-        u("차단된 사용자와는 메시지를 주고받을 수 없습니다.", "You cannot message this user because of a block."))
-      : u(
-          "이 사용자는 자신이 팔로우한 사람에게만 메시지를 받습니다.",
-          "This user only accepts messages from people they follow."
-        );
+        t("m.messages.you_cannot_message_this_user_because"))
+      : t("m.messages.this_user_only_accepts_messages_from");
   const canCallPeer = room?.canCall !== false;
 
   const peerProfileSeed = useMemo(
@@ -412,7 +408,7 @@ export function MessageRoomScreen() {
         <Pressable
           style={styles.headerIdentity}
           onPressIn={isGroup ? undefined : prefetchPeerProfile}
-          onPress={isGroup ? () => setAddMemberOpen(true) : openPeerProfile}
+          onPress={isGroup ? () => navigation.navigate("ChatSettings") : openPeerProfile}
         >
           <FolkAvatar uri={peerImage} name={title} size={34} />
           <View style={styles.headerTextCol}>
@@ -421,8 +417,8 @@ export function MessageRoomScreen() {
             </Text>
             <Text style={styles.presence} numberOfLines={1}>
               {isGroup
-                ? u(`${memberCount}명`, `${memberCount} members`)
-                : u("오프라인", "Offline")}
+                ? t("m.messages.membercount_members", { memberCount: String(memberCount) })
+                : t("m.messages.offline")}
               {isGroup ? (
                 <>
                   {" · "}
@@ -450,7 +446,7 @@ export function MessageRoomScreen() {
             <Pressable
               style={styles.headerBtn}
               onPress={() => setReportOpen(true)}
-              accessibilityLabel={u("신고하기", "Report")}
+              accessibilityLabel={t("m.messages.report")}
             >
               <Ionicons name="ellipsis-vertical" size={20} color={colors.cobalt} />
             </Pressable>
@@ -459,7 +455,7 @@ export function MessageRoomScreen() {
             <Pressable
               style={styles.callBtn}
               onPress={startCall}
-              accessibilityLabel={u("음성 통화", "Voice call")}
+              accessibilityLabel={t("m.messages.voice_call")}
             >
               <Ionicons name="call-outline" size={18} color={colors.cobalt} />
             </Pressable>
@@ -522,8 +518,8 @@ export function MessageRoomScreen() {
               </View>
             ) : (
               <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>{u("아직 메시지가 없어요", "No messages yet")}</Text>
-                <Text style={styles.emptySub}>{u("인사를 건네 보세요", "Say hello")}</Text>
+                <Text style={styles.emptyTitle}>{t("m.messages.no_messages_yet")}</Text>
+                <Text style={styles.emptySub}>{t("m.messages.say_hello")}</Text>
               </View>
             )
           }
@@ -572,7 +568,7 @@ export function MessageRoomScreen() {
 
         {canSend && usedTrade?.canRequestTrade ? (
           <View style={styles.usedTradeSchedule}>
-            <Text style={styles.usedTradeScheduleLabel}>{u("거래 날짜", "Trade date")}</Text>
+            <Text style={styles.usedTradeScheduleLabel}>{t("m.messages.trade_date")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
               {MEET_DAY_OFFSETS.map((offset) => {
                 const isCalendarSlot = offset === 6;
@@ -582,7 +578,7 @@ export function MessageRoomScreen() {
                 const label = isCalendarSlot
                   ? meetCustomDate
                     ? `${meetCustomDate.getMonth() + 1}/${meetCustomDate.getDate()}`
-                    : u("날짜 선택", "Pick date")
+                    : t("m.messages.pick_date")
                   : meetDayLabel(offset, locale);
                 return (
                   <Pressable
@@ -602,7 +598,7 @@ export function MessageRoomScreen() {
                 );
               })}
             </ScrollView>
-            <Text style={styles.usedTradeScheduleLabel}>{u("거래 시간", "Trade time")}</Text>
+            <Text style={styles.usedTradeScheduleLabel}>{t("m.messages.trade_time")}</Text>
             <TextInput
               style={styles.timeInput}
               value={meetTimeText}
@@ -619,7 +615,7 @@ export function MessageRoomScreen() {
               {tradeRequestBusy ? (
                 <ActivityIndicator color={colors.cobalt} size="small" />
               ) : (
-                <Text style={styles.usedTradeBarText}>{u("거래 요청하기", "Request trade meetup")}</Text>
+                <Text style={styles.usedTradeBarText}>{t("m.messages.request_trade_meetup")}</Text>
               )}
             </Pressable>
           </View>
@@ -637,10 +633,10 @@ export function MessageRoomScreen() {
           <View style={styles.recordingBar}>
             <View style={styles.recDot} />
             <Text style={styles.recordingText}>
-              {u("녹음 중", "Recording")} {recordSec}s / {MAX_VOICE_SEC}s
+              {t("m.messages.recording")} {recordSec}s / {MAX_VOICE_SEC}s
             </Text>
             <Pressable onPress={() => void finishRecording(false)} style={styles.cancelRec}>
-              <Text style={styles.cancelRecText}>{u("취소", "Cancel")}</Text>
+              <Text style={styles.cancelRecText}>{t("m.common.cancel")}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -651,7 +647,7 @@ export function MessageRoomScreen() {
               style={styles.cameraBtn}
               disabled={busy || recording}
               onPress={() => void pickAndSendImage("camera")}
-              accessibilityLabel={u("카메라", "Camera")}
+              accessibilityLabel={t("m.messages.camera")}
             >
               <Ionicons name="camera" size={20} color="#fff" />
             </Pressable>
@@ -662,7 +658,7 @@ export function MessageRoomScreen() {
               style={styles.input}
               value={draft}
               onChangeText={setDraft}
-              placeholder={u("메시지 보내기...", "Message…")}
+              placeholder={t("m.messages.message")}
               placeholderTextColor={colors.textMuted}
               multiline
               editable={!recording}
@@ -674,7 +670,7 @@ export function MessageRoomScreen() {
                   hitSlop={8}
                   style={styles.pillIcon}
                   accessibilityLabel={
-                    recording ? u("녹음 완료·전송", "Stop and send") : u("음성 녹음", "Voice message")
+                    recording ? t("m.messages.stop_and_send") : t("m.messages.voice_message")
                   }
                 >
                   <Ionicons
@@ -689,7 +685,7 @@ export function MessageRoomScreen() {
                     disabled={busy}
                     hitSlop={8}
                     style={styles.pillIcon}
-                    accessibilityLabel={u("갤러리", "Gallery")}
+                    accessibilityLabel={t("m.messages.gallery")}
                   >
                     <Ionicons name="image-outline" size={22} color={colors.cobalt} />
                   </Pressable>
@@ -701,7 +697,7 @@ export function MessageRoomScreen() {
                 disabled={busy || recording}
                 hitSlop={8}
                 style={styles.sendBtn}
-                accessibilityLabel={u("전송", "Send")}
+                accessibilityLabel={t("m.common.send")}
               >
                 {busy && !recording ? (
                   <ActivityIndicator color="#fff" size="small" />
@@ -725,7 +721,7 @@ export function MessageRoomScreen() {
       <Modal visible={calendarOpen} transparent animationType="fade" onRequestClose={() => setCalendarOpen(false)}>
         <Pressable style={styles.calBackdrop} onPress={() => setCalendarOpen(false)}>
           <Pressable style={styles.calSheet} onPress={() => undefined}>
-            <Text style={styles.calTitle}>{u("거래 날짜 선택", "Pick trade date")}</Text>
+            <Text style={styles.calTitle}>{t("m.messages.pick_trade_date")}</Text>
             <ScrollView style={styles.calScroll} keyboardShouldPersistTaps="handled">
               {Array.from({ length: 60 }, (_, i) => {
                 const d = new Date();

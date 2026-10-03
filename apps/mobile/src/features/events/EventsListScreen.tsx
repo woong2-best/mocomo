@@ -22,6 +22,7 @@ import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
 import { eventsUi } from "@/features/events/events-ui";
+import { EVENT_FILTER_HASHTAGS } from "@/data/server-values/event-hashtag-filters";
 
 const PURPLE = "#A855F7";
 const PURPLE_LIGHT = "#C084FC";
@@ -31,12 +32,12 @@ function formatRange(startsAt: string, endsAt: string, locale: string) {
   const e = new Date(endsAt);
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   const loc = locale === "ko" ? "ko-KR" : "en-US";
-  return `${s.toLocaleDateString(loc, opts)} – ${e.toLocaleDateString(loc, opts)}`;
+  return `${s.toLocaleDateString(loc, opts)} � ${e.toLocaleDateString(loc, opts)}`;
 }
 
 function eventDday(endsAt: string, endedLabel: string): string {
   const end = new Date(endsAt);
-  if (Number.isNaN(end.getTime())) return "—";
+  if (Number.isNaN(end.getTime())) return "�";
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
@@ -49,18 +50,18 @@ function eventDday(endsAt: string, endedLabel: string): string {
 }
 
 export function EventsListScreen() {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => eventsUi(u), [u]);
+  const { t, locale } = useI18n();
+  const copy = useMemo(() => eventsUi(t), [t]);
   const filterTags = useMemo(
     () =>
       [
         { id: "all", label: copy.tabAll, hash: null },
-        { id: "fanart", label: copy.tabFanart, hash: "#팬아트" },
-        { id: "cosplay", label: copy.tabCosplay, hash: "#코스프레" },
-        { id: "goods", label: copy.tabGoods, hash: "#굿즈" },
-        { id: "virtual", label: copy.tabVirtual, hash: "#버츄얼" },
-        { id: "meetup", label: copy.tabMeetup, hash: "#행사" },
-        { id: "other", label: copy.tabOther, hash: "#이벤트" },
+        { id: "fanart", label: copy.tabFanart, hash: EVENT_FILTER_HASHTAGS.fanart },
+        { id: "cosplay", label: copy.tabCosplay, hash: EVENT_FILTER_HASHTAGS.cosplay },
+        { id: "goods", label: copy.tabGoods, hash: EVENT_FILTER_HASHTAGS.goods },
+        { id: "virtual", label: copy.tabVirtual, hash: EVENT_FILTER_HASHTAGS.virtual },
+        { id: "meetup", label: copy.tabMeetup, hash: EVENT_FILTER_HASHTAGS.meetup },
+        { id: "other", label: copy.tabOther, hash: EVENT_FILTER_HASHTAGS.other },
       ] as const,
     [copy]
   );

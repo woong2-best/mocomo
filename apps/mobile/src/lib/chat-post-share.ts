@@ -1,3 +1,6 @@
+import { CHAT_POST_SHARE_AT, CHAT_POST_SHARE_NOUN } from "@/data/server-values/legacy-chat-patterns";
+import { translate } from "@/i18n/runtime";
+
 /**
  * DM post-share markers — keep in sync with src/lib/chat-post-share.ts
  */
@@ -40,8 +43,8 @@ export function parseChatPostShare(
 
   const postId = pathMatch[1];
   const looksLikeAutoShare =
-    /님의 게시물/.test(text) ||
-    /^@\w[\w.-]*님의/.test(text) ||
+    CHAT_POST_SHARE_NOUN.test(text) ||
+    CHAT_POST_SHARE_AT.test(text) ||
     (text.match(/https?:\/\//g)?.length ?? 0) >= 1;
 
   if (looksLikeAutoShare) {
@@ -69,7 +72,7 @@ export function chatPostShareListPreview(
   if (parsed.note) {
     return parsed.note.length > 40 ? `${parsed.note.slice(0, 40)}…` : parsed.note;
   }
-  return "게시물 공유";
+  return translate("m.lib.share_post");
 }
 
 export function splitTextWithUrls(text: string): { text: string; url?: string }[] {

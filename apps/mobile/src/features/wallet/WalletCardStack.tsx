@@ -113,9 +113,9 @@ const StackCard = memo(function StackCard({
 
 export const WalletCardStack = memo(function WalletCardStack(props: Props) {
   const { cards, colors, onFrontCardPress, hint } = props;
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { width: screenWidth } = useWindowDimensions();
-  const defaultHint = u("위로 드래그 · 탭으로 펼치기 · 좌우로 카드 전환", "Drag up · tap to expand · swipe to switch cards");
+  const defaultHint = t("m.wallet.drag_up_tap_to_expand_swipe");
   const cardH = cardHeightFromWidth(screenWidth);
   const cardW = screenWidth - CARD_HORIZONTAL_INSET * 2;
   const cardCount = Math.max(1, cards.length);
@@ -264,7 +264,7 @@ export const WalletCardStack = memo(function WalletCardStack(props: Props) {
           style={[styles.frontTap, { height: cardH, width: cardW, left: CARD_HORIZONTAL_INSET }]}
           onPress={toggleExpanded}
           accessibilityRole="button"
-          accessibilityLabel={u("카드 펼치기", "Expand cards")}
+          accessibilityLabel={t("m.wallet.expand_cards")}
         />
       </Animated.View>
       <Text style={[styles.hint, { color: colors.textMuted }]}>

@@ -1,7 +1,7 @@
 import * as Linking from "expo-linking";
 import { confirmCheckout } from "@/api/checkout";
 import { topupGems } from "@/api/gems";
-import { uiText } from "@/i18n/ui-text";
+import { translate } from "@/i18n/runtime";
 
 /** Gem top-up — external browser only (no WebView), per Gems spec */
 export async function openGemTopupCheckout(
@@ -17,7 +17,7 @@ export async function openGemTopupCheckout(
       error:
         e instanceof Error
           ? e.message
-          : uiText(locale, "젬 충전을 시작할 수 없습니다.", "Could not start MOCO top-up."),
+          : translate("m.payments.could_not_start_moco_top_up"),
     };
   }
 }

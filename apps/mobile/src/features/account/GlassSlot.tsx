@@ -10,6 +10,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /** Matches AccountMenuSheet CARD_RADIUS */
 const CARD_RADIUS = 22;
@@ -52,6 +53,7 @@ function useRecessedPress() {
  * Layer order (bottom → top) is fixed per product spec.
  */
 export function GlassSlot({ isDark, busy, onPress }: Props) {
+  const { t } = useI18n();
   const { sink, rise, shellStyle, insetStyle } = useRecessedPress();
   const tint = isDark ? "dark" : "light";
   const androidBlur =
@@ -70,7 +72,7 @@ export function GlassSlot({ isDark, busy, onPress }: Props) {
         onPress();
       }}
       accessibilityRole="button"
-      accessibilityLabel="계정 추가"
+      accessibilityLabel={t("m.account.add_account")}
     >
       <Animated.View
         style={[

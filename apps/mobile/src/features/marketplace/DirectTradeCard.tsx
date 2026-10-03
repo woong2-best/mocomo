@@ -7,11 +7,12 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { showIslandError } from "@/ui/IslandToast";
+import type { TFn } from "@/i18n/types";
 
-function formatWhen(iso: string | null, u: (ko: string, en: string) => string, locale: string) {
-  if (!iso) return u("아직 없음", "Not set");
+function formatWhen(iso: string | null, t: TFn, locale: string) {
+  if (!iso) return t("m.marketplace.not_set");
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return u("아직 없음", "Not set");
+  if (Number.isNaN(date.getTime())) return t("m.marketplace.not_set");
   return date.toLocaleString(locale.startsWith("ko") ? "ko-KR" : "en-US", {
     month: "short",
     day: "numeric",
@@ -27,7 +28,7 @@ export function DirectTradeCard({
   view: DirectTradeView;
   onUpdated?: (next: DirectTradeView) => void;
 }) {
-  const { locale, u } = useI18n();
+  const { locale, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [current, setCurrent] = useState(view);
@@ -49,11 +50,11 @@ export function DirectTradeCard({
         setCurrent(result.view);
         onUpdated?.(result.view);
       }
-      if (result.error) showIslandError(u("거래", "Trade"), result.error);
+      if (result.error) showIslandError(t("m.marketplace.trade"), result.error);
     } catch (error) {
       showIslandError(
-        u("거래", "Trade"),
-        error instanceof Error ? error.message : u("요청에 실패했습니다.", "Request failed.")
+        t("m.marketplace.trade"),
+        error instanceof Error ? error.message : t("m.common.request_failed")
       );
     } finally {
       setBusy(false);
@@ -91,26 +92,26 @@ export function DirectTradeCard({
         {current.listingTitle}
       </Text>
       <Text style={styles.meta}>
-        {u("판매자", "Seller")} @{current.sellerUsername}
+        {t("m.common.seller")} @{current.sellerUsername}
       </Text>
       <Text style={styles.meta}>
-        {current.role === "buyer" ? u("상대", "Other party") : u("구매자", "Buyer")} @
+        {current.role === "buyer" ? t("m.marketplace.other_party") : t("m.common.buyer")} @
         {current.counterpartUsername} · {current.priceLabel}
       </Text>
-      <Row label={u("거래 상태", "Status")} value={current.tradeStatusLabel} styles={styles} />
-      <Row label={u("약속 시간", "Meetup time")} value={formatWhen(current.meetAt, u, locale)} styles={styles} />
+      <Row label={t("m.common.status")} value={current.tradeStatusLabel} styles={styles} />
+      <Row label={t("m.marketplace.meetup_time")} value={formatWhen(current.meetAt, t, locale)} styles={styles} />
       {current.proposedMeetAt && !current.meetAt ? (
         <Row
-          label={u("제안", "Proposed")}
-          value={formatWhen(current.proposedMeetAt, u, locale)}
+          label={t("m.marketplace.proposed")}
+          value={formatWhen(current.proposedMeetAt, t, locale)}
           styles={styles}
         />
       ) : null}
-      <Row label={u("보증금", "Deposit")} value={current.depositStatusLabel} styles={styles} />
-      <Row label={u("분쟁", "Dispute")} value={current.disputeStatusLabel} styles={styles} />
-      <Row label={u("내 도착", "My arrival")} value={current.myArrivalLabel} styles={styles} />
-      <Row label={u("상대 도착", "Their arrival")} value={current.counterpartArrivalLabel} styles={styles} />
-      <Row label={u("패널티", "Penalty")} value={current.penaltyStatusLabel} styles={styles} />
+      <Row label={t("m.marketplace.deposit")} value={current.depositStatusLabel} styles={styles} />
+      <Row label={t("m.marketplace.dispute")} value={current.disputeStatusLabel} styles={styles} />
+      <Row label={t("m.marketplace.my_arrival")} value={current.myArrivalLabel} styles={styles} />
+      <Row label={t("m.marketplace.their_arrival")} value={current.counterpartArrivalLabel} styles={styles} />
+      <Row label={t("m.marketplace.penalty")} value={current.penaltyStatusLabel} styles={styles} />
       {current.guidance ? <Text style={styles.guidance}>{current.guidance}</Text> : null}
       {current.myPin ? (
         <View style={styles.pinBox}>
@@ -127,22 +128,22 @@ export function DirectTradeCard({
             </Pressable>
           ))}
           <Pressable style={styles.btn} disabled={busy} onPress={propose}>
-            <Text style={styles.btnText}>{u("내일 약속 제안", "Propose meetup tomorrow")}</Text>
+            <Text style={styles.btnText}>{t("m.marketplace.propose_meetup_tomorrow")}</Text>
           </Pressable>
         </View>
       ) : null}
       {current.canAcceptMeet ? (
         <Pressable style={styles.btn} disabled={busy} onPress={() => void run({ listingId: current.listingId, action: "acceptMeet" })}>
-          <Text style={styles.btnText}>{u("거래 수락", "Accept trade")}</Text>
+          <Text style={styles.btnText}>{t("m.marketplace.accept_trade")}</Text>
         </Pressable>
       ) : null}
       {current.canAdjustMeet ? (
         <View style={styles.rowWrap}>
           <Pressable style={styles.btnGhost} disabled={busy} onPress={() => void run({ listingId: current.listingId, action: "adjustMeet", direction: "earlier" })}>
-            <Text style={styles.btnGhostText}>{u("15분 앞당기기", "15 min earlier")}</Text>
+            <Text style={styles.btnGhostText}>{t("m.marketplace.15_min_earlier")}</Text>
           </Pressable>
           <Pressable style={styles.btnGhost} disabled={busy} onPress={() => void run({ listingId: current.listingId, action: "adjustMeet", direction: "later" })}>
-            <Text style={styles.btnGhostText}>{u("15분 늦추기", "15 min later")}</Text>
+            <Text style={styles.btnGhostText}>{t("m.marketplace.15_min_later")}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -150,16 +151,16 @@ export function DirectTradeCard({
         <Pressable style={styles.btn} disabled={busy || locating} onPress={() => void verify()}>
           <Text style={styles.btnText}>
             {locating
-              ? u("위치 확인 중", "Checking location…")
+              ? t("m.marketplace.checking_location")
               : current.myArrivalStatus === "ARRIVAL_PENDING"
-                ? u("현장 도착 인증", "Confirm arrival")
-                : u("다시 인증", "Verify again")}
+                ? t("m.marketplace.confirm_arrival")
+                : t("m.marketplace.verify_again")}
           </Text>
         </Pressable>
       ) : null}
       {current.canReportNoShow ? (
         <Pressable style={styles.btnDanger} disabled={busy} onPress={() => void run({ listingId: current.listingId, action: "reportNoShow" })}>
-          <Text style={styles.btnText}>{u("상대방 노쇼 신고", "Report no-show")}</Text>
+          <Text style={styles.btnText}>{t("m.marketplace.report_no_show")}</Text>
         </Pressable>
       ) : null}
       {current.canSubmitPin ? (
@@ -170,7 +171,7 @@ export function DirectTradeCard({
             onChangeText={(text) => setPin(text.replace(/\D/g, "").slice(0, 6))}
             keyboardType="number-pad"
             maxLength={6}
-            placeholder={u("암호코드 6자리", "6-digit code")}
+            placeholder={t("m.common.6_digit_code")}
             placeholderTextColor={colors.textMuted}
           />
           <Pressable
@@ -178,7 +179,7 @@ export function DirectTradeCard({
             disabled={busy || pin.length !== 6}
             onPress={() => void run({ listingId: current.listingId, action: "submitPin", pin })}
           >
-            <Text style={styles.btnText}>{u("거래 완료", "Complete trade")}</Text>
+            <Text style={styles.btnText}>{t("m.marketplace.complete_trade")}</Text>
           </Pressable>
         </View>
       ) : null}

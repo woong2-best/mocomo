@@ -84,8 +84,8 @@ function apiErrorMessage(err: unknown, fallback: string) {
 }
 
 export function CommunityServerScreen() {
-  const { u } = useI18n();
-  const copy = useMemo(() => communityUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => communityUi(t), [t]);
   const tabs = useMemo(
     (): { id: PostsTab; label: string }[] => [
       { id: "all", label: copy.tabAllPosts },

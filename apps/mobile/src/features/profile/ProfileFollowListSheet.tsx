@@ -30,6 +30,7 @@ import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { TFn } from "@/i18n/types";
 
 type Props = {
   visible: boolean;
@@ -38,12 +39,12 @@ type Props = {
   tab: FollowListTab;
 };
 
-function tabTitle(tab: FollowListTab, u: (ko: string, en: string) => string): string {
-  return tab === "followers" ? u("팔로워", "Followers") : u("팔로잉", "Following");
+function tabTitle(tab: FollowListTab, t: TFn): string {
+  return tab === "followers" ? t("m.common.followers") : t("m.common.following");
 }
 
 export function ProfileFollowListSheet({ visible, onClose, username, tab }: Props) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors, mode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -70,12 +71,12 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
     const merged: ConnectionListUser[] = [];
     const seen = new Set<string>();
     for (const page of listQuery.data?.pages ?? []) {
-      for (const u of page.users) {
-        if (seen.has(u.id)) continue;
-        seen.add(u.id);
+      for (const t of page.users) {
+        if (seen.has(t.id)) continue;
+        seen.add(t.id);
         merged.push({
-          ...u,
-          viewerFollows: followOverrides[u.id] ?? u.viewerFollows,
+          ...t,
+          viewerFollows: followOverrides[t.id] ?? t.viewerFollows,
         });
       }
     }
@@ -160,23 +161,23 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
               onPress={() => followMut.mutate(item)}
               disabled={followMut.isPending}
               accessibilityRole="button"
-              accessibilityLabel={following ? u("팔로잉", "Following") : u("팔로우", "Follow")}
+              accessibilityLabel={following ? t("m.common.following") : t("m.common.follow")}
             >
               <Text style={[styles.followBtnText, following ? null : styles.followBtnTextPrimary]}>
-                {following ? u("팔로잉", "Following") : u("팔로우", "Follow")}
+                {following ? t("m.common.following") : t("m.common.follow")}
               </Text>
             </Pressable>
           ) : null}
         </View>
       );
     },
-    [authUser?.id, followMut, onClose, openProfile, styles, u]
+    [authUser?.id, followMut, onClose, openProfile, styles, t]
   );
 
   const empty =
     !listQuery.isPending && !listQuery.isError && users.length === 0 ? (
       <Text style={styles.empty}>
-        {tab === "followers" ? u("팔로워가 없습니다.", "No followers yet.") : u("팔로잉한 사용자가 없습니다.", "Not following anyone yet.")}
+        {tab === "followers" ? t("m.profile.no_followers_yet") : t("m.profile.not_following_anyone_yet")}
       </Text>
     ) : null;
 
@@ -200,7 +201,7 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
           ]}
         >
           <View style={styles.panelHeader}>
-            <Text style={styles.panelTitle}>{tabTitle(tab, u)}</Text>
+            <Text style={styles.panelTitle}>{tabTitle(tab, t)}</Text>
             <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("common.close")}>
               <Ionicons name="close" size={24} color={colors.text} />
             </Pressable>
@@ -212,7 +213,7 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
             </View>
           ) : listQuery.isError ? (
             <Pressable onPress={() => void listQuery.refetch()} style={styles.loaderWrap}>
-              <Text style={styles.error}>{u("목록을 불러오지 못했습니다. 탭하여 다시 시도", "Could not load list. Tap to retry")}</Text>
+              <Text style={styles.error}>{t("m.common.could_not_load_list_tap_to")}</Text>
             </Pressable>
           ) : (
             <FlatList

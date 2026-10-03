@@ -24,7 +24,7 @@ export function ChatUsedListingCard({
   card?: UsedListingChatCard | null;
   onLongPress?: () => void;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -51,7 +51,7 @@ export function ChatUsedListingCard({
     };
   }, [card, listingId]);
 
-  const title = loaded?.title ?? u("상품 보기", "View listing");
+  const title = loaded?.title ?? t("m.messages.view_listing");
   const imageUrl = loaded?.imageUrl ? resolveAbsolutePlaybackUrl(loaded.imageUrl) : null;
 
   return (
@@ -61,7 +61,7 @@ export function ChatUsedListingCard({
       delayLongPress={280}
       style={styles.card}
       accessibilityRole="button"
-      accessibilityLabel={u(`${title} 상품 페이지`, `${title} listing page`)}
+      accessibilityLabel={t("m.messages.title_listing_page", { title: String(title) })}
     >
       <View style={styles.photo}>
         {imageUrl ? (

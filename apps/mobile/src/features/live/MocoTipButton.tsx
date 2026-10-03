@@ -11,8 +11,8 @@ type Props = {
 
 /** Chzzk-cheese analogue — bright MOCO coin for live tips / cheer. */
 function MocoTipButtonInner({ onPress, disabled, size = 40 }: Props) {
-  const { u } = useI18n();
-  const copy = liveUi(u);
+  const { t } = useI18n();
+  const copy = liveUi(t);
 
   return (
     <Pressable

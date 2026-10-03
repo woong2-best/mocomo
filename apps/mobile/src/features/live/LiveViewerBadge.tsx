@@ -12,10 +12,10 @@ type Props = {
 
 /** Chzzk-style joined badge: red `LIVE` segment + dark viewer-count segment. */
 function LiveViewerBadgeInner({ viewerCount, showLive = true, size = "md" }: Props) {
-  const { locale, u } = useI18n();
+  const { locale, t } = useI18n();
   const small = size === "sm";
   const countLabel = formatViewerCountCompact(viewerCount, locale);
-  const suffix = u("명", "");
+  const suffix = t("m.live.text");
 
   return (
     <View style={styles.group}>

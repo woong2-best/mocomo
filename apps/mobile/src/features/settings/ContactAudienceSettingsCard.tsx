@@ -9,6 +9,7 @@ import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const DEFAULTS: ContactSettings = {
   messageRequestAudience: "EVERYONE",
@@ -16,6 +17,7 @@ const DEFAULTS: ContactSettings = {
 };
 
 export function ContactAudienceSettingsCard() {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export function ContactAudienceSettingsCard() {
   useEffect(() => {
     void fetchContactSettings()
       .then(setSettings)
-      .catch(() => showIslandError("오류", "설정을 불러오지 못했습니다."))
+      .catch(() => showIslandError(t("m.common.error"), t("m.settings.could_not_load_settings")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -40,7 +42,7 @@ export function ContactAudienceSettingsCard() {
       setSettings(saved);
     } catch (e) {
       setSettings(previous);
-      showIslandError("오류", e instanceof Error ? e.message : "저장하지 못했습니다.");
+      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.common.could_not_save"));
     } finally {
       setBusy(false);
     }
@@ -48,7 +50,7 @@ export function ContactAudienceSettingsCard() {
 
   return (
     <FolkCard>
-      <Text style={styles.title}>메시지 요청 허용 범위</Text>
+      <Text style={styles.title}>{t("m.settings.who_can_message_you")}</Text>
       <Text style={styles.desc}>Allow message requests from</Text>
       {loading ? (
         <ActivityIndicator color={colors.terracotta} style={{ marginVertical: spacing.md }} />
@@ -58,8 +60,8 @@ export function ContactAudienceSettingsCard() {
             styles={styles}
             colors={colors}
             selected={settings.messageRequestAudience === "EVERYONE"}
-            title="Everyone (모든 사람)"
-            description="누구나 새 메시지를 보낼 수 있습니다."
+            title={t("m.settings.everyone")}
+            description={t("m.settings.anyone_can_send_you_a_new")}
             disabled={busy}
             onPress={() => void save({ messageRequestAudience: "EVERYONE" })}
           />
@@ -67,22 +69,22 @@ export function ContactAudienceSettingsCard() {
             styles={styles}
             colors={colors}
             selected={settings.messageRequestAudience === "FOLLOWING_ONLY"}
-            title="No one (내가 팔로우하는 사람만)"
-            description="내가 팔로우한 사람만 새 DM을 시작할 수 있습니다."
+            title={t("m.settings.people_i_follow_only")}
+            description={t("m.settings.only_people_you_follow_can_start")}
             disabled={busy}
             onPress={() => void save({ messageRequestAudience: "FOLLOWING_ONLY" })}
           />
 
-          <Text style={[styles.title, styles.section]}>통화</Text>
+          <Text style={[styles.title, styles.section]}>{t("m.settings.calls")}</Text>
           <Text style={styles.desc}>
-            기본값은 On입니다. Off면 내가 팔로우한 사람만 전화를 걸 수 있습니다.
+            {t("m.settings.default_is_on_when_off_only")}
           </Text>
           <Radio
             styles={styles}
             colors={colors}
             selected={settings.callRequestAudience === "EVERYONE"}
             title="On"
-            description="모든 사람이 통화할 수 있습니다."
+            description={t("m.settings.anyone_can_call_you")}
             disabled={busy}
             onPress={() => void save({ callRequestAudience: "EVERYONE" })}
           />
@@ -91,7 +93,7 @@ export function ContactAudienceSettingsCard() {
             colors={colors}
             selected={settings.callRequestAudience === "FOLLOWING_ONLY"}
             title="Off"
-            description="내가 팔로우한 사람만 통화할 수 있습니다."
+            description={t("m.settings.only_people_you_follow_can_call")}
             disabled={busy}
             onPress={() => void save({ callRequestAudience: "FOLLOWING_ONLY" })}
           />

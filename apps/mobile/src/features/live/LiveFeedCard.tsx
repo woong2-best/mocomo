@@ -31,20 +31,20 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
   item: LiveListItem;
-  /** Card content width (screen − horizontal gutters). */
+  /** Card content width (screen ??horizontal gutters). */
   cardWidth: number;
-  /** Most-visible card — mounts the real player. */
+  /** Most-visible card ??mounts the real player. */
   active: boolean;
   onPress: (id: string) => void;
 };
 
 /**
  * Vertical LIVE feed card: fixed 16:9 player slot + meta.
- * Not fullscreen — designed so neighbors peek while scrolling.
+ * Not fullscreen ??designed so neighbors peek while scrolling.
  */
 function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
-  const { locale, u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { locale, t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const adultGate = useAdultVerificationGate("LIVE");
@@ -110,7 +110,7 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
     return () => {
       cancelled = true;
     };
-    // intentionally omit creds / adultGate from deps — reconnect only when stream identity changes
+    // intentionally omit creds / adultGate from deps ??reconnect only when stream identity changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, adultBlocked, detail?.id, detail?.isExternal, detail?.isLive, detail?.isHost, item.id]);
 

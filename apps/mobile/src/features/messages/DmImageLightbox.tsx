@@ -28,7 +28,7 @@ export type DmLightboxMeta = {
   senderName: string;
   senderImage: string | null;
   createdAt: string;
-  /** When viewing your own photo, Instagram shows "나" */
+  /** When viewing your own photo, Instagram shows "You". */
   selfLabel?: string;
 };
 

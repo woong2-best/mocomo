@@ -18,7 +18,7 @@ export function ChatReplyComposerBar({
   selfUserId?: string;
   onCancel: () => void;
 }) {
-  const { locale, u } = useI18n();
+  const { locale, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isSelf = !!selfUserId && target.sender.id === selfUserId;
@@ -31,8 +31,8 @@ export function ChatReplyComposerBar({
       <View style={styles.body}>
         <Text style={styles.label}>
           {isSelf
-            ? u("나에게 답장", "Replying to you")
-            : u(`${target.sender.username}에게 답장`, `Replying to ${target.sender.username}`)}
+            ? t("m.messages.replying_to_you")
+            : t("m.messages.replying_to_username", { username: String(target.sender.username) })}
         </Text>
         <Text style={styles.preview} numberOfLines={1}>
           {preview}
@@ -51,7 +51,7 @@ export function ChatReplyComposerBar({
         onPress={onCancel}
         hitSlop={10}
         style={styles.close}
-        accessibilityLabel={u("답장 취소", "Cancel reply")}
+        accessibilityLabel={t("m.messages.cancel_reply")}
       >
         <Ionicons name="close" size={18} color={colors.textMuted} />
       </Pressable>

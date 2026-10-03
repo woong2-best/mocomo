@@ -70,14 +70,14 @@ export function PostReportSheet({
   onSubmitted,
 }: Props) {
   const { colors } = useTheme();
-  const { locale, t, u } = useI18n();
+  const { locale, t } = useI18n();
   const reportCopy = useMemo(
     () => getPostReportCopy(locale, reportTarget === "chat_room" ? "chat" : "post"),
     [locale, reportTarget]
   );
   const sheetTitle =
     reportTarget === "chat_room"
-      ? u("채팅 신고", "Report chat")
+      ? t("m.feed.report_chat")
       : t("report.title");
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -232,7 +232,7 @@ export function PostReportSheet({
       onSubmitted?.();
       setPhase("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : u("신고 처리에 실패했습니다.", "Could not submit report."));
+      setError(e instanceof Error ? e.message : t("m.common.could_not_submit_report"));
     } finally {
       setBusy(false);
     }
@@ -251,7 +251,7 @@ export function PostReportSheet({
     reportTarget,
     details,
     t,
-    u,
+    t,
   ]);
 
   return (
@@ -327,7 +327,7 @@ export function PostReportSheet({
                 <Text style={styles.hint}>{reportCopy.reviewHint}</Text>
                 {mode === "block-report" ? (
                   <Text style={styles.disclaimer}>
-                    {u("제출 후 해당 사용자를 차단합니다.", "This user will be blocked after you submit.")}
+                    {t("m.feed.this_user_will_be_blocked_after")}
                   </Text>
                 ) : null}
                 <Text style={styles.sectionTitle}>{t("report.detailsTitle")}</Text>
@@ -386,7 +386,7 @@ export function PostReportSheet({
               ) : (
                 <Text style={styles.submitText}>
                   {mode === "block-report"
-                    ? u("차단 및 신고 제출", "Block and submit")
+                    ? t("m.feed.block_and_submit")
                     : t("report.submit")}
                 </Text>
               )}

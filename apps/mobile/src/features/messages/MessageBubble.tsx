@@ -112,7 +112,7 @@ function ChatMessageImage({
   mine?: boolean;
   onPurchaseSuccess?: () => void;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const isLocked = locked || isAttachmentLocked(image);
   const paid = (priceKrw ?? image.priceKrw ?? 0) > 0;
 
@@ -176,7 +176,7 @@ function ChatMessageImage({
           onLongPress={onLongPress}
           delayLongPress={280}
           accessibilityRole="button"
-          accessibilityLabel={u("사진 크게 보기", "View photo")}
+          accessibilityLabel={t("m.messages.view_photo")}
         />
       )}
     </View>
@@ -283,7 +283,7 @@ function MessageBubbleInner({
   onOpenImage,
   showSenderName = false,
 }: Props) {
-  const { locale, u } = useI18n();
+  const { locale, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -355,7 +355,7 @@ function MessageBubbleInner({
   );
 
   const senderName = message.sender.username;
-  const selfLabel = mine ? u("나", "You") : undefined;
+  const selfLabel = mine ? t("m.messages.you") : undefined;
 
   const openImageAt = (index: number) => {
     if (!onOpenImage || lightboxImages.length === 0) return;
@@ -383,8 +383,8 @@ function MessageBubbleInner({
   const triggerReply = () => {
     if (!onReply) return;
     showMessageReplyMenu(() => onReply(message), {
-      reply: u("답장", "Reply"),
-      cancel: u("취소", "Cancel"),
+      reply: t("m.messages.reply"),
+      cancel: t("m.common.cancel"),
     });
   };
 
@@ -643,10 +643,10 @@ function createThemedStyles(colors: ThemeColors) {
       lineHeight: 21,
       color: colors.text,
       ...(Platform.OS === "android" ? { textBreakStrategy: "highQuality" as const } : {}),
-      ...(Platform.OS === "ios" ? { lineBreakStrategyIOS: "hangul-word" as const } : {}),
+      ...(Platform.OS === "ios" ? { lineBreakStrategyIOS: "hangul-word" as "hangul-word" } : {}),
     },
     textTechnical: {
-      ...(Platform.OS === "ios" ? { lineBreakStrategyIOS: "push-out" as const } : {}),
+      ...(Platform.OS === "ios" ? {} : {}),
     },
     textMine: { color: colors.textOnAccent },
     link: { color: colors.brand, textDecorationLine: "underline" },

@@ -56,7 +56,7 @@ export function useMobileCallSession(): SessionValue {
 }
 
 export function MobileCallSessionProvider({ children }: { children: ReactNode }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [live, setLive] = useState<LiveCall | null>(null);
@@ -184,15 +184,15 @@ export function MobileCallSessionProvider({ children }: { children: ReactNode })
           <Pressable
             style={styles.barMain}
             onPress={expand}
-            accessibilityLabel={u("통화 화면 열기", "Open call screen")}
+            accessibilityLabel={t("m.messages.open_call_screen")}
           >
             <View style={styles.dot} />
             <Text style={styles.barName} numberOfLines={1}>
               {live.displayName}
             </Text>
-            <Text style={styles.barSub}>{u("통화 중", "On call")}</Text>
+            <Text style={styles.barSub}>{t("m.messages.on_call")}</Text>
           </Pressable>
-          <Pressable style={styles.hangup} onPress={end} accessibilityLabel={u("통화 종료", "End call")}>
+          <Pressable style={styles.hangup} onPress={end} accessibilityLabel={t("m.messages.end_call")}>
             <Ionicons name="call" size={18} color="#fff" style={{ transform: [{ rotate: "135deg" }] }} />
           </Pressable>
         </View>

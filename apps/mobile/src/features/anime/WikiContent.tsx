@@ -40,8 +40,8 @@ function parseTableBlock(lines: string[]): string[][] | null {
 }
 
 function CollapseBlock({ title, body }: { title: string; body: string }) {
-  const { u } = useI18n();
-  const copy = useMemo(() => animeUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => animeUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [open, setOpen] = useState(false);

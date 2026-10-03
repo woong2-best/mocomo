@@ -7,6 +7,7 @@ import {
   type AdultVerificationScope,
 } from "@/lib/adult-verification-messages";
 import { navigateFromPush } from "@/navigation/navigationRef";
+import { translate } from "@/i18n/runtime";
 
 export function useAdultVerificationGate(_scope: AdultVerificationScope = "DM_PAID") {
   const [isAdult, setIsAdult] = useState<boolean | null>(null);
@@ -31,20 +32,20 @@ export function useAdultVerificationGate(_scope: AdultVerificationScope = "DM_PA
       setIsAdult(ok);
       if (ok) return true;
 
-      const message = status.hasBirthDate
-        ? ADULT_VERIFICATION_REQUIRED_MSG
-        : BIRTH_DATE_REQUIRED_MSG;
+      const message = translate(
+        status.hasBirthDate ? ADULT_VERIFICATION_REQUIRED_MSG : BIRTH_DATE_REQUIRED_MSG
+      );
 
-      showIslandPrompt("연령 확인 필요", message, {
-        label: status.hasBirthDate ? "확인" : "생년월일 입력",
+      showIslandPrompt(translate("m.hooks.age_check_required"), message, {
+        label: status.hasBirthDate ? translate("m.live.ok") : translate("m.live.add_birth_date"),
         onPress: () => {
           if (!status.hasBirthDate) openBirthDateSettings();
         },
       });
       return false;
     } catch {
-      showIslandPrompt("연령 확인 필요", BIRTH_DATE_REQUIRED_MSG, {
-        label: "생년월일 입력",
+      showIslandPrompt(translate("m.hooks.age_check_required"), translate(BIRTH_DATE_REQUIRED_MSG), {
+        label: translate("m.live.add_birth_date"),
         onPress: () => openBirthDateSettings(),
       });
       return false;

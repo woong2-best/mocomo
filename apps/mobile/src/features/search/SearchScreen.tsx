@@ -21,7 +21,7 @@ import type { RootStackParamList } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export function SearchScreen() {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -50,7 +50,7 @@ export function SearchScreen() {
       const seed = { username: user.username, name: user.name, image: user.image };
       rows.push({
         key: `u-${user.id}`,
-        kind: u("사람", "People"),
+        kind: t("m.common.people"),
         title: user.name || user.username,
         subtitle: `@${user.username}`,
         onPressIn: () => prefetchUserProfile(seed),
@@ -60,15 +60,15 @@ export function SearchScreen() {
     for (const p of query.data.posts) {
       rows.push({
         key: `p-${p.id}`,
-        kind: u("게시물", "Posts"),
-        title: p.title || p.content.slice(0, 80) || u("게시물", "Post"),
+        kind: t("m.common.posts"),
+        title: p.title || p.content.slice(0, 80) || t("m.common.post"),
         onPress: () => navigation.navigate("PostDetail", { id: p.id }),
       });
     }
     for (const a of query.data.animes) {
       rows.push({
         key: `a-${a.slug}`,
-        kind: u("컬처위키", "Culture wiki"),
+        kind: t("m.common.culture_wiki_2"),
         title: a.title,
         subtitle: a.titleEn ?? undefined,
         onPress: () => navigation.navigate("AnimeDetail", { slug: a.slug }),
@@ -77,18 +77,18 @@ export function SearchScreen() {
     for (const live of query.data.liveStreams) {
       rows.push({
         key: `l-${live.id}`,
-        kind: u("라이브", "Live"),
+        kind: t("m.common.live"),
         title: live.name,
         subtitle: live.category,
         onPress: () => navigation.navigate("LiveDetail", { id: live.id }),
       });
     }
     return rows;
-  }, [navigation, openUserProfile, prefetchUserProfile, query.data, u]);
+  }, [navigation, openUserProfile, prefetchUserProfile, query.data, t]);
 
   return (
     <Screen>
-      <AppHeader title={u("검색", "Search")} leftLabel={u("뒤로", "Back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.common.search")} leftLabel={t("m.common.back")} onLeftPress={() => navigation.goBack()} />
       <View style={styles.searchRow}>
         <SearchField
           value={q}
@@ -98,22 +98,22 @@ export function SearchScreen() {
             setSubmitted("");
           }}
           onSubmitEditing={() => setSubmitted(q.trim())}
-          placeholder={u("사람, 애니, 게시물 검색", "Search people, anime, posts")}
+          placeholder={t("m.search.search_people_anime_posts")}
         />
       </View>
 
       {!submitted ? (
-        <Text style={styles.hint}>{u("웹과 같은 통합 검색입니다.", "Same unified search as the website.")}</Text>
+        <Text style={styles.hint}>{t("m.search.same_unified_search_as_the_website")}</Text>
       ) : query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 32 }} color={colors.terracotta} />
       ) : query.isError ? (
-        <Text style={styles.error}>{u("검색에 실패했습니다.", "Search failed.")}</Text>
+        <Text style={styles.error}>{t("m.search.search_failed")}</Text>
       ) : (
         <FlatList
           data={sections}
           keyExtractor={(item) => item.key}
           contentContainerStyle={{ padding: spacing.md, paddingBottom: 40, gap: 8 }}
-          ListEmptyComponent={<Text style={styles.hint}>{u("결과가 없습니다.", "No results.")}</Text>}
+          ListEmptyComponent={<Text style={styles.hint}>{t("m.common.no_results")}</Text>}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPressIn={item.onPressIn} onPress={item.onPress}>
               <Text style={styles.kind}>{item.kind}</Text>

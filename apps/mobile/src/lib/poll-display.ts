@@ -1,4 +1,4 @@
-/** Web `pollOptionPercents`와 동일 — 앱 번들용 복사 */
+/** Same as web `pollOptionPercents` — copy for the app bundle. */
 export function pollOptionPercents(
   options: { id: string; count: number }[],
   totalVotes: number

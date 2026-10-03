@@ -35,7 +35,7 @@ import {
   RECURRING_DONATION_CHECKBOX_LABEL_KO,
   RECURRING_DONATION_CHECKOUT_NOTICE_KO,
 } from "@/lib/recurring-donation-terms";
-import { GEM_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
+import { gemPurchaseTermsCopy } from "@/lib/gems/constants";
 import {
   PURCHASE_CHARGEBACK_TERMS_BULLETS,
   PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL,
@@ -58,7 +58,7 @@ function formatAmount(_type: CheckoutBody["type"], amount: number) {
 }
 
 export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Props) {
-  const { u, t, locale } = useI18n();
+  const { t, locale } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
@@ -89,7 +89,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
     setRecurringDonationTermsAccepted(false);
     setError("");
     if (isRecurringSubscription) {
-      setError(u("크리에이터 정기 후원 기능은 종료되었습니다.", "Creator subscriptions are no longer available."));
+      setError(t("m.payments.creator_subscriptions_are_no_longer_avai"));
       setLoading(false);
       return;
     }
@@ -102,18 +102,18 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
         setSelectedId(def?.id ?? null);
       })
       .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : u("결제 준비에 실패했습니다.", "Could not prepare payment."));
+        setError(e instanceof Error ? e.message : t("m.payments.could_not_prepare_payment"));
       })
       .finally(() => setLoading(false));
-  }, [visible, checkoutKey, body, isRecurringSubscription, u]);
+  }, [visible, checkoutKey, body, isRecurringSubscription, t]);
 
   async function startRecurringSubscription() {
     if (!purchaseTermsAccepted) {
-      setError(u("결제 전 이용약관에 동의해 주세요.", "Accept the terms before paying."));
+      setError(t("m.payments.accept_the_terms_before_paying"));
       return;
     }
     if (!recurringDonationTermsAccepted) {
-      setError(u("정기 후원 약관에 동의해 주세요.", "Accept the subscription terms."));
+      setError(t("m.payments.accept_the_subscription_terms"));
       return;
     }
     setPaying(true);
@@ -124,7 +124,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
       await openSubscriptionCheckout({ creatorId, username, amount: body.amount });
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("정기 후원을 시작할 수 없습니다.", "Could not start subscription."));
+      setError(e instanceof Error ? e.message : t("m.payments.could_not_start_subscription"));
     } finally {
       setPaying(false);
     }
@@ -136,24 +136,24 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
       showInRecents: true,
     });
     if (result.type !== "success" || !result.url) {
-      throw new Error(u("카드 인증이 취소되었습니다.", "Card verification was canceled."));
+      throw new Error(t("m.payments.card_verification_was_canceled"));
     }
     const parsed = new URL(result.url);
     const returnedOrderId = parsed.searchParams.get("order_id") ?? oid;
     const finalized = await finalizeCheckoutPayment(returnedOrderId);
     if (!("success" in finalized) || !finalized.success) {
-      throw new Error(u("결제 확인에 실패했습니다.", "Payment confirmation failed."));
+      throw new Error(t("m.payments.payment_confirmation_failed"));
     }
     onSuccess({ type: finalized.type, alreadyPaid: finalized.alreadyPaid });
   }
 
   async function paySelected() {
     if (!orderId || !selectedId) {
-      setError(u("카드를 선택해 주세요.", "Select a card."));
+      setError(t("m.payments.select_a_card"));
       return;
     }
     if (!purchaseTermsAccepted) {
-      setError(u("결제 전 이용약관에 동의해 주세요.", "Accept the terms before paying."));
+      setError(t("m.payments.accept_the_terms_before_paying"));
       return;
     }
     setPaying(true);
@@ -174,7 +174,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
         setError(res.error);
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("결제에 실패했습니다.", "Payment failed."));
+      setError(e instanceof Error ? e.message : t("m.payments.payment_failed"));
     } finally {
       setPaying(false);
     }
@@ -182,7 +182,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
 
   async function payWithNewCard() {
     if (!purchaseTermsAccepted) {
-      setError(u("결제 전 이용약관에 동의해 주세요.", "Accept the terms before paying."));
+      setError(t("m.payments.accept_the_terms_before_paying"));
       return;
     }
     setPaying(true);
@@ -190,7 +190,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
     try {
       if (isGemTopup) {
         const gems = Number(body.metadata.gemAmount ?? 0);
-        if (!gems) throw new Error(u("MOCO 패키지 정보가 없습니다.", "MOCO package info is missing."));
+        if (!gems) throw new Error(t("m.payments.moco_package_info_is_missing"));
         const res = await openGemTopupCheckout(gems, locale);
         if ("error" in res) throw new Error(res.error);
         onClose();
@@ -202,10 +202,10 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
         showInRecents: true,
       });
       if (result.type === "cancel" || result.type === "dismiss") {
-        throw new Error(u("결제가 취소되었습니다.", "Payment was canceled."));
+        throw new Error(t("m.payments.payment_was_canceled"));
       }
       if (result.type !== "success" || !result.url) {
-        throw new Error(u("결제를 완료하지 못했습니다.", "Could not complete payment."));
+        throw new Error(t("m.payments.could_not_complete_payment"));
       }
       let sessionId: string | null = null;
       try {
@@ -214,12 +214,12 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
         const m = /[?&]session_id=([^&]+)/.exec(result.url);
         sessionId = m?.[1] ? decodeURIComponent(m[1]) : null;
       }
-      if (!sessionId) throw new Error(u("결제 세션을 확인하지 못했습니다.", "Could not verify payment session."));
+      if (!sessionId) throw new Error(t("m.payments.could_not_verify_payment_session"));
       const confirmed = await confirmCheckout(sessionId);
       onSuccess({ type: confirmed.type, alreadyPaid: confirmed.alreadyPaid });
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("결제에 실패했습니다.", "Payment failed."));
+      setError(e instanceof Error ? e.message : t("m.payments.payment_failed"));
     } finally {
       setPaying(false);
     }
@@ -229,7 +229,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: colors.surfaceRaised }]}>
-          <Text style={[styles.title, { color: colors.text }]}>{u("결제 수단 선택", "Choose payment method")}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t("m.payments.choose_payment_method")}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>{body.orderName}</Text>
           <Text style={[styles.amount, { color: colors.text }]}>
             {formatAmount(body.type, body.amount)}
@@ -239,7 +239,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
               without the personal-viewing-licence terms on screen. */}
           {isRecurringSubscription ? (
             <View style={[styles.recurringNotice, { borderColor: `${colors.cobalt}66` }]}>
-              <Text style={[styles.recurringTitle, { color: colors.text }]}>{u("정기 후원 안내", "Subscription info")}</Text>
+              <Text style={[styles.recurringTitle, { color: colors.text }]}>{t("m.payments.subscription_info")}</Text>
               <Text style={[styles.recurringBody, { color: colors.textMuted }]}>
                 {RECURRING_DONATION_CHECKOUT_NOTICE_KO}
               </Text>
@@ -279,8 +279,8 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
           <View style={[styles.termsNotice, { borderColor: `${colors.terracotta}66` }]}>
             {isGemTopup ? (
               <>
-                <Text style={[styles.termsTitle, { color: colors.text }]}>{u("MOCO 충전 약관", "MOCO top-up terms")}</Text>
-                <Text style={[styles.termsBullet, { color: colors.textMuted }]}>{GEM_PURCHASE_TERMS_COPY}</Text>
+                <Text style={[styles.termsTitle, { color: colors.text }]}>{t("m.payments.moco_top_up_terms")}</Text>
+                <Text style={[styles.termsBullet, { color: colors.textMuted }]}>{gemPurchaseTermsCopy()}</Text>
               </>
             ) : (
               <>
@@ -309,7 +309,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
                 ]}
               />
               <Text style={[styles.termsCheckLabel, { color: colors.text }]}>
-                {isGemTopup ? u("위 약관에 동의합니다", "I agree to the terms above") : PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL}
+                {isGemTopup ? t("m.payments.i_agree_to_the_terms_above") : PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL}
               </Text>
             </Pressable>
           </View>
@@ -320,7 +320,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
               <View style={styles.actions}>
                 <FolkButton label={t("toast.cancel")} variant="ghost" onPress={onClose} disabled={paying} />
                 <FolkButton
-                  label={paying ? u("이동 중…", "Opening…") : u("정기 후원 시작", "Start subscription")}
+                  label={paying ? t("m.common.opening") : t("m.payments.start_subscription")}
                   onPress={() => void startRecurringSubscription()}
                   loading={paying}
                   disabled={!purchaseTermsAccepted || !recurringDonationTermsAccepted}
@@ -346,7 +346,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.cardTitle, { color: colors.text }]}>
                       {pm.brand} •••• {pm.last4}
-                      {pm.isDefault ? u(" · 기본", " · Default") : ""}
+                      {pm.isDefault ? t("m.payments.default") : ""}
                     </Text>
                     <Text style={[styles.cardMeta, { color: colors.textMuted }]}>
                       {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}
@@ -358,9 +358,9 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
                 onPress={() => void payWithNewCard()}
                 style={[styles.cardRow, styles.newCardRow, { borderColor: colors.hairline }]}
               >
-                <Text style={[styles.cardTitle, { color: colors.text }]}>{u("+ 새 카드로 결제", "+ Pay with new card")}</Text>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t("m.payments.pay_with_new_card")}</Text>
                 <Text style={[styles.cardMeta, { color: colors.textMuted }]}>
-                  {u("Stripe에서 카드 입력 · 저장 가능", "Enter card in Stripe · can save for later")}
+                  {t("m.payments.enter_card_in_stripe_can_save")}
                 </Text>
               </Pressable>
             </ScrollView>
@@ -374,14 +374,14 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
             <FolkButton label={t("toast.cancel")} variant="ghost" onPress={onClose} disabled={paying} />
             {methods.length > 0 ? (
               <FolkButton
-                label={paying ? u("결제 중…", "Paying…") : u("선택한 카드로 결제", "Pay with selected card")}
+                label={paying ? t("m.payments.paying") : t("m.payments.pay_with_selected_card")}
                 onPress={() => void paySelected()}
                 loading={paying}
                 disabled={!selectedId || loading || !purchaseTermsAccepted}
               />
             ) : (
               <FolkButton
-                label={paying ? u("이동 중…", "Opening…") : u("새 카드로 결제", "Pay with new card")}
+                label={paying ? t("m.common.opening") : t("m.payments.pay_with_new_card_2")}
                 onPress={() => void payWithNewCard()}
                 loading={paying}
                 disabled={loading || !purchaseTermsAccepted}

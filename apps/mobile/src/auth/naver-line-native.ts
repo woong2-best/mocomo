@@ -3,6 +3,7 @@ import Constants from "expo-constants";
 import { ApiError, apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 import type { MobileAuthUser } from "@/auth/types";
+import { translate } from "@/i18n/runtime";
 
 export type NativeOAuthProfile = {
   email: string | null;
@@ -21,7 +22,7 @@ export type NativeOAuthResult =
   | { status: "needsSignup"; profile: NativeOAuthProfile };
 
 export class NativeOAuthUnavailableError extends Error {
-  constructor(message = "이 기기에서는 네이티브 로그인을 사용할 수 없습니다.") {
+  constructor(message = translate("m.auth.native_sign_in_unavailable_on_device")) {
     super(message);
     this.name = "NativeOAuthUnavailableError";
   }
@@ -29,7 +30,7 @@ export class NativeOAuthUnavailableError extends Error {
 
 export class NativeOAuthCancelledError extends Error {
   constructor() {
-    super("로그인이 취소되었습니다.");
+    super(translate("m.auth.sign_in_was_canceled"));
     this.name = "NativeOAuthCancelledError";
   }
 }
@@ -103,7 +104,7 @@ export async function authenticateWithNaverNative(opts: {
   if (!accessToken) {
     const clientId = naverClientId();
     if (!clientId) {
-      throw new NativeOAuthUnavailableError("네이버 네이티브 로그인이 설정되지 않았습니다.");
+      throw new NativeOAuthUnavailableError(translate("m.auth.naver_native_sign_in_is_not"));
     }
     try {
       const mod = await import("@package-kr/react-native-naver-signin");
@@ -113,7 +114,7 @@ export async function authenticateWithNaverNative(opts: {
           ? token
           : (token as { accessToken?: string })?.accessToken;
       if (!accessToken) {
-        throw new NativeOAuthUnavailableError("네이버 토큰을 받지 못했습니다.");
+        throw new NativeOAuthUnavailableError(translate("m.auth.could_not_get_a_naver_token"));
       }
     } catch (e) {
       if (e instanceof NativeOAuthCancelledError) throw e;
@@ -121,7 +122,7 @@ export async function authenticateWithNaverNative(opts: {
       const msg = e instanceof Error ? e.message : String(e ?? "");
       if (/cancel/i.test(msg)) throw new NativeOAuthCancelledError();
       throw new NativeOAuthUnavailableError(
-        msg || "네이버 네이티브 로그인을 사용할 수 없습니다."
+        msg || translate("m.auth.naver_native_sign_in_is_unavailable")
       );
     }
   }
@@ -155,17 +156,21 @@ export async function authenticateWithLineNative(opts: {
   if (!accessToken) {
     const channelId = lineChannelId();
     if (!channelId) {
-      throw new NativeOAuthUnavailableError("LINE 네이티브 로그인이 설정되지 않았습니다.");
+      throw new NativeOAuthUnavailableError(translate("m.auth.line_native_sign_in_is_not"));
     }
     try {
       const Line = await import("@xmartlabs/react-native-line");
       await Line.setup({ channelId });
       const result = await Line.login({ scopes: ["profile"] });
+      const tokenField = result?.accessToken;
       accessToken =
-        result?.accessToken?.accessToken ??
-        (result as { accessToken?: string })?.accessToken;
+        typeof tokenField === "string"
+          ? tokenField
+          : tokenField && typeof tokenField === "object"
+            ? tokenField.accessToken
+            : undefined;
       if (!accessToken) {
-        throw new NativeOAuthUnavailableError("LINE 토큰을 받지 못했습니다.");
+        throw new NativeOAuthUnavailableError(translate("m.auth.could_not_get_a_line_token"));
       }
     } catch (e) {
       if (e instanceof NativeOAuthCancelledError) throw e;
@@ -173,7 +178,7 @@ export async function authenticateWithLineNative(opts: {
       const msg = e instanceof Error ? e.message : String(e ?? "");
       if (/cancel/i.test(msg)) throw new NativeOAuthCancelledError();
       throw new NativeOAuthUnavailableError(
-        msg || "LINE 네이티브 로그인을 사용할 수 없습니다."
+        msg || translate("m.auth.line_native_sign_in_is_unavailable")
       );
     }
   }

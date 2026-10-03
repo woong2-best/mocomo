@@ -3,6 +3,7 @@ import { fetchMarketSellAccess } from "@/api/commerce-market";
 import { openMobileWebSession } from "@/lib/open-web-session";
 import type { RootStackParamList } from "@/navigation/types";
 import { showIslandError, showIslandPrompt } from "@/ui/IslandToast";
+import { translate } from "@/i18n/runtime";
 
 const APP_RETURN_PATH = "/market/app-return?target=MarketSellItem";
 
@@ -11,7 +12,7 @@ function sellerRegisterWebPath() {
   return `/market/seller/register?app=1&return=${returnParam}`;
 }
 
-/** 판매 등록 · 판매자 온보딩 — 네이티브 대신 웹(세션 연동) */
+/** Sell listing and seller onboarding — web session instead of native. */
 export async function openMarketSellerWebFlow(
   navigation: NativeStackNavigationProp<RootStackParamList>
 ) {
@@ -22,7 +23,7 @@ export async function openMarketSellerWebFlow(
       return;
     }
   } catch {
-    /* 온보딩 미완료 또는 API 오류 → 웹 등록으로 */
+    /* Onboarding incomplete or API error — fall through to web register. */
   }
 
   await openMobileWebSession(sellerRegisterWebPath());
@@ -30,17 +31,17 @@ export async function openMarketSellerWebFlow(
 
 export function promptMarketSellerWebFlow(
   navigation: NativeStackNavigationProp<RootStackParamList>,
-  openWebAuth: (mode: "signin" | "signup") => Promise<void>,
+  openWebAuth: (mode: "signin" | "signup") => Promise<unknown>,
   signedIn: boolean
 ) {
   if (!signedIn) {
-    showIslandPrompt("로그인 필요", "판매 등록을 위해 먼저 로그인해 주세요.", {
-      label: "로그인",
+    showIslandPrompt(translate("m.lib.sign_in_required"), translate("m.lib.please_sign_in_first_to_list"), {
+      label: translate("auth.signIn"),
       onPress: () => void openWebAuth("signin"),
     });
     return;
   }
   void openMarketSellerWebFlow(navigation).catch(() => {
-    showIslandError("오류", "판매자 등록 페이지를 열지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    showIslandError(translate("m.common.error"), translate("m.lib.could_not_open_the_seller_registration"));
   });
 }

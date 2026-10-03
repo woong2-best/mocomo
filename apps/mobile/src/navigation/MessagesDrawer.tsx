@@ -28,7 +28,7 @@ export function MessagesDrawer({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
   const { colors, isDark } = useTheme();
-  const { u } = useI18n();
+  const { t } = useI18n();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const panelWidth = Math.min(Math.round(screenW * 0.92), screenW - 48);
 
@@ -83,12 +83,12 @@ export function MessagesDrawer({ visible, onClose }: Props) {
             intensity={isDark ? 55 : 65}
             tint={isDark ? "dark" : "light"}
             experimentalBlurMethod="dimezisBlurView"
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           <View
             style={[
-              StyleSheet.absoluteFillObject,
+              StyleSheet.absoluteFill,
               {
                 backgroundColor: isDark
                   ? "rgba(8, 10, 14, 0.45)"
@@ -103,7 +103,7 @@ export function MessagesDrawer({ visible, onClose }: Props) {
           style={[styles.marginDismiss, { right: panelWidth }]}
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel={u("메세지 닫기", "Close messages")}
+          accessibilityLabel={t("m.nav.close_messages")}
         />
 
         <Animated.View
@@ -128,7 +128,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
   return StyleSheet.create({
     root: { flex: 1 },
     scrimWrap: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
     marginDismiss: {
       position: "absolute",

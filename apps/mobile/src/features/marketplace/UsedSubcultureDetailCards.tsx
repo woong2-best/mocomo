@@ -25,7 +25,7 @@ export function UsedSaleStatsCard({
   productType?: string | null;
   characterName?: string | null;
 }) {
-  const { u, locale } = useI18n();
+  const { t, locale } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const [records, setRecords] = useState<SaleRecord[]>([]);
@@ -66,10 +66,10 @@ export function UsedSaleStatsCard({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>{u("최근 거래가", "Recent sale prices")}</Text>
+        <Text style={styles.title}>{t("m.marketplace.recent_sale_prices")}</Text>
         {median != null && records[0] ? (
           <Text style={styles.median}>
-            {u("중앙값", "Median")} {formatUsedPrice(median, records[0].currency, u)}
+            {t("m.marketplace.median")} {formatUsedPrice(median, records[0].currency, t)}
           </Text>
         ) : null}
       </View>
@@ -79,7 +79,7 @@ export function UsedSaleStatsCard({
             {new Date(r.soldAt).toLocaleDateString(dateLocale)}
             {r.characterName ? ` · ${r.characterName}` : ""}
           </Text>
-          <Text style={styles.rowRight}>{formatUsedPrice(r.soldPrice, r.currency, u)}</Text>
+          <Text style={styles.rowRight}>{formatUsedPrice(r.soldPrice, r.currency, t)}</Text>
         </View>
       ))}
     </View>
@@ -99,18 +99,18 @@ export function SubcultureMetaChips({
   conditionGrade?: string | null;
   tradeMode?: string | null;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const chips = [
     workTitle,
-    productType ? productTypeLabel(productType, u) : null,
+    productType ? productTypeLabel(productType, t) : null,
     characterName,
     conditionGrade,
     tradeMode === "TRADE"
-      ? u("교환", "Trade")
+      ? t("m.marketplace.trade")
       : tradeMode === "SELL_OR_TRADE"
-        ? u("판매·교환", "Sell or trade")
+        ? t("m.marketplace.sell_or_trade")
         : null,
   ].filter(Boolean) as string[];
 

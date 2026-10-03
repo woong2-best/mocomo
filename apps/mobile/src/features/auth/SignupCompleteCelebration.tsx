@@ -88,9 +88,9 @@ type Props = {
   onDone: () => void;
 };
 
-/** Full-screen “가입이 완료되었습니다” + birthday fireworks. */
+/** Full-screen signup-complete celebration plus birthday fireworks. */
 export function SignupCompleteCelebration({ visible, onDone }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { width, height } = useWindowDimensions();
   const [ready, setReady] = useState(false);
 
@@ -127,10 +127,10 @@ export function SignupCompleteCelebration({ visible, onDone }: Props) {
             ? particles.map((p) => <FireworkParticle key={p.id} p={p} height={height} />)
             : null}
         </View>
-        <Text style={styles.title}>{u("가입이 완료되었습니다", "Sign-up complete")}</Text>
-        <Text style={styles.sub}>{u("MoCoMo에 오신 걸 환영해요!", "Welcome to MoCoMo!")}</Text>
+        <Text style={styles.title}>{t("m.auth.sign_up_complete")}</Text>
+        <Text style={styles.sub}>{t("m.auth.welcome_to_mocomo")}</Text>
         <Pressable style={styles.btn} onPress={onDone}>
-          <Text style={styles.btnText}>{u("시작하기", "Get started")}</Text>
+          <Text style={styles.btnText}>{t("m.auth.get_started")}</Text>
         </Pressable>
       </View>
     </Modal>

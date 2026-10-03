@@ -13,8 +13,8 @@ export function LiveDonationBar({
   goalKrw?: number | null;
   totalKrw?: number;
 }) {
-  const { u } = useI18n();
-  const copy = liveUi(u);
+  const { t } = useI18n();
+  const copy = liveUi(t);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const total = totalKrw ?? 0;

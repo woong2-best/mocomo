@@ -43,7 +43,7 @@ function formatPrice(amount: number) {
 }
 
 export function MarketCartScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -89,7 +89,7 @@ export function MarketCartScreen() {
 
   function startGroupCheckout(group: CartCheckoutGroup) {
     if (blocked) {
-      showIslandError(u("이용 불가", "Unavailable"), disclaimer || u("해당 지역에서 이용할 수 없습니다.", "Not available in your region."));
+      showIslandError(t("m.common.unavailable"), disclaimer || t("m.market.not_available_in_your_region"));
       return;
     }
     setPayGroup(group);
@@ -101,14 +101,14 @@ export function MarketCartScreen() {
       await removeFromMarketplaceCart(line.listingId);
     }
     reload();
-    showIslandSuccess(u("결제 완료", "Payment complete"), u("주문이 접수되었습니다.", "Your order was placed."));
+    showIslandSuccess(t("m.common.payment_complete"), t("m.market.your_order_was_placed"));
   }
 
   const checkoutListingId = payGroup?.lines[0]?.listingId ?? "";
 
   return (
     <Screen>
-      <AppHeader title={u("장바구니", "Cart")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.market.cart")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       {disclaimer ? (
         <Text style={[styles.disclaimer, blocked && { color: colors.terracotta }]}>{disclaimer}</Text>
       ) : null}
@@ -117,15 +117,15 @@ export function MarketCartScreen() {
         data={items}
         keyExtractor={(item) => item.listingId}
         contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 24, gap: 12 }}
-        ListEmptyComponent={<Text style={styles.empty}>{u("장바구니가 비어 있습니다.", "Your cart is empty.")}</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t("m.market.your_cart_is_empty")}</Text>}
         ListFooterComponent={
           groups.length > 0 ? (
             <View style={styles.checkoutBlock}>
-              <Text style={styles.checkoutTitle}>{u("판매자별 결제 (웹과 동일)", "Checkout per seller (same as web)")}</Text>
-              <Text style={styles.shipTitle}>{u("배송지 (실물 상품)", "Shipping (physical items)")}</Text>
+              <Text style={styles.checkoutTitle}>{t("m.market.checkout_per_seller_same_as_web")}</Text>
+              <Text style={styles.shipTitle}>{t("m.market.shipping_physical_items")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder={u("이름", "Name")}
+                placeholder={t("m.market.name")}
                 placeholderTextColor={colors.textMuted}
                 value={shipName}
                 onChangeText={setShipName}
@@ -143,7 +143,7 @@ export function MarketCartScreen() {
               </View>
               <TextInput
                 style={styles.input}
-                placeholder={u("우편번호 · 주소 · 연락처", "Postal code · address · phone")}
+                placeholder={t("m.market.postal_code_address_phone")}
                 placeholderTextColor={colors.textMuted}
                 value={shipAddress1}
                 onChangeText={setShipAddress1}
@@ -152,9 +152,9 @@ export function MarketCartScreen() {
                 <View key={g.sellerId} style={styles.groupCard}>
                   <Text style={styles.groupSeller}>{g.sellerDisplayName}</Text>
                   <Text style={styles.groupMeta}>
-                    {u(`${g.itemCount}종 · ${formatPrice(g.total)}`, `${g.itemCount} items · ${formatPrice(g.total)}`)}
+                    {t("m.market.itemcount_items_formatprice", { itemCount: String(g.itemCount), formatPrice: String(formatPrice(g.total)) })}
                   </Text>
-                  <FolkButton label={u("이 판매자 상품 결제", "Pay this seller")} onPress={() => startGroupCheckout(g)} />
+                  <FolkButton label={t("m.market.pay_this_seller")} onPress={() => startGroupCheckout(g)} />
                 </View>
               ))}
             </View>
@@ -191,7 +191,7 @@ export function MarketCartScreen() {
                   <Text style={styles.qtyBtnText}>+</Text>
                 </Pressable>
                 <Pressable onPress={() => void removeFromMarketplaceCart(item.listingId).then(reload)} hitSlop={8}>
-                  <Text style={styles.remove}>{u("삭제", "Remove")}</Text>
+                  <Text style={styles.remove}>{t("m.common.remove")}</Text>
                 </Pressable>
               </View>
             </View>

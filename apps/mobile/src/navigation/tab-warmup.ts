@@ -16,7 +16,6 @@ import { fetchPaymentMethods } from "@/payments/stripe-setup";
 import type { DrawerRoute, RootTabParamList } from "@/navigation/types";
 
 const DEFAULT_MARKETPLACE_QUERY = { take: 48 };
-const DEFAULT_AUCTION_QUERY = { take: 48, mode: "auction" as const };
 const DEFAULT_RECOMMEND_QUERY = { take: 8, lane: "recommend" as const };
 const STALE_MS = 90_000;
 const LIVE_HUB_STALE_MS = 25_000;
@@ -101,7 +100,7 @@ export function prefetchDrawerQueries(queryClient: QueryClient): void {
     queryFn: ({ pageParam }) =>
       fetchQnaFeedPage({ cursor: pageParam, category: "ALL" }),
     initialPageParam: null as string | null,
-    getNextPageParam: (last) => last.nextCursor,
+    getNextPageParam: (last: { nextCursor?: string | null }) => last.nextCursor,
     staleTime: STALE_MS,
   });
   void queryClient.prefetchQuery({
@@ -209,7 +208,7 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
         queryFn: ({ pageParam }) =>
           fetchQnaFeedPage({ cursor: pageParam, category: "ALL" }),
         initialPageParam: null as string | null,
-        getNextPageParam: (last) => last.nextCursor,
+        getNextPageParam: (last: { nextCursor?: string | null }) => last.nextCursor,
         staleTime: STALE_MS,
       });
       return;
@@ -262,13 +261,6 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
       void queryClient.prefetchQuery({
         queryKey: ["mobile-profile-edit"],
         queryFn: fetchProfileEditState,
-        staleTime: STALE_MS,
-      });
-      return;
-    case "AuctionList":
-      void queryClient.prefetchQuery({
-        queryKey: ["mobile-marketplace", "auction", DEFAULT_AUCTION_QUERY],
-        queryFn: () => fetchMarketplaceList(DEFAULT_AUCTION_QUERY),
         staleTime: STALE_MS,
       });
       return;

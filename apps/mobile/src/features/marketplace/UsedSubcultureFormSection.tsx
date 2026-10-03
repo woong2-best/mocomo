@@ -67,7 +67,7 @@ export function UsedSubcultureFormSection({
   muted: string;
   line: string;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const styles = useMemo(() => createStyles(ink, paper, muted, line), [ink, paper, muted, line]);
   const [hits, setHits] = useState<AnimeHit[]>([]);
 
@@ -93,12 +93,12 @@ export function UsedSubcultureFormSection({
   return (
     <View style={{ gap: 18 }}>
       <View>
-        <Text style={styles.label}>{u("작품명", "Work title")}</Text>
+        <Text style={styles.label}>{t("m.marketplace.work_title")}</Text>
         <TextInput
           style={styles.input}
           value={value.workTitle}
           onChangeText={(t) => patch({ workTitle: t, animeSlug: null })}
-          placeholder={u("블루아카이브, 원신…", "Blue Archive, Genshin…")}
+          placeholder={t("m.marketplace.blue_archive_genshin")}
           placeholderTextColor={muted}
         />
         {hits.length > 0 ? (
@@ -128,12 +128,12 @@ export function UsedSubcultureFormSection({
       </View>
 
       <View>
-        <Text style={styles.label}>{u("상품 종류", "Product type")}</Text>
+        <Text style={styles.label}>{t("m.common.product_type")}</Text>
         <View style={styles.checkWrap}>
           {USED_SELL_KINDS.map((p) => (
             <MarketCheckOption
               key={p.id}
-              label={usedCatalogLabel(p.label, p.id, u)}
+              label={usedCatalogLabel(p.id, t)}
               checked={value.productType === p.id}
               onPress={() => patch({ productType: p.id })}
               ink={ink}
@@ -145,7 +145,7 @@ export function UsedSubcultureFormSection({
       </View>
 
       <View>
-        <Text style={styles.label}>{u("상태", "Condition")}</Text>
+        <Text style={styles.label}>{t("m.marketplace.condition")}</Text>
         <View style={styles.checkWrap}>
           {CONDITION_OPTIONS.map((o) => (
             <MarketCheckOption

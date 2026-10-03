@@ -9,7 +9,7 @@ export type VideoFilterPreset = {
 
 /** Instagram Reels-style filter names (reference screenshots). */
 export const MOBILE_VIDEO_FILTERS: VideoFilterPreset[] = [
-  { id: "none", label: "일반", vf: "" },
+  { id: "none", label: "Original", vf: "" },
   {
     id: "fade",
     label: "Fade",

@@ -54,7 +54,7 @@ export function MarketplacePaymentSheet({
   onClose,
   onSuccess,
 }: Props) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
@@ -83,10 +83,10 @@ export function MarketplacePaymentSheet({
         setSelectedId(def?.id ?? null);
       })
       .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : u("결제 준비에 실패했습니다.", "Could not prepare payment."));
+        setError(e instanceof Error ? e.message : t("m.payments.could_not_prepare_payment"));
       })
       .finally(() => setLoading(false));
-  }, [visible, listingId, body, prepareCheckout, u]);
+  }, [visible, listingId, body, prepareCheckout, t]);
 
   async function openAuthenticate(authenticateUrl: string, oid: string) {
     const result = await WebBrowser.openAuthSessionAsync(authenticateUrl, RETURN_PREFIX, {
@@ -94,24 +94,24 @@ export function MarketplacePaymentSheet({
       showInRecents: true,
     });
     if (result.type !== "success" || !result.url) {
-      throw new Error(u("카드 인증이 취소되었습니다.", "Card verification was canceled."));
+      throw new Error(t("m.payments.card_verification_was_canceled"));
     }
     const parsed = new URL(result.url);
     const returnedOrderId = parsed.searchParams.get("order_id") ?? oid;
     const finalized = await finalizeMarketplacePayment(listingId, returnedOrderId);
     if (!("success" in finalized) || !finalized.success) {
-      throw new Error(u("결제 확인에 실패했습니다.", "Payment confirmation failed."));
+      throw new Error(t("m.payments.payment_confirmation_failed"));
     }
     onSuccess({ type: finalized.type, alreadyPaid: finalized.alreadyPaid });
   }
 
   async function paySelected() {
     if (!orderId || !selectedId) {
-      setError(u("카드를 선택해 주세요.", "Select a card."));
+      setError(t("m.payments.select_a_card"));
       return;
     }
     if (!purchaseTermsAccepted) {
-      setError(u("결제 전 이용약관에 동의해 주세요.", "Accept the terms before paying."));
+      setError(t("m.payments.accept_the_terms_before_paying"));
       return;
     }
     setPaying(true);
@@ -132,7 +132,7 @@ export function MarketplacePaymentSheet({
         setError(res.error);
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("결제에 실패했습니다.", "Payment failed."));
+      setError(e instanceof Error ? e.message : t("m.payments.payment_failed"));
     } finally {
       setPaying(false);
     }
@@ -141,7 +141,7 @@ export function MarketplacePaymentSheet({
   async function payWithNewCard() {
     if (!orderId) return;
     if (!purchaseTermsAccepted) {
-      setError(u("결제 전 이용약관에 동의해 주세요.", "Accept the terms before paying."));
+      setError(t("m.payments.accept_the_terms_before_paying"));
       return;
     }
     setPaying(true);
@@ -153,10 +153,10 @@ export function MarketplacePaymentSheet({
         showInRecents: true,
       });
       if (result.type === "cancel" || result.type === "dismiss") {
-        throw new Error(u("결제가 취소되었습니다.", "Payment was canceled."));
+        throw new Error(t("m.payments.payment_was_canceled"));
       }
       if (result.type !== "success" || !result.url) {
-        throw new Error(u("결제를 완료하지 못했습니다.", "Could not complete payment."));
+        throw new Error(t("m.payments.could_not_complete_payment"));
       }
       let sessionId: string | null = null;
       try {
@@ -165,12 +165,12 @@ export function MarketplacePaymentSheet({
         const m = /[?&]session_id=([^&]+)/.exec(result.url);
         sessionId = m?.[1] ? decodeURIComponent(m[1]) : null;
       }
-      if (!sessionId) throw new Error(u("결제 세션을 확인하지 못했습니다.", "Could not verify payment session."));
+      if (!sessionId) throw new Error(t("m.payments.could_not_verify_payment_session"));
       const confirmed = await confirmCheckout(sessionId);
       onSuccess({ type: confirmed.type, alreadyPaid: confirmed.alreadyPaid });
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("결제에 실패했습니다.", "Payment failed."));
+      setError(e instanceof Error ? e.message : t("m.payments.payment_failed"));
     } finally {
       setPaying(false);
     }
@@ -180,7 +180,7 @@ export function MarketplacePaymentSheet({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: colors.surfaceRaised }]}>
-          <Text style={[styles.title, { color: colors.text }]}>{u("결제 수단 선택", "Choose payment method")}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t("m.payments.choose_payment_method")}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>{orderName}</Text>
           <Text style={[styles.amount, { color: colors.text }]}>
             {amount > 0 ? formatUsd(amount) : "—"}
@@ -234,7 +234,7 @@ export function MarketplacePaymentSheet({
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.cardTitle, { color: colors.text }]}>
                       {pm.brand} •••• {pm.last4}
-                      {pm.isDefault ? u(" · 기본", " · Default") : ""}
+                      {pm.isDefault ? t("m.payments.default") : ""}
                     </Text>
                     <Text style={[styles.cardMeta, { color: colors.textMuted }]}>
                       {String(pm.expMonth).padStart(2, "0")}/{String(pm.expYear).slice(-2)}
@@ -246,9 +246,9 @@ export function MarketplacePaymentSheet({
                 onPress={() => void payWithNewCard()}
                 style={[styles.cardRow, { borderColor: colors.hairline, borderStyle: "dashed" }]}
               >
-                <Text style={[styles.cardTitle, { color: colors.text }]}>{u("+ 새 카드로 결제", "+ Pay with new card")}</Text>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t("m.payments.pay_with_new_card")}</Text>
                 <Text style={[styles.cardMeta, { color: colors.textMuted }]}>
-                  {u("Stripe에서 카드 입력 · 저장 가능", "Enter card in Stripe · can save for later")}
+                  {t("m.payments.enter_card_in_stripe_can_save")}
                 </Text>
               </Pressable>
             </ScrollView>
@@ -262,14 +262,14 @@ export function MarketplacePaymentSheet({
             <FolkButton label={t("toast.cancel")} variant="ghost" onPress={onClose} disabled={paying} />
             {methods.length > 0 ? (
               <FolkButton
-                label={paying ? u("결제 중…", "Paying…") : u("선택한 카드로 결제", "Pay with selected card")}
+                label={paying ? t("m.payments.paying") : t("m.payments.pay_with_selected_card")}
                 onPress={() => void paySelected()}
                 loading={paying}
                 disabled={!selectedId || loading || !purchaseTermsAccepted}
               />
             ) : (
               <FolkButton
-                label={paying ? u("이동 중…", "Opening…") : u("새 카드로 결제", "Pay with new card")}
+                label={paying ? t("m.common.opening") : t("m.payments.pay_with_new_card_2")}
                 onPress={() => void payWithNewCard()}
                 loading={paying}
                 disabled={loading || !orderId || !purchaseTermsAccepted}

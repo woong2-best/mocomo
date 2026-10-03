@@ -25,8 +25,9 @@ import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { TFn } from "@/i18n/types";
 
-const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"] as const;
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 type MemoTarget =
   | { kind: "day"; cell: CalendarCell }
@@ -43,23 +44,23 @@ function formatScheduleMemo(
     time: string | null;
     note: string | null;
   },
-  u: (ko: string, en: string) => string,
+  t: TFn,
   weekdayEn: (d: number) => string
 ): string {
   const days =
     input.weekdays.length > 0
       ? input.weekdays
-          .map((d) => u(`매주 ${WEEKDAY_KO[d]}`, `Every ${weekdayEn(d)}`))
+          .map((d) => t("m.profile.every_weekdayen", { weekdayEn: String(weekdayEn(d)) }))
           .join(" · ")
-      : u("매주", "Weekly");
+      : t("m.profile.weekly");
   const time = input.time ? `${input.time}` : "";
   const head = [days, time].filter(Boolean).join(" ");
   const note = input.note?.trim();
-  const stream = u("📺 방송", "📺 Stream");
+  const stream = t("m.profile.stream");
   if (note && head) return `${stream} ${head}\n${note}`;
   if (note) return `${stream}\n${note}`;
   if (head) return `${stream} ${head}`;
-  return u("📺 방송 일정", "📺 Stream schedule");
+  return t("m.profile.stream_schedule");
 }
 
 function chunkWeeks(cells: CalendarCell[]): CalendarCell[][] {
@@ -84,7 +85,7 @@ function safeTimeZone(value?: string | null): string {
 }
 
 export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const tz = safeTimeZone(timeZone);
@@ -150,7 +151,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
           time: scheduleTime,
           note: scheduleNote,
         },
-        u,
+        t,
         (d) => weekdays[d]?.en ?? String(d)
       )
     );
@@ -191,13 +192,13 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
     target?.kind === "day"
       ? `${target.cell.y}.${String(target.cell.m).padStart(2, "0")}.${String(target.cell.d).padStart(2, "0")}`
       : target?.kind === "weekday"
-        ? u(`매주 ${WEEKDAY_KO[target.weekday]}`, `Every ${weekdays[target.weekday]?.en ?? target.weekday}`)
+        ? t("m.profile.every_v", { v: String(weekdays[target.weekday]?.en ?? target.weekday) })
         : "";
   const memoSubtitle =
     target?.kind === "day"
       ? (target.cell.holiday ?? null)
       : target?.kind === "weekday"
-        ? u("방송 일정 · 라이브 스튜디오에서 수정", "Stream schedule · edit in Live Studio")
+        ? t("m.profile.stream_schedule_edit_in_live_studio")
         : null;
 
   return (
@@ -209,7 +210,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
             setMonthPickerOpen(true);
           }}
           accessibilityRole="button"
-          accessibilityLabel={u("월 선택", "Pick month")}
+          accessibilityLabel={t("m.profile.pick_month")}
           hitSlop={8}
         >
           <Text style={styles.monthNum}>{month}</Text>
@@ -232,12 +233,12 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
             hitSlop={8}
             style={styles.navBtn}
             accessibilityRole="button"
-            accessibilityLabel={u("이전 달", "Previous month")}
+            accessibilityLabel={t("m.profile.previous_month")}
           >
             <Ionicons name="chevron-back" size={16} color={colors.textMuted} />
           </Pressable>
           <Pressable onPress={goToday} hitSlop={6} style={styles.todayHit}>
-            <Text style={styles.todayBtn}>{u("오늘", "Today")}</Text>
+            <Text style={styles.todayBtn}>{t("m.common.today")}</Text>
           </Pressable>
           <Pressable
             onPress={() => {
@@ -249,7 +250,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
             hitSlop={8}
             style={styles.navBtn}
             accessibilityRole="button"
-            accessibilityLabel={u("다음 달", "Next month")}
+            accessibilityLabel={t("m.profile.next_month")}
           >
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
@@ -269,7 +270,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
                 isScheduleHeader && styles.weekSchedule,
               ]}
               accessibilityRole="button"
-              accessibilityLabel={u(`${w.han} ${w.en} 메모`, `${w.en} memo`)}
+              accessibilityLabel={t("m.profile.en_memo", { en: String(w.en) })}
             >
               <Text
                 style={[
@@ -344,7 +345,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
         ))}
       </View>
 
-      {loadError ? <Text style={styles.errorText}>{u("메모를 불러오지 못했습니다.", "Could not load memos.")}</Text> : null}
+      {loadError ? <Text style={styles.errorText}>{t("m.profile.could_not_load_memos")}</Text> : null}
 
       <Modal
         visible={monthPickerOpen}
@@ -359,13 +360,13 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
             accessibilityRole="button"
           />
           <View style={styles.pickerCard}>
-            <Text style={styles.pickerTitle}>{u("월 선택", "Pick month")}</Text>
+            <Text style={styles.pickerTitle}>{t("m.profile.pick_month")}</Text>
             <View style={styles.pickerYearRow}>
               <Pressable
                 onPress={() => setPickerYear((y) => y - 1)}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={u("이전 해", "Previous year")}
+                accessibilityLabel={t("m.profile.previous_year")}
               >
                 <Ionicons name="chevron-back" size={20} color={colors.text} />
               </Pressable>
@@ -374,7 +375,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
                 onPress={() => setPickerYear((y) => y + 1)}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={u("다음 해", "Next year")}
+                accessibilityLabel={t("m.profile.next_year")}
               >
                 <Ionicons name="chevron-forward" size={20} color={colors.text} />
               </Pressable>
@@ -413,7 +414,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
               style={[styles.memoInput, !editingDay && styles.memoInputReadonly]}
               value={memoDraft}
               onChangeText={setMemoDraft}
-              placeholder={editingDay ? u("이 날짜의 메모…", "Memo for this day…") : undefined}
+              placeholder={editingDay ? t("m.profile.memo_for_this_day") : undefined}
               placeholderTextColor={colors.textMuted}
               multiline
               editable={editingDay}
@@ -427,7 +428,7 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
               />
               {editingDay ? (
                 <FolkButton
-                  label={saving ? u("저장 중…", "Saving…") : u("저장", "Save")}
+                  label={saving ? t("m.common.saving") : t("m.common.save")}
                   loading={saving}
                   onPress={() => void saveMemo()}
                 />

@@ -25,8 +25,8 @@ type Props = {
 };
 
 export function LiveGlassSearch({ value, onChangeText, expandedWidth }: Props) {
-  const { u } = useI18n();
-  const copy = liveUi(u);
+  const { t } = useI18n();
+  const copy = liveUi(t);
   const inputRef = useRef<TextInput>(null);
   const open = useSharedValue(0);
   const [openUi, setOpenUi] = useState(false);

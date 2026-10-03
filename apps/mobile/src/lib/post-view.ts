@@ -3,7 +3,7 @@ import { MobileApi } from "@/api/paths";
 
 const viewed = new Set<string>();
 
-/** 앱 세션당 1회만 조회 기록. 성공 시 갱신된 viewCount 반환 */
+/** Record a view once per app session. Returns the updated viewCount on success. */
 export async function recordPostViewOnce(postId: string): Promise<number | null> {
   if (!postId || viewed.has(postId)) return null;
   viewed.add(postId);

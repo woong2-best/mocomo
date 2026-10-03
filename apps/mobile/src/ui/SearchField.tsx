@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } fro
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = TextInputProps & {
   onClear?: () => void;
@@ -16,6 +17,7 @@ export const SearchField = forwardRef<TextInput, Props>(function SearchField(
   { onClear, containerStyle, value, style, variant = "default", ...rest },
   ref
 ) {
+  const { t } = useI18n();
   const { colors, isDark } = useTheme();
   const pill = variant === "pill";
   return (
@@ -38,7 +40,7 @@ export const SearchField = forwardRef<TextInput, Props>(function SearchField(
       />
       <TextInput
         ref={ref}
-        placeholder="검색"
+        placeholder={t("m.common.search")}
         placeholderTextColor={colors.textMuted}
         value={value}
         style={[styles.input, { color: colors.text }, style]}
@@ -58,20 +60,22 @@ export const SearchField = forwardRef<TextInput, Props>(function SearchField(
 
 /**
  * Header search affordance (web HeaderSearch look):
- * bordered pill with magnifier + "검색", navigates on press.
+ * bordered pill with magnifier + search label, navigates on press.
  */
 export function SearchFieldButton({
   onPress,
-  label = "검색",
+  label,
 }: {
   onPress: () => void;
   label?: string;
 }) {
+  const { t } = useI18n();
   const { colors, isDark } = useTheme();
+  const resolvedLabel = label ?? t("m.common.search");
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={resolvedLabel}
       style={[
         styles.wrap,
         styles.headerSearch,
@@ -84,7 +88,7 @@ export function SearchFieldButton({
     >
       <Ionicons name="search" size={18} color={colors.brand} style={styles.icon} />
       <Text style={[styles.placeholder, { color: colors.textMuted }]} numberOfLines={1}>
-        {label}
+        {resolvedLabel}
       </Text>
     </Pressable>
   );

@@ -88,8 +88,8 @@ export function LiveSupportSheet({
   initialTab = "GENERAL",
   onSuccess,
 }: Props) {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -115,7 +115,7 @@ export function LiveSupportSheet({
     setLoading(true);
     const min = SUPPORT_MIN_AMOUNT[type];
     if (effectiveAmount < min) {
-      setError(u(`최소 ${min.toLocaleString()} MOCO`, `Minimum ${min.toLocaleString()} MOCO`));
+      setError(t("m.live.minimum_min_moco", { min: String(min.toLocaleString()) }));
       setLoading(false);
       return;
     }
@@ -126,7 +126,7 @@ export function LiveSupportSheet({
         message: message.trim() || undefined,
       });
       if (!res.ok || !res.event) {
-        setError(res.error ?? u("응원에 실패했습니다.", "Could not send cheer."));
+        setError(res.error ?? t("m.live.could_not_send_cheer"));
         return;
       }
       const roulette =
@@ -135,8 +135,8 @@ export function LiveSupportSheet({
           : null;
       setSuccess(
         roulette
-          ? u(`룰렛 결과: ${roulette}`, `Roulette: ${roulette}`)
-          : u("응원을 보냈습니다!", "Cheer sent!")
+          ? t("m.live.roulette_roulette", { roulette: String(roulette) })
+          : t("m.live.cheer_sent")
       );
       setMessage("");
       onSuccess?.();
@@ -147,7 +147,7 @@ export function LiveSupportSheet({
           typeof e.body === "object" &&
           "error" in e.body
           ? String((e.body as { error: string }).error)
-          : u("응원에 실패했습니다.", "Could not send cheer.")
+          : t("m.live.could_not_send_cheer")
       );
     } finally {
       setLoading(false);
@@ -160,12 +160,12 @@ export function LiveSupportSheet({
     setLoading(true);
     const title = missionTitle.trim();
     if (!title) {
-      setError(u("미션 내용을 입력해 주세요.", "Enter a mission description."));
+      setError(t("m.live.enter_a_mission_description"));
       setLoading(false);
       return;
     }
     if (missionReward < 500) {
-      setError(u("최소 500 MOCO", "Minimum 500 MOCO"));
+      setError(t("m.live.minimum_500_moco"));
       setLoading(false);
       return;
     }
@@ -175,10 +175,10 @@ export function LiveSupportSheet({
         rewardAmount: missionReward,
       });
       if (!res.ok || !res.mission) {
-        setError(res.error ?? u("미션 등록에 실패했습니다.", "Could not create mission."));
+        setError(res.error ?? t("m.live.could_not_create_mission"));
         return;
       }
-      setSuccess(u("미션이 등록되었습니다.", "Mission created."));
+      setSuccess(t("m.live.mission_created"));
       setMissionTitle("");
       onSuccess?.();
     } catch (e) {
@@ -188,7 +188,7 @@ export function LiveSupportSheet({
           typeof e.body === "object" &&
           "error" in e.body
           ? String((e.body as { error: string }).error)
-          : u("미션 등록에 실패했습니다.", "Could not create mission.")
+          : t("m.live.could_not_create_mission")
       );
     } finally {
       setLoading(false);
@@ -257,7 +257,7 @@ export function LiveSupportSheet({
                 style={[styles.atmInput, styles.atmMessage]}
                 value={missionTitle}
                 onChangeText={setMissionTitle}
-                placeholder={u("미션 내용", "Mission description")}
+                placeholder={t("m.live.mission_description")}
                 placeholderTextColor="rgba(0,0,0,0.35)"
                 maxLength={120}
               />
@@ -281,7 +281,7 @@ export function LiveSupportSheet({
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.sendBtnText}>{u("미션 등록", "Create mission")}</Text>
+                <Text style={styles.sendBtnText}>{t("m.live.create_mission")}</Text>
               )}
             </Pressable>
           </View>
@@ -306,7 +306,7 @@ export function LiveSupportSheet({
                   style={[styles.atmInput, styles.atmMessage]}
                   value={message}
                   onChangeText={setMessage}
-                  placeholder={u("메시지 (선택)", "Message (optional)")}
+                  placeholder={t("m.live.message_optional")}
                   placeholderTextColor="rgba(0,0,0,0.35)"
                   maxLength={200}
                 />
@@ -322,7 +322,7 @@ export function LiveSupportSheet({
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.sendBtnText}>
-                  {tab === "ROULETTE" ? u("룰렛 돌리기", "Spin roulette") : u("보내기", "Send")}
+                  {tab === "ROULETTE" ? t("m.live.spin_roulette") : t("m.common.send")}
                 </Text>
               )}
             </Pressable>

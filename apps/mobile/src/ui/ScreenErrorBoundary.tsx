@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { FolkButton } from "@/ui/FolkButton";
 import { spacing } from "@/theme/tokens";
+import { translate } from "@/i18n/runtime";
 
 type Props = {
   children: ReactNode;
@@ -34,11 +35,12 @@ export class ScreenErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <View style={styles.wrap}>
-          <Text style={styles.title}>화면을 불러오지 못했습니다</Text>
+          <Text style={styles.title}>{translate("m.ui.could_not_load_this_screen")}</Text>
           <Text style={styles.message}>
-            {this.props.label ? `${this.props.label} ` : ""}오류가 발생했습니다. 다시 시도해 주세요.
+            {this.props.label ? `${this.props.label} ` : ""}
+            {translate("m.ui.something_went_wrong_try_again")}
           </Text>
-          <FolkButton label="다시 시도" onPress={this.retry} />
+          <FolkButton label={translate("toast.retry")} onPress={this.retry} />
         </View>
       );
     }

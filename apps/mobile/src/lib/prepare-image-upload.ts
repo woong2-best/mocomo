@@ -1,6 +1,7 @@
 import { Image } from "react-native";
 import * as ImageManipulator from "expo-image-manipulator";
 import type { LocalMediaDraft } from "@/features/compose/compose-types";
+import { translate } from "@/i18n/runtime";
 
 const MAX_SIDE = 1920;
 
@@ -9,12 +10,12 @@ function loadImageSize(uri: string): Promise<{ width: number; height: number }> 
     Image.getSize(
       uri,
       (width, height) => resolve({ width, height }),
-      (err) => reject(err ?? new Error("이미지 크기를 읽을 수 없습니다."))
+      (err) => reject(err ?? new Error(translate("m.lib.could_not_read_the_image_size")))
     );
   });
 }
 
-/** 웹 prepareGalleryImageForUpload와 동일 — 긴 변 1920px JPEG */
+/** Same as web prepareGalleryImageForUpload — long edge 1920px JPEG. */
 export async function prepareImageForUpload(item: LocalMediaDraft): Promise<LocalMediaDraft> {
   if (item.type !== "IMAGE") return item;
 

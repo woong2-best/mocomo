@@ -8,8 +8,8 @@ const OFF_AIR_TV = require("../../../assets/live/off-air-tv.png");
 
 /** Off-air hero. The TV artwork is shown unchanged inside the 16:9 stage. */
 function LiveEmptyTestPatternInner() {
-  const { u } = useI18n();
-  const copy = liveUi(u);
+  const { t } = useI18n();
+  const copy = liveUi(t);
   const { width } = useWindowDimensions();
   const height = Math.round(width * (9 / 16));
 

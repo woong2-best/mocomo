@@ -16,7 +16,7 @@ type Props = {
 };
 
 export function RevenuePayoutPanel({ withdrawable, bankReady }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
@@ -27,23 +27,23 @@ export function RevenuePayoutPanel({ withdrawable, bankReady }: Props) {
     const n = Number(amount.replace(/\D/g, ""));
     if (n < MIN_PAYOUT_USD_CENTS) {
       showIslandError(
-        u("출금", "Payout"),
-        u(`최소 ${formatUsd(MIN_PAYOUT_USD_CENTS)} 이상 신청할 수 있습니다.`, `Minimum payout is ${formatUsd(MIN_PAYOUT_USD_CENTS)}.`)
+        t("m.wallet.payout"),
+        t("m.wallet.minimum_payout_is_formatusd", { formatUsd: String(formatUsd(MIN_PAYOUT_USD_CENTS)) })
       );
       return;
     }
     if (n > withdrawable) {
-      showIslandError(u("출금", "Payout"), u("출금 가능 잔액을 초과했습니다.", "Amount exceeds available balance."));
+      showIslandError(t("m.wallet.payout"), t("m.wallet.amount_exceeds_available_balance"));
       return;
     }
     setBusy(true);
     try {
       await requestWalletPayout(n);
-      showIslandSuccess(u("출금 신청", "Payout requested"), u("출금 신청이 접수되었습니다.", "Your payout request was submitted."));
+      showIslandSuccess(t("m.wallet.payout_requested"), t("m.wallet.your_payout_request_was_submitted"));
       setAmount("");
       void queryClient.invalidateQueries({ queryKey: ["mobile-wallet"] });
     } catch (e: unknown) {
-      showIslandError(u("출금 실패", "Payout failed"), e instanceof Error ? e.message : u("출금 신청에 실패했습니다.", "Could not request payout."));
+      showIslandError(t("m.wallet.payout_failed"), e instanceof Error ? e.message : t("m.wallet.could_not_request_payout"));
     } finally {
       setBusy(false);
     }
@@ -51,26 +51,26 @@ export function RevenuePayoutPanel({ withdrawable, bankReady }: Props) {
 
   return (
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[styles.heading, { color: colors.text }]}>{u("출금 신청", "Request payout")}</Text>
+      <Text style={[styles.heading, { color: colors.text }]}>{t("m.wallet.request_payout")}</Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        {u("출금 가능", "Available")} {formatUsd(withdrawable)} · {u("최소", "Min")} {formatUsd(MIN_PAYOUT_USD_CENTS)}
+        {t("m.wallet.available")} {formatUsd(withdrawable)} · {t("m.common.min")} {formatUsd(MIN_PAYOUT_USD_CENTS)}
       </Text>
         {!bankReady ? (
         <Text style={[styles.body, { color: colors.danger }]}>
-          {u("먼저 Stripe Connect 정산 계좌 연동을 완료해 주세요.", "Complete Stripe Connect payout setup first.")}
+          {t("m.wallet.complete_stripe_connect_payout_setup_fir")}
         </Text>
       ) : (
         <>
           <TextInput
             value={amount}
             onChangeText={setAmount}
-            placeholder={u("출금 금액", "Payout amount")}
+            placeholder={t("m.wallet.payout_amount")}
             keyboardType="number-pad"
             placeholderTextColor={colors.textMuted}
             style={[styles.input, { borderColor: colors.hairline, color: colors.text }]}
           />
           <FolkButton
-            label={busy ? u("신청 중…", "Submitting…") : u("출금 신청", "Request payout")}
+            label={busy ? t("m.wallet.submitting") : t("m.wallet.request_payout")}
             onPress={() => void submit()}
             loading={busy}
             disabled={withdrawable < MIN_PAYOUT_USD_CENTS}

@@ -9,6 +9,7 @@ import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 
 import { registerAllNotificationCategories } from "@/push/notification-categories";
+import { translate } from "@/i18n/runtime";
 
 
 
@@ -86,7 +87,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     await Notifications.setNotificationChannelAsync("default", {
 
-      name: "알림",
+      name: translate("nav.notifications"),
 
       importance: Notifications.AndroidImportance.DEFAULT,
 
@@ -94,7 +95,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     await Notifications.setNotificationChannelAsync("social", {
 
-      name: "소셜",
+      name: translate("m.push.social"),
 
       importance: Notifications.AndroidImportance.HIGH,
 
@@ -104,7 +105,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     await Notifications.setNotificationChannelAsync("messages", {
 
-      name: "메시지",
+      name: translate("m.common.message"),
 
       importance: Notifications.AndroidImportance.HIGH,
 
@@ -114,7 +115,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     await Notifications.setNotificationChannelAsync("calls", {
 
-      name: "통화",
+      name: translate("m.settings.calls"),
 
       importance: Notifications.AndroidImportance.MAX,
 

@@ -26,7 +26,7 @@ export function DrawerSubcultureMapCard({
   onExpandPressIn,
 }: Props) {
   const { user } = useAuth();
-  const { locale, u } = useI18n();
+  const { locale, t } = useI18n();
   const { colors, isDark } = useTheme();
   const mapH = Math.max(180, height);
   const backgroundColor = isDark ? "#0F1524" : colors.background;
@@ -73,7 +73,7 @@ export function DrawerSubcultureMapCard({
               onPress={() => setAttribOpen((open) => !open)}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={u("지도 타일 저작권 정보", "Map tile attribution")}
+              accessibilityLabel={t("m.common.map_tile_attribution")}
             >
               <Ionicons name="information" size={10} color={isDark ? "rgba(245,240,232,0.8)" : colors.textMuted} />
             </Pressable>

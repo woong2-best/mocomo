@@ -6,6 +6,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { MarketListingFilterId } from "@/lib/market-brand";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { TFn } from "@/i18n/types";
 
 type Slide = {
   id: string;
@@ -18,69 +19,57 @@ type Slide = {
   panelBg: string;
 };
 
-function buildSlides(u: (ko: string, en: string) => string): Slide[] {
+function buildSlides(t: TFn): Slide[] {
   return [
     {
       id: "custom",
-      eyebrow: u("주문제작 OPEN", "Custom orders OPEN"),
-      title: u("코스프레·소품\n맞춤 제작", "Cosplay & props\ncustom made"),
-      subtitle: u(
-        "제작 일수·견적을 확인하고 크리에이터에게 바로 주문하세요.",
-        "Check lead time and quotes, then order from the creator."
-      ),
-      cta: u("주문제작 둘러보기", "Browse custom orders"),
+      eyebrow: t("m.market.custom_orders_open"),
+      title: t("m.market.cosplay_props_custom_made"),
+      subtitle: t("m.market.check_lead_time_and_quotes_then"),
+      cta: t("m.market.browse_custom_orders"),
       filter: "CUSTOM_ORDER",
       panelBg: "#F3E8D8",
     },
     {
       id: "preorder",
-      eyebrow: u("예약판매", "Pre-order"),
-      title: u("한정 굿즈\n미리 확보", "Limited goods\nreserve early"),
-      subtitle: u(
-        "예약 오픈 상품을 먼저 잡고, 발송 일정을 추적하세요.",
-        "Grab pre-order drops first and track ship dates."
-      ),
-      cta: u("예약판매 보기", "View pre-orders"),
+      eyebrow: t("m.market.pre_order"),
+      title: t("m.market.limited_goods_reserve_early"),
+      subtitle: t("m.market.grab_pre_order_drops_first_and"),
+      cta: t("m.market.view_pre_orders"),
       filter: "PREORDER",
       panelBg: "#EDE6DA",
     },
     {
       id: "physical",
-      eyebrow: u("일반 판매", "In stock"),
-      title: u("굿즈·피규어\n실물 상품", "Goods & figures\nphysical items"),
-      subtitle: u(
-        "재고 기반 실물 상품을 등록하고 전 세계에 판매하세요.",
-        "List in-stock items and sell worldwide."
-      ),
-      cta: u("일반 상품 보기", "Browse physical items"),
+      eyebrow: t("m.market.in_stock"),
+      title: t("m.market.goods_figures_physical_items"),
+      subtitle: t("m.market.list_in_stock_items_and_sell"),
+      cta: t("m.market.browse_physical_items"),
       filter: "PHYSICAL",
       panelBg: "#E8EEF8",
     },
     {
       id: "seller",
-      eyebrow: u("판매자 온보딩", "Seller onboarding"),
-      title: u(`글로벌 ${MARKET_BRAND_NAME}\n판매 시작`, `Go global with ${MARKET_BRAND_NAME}\nStart selling`),
-      subtitle: u(
-        "계좌·사업자·Stripe 경로로 판매자 등록을 완료하세요.",
-        "Finish seller signup with bank, business, and Stripe."
-      ),
-      cta: u("판매자 등록", "Register as seller"),
+      eyebrow: t("m.market.seller_onboarding"),
+      title: t("m.market.go_global_with_market_brand_name", { MARKET_BRAND_NAME: String(MARKET_BRAND_NAME) }),
+      subtitle: t("m.market.finish_seller_signup_with_bank_business"),
+      cta: t("m.market.register_as_seller"),
       action: "sell",
       panelBg: "#E8EFE6",
     },
   ];
 }
 
-function tabLabelFor(id: string, u: (ko: string, en: string) => string): string {
+function tabLabelFor(id: string, t: TFn): string {
   switch (id) {
     case "custom":
-      return u("주문제작", "Custom");
+      return t("m.common.custom");
     case "preorder":
-      return u("예약판매", "Pre-order");
+      return t("m.market.pre_order");
     case "physical":
-      return u("일반 판매", "In stock");
+      return t("m.market.in_stock");
     default:
-      return u("판매 시작", "Start selling");
+      return t("m.market.start_selling");
   }
 }
 
@@ -90,10 +79,10 @@ type Props = {
 };
 
 export function MarketHeroShowcase({ onFilter, onSellRegister }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const slides = useMemo(() => buildSlides(u), [u]);
+  const slides = useMemo(() => buildSlides(t), [t]);
   const [active, setActive] = useState(0);
   const slide = slides[active] ?? slides[0];
 
@@ -135,7 +124,7 @@ export function MarketHeroShowcase({ onFilter, onSellRegister }: Props) {
               style={[styles.tab, selected && styles.tabActive]}
             >
               <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>
-                {tabLabelFor(s.id, u)}
+                {tabLabelFor(s.id, t)}
               </Text>
               <Text style={styles.tabSub} numberOfLines={1}>
                 {s.eyebrow}

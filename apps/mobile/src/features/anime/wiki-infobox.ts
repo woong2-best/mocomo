@@ -1,9 +1,9 @@
-/** Namu-style infobox text parser — mirrors web `anime-wiki-infobox.ts`. */
 
-import { uiText } from "@/i18n/ui-text";
+import { translate } from "@/i18n/runtime";/** Namu-style infobox text parser — mirrors web `anime-wiki-infobox.ts`. */
+
 
 export function defaultWikiInfoboxSectionTitle(locale?: string): string {
-  return uiText(locale, "작품 정보", "Work info");
+  return translate("m.anime.work_info");
 }
 
 export type WikiInfoboxRow = {

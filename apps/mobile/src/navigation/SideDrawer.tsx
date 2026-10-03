@@ -31,7 +31,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { FOLK_EXPLORE_ACCENT, radii, spacing, type ThemeColors } from "@/theme/tokens";
 
-/** Web `/events/new` — 광고 등록 (EventCreateForm, MOCO 일당 과금). */
+/** Web `/events/new` — ad registration (EventCreateForm, daily MOCO billing). */
 const AD_REGISTER_URL = `${API_BASE_URL.replace(/\/$/, "")}/events/new`;
 
 export type { DrawerRoute } from "@/navigation/types";
@@ -117,7 +117,7 @@ function DrawerRow({
 }
 
 export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: Props) {
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const panelWidth = Math.min(Math.round(screenW * 0.86), 360);
@@ -275,12 +275,12 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
             intensity={isDark ? 55 : 65}
             tint={isDark ? "dark" : "light"}
             experimentalBlurMethod="dimezisBlurView"
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           <View
             style={[
-              StyleSheet.absoluteFillObject,
+              StyleSheet.absoluteFill,
               {
                 backgroundColor: isDark
                   ? "rgba(8, 10, 14, 0.45)"
@@ -347,7 +347,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                       setAccountSheetOpen(true);
                     }}
                     accessibilityRole="button"
-                    accessibilityLabel={u("계정 전환", "Switch account")}
+                    accessibilityLabel={t("m.nav.switch_account")}
                   >
                     <FolkAvatar
                       uri={user?.image}
@@ -372,14 +372,11 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                   }}
                   hitSlop={4}
                   accessibilityRole="button"
-                  accessibilityLabel={u(
-                    `팔로잉 ${user?.counts?.following ?? 0}명`,
-                    `Following ${user?.counts?.following ?? 0}`
-                  )}
+                  accessibilityLabel={t("m.nav.following_v", { v: String(user?.counts?.following ?? 0) })}
                 >
                   <Text style={styles.stat}>
                     <Text style={styles.statNum}>{user?.counts?.following ?? 0}</Text>{" "}
-                    {u("팔로잉", "Following")}
+                    {t("m.common.following")}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -389,14 +386,11 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                   }}
                   hitSlop={4}
                   accessibilityRole="button"
-                  accessibilityLabel={u(
-                    `팔로워 ${user?.counts?.followers ?? 0}명`,
-                    `Followers ${user?.counts?.followers ?? 0}`
-                  )}
+                  accessibilityLabel={t("m.nav.followers_v", { v: String(user?.counts?.followers ?? 0) })}
                 >
                   <Text style={styles.stat}>
                     <Text style={styles.statNum}>{user?.counts?.followers ?? 0}</Text>{" "}
-                    {u("팔로워", "Followers")}
+                    {t("m.common.followers")}
                   </Text>
                 </Pressable>
               </View>
@@ -450,7 +444,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
           style={[styles.marginDismiss, { left: panelWidth }]}
           onPress={handleDrawerClose}
           accessibilityRole="button"
-          accessibilityLabel={u("메뉴 닫기", "Close menu")}
+          accessibilityLabel={t("m.nav.close_menu")}
         />
       </View>
     </Modal>
@@ -524,7 +518,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
   return StyleSheet.create({
     root: { flex: 1 },
     scrimWrap: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
     },
     marginDismiss: {
       position: "absolute",
@@ -562,7 +556,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       flexShrink: 0,
     },
     profileBannerOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: "rgba(0,0,0,0.38)",
     },
     profileUpper: {

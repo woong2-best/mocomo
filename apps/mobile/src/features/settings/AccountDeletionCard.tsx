@@ -17,6 +17,8 @@ import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
+import { translate } from "@/i18n/runtime";
 
 const RECOVERY_DAYS = 30;
 
@@ -26,6 +28,7 @@ type Props = {
 };
 
 export function AccountDeletionCard({ username, hasPassword }: Props) {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { signOut } = useAuth();
@@ -60,10 +63,10 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
       });
       setOpen(false);
       resetForm();
-      showIslandSuccess("탈퇴 접수", result.message);
+      showIslandSuccess(t("m.settings.deletion_requested"), result.message);
       void signOut();
     } catch (e) {
-      showIslandError("탈퇴 실패", errorMessage(e));
+      showIslandError(t("m.settings.deletion_failed"), errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -72,14 +75,13 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
   return (
     <>
       <FolkCard style={{ borderColor: "rgba(196, 92, 62, 0.35)" }}>
-        <Text style={[styles.title, { color: colors.terracotta }]}>회원 탈퇴</Text>
+        <Text style={[styles.title, { color: colors.terracotta }]}>{t("m.settings.delete_account")}</Text>
         <Text style={styles.desc}>
-          탈퇴하면 게시물·댓글·좋아요 등 공개 흔적이 즉시 사라집니다. DM은 상대방 화면에
-          &quot;탈퇴한 사용자&quot;로 남을 수 있습니다. {RECOVERY_DAYS}일 이내 로그인하면 탈퇴를
-          취소할 수 있습니다.
+          {t("m.settings.deleting_your_account_immediately_remove")}{" "}
+          {t("m.settings.account_deletion_recovery_desc", { days: String(RECOVERY_DAYS) })}
         </Text>
         <FolkButton
-          label="회원 탈퇴"
+          label={t("m.settings.delete_account")}
           variant="secondary"
           onPress={() => {
             resetForm();
@@ -92,13 +94,12 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
         <View style={styles.backdrop}>
           <View style={[styles.sheet, { backgroundColor: colors.surfaceRaised }]}>
             <ScrollView keyboardShouldPersistTaps="handled">
-              <Text style={styles.sheetTitle}>정말 탈퇴하시겠습니까?</Text>
+              <Text style={styles.sheetTitle}>{t("m.settings.delete_your_account")}</Text>
               <Text style={styles.sheetDesc}>
-                {RECOVERY_DAYS}일 이내 로그인하면 탈퇴를 취소할 수 있습니다. 기간이 지나면 계정과
-                데이터가 영구 삭제됩니다.
+                {t("m.settings.account_deletion_recovery_sheet", { days: String(RECOVERY_DAYS) })}
               </Text>
 
-              <Text style={styles.label}>아이디 확인</Text>
+              <Text style={styles.label}>{t("m.settings.confirm_your_id")}</Text>
               <Text style={styles.hint}>@{username}</Text>
               <TextInput
                 style={styles.input}
@@ -112,7 +113,7 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
 
               {hasPassword ? (
                 <>
-                  <Text style={styles.label}>비밀번호</Text>
+                  <Text style={styles.label}>{t("auth.passwordSimple")}</Text>
                   <TextInput
                     style={styles.input}
                     value={password}
@@ -124,11 +125,13 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
                 </>
               ) : (
                 <Text style={styles.hint}>
-                  Google·Discord 등 소셜 가입 계정은 비밀번호 없이 진행됩니다.
+                  {t("m.settings.accounts_created_with_google_discord_or")}
                 </Text>
               )}
 
-              <Text style={styles.label}>{ACCOUNT_DELETE_CONFIRM_TEXT} 입력</Text>
+              <Text style={styles.label}>
+                {t("m.settings.type_confirm_to_proceed", { text: ACCOUNT_DELETE_CONFIRM_TEXT })}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={confirmDelete}
@@ -139,7 +142,7 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
                 editable={!busy}
               />
 
-              <Text style={styles.label}>탈퇴 사유 (선택)</Text>
+              <Text style={styles.label}>{t("m.settings.reason_for_leaving_optional")}</Text>
               <TextInput
                 style={[styles.input, styles.reasonInput]}
                 value={reason}
@@ -151,10 +154,10 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
 
               <View style={styles.actions}>
                 <Pressable style={styles.cancelBtn} onPress={() => setOpen(false)} disabled={busy}>
-                  <Text style={[styles.cancelText, { color: colors.cobalt }]}>취소</Text>
+                  <Text style={[styles.cancelText, { color: colors.cobalt }]}>{t("toast.cancel")}</Text>
                 </Pressable>
                 <FolkButton
-                  label="탈퇴하기"
+                  label={t("m.settings.delete_account")}
                   loading={busy}
                   disabled={!canSubmit}
                   onPress={() => void handleDelete()}
@@ -172,7 +175,7 @@ function errorMessage(e: unknown) {
   if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
     return String((e.body as { error: string }).error);
   }
-  return "탈퇴 처리에 실패했습니다.";
+  return translate("m.settings.could_not_delete_the_account");
 }
 
 function createStyles(colors: ThemeColors) {

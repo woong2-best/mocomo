@@ -35,8 +35,8 @@ function formatStamp(iso: string, locale: string) {
 }
 
 export function AnimeHistoryScreen() {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => animeUi(u), [u]);
+  const { t, locale  } = useI18n();
+  const copy = useMemo(() => animeUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

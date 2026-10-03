@@ -67,7 +67,7 @@ function FeedPostMediaCarouselInner({
   onPurchaseSuccess,
   onPressVideo,
 }: Props) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const monetization = useMemo(
@@ -155,7 +155,7 @@ function FeedPostMediaCarouselInner({
       style={StyleSheet.absoluteFill}
       onPress={() => openImage(item)}
       accessibilityRole="button"
-      accessibilityLabel={u("사진 크게 보기", "View photo full screen")}
+      accessibilityLabel={t("m.common.view_photo_full_screen")}
     >
       <Image
         source={cachedImageSource(item.url, decode)}
@@ -243,7 +243,7 @@ function FeedPostMediaCarouselInner({
             style={[styles.singleMedia, { width: layoutWidth, aspectRatio: aspect }]}
             onPress={() => openImage(item)}
             accessibilityRole="button"
-            accessibilityLabel={u("사진 크게 보기", "View photo full screen")}
+            accessibilityLabel={t("m.common.view_photo_full_screen")}
           >
             <Image
               source={cachedImageSource(item.url, decode)}

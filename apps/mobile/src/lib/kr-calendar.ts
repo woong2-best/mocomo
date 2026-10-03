@@ -1,63 +1,65 @@
 /** Korean public holidays + calendar display helpers (profile calendar). */
 
+import { translate } from "@/i18n/runtime";
+
 const FIXED_HOLIDAYS: Record<string, string> = {
-  "01-01": "신정",
-  "03-01": "삼일절",
-  "05-05": "어린이날",
-  "06-06": "현충일",
-  "08-15": "광복절",
-  "10-03": "개천절",
-  "10-09": "한글날",
-  "12-25": "성탄절",
+  "01-01": "m.calendar.holiday_new_year",
+  "03-01": "m.calendar.holiday_independence",
+  "05-05": "m.calendar.holiday_children",
+  "06-06": "m.calendar.holiday_memorial",
+  "08-15": "m.calendar.holiday_liberation",
+  "10-03": "m.calendar.holiday_foundation",
+  "10-09": "m.calendar.holiday_hangeul",
+  "12-25": "m.calendar.holiday_christmas",
 };
 
 const MOVABLE_HOLIDAYS: Record<string, string> = {
-  "2025-01-28": "설날 연휴",
-  "2025-01-29": "설날",
-  "2025-01-30": "설날 연휴",
-  "2025-03-03": "삼일절 대체휴일",
-  "2025-05-05": "어린이날·부처님오신날",
-  "2025-05-06": "어린이날 대체휴일",
-  "2025-10-05": "추석 연휴",
-  "2025-10-06": "추석",
-  "2025-10-07": "추석 연휴",
-  "2025-10-08": "추석 대체휴일",
-  "2026-02-16": "설날 연휴",
-  "2026-02-17": "설날",
-  "2026-02-18": "설날 연휴",
-  "2026-05-24": "부처님오신날",
-  "2026-05-25": "부처님오신날 대체휴일",
-  "2026-09-24": "추석 연휴",
-  "2026-09-25": "추석",
-  "2026-09-26": "추석 연휴",
-  "2026-10-05": "개천절 대체휴일",
-  "2027-02-06": "설날 연휴",
-  "2027-02-07": "설날",
-  "2027-02-08": "설날 연휴",
-  "2027-02-09": "설날 대체휴일",
-  "2027-05-13": "부처님오신날",
-  "2027-09-14": "추석 연휴",
-  "2027-09-15": "추석",
-  "2027-09-16": "추석 연휴",
-  "2028-01-26": "설날 연휴",
-  "2028-01-27": "설날",
-  "2028-01-28": "설날 연휴",
-  "2028-05-02": "부처님오신날",
-  "2028-10-02": "추석 연휴",
-  "2028-10-03": "추석·개천절",
-  "2028-10-04": "추석 연휴",
-  "2028-10-05": "추석 대체휴일",
+  "2025-01-28": "m.calendar.lunar_new_year_eve_2025",
+  "2025-01-29": "m.calendar.lunar_new_year_2025",
+  "2025-01-30": "m.calendar.lunar_new_year_day2_2025",
+  "2025-03-03": "m.calendar.independence_substitute_2025",
+  "2025-05-05": "m.calendar.children_buddha_2025",
+  "2025-05-06": "m.calendar.children_substitute_2025",
+  "2025-10-05": "m.calendar.chuseok_eve_2025",
+  "2025-10-06": "m.calendar.chuseok_2025",
+  "2025-10-07": "m.calendar.chuseok_day2_2025",
+  "2025-10-08": "m.calendar.chuseok_substitute_2025",
+  "2026-02-16": "m.calendar.lunar_new_year_eve_2026",
+  "2026-02-17": "m.calendar.lunar_new_year_2026",
+  "2026-02-18": "m.calendar.lunar_new_year_day2_2026",
+  "2026-05-24": "m.calendar.buddha_2026",
+  "2026-05-25": "m.calendar.buddha_substitute_2026",
+  "2026-09-24": "m.calendar.chuseok_eve_2026",
+  "2026-09-25": "m.calendar.chuseok_2026",
+  "2026-09-26": "m.calendar.chuseok_day2_2026",
+  "2026-10-05": "m.calendar.foundation_substitute_2026",
+  "2027-02-06": "m.calendar.lunar_new_year_eve_2027",
+  "2027-02-07": "m.calendar.lunar_new_year_2027",
+  "2027-02-08": "m.calendar.lunar_new_year_day2_2027",
+  "2027-02-09": "m.calendar.lunar_new_year_substitute_2027",
+  "2027-05-13": "m.calendar.buddha_2027",
+  "2027-09-14": "m.calendar.chuseok_eve_2027",
+  "2027-09-15": "m.calendar.chuseok_2027",
+  "2027-09-16": "m.calendar.chuseok_day2_2027",
+  "2028-01-26": "m.calendar.lunar_new_year_eve_2028",
+  "2028-01-27": "m.calendar.lunar_new_year_2028",
+  "2028-01-28": "m.calendar.lunar_new_year_day2_2028",
+  "2028-05-02": "m.calendar.buddha_2028",
+  "2028-10-02": "m.calendar.chuseok_eve_2028",
+  "2028-10-03": "m.calendar.chuseok_foundation_2028",
+  "2028-10-04": "m.calendar.chuseok_day2_2028",
+  "2028-10-05": "m.calendar.chuseok_substitute_2028",
 };
 
 const OBSERVANCES: Record<string, string> = {
-  "10-01": "국군의 날",
+  "10-01": "m.calendar.observance_armed_forces",
 };
 
-const WEEKDAY_HAN = ["日", "月", "火", "水", "木", "金", "土"] as const;
+const WEEKDAY_HAN = ["\u65e5", "\u6708", "\u706b", "\u6c34", "\u6728", "\u91d1", "\u571f"] as const;
 const WEEKDAY_EN = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
 const MONTH_EN = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"] as const;
-const GAN = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"] as const;
-const ZHI = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"] as const;
+const GAN = ["\u7532", "\u4e59", "\u4e19", "\u4e01", "\u620a", "\u5df1", "\u5e9a", "\u8f9b", "\u58ec", "\u7678"] as const;
+const ZHI = ["\u5b50", "\u4e11", "\u5bc5", "\u536f", "\u8fb0", "\u5df3", "\u5348", "\u672a", "\u7533", "\u9149", "\u620c", "\u4ea5"] as const;
 
 export function dateKey(y: number, m: number, d: number): string {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -69,13 +71,20 @@ export function parseDateKey(key: string): { y: number; m: number; d: number } |
   return { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) };
 }
 
-export function getHolidayName(y: number, m: number, d: number): string | null {
+/** Returns an i18n key for the holiday, or null. */
+export function getHolidayKey(y: number, m: number, d: number): string | null {
   const full = dateKey(y, m, d);
   if (MOVABLE_HOLIDAYS[full]) return MOVABLE_HOLIDAYS[full];
   const md = `${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   if (FIXED_HOLIDAYS[md]) return FIXED_HOLIDAYS[md];
   if (OBSERVANCES[md]) return OBSERVANCES[md];
   return null;
+}
+
+/** Localized holiday label for UI. */
+export function getHolidayName(y: number, m: number, d: number): string | null {
+  const key = getHolidayKey(y, m, d);
+  return key ? translate(key) : null;
 }
 
 export function isHolidayOrSunday(y: number, m: number, d: number, weekday: number): boolean {
@@ -90,7 +99,7 @@ export function sexagenaryYear(year: number): string {
   const offset = year - 1984;
   const gan = GAN[((offset % 10) + 10) % 10];
   const zhi = ZHI[((offset % 12) + 12) % 12];
-  return `${gan}${zhi}年`;
+  return `${gan}${zhi}\u5e74`;
 }
 
 export function monthEn(month: number): string {

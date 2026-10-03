@@ -9,6 +9,7 @@ import {
   type TextLayoutEventData,
 } from "react-native";
 import { TranslatableText } from "@/ui/TranslatableText";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   text: string;
@@ -31,6 +32,7 @@ export function CollapsibleVideoCaption({
   resetKey,
   onExpandedChange,
 }: Props) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
 
@@ -72,7 +74,7 @@ export function CollapsibleVideoCaption({
     <Pressable
       onPress={toggle}
       accessibilityRole="button"
-      accessibilityLabel={expanded ? "설명 접기" : "설명 펼치기"}
+      accessibilityLabel={expanded ? t("m.ui.collapse_description") : t("m.ui.expand_description")}
       accessibilityState={{ expanded }}
       hitSlop={4}
     >

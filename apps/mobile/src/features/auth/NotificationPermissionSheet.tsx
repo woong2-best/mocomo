@@ -13,7 +13,7 @@ type Props = {
 
 /** X-style notification priming — shown once on fresh install before login. */
 export function NotificationPermissionSheet({ visible, onComplete }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
 
   async function finish(allow: boolean) {
@@ -35,17 +35,17 @@ export function NotificationPermissionSheet({ visible, onComplete }: Props) {
             <Ionicons name="notifications" size={32} color="#1DA1F2" />
           </View>
           <Text style={styles.title}>
-            {u("MoCoMo에서 알림을 보내도록\n허용하시겠습니까?", "Allow MoCoMo to send you notifications?")}
+            {t("m.auth.allow_mocomo_to_send_you_notifications")}
           </Text>
           <Text style={styles.sub}>
-            {u("새 메시지, 라이브, 활동 알림을 받을 수 있습니다.", "Get alerts for new messages, live streams, and activity.")}
+            {t("m.auth.get_alerts_for_new_messages_live")}
           </Text>
 
           <Pressable style={styles.allowBtn} onPress={() => void finish(true)}>
-            <Text style={styles.allowText}>{u("허용", "Allow")}</Text>
+            <Text style={styles.allowText}>{t("m.auth.allow")}</Text>
           </Pressable>
           <Pressable style={styles.denyBtn} onPress={() => void finish(false)}>
-            <Text style={styles.denyText}>{u("허용 안함", "Don't allow")}</Text>
+            <Text style={styles.denyText}>{t("m.auth.don_t_allow")}</Text>
           </Pressable>
         </View>
       </View>

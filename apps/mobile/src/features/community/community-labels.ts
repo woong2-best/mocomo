@@ -1,33 +1,54 @@
-import { uiText } from "@/i18n/ui-text";
-import { COMMUNITY_CATEGORY_EN } from "@/features/community/community-labels-i18n";
+import { translate } from "@/i18n/runtime";
 
 /** Matches web `src/lib/community-labels.ts` */
-export const COMMUNITY_CATEGORY_OPTIONS = [
-  { id: "ALL", shortLabel: "전체", emoji: "", label: "전체" },
-  { id: "FREE", shortLabel: "자유", emoji: "💬", label: "자유" },
-  { id: "HUMOR", shortLabel: "유머·이슈", emoji: "😂", label: "유머 / 이슈" },
-  { id: "GAME", shortLabel: "게임", emoji: "🎮", label: "게임" },
-  { id: "SPORTS", shortLabel: "스포츠", emoji: "⚽", label: "스포츠" },
-  { id: "CREATOR", shortLabel: "크리에이터", emoji: "📡", label: "크리에이터 (스트리머 / 버튜버)" },
-  { id: "MUSIC", shortLabel: "음악", emoji: "🎵", label: "음악 (보카로 / 우타이테)" },
-  { id: "CREATIVE", shortLabel: "창작·팬아트", emoji: "🎨", label: "창작 / 팬아트" },
-  { id: "SUBCULTURE", shortLabel: "서브컬쳐", emoji: "✨", label: "서브컬쳐" },
-  { id: "IT", shortLabel: "IT·장비", emoji: "💻", label: "IT / 장비" },
-  { id: "FOOD", shortLabel: "음식·맛집", emoji: "🍜", label: "음식 / 맛집" },
-  { id: "LAW", shortLabel: "Law", emoji: "⚖️", label: "법률" },
-  { id: "TRAVEL", shortLabel: "여행", emoji: "✈️", label: "여행" },
-  { id: "POLITICS", shortLabel: "정치", emoji: "🏛️", label: "정치" },
-  { id: "MEDICAL", shortLabel: "의료", emoji: "🏥", label: "의료" },
-  { id: "INFO", shortLabel: "정보·질문", emoji: "❓", label: "정보 / 질문" },
+const CATEGORY_META = [
+  { id: "ALL", emoji: "" },
+  { id: "FREE", emoji: "💬" },
+  { id: "HUMOR", emoji: "😂" },
+  { id: "GAME", emoji: "🎮" },
+  { id: "SPORTS", emoji: "⚽" },
+  { id: "CREATOR", emoji: "📡" },
+  { id: "MUSIC", emoji: "🎵" },
+  { id: "CREATIVE", emoji: "🎨" },
+  { id: "SUBCULTURE", emoji: "✨" },
+  { id: "IT", emoji: "💻" },
+  { id: "FOOD", emoji: "🍜" },
+  { id: "LAW", emoji: "⚖️" },
+  { id: "TRAVEL", emoji: "✈️" },
+  { id: "POLITICS", emoji: "🏛️" },
+  { id: "MEDICAL", emoji: "🏥" },
+  { id: "INFO", emoji: "❓" },
 ] as const;
+
+function categoryKeys(id: string): { labelKey: string; shortLabelKey: string } {
+  const slug = id.toLowerCase();
+  return {
+    labelKey: `m.community.category.${slug}.label`,
+    shortLabelKey: `m.community.category.${slug}.short`,
+  };
+}
+
+export const COMMUNITY_CATEGORY_OPTIONS = CATEGORY_META.map((row) => {
+  const keys = categoryKeys(row.id);
+  return {
+    ...row,
+    ...keys,
+    get label() {
+      return translate(keys.labelKey);
+    },
+    get shortLabel() {
+      return translate(keys.shortLabelKey);
+    },
+  };
+});
 
 /** QnA list tabs — includes NSFW (age-gated) and My (own questions only). */
 export const QNA_MY_CATEGORY_ID = "MY" as const;
 
 export const QNA_FEED_CATEGORY_TABS = [
   ...COMMUNITY_CATEGORY_OPTIONS,
-  { id: "NSFW" as const, shortLabel: "NSFW", emoji: "🔞", label: "NSFW" },
-  { id: QNA_MY_CATEGORY_ID, shortLabel: "My", emoji: "👤", label: "My" },
+  { id: "NSFW" as const, shortLabel: "NSFW", emoji: "🔞", label: "NSFW", labelKey: "NSFW", shortLabelKey: "NSFW" },
+  { id: QNA_MY_CATEGORY_ID, shortLabel: "My", emoji: "👤", label: "My", labelKey: "MY", shortLabelKey: "MY" },
 ] as const;
 
 export type QnaFeedTabId = (typeof QNA_FEED_CATEGORY_TABS)[number]["id"];
@@ -89,24 +110,21 @@ export const COMMUNITY_CONCEPT_LIKE_MIN = 10;
 export function resolveCommunityCategoryDisplay(
   category: string,
   customCategoryLabel?: string | null,
-  locale = "ko"
+  _locale = "en"
 ) {
   if (category === "CUSTOM") {
-    const label = customCategoryLabel?.trim() || uiText(locale, "직접 입력", "Custom");
+    const label = customCategoryLabel?.trim() || translate("m.common.custom");
     return { label, shortLabel: label, emoji: "➕" };
   }
   if (category === "ALL") {
-    const en = COMMUNITY_CATEGORY_EN.ALL;
-    return locale === "ko"
-      ? { label: "전체", shortLabel: "전체", emoji: "" }
-      : { label: en.label, shortLabel: en.shortLabel, emoji: "" };
+    return {
+      label: translate("m.community.category.all.label"),
+      shortLabel: translate("m.community.category.all.short"),
+      emoji: "",
+    };
   }
   const meta = communityCategoryMeta(category);
   if (meta) {
-    const en = COMMUNITY_CATEGORY_EN[meta.id];
-    if (locale !== "ko" && en) {
-      return { label: en.label, shortLabel: en.shortLabel, emoji: meta.emoji };
-    }
     return { label: meta.label, shortLabel: meta.shortLabel, emoji: meta.emoji };
   }
   return { label: category, shortLabel: category, emoji: "🏷️" };
@@ -115,27 +133,22 @@ export function resolveCommunityCategoryDisplay(
 /** Tab chip labels for QnA feed / create grids. */
 export function localizedCategoryTab<T extends { id: string; shortLabel: string; label: string }>(
   opt: T,
-  locale: string
+  _locale: string
 ): T {
-  if (opt.id === "NSFW" || opt.id === "MY") return opt;
-  const en = COMMUNITY_CATEGORY_EN[opt.id];
-  if (locale !== "ko" && en) {
-    return { ...opt, shortLabel: en.shortLabel, label: en.label };
-  }
   return opt;
 }
 
 export function validateCustomCategoryLabel(
   label: string | undefined | null,
-  locale = "ko"
+  _locale = "en"
 ): string | null {
   const trimmed = label?.trim();
-  if (!trimmed) return uiText(locale, "카테고리 이름을 입력해 주세요.", "Enter a category name.");
+  if (!trimmed) return translate("m.community.enter_a_category_name");
   if (trimmed.length < 2) {
-    return uiText(locale, "카테고리 이름은 2자 이상 입력해 주세요.", "At least 2 characters.");
+    return translate("m.community.at_least_2_characters");
   }
   if (trimmed.length > 24) {
-    return uiText(locale, "카테고리 이름은 24자 이하로 입력해 주세요.", "24 characters or fewer.");
+    return translate("m.community.24_characters_or_fewer");
   }
   return null;
 }

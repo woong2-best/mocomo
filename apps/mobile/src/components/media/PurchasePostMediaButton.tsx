@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { PayButton } from "@/payments/PayButton";
 import { formatUsd } from "@/lib/money";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   mediaId?: string;
@@ -16,19 +17,21 @@ type Props = {
 export function PurchasePostMediaButton({
   mediaId,
   priceKrw,
-  label = "결제하기",
+  label,
   paymentsEnabled = false,
   username,
   postId,
   variant = "button",
   onPurchaseSuccess,
 }: Props) {
+  const { t } = useI18n();
+  const payLabel = label ?? t("m.media.pay");
   if (!mediaId) return null;
 
   if (!paymentsEnabled) {
     return (
       <Text style={styles.disabled}>
-        {variant === "label" ? label : "결제 연동 후 구매할 수 있습니다."}
+        {variant === "label" ? payLabel : t("m.media.available_to_buy_once_payments_are")}
       </Text>
     );
   }
@@ -39,9 +42,9 @@ export function PurchasePostMediaButton({
         <PayButton
           type="POST_MEDIA"
           amount={priceKrw}
-          orderName={label}
+          orderName={payLabel}
           metadata={{ mediaId, username, postId }}
-          label={label}
+          label={payLabel}
           variant="primary"
           onSuccess={onPurchaseSuccess}
         />
@@ -53,9 +56,9 @@ export function PurchasePostMediaButton({
     <PayButton
       type="POST_MEDIA"
       amount={priceKrw}
-      orderName={label}
+      orderName={payLabel}
       metadata={{ mediaId, username, postId }}
-      label={`${formatUsd(priceKrw)} · ${label}`}
+      label={`${formatUsd(priceKrw)} · ${payLabel}`}
       onSuccess={onPurchaseSuccess}
     />
   );

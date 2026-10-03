@@ -55,7 +55,7 @@ export function UsedListingOverflowMenu({
   onDismissed,
   onDeleted,
 }: Props) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width: windowWidth } = useWindowDimensions();
@@ -90,9 +90,9 @@ export function UsedListingOverflowMenu({
       await bumpMarketplaceListing(item.id);
       closeAll();
       void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
-      showIslandSuccess(u("끌어올렸습니다", "Bumped"), u("목록 상단으로 올렸습니다.", "Moved to the top of the list."));
+      showIslandSuccess(t("m.marketplace.bumped"), t("m.marketplace.moved_to_the_top_of_the"));
     } catch (e) {
-      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("끌어올리기에 실패했습니다.", "Could not bump listing."));
+      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.marketplace.could_not_bump_listing"));
     } finally {
       setBusy(null);
     }
@@ -107,9 +107,9 @@ export function UsedListingOverflowMenu({
         closeAll();
         onDeleted?.(item.id);
         void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
-        showIslandSuccess(u("삭제했습니다", "Deleted"));
+        showIslandSuccess(t("m.marketplace.deleted"));
       } catch (e) {
-        showIslandError(u("오류", "Error"), e instanceof Error ? e.message : t("post.menu.deleteFailed"));
+        showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("post.menu.deleteFailed"));
       } finally {
         setBusy(null);
       }
@@ -128,9 +128,9 @@ export function UsedListingOverflowMenu({
       await dismissUsedListing(item.id);
       closeAll();
       onDismissed?.(item.id);
-      showIslandSuccess(u("관심 없음", "Not interested"), u("이 상품을 목록에서 숨겼습니다.", "Hidden this listing from your feed."));
+      showIslandSuccess(t("m.marketplace.not_interested"), t("m.marketplace.hidden_this_listing_from_your_feed"));
     } catch (e) {
-      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("처리에 실패했습니다.", "Something went wrong."));
+      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.common.something_went_wrong"));
     } finally {
       setBusy(null);
     }
@@ -146,9 +146,9 @@ export function UsedListingOverflowMenu({
         void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
         closeAll();
         onDismissed?.(item.id);
-        showIslandSuccess(u("차단했습니다", "User blocked"));
+        showIslandSuccess(t("m.common.user_blocked"));
       } catch (e) {
-        showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("차단에 실패했습니다.", "Could not block user."));
+        showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.common.could_not_block_user"));
       } finally {
         setBusy(null);
       }
@@ -175,8 +175,8 @@ export function UsedListingOverflowMenu({
             >
               {confirm === "delete" ? (
                 <>
-                  <Text style={styles.confirmTitle}>{u("글 삭제", "Delete listing")}</Text>
-                  <Text style={styles.confirmBody}>{u("이 중고거래 글을 삭제할까요?", "Delete this used-market listing?")}</Text>
+                  <Text style={styles.confirmTitle}>{t("m.marketplace.delete_listing")}</Text>
+                  <Text style={styles.confirmBody}>{t("m.marketplace.delete_this_used_market_listing")}</Text>
                   <Pressable style={styles.row} onPress={runDelete} disabled={!!busy}>
                     <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
                     <Text style={[styles.rowText, styles.dangerText]}>{t("post.menu.delete")}</Text>
@@ -190,11 +190,11 @@ export function UsedListingOverflowMenu({
                 </>
               ) : confirm === "block" ? (
                 <>
-                  <Text style={styles.confirmTitle}>{u("차단하기", "Block")}</Text>
-                  <Text style={styles.confirmBody}>{u(`@${sellerUsername} 님을 차단할까요?`, `Block @${sellerUsername}?`)}</Text>
+                  <Text style={styles.confirmTitle}>{t("m.common.block")}</Text>
+                  <Text style={styles.confirmBody}>{t("m.marketplace.block_sellerusername", { sellerUsername: String(sellerUsername) })}</Text>
                   <Pressable style={styles.row} onPress={runBlock} disabled={!!busy}>
                     <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>{u("차단하기", "Block")}</Text>
+                    <Text style={[styles.rowText, styles.dangerText]}>{t("m.common.block")}</Text>
                     {busy === "block" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}
@@ -207,12 +207,12 @@ export function UsedListingOverflowMenu({
                 <>
                   <Pressable style={styles.row} onPress={onEdit} disabled={!!busy}>
                     <Ionicons name="create-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>{u("수정", "Edit")}</Text>
+                    <Text style={styles.rowText}>{t("m.common.edit")}</Text>
                   </Pressable>
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={() => void onBump()} disabled={!!busy}>
                     <Ionicons name="arrow-up-circle-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>{u("끌어올리기", "Bump")}</Text>
+                    <Text style={styles.rowText}>{t("m.marketplace.bump")}</Text>
                     {busy === "bump" ? (
                       <ActivityIndicator size="small" color={colors.cobalt} />
                     ) : null}
@@ -235,13 +235,13 @@ export function UsedListingOverflowMenu({
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={() => void onNotInterested()} disabled={!!busy}>
                     <Ionicons name="eye-off-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>{u("관심 없음", "Not interested")}</Text>
+                    <Text style={styles.rowText}>{t("m.marketplace.not_interested")}</Text>
                     {busy === "hide" ? <ActivityIndicator size="small" color={colors.cobalt} /> : null}
                   </Pressable>
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={onBlock} disabled={!!busy}>
                     <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>{u("차단하기", "Block")}</Text>
+                    <Text style={[styles.rowText, styles.dangerText]}>{t("m.common.block")}</Text>
                     {busy === "block" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}

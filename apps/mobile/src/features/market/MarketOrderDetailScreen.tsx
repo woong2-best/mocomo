@@ -24,46 +24,46 @@ import { shipCountryLabel } from "@/lib/marketplace-shipping";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { UsedUiText } from "@/features/marketplace/used-catalog";
 
-function orderStatusLabel(status: string, u: UsedUiText): string {
+function orderStatusLabel(status: string, t: UsedUiText): string {
   switch (status) {
     case "AWAITING_PAYMENT":
-      return u("결제대기", "Awaiting payment");
+      return t("m.market.awaiting_payment");
     case "PAID":
-      return u("결제 완료", "Paid");
+      return t("m.market.paid");
     case "PREPARING":
-      return u("상품 준비 중", "Preparing");
+      return t("m.market.preparing");
     case "SHIPPED":
-      return u("발송 완료", "Shipped");
+      return t("m.market.shipped");
     case "DELIVERED":
-      return u("배송 완료", "Delivered");
+      return t("m.market.delivered");
     case "CONFIRMED":
-      return u("구매 확정", "Confirmed");
+      return t("m.market.confirmed");
     case "SETTLED":
-      return u("정산 완료", "Settled");
+      return t("m.market.settled");
     case "CANCELLED":
-      return u("취소", "Cancelled");
+      return t("m.common.cancelled");
     case "REFUND_REQUESTED":
-      return u("환불요청", "Refund requested");
+      return t("m.market.refund_requested");
     case "REFUNDED":
-      return u("환불완료", "Refunded");
+      return t("m.market.refunded");
     case "DISPUTED":
-      return u("분쟁", "Disputed");
+      return t("m.market.disputed");
     case "ADMIN_REVIEW":
-      return u("관리자 검토", "Admin review");
+      return t("m.market.admin_review");
     default:
       return status;
   }
 }
 
 const DISPUTE_REASONS = [
-  { code: "NOT_RECEIVED", ko: "물품 미발송·미도착", en: "Not shipped / not received" },
-  { code: "COUNTERFEIT", ko: "가품·위조품", en: "Counterfeit" },
-  { code: "SELLER_NO_RESPONSE", ko: "연락 두절", en: "No response" },
-  { code: "SCAM_FRAUD_ACCOUNT", ko: "사기 계좌·허위 입금", en: "Fraud account" },
-  { code: "OTHER", ko: "기타 사기·피해", en: "Other fraud" },
+  { code: "NOT_RECEIVED", key: "m.market.not_shipped_not_received" },
+  { code: "COUNTERFEIT", key: "m.market.counterfeit" },
+  { code: "SELLER_NO_RESPONSE", key: "m.market.no_response" },
+  { code: "SCAM_FRAUD_ACCOUNT", key: "m.market.fraud_account" },
+  { code: "OTHER", key: "m.market.other_fraud" },
 ] as const;
 
-function MarketOrderDisputePanel({ orderId, u }: { orderId: string; u: UsedUiText }) {
+function MarketOrderDisputePanel({ orderId, t }: { orderId: string; t: UsedUiText }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const client = useQueryClient();
@@ -83,20 +83,17 @@ function MarketOrderDisputePanel({ orderId, u }: { orderId: string; u: UsedUiTex
           .slice(0, 12),
       }),
     onSuccess: async () => {
-      showIslandSuccess(u("분쟁이 접수되었습니다.", "Dispute submitted."));
+      showIslandSuccess(t("m.market.dispute_submitted"));
       await client.invalidateQueries({ queryKey: ["mobile-market-order", orderId] });
     },
-    onError: () => showIslandError(u("오류", "Error"), u("접수에 실패했습니다.", "Could not submit.")),
+    onError: () => showIslandError(t("m.common.error"), t("m.market.could_not_submit")),
   });
 
   return (
     <View style={styles.disputeBox}>
-      <Text style={styles.sectionTitle}>{u("분쟁 신청 / 사기 신고", "Dispute / fraud report")}</Text>
+      <Text style={styles.sectionTitle}>{t("m.market.dispute_fraud_report")}</Text>
       <Text style={styles.disputeHint}>
-        {u(
-          "거래·채팅 기록이 자동 저장됩니다.",
-          "Trade and chat logs are saved automatically."
-        )}
+        {t("m.market.trade_and_chat_logs_are_saved")}
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
         {DISPUTE_REASONS.map((r) => {
@@ -107,7 +104,7 @@ function MarketOrderDisputePanel({ orderId, u }: { orderId: string; u: UsedUiTex
               style={[styles.chip, active && styles.chipActive]}
               onPress={() => setReasonCode(r.code)}
             >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{u(r.ko, r.en)}</Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{t(r.key)}</Text>
             </Pressable>
           );
         })}
@@ -117,14 +114,14 @@ function MarketOrderDisputePanel({ orderId, u }: { orderId: string; u: UsedUiTex
         multiline
         value={detail}
         onChangeText={setDetail}
-        placeholder={u("피해 경위를 입력하세요", "Describe what happened")}
+        placeholder={t("m.market.describe_what_happened")}
         placeholderTextColor={colors.textMuted}
       />
       <TextInput
         style={styles.input}
         value={evidence}
         onChangeText={setEvidence}
-        placeholder={u("증거 URL (쉼표·줄바꿈)", "Evidence URLs")}
+        placeholder={t("m.market.evidence_urls")}
         placeholderTextColor={colors.textMuted}
       />
       <Pressable
@@ -132,14 +129,14 @@ function MarketOrderDisputePanel({ orderId, u }: { orderId: string; u: UsedUiTex
         disabled={mutation.isPending || !detail.trim()}
         onPress={() => mutation.mutate()}
       >
-        <Text style={styles.submitText}>{u("분쟁 접수", "Submit")}</Text>
+        <Text style={styles.submitText}>{t("m.market.submit")}</Text>
       </Pressable>
     </View>
   );
 }
 
 export function MarketOrderDetailScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -154,25 +151,25 @@ export function MarketOrderDetailScreen() {
   const order = query.data?.order;
   return (
     <Screen>
-      <AppHeader title={u("주문 상세", "Order details")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.market.order_details")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : !order ? (
-        <Text style={styles.muted}>{u("주문을 불러오지 못했습니다.", "Could not load order.")}</Text>
+        <Text style={styles.muted}>{t("m.market.could_not_load_order")}</Text>
       ) : (
         <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 24, gap: 14 }}>
-          <Text style={styles.status}>{orderStatusLabel(order.status, u)}</Text>
+          <Text style={styles.status}>{orderStatusLabel(order.status, t)}</Text>
           <Text style={styles.total}>
             {formatUsd(order.subtotalAmount + order.shippingAmount)}
           </Text>
           <Text style={styles.meta}>
             {new Date(order.createdAt).toLocaleString("ko-KR")}
-            {order.isBuyer && order.seller ? u(` · 판매자 @${order.seller.username}`, ` · Seller @${order.seller.username}`) : ""}
-            {order.isSeller && order.buyer ? u(` · 구매자 @${order.buyer.username}`, ` · Buyer @${order.buyer.username}`) : ""}
+            {order.isBuyer && order.seller ? t("m.market.seller_username", { username: String(order.seller.username) }) : ""}
+            {order.isSeller && order.buyer ? t("m.market.buyer_username", { username: String(order.buyer.username) }) : ""}
           </Text>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{u("상품", "Items")}</Text>
+            <Text style={styles.sectionTitle}>{t("m.market.items")}</Text>
             {order.items.map((item) => (
               <Pressable
                 key={item.id}
@@ -204,7 +201,7 @@ export function MarketOrderDetailScreen() {
 
           {order.shipment ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{u("배송", "Shipping")}</Text>
+              <Text style={styles.sectionTitle}>{t("m.common.shipping")}</Text>
               <Text style={styles.bodyText}>
                 {order.shipment.status}
                 {order.shipment.carrier ? ` · ${order.shipment.carrier}` : ""}
@@ -215,7 +212,7 @@ export function MarketOrderDetailScreen() {
 
           {order.downloads.length > 0 ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{u("디지털 다운로드", "Digital download")}</Text>
+              <Text style={styles.sectionTitle}>{t("m.market.digital_download")}</Text>
               {order.downloads.map((d) => (
                 <Text key={d.id} style={styles.bodyText} numberOfLines={2}>
                   {d.fileUrl}

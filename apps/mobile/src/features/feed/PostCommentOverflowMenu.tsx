@@ -35,7 +35,7 @@ export function PostCommentOverflowMenu({
   isOwnComment = false,
 }: Props) {
   const queryClient = useQueryClient();
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [busy, setBusy] = useState<"report" | "block" | null>(null);
@@ -56,10 +56,10 @@ export function PostCommentOverflowMenu({
         reportedUserId: authorId,
         reason: "SPAM",
       });
-      showIslandSuccess(u("신고 접수", "Report submitted"), u("운영진이 검토합니다.", "Our team will review it."));
+      showIslandSuccess(t("m.feed.report_submitted"), t("m.feed.our_team_will_review_it"));
       closeAll();
     } catch (err) {
-      showIslandError(u("신고 실패", "Report failed"), err instanceof Error ? err.message : t("toast.retry"));
+      showIslandError(t("m.feed.report_failed"), err instanceof Error ? err.message : t("toast.retry"));
     } finally {
       setBusy(null);
     }
@@ -72,10 +72,10 @@ export function PostCommentOverflowMenu({
       await blockUser(authorId);
       void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-post", postId] });
-      showIslandSuccess(u("차단됨", "Blocked"), u(`@${authorUsername} 님을 차단했습니다.`, `Blocked @${authorUsername}.`));
+      showIslandSuccess(t("m.feed.blocked"), t("m.feed.blocked_authorusername", { authorUsername: String(authorUsername) }));
       closeAll();
     } catch (err) {
-      showIslandError(u("차단 실패", "Block failed"), err instanceof Error ? err.message : t("toast.retry"));
+      showIslandError(t("m.feed.block_failed"), err instanceof Error ? err.message : t("toast.retry"));
     } finally {
       setBusy(null);
     }
@@ -89,8 +89,8 @@ export function PostCommentOverflowMenu({
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           {confirmBlock ? (
             <>
-              <Text style={styles.title}>{u(`@${authorUsername} 님을 차단할까요?`, `Block @${authorUsername}?`)}</Text>
-              <Text style={styles.hint}>{u("차단하면 서로의 게시물과 댓글이 보이지 않습니다.", "You won't see each other's posts and comments.")}</Text>
+              <Text style={styles.title}>{t("m.feed.block_authorusername", { authorUsername: String(authorUsername) })}</Text>
+              <Text style={styles.hint}>{t("m.feed.you_won_t_see_each_other")}</Text>
               <View style={styles.row}>
                 <Pressable style={styles.secondaryBtn} onPress={() => setConfirmBlock(false)}>
                   <Text style={styles.secondaryLabel}>{t("toast.cancel")}</Text>
@@ -99,7 +99,7 @@ export function PostCommentOverflowMenu({
                   {busy === "block" ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.dangerLabel}>{u("차단", "Block")}</Text>
+                    <Text style={styles.dangerLabel}>{t("m.common.block")}</Text>
                   )}
                 </Pressable>
               </View>
@@ -126,7 +126,7 @@ export function PostCommentOverflowMenu({
                 disabled={!!busy}
               >
                 <Ionicons name="ban-outline" size={20} color={colors.danger} />
-                <Text style={[styles.menuLabel, { color: colors.danger }]}>{u("차단", "Block")}</Text>
+                <Text style={[styles.menuLabel, { color: colors.danger }]}>{t("m.common.block")}</Text>
               </Pressable>
               <Pressable style={styles.cancelRow} onPress={closeAll}>
                 <Text style={styles.cancelLabel}>{t("common.close")}</Text>

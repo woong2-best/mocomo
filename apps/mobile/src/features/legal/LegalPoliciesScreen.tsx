@@ -11,7 +11,7 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export function LegalPoliciesScreen() {
-  const { u, locale } = useI18n();
+  const { t, locale } = useI18n();
   const navigation = useNavigation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -24,13 +24,10 @@ export function LegalPoliciesScreen() {
 
   return (
     <Screen>
-      <AppHeader title={u("약관 및 정책", "Terms & policies")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.legal.terms_policies")} onLeftPress={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.lead}>
-          {u(
-            "MoCoMo 서비스 이용에 관한 약관과 커뮤니티 운영 정책입니다. 항목을 누르면 웹에서 전문을 확인할 수 있습니다.",
-            "MoCoMo terms of service and community policies. Tap an item to read the full text on the web."
-          )}
+          {t("m.legal.mocomo_terms_of_service_and_community")}
         </Text>
         {policyLinks.map((item) => (
           <Pressable

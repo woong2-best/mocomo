@@ -1,15 +1,15 @@
-import { uiText } from "@/i18n/ui-text";
 
+import { translate } from "@/i18n/runtime";
 export function getPollDurationOptions(locale?: string) {
   return [
-    { label: uiText(locale, "5분", "5 min"), minutes: 5 },
-    { label: uiText(locale, "30분", "30 min"), minutes: 30 },
-    { label: uiText(locale, "1시간", "1 hour"), minutes: 60 },
-    { label: uiText(locale, "6시간", "6 hours"), minutes: 360 },
-    { label: uiText(locale, "12시간", "12 hours"), minutes: 720 },
-    { label: uiText(locale, "1일", "1 day"), minutes: 1440 },
-    { label: uiText(locale, "3일", "3 days"), minutes: 4320 },
-    { label: uiText(locale, "7일", "7 days"), minutes: 10080 },
+    { label: translate("m.compose.5_min"), minutes: 5 },
+    { label: translate("m.compose.30_min"), minutes: 30 },
+    { label: translate("m.compose.1_hour"), minutes: 60 },
+    { label: translate("m.compose.6_hours"), minutes: 360 },
+    { label: translate("m.compose.12_hours"), minutes: 720 },
+    { label: translate("m.compose.1_day"), minutes: 1440 },
+    { label: translate("m.compose.3_days"), minutes: 4320 },
+    { label: translate("m.compose.7_days"), minutes: 10080 },
   ] as const;
 }
 
@@ -99,21 +99,21 @@ export type CollaboratorDraft = {
 export function validatePollDraft(poll: PollDraft, locale?: string): string | null {
   const opts = poll.options.map((o) => o.trim()).filter(Boolean);
   if (opts.length < 2) {
-    return uiText(locale, "투표 선택지는 2개 이상 필요합니다.", "Add at least 2 poll options.");
+    return translate("m.compose.add_at_least_2_poll_options");
   }
   if (opts.length > 4) {
-    return uiText(locale, "투표 선택지는 최대 4개까지입니다.", "You can add up to 4 poll options.");
+    return translate("m.compose.you_can_add_up_to_4");
   }
   if (opts.some((o) => o.length > 50)) {
-    return uiText(locale, "선택지는 50자 이내로 입력해 주세요.", "Each option must be 50 characters or fewer.");
+    return translate("m.compose.each_option_must_be_50_characters");
   }
   const unique = new Set(opts.map((o) => o.toLowerCase()));
   if (unique.size !== opts.length) {
-    return uiText(locale, "선택지 내용이 중복되면 안 됩니다.", "Poll options must be unique.");
+    return translate("m.compose.poll_options_must_be_unique");
   }
   const allowed = getPollDurationOptions(locale).map((d) => d.minutes);
   if (!allowed.includes(poll.durationMinutes as (typeof allowed)[number])) {
-    return uiText(locale, "투표 마감 시간이 올바르지 않습니다.", "Invalid poll duration.");
+    return translate("m.compose.invalid_poll_duration");
   }
   return null;
 }

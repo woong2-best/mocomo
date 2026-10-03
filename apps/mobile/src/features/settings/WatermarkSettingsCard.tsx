@@ -11,8 +11,11 @@ import {
   isWatermarkPlacement,
   type WatermarkPlacement,
 } from "@/lib/media-watermark";
+import { useI18n } from "@/i18n/I18nProvider";
+import { translate } from "@/i18n/runtime";
 
 export function WatermarkSettingsCard() {
+  const { t } = useI18n();
   const { user, refreshMe } = useAuth();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -36,7 +39,7 @@ export function WatermarkSettingsCard() {
         await patchMe(patch);
         await refreshMe();
       } catch (e) {
-        showIslandError("오류", errorMessage(e));
+        showIslandError(t("m.common.error"), errorMessage(e));
         throw e;
       }
     },
@@ -47,14 +50,14 @@ export function WatermarkSettingsCard() {
 
   return (
     <FolkCard>
-      <Text style={styles.cardTitle}>워터마크</Text>
+      <Text style={styles.cardTitle}>{t("m.compose.watermark")}</Text>
       <Text style={styles.cardDesc}>
-        게시물에 올리는 사진·영상에 워터마크를 넣을지 정합니다. 기본은 꺼져 있습니다.
+        {t("m.settings.choose_whether_to_add_a_watermark")}
       </Text>
 
       <View style={styles.row}>
         <View style={styles.rowText}>
-          <Text style={styles.rowTitle}>워터마크 삽입</Text>
+          <Text style={styles.rowTitle}>{t("m.settings.add_watermark")}</Text>
           <Text style={styles.rowSub}>{enabled ? "On" : "Off"}</Text>
         </View>
         <Switch
@@ -73,8 +76,8 @@ export function WatermarkSettingsCard() {
       <View style={styles.choiceRow}>
         {(
           [
-            { id: "corner" as const, label: "하단" },
-            { id: "diagonal" as const, label: "전체" },
+            { id: "corner" as const, label: t("m.settings.bottom_corner") },
+            { id: "diagonal" as const, label: t("m.common.all") },
           ] as const
         ).map((opt) => {
           const active = enabled && placement === opt.id;
@@ -119,7 +122,7 @@ function errorMessage(e: unknown) {
   if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
     return String((e.body as { error: string }).error);
   }
-  return "설정을 저장하지 못했습니다.";
+  return translate("m.settings.could_not_save_settings");
 }
 
 function createStyles(colors: ThemeColors) {

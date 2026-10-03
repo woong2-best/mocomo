@@ -86,7 +86,7 @@ function FeedPostCardInner({
   const { prefetch: prefetchAuthorProfile } = useUserProfileNav();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const { width: windowWidth } = useWindowDimensions();
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { status, user } = useAuth();
   const starLock = useRef(false);
   const postIdRef = useRef(post.id);
@@ -146,11 +146,11 @@ function FeedPostCardInner({
 
   const requireLogin = useCallback(() => {
     if (status !== "signedIn") {
-      showIslandError(u("로그인 필요", "Sign in required"), u("이 기능을 사용하려면 로그인해 주세요.", "Sign in to use this feature."));
+      showIslandError(t("m.common.sign_in_required"), t("m.feed.sign_in_to_use_this_feature"));
       return false;
     }
     return true;
-  }, [status, u]);
+  }, [status, t]);
 
   const onLike = useCallback(() => {
     if (pending || !requireLogin()) return;
@@ -278,7 +278,7 @@ function FeedPostCardInner({
       {pinnedHighlight ? (
         <View style={styles.pinnedLabel}>
           <Ionicons name="pin" size={14} color={colors.textMuted} />
-          <Text style={styles.pinnedLabelText}>{u("고정된 게시물", "Pinned post")}</Text>
+          <Text style={styles.pinnedLabelText}>{t("m.feed.pinned_post")}</Text>
         </View>
       ) : null}
       {post.repostBy && repostName ? (
@@ -295,7 +295,7 @@ function FeedPostCardInner({
         >
           <Ionicons name="repeat-outline" size={14} color={colors.textMuted} />
           <Text style={styles.repostBannerText} numberOfLines={1}>
-            {u(`${repostName} 님이 재게시함`, `Reposted by ${repostName}`)}
+            {t("m.feed.reposted_by_repostname", { repostName: String(repostName) })}
           </Text>
         </Pressable>
       ) : null}
@@ -305,7 +305,7 @@ function FeedPostCardInner({
           onPress={openPost}
           disabled={!onPressPost}
           accessibilityRole="button"
-          accessibilityLabel={u("게시물 보기", "View post")}
+          accessibilityLabel={t("m.common.view_post")}
         >
           <View style={styles.headerRow} pointerEvents="box-none">
             {isQna ? (
@@ -324,7 +324,7 @@ function FeedPostCardInner({
                 disabled={!onPressAuthor || hideIdentity}
                 hitSlop={4}
                 accessibilityRole="button"
-                accessibilityLabel={u("프로필 보기", "View profile")}
+                accessibilityLabel={t("m.feed.view_profile")}
               >
                 <FolkAvatar
                   uri={post.author.image}
@@ -344,7 +344,7 @@ function FeedPostCardInner({
                   <View style={styles.nameRow}>
                     <Text style={styles.name} numberOfLines={1}>
                       {hideIdentity
-                        ? u("익명", "Anonymous")
+                        ? t("m.feed.anonymous")
                         : post.author.name || post.author.username}
                     </Text>
                     {!hideIdentity ? (
@@ -431,7 +431,7 @@ function FeedPostCardInner({
         <View style={styles.quoteCardOuter}>
           <View style={[styles.quoteCard, styles.quoteBlocked]}>
             <Text style={styles.quoteBlockedText}>
-              {u("차단된 사용자의 게시물입니다", "This post is from a blocked user.")}
+              {t("m.feed.this_post_is_from_a_blocked")}
             </Text>
           </View>
         </View>
@@ -531,7 +531,7 @@ function FeedPostCardInner({
           </Pressable>
         </View>
         <View style={styles.actionsRight}>
-          <View style={styles.viewBtn} accessibilityLabel={u(`조회수 ${viewCount}회`, `${viewCount} views`)}>
+          <View style={styles.viewBtn} accessibilityLabel={t("m.feed.viewcount_views", { viewCount: String(viewCount) })}>
             <Ionicons name="eye-outline" size={17} color={colors.textMuted} />
             <Text style={styles.viewText}>{formatCount(viewCount)}</Text>
           </View>

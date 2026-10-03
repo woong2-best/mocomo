@@ -1,4 +1,4 @@
-/** 라이브 댓글 후원 (YouTube Super Chat 스타일) */
+/** Live comment donation (YouTube Super Chat style). */
 
 export const COMMENT_DONATION_MESSAGE_MAX = 200;
 

@@ -33,6 +33,7 @@ import { radii, shadows, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { formatUsd } from "@/lib/money";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { TFn } from "@/i18n/types";
 
 type QuickAction = {
   key: string;
@@ -53,37 +54,37 @@ const QUICK_ACTIONS: QuickAction[] = [
   { key: "coupons", icon: "ticket-outline", route: "MarketCoupons" },
 ];
 
-function quickActionLabel(key: string, u: (ko: string, en: string) => string): string {
+function quickActionLabel(key: string, t: TFn): string {
   switch (key) {
     case "orders":
-      return u("주문내역", "Orders");
+      return t("m.market.orders");
     case "wishlist":
-      return u("찜리스트", "Wishlist");
+      return t("m.market.wishlist");
     case "recent":
-      return u("최근본상품", "Recently viewed");
+      return t("m.common.recently_viewed");
     case "creators":
-      return u("크리에이터", "Creators");
+      return t("m.market.creators");
     case "coupons":
-      return u("쿠폰", "Coupons");
+      return t("m.market.coupons");
     default:
       return key;
   }
 }
 
-function orderStatusLabel(status: string, u: (ko: string, en: string) => string) {
+function orderStatusLabel(status: string, t: TFn) {
   switch (status) {
     case "DELIVERED":
     case "CONFIRMED":
     case "SETTLED":
-      return { label: u("배송완료", "Delivered"), color: "success" as const };
+      return { label: t("m.market.delivered"), color: "success" as const };
     case "SHIPPED":
-      return { label: u("배송중", "In transit"), color: "success" as const };
+      return { label: t("m.market.in_transit"), color: "success" as const };
     case "PREPARING":
     case "PAID":
-      return { label: u("준비중", "Preparing"), color: "cobalt" as const };
+      return { label: t("m.market.preparing"), color: "cobalt" as const };
     case "CANCELLED":
     case "REFUNDED":
-      return { label: u("취소완료", "Cancelled"), color: "muted" as const };
+      return { label: t("m.common.cancelled"), color: "muted" as const };
     default:
       return { label: status, color: "muted" as const };
   }
@@ -118,7 +119,7 @@ function ProductChip({
 }
 
 export function MarketMyScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -157,12 +158,12 @@ export function MarketMyScreen() {
     }, [ordersQuery, relatedQuery])
   );
 
-  const nickname = meQuery.data?.user?.name || meQuery.data?.user?.username || u("마이", "My");
+  const nickname = meQuery.data?.user?.name || meQuery.data?.user?.username || t("m.market.my");
   const sponsor = sponsorQuery.data?.event;
 
   return (
     <Screen>
-      <AppHeader title={u("마이", "My")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.market.my")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ paddingBottom: bottomPad + 24 }}>
         <View style={styles.profileRow}>
           <FolkAvatar uri={meQuery.data?.user?.image} name={nickname} size={52} />
@@ -186,26 +187,26 @@ export function MarketMyScreen() {
               <View style={styles.quickIcon}>
                 <Ionicons name={a.icon} size={22} color={colors.cobalt} />
               </View>
-              <Text style={styles.quickLabel}>{quickActionLabel(a.key, u)}</Text>
+              <Text style={styles.quickLabel}>{quickActionLabel(a.key, t)}</Text>
             </Pressable>
           ))}
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>{u("주문 내역", "Orders")}</Text>
+            <Text style={styles.sectionTitle}>{t("m.market.orders")}</Text>
             <Pressable onPress={() => navigation.navigate("MarketOrders")}>
-              <Text style={styles.sectionLink}>{u("전체 보기 ›", "See all ›")}</Text>
+              <Text style={styles.sectionLink}>{t("m.market.see_all")}</Text>
             </Pressable>
           </View>
           {ordersQuery.isLoading ? (
             <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 16 }} />
           ) : (ordersQuery.data?.orders.length ?? 0) === 0 ? (
-            <Text style={styles.emptyLine}>{u("주문 내역이 없습니다.", "No orders yet.")}</Text>
+            <Text style={styles.emptyLine}>{t("m.market.no_orders_yet")}</Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.orderRow}>
               {ordersQuery.data?.orders.map((o) => {
-                const st = orderStatusLabel(o.status, u);
+                const st = orderStatusLabel(o.status, t);
                 const statusColor =
                   st.color === "success"
                     ? colors.success
@@ -250,18 +251,18 @@ export function MarketMyScreen() {
               cachePolicy={IMAGE_CACHE_POLICY}
             />
             <View style={styles.adOverlay}>
-              <Text style={styles.adBadge}>{u("이벤트 · 광고", "Event · Ad")}</Text>
+              <Text style={styles.adBadge}>{t("m.market.event_ad")}</Text>
             </View>
           </Pressable>
         ) : null}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{u("최근 찾던 상품의 연관 상품", "Related to items you viewed")}</Text>
-          <Text style={styles.sectionSub}>{u("판매자 해시태그 기반 추천", "Based on seller hashtags")}</Text>
+          <Text style={styles.sectionTitle}>{t("m.market.related_to_items_you_viewed")}</Text>
+          <Text style={styles.sectionSub}>{t("m.market.based_on_seller_hashtags")}</Text>
           {relatedQuery.isLoading ? (
             <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 16 }} />
           ) : (relatedQuery.data?.items.length ?? 0) === 0 ? (
-            <Text style={styles.emptyLine}>{u("상품을 둘러보면 연관 상품이 표시됩니다.", "Browse products to see related items.")}</Text>
+            <Text style={styles.emptyLine}>{t("m.market.browse_products_to_see_related_items")}</Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productRow}>
               {relatedQuery.data?.items.map((item) => (

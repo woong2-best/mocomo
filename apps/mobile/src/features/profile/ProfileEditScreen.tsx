@@ -60,7 +60,7 @@ function apiErrorMessage(err: unknown, fallback: string) {
 }
 
 export function ProfileEditScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -149,7 +149,7 @@ export function ProfileEditScreen() {
       const usernameNorm = username.trim().toLowerCase();
       const usernameChanged = usernameNorm !== initialUsername.toLowerCase();
       if (usernameChanged && !USERNAME_RE.test(usernameNorm)) {
-        throw new Error(u("아이디는 영문·숫자·_ 3~20자입니다.", "Username must be 3–20 letters, numbers, or _."));
+        throw new Error(t("m.profile.username_must_be_3_20_letters"));
       }
 
       const y = birthYear.trim();
@@ -158,7 +158,7 @@ export function ProfileEditScreen() {
       const clearBirth = !y && !m && !d;
       const partial = (y || m || d) && !(y && m && d);
       if (partial) {
-        throw new Error(u("생년월일은 연·월·일을 모두 입력하거나, 모두 비워 주세요.", "Enter full birth date or leave all fields empty."));
+        throw new Error(t("m.profile.enter_full_birth_date_or_leave"));
       }
 
       const tags = favoriteTags
@@ -204,21 +204,21 @@ export function ProfileEditScreen() {
       if (authUser?.username) {
         await queryClient.invalidateQueries({ queryKey: ["mobile-user", authUser.username] });
       }
-      showIslandToast("Saved", u("프로필이 업데이트되었습니다.", "Profile updated."));
+      showIslandToast("Saved", t("m.profile.profile_updated"));
       // Let the island pill paint before popping the screen.
       setTimeout(() => {
         if (navigation.canGoBack()) navigation.goBack();
       }, 320);
     },
     onError: (e) => {
-      showIslandError(u("오류", "Error"), apiErrorMessage(e, e instanceof Error ? e.message : u("저장에 실패했습니다.", "Could not save.")));
+      showIslandError(t("m.common.error"), apiErrorMessage(e, e instanceof Error ? e.message : t("m.common.could_not_save")));
     },
   });
 
   const pickAvatar = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError(u("권한 필요", "Permission needed"), u("사진 라이브러리 접근 권한이 필요합니다.", "Photo library access is required."));
+      showIslandError(t("m.common.permission_needed"), t("m.common.photo_library_access_is_required"));
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -242,10 +242,10 @@ export function ProfileEditScreen() {
       });
       setImage(url);
       await publishMedia({ image: url });
-      showIslandToast("Saved", u("프로필 사진을 올렸습니다.", "Profile photo uploaded."));
+      showIslandToast("Saved", t("m.profile.profile_photo_uploaded"));
     } catch (e) {
       setImage(image);
-      showIslandError(u("오류", "Error"), apiErrorMessage(e, u("프로필 사진 업로드에 실패했습니다.", "Could not upload profile photo.")));
+      showIslandError(t("m.common.error"), apiErrorMessage(e, t("m.profile.could_not_upload_profile_photo")));
     } finally {
       setUploading(null);
     }
@@ -254,7 +254,7 @@ export function ProfileEditScreen() {
   const pickBannerImage = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError(u("권한 필요", "Permission needed"), u("사진 라이브러리 접근 권한이 필요합니다.", "Photo library access is required."));
+      showIslandError(t("m.common.permission_needed"), t("m.common.photo_library_access_is_required"));
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -278,9 +278,9 @@ export function ProfileEditScreen() {
       setBannerUrl(url);
       setBannerVideoUrl(null);
       await publishMedia({ bannerUrl: url, bannerVideoUrl: null });
-      showIslandToast("Saved", u("배너를 올렸습니다.", "Banner uploaded."));
+      showIslandToast("Saved", t("m.profile.banner_uploaded"));
     } catch (e) {
-      showIslandError(u("오류", "Error"), apiErrorMessage(e, u("배너 업로드에 실패했습니다.", "Could not upload banner.")));
+      showIslandError(t("m.common.error"), apiErrorMessage(e, t("m.common.could_not_upload_banner")));
     } finally {
       setUploading(null);
     }
@@ -289,7 +289,7 @@ export function ProfileEditScreen() {
   const pickBannerVideo = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError(u("권한 필요", "Permission needed"), u("사진 라이브러리 접근 권한이 필요합니다.", "Photo library access is required."));
+      showIslandError(t("m.common.permission_needed"), t("m.common.photo_library_access_is_required"));
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -302,7 +302,7 @@ export function ProfileEditScreen() {
       const asset = picked.assets[0];
       const probe = await probeVideo(asset.uri);
       if (probe.durationSec > 10.5) {
-        showIslandError(u("동영상 길이", "Video length"), u("배너 동영상은 10초 이하여야 합니다.", "Banner video must be 10 seconds or less."));
+        showIslandError(t("m.profile.video_length"), t("m.profile.banner_video_must_be_10_seconds"));
         return;
       }
       const converted = await transcodeBannerVideoToH264(asset.uri);
@@ -315,9 +315,9 @@ export function ProfileEditScreen() {
       setBannerVideoUrl(url);
       setBannerUrl(null);
       await publishMedia({ bannerUrl: null, bannerVideoUrl: url });
-      showIslandToast("Saved", u("배너 동영상을 올렸습니다.", "Banner video uploaded."));
+      showIslandToast("Saved", t("m.profile.banner_video_uploaded"));
     } catch (e) {
-      showIslandError(u("오류", "Error"), apiErrorMessage(e, u("배너 동영상 업로드에 실패했습니다.", "Could not upload banner video.")));
+      showIslandError(t("m.common.error"), apiErrorMessage(e, t("m.profile.could_not_upload_banner_video")));
     } finally {
       setUploading(null);
     }
@@ -328,7 +328,7 @@ export function ProfileEditScreen() {
   if (query.isLoading) {
     return (
       <Screen>
-        <AppHeader title={u("프로필 수정", "Edit profile")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+        <AppHeader title={t("m.profile.edit_profile")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
         <View style={styles.center}>
           <ActivityIndicator color={colors.terracotta} />
         </View>
@@ -339,9 +339,9 @@ export function ProfileEditScreen() {
   if (query.isError) {
     return (
       <Screen>
-        <AppHeader title={u("프로필 수정", "Edit profile")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+        <AppHeader title={t("m.profile.edit_profile")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
         <View style={styles.center}>
-          <Text style={styles.errorText}>{u("프로필 정보를 불러오지 못했습니다.", "Could not load profile.")}</Text>
+          <Text style={styles.errorText}>{t("m.profile.could_not_load_profile")}</Text>
           <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
         </View>
       </Screen>
@@ -350,7 +350,7 @@ export function ProfileEditScreen() {
 
   return (
     <Screen>
-      <AppHeader title={u("프로필 수정", "Edit profile")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.profile.edit_profile")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -381,14 +381,14 @@ export function ProfileEditScreen() {
                 <Text style={styles.previewName} numberOfLines={1}>
                   {name || username}
                 </Text>
-                <Text style={styles.previewHint}>{u("미리보기", "Preview")}</Text>
+                <Text style={styles.previewHint}>{t("m.common.preview")}</Text>
               </View>
             </View>
           </FolkCard>
 
           <FolkCard>
-            <Text style={styles.sectionTitle}>{u("배너 (사진 또는 동영상)", "Banner (photo or video)")}</Text>
-            <Text style={styles.sectionDesc}>{u("동영상은 최대 10초까지 자동 재생됩니다.", "Videos autoplay for up to 10 seconds.")}</Text>
+            <Text style={styles.sectionTitle}>{t("m.profile.banner_photo_or_video")}</Text>
+            <Text style={styles.sectionDesc}>{t("m.profile.videos_autoplay_for_up_to_10")}</Text>
             <View style={styles.btnRow}>
               <Pressable
                 style={[styles.outlineBtn, { borderColor: colors.brand }]}
@@ -396,7 +396,7 @@ export function ProfileEditScreen() {
                 disabled={uploading !== null}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.brand }]}>
-                  {uploading === "banner" ? u("업로드 중…", "Uploading…") : u("사진 올리기", "Upload photo")}
+                  {uploading === "banner" ? t("m.common.uploading") : t("m.common.upload_photo")}
                 </Text>
               </Pressable>
               <Pressable
@@ -405,7 +405,7 @@ export function ProfileEditScreen() {
                 disabled={uploading !== null}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.brand }]}>
-                  {uploading === "video" ? u("업로드 중…", "Uploading…") : u("동영상 올리기", "Upload video")}
+                  {uploading === "video" ? t("m.common.uploading") : t("m.profile.upload_video")}
                 </Text>
               </Pressable>
             </View>
@@ -416,13 +416,13 @@ export function ProfileEditScreen() {
                   setBannerVideoUrl(null);
                 }}
               >
-                <Text style={styles.linkDanger}>{u("배너 제거", "Remove banner")}</Text>
+                <Text style={styles.linkDanger}>{t("m.profile.remove_banner")}</Text>
               </Pressable>
             ) : null}
           </FolkCard>
 
           <FolkCard>
-            <Text style={styles.sectionTitle}>{u("프로필 사진", "Profile photo")}</Text>
+            <Text style={styles.sectionTitle}>{t("m.common.profile_photo")}</Text>
             <View style={styles.avatarRow}>
               <FolkAvatar uri={image} name={name || username} size={72} />
               <Pressable
@@ -431,25 +431,25 @@ export function ProfileEditScreen() {
                 disabled={uploading !== null}
               >
                 <Text style={[styles.outlineBtnText, { color: colors.brand }]}>
-                  {uploading === "avatar" ? u("업로드 중…", "Uploading…") : u("사진 올리기", "Upload photo")}
+                  {uploading === "avatar" ? t("m.common.uploading") : t("m.common.upload_photo")}
                 </Text>
               </Pressable>
             </View>
           </FolkCard>
 
           <FolkCard>
-            <Text style={styles.label}>{u("표시 이름", "Display name")}</Text>
+            <Text style={styles.label}>{t("m.common.display_name")}</Text>
             <TextInput
               ref={nameRef}
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder={u("닉네임", "Display name")}
+              placeholder={t("m.common.display_name")}
               placeholderTextColor={colors.textMuted}
               onFocus={() => onInputFocus(nameRef.current)}
             />
 
-            <Text style={styles.label}>{u("아이디", "Username")}</Text>
+            <Text style={styles.label}>{t("m.common.username")}</Text>
             <View style={styles.atRow}>
               <Text style={styles.atPrefix}>@</Text>
               <TextInput
@@ -467,11 +467,11 @@ export function ProfileEditScreen() {
             </View>
             <Text style={styles.hint}>
               {usernameLocked
-                ? u("14일 내 변경 횟수를 모두 사용했습니다.", "You used all username changes for this period.")
-                : u(`영문·숫자·_ 3~20자 · 남은 변경 ${usernameChangesRemaining}회`, `Letters, numbers, _ · ${usernameChangesRemaining} changes left`)}
+                ? t("m.profile.you_used_all_username_changes_for")
+                : t("m.profile.letters_numbers_usernamechangesremaining", { usernameChangesRemaining: String(usernameChangesRemaining) })}
             </Text>
 
-            <Text style={styles.label}>{u("소개", "Bio")}</Text>
+            <Text style={styles.label}>{t("m.common.bio")}</Text>
             <TextInput
               ref={bioRef}
               style={[styles.input, styles.bioInput]}
@@ -479,12 +479,12 @@ export function ProfileEditScreen() {
               onChangeText={setBio}
               multiline
               maxLength={160}
-              placeholder={u("자기소개 (160자)", "Bio (160 chars)")}
+              placeholder={t("m.profile.bio_160_chars")}
               placeholderTextColor={colors.textMuted}
               onFocus={() => onInputFocus(bioRef.current)}
             />
 
-            <Text style={styles.label}>{u("생일", "Birthday")}</Text>
+            <Text style={styles.label}>{t("m.profile.birthday")}</Text>
             <View style={styles.birthRow}>
               <TextInput
                 ref={birthYearRef}
@@ -492,7 +492,7 @@ export function ProfileEditScreen() {
                 value={birthYear}
                 onChangeText={(t) => setBirthYear(birthDigitsOnly(t, 4))}
                 keyboardType="number-pad"
-                placeholder={u("연", "Year")}
+                placeholder={t("m.common.year")}
                 placeholderTextColor={colors.textMuted}
                 onFocus={() => onInputFocus(birthYearRef.current)}
               />
@@ -502,7 +502,7 @@ export function ProfileEditScreen() {
                 value={birthMonth}
                 onChangeText={(t) => setBirthMonth(birthDigitsOnly(t, 2))}
                 keyboardType="number-pad"
-                placeholder={u("월", "Month")}
+                placeholder={t("m.common.month")}
                 placeholderTextColor={colors.textMuted}
                 onFocus={() => onInputFocus(birthMonthRef.current)}
               />
@@ -512,13 +512,13 @@ export function ProfileEditScreen() {
                 value={birthDay}
                 onChangeText={(t) => setBirthDay(birthDigitsOnly(t, 2))}
                 keyboardType="number-pad"
-                placeholder={u("일", "Day")}
+                placeholder={t("m.common.day")}
                 placeholderTextColor={colors.textMuted}
                 onFocus={() => onInputFocus(birthDayRef.current)}
               />
             </View>
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{u("프로필에 생일 표시 (월/일)", "Show birthday on profile (month/day)")}</Text>
+              <Text style={styles.switchLabel}>{t("m.profile.show_birthday_on_profile_month_day")}</Text>
               <Switch
                 value={showBirthdayOnProfile}
                 onValueChange={setShowBirthdayOnProfile}
@@ -526,18 +526,18 @@ export function ProfileEditScreen() {
               />
             </View>
 
-            <Text style={styles.label}>{u("위치", "Location")}</Text>
+            <Text style={styles.label}>{t("m.profile.location")}</Text>
             <TextInput
               ref={locationRef}
               style={styles.input}
               value={location}
               onChangeText={setLocation}
-              placeholder={u("서울, 대한민국", "City, country")}
+              placeholder={t("m.profile.city_country")}
               placeholderTextColor={colors.textMuted}
               onFocus={() => onInputFocus(locationRef.current)}
             />
 
-            <Text style={styles.label}>{u("웹사이트", "Website")}</Text>
+            <Text style={styles.label}>{t("m.profile.website")}</Text>
             <TextInput
               ref={websiteRef}
               style={styles.input}
@@ -549,7 +549,7 @@ export function ProfileEditScreen() {
               onFocus={() => onInputFocus(websiteRef.current)}
             />
 
-            <Text style={styles.label}>{u("대표 캐릭터", "Main character")}</Text>
+            <Text style={styles.label}>{t("m.profile.main_character")}</Text>
             <TextInput
               ref={mainCharacterRef}
               style={styles.input}
@@ -560,19 +560,19 @@ export function ProfileEditScreen() {
               onFocus={() => onInputFocus(mainCharacterRef.current)}
             />
 
-            <Text style={styles.label}>{u("좋아하는 작품 (쉼표 구분)", "Favorite works (comma-separated)")}</Text>
+            <Text style={styles.label}>{t("m.profile.favorite_works_comma_separated")}</Text>
             <TextInput
               ref={favoriteTagsRef}
               style={styles.input}
               value={favoriteTags}
               onChangeText={setFavoriteTags}
-              placeholder={u("작품1, 작품2", "work1, work2")}
+              placeholder={t("m.profile.work1_work2")}
               placeholderTextColor={colors.textMuted}
               onFocus={() => onInputFocus(favoriteTagsRef.current)}
             />
 
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{u("NSFW 콘텐츠 표시", "Show NSFW content")}</Text>
+              <Text style={styles.switchLabel}>{t("m.profile.show_nsfw_content")}</Text>
               <Switch
                 value={showNsfw}
                 onValueChange={setShowNsfw}
@@ -593,7 +593,7 @@ export function ProfileEditScreen() {
           ]}
         >
           <FolkButton
-            label={u("저장", "Save")}
+            label={t("m.common.save")}
             loading={saveMut.isPending}
             onPress={() => saveMut.mutate()}
           />

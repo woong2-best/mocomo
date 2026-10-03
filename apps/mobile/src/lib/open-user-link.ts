@@ -4,6 +4,7 @@ import { openUserProfile } from "@/features/profile/user-profile-nav";
 import { normalizeUserLink } from "@/lib/linkify";
 import type { RootStackParamList } from "@/navigation/types";
 import { showIslandError } from "@/ui/IslandToast";
+import { translate } from "@/i18n/runtime";
 
 function isMocomoHost(hostname: string) {
   const h = hostname.toLowerCase();
@@ -38,10 +39,10 @@ export async function openUserLink(
 
   const opened = await Linking.canOpenURL(href).catch(() => false);
   if (!opened) {
-    showIslandError("링크를 열 수 없습니다", href);
+    showIslandError(translate("m.lib.cannot_open_link"), href);
     return;
   }
   await Linking.openURL(href).catch(() => {
-    showIslandError("링크를 열 수 없습니다", "브라우저에서 열지 못했습니다.");
+    showIslandError(translate("m.lib.cannot_open_link"), translate("m.lib.could_not_open_it_in_the"));
   });
 }

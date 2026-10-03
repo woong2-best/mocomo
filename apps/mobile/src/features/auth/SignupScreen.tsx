@@ -12,25 +12,22 @@ type Props = NativeStackScreenProps<RootStackParamList, "Signup">;
 /** Public signup is Google-only — send users back to the welcome Google CTA. */
 export function SignupScreen({ navigation }: Props) {
   const { colors } = useTheme();
-  const { u } = useI18n();
+  const { t } = useI18n();
 
   return (
     <AuthScreenLayout
-      title={u("회원가입", "Sign up")}
-      subtitle={u("Google 계정으로 MoCoMo에 가입합니다.", "Sign up for MoCoMo with your Google account.")}
+      title={t("m.auth.sign_up")}
+      subtitle={t("m.auth.sign_up_for_mocomo_with_your")}
     >
       <View style={styles.body}>
         <Text style={[styles.hint, { color: colors.textMuted }]}>
-          {u(
-            "이메일·비밀번호 가입은 지원하지 않습니다. 로그인 화면에서 Google로 계속해 주세요.",
-            "Email and password sign-up is not supported. Continue with Google on the sign-in screen."
-          )}
+          {t("m.auth.email_and_password_sign_up_is")}
         </Text>
-        <FolkButton label={u("로그인으로", "Go to sign in")} onPress={() => navigation.replace("Login")} />
+        <FolkButton label={t("m.auth.go_to_sign_in")} onPress={() => navigation.replace("Login")} />
         <WelcomeSocialAuthRow
           busyProvider={null}
           onPress={() => navigation.replace("Login")}
-          label={u("Google로 가입", "Sign up with Google")}
+          label={t("m.auth.sign_up_with_google")}
         />
       </View>
     </AuthScreenLayout>

@@ -14,7 +14,7 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function MarketRecentScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -29,14 +29,14 @@ export function MarketRecentScreen() {
 
   return (
     <Screen>
-      <AppHeader title={u("최근본상품", "Recently viewed")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.common.recently_viewed")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <FlatList
         data={items}
         keyExtractor={(i) => i.listingId}
         numColumns={2}
         columnWrapperStyle={{ gap: 10, paddingHorizontal: spacing.md }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24, gap: 10, paddingTop: spacing.sm }}
-        ListEmptyComponent={<Text style={styles.empty}>{u("최근 본 상품이 없습니다.", "No recently viewed items.")}</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t("m.market.no_recently_viewed_items")}</Text>}
         renderItem={({ item }) => (
           <Pressable
             style={styles.card}

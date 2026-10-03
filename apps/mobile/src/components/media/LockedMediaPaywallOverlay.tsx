@@ -1,16 +1,18 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { translate } from "@/i18n/runtime";
 
 type Props = {
   label?: string;
   children?: React.ReactNode;
 };
 
-export function LockedMediaPaywallOverlay({ label = "결제하기", children }: Props) {
+export function LockedMediaPaywallOverlay({ label, children }: Props) {
+  const payLabel = label ?? translate("m.media.pay");
   return (
     <View style={styles.overlay} pointerEvents="box-none">
       <Ionicons name="lock-closed" size={28} color="#fff" style={styles.icon} />
-      {children ?? <Text style={styles.label}>{label}</Text>}
+      {children ?? <Text style={styles.label}>{payLabel}</Text>}
     </View>
   );
 }

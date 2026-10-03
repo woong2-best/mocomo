@@ -5,6 +5,7 @@ import { MobileApi } from "@/api/paths";
 import { setTokens } from "@/auth/token-store";
 import type { MobileAuthUser } from "@/auth/types";
 import { API_BASE_URL } from "@/config/env";
+import { translate } from "@/i18n/runtime";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -63,14 +64,14 @@ export async function openWebAuthSession(
   if (result.type !== "success" || !result.url) {
     throw new Error(
       result.type === "cancel" || result.type === "dismiss"
-        ? "로그인이 취소되었습니다."
-        : "로그인을 완료하지 못했습니다."
+        ? translate("m.auth.sign_in_was_canceled")
+        : translate("m.auth.could_not_complete_sign_in")
     );
   }
 
   const handoff = extractHandoff(result.url);
   if (!handoff) {
-    throw new Error("앱 연동 코드를 받지 못했습니다. 다시 시도해 주세요.");
+    throw new Error(translate("m.auth.could_not_get_the_app_link"));
   }
 
   const data = await apiRequest<{
@@ -97,7 +98,7 @@ export async function openWebAuthSession(
   }
 
   if (!data.accessToken || !data.refreshToken || !data.user) {
-    throw new Error("앱 연동 코드를 받지 못했습니다. 다시 시도해 주세요.");
+    throw new Error(translate("m.auth.could_not_get_the_app_link"));
   }
 
   await setTokens(data.accessToken, data.refreshToken, data.user);

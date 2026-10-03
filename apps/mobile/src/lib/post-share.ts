@@ -1,3 +1,5 @@
+import { translate } from "@/i18n/runtime";
+
 const POST_ORIGIN = "https://mocomo.net";
 
 export function postPath(postId: string): string {
@@ -8,7 +10,7 @@ export function postUrl(postId: string): string {
   return `${POST_ORIGIN}${postPath(postId)}`;
 }
 
-/** 인용 게시 — 사용자 코멘트를 위에 쓰고 아래에 원문 인용 (web `buildPostRepostQuoteDraft`) */
+/** Quote-repost draft — user comment on top, original quoted below (web `buildPostRepostQuoteDraft`). */
 export function buildPostRepostQuoteDraft(input: {
   postId: string;
   authorUsername: string;
@@ -19,6 +21,6 @@ export function buildPostRepostQuoteDraft(input: {
   const preview =
     input.title?.trim() ||
     input.content?.trim().replace(/\s+/g, " ").slice(0, 140) ||
-    "게시물";
+    translate("m.common.post");
   return `\n\n— @${input.authorUsername}: ${preview}\n${url}`;
 }

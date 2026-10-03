@@ -1,5 +1,6 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { requestUpload } from "@/api/posts";
+import { translate } from "@/i18n/runtime";
 
 /**
  * Presigned PUT upload for local device files.
@@ -19,7 +20,7 @@ export async function uploadLocalFile(opts: {
   const uploadUrl = uploadMeta.uploadUrl || uploadMeta.url;
   const publicUrl = uploadMeta.publicUrl || uploadMeta.url;
   if (!uploadUrl || !publicUrl) {
-    throw new Error("업로드 URL을 받지 못했습니다.");
+    throw new Error(translate("m.api.could_not_get_an_upload_url"));
   }
 
   const headers: Record<string, string> = {
@@ -36,7 +37,7 @@ export async function uploadLocalFile(opts: {
   });
 
   if (result.status < 200 || result.status >= 300) {
-    throw new Error(`파일 업로드에 실패했습니다. (${result.status})`);
+    throw new Error(translate("m.api.file_upload_failed_status", { status: String(result.status) }));
   }
 
   return publicUrl;

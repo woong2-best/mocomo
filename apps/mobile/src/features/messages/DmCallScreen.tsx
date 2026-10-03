@@ -15,15 +15,15 @@ import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function DmCallScreen() {
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const errorMessage = useCallback(
     (e: unknown) => {
       if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
         return String((e.body as { error: string }).error);
       }
-      return e instanceof Error ? e.message : u("통화를 시작하지 못했습니다.", "Could not start the call.");
+      return e instanceof Error ? e.message : t("m.messages.could_not_start_the_call");
     },
-    [u]
+    [t]
   );
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -219,7 +219,7 @@ export function DmCallScreen() {
   if (phase === "error") {
     return (
       <View style={[styles.root, { paddingTop: insets.top + 24 }]}>
-        <Text style={styles.errorTitle}>{u("통화 실패", "Call failed")}</Text>
+        <Text style={styles.errorTitle}>{t("m.messages.call_failed")}</Text>
         <Text style={styles.errorBody}>{error}</Text>
         <Pressable style={styles.endBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.endBtnText}>{t("common.close")}</Text>
@@ -238,8 +238,8 @@ export function DmCallScreen() {
           <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.sub}>
             {phase === "ringing"
-              ? u("상대방에게 전화 거는 중…", "Ringing…")
-              : u("전화 연결 중…", "Connecting…")}
+              ? t("m.messages.ringing")
+              : t("m.messages.connecting")}
           </Text>
           <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />
         </View>
@@ -248,14 +248,14 @@ export function DmCallScreen() {
           <View style={styles.audioStage}>
             <Text style={styles.stageHint}>
               {session.peer.state === "connected"
-                ? u("음성 통화 중", "On voice call")
-                : u("음성 연결 중…", "Connecting voice…")}
+                ? t("m.messages.on_voice_call")
+                : t("m.messages.connecting_voice")}
             </Text>
             <Pressable
               style={styles.micBtn}
               onPress={() => session.peer.setMic(!session.peer.micEnabled)}
               accessibilityLabel={
-                session.peer.micEnabled ? u("마이크 끄기", "Mute mic") : u("마이크 켜기", "Unmute mic")
+                session.peer.micEnabled ? t("m.messages.mute_mic") : t("m.messages.unmute_mic")
               }
             >
               <Ionicons name={session.peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
@@ -264,7 +264,7 @@ export function DmCallScreen() {
           <View style={[styles.overlayTop, { paddingTop: insets.top + 12 }]}>
             <FolkAvatar uri={displayImage} name={displayName} size={44} />
             <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.sub}>{u("음성 통화", "Voice call")}</Text>
+            <Text style={styles.sub}>{t("m.messages.voice_call")}</Text>
           </View>
         </View>
       )}
@@ -273,7 +273,7 @@ export function DmCallScreen() {
         <Pressable
           style={styles.hangup}
           onPress={() => void hangUp()}
-          accessibilityLabel={u("통화 종료", "End call")}
+          accessibilityLabel={t("m.messages.end_call")}
         >
           <Ionicons name="call" size={28} color="#fff" style={{ transform: [{ rotate: "135deg" }] }} />
         </Pressable>

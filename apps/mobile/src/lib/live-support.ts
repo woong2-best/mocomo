@@ -1,5 +1,6 @@
 import { formatUsd } from "@/lib/money";
 import type { LiveChatMessage } from "@/api/live";
+import { translate } from "@/i18n/runtime";
 
 export const CHEER_PRESETS = [100, 500, 1_000, 3_000, 5_000, 10_000] as const;
 
@@ -55,29 +56,29 @@ export function formatSupportChatContent(params: {
   const name = params.username.startsWith("@") ? params.username : `@${params.username}`;
 
   if (params.kind === "mission") {
-    const title = params.missionTitle?.trim() || "미션";
+    const title = params.missionTitle?.trim() || translate("m.live.mission");
     const reward =
       params.missionReward != null ? ` · ${params.missionReward.toLocaleString()} CP` : "";
     switch (params.missionStatus) {
       case "PENDING":
-        return `${name}님이 미션 등록${reward}: ${title}`;
+        return translate("m.lib.name_posted_a_mission_reward_title", { name: String(name), reward: String(reward), title: String(title) });
       case "ACCEPTED":
-        return `✅ 호스트가 미션 수락: ${title}`;
+        return translate("m.lib.host_accepted_the_mission_title", { title: String(title) });
       case "COMPLETED":
-        return `🎉 미션 완료! ${title}${reward}`;
+        return translate("m.lib.mission_complete_title_reward", { title: String(title), reward: String(reward) });
       case "FAILED":
-        return `미션 실패: ${title}`;
+        return translate("m.lib.mission_failed_title", { title: String(title) });
       case "CANCELLED":
-        return `미션 취소: ${title}`;
+        return translate("m.lib.mission_canceled_title", { title: String(title) });
       default:
-        return `미션 · ${title}`;
+        return translate("m.lib.mission_title", { title: String(title) });
     }
   }
 
   if (params.kind === "tip") {
     const amt = formatUsd(params.amount ?? 0);
     const msg = params.message?.trim();
-    return msg ? `${name}님이 ${amt} 후원 · ${msg}` : `${name}님이 ${amt} 후원! 💰`;
+    return msg ? translate("m.lib.name_tipped_amt_msg", { name: String(name), amt: String(amt), msg: String(msg) }) : translate("m.lib.name_tipped_amt", { name: String(name), amt: String(amt) });
   }
 
   const cp = `${(params.amount ?? 0).toLocaleString()} CP`;
@@ -85,15 +86,15 @@ export function formatSupportChatContent(params: {
 
   switch (params.eventType) {
     case "ROULETTE":
-      return `${name}님 룰렛 🎰 → ${params.rouletteLabel ?? "???"}`;
+      return translate("m.lib.name_spun_the_roulette_v", { name: String(name), v: String(params.rouletteLabel ?? "???") });
     case "TTS":
-      return msg ? `${name}님 TTS (${cp}) · ${msg}` : `${name}님 TTS ${cp} 🔊`;
+      return msg ? translate("m.lib.name_tts_cp_msg", { name: String(name), cp: String(cp), msg: String(msg) }) : translate("m.lib.name_tts_cp", { name: String(name), cp: String(cp) });
     case "SOUND":
-      return `${name}님 사운드 후원 ${cp} 🔊`;
+      return translate("m.lib.name_sound_tip_cp", { name: String(name), cp: String(cp) });
     case "VOTE":
-      return msg ? `${name}님 투표 (${cp}) · ${msg}` : `${name}님 투표 ${cp} 📊`;
+      return msg ? translate("m.lib.name_poll_vote_cp_msg", { name: String(name), cp: String(cp), msg: String(msg) }) : translate("m.lib.name_poll_vote_cp", { name: String(name), cp: String(cp) });
     default:
-      return msg ? `${name}님 ${cp} · ${msg}` : `${name}님 ${cp} 응원! 💛`;
+      return msg ? translate("m.lib.name_cp_msg", { name: String(name), cp: String(cp), msg: String(msg) }) : translate("m.lib.name_cheered_with_cp", { name: String(name), cp: String(cp) });
   }
 }
 

@@ -54,7 +54,7 @@ export function FeedPostRepostMenu({
   repostCount,
   requireLogin,
 }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const { width: windowWidth } = useWindowDimensions();
@@ -89,7 +89,7 @@ export function FeedPostRepostMenu({
       })
       .catch(() => {
         onRepostChange(prevReposted, prevCount);
-        showIslandError(u("재게시", "Repost"), u("재게시에 실패했습니다.", "Could not repost."));
+        showIslandError(t("m.feed.repost"), t("m.feed.could_not_repost"));
       })
       .finally(() => {
         onBusyChange?.(false);
@@ -109,9 +109,9 @@ export function FeedPostRepostMenu({
   const quotePost = useCallback(() => {
     if (!requireLogin()) return;
     onClose();
-    const preview = title?.trim() || content?.trim().replace(/\s+/g, " ").slice(0, 80) || u("게시물", "Post");
+    const preview = title?.trim() || content?.trim().replace(/\s+/g, " ").slice(0, 80) || t("m.common.post");
     navigation.navigate("ComposeModal", {
-      initialTitle: u("인용하기", "Quote"),
+      initialTitle: t("m.feed.quote"),
       quotedPostId: postId,
       quotedAuthorUsername: authorUsername,
     });
@@ -127,12 +127,12 @@ export function FeedPostRepostMenu({
           >
             <Pressable style={styles.row} onPress={toggleRepost} disabled={busy}>
               <Ionicons name="repeat-outline" size={18} color={colors.terracotta} />
-              <Text style={styles.rowText}>{reposted ? u("재게시 취소", "Undo repost") : u("재게시", "Repost")}</Text>
+              <Text style={styles.rowText}>{reposted ? t("m.feed.undo_repost") : t("m.feed.repost")}</Text>
               {busy ? <ActivityIndicator size="small" color={colors.terracotta} /> : null}
             </Pressable>
             <Pressable style={styles.row} onPress={quotePost} disabled={busy}>
               <Ionicons name="create-outline" size={18} color={colors.terracotta} />
-              <Text style={styles.rowText}>{u("인용하세요", "Quote post")}</Text>
+              <Text style={styles.rowText}>{t("m.feed.quote_post")}</Text>
             </Pressable>
           </View>
         ) : null}

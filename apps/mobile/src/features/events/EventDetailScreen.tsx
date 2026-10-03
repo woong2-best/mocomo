@@ -23,8 +23,8 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { eventsUi } from "@/features/events/events-ui";
 
 export function EventDetailScreen() {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => eventsUi(u), [u]);
+  const { t, locale } = useI18n();
+  const copy = useMemo(() => eventsUi(t), [t]);
   const dateLocale = locale === "ko" ? "ko-KR" : "en-US";
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);

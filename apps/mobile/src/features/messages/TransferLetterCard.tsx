@@ -81,7 +81,7 @@ function LetterStage({
   onClose,
   ...props
 }: Props & { onClose: () => void }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const slide = useRef(new Animated.Value(0)).current;
@@ -124,7 +124,7 @@ function LetterStage({
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={close}
-          accessibilityLabel={u("편지 닫기", "Close letter")}
+          accessibilityLabel={t("m.messages.close_letter")}
         />
         <Animated.View
           pointerEvents="none"
@@ -148,7 +148,7 @@ function LetterStage({
 }
 
 export function TransferLetterCard(props: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { width } = useWindowDimensions();
   const [open, setOpen] = useState(false);
   const inlineW = Math.min(210, Math.max(160, width * 0.58));
@@ -158,12 +158,12 @@ export function TransferLetterCard(props: Props) {
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={u("편지 열기", "Open letter")}
+        accessibilityLabel={t("m.messages.open_letter")}
         style={({ pressed }) => [pressed && { transform: [{ scale: 0.98 }] }]}
       >
         <EnvelopeGraphic width={inlineW} />
       </Pressable>
-      <Text style={styles.hint}>{u("봉투를 눌러 편지를 여세요", "Tap the envelope to open the letter")}</Text>
+      <Text style={styles.hint}>{t("m.messages.tap_the_envelope_to_open_the")}</Text>
       {open ? <LetterStage {...props} onClose={() => setOpen(false)} /> : null}
     </View>
   );

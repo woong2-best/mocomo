@@ -37,7 +37,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { localizedCategoryTab } from "@/features/community/community-labels";
 
 export function CommunityListScreen() {
-  const { u, locale } = useI18n();
+  const { t, locale } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
@@ -106,7 +106,7 @@ export function CommunityListScreen() {
     (next: QnaFeedTabId) => {
       void (async () => {
         if (next === QNA_MY_CATEGORY_ID && authStatus !== "signedIn") {
-          showIslandError(u("로그인 필요", "Sign in required"), u("내 QnA를 보려면 로그인해 주세요.", "Sign in to view your QnA."));
+          showIslandError(t("m.common.sign_in_required"), t("m.community.sign_in_to_view_your_qna"));
           return;
         }
         const ok = await ensureQnaNsfwAccess(next, locale);
@@ -114,7 +114,7 @@ export function CommunityListScreen() {
         setTab(next);
       })();
     },
-    [authStatus, locale, u]
+    [authStatus, locale, t]
   );
 
   const onPressPost = useCallback(
@@ -161,7 +161,7 @@ export function CommunityListScreen() {
           hitSlop={10}
           style={styles.iconBtn}
           accessibilityRole="button"
-          accessibilityLabel={u("뒤로", "Back")}
+          accessibilityLabel={t("m.common.back")}
         >
           <Ionicons name="chevron-back" size={22} color={colors.brand} />
         </Pressable>
@@ -182,7 +182,7 @@ export function CommunityListScreen() {
             const trimmed = searchQ.trim();
             setSearchSubmitted(trimmed);
           }}
-          placeholder={u("QnA 검색", "Search QnA")}
+          placeholder={t("m.community.search_qna")}
           containerStyle={{ flex: 1 }}
         />
         <Pressable
@@ -190,7 +190,7 @@ export function CommunityListScreen() {
           hitSlop={10}
           style={styles.iconBtn}
           accessibilityRole="button"
-          accessibilityLabel={u("QnA 만들기", "Create QnA")}
+          accessibilityLabel={t("m.community.create_qna")}
         >
           <Ionicons name="add" size={24} color={colors.brand} />
         </Pressable>
@@ -246,20 +246,20 @@ export function CommunityListScreen() {
           query.isLoading ? (
             <ActivityIndicator style={{ marginTop: 40 }} color={colors.brand} />
           ) : query.isError ? (
-            <Text style={styles.error}>{u("QnA를 불러오지 못했습니다.", "Could not load QnA.")}</Text>
+            <Text style={styles.error}>{t("m.community.could_not_load_qna")}</Text>
           ) : (
             <View style={styles.empty}>
               <Text style={styles.muted}>
                 {searchSubmitted
-                  ? u(`"${searchSubmitted}"에 맞는 QnA가 없습니다.`, `No QnA matching "${searchSubmitted}".`)
+                  ? t("m.community.no_qna_matching_searchsubmitted", { searchSubmitted: String(searchSubmitted) })
                   : tab === QNA_MY_CATEGORY_ID
-                    ? u("아직 작성한 QnA가 없습니다.", "You have not posted QnA yet.")
+                    ? t("m.community.you_have_not_posted_qna_yet")
                     : tab === "ALL"
-                      ? u("아직 QnA가 없습니다. 첫 글을 남겨보세요!", "No QnA yet. Be the first to post!")
-                      : u("이 카테고리에 QnA가 없습니다.", "No QnA in this category.")}
+                      ? t("m.community.no_qna_yet_be_the_first")
+                      : t("m.community.no_qna_in_this_category")}
               </Text>
               <Pressable style={styles.emptyBtn} onPress={openCreate}>
-                <Text style={styles.emptyBtnText}>{u("QnA 만들기", "Create QnA")}</Text>
+                <Text style={styles.emptyBtnText}>{t("m.community.create_qna")}</Text>
               </Pressable>
             </View>
           )

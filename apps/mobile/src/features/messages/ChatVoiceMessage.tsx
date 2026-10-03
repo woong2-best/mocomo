@@ -21,7 +21,7 @@ function formatVoiceTime(sec: number) {
 
 /** Instagram-style voice bubble — matches web ChatVoiceMessage */
 export function ChatVoiceMessage({ url, mine }: { url: string; mine: boolean }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors, mine), [colors, mine]);
   const player = useAudioPlayer(url, { updateInterval: 80 });
@@ -65,7 +65,7 @@ export function ChatVoiceMessage({ url, mine }: { url: string; mine: boolean }) 
       <Pressable
         style={styles.playBtn}
         onPress={toggle}
-        accessibilityLabel={status.playing ? u("일시정지", "Pause") : u("재생", "Play")}
+        accessibilityLabel={status.playing ? t("m.common.pause") : t("m.common.play")}
       >
         <Ionicons
           name={status.playing ? "pause" : "play"}

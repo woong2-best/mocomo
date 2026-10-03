@@ -18,6 +18,7 @@ import {
 } from "@/api/dm-bootstrap-cache";
 import { parseChatPostShare } from "@/lib/chat-post-share";
 import { prefetchPostShareCards } from "@/features/messages/share-card-cache";
+import { translate } from "@/i18n/runtime";
 
 function applySharePrefetch(messages: ChatMessage[]) {
   const shareIds = messages
@@ -124,7 +125,7 @@ export function useRoomMessages(roomId: string) {
   const blockMessage = query.data?.blockMessage;
   const loading = !query.data && !diskSeed && query.isLoading;
   const error =
-    query.isError && !query.data && !diskSeed ? "대화를 불러오지 못했습니다." : null;
+    query.isError && !query.data && !diskSeed ? translate("m.messages.could_not_load_the_conversation") : null;
 
   const mergeMessages = useCallback((incoming: ChatMessage[]) => {
     if (incoming.length === 0) return;
@@ -238,10 +239,10 @@ export function useRoomMessages(roomId: string) {
         });
         mergeMessages([res.message]);
         if (res.contentFiltered) {
-          showIslandError("안내", "외부 결제·연락처 유도는 이용약관상 금지됩니다. 해당 내용이 자동으로 가려졌습니다.");
+          showIslandError(translate("m.common.notice"), translate("m.messages.steering_people_to_outside_payments_or"));
         }
       } catch (e) {
-        showIslandError("메시지", e instanceof Error ? e.message : "보내지 못했습니다.");
+        showIslandError(translate("m.common.message"), e instanceof Error ? e.message : translate("m.messages.could_not_send"));
       } finally {
         setSending(false);
       }

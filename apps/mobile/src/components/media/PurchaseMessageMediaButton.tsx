@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { PayButton } from "@/payments/PayButton";
 import { formatUsd } from "@/lib/money";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   attachmentId: string;
@@ -17,8 +18,9 @@ export function PurchaseMessageMediaButton({
   paymentsEnabled = true,
   onPurchaseSuccess,
 }: Props) {
+  const { t } = useI18n();
   if (!paymentsEnabled) {
-    return <Text style={styles.disabled}>결제 연동 후 구매할 수 있습니다.</Text>;
+    return <Text style={styles.disabled}>{t("m.media.available_to_buy_once_payments_are")}</Text>;
   }
 
   return (
@@ -26,9 +28,9 @@ export function PurchaseMessageMediaButton({
       <PayButton
         type="MESSAGE_MEDIA"
         amount={priceKrw}
-        orderName="팬아트 구매"
+        orderName={t("m.payments.fan_art_purchase")}
         metadata={{ attachmentId, username: sellerUsername }}
-        label={`${formatUsd(priceKrw)} · 결제하기`}
+        label={t("m.media.formatusd_pay", { formatUsd: String(formatUsd(priceKrw)) })}
         variant="primary"
         onSuccess={onPurchaseSuccess}
       />

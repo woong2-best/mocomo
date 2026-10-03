@@ -4,7 +4,7 @@ import { MobileApi } from "@/api/paths";
 
 WebBrowser.maybeCompleteAuthSession();
 
-/** 앱 Bearer 로그인 → 웹 세션 쿠키 후 해당 페이지 오픈 (판매자 등록 등) */
+/** App Bearer login → web session cookie, then open the page (seller register, etc.). */
 export async function openMobileWebSession(redirect: string) {
   const { url } = await apiRequest<{ url: string; redirect: string }>(MobileApi.webSession, {
     method: "POST",

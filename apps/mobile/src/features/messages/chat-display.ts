@@ -1,11 +1,11 @@
 import type { ChatAttachment, ChatMessage, ChatReplyTo } from "@/api/messages";
-import { uiText } from "@/i18n/ui-text";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 import { parseUsedTradeRequestMarker } from "@/lib/chat-used-trade-request";
 import { parseCallBookingMarker } from "@/lib/chat-call-booking";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
 import { parseAtmLetter } from "@/lib/chat-atm-letter";
+import { translate } from "@/i18n/runtime";
 
 export function getReplyToHeading(
   replyTo: Pick<ChatReplyTo, "sender">,
@@ -21,15 +21,11 @@ export function getReplyToHeading(
   const quotedIsSelf = !!selfUserId && replyTo.sender.id === selfUserId;
   if (quotedIsSelf) {
     if (opts.bubbleIsMine) {
-      return uiText(locale, "나에게 답장", "Reply to yourself");
+      return translate("m.messages.reply_to_yourself");
     }
-    return uiText(locale, `${opts.selfUsername}에게 답장`, `Reply to ${opts.selfUsername}`);
+    return translate("m.messages.reply_to_selfusername", { selfUsername: String(opts.selfUsername) });
   }
-  return uiText(
-    locale,
-    `${replyTo.sender.username}에게 답장`,
-    `Reply to ${replyTo.sender.username}`
-  );
+  return translate("m.messages.reply_to_username", { username: String(replyTo.sender.username) });
 }
 
 export type QuotedMessageBody =
@@ -50,13 +46,13 @@ export function getQuotedMessageBody(
       Boolean(a.url)
   );
   const textOnly = m.content?.trim();
-  const photoLabel = uiText(locale, "사진", "Photo");
-  const videoLabel = uiText(locale, "동영상", "Video");
+  const photoLabel = translate("m.common.photo");
+  const videoLabel = translate("m.messages.video");
   if (
     textOnly &&
     preview !== photoLabel &&
     preview !== videoLabel &&
-    preview !== uiText(locale, "음성 메시지", "Voice message")
+    preview !== translate("m.messages.voice_message")
   ) {
     return { kind: "text", text: preview };
   }
@@ -74,16 +70,16 @@ export function getChatReplyPreview(
   locale = "ko"
 ): string {
   if (parseUsedTradeRequestMarker(m.content)) {
-    return uiText(locale, "거래 요청", "Trade request");
+    return translate("m.messages.trade_request");
   }
   if (parseCallBookingMarker(m.content)) {
-    return uiText(locale, "통화 예약", "Call booking");
+    return translate("m.common.call_booking");
   }
   if (parseAtmLetter(m.content)) {
-    return uiText(locale, "송금 편지", "Transfer letter");
+    return translate("m.messages.transfer_letter");
   }
   if (parseLetterDonationMarker(m.content)) {
-    return uiText(locale, "편지 후원", "Letter tip");
+    return translate("m.messages.letter_tip");
   }
   const sharePreview = chatPostShareListPreview(m.content);
   if (sharePreview) return sharePreview;
@@ -93,17 +89,17 @@ export function getChatReplyPreview(
   if (text && /\[\[mocomo:[^\]]+\]\]/i.test(text)) {
     const stripped = text.replace(/\[\[mocomo:[^\]]+\]\]/gi, "").trim();
     if (!stripped) {
-      return uiText(locale, "시스템 메시지", "System message");
+      return translate("m.messages.system_message");
     }
     return stripped.length > 100 ? `${stripped.slice(0, 100)}…` : stripped;
   }
   if (text) return text.length > 100 ? `${text.slice(0, 100)}…` : text;
   const att = (m.attachments as ChatAttachment[] | undefined)?.[0];
-  if (!att) return uiText(locale, "메시지", "Message");
-  if (att.type === "IMAGE" || att.type === "GIF") return uiText(locale, "사진", "Photo");
-  if (att.type === "VIDEO") return uiText(locale, "동영상", "Video");
-  if (att.type === "AUDIO") return uiText(locale, "음성 메시지", "Voice message");
-  return uiText(locale, "첨부 파일", "Attachment");
+  if (!att) return translate("m.common.message");
+  if (att.type === "IMAGE" || att.type === "GIF") return translate("m.common.photo");
+  if (att.type === "VIDEO") return translate("m.messages.video");
+  if (att.type === "AUDIO") return translate("m.messages.voice_message");
+  return translate("m.messages.attachment");
 }
 
 export function formatBubbleTime(iso: string, locale = "ko") {
@@ -114,21 +110,21 @@ export function formatBubbleTime(iso: string, locale = "ko") {
   });
 }
 
-/** Instagram DM lightbox — "2일 전", "1시간 전" */
+/** Instagram DM lightbox relative time (e.g. "2d ago", "1h ago"). */
 export function formatLightboxTime(iso: string, locale = "ko") {
   const then = new Date(iso).getTime();
   const diffMs = Date.now() - then;
   if (!Number.isFinite(diffMs) || diffMs < 0) return formatBubbleTime(iso);
 
   const min = Math.floor(diffMs / 60_000);
-  if (min < 1) return uiText(locale, "방금", "Just now");
-  if (min < 60) return uiText(locale, `${min}분 전`, `${min}m ago`);
+  if (min < 1) return translate("m.common.just_now");
+  if (min < 60) return translate("m.messages.min_m_ago", { min: String(min) });
 
   const hr = Math.floor(min / 60);
-  if (hr < 24) return uiText(locale, `${hr}시간 전`, `${hr}h ago`);
+  if (hr < 24) return translate("m.messages.hr_h_ago", { hr: String(hr) });
 
   const day = Math.floor(hr / 24);
-  if (day < 7) return uiText(locale, `${day}일 전`, `${day}d ago`);
+  if (day < 7) return translate("m.messages.day_d_ago", { day: String(day) });
 
   const tag = locale === "ko" ? "ko-KR" : "en-US";
   return new Date(iso).toLocaleDateString(tag, {

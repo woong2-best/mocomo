@@ -204,3 +204,7 @@ export const POST_REPORT_TAXONOMY_EN: ReportTaxonomyNode[] = [
     requiresDetails: true,
   },
 ];
+
+export const CHAT_REPORT_ROOT_QUESTION_EN = "Why are you reporting this chat?";
+
+export const POST_REPORT_OTHER_DETAILS_MIN = 5;

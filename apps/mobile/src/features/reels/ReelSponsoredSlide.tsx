@@ -21,8 +21,8 @@ function resolveAdUrl(linkUrl: string): string {
 }
 
 function ReelSponsoredSlideInner({ ad, width, height }: Props) {
-  const { u } = useI18n();
-  const copy = useMemo(() => reelsUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => reelsUi(t), [t]);
   const styles = useMemo(() => createStyles(width, height), [width, height]);
   const cta = ad.ctaLabel?.trim() || copy.ctaJoin;
   const imageUri = resolveAdUrl(ad.imageUrl);
@@ -61,7 +61,7 @@ function ReelSponsoredSlideInner({ ad, width, height }: Props) {
           </Text>
         ) : null}
         <View style={styles.ctaBtn}>
-          <Text style={styles.ctaText}>{cta} →</Text>
+          <Text style={styles.ctaText}>{cta}</Text>
         </View>
       </View>
     </Pressable>

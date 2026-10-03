@@ -3,7 +3,7 @@ import * as WebBrowser from "expo-web-browser";
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 import type { PaymentMethodItem } from "@/features/wallet/wallet-card-builders";
-import { uiText } from "@/i18n/ui-text";
+import { translate } from "@/i18n/runtime";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -58,15 +58,15 @@ export async function openPaymentMethodSetup(locale?: string): Promise<PaymentMe
   });
 
   if (result.type === "cancel" || result.type === "dismiss") {
-    throw new Error(uiText(locale, "카드 등록이 취소되었습니다.", "Card setup was canceled."));
+    throw new Error(translate("m.payments.card_setup_was_canceled"));
   }
   if (result.type !== "success" || !result.url) {
-    throw new Error(uiText(locale, "카드 등록을 완료하지 못했습니다.", "Could not finish card setup."));
+    throw new Error(translate("m.payments.could_not_finish_card_setup"));
   }
 
   const sessionId = extractSessionId(result.url);
   if (!sessionId) {
-    throw new Error(uiText(locale, "등록 세션을 확인하지 못했습니다.", "Could not verify setup session."));
+    throw new Error(translate("m.payments.could_not_verify_setup_session"));
   }
 
   const confirmed = await confirmPaymentMethodSetup(sessionId);

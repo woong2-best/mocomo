@@ -11,7 +11,7 @@ function headingId(prefix: string, text: string): string {
     text
       .toLowerCase()
       .replace(/\[\[([^|\]]+\|)?([^\]]+)\]\]/g, "$2")
-      .replace(/[^\w가-힣\s-]/g, "")
+      .replace(/[^\w\uAC00-\uD7A3\s-]/g, "")
       .trim()
       .replace(/\s+/g, "-") || "section";
   return `${prefix}-${slug}`;
@@ -32,7 +32,7 @@ export function characterNames(raw: unknown): string[] {
 
 /**
  * Split wiki markdown into numbered sections.
- * `#` = 1. 개요, `##` = 1.1 하위.
+ * `#` = top-level section, `##` = nested subsection.
  */
 export function parseWikiArticle(
   source: string | null | undefined,

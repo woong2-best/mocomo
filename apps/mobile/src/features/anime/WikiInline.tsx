@@ -22,8 +22,8 @@ type Props = {
 };
 
 export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }: Props) {
-  const { u } = useI18n();
-  const copy = useMemo(() => animeUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => animeUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

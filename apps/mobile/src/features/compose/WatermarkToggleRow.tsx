@@ -17,18 +17,18 @@ type Props = {
 };
 
 export function WatermarkToggleRow({ value, onChange, disabled, creditLabel }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>{u("워터마크", "Watermark")}</Text>
+      <Text style={styles.label}>{t("m.compose.watermark")}</Text>
       <View style={styles.row}>
         <ToggleChip
           active={value.diagonal}
           disabled={disabled}
-          label={u("사선", "Diagonal")}
+          label={t("m.compose.diagonal")}
           icon="grid-outline"
           onPress={() => onChange({ ...value, diagonal: !value.diagonal })}
           colors={colors}
@@ -36,7 +36,7 @@ export function WatermarkToggleRow({ value, onChange, disabled, creditLabel }: P
         <ToggleChip
           active={value.corner}
           disabled={disabled}
-          label={u("하단", "Bottom")}
+          label={t("m.compose.bottom")}
           icon="bookmark-outline"
           onPress={() => onChange({ ...value, corner: !value.corner })}
           colors={colors}
@@ -47,7 +47,7 @@ export function WatermarkToggleRow({ value, onChange, disabled, creditLabel }: P
             onPress={() => onChange({ diagonal: true, corner: true })}
             hitSlop={6}
           >
-            <Text style={styles.reset}>{u("기본 켜기", "Reset to on")}</Text>
+            <Text style={styles.reset}>{t("m.compose.reset_to_on")}</Text>
           </Pressable>
         ) : (
           <Pressable
@@ -55,13 +55,13 @@ export function WatermarkToggleRow({ value, onChange, disabled, creditLabel }: P
             onPress={() => onChange(EMPTY_WATERMARK_OPTIONS)}
             hitSlop={6}
           >
-            <Text style={styles.reset}>{u("끄기", "Turn off")}</Text>
+            <Text style={styles.reset}>{t("m.compose.turn_off")}</Text>
           </Pressable>
         )}
       </View>
       {creditLabel ? (
         <Text style={styles.preview} numberOfLines={1}>
-          {u("미리보기:", "Preview:")} {creditLabel}
+          {t("m.compose.preview")} {creditLabel}
         </Text>
       ) : null}
     </View>

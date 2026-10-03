@@ -1,8 +1,32 @@
 /** Used-market catalog constants for mobile (mirrors web). */
 
 import { formatPrice } from "@/lib/money";
+import { englishText } from "@/i18n/messages";
+import type { TFn } from "@/i18n/types";
+import { translate } from "@/i18n/runtime";
+import {
+  USED_CATEGORIES,
+  USED_SELL_KINDS,
+  USED_PRODUCT_TYPES,
+  USED_CONDITION_GRADES,
+  USED_LIMITED_KINDS,
+  USED_TRADE_MODES,
+} from "@/data/server-values/used-catalog-ko";
+import {
+  KOREA_SIDO,
+  KOREA_SIGUNGU_BY_SIDO,
+  USED_SHIPPING_REGION,
+  LEGACY_USED_SHIPPING_REGION,
+  inferUsedRegionFromGeocodeLabel,
+  regionToEnglish,
+  sidoEnglishName,
+  sigunguEnglishName,
+  isShippingRegionValue,
+  DEFAULT_SIGUNGU,
+  DEFAULT_SIDO_SHORT,
+} from "@/data/server-values/korea-regions";
 
-export type UsedUiText = (ko: string, en: string) => string;
+export type UsedUiText = TFn;
 
 /** English labels for catalog ids (KO labels stay on const arrays for storage parity). */
 const CATALOG_LABEL_EN: Record<string, string> = {
@@ -50,180 +74,42 @@ const CATALOG_LABEL_EN: Record<string, string> = {
   SELL_OR_TRADE: "Sell or trade",
 };
 
-export function usedCatalogLabel(ko: string, id: string, u?: UsedUiText): string {
-  const en = CATALOG_LABEL_EN[id] ?? ko;
-  return u ? u(ko, en) : ko;
+export function usedCatalogLabel(id: string, t: UsedUiText = translate): string {
+  const key = `m.used.catalog.${id}`;
+  if (englishText(key) !== key) return t(key);
+  return CATALOG_LABEL_EN[id] ?? id;
 }
 
-export const USED_CATEGORIES = [
-  { id: "FIGURE", label: "피규어 / 인형" },
-  { id: "TCG", label: "TCG / 카드" },
-  { id: "GOODS", label: "캐릭터 굿즈" },
-  { id: "BOOK", label: "도서 / 미디어" },
-  { id: "COSPLAY_FASHION", label: "코스프레 / 패션" },
-  { id: "DIGITAL", label: "디지털 / 가전" },
-] as const;
-
-/** 글쓰기 상품 종류 — 목록 카테고리와 동일. */
-export const USED_SELL_KINDS = [
-  { id: "FIGURE", label: "피규어" },
-  { id: "TCG", label: "TCG" },
-  { id: "GOODS", label: "굿즈" },
-  { id: "BOOK", label: "도서" },
-  { id: "COSPLAY", label: "코스프레" },
-  { id: "DIGITAL", label: "디지털" },
-] as const;
-
-export const USED_PRODUCT_TYPES = [
-  { id: "FIGURE", label: "피규어" },
-  { id: "PLAMODEL", label: "프라모델" },
-  { id: "PLUSH", label: "인형·봉제" },
-  { id: "STATUE", label: "등신대·스태츄" },
-  { id: "ACRYLIC_STAND", label: "아크릴 스탠드" },
-  { id: "CAN_BADGE", label: "캔뱃지" },
-  { id: "KEYRING", label: "키링" },
-  { id: "COSPLAY_COSTUME", label: "코스프레 의상" },
-  { id: "WIG", label: "가발" },
-  { id: "TCG_CARD", label: "카드 (TCG·일반)" },
-  { id: "TCG_POKEMON", label: "포켓몬 카드" },
-  { id: "TCG_YGO", label: "유희왕" },
-  { id: "TCG_MTG", label: "매직 (MTG)" },
-  { id: "TCG_ONEPIECE", label: "원피스 카드" },
-  { id: "TCG_OTHER", label: "기타 TCG" },
-  { id: "PHOTOCARD", label: "포토카드" },
-  { id: "DOUJIN", label: "동인지" },
-  { id: "ARTBOOK", label: "아트북" },
-  { id: "BOARDGAME", label: "보드게임" },
-  { id: "VTUBER_GOODS", label: "VTuber 굿즈" },
-  { id: "EVENT_GOODS", label: "행사·한정 굿즈" },
-  { id: "BOOK", label: "만화·라노벨" },
-  { id: "MEDIA", label: "CD/DVD/블루레이" },
-  { id: "OTHER", label: "기타" },
-] as const;
-
-export const KOREA_SIDO = [
-  { id: "seoul", label: "서울특별시", short: "서울" },
-  { id: "busan", label: "부산광역시", short: "부산" },
-  { id: "daegu", label: "대구광역시", short: "대구" },
-  { id: "incheon", label: "인천광역시", short: "인천" },
-  { id: "gwangju", label: "광주광역시", short: "광주" },
-  { id: "daejeon", label: "대전광역시", short: "대전" },
-  { id: "ulsan", label: "울산광역시", short: "울산" },
-  { id: "sejong", label: "세종특별자치시", short: "세종" },
-  { id: "gyeonggi", label: "경기도", short: "경기" },
-  { id: "gangwon", label: "강원특별자치도", short: "강원" },
-  { id: "chungbuk", label: "충청북도", short: "충북" },
-  { id: "chungnam", label: "충청남도", short: "충남" },
-  { id: "jeonbuk", label: "전북특별자치도", short: "전북" },
-  { id: "jeonnam", label: "전라남도", short: "전남" },
-  { id: "gyeongbuk", label: "경상북도", short: "경북" },
-  { id: "gyeongnam", label: "경상남도", short: "경남" },
-  { id: "jeju", label: "제주특별자치도", short: "제주" },
-] as const;
-
-/** Subset of popular districts for filter UI (full list too heavy for mobile picker). */
-export const KOREA_SIGUNGU_BY_SIDO: Record<string, readonly string[]> = {
-  seoul: [
-    "종로구", "중구", "용산구", "성동구", "광진구", "동대문구", "중랑구", "성북구", "강북구", "도봉구",
-    "노원구", "은평구", "서대문구", "마포구", "양천구", "강서구", "구로구", "금천구", "영등포구", "동작구",
-    "관악구", "서초구", "강남구", "송파구", "강동구",
-  ],
-  busan: [
-    "중구", "서구", "동구", "영도구", "부산진구", "동래구", "남구", "북구", "해운대구", "사하구",
-    "금정구", "강서구", "연제구", "수영구", "사상구", "기장군",
-  ],
-  daegu: ["중구", "동구", "서구", "남구", "북구", "수성구", "달서구", "달성군"],
-  incheon: ["중구", "동구", "미추홀구", "연수구", "남동구", "부평구", "계양구", "서구"],
-  gwangju: ["동구", "서구", "남구", "북구", "광산구"],
-  daejeon: ["동구", "중구", "서구", "유성구", "대덕구"],
-  ulsan: ["중구", "남구", "동구", "북구", "울주군"],
-  sejong: ["세종시"],
-  gyeonggi: [
-    "수원시 영통구", "성남시 분당구", "성남시 수정구", "의정부시", "안양시 동안구",
-    "부천시 원미구", "광명시", "고양시 일산동구", "고양시 일산서구", "용인시 수지구",
-    "화성시", "김포시", "파주시", "남양주시", "하남시",
-  ],
-  gangwon: ["춘천시", "원주시", "강릉시", "속초시"],
-  chungbuk: ["청주시 상당구", "충주시", "제천시"],
-  chungnam: ["천안시 서북구", "아산시", "공주시"],
-  jeonbuk: ["전주시 완산구", "군산시", "익산시"],
-  jeonnam: ["목포시", "여수시", "순천시", "광양시"],
-  gyeongbuk: ["포항시 북구", "경주시", "구미시", "안동시"],
-  gyeongnam: ["창원시 성산구", "김해시", "진주시", "양산시"],
-  jeju: ["제주시", "서귀포시"],
+export {
+  USED_CATEGORIES,
+  USED_SELL_KINDS,
+  USED_PRODUCT_TYPES,
+  USED_CONDITION_GRADES,
+  USED_LIMITED_KINDS,
+  USED_TRADE_MODES,
+  KOREA_SIDO,
+  KOREA_SIGUNGU_BY_SIDO,
+  USED_SHIPPING_REGION,
+  LEGACY_USED_SHIPPING_REGION,
+  inferUsedRegionFromGeocodeLabel,
+  regionToEnglish,
+  sidoEnglishName,
+  sigunguEnglishName,
+  isShippingRegionValue,
+  DEFAULT_SIGUNGU,
+  DEFAULT_SIDO_SHORT,
 };
 
-/** Browse filters — mirrors web `used-subculture-filters.tsx`. */
-export const USED_CONDITION_GRADES = [
-  { id: "NEW", label: "미개봉·신품급" },
-  { id: "LIKE_NEW", label: "거의 새 것" },
-  { id: "NM", label: "NM (Near Mint)" },
-  { id: "LP", label: "LP (Light Played)" },
-  { id: "MP", label: "MP (Moderate Played)" },
-  { id: "HP", label: "HP (Heavy Played)" },
-  { id: "POOR", label: "손상·하자 있음" },
-  { id: "UNKNOWN", label: "상태 미표기" },
-] as const;
-
-export const USED_LIMITED_KINDS = [
-  { id: "EVENT_EXCLUSIVE", label: "행사 한정" },
-  { id: "VENUE_ONLY", label: "会場限定·현장 only" },
-  { id: "PREORDER", label: "예약·선주문" },
-  { id: "COLLAB", label: "콜라보·한정" },
-  { id: "LIMITED_RUN", label: "한정 수량" },
-  { id: "LOTTERY", label: "추첨·kuji" },
-  { id: "PROMO", label: "프로모·特典" },
-] as const;
-
-export const USED_TRADE_MODES = [
-  { id: "TRADE", label: "교환만 (WTT)" },
-  { id: "SELL_OR_TRADE", label: "판매·교환" },
-] as const;
-
-export const USED_SHIPPING_REGION = "전국 배송";
-export const LEGACY_USED_SHIPPING_REGION = "전국 택배";
-const SHIPPING_REGION_EN = "Nationwide shipping";
-
-export function displayUsedRegion(region: string, u?: UsedUiText): string {
+export function displayUsedRegion(region: string, t?: UsedUiText): string {
   const trimmed = region.trim();
-  if (trimmed === LEGACY_USED_SHIPPING_REGION || trimmed === USED_SHIPPING_REGION) {
-    return u ? u(USED_SHIPPING_REGION, SHIPPING_REGION_EN) : USED_SHIPPING_REGION;
+  if (isShippingRegionValue(trimmed) || trimmed === "Shipping") {
+    return (t ?? translate)("m.used.nationwide_shipping");
   }
-  if (trimmed === "Shipping") return SHIPPING_REGION_EN;
-  return region;
+  return regionToEnglish(trimmed);
 }
 
 export function isUsedShippingRegionLabel(region: string): boolean {
-  const trimmed = region.trim();
-  return (
-    trimmed === USED_SHIPPING_REGION ||
-    trimmed === LEGACY_USED_SHIPPING_REGION ||
-    trimmed === "Shipping"
-  );
-}
-
-/** Reverse-geocode label → 시/도·시군구 (keep in sync with src/lib/korea-regions.ts). */
-export function inferUsedRegionFromGeocodeLabel(
-  label: string
-): { sidoId: string; sigungu: string } | null {
-  const hay = label.trim();
-  if (!hay) return null;
-  for (const sido of KOREA_SIDO) {
-    if (!hay.includes(sido.short) && !hay.includes(sido.label)) continue;
-    const units = [...(KOREA_SIGUNGU_BY_SIDO[sido.id] ?? [])];
-    let best: string | null = null;
-    let bestLen = 0;
-    for (const unit of units) {
-      if (hay.includes(unit) && unit.length > bestLen) {
-        best = unit;
-        bestLen = unit.length;
-      }
-    }
-    if (best) return { sidoId: sido.id, sigungu: best };
-    const fallback = units[0];
-    if (fallback) return { sidoId: sido.id, sigungu: fallback };
-  }
-  return null;
+  return isShippingRegionValue(region.trim()) || region.trim() === "Shipping";
 }
 
 export function formatUsedRegion(sidoShort: string, sigungu: string) {
@@ -236,89 +122,75 @@ export function formatUsedRegion(sidoShort: string, sigungu: string) {
   return `${sidoShort} ${sigungu}`;
 }
 
-export function formatUsedPrice(price: number, currency?: string | null, u?: UsedUiText) {
-  if (price === 0) return u ? u("나눔", "Free") : "나눔";
+export function formatUsedPrice(price: number, currency?: string | null, t?: UsedUiText) {
+  if (price === 0) return (t ?? translate)("m.common.free");
   return formatPrice(price, currency ?? "krw");
 }
 
-export function formatUsedTimeAgo(date: string, u?: UsedUiText) {
+export function formatUsedTimeAgo(date: string, t?: UsedUiText) {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return u ? u("방금 전", "Just now") : "방금 전";
+  if (mins < 1) return t ? t("m.common.just_now") : translate("m.common.just_now");
   if (mins < 60) {
-    return u ? u(`${mins}분 전`, `${mins}m ago`) : `${mins}분 전`;
+    return t ? t("m.marketplace.mins_m_ago", { mins: String(mins) }) : translate("m.marketplace.mins_m_ago", { mins: String(mins) });
   }
   const hours = Math.floor(mins / 60);
   if (hours < 24) {
-    return u ? u(`${hours}시간 전`, `${hours}h ago`) : `${hours}시간 전`;
+    return t ? t("m.marketplace.hours_h_ago", { hours: String(hours) }) : translate("m.marketplace.hours_h_ago", { hours: String(hours) });
   }
   const days = Math.floor(hours / 24);
-  if (days < 7) return u ? u(`${days}일 전`, `${days}d ago`) : `${days}일 전`;
+  if (days < 7) return t ? t("m.marketplace.days_d_ago", { days: String(days) }) : translate("m.marketplace.days_d_ago", { days: String(days) });
   const weeks = Math.floor(days / 7);
-  if (weeks < 5) return u ? u(`${weeks}주 전`, `${weeks}w ago`) : `${weeks}주 전`;
+  if (weeks < 5) return t ? t("m.marketplace.weeks_w_ago", { weeks: String(weeks) }) : translate("m.marketplace.weeks_w_ago", { weeks: String(weeks) });
   const months = Math.floor(days / 30);
   if (months < 12) {
-    return u ? u(`${months}개월 전`, `${months}mo ago`) : `${months}개월 전`;
+    return t ? t("m.marketplace.months_mo_ago", { months: String(months) }) : translate("m.marketplace.months_mo_ago", { months: String(months) });
   }
   const years = Math.floor(days / 365);
-  return u ? u(`${years}년 전`, `${years}y ago`) : `${years}년 전`;
+  return t ? t("m.marketplace.years_y_ago", { years: String(years) }) : translate("m.marketplace.years_y_ago", { years: String(years) });
 }
 
-export function usedStatusLabel(status: string, u?: UsedUiText) {
+export function usedStatusLabel(status: string, t?: UsedUiText) {
   switch (status) {
     case "SELLING":
-      return u ? u("판매중", "For sale") : "판매중";
+      return (t ?? translate)("m.marketplace.for_sale");
     case "RESERVED":
-      return u ? u("예약중", "Reserved") : "예약중";
+      return (t ?? translate)("m.common.reserved");
     case "SOLD":
-      return u ? u("거래완료", "Sold") : "거래완료";
+      return (t ?? translate)("m.common.sold");
     default:
       return status;
   }
 }
 
-export function productTypeLabel(id: string | null | undefined, u?: UsedUiText): string {
+export function productTypeLabel(id: string | null | undefined, t?: UsedUiText): string {
   if (!id) return "";
   const fromSell = USED_SELL_KINDS.find((p) => p.id === id);
-  if (fromSell) return usedCatalogLabel(fromSell.label, fromSell.id, u);
+  if (fromSell) return usedCatalogLabel(fromSell.id, t);
   const fromProduct = USED_PRODUCT_TYPES.find((p) => p.id === id);
-  if (fromProduct) return usedCatalogLabel(fromProduct.label, fromProduct.id, u);
+  if (fromProduct) return usedCatalogLabel(fromProduct.id, t);
   return id;
 }
 
-export function usedCurrencyLabel(currencyId: string, u?: UsedUiText): string {
-  const meta = USED_CURRENCY_META[currencyId.toLowerCase()];
-  if (!meta) return currencyId;
-  const en: Record<string, string> = {
-    krw: "KRW (₩)",
-    usd: "USD ($)",
-    jpy: "JPY (¥)",
-    eur: "EUR (€)",
-    gbp: "GBP (£)",
-    twd: "TWD (NT$)",
-    cny: "CNY (¥)",
-    hkd: "HKD (HK$)",
-    sgd: "SGD (S$)",
-    aud: "AUD (A$)",
-    cad: "CAD (C$)",
-    thb: "THB (฿)",
-  };
-  return u ? u(meta.label, en[currencyId.toLowerCase()] ?? meta.label) : meta.label;
+export function usedCurrencyLabel(currencyId: string, t?: UsedUiText): string {
+  const id = currencyId.toLowerCase();
+  if (!USED_CURRENCY_META[id]) return currencyId;
+  return (t ?? translate)(`m.used.currency.${id}`);
 }
 
-export const USED_CURRENCY_META: Record<string, { id: string; label: string; symbol: string }> = {
-  krw: { id: "krw", label: "원 (KRW)", symbol: "₩" },
-  usd: { id: "usd", label: "달러 (USD)", symbol: "$" },
-  jpy: { id: "jpy", label: "엔 (JPY)", symbol: "¥" },
-  eur: { id: "eur", label: "유로 (EUR)", symbol: "€" },
-  gbp: { id: "gbp", label: "파운드 (GBP)", symbol: "£" },
-  twd: { id: "twd", label: "대만 달러 (TWD)", symbol: "NT$" },
-  cny: { id: "cny", label: "위안 (CNY)", symbol: "¥" },
-  hkd: { id: "hkd", label: "홍콩 달러 (HKD)", symbol: "HK$" },
-  sgd: { id: "sgd", label: "싱가포르 달러 (SGD)", symbol: "S$" },
-  aud: { id: "aud", label: "호주 달러 (AUD)", symbol: "A$" },
-  cad: { id: "cad", label: "캐나다 달러 (CAD)", symbol: "C$" },
-  thb: { id: "thb", label: "바트 (THB)", symbol: "฿" },
+export const USED_CURRENCY_META: Record<string, { id: string; symbol: string }> = {
+  krw: { id: "krw", symbol: "₩" },
+  usd: { id: "usd", symbol: "$" },
+  jpy: { id: "jpy", symbol: "¥" },
+  eur: { id: "eur", symbol: "€" },
+  gbp: { id: "gbp", symbol: "£" },
+  twd: { id: "twd", symbol: "NT$" },
+  cny: { id: "cny", symbol: "¥" },
+  hkd: { id: "hkd", symbol: "HK$" },
+  sgd: { id: "sgd", symbol: "S$" },
+  aud: { id: "aud", symbol: "A$" },
+  cad: { id: "cad", symbol: "C$" },
+  thb: { id: "thb", symbol: "฿" },
 };
 
 const EUROZONE = new Set([
@@ -365,7 +237,7 @@ export function parseListingPriceInput(raw: string, currency: string): number {
   return Math.floor(Number(cleaned) || 0);
 }
 
-/** 저장 금액을 입력칸 문자열로. 달러 상품은 달러 단위. */
+/** Format a stored amount for the price input. USD listings stay in dollars. */
 export function usedPriceInputValue(amount: number, currency?: string | null): string {
   if (!Number.isFinite(amount)) return "";
   if ((currency ?? "krw").toLowerCase() === "usd") {

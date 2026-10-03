@@ -27,7 +27,7 @@ export function UsedMeetMapCard({
   region?: string | null;
   meetPlace?: string | null;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -54,7 +54,7 @@ export function UsedMeetMapCard({
         meetPlace={placeLabel || undefined}
         coords={coords}
         height={220}
-        pinTitle={locationQuery || u("거래 장소", "Meetup location")}
+        pinTitle={locationQuery || t("m.marketplace.meetup_location")}
         pinSearchUrl={searchUrl}
         pinMapUrl={mapUrl}
       />

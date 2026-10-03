@@ -1,46 +1,43 @@
-/** STAR bookmarks copy — use with `useI18n().u`. */
-export function starUi(u: (ko: string, en: string) => string) {
+
+import type { TFn } from "@/i18n/types";
+
+/** STAR bookmarks copy. */
+export function starUi(t: TFn) {
   return {
-    back: u("뒤로", "Back"),
-    tabAll: u("전체", "All"),
-    tabPosts: u("게시물", "Posts"),
-    tabQna: u("QnA", "QnA"),
-    tabMarket: u("마켓", "Market"),
-    tabWiki: u("컬처위키", "Culture Wiki"),
-    postFallback: u("게시물", "Post"),
-    productFallback: u("상품", "Product"),
-    wikiFallback: u("컬처위키", "Culture Wiki"),
-    badgeWiki: u("컬처위키", "Culture Wiki"),
-    emptyCreator: u("이 크리에이터의 STAR 저장 글이 없습니다.", "No STAR saves from this creator."),
-    emptyAll: u("저장한 항목이 없습니다.", "Nothing saved to STAR yet."),
-    emptyQna: u("저장한 QnA가 없습니다.", "No saved QnA."),
-    emptyMarket: u("저장한 마켓 상품이 없습니다.", "No saved market items."),
-    emptyWiki: u("저장한 컬처 위키가 없습니다.", "No saved wiki articles."),
-    emptyPosts: u("저장한 게시물이 없습니다.", "No saved posts."),
-    clearAllTitle: u("전체 삭제", "Clear all"),
-    clearAllAllMsg: u(
-      "STAR에 저장한 게시물, QnA, 마켓, 컬처위키를 모두 삭제할까요? 북마크만 지워지며 글과 상품 자체는 삭제되지 않습니다.",
-      "Remove all STAR saves (posts, QnA, market, wiki)? Only bookmarks are removed; content stays."
-    ),
+    back: t("m.common.back"),
+    tabAll: t("m.common.all"),
+    tabPosts: t("m.common.posts"),
+    tabQna: t("m.common.qna"),
+    tabMarket: t("m.star.market"),
+    tabWiki: t("m.common.culture_wiki"),
+    postFallback: t("m.common.post"),
+    productFallback: t("m.common.product"),
+    wikiFallback: t("m.common.culture_wiki"),
+    badgeWiki: t("m.common.culture_wiki"),
+    emptyCreator: t("m.star.no_star_saves_from_this_creator"),
+    emptyAll: t("m.star.nothing_saved_to_star_yet"),
+    emptyQna: t("m.star.no_saved_qna"),
+    emptyMarket: t("m.star.no_saved_market_items"),
+    emptyWiki: t("m.star.no_saved_wiki_articles"),
+    emptyPosts: t("m.star.no_saved_posts"),
+    clearAllTitle: t("m.star.clear_all"),
+    clearAllAllMsg: t("m.star.remove_all_star_saves_posts_qna"),
     clearAllTabMsg: (label: string) =>
-      u(
-        `STAR에 저장한 ${label}을 모두 삭제할까요? 북마크만 지워지며 글 자체는 삭제되지 않습니다.`,
-        `Remove all saved ${label} from STAR? Only bookmarks are removed.`
-      ),
-    clearAllBtn: u("전체 삭제", "Clear all"),
-    cancel: u("취소", "Cancel"),
-    clearAllAction: u("전체 삭제하기", "Clear all saves"),
-    loadError: u("STAR 목록을 불러오지 못했습니다.", "Could not load STAR list."),
-    retry: u("다시 시도", "Try again"),
+      t("m.star.remove_all_saved_label_from_star", { label: String(label) }),
+    clearAllBtn: t("m.star.clear_all"),
+    cancel: t("m.common.cancel"),
+    clearAllAction: t("m.star.clear_all_saves"),
+    loadError: t("m.star.could_not_load_star_list"),
+    retry: t("m.common.try_again"),
     tabLabel: (id: string) => {
       const map: Record<string, string> = {
-        all: u("전체", "All"),
-        posts: u("게시물", "Posts"),
-        qna: u("QnA", "QnA"),
-        market: u("마켓", "Market"),
-        wiki: u("컬처위키", "Culture Wiki"),
+        all: t("m.common.all"),
+        posts: t("m.common.posts"),
+        qna: t("m.common.qna"),
+        market: t("m.star.market"),
+        wiki: t("m.common.culture_wiki"),
       };
-      return map[id] ?? u("게시물", "Posts");
+      return map[id] ?? t("m.common.posts");
     },
   };
 }

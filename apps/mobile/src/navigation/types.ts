@@ -21,7 +21,7 @@ export type DrawerRoute =
   | "Reels"
   | "LegalPolicies";
 
-/** Floating glass tabs — Home · Used(마켓) · Messages. Chrome tab bar is hidden; navigate via drawer. */
+/** Floating glass tabs — Home · Used · Messages. Chrome tab bar is hidden; navigate via drawer. */
 export type RootTabParamList = {
   Home: undefined;
   Used: undefined;

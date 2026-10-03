@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API_BASE_URL } from "@/config/env";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export type LiveCardMenuTarget = {
   channelId: string;
@@ -18,8 +19,9 @@ type Props = {
   onOpenChannel: (username: string) => void;
 };
 
-/** ⋮ menu on live cards — 채널 보기 · 링크 공유. */
+/** Overflow menu on live cards — view channel and share link. */
 export function LiveCardOverflowMenu({ target, onClose, onOpenChannel }: Props) {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -55,15 +57,15 @@ export function LiveCardOverflowMenu({ target, onClose, onOpenChannel }: Props) 
             }}
           >
             <Ionicons name="person-outline" size={20} color={colors.text} />
-            <Text style={styles.rowText}>채널 보기</Text>
+            <Text style={styles.rowText}>{t("m.live.view_channel")}</Text>
           </Pressable>
           <View style={styles.sep} />
           <Pressable style={styles.row} onPress={share}>
             <Ionicons name="share-outline" size={20} color={colors.text} />
-            <Text style={styles.rowText}>링크 공유</Text>
+            <Text style={styles.rowText}>{t("m.live.share_link")}</Text>
           </Pressable>
           <Pressable style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelText}>취소</Text>
+            <Text style={styles.cancelText}>{t("toast.cancel")}</Text>
           </Pressable>
         </View>
       </Pressable>

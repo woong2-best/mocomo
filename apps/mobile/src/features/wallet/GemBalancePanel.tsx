@@ -22,7 +22,7 @@ function formatMoco(moco: number) {
   return `${Math.max(0, moco).toLocaleString()} MOCO`;
 }
 
-function formatWhen(iso: string, locale: string, u: UsedUiText): { absolute: string; relative: string } {
+function formatWhen(iso: string, locale: string, t: UsedUiText): { absolute: string; relative: string } {
   const d = new Date(iso);
   const absolute = new Intl.DateTimeFormat(locale.startsWith("en") ? "en-US" : "ko-KR", {
     year: "numeric",
@@ -34,7 +34,7 @@ function formatWhen(iso: string, locale: string, u: UsedUiText): { absolute: str
     hour12: false,
   }).format(d);
 
-  const relative = formatUsedTimeAgo(iso, u);
+  const relative = formatUsedTimeAgo(iso, t);
   return { absolute, relative: relative === absolute ? absolute : relative };
 }
 
@@ -43,15 +43,15 @@ function PurchaseRow({
   colors,
   styles,
   locale,
-  u,
+  t,
 }: {
   row: GemPurchaseRow;
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
   locale: string;
-  u: UsedUiText;
+  t: UsedUiText;
 }) {
-  const when = formatWhen(row.createdAt, locale, u);
+  const when = formatWhen(row.createdAt, locale, t);
   const used = row.remainingGems < row.gems;
   return (
     <View style={styles.historyRow}>
@@ -61,7 +61,7 @@ function PurchaseRow({
       <View style={styles.historyMeta}>
         <Text style={styles.historyTitle}>
           {formatMoco(row.gems)}
-          {row.refunded ? u(" · 환불", " · Refunded") : used ? u(" · 일부 사용", " · Partially used") : ""}
+          {row.refunded ? t("m.wallet.refunded") : used ? t("m.wallet.partially_used") : ""}
         </Text>
         <Text style={styles.historyWhen}>{when.absolute}</Text>
         {when.relative !== when.absolute ? (
@@ -70,14 +70,14 @@ function PurchaseRow({
       </View>
       <View style={styles.historyRight}>
         <Text style={styles.historyPaid}>{formatUsd(row.krwAmount)}</Text>
-        <Text style={styles.historyRemain}>{u("잔여", "Left")} {formatMoco(row.remainingGems)}</Text>
+        <Text style={styles.historyRemain}>{t("m.wallet.left")} {formatMoco(row.remainingGems)}</Text>
       </View>
     </View>
   );
 }
 
 export function GemBalancePanel() {
-  const { u, locale } = useI18n();
+  const { t, locale } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -100,30 +100,30 @@ export function GemBalancePanel() {
     <View style={styles.wrap}>
       <FolkCard style={styles.balanceCard} padded={false}>
         <View style={styles.balanceInner}>
-          <Text style={styles.caption}>{u("MOCO 잔액", "MOCO balance")}</Text>
+          <Text style={styles.caption}>{t("m.wallet.moco_balance")}</Text>
           <Text style={styles.balance}>{formatMoco(data.balance)}</Text>
-          <Text style={styles.webHint}>{u("충전은 mocomo.net 웹사이트에서만 할 수 있습니다.", "Top up MOCO on mocomo.net only.")}</Text>
+          <Text style={styles.webHint}>{t("m.wallet.top_up_moco_on_mocomo_net")}</Text>
         </View>
       </FolkCard>
 
       <View style={styles.historyHead}>
-        <Text style={styles.historyCaption}>{u("충전 내역", "Top-up history")}</Text>
+        <Text style={styles.historyCaption}>{t("m.wallet.top_up_history")}</Text>
         <Text style={styles.historyCount}>
-          {purchases.length > 0 ? u(`${purchases.length}건`, `${purchases.length} items`) : ""}
+          {purchases.length > 0 ? t("m.wallet.length_items", { length: String(purchases.length) }) : ""}
         </Text>
       </View>
 
       {purchases.length === 0 ? (
         <FolkCard style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>{u("아직 충전 내역이 없습니다", "No top-ups yet")}</Text>
-          <Text style={styles.emptyBody}>{u("웹에서 MOCO를 충전하신 뒤 날짜·시각과 함께 여기에 표시됩니다.", "After topping up on the web, entries appear here with date and time.")}</Text>
+          <Text style={styles.emptyTitle}>{t("m.wallet.no_top_ups_yet")}</Text>
+          <Text style={styles.emptyBody}>{t("m.wallet.after_topping_up_on_the_web")}</Text>
         </FolkCard>
       ) : (
         <FolkCard padded={false} style={styles.historyCard}>
           {purchases.map((p, i) => (
             <View key={p.id}>
               {i > 0 ? <View style={styles.rowLine} /> : null}
-              <PurchaseRow row={p} colors={colors} styles={styles} locale={locale} u={u} />
+              <PurchaseRow row={p} colors={colors} styles={styles} locale={locale} t={t} />
             </View>
           ))}
         </FolkCard>

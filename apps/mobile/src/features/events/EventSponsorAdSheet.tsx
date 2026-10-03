@@ -15,8 +15,8 @@ type Props = {
 };
 
 export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Props) {
-  const { u } = useI18n();
-  const copy = useMemo(() => eventsUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => eventsUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [days, setDays] = useState(3);
@@ -79,7 +79,7 @@ export function EventSponsorAdSheet({ visible, eventId, onClose, onSuccess }: Pr
           ) : (
             <>
               <Text style={styles.quote}>
-                {copy.quote(quoteMoco != null ? `${quoteMoco.toLocaleString()} MOCO` : "—")}
+                {copy.quote(quoteMoco != null ? `${quoteMoco.toLocaleString()} MOCO` : "–")}
               </Text>
               <Text style={styles.balance}>{copy.balance(balance)}</Text>
               {canAfford === false ? (

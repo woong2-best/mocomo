@@ -7,6 +7,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { TFn } from "@/i18n/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -22,25 +23,25 @@ type ServiceItem = {
 /** Destinations reachable from the strip without navigation params. */
 type ParamlessRoute = "MarketMy" | "SellerListings";
 
-function serviceLabel(key: string, u: (ko: string, en: string) => string): string {
+function serviceLabel(key: string, t: TFn): string {
   const brandTail = MARKET_BRAND_NAME.split(" ").slice(-1)[0];
   switch (key) {
     case "all":
-      return u(`전체\n${brandTail}`, `All\n${brandTail}`);
+      return t("m.market.all_brandtail", { brandTail: String(brandTail) });
     case "physical":
-      return u("일반상품", "Physical");
+      return t("m.market.physical");
     case "custom":
-      return u("주문제작", "Custom order");
+      return t("m.market.custom_order");
     case "preorder":
-      return u("예약판매", "Pre-order");
+      return t("m.market.pre_order");
     case "sell":
-      return u("판매 시작", "Start selling");
+      return t("m.market.start_selling");
     case "used":
-      return u("중고거래", "Used market");
+      return t("m.market.used_market");
     case "orders":
-      return u("내 주문", "My orders");
+      return t("m.market.my_orders");
     case "seller":
-      return u("판매자", "Seller");
+      return t("m.common.seller");
     default:
       return key;
   }
@@ -111,7 +112,7 @@ type Props = {
 };
 
 export function MarketServiceStrip({ navigation, onFilter, onSellRegister }: Props) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -145,7 +146,7 @@ export function MarketServiceStrip({ navigation, onFilter, onSellRegister }: Pro
               <Ionicons name={s.icon} size={22} color={tone} />
             </View>
             <Text style={styles.label} numberOfLines={2}>
-              {serviceLabel(s.key, u)}
+              {serviceLabel(s.key, t)}
             </Text>
           </Pressable>
         );

@@ -1,3 +1,5 @@
+import { translate } from "@/i18n/runtime";
+
 /** ISO codes for settings/signup — excludes KP IR CU SY RU BY VE AF MM SD NI. */
 export const SETTING_COUNTRY_CODES = [
   "AL", "AD", "AE", "AG", "AM", "AO", "AR", "AT", "AU", "AZ",
@@ -27,7 +29,7 @@ const regionNames = new Map<string, Intl.DisplayNames>();
 
 function regionDisplay(code: string, locale: string): string {
   if (code === "OTHER") {
-    if (locale.startsWith("ko")) return "기타";
+    if (locale.startsWith("ko")) return translate("m.profile.other");
     if (locale.startsWith("ja")) return "その他";
     if (locale.startsWith("zh")) return "其他";
     return "Other";

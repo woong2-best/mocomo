@@ -43,8 +43,8 @@ import { reelsUi } from "@/features/reels/reels-ui";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function ReelsScreen() {
-  const { u } = useI18n();
-  const copy = useMemo(() => reelsUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => reelsUi(t), [t]);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -95,7 +95,7 @@ export function ReelsScreen() {
     queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 10),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
-    // Same cache as Home — opening Reels must feel instant (Twitter/IG), not a refetch.
+    // Same cache as Home ??opening Reels must feel instant (Twitter/IG), not a refetch.
     staleTime: 90_000,
     refetchOnMount: false,
   });

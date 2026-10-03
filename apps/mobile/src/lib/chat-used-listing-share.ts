@@ -1,3 +1,14 @@
+import {
+  USED_LISTING_LINE_LINK,
+  USED_LISTING_LINE_PRICE,
+  USED_LISTING_LINE_PRODUCT,
+  USED_LISTING_LINE_WINNING,
+  USED_LISTING_PRODUCT_CAPTURE,
+  USED_LISTING_SHARE_GREETING,
+  USED_LISTING_SHARE_MARKET_MSG,
+} from "@/data/server-values/legacy-chat-patterns";
+import { translate } from "@/i18n/runtime";
+
 /**
  * Used-listing card inside a chat message.
  * Keep in sync with src/lib/chat-used-listing-share.ts
@@ -11,12 +22,12 @@ const PATH_RE = /\/(?:used|market)\/([a-z0-9]{16,32})/i;
 const ATTACH_NAME_RE = /^used-listing:([a-z0-9]{16,32})$/i;
 
 const BOILERPLATE_LINE = [
-  /^(?:안녕하세요[!！.]?\s*)?중고\s*거래\s*문의입니다[.!！]?$/i,
-  /^마켓\s*거래\s*메시지입니다[.!！]?$/,
-  /^상품\s*[:：]\s*.+$/,
-  /^가격\s*[:：]\s*.+$/,
-  /^낙찰가\s*[:：]\s*.+$/,
-  /^링크\s*[:：]\s*.+$/i,
+  USED_LISTING_SHARE_GREETING,
+  USED_LISTING_SHARE_MARKET_MSG,
+  USED_LISTING_LINE_PRODUCT,
+  USED_LISTING_LINE_PRICE,
+  USED_LISTING_LINE_WINNING,
+  USED_LISTING_LINE_LINK,
   /^links?\s*[:：]\s*.+$/i,
   /^products?\s*[:：]\s*.+$/i,
   /^price\s*[:：]\s*.+$/i,
@@ -46,7 +57,7 @@ export function isUsedListingAttachment(attachment: {
 }
 
 function titleHintFromText(text: string): string | null {
-  const match = text.match(/^상품\s*[:：]\s*(.+)$/m);
+  const match = text.match(USED_LISTING_PRODUCT_CAPTURE);
   const title = match?.[1]?.trim();
   return title || null;
 }
@@ -89,5 +100,5 @@ export function chatUsedListingListPreview(
     const short = parsed.note.length > 40 ? `${parsed.note.slice(0, 40)}…` : parsed.note;
     return short;
   }
-  return parsed.titleHint || "중고 상품";
+  return parsed.titleHint || translate("m.lib.used_item");
 }

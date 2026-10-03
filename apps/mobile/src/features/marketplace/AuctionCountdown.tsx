@@ -48,20 +48,20 @@ export function AuctionCountdown({
   variant?: "compact" | "clock";
   tone?: "brand" | "gold";
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const cells = useMemo(
     () =>
       [
-        ["days", u("일", "d")],
-        ["hours", u("시", "h")],
-        ["minutes", u("분", "m")],
-        ["seconds", u("초", "s")],
+        ["days", t("m.marketplace.d")],
+        ["hours", t("m.marketplace.h")],
+        ["minutes", t("m.marketplace.m")],
+        ["seconds", t("m.marketplace.s")],
       ] as const,
-    [u]
+    [t]
   );
   const [parts, setParts] = useState<Parts | null>(null);
-  const a11yEnded = u("경매 마감", "Auction ended");
-  const a11yRemaining = (text: string) => u(`남은 시간 ${text}`, `Time left ${text}`);
+  const a11yEnded = t("m.marketplace.auction_ended");
+  const a11yRemaining = (text: string) => t("m.marketplace.time_left_text", { text: String(text) });
 
   useEffect(() => {
     const tick = () => setParts(auctionCountdownParts(endsAt));

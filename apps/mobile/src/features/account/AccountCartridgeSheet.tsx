@@ -36,6 +36,7 @@ import {
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { AccountAddChoiceDialog } from "@/features/account/AccountAddChoiceDialog";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -101,6 +102,7 @@ export function AccountsCartridgeSheet({
   onAddExisting,
   onLogout,
 }: Props) {
+  const { t } = useI18n();
   const { colors, isDark } = useTheme();
   const { user, savedAccounts, switchAccount, refreshSavedAccounts } = useAuth();
   const insets = useSafeAreaInsets();
@@ -214,7 +216,7 @@ export function AccountsCartridgeSheet({
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           onClose();
         })
-        .catch(() => setError("계정을 전환할 수 없습니다."))
+        .catch(() => setError(t("m.account.could_not_switch_accounts")))
         .finally(() => setBusy(false));
     },
     [onClose, switchAccount, user?.id]
@@ -311,7 +313,7 @@ export function AccountsCartridgeSheet({
           style={styles.dismissHit}
           onPress={requestClose}
           accessibilityRole="button"
-          accessibilityLabel="계정 슬롯 닫기"
+          accessibilityLabel={t("m.account.close_account_slots")}
         />
 
         <View
@@ -325,8 +327,8 @@ export function AccountsCartridgeSheet({
           <Text style={styles.trayTitle}>ACCOUNT CARDS</Text>
           <Text style={styles.trayHint}>
             {swapFrom
-              ? "위치를 바꿀 다른 카드를 탭하세요"
-              : "길게 눌러 카드 위치를 바꿀 수 있어요"}
+              ? t("m.account.tap_another_card_to_swap_places")
+              : t("m.account.press_and_hold_to_reorder_cards")}
           </Text>
 
           <View style={[styles.stage, { width: exactStageW, gap: GAP }]} collapsable={false}>
@@ -428,6 +430,7 @@ function useInsertPress() {
 }
 
 function EmptyCartridgeSlot({ busy, onPress }: { busy: boolean; onPress: () => void }) {
+  const { t } = useI18n();
   const { sink, rise, shellStyle } = useInsertPress();
 
   return (
@@ -441,7 +444,7 @@ function EmptyCartridgeSlot({ busy, onPress }: { busy: boolean; onPress: () => v
         onPress();
       }}
       accessibilityRole="button"
-      accessibilityLabel="계정 추가"
+      accessibilityLabel={t("m.account.add_account")}
     >
       <Animated.View style={[styles.emptyBay, shellStyle]}>
         <View style={styles.emptyInner}>
@@ -457,6 +460,7 @@ function EmptyCartridgeSlot({ busy, onPress }: { busy: boolean; onPress: () => v
 }
 
 function LogoutFooter({ busy, onPress }: { busy: boolean; onPress: () => void }) {
+  const { t } = useI18n();
   const press = useSharedValue(0);
 
   const sink = useCallback(() => {
@@ -487,12 +491,12 @@ function LogoutFooter({ busy, onPress }: { busy: boolean; onPress: () => void })
         onPress();
       }}
       accessibilityRole="button"
-      accessibilityLabel="로그아웃"
+      accessibilityLabel={t("m.account.log_out")}
     >
       <Animated.View style={[styles.logoutBtn, pressStyle]}>
         <Animated.View style={[styles.logoutInset, insetStyle]} pointerEvents="none" />
         <Ionicons name="log-out-outline" size={12} color="#fff" />
-        <Text style={styles.logoutLabel}>로그아웃</Text>
+        <Text style={styles.logoutLabel}>{t("m.account.log_out")}</Text>
         <View style={styles.logoutRim} pointerEvents="none" />
       </Animated.View>
     </Pressable>
@@ -516,6 +520,7 @@ function SwitchCartridge({
   onLongPress: () => void;
   onLogout: () => void;
 }) {
+  const { t } = useI18n();
   const { sink, rise, shellStyle } = useInsertPress();
   const ejectY = useSharedValue(0);
   const [imgFailed, setImgFailed] = useState(false);
@@ -566,7 +571,7 @@ function SwitchCartridge({
             disabled={busy}
             accessibilityRole="button"
             accessibilityLabel={
-              isActive ? `${display} 현재 계정` : `${display} 계정으로 전환`
+              isActive ? t("m.account.display_current_account", { display: String(display) }) : t("m.account.switch_to_display", { display: String(display) })
             }
           >
             <View style={styles.coverArt}>

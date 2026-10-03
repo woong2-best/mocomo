@@ -15,8 +15,8 @@ import type { RootStackParamList } from "@/navigation/types";
 
 /** Callee — push tap or in-app incoming voice call */
 export function IncomingCallScreen() {
-  const { t, u } = useI18n();
-  const voiceCallLabel = u("음성 통화", "Voice call");
+  const { t } = useI18n();
+  const voiceCallLabel = t("m.messages.voice_call");
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -146,7 +146,7 @@ export function IncomingCallScreen() {
       void publishUserCallEvent(caller.id, "accepted", callId);
       setPhase("live");
     } catch (e) {
-      setError(e instanceof Error ? e.message : u("통화 연결에 실패했습니다.", "Could not connect the call."));
+      setError(e instanceof Error ? e.message : t("m.messages.could_not_connect_the_call"));
       setPhase("ringing");
     }
   }, [callId]);
@@ -181,7 +181,7 @@ export function IncomingCallScreen() {
   if (phase === "ringing") {
     return (
       <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <Text style={styles.label}>{u("수신 음성 통화", "Incoming voice call")}</Text>
+        <Text style={styles.label}>{t("m.messages.incoming_voice_call")}</Text>
         <FolkAvatar uri={callerImage} name={callerName} size={96} />
         <Text style={styles.name}>{callerName}</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -201,7 +201,7 @@ export function IncomingCallScreen() {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={colors.terracotta} />
-        <Text style={styles.stageHintDark}>{u("연결 중…", "Connecting…")}</Text>
+        <Text style={styles.stageHintDark}>{t("m.messages.connecting")}</Text>
       </View>
     );
   }
@@ -211,14 +211,14 @@ export function IncomingCallScreen() {
       <View style={styles.audioStage}>
         <Text style={styles.stageHint}>
           {session.peer.state === "connected"
-            ? u("음성 통화 중", "On voice call")
-            : u("음성 연결 중…", "Connecting voice…")}
+            ? t("m.messages.on_voice_call")
+            : t("m.messages.connecting_voice")}
         </Text>
         <Pressable
           style={styles.micBtn}
           onPress={() => session.peer.setMic(!session.peer.micEnabled)}
           accessibilityLabel={
-            session.peer.micEnabled ? u("마이크 끄기", "Mute mic") : u("마이크 켜기", "Unmute mic")
+            session.peer.micEnabled ? t("m.messages.mute_mic") : t("m.messages.unmute_mic")
           }
         >
           <Ionicons name={session.peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />

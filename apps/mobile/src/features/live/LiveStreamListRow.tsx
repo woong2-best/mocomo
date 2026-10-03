@@ -20,7 +20,7 @@ type Props = {
   thumbWidth?: number;
 };
 
-/** Ranked row (조회수 순): wide thumb left, title · host · tags right. */
+/** Ranked row (by views): wide thumb left, title · host · tags right. */
 function LiveStreamListRowInner({
   item,
   onPress,

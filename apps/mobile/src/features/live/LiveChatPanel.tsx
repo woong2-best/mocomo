@@ -69,8 +69,8 @@ export function LiveChatPanel({
   streamStartedAt,
   immersive = false,
 }: Props) {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -253,7 +253,7 @@ export function LiveChatPanel({
     } catch (e) {
       const timedOut = e instanceof ApiError && e.status === 408;
       if (timedOut) {
-        // Server may still have saved the message — keep optimistic UI and reconcile via poll.
+        // Server may still have saved the message ??keep optimistic UI and reconcile via poll.
         setError(null);
         void fetchLiveChat(channelId, {
           since: Math.max(0, sinceRef.current - 5_000) || undefined,
@@ -623,8 +623,8 @@ function SupportLine({
   colors: ThemeColors;
   immersive?: boolean;
 }) {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const kind = message.messageKind ?? "support";
   const tone =
     kind === "tip"

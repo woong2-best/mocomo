@@ -3,13 +3,14 @@ async function loadFfmpeg() {
   try {
     return await import("ffmpeg-kit-react-native");
   } catch {
-    throw new Error("이 기기에서는 영상 변환을 사용할 수 없습니다.");
+    throw new Error(translate("m.lib.video_conversion_is_not_available_on"));
   }
 }
 import type { LocalMediaDraft, VideoEditDraft } from "@/features/compose/compose-types";
 import { DEFAULT_VIDEO_EDIT } from "@/features/compose/compose-types";
 import { hasActiveWatermark, type WatermarkOptions } from "@/lib/media-watermark";
 import { getVideoFilter } from "@/lib/video-filters";
+import { translate } from "@/i18n/runtime";
 
 export type VideoProbe = {
   width: number;
@@ -27,7 +28,7 @@ export async function probeVideo(uri: string): Promise<VideoProbe> {
   const session = await FFprobeKit.getMediaInformation(path);
   const info = session.getMediaInformation();
   if (!info) {
-    throw new Error("영상 정보를 읽을 수 없습니다.");
+    throw new Error(translate("m.lib.could_not_read_video_info"));
   }
   const durationRaw = info.getDuration();
   const durationSec = durationRaw ? parseFloat(String(durationRaw)) : 0;
@@ -182,7 +183,7 @@ export async function processVideoForUpload(
   const code = await session.getReturnCode();
   if (!ReturnCode.isSuccess(code)) {
     const logs = await session.getAllLogsAsString();
-    throw new Error(logs?.slice(-400) || "영상 처리에 실패했습니다.");
+    throw new Error(logs?.slice(-400) || translate("m.lib.video_processing_failed"));
   }
 
   const nextProbe = await probeVideo(outUri);

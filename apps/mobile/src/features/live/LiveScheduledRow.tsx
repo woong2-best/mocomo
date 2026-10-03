@@ -28,8 +28,8 @@ function formatWhen(iso: string | null, locale: string, scheduledLabel: string):
 }
 
 function LiveScheduledRowInner({ item, onPress }: Props) {
-  const { locale, u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { locale, t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 

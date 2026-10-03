@@ -5,7 +5,7 @@ export type DonationSfxEntry = {
 };
 
 export const DONATION_SFX_CATALOG: readonly DonationSfxEntry[] = [
-  { id: "default", label: "도네 효과음" },
+  { id: "default", label: "Donation sound" },
 ] as const;
 
 export const MOCO_DONATION_MIN_SFX = 1;

@@ -5,6 +5,7 @@ import { fetchQuotePreview, type QuotePreviewPost } from "@/api/posts";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 function formatDuration(sec: number | null | undefined): string | null {
   if (sec == null || !Number.isFinite(sec) || sec <= 0) return null;
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export function ComposeQuotePreview({ postId, onLoaded }: Props) {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [post, setPost] = useState<QuotePreviewPost | null>(null);
@@ -50,7 +52,7 @@ export function ComposeQuotePreview({ postId, onLoaded }: Props) {
     return (
       <View style={styles.shell}>
         <ActivityIndicator color={colors.terracotta} />
-        <Text style={styles.muted}>원본 게시물 불러오는 중…</Text>
+        <Text style={styles.muted}>{t("m.compose.loading_original_post")}</Text>
       </View>
     );
   }
@@ -58,7 +60,7 @@ export function ComposeQuotePreview({ postId, onLoaded }: Props) {
   if (!post) {
     return (
       <View style={styles.shell}>
-        <Text style={styles.muted}>원본 게시물을 불러오지 못했습니다.</Text>
+        <Text style={styles.muted}>{t("m.compose.could_not_load_the_original_post")}</Text>
       </View>
     );
   }

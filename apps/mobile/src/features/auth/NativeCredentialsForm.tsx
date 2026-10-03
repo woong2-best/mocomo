@@ -28,7 +28,7 @@ export type NativeCredentialsFormHandle = {
 /** Native @username + password — mirrors web sign-in form. */
 export const NativeCredentialsForm = forwardRef<NativeCredentialsFormHandle, Props>(
   function NativeCredentialsForm({ busy, error, showSubmit = true, onSubmit, onFieldFocus }, ref) {
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const loginRef = useRef<TextInputType>(null);
   const [loginId, setLoginId] = useState("");
@@ -54,7 +54,7 @@ export const NativeCredentialsForm = forwardRef<NativeCredentialsFormHandle, Pro
           ref={loginRef}
           value={loginId}
           onChangeText={setLoginId}
-          placeholder={u("사용자 아이디", "Username")}
+          placeholder={t("m.common.username")}
           placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -94,7 +94,7 @@ export const NativeCredentialsForm = forwardRef<NativeCredentialsFormHandle, Pro
           onPress={() => setShowPassword((v) => !v)}
           hitSlop={8}
           accessibilityLabel={
-            showPassword ? u("비밀번호 숨기기", "Hide password") : u("비밀번호 보기", "Show password")
+            showPassword ? t("m.auth.hide_password") : t("m.auth.show_password")
           }
         >
           <Ionicons

@@ -9,14 +9,14 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
-function alertSummary(a: WtbAlertItem, u: UsedUiText): string {
-  return [a.workTitle, a.productType ? productTypeLabel(a.productType, u) : null, a.characterName]
+function alertSummary(a: WtbAlertItem, t: UsedUiText): string {
+  return [a.workTitle, a.productType ? productTypeLabel(a.productType, t) : null, a.characterName]
     .filter(Boolean)
     .join(" · ");
 }
 
 export function UsedWtbAlertList({ items }: { items: WtbAlertItem[] }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
@@ -30,7 +30,7 @@ export function UsedWtbAlertList({ items }: { items: WtbAlertItem[] }) {
       const msg =
         err instanceof ApiError && err.body && typeof err.body === "object" && "error" in err.body
           ? String((err.body as { error: string }).error)
-          : u("알림 해제에 실패했습니다.", "Could not remove alert.");
+          : t("m.marketplace.could_not_remove_alert");
       showIslandInfo("WTB", msg);
     },
   });
@@ -38,10 +38,7 @@ export function UsedWtbAlertList({ items }: { items: WtbAlertItem[] }) {
   if (items.length === 0) {
     return (
       <Text style={styles.muted}>
-        {u(
-          "등록된 WTB 알림이 없어요. 상품 상세에서 조건을 등록할 수 있어요.",
-          "No WTB alerts yet. Add criteria from a listing detail page."
-        )}
+        {t("m.marketplace.no_wtb_alerts_yet_add_criteria")}
       </Text>
     );
   }
@@ -52,11 +49,11 @@ export function UsedWtbAlertList({ items }: { items: WtbAlertItem[] }) {
         <View key={a.id} style={styles.row}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={2}>
-              {alertSummary(a, u) || u("조건 알림", "Alert criteria")}
+              {alertSummary(a, t) || t("m.marketplace.alert_criteria")}
             </Text>
             {a.maxPrice != null && a.maxPrice > 0 ? (
               <Text style={styles.sub}>
-                {u("희망 최대", "Max")} {formatUsedPrice(a.maxPrice, a.currency, u)}
+                {t("m.marketplace.max")} {formatUsedPrice(a.maxPrice, a.currency, t)}
               </Text>
             ) : null}
             {a.note ? <Text style={styles.sub} numberOfLines={2}>{a.note}</Text> : null}
@@ -66,7 +63,7 @@ export function UsedWtbAlertList({ items }: { items: WtbAlertItem[] }) {
             disabled={remove.isPending}
             onPress={() => remove.mutate(a.id)}
           >
-            <Text style={styles.removeText}>{u("해제", "Remove")}</Text>
+            <Text style={styles.removeText}>{t("m.common.remove")}</Text>
           </Pressable>
         </View>
       ))}

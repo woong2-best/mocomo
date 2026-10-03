@@ -34,7 +34,7 @@ export function LetterDonationCard({
   tipId: string;
   interactive?: boolean;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const [tip, setTip] = useState<TipPayload | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
@@ -49,7 +49,7 @@ export function LetterDonationCard({
         if (!cancelled) setTip(data.tip);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : u("편지를 불러오지 못했습니다.", "Could not load letter."));
+        if (!cancelled) setError(e instanceof Error ? e.message : t("m.messages.could_not_load_letter"));
       });
     return () => {
       cancelled = true;
@@ -83,12 +83,12 @@ export function LetterDonationCard({
       setTip(res.tip);
       setOpen(true);
       if (res.credited && res.mocoCredited) {
-        setCreditNote(u(`${formatMoco(res.mocoCredited)}를 받았습니다`, `Received ${formatMoco(res.mocoCredited)}`));
+        setCreditNote(t("m.messages.received_formatmoco", { formatMoco: String(formatMoco(res.mocoCredited)) }));
       } else if (res.alreadyCredited && res.mocoCredited) {
-        setCreditNote(u(`${formatMoco(res.mocoCredited)} 수령 완료`, `${formatMoco(res.mocoCredited)} already claimed`));
+        setCreditNote(t("m.messages.formatmoco_already_claimed", { formatMoco: String(formatMoco(res.mocoCredited)) }));
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("편지를 열지 못했습니다.", "Could not open letter."));
+      setError(e instanceof Error ? e.message : t("m.messages.could_not_open_letter"));
     } finally {
       setOpening(false);
     }
@@ -122,8 +122,8 @@ export function LetterDonationCard({
       {!open && interactive ? (
         <Text style={styles.hint}>
           {opening
-            ? u("여는 중…", "Opening…")
-            : u("봉투를 눌러 편지를 열고 MOCO를 받으세요", "Tap the envelope to open the letter and claim MOCO")}
+            ? t("m.common.opening")
+            : t("m.messages.tap_the_envelope_to_open_the_2")}
         </Text>
       ) : null}
       {creditNote ? <Text style={styles.credit}>{creditNote}</Text> : null}

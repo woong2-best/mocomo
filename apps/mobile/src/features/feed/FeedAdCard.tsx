@@ -23,7 +23,7 @@ function sponsorHandle(name: string | null | undefined): string {
 }
 
 function FeedAdCardInner({ ad }: { ad: FeedAd }) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const sponsor = ad.sponsorName?.trim() || "MoCoMo";
@@ -51,7 +51,7 @@ function FeedAdCardInner({ ad }: { ad: FeedAd }) {
             </Text>
           </View>
         </View>
-        <Text style={styles.adLabel}>{ad.adCategory || u("광고", "Ad")}</Text>
+        <Text style={styles.adLabel}>{ad.adCategory || t("m.common.ad")}</Text>
       </View>
 
       <Text style={styles.title}>{ad.title}</Text>
@@ -71,7 +71,7 @@ function FeedAdCardInner({ ad }: { ad: FeedAd }) {
           <Ionicons name="stats-chart-outline" size={18} color={colors.textMuted} />
         </View>
         <View style={styles.actionGroup}>
-          <Text style={styles.cta}>{ad.ctaLabel || u("자세히 보기", "Learn more")}</Text>
+          <Text style={styles.cta}>{ad.ctaLabel || t("m.feed.learn_more")}</Text>
           <Ionicons name="bookmark-outline" size={18} color={colors.textMuted} />
           <Ionicons name="share-outline" size={18} color={colors.textMuted} />
         </View>

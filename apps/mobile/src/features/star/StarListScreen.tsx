@@ -87,8 +87,8 @@ function pickCover(post: FeedPost) {
 }
 
 export function StarListScreen() {
-  const { u } = useI18n();
-  const copy = useMemo(() => starUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => starUi(t), [t]);
   const starTabs = useMemo(
     (): { id: StarTab; label: string }[] => [
       { id: "all", label: copy.tabAll },

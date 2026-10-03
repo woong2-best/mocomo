@@ -17,8 +17,8 @@ function formatName(username: string) {
 }
 
 function AlertCard({ item, colors }: { item: LiveAlertItem; colors: ThemeColors }) {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const isCheer = item.kind === "cheer";
   const name = formatName(item.username);
 
@@ -46,7 +46,7 @@ function AlertCard({ item, colors }: { item: LiveAlertItem; colors: ThemeColors 
   );
 }
 
-/** 모바일 라이브 — 스트리머에게 들어온 모든 후원(프로필+라이브) + CP */
+/** Overlay of every donation the streamer should see (super chat + CP). */
 export function LiveDonationAlertOverlay({
   channelId,
   streamStartedAt,

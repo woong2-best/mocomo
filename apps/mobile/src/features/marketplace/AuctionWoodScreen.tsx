@@ -182,7 +182,7 @@ export function AuctionWoodScreen(props: Props) {
   const cabinetH = 228 * scale;
   const needleBox = NEEDLE_HALF * 2 * scale;
 
-  const needle = useSharedValue(STOPS[0].angle);
+  const needle = useSharedValue<number>(STOPS[0].angle);
   const needleVel = useSharedValue(0);
   const armed = useSharedValue(0);
   const hubSX = useSharedValue((HUB_X - HIT.x) * scale);

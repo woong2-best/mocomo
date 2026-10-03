@@ -62,7 +62,7 @@ export function PayButton({
   onSuccess,
   variant = "primary",
 }: Props) {
-  const { u, locale } = useI18n();
+  const { t, locale } = useI18n();
   const isAdult =
     contentRating === "ADULT" ||
     contentRating === true ||
@@ -78,18 +78,18 @@ export function PayButton({
   async function openCheckout() {
     if (type === "CREATOR_SUBSCRIPTION") {
       showIslandError(
-        u("이용 불가", "Unavailable"),
-        u("크리에이터 정기 후원 기능은 종료되었습니다.", "Creator subscriptions are no longer available.")
+        t("m.common.unavailable"),
+        t("m.payments.creator_subscriptions_are_no_longer_avai")
       );
       return;
     }
     const token = await getAccessToken();
     if (!token) {
-      showIslandError(u("로그인 필요", "Sign in required"), u("결제하려면 먼저 로그인해 주세요.", "Sign in to pay."));
+      showIslandError(t("m.common.sign_in_required"), t("m.payments.sign_in_to_pay"));
       return;
     }
     if (isAdult) {
-      showIslandError(u("결제 불가", "Payment blocked"), ADULT_MONETIZATION_BANNED_SHORT);
+      showIslandError(t("m.payments.payment_blocked"), ADULT_MONETIZATION_BANNED_SHORT);
       return;
     }
     if (paymentTypeRequiresAdultVerification(type)) {
@@ -114,11 +114,8 @@ export function PayButton({
         onSuccess={(result) => {
           onSuccess?.();
           showIslandSuccess(
-            result.alreadyPaid ? u("이미 처리됨", "Already processed") : u("결제 완료", "Payment complete"),
-            u(
-              `${paymentTypeLabel(result.type, locale)}이 완료되었습니다.`,
-              `${paymentTypeLabel(result.type, locale)} completed.`
-            )
+            result.alreadyPaid ? t("m.payments.already_processed") : t("m.common.payment_complete"),
+            t("m.payments.paymenttypelabel_completed", { paymentTypeLabel: String(paymentTypeLabel(result.type, locale)) })
           );
         }}
       />

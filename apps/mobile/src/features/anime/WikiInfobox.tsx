@@ -76,8 +76,8 @@ function InfoboxTable({
  * (full image, no crop) + data table.
  */
 export function WikiInfobox({ title, titleEn, photoUrl, infobox, fallbackRows }: Props) {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => animeUi(u), [u]);
+  const { t, locale  } = useI18n();
+  const copy = useMemo(() => animeUi(t), [t]);
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const parsed = useMemo(() => parseWikiInfobox(infobox, locale), [infobox, locale]);

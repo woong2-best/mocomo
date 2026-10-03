@@ -43,7 +43,7 @@ export type SettlementStatus = {
   } | null;
 };
 
-/** @deprecated Custom Connect 제거 — startExpressConnectOnboarding 사용 */
+/** @deprecated Custom Connect removed — use startExpressConnectOnboarding. */
 export type RegisterSettlementPayload = {
   countryCode: string;
   legalName: string;

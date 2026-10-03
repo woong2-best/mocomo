@@ -9,8 +9,11 @@ import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
+import { translate } from "@/i18n/runtime";
 
 export function FeedDisplaySettingsCard() {
+  const { t } = useI18n();
   const { user, refreshMe } = useAuth();
   const queryClient = useQueryClient();
   const { colors } = useTheme();
@@ -37,7 +40,7 @@ export function FeedDisplaySettingsCard() {
         }
         await refreshMe();
       } catch (e) {
-        showIslandError("오류", errorMessage(e));
+        showIslandError(t("m.common.error"), errorMessage(e));
         throw e;
       }
     },
@@ -74,17 +77,16 @@ export function FeedDisplaySettingsCard() {
 
   return (
     <FolkCard>
-      <Text style={styles.cardTitle}>피드 · 표시</Text>
+      <Text style={styles.cardTitle}>{t("m.settings.feed_display")}</Text>
       <Text style={styles.cardDesc}>
-        추천 알고리즘을 끄면 최신순 피드로 전환됩니다. 좋아요 수는 본인·타인 게시물 모두에서
-        숨길 수 있습니다.
+        {t("m.settings.turning_off_recommendations_switches_to_")}
       </Text>
 
       <View style={styles.row}>
         <View style={styles.rowText}>
-          <Text style={styles.rowTitle}>추천 알고리즘</Text>
+          <Text style={styles.rowTitle}>{t("m.settings.recommendations")}</Text>
           <Text style={styles.rowSub}>
-            {feedRecommendationEnabled ? "참여도 기반 For You" : "최신순"}
+            {feedRecommendationEnabled ? t("m.settings.engagement_based_for_you") : t("m.settings.latest_first")}
           </Text>
         </View>
         <Switch
@@ -98,8 +100,8 @@ export function FeedDisplaySettingsCard() {
 
       <View style={styles.row}>
         <View style={styles.rowText}>
-          <Text style={styles.rowTitle}>좋아요 수 표시</Text>
-          <Text style={styles.rowSub}>{showLikeCounts ? "표시 중" : "숨김"}</Text>
+          <Text style={styles.rowTitle}>{t("m.settings.show_like_counts")}</Text>
+          <Text style={styles.rowSub}>{showLikeCounts ? t("m.settings.showing") : t("m.settings.hidden")}</Text>
         </View>
         <Switch
           value={showLikeCounts}
@@ -117,7 +119,7 @@ function errorMessage(e: unknown) {
   if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
     return String((e.body as { error: string }).error);
   }
-  return "설정을 저장하지 못했습니다.";
+  return translate("m.settings.could_not_save_settings");
 }
 
 function createStyles(colors: ThemeColors) {

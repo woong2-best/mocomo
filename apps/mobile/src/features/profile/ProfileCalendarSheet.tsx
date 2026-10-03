@@ -29,7 +29,7 @@ export function ProfileCalendarSheet({
   timeZone,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -44,7 +44,7 @@ export function ProfileCalendarSheet({
           ]}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>{u("일정 · 메모", "Schedule & memos")}</Text>
+            <Text style={styles.title}>{t("m.profile.schedule_memos")}</Text>
             <Pressable
               onPress={onClose}
               hitSlop={10}

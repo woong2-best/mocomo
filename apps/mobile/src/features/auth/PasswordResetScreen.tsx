@@ -23,7 +23,7 @@ function errMsg(e: unknown, fallback: string) {
 /** Native password reset — email code + new password, no web redirect. */
 export function PasswordResetScreen({ navigation }: Props) {
   const { colors } = useTheme();
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { signInWithCredentials, refreshMe } = useAuth();
   const [step, setStep] = useState<Step>("email");
   const [busy, setBusy] = useState(false);
@@ -45,10 +45,10 @@ export function PasswordResetScreen({ navigation }: Props) {
         setError(result.error);
         return;
       }
-      setMessage(result.message ?? u("인증 코드를 보냈습니다.", "We sent a verification code."));
+      setMessage(result.message ?? t("m.auth.we_sent_a_verification_code"));
       setStep("code");
     } catch (e) {
-      setError(errMsg(e, u("코드 발송에 실패했습니다.", "Could not send the code.")));
+      setError(errMsg(e, t("m.auth.could_not_send_the_code")));
     } finally {
       setBusy(false);
     }
@@ -56,7 +56,7 @@ export function PasswordResetScreen({ navigation }: Props) {
 
   async function handleReset() {
     if (newPassword !== confirmPassword) {
-      setError(u("비밀번호가 일치하지 않습니다.", "Passwords do not match."));
+      setError(t("m.auth.passwords_do_not_match"));
       return;
     }
     setError("");
@@ -76,10 +76,10 @@ export function PasswordResetScreen({ navigation }: Props) {
         return;
       }
       await signInWithCredentials(email.trim().toLowerCase(), newPassword);
-      setMessage(result.message ?? u("비밀번호가 변경되었습니다.", "Your password was changed."));
+      setMessage(result.message ?? t("m.auth.your_password_was_changed"));
       setStep("done");
     } catch (e) {
-      setError(errMsg(e, u("비밀번호 재설정에 실패했습니다.", "Password reset failed.")));
+      setError(errMsg(e, t("m.auth.password_reset_failed")));
     } finally {
       setBusy(false);
     }
@@ -87,20 +87,20 @@ export function PasswordResetScreen({ navigation }: Props) {
 
   const title =
     step === "email"
-      ? u("비밀번호 재설정", "Reset password")
+      ? t("m.auth.reset_password")
       : step === "code"
-        ? u("새 비밀번호", "New password")
-        : u("완료", "Done");
+        ? t("m.auth.new_password")
+        : t("m.common.done");
 
   return (
     <AuthScreenLayout
       title={title}
       subtitle={
         step === "email"
-          ? u("가입한 이메일로 인증 코드를 보내드립니다.", "We will send a verification code to your sign-up email.")
+          ? t("m.auth.we_will_send_a_verification_code")
           : step === "code"
-            ? u(`${email.trim()}로 보낸 코드를 입력하세요.`, `Enter the code we sent to ${email.trim()}.`)
-            : u("새 비밀번호로 로그인되었습니다.", "You are signed in with your new password.")
+            ? t("m.auth.enter_the_code_we_sent_to", { email: String(email.trim()) })
+            : t("m.auth.you_are_signed_in_with_your")
       }
       onBack={() => {
         if (step === "code") setStep("email");
@@ -110,7 +110,7 @@ export function PasswordResetScreen({ navigation }: Props) {
       {step === "email" ? (
         <>
           <AuthTextField
-            label={u("이메일", "Email")}
+            label={t("m.auth.email")}
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
@@ -118,7 +118,7 @@ export function PasswordResetScreen({ navigation }: Props) {
           />
           {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
           <FolkButton
-            label={u("인증 코드 받기", "Send verification code")}
+            label={t("m.auth.send_verification_code")}
             loading={busy}
             disabled={!email.trim()}
             onPress={() => void handleSendCode()}
@@ -132,30 +132,30 @@ export function PasswordResetScreen({ navigation }: Props) {
             <Text style={[styles.message, { color: colors.brand }]}>{message}</Text>
           ) : null}
           <AuthTextField
-            label={u("인증 코드", "Verification code")}
+            label={t("m.auth.verification_code")}
             value={code}
             onChangeText={setCode}
-            placeholder={u("6자리 코드", "6-digit code")}
+            placeholder={t("m.common.6_digit_code")}
             keyboardType="number-pad"
             maxLength={6}
           />
           <AuthTextField
-            label={u("새 비밀번호", "New password")}
+            label={t("m.auth.new_password")}
             value={newPassword}
             onChangeText={setNewPassword}
-            placeholder={u("8자 이상", "8+ characters")}
+            placeholder={t("m.auth.8_characters")}
             secureTextEntry
           />
           <AuthTextField
-            label={u("비밀번호 확인", "Confirm password")}
+            label={t("m.auth.confirm_password")}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            placeholder={u("다시 입력", "Re-enter")}
+            placeholder={t("m.auth.re_enter")}
             secureTextEntry
           />
           {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
           <FolkButton
-            label={u("비밀번호 변경", "Change password")}
+            label={t("m.auth.change_password")}
             loading={busy}
             disabled={code.trim().length < 4 || newPassword.length < 8}
             onPress={() => void handleReset()}
@@ -168,7 +168,7 @@ export function PasswordResetScreen({ navigation }: Props) {
           {message ? (
             <Text style={[styles.message, { color: colors.brand }]}>{message}</Text>
           ) : null}
-          <FolkButton label={u("로그인으로", "Go to sign in")} onPress={() => navigation.navigate("Login")} />
+          <FolkButton label={t("m.auth.go_to_sign_in")} onPress={() => navigation.navigate("Login")} />
         </>
       ) : null}
 
@@ -178,7 +178,7 @@ export function PasswordResetScreen({ navigation }: Props) {
             style={{ color: colors.brand, fontWeight: "700" }}
             onPress={() => navigation.navigate("Login")}
           >
-            {u("로그인으로 돌아가기", "Back to sign in")}
+            {t("m.auth.back_to_sign_in")}
           </Text>
         </Text>
       ) : null}

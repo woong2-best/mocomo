@@ -21,7 +21,7 @@ async function fetchReceivedTips() {
 }
 
 export function ReceivedTipsPanel() {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const query = useQuery({
@@ -32,9 +32,9 @@ export function ReceivedTipsPanel() {
 
   return (
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[styles.heading, { color: colors.text }]}>{u("받은 후원", "Received tips")}</Text>
+      <Text style={[styles.heading, { color: colors.text }]}>{t("m.wallet.received_tips")}</Text>
       {tips.length === 0 ? (
-        <Text style={[styles.body, { color: colors.textMuted }]}>{u("받은 후원이 없습니다.", "No tips received yet.")}</Text>
+        <Text style={[styles.body, { color: colors.textMuted }]}>{t("m.wallet.no_tips_received_yet")}</Text>
       ) : (
         tips.map((tip) => (
           <View key={tip.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
@@ -45,7 +45,7 @@ export function ReceivedTipsPanel() {
                   {tip.message}
                 </Text>
               ) : null}
-              <Text style={[styles.when, { color: colors.textMuted }]}>{formatUsedTimeAgo(tip.createdAt, u)}</Text>
+              <Text style={[styles.when, { color: colors.textMuted }]}>{formatUsedTimeAgo(tip.createdAt, t)}</Text>
             </View>
             <Text style={[styles.amount, { color: colors.success }]}>
               +{formatMocoDisplay(tip.moco)}

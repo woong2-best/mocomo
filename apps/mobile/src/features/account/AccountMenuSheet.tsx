@@ -30,6 +30,7 @@ import {
   PHOSPHOR_FAINT,
   PhosphorText,
 } from "@/ui/CrtTerminal";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -78,6 +79,7 @@ export function AccountsBottomSheet({
   onUnregisteredAccount,
   onLogout,
 }: Props) {
+  const { t } = useI18n();
   const {
     user,
     savedAccounts,
@@ -258,7 +260,7 @@ export function AccountsBottomSheet({
                 onPress={() => void handleGoogle()}
                 style={({ pressed }) => [styles.cmdRow, pressed && styles.rowPressed]}
                 accessibilityRole="button"
-                accessibilityLabel="Google로 계정 추가"
+                accessibilityLabel={t("m.account.add_account_with_google")}
               >
                 <PhosphorText glow style={styles.prompt}>
                   {">>"} login google
@@ -292,7 +294,7 @@ export function AccountsBottomSheet({
                     selectionColor="rgba(108,255,98,0.35)"
                     onSubmitEditing={() => passwordRef.current?.focus()}
                     style={styles.input}
-                    accessibilityLabel="로그인 아이디"
+                    accessibilityLabel={t("m.account.login_id")}
                   />
                 </View>
                 <View style={styles.fieldRow}>
@@ -320,7 +322,7 @@ export function AccountsBottomSheet({
                     selectionColor="rgba(108,255,98,0.35)"
                     onSubmitEditing={() => void handleCredentials()}
                     style={styles.input}
-                    accessibilityLabel="비밀번호"
+                    accessibilityLabel={t("auth.passwordSimple")}
                   />
                 </View>
               </View>

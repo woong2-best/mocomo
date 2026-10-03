@@ -15,7 +15,7 @@ type Props = {
   /** When false, keep the WebView mounted but paused-looking (unload source). */
   active?: boolean;
   /**
-   * MoCoMo chrome under the player (provider · title). Off by default —
+   * MoCoMo chrome under the player (provider · title). Off by default ??
    * title lives as an overlay on the video elsewhere.
    */
   showChrome?: boolean;
@@ -23,7 +23,7 @@ type Props = {
   onPress?: () => void;
 };
 
-/** YouTube Error 153 needs a real HTTPS Referer / baseUrl — use site origin first. */
+/** YouTube Error 153 needs a real HTTPS Referer / baseUrl ??use site origin first. */
 function embedRefererOrigin(): string {
   try {
     const u = new URL(API_BASE_URL);
@@ -75,7 +75,7 @@ function youtubeEmbedHtml(embedUrl: string, title: string): string {
 <style>
   html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
   iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  /* Cover residual YouTube watermark only — no solid black panels */
+  /* Cover residual YouTube watermark only ??no solid black panels */
   .veil-br{position:absolute;right:0;bottom:0;width:96px;height:36px;background:linear-gradient(270deg,rgba(0,0,0,.55),transparent);pointer-events:none;z-index:2}
 </style></head><body>
 <iframe
@@ -90,7 +90,7 @@ function youtubeEmbedHtml(embedUrl: string, title: string): string {
 }
 
 /**
- * External platform player only — no chat/donation overlays on the video.
+ * External platform player only ??no chat/donation overlays on the video.
  * Mirrors web ExternalLivePlayer (iframe sibling panel pattern).
  */
 export function ExternalLivePlayer({
@@ -100,8 +100,8 @@ export function ExternalLivePlayer({
   showChrome = false,
   onPress,
 }: Props) {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [failed, setFailed] = useState(false);

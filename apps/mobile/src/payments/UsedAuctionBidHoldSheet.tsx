@@ -40,7 +40,7 @@ export function UsedAuctionBidHoldSheet({
   onClose,
   onSuccess,
 }: Props) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
@@ -66,10 +66,10 @@ export function UsedAuctionBidHoldSheet({
         setSelectedId(def?.id ?? null);
       })
       .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : u("입찰 hold 준비에 실패했습니다.", "Could not prepare bid hold."));
+        setError(e instanceof Error ? e.message : t("m.payments.could_not_prepare_bid_hold"));
       })
       .finally(() => setLoading(false));
-  }, [visible, listingId, bidAmount, u]);
+  }, [visible, listingId, bidAmount, t]);
 
   async function placeBidWithHold(paymentIntentDbId: string) {
     const placed = await placeMarketplaceBid(listingId, bidAmount, {
@@ -77,14 +77,14 @@ export function UsedAuctionBidHoldSheet({
       paymentIntentDbId,
     });
     if (placed.error) throw new Error(placed.error);
-    if (!placed.amount) throw new Error(u("입찰에 실패했습니다.", "Bid failed."));
+    if (!placed.amount) throw new Error(t("m.common.bid_failed"));
     onSuccess({ amount: placed.amount, extended: placed.extended });
     onClose();
   }
 
   async function openAuthenticate(clientSecret: string, oid: string) {
     const pk = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    if (!pk) throw new Error(u("Stripe 설정이 없습니다.", "Stripe is not configured."));
+    if (!pk) throw new Error(t("m.payments.stripe_is_not_configured"));
     const returnTo = encodeURIComponent(`/market/${listingId}`);
     const authUrl = `${process.env.EXPO_PUBLIC_API_BASE_URL ?? ""}/payments/authenticate?order_id=${encodeURIComponent(oid)}&client_secret=${encodeURIComponent(clientSecret)}&return_to=${returnTo}`;
     const result = await WebBrowser.openAuthSessionAsync(authUrl, RETURN_PREFIX, {
@@ -92,14 +92,14 @@ export function UsedAuctionBidHoldSheet({
       showInRecents: true,
     });
     if (result.type !== "success" || !result.url) {
-      throw new Error(u("카드 인증이 취소되었습니다.", "Card verification was canceled."));
+      throw new Error(t("m.payments.card_verification_was_canceled"));
     }
     await placeBidWithHold(oid);
   }
 
   async function paySelected() {
     if (!orderId || !selectedId) {
-      setError(u("카드를 선택해 주세요.", "Select a card."));
+      setError(t("m.payments.select_a_card"));
       return;
     }
     setPaying(true);
@@ -116,7 +116,7 @@ export function UsedAuctionBidHoldSheet({
       }
       await placeBidWithHold(orderId);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("카드 승인에 실패했습니다.", "Card authorization failed."));
+      setError(e instanceof Error ? e.message : t("m.payments.card_authorization_failed"));
     } finally {
       setPaying(false);
     }
@@ -126,9 +126,9 @@ export function UsedAuctionBidHoldSheet({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: colors.surfaceRaised }]}>
-          <Text style={[styles.title, { color: colors.text }]}>{u("입찰 카드 hold", "Bid card hold")}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t("m.payments.bid_card_hold")}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            {u("입찰", "Bid")} {formatUsedPrice(bidAmount, currency)} · hold {formatUsedPrice(holdAmount, "usd")}
+            {t("m.payments.bid")} {formatUsedPrice(bidAmount, currency)} · hold {formatUsedPrice(holdAmount, "usd")}
           </Text>
 
           {loading ? (
@@ -149,7 +149,7 @@ export function UsedAuctionBidHoldSheet({
                 >
                   <Text style={[styles.cardTitle, { color: colors.text }]}>
                     {pm.brand} •••• {pm.last4}
-                    {pm.isDefault ? u(" · 기본", " · Default") : ""}
+                    {pm.isDefault ? t("m.payments.default") : ""}
                   </Text>
                 </Pressable>
               ))}
@@ -161,7 +161,7 @@ export function UsedAuctionBidHoldSheet({
           <View style={styles.actions}>
             <FolkButton label={t("toast.cancel")} variant="ghost" onPress={onClose} disabled={paying} />
             <FolkButton
-              label={paying ? u("처리 중…", "Processing…") : u("승인 후 입찰", "Authorize and bid")}
+              label={paying ? t("m.common.processing") : t("m.payments.authorize_and_bid")}
               onPress={() => void paySelected()}
               loading={paying}
               disabled={!selectedId || loading}

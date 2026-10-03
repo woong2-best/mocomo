@@ -1,4 +1,4 @@
-/** 게시물 미디어 크레딧 라벨 — OnlyFans 스타일 워터마크 텍스트 */
+/** Post media credit label — watermark overlay text */
 
 export type WatermarkOptions = {
   diagonal: boolean;
@@ -48,7 +48,7 @@ export function escapeXml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** react-native-svg SvgXml용 오버레이 */
+/** Overlay markup for react-native-svg SvgXml */
 export function buildWatermarkSvg(
   width: number,
   height: number,

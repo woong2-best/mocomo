@@ -1,18 +1,19 @@
 /** Parity with web `src/lib/marketplace/shipping-config.ts` (ship countries only). */
 
+import { translate } from "@/i18n/runtime";
+
 export const MARKETPLACE_SHIP_COUNTRY_CODES = ["KR", "US", "JP", "CN"] as const;
 
 export type MarketplaceShipCountryCode = (typeof MARKETPLACE_SHIP_COUNTRY_CODES)[number];
 
 export const MARKETPLACE_SHIP_COUNTRIES: {
   code: MarketplaceShipCountryCode;
-  labelKo: string;
-  labelEn: string;
+  labelKey: string;
 }[] = [
-  { code: "KR", labelKo: "대한민국", labelEn: "South Korea" },
-  { code: "US", labelKo: "미국", labelEn: "United States" },
-  { code: "JP", labelKo: "일본", labelEn: "Japan" },
-  { code: "CN", labelKo: "중국", labelEn: "China" },
+  { code: "KR", labelKey: "m.lib.south_korea" },
+  { code: "US", labelKey: "m.lib.united_states" },
+  { code: "JP", labelKey: "m.lib.japan" },
+  { code: "CN", labelKey: "m.lib.china" },
 ];
 
 export function isMarketplaceShipCountry(code: string | null | undefined): code is MarketplaceShipCountryCode {
@@ -26,10 +27,10 @@ export function normalizeShipCountry(code: string | null | undefined): Marketpla
   return isMarketplaceShipCountry(upper) ? upper : null;
 }
 
-export function shipCountryLabel(code: string, locale: "ko" | "en" = "ko"): string {
+export function shipCountryLabel(code: string, _locale?: string): string {
   const row = MARKETPLACE_SHIP_COUNTRIES.find((c) => c.code === code.toUpperCase());
   if (!row) return code;
-  return locale === "en" ? row.labelEn : row.labelKo;
+  return translate(row.labelKey);
 }
 
 export function listingShipsToCountry(
@@ -44,5 +45,6 @@ export function listingShipsToCountry(
   return list.includes(dest);
 }
 
-export const UNSUPPORTED_SHIP_COUNTRY_MESSAGE =
-  "이 상품은 현재 선택하신 국가로 배송할 수 없습니다.";
+export function unsupportedShipCountryMessage(): string {
+  return translate("m.market.unsupported_ship_country");
+}

@@ -1,24 +1,24 @@
-import { uiText } from "@/i18n/ui-text";
+import { translate } from "@/i18n/runtime";
 
 /** Mobile-local genre pills — mirrors web ANIME_GENRES labels. */
 export const MOBILE_ANIME_GENRES = [
-  { id: "ACTION", labelKo: "액션", labelEn: "Action" },
-  { id: "ROMANCE", labelKo: "로맨스", labelEn: "Romance" },
-  { id: "COMEDY", labelKo: "코미디", labelEn: "Comedy" },
-  { id: "FANTASY", labelKo: "판타지", labelEn: "Fantasy" },
-  { id: "SCI_FI", labelKo: "SF", labelEn: "Sci-fi" },
-  { id: "SLICE_OF_LIFE", labelKo: "일상", labelEn: "Slice of life" },
-  { id: "HORROR", labelKo: "호러", labelEn: "Horror" },
-  { id: "SPORTS", labelKo: "스포츠", labelEn: "Sports" },
-  { id: "MECHA", labelKo: "메카", labelEn: "Mecha" },
-  { id: "ISEKAI", labelKo: "이세계", labelEn: "Isekai" },
-  { id: "SCHOOL", labelKo: "학원", labelEn: "School" },
-  { id: "MUSIC", labelKo: "음악", labelEn: "Music" },
-  { id: "MYSTERY", labelKo: "미스터리", labelEn: "Mystery" },
-  { id: "SUPERNATURAL", labelKo: "초자연", labelEn: "Supernatural" },
-  { id: "DRAMA", labelKo: "드라마", labelEn: "Drama" },
-  { id: "ADVENTURE", labelKo: "모험", labelEn: "Adventure" },
-  { id: "OTHER", labelKo: "기타", labelEn: "Other" },
+  { id: "ACTION", labelKey: "m.anime.action" },
+  { id: "ROMANCE", labelKey: "m.anime.romance" },
+  { id: "COMEDY", labelKey: "m.anime.comedy" },
+  { id: "FANTASY", labelKey: "m.anime.fantasy" },
+  { id: "SCI_FI", labelKey: "m.anime.sci_fi" },
+  { id: "SLICE_OF_LIFE", labelKey: "m.anime.slice_of_life" },
+  { id: "HORROR", labelKey: "m.anime.horror" },
+  { id: "SPORTS", labelKey: "m.anime.sports" },
+  { id: "MECHA", labelKey: "m.anime.mecha" },
+  { id: "ISEKAI", labelKey: "m.anime.isekai" },
+  { id: "SCHOOL", labelKey: "m.anime.school" },
+  { id: "MUSIC", labelKey: "m.anime.music" },
+  { id: "MYSTERY", labelKey: "m.anime.mystery" },
+  { id: "SUPERNATURAL", labelKey: "m.anime.supernatural" },
+  { id: "DRAMA", labelKey: "m.anime.drama" },
+  { id: "ADVENTURE", labelKey: "m.anime.adventure" },
+  { id: "OTHER", labelKey: "m.profile.other" },
 ] as const;
 
 export type MobileAnimeGenreId = (typeof MOBILE_ANIME_GENRES)[number]["id"];
@@ -27,17 +27,17 @@ export function genreToApiParam(id: MobileAnimeGenreId): string {
   return id.toLowerCase().replace(/_/g, "-");
 }
 
-export function genreLabel(genre: string | null | undefined, locale?: string): string {
+export function genreLabel(genre: string | null | undefined, _locale?: string): string {
   if (!genre) return "";
   const hit = MOBILE_ANIME_GENRES.find((g) => g.id === genre);
-  if (hit) return uiText(locale, hit.labelKo, hit.labelEn);
+  if (hit) return translate(hit.labelKey);
   return genre;
 }
 
-/** @deprecated use MOBILE_ANIME_GENRES with uiText */
+/** @deprecated use MOBILE_ANIME_GENRES with labelKey */
 export function mobileAnimeGenrePillLabel(
   g: (typeof MOBILE_ANIME_GENRES)[number],
-  locale?: string
+  _locale?: string
 ): string {
-  return uiText(locale, g.labelKo, g.labelEn);
+  return translate(g.labelKey);
 }

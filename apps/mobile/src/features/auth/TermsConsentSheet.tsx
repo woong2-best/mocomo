@@ -62,7 +62,7 @@ function Checkbox({
   label: string;
   linkPath: string;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   return (
     <View style={styles.checkRow}>
       <Pressable style={styles.checkTap} onPress={onPress} hitSlop={8}>
@@ -78,11 +78,11 @@ function Checkbox({
           ) : null}
         </View>
         <Text style={[styles.checkLabel, { color: colors.text }]}>
-          {u("(필수)", "(Required)")} {label}
+          {t("m.auth.required")} {label}
         </Text>
       </Pressable>
       <Pressable onPress={() => void Linking.openURL(`${WEB}${linkPath}`)} hitSlop={8}>
-        <Text style={[styles.viewLink, { color: colors.textMuted }]}>{u("보기 ›", "View ›")}</Text>
+        <Text style={[styles.viewLink, { color: colors.textMuted }]}>{t("m.auth.view")}</Text>
       </Pressable>
     </View>
   );
@@ -135,7 +135,7 @@ export function TermsConsentSheet({
   onClose,
   onAgree,
 }: Props) {
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [terms, setTerms] = useState(false);
@@ -192,13 +192,13 @@ export function TermsConsentSheet({
           </View>
           <Text style={[styles.title, { color: colors.text }]}>{t("auth.signupTitle")}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            {u("생년월일과 필수 약관에 동의해 주세요.", "Enter your date of birth and accept the required terms.")}
+            {t("m.auth.enter_your_date_of_birth_and")}
           </Text>
 
           {account ? (
             <View style={styles.accountLine}>
               <Text style={[styles.accountName, { color: colors.text }]} numberOfLines={1}>
-                {account.name || account.email || u("새 계정", "New account")}
+                {account.name || account.email || t("m.auth.new_account")}
               </Text>
               {account.email ? (
                 <Text style={[styles.accountEmail, { color: colors.textMuted }]} numberOfLines={1}>
@@ -209,11 +209,11 @@ export function TermsConsentSheet({
           ) : null}
 
           <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-            {u("생년월일 *", "Date of birth *")}
+            {t("m.auth.date_of_birth")}
           </Text>
           <View style={styles.birthRow}>
             <BirthField
-              label={u("년", "Year")}
+              label={t("m.common.year")}
               value={birthYear}
               onChangeText={setBirthYear}
               placeholder="YYYY"
@@ -221,7 +221,7 @@ export function TermsConsentSheet({
               colors={colors}
             />
             <BirthField
-              label={u("월", "Month")}
+              label={t("m.common.month")}
               value={birthMonth}
               onChangeText={setBirthMonth}
               placeholder="MM"
@@ -229,7 +229,7 @@ export function TermsConsentSheet({
               colors={colors}
             />
             <BirthField
-              label={u("일", "Day")}
+              label={t("m.common.day")}
               value={birthDay}
               onChangeText={setBirthDay}
               placeholder="DD"
@@ -238,10 +238,7 @@ export function TermsConsentSheet({
             />
           </View>
           <Text style={[styles.birthHint, { color: colors.textMuted }]}>
-            {u(
-              "허위 생년월일 기재 시 약관에 따라 계정이 제한될 수 있습니다.",
-              "False birth dates may lead to account restrictions under our terms."
-            )}
+            {t("m.auth.false_birth_dates_may_lead_to")}
           </Text>
 
           <View style={styles.consentBlock}>
@@ -256,15 +253,12 @@ export function TermsConsentSheet({
               colors={colors}
               checked={privacy}
               onPress={() => setPrivacy((v) => !v)}
-              label={u("개인정보 처리방침 (접속 IP·기기 정보 수집 포함)", "Privacy policy (includes IP & device data)")}
+              label={t("m.auth.privacy_policy_includes_ip_device_data")}
               linkPath={SIGNUP_PRIVACY_PATH}
             />
           </View>
           <Text style={[styles.ipNote, { color: colors.textMuted }]}>
-            {u(
-              "가입 시 서비스 보안·부정 이용 방지를 위해 접속 IP 주소가 자동 수집·보관됩니다.",
-              "Your IP address is collected automatically at signup for security and abuse prevention."
-            )}
+            {t("m.auth.your_ip_address_is_collected_automatical")}
           </Text>
 
           {localError || error ? (
@@ -282,10 +276,7 @@ export function TermsConsentSheet({
             onPress={() => {
               if (!birthOk) {
                 setLocalError(
-                  u(
-                    "생년월일을 확인해 주세요. (연 4자리, 월·일 각 2자리)",
-                    "Check your date of birth. (4-digit year, 2-digit month and day)"
-                  )
+                  t("m.auth.check_your_date_of_birth_4")
                 );
                 return;
               }
@@ -306,7 +297,7 @@ export function TermsConsentSheet({
                   { color: canSubmit ? colors.textOnAccent : colors.textMuted },
                 ]}
               >
-                {u("동의하고 계속", "Agree and continue")}
+                {t("m.auth.agree_and_continue")}
               </Text>
             )}
           </Pressable>

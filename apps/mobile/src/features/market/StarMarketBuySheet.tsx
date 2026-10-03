@@ -21,7 +21,7 @@ import {
   listingShipsToCountry,
   MARKETPLACE_SHIP_COUNTRIES,
   shipCountryLabel,
-  UNSUPPORTED_SHIP_COUNTRY_MESSAGE,
+  unsupportedShipCountryMessage,
 } from "@/lib/marketplace-shipping";
 
 type Props = {
@@ -33,7 +33,7 @@ type Props = {
 
 export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props) {
   const { colors } = useTheme();
-  const { locale, t, u } = useI18n();
+  const { locale, t } = useI18n();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const needsShip = item.type !== "DIGITAL";
   const shipLocale = locale.startsWith("en") ? "en" : "ko";
@@ -50,7 +50,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
   const [error, setError] = useState("");
   const [payVisible, setPayVisible] = useState(false);
   const [checkoutBody, setCheckoutBody] = useState<MarketplaceCheckoutBody | null>(null);
-  const [buyLabel, setBuyLabel] = useState(() => u("구매하기", "Buy now"));
+  const [buyLabel, setBuyLabel] = useState(() => t("m.market.buy_now"));
   const [disclaimer, setDisclaimer] = useState("");
   const [blocked, setBlocked] = useState(false);
 
@@ -87,7 +87,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
       })
       .catch(() => {
         setBlocked(false);
-        setBuyLabel(u("바로 구매", "Checkout"));
+        setBuyLabel(t("m.market.checkout"));
       });
   }, [visible, item.id, shipCountry, needsShip, locale]);
 
@@ -98,7 +98,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
       return;
     }
     if (needsShip && !shipsHere) {
-      setError(UNSUPPORTED_SHIP_COUNTRY_MESSAGE);
+      setError(unsupportedShipCountryMessage());
       return;
     }
     const body: MarketplaceCheckoutBody = {
@@ -117,7 +117,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
   function handlePaySuccess() {
     onSuccess?.();
     onClose();
-    showIslandSuccess(u("결제 완료", "Payment complete"), u("주문이 접수되었습니다.", "Your order was placed."));
+    showIslandSuccess(t("m.common.payment_complete"), t("m.market.your_order_was_placed"));
   }
 
   return (
@@ -137,10 +137,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
           <Text style={styles.price}>
             {formatUsd(total)}
             {shippingExtra > 0
-              ? u(
-                  ` (상품 ${formatUsd(item.priceAmount * qty)} + 배송 ${formatUsd(shippingExtra)})`,
-                  ` (item ${formatUsd(item.priceAmount * qty)} + shipping ${formatUsd(shippingExtra)})`
-                )
+              ? t("m.market.item_formatusd_shipping_formatusd2", { formatUsd: String(formatUsd(item.priceAmount * qty)), formatUsd2: String(formatUsd(shippingExtra)) })
               : ""}
           </Text>
 
@@ -160,7 +157,7 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
               <Text style={styles.sectionLabel}>{t("market.shippingAddress")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder={u("이름", "Name")}
+                placeholder={t("m.market.name")}
                 placeholderTextColor={colors.textMuted}
                 value={shipName}
                 onChangeText={setShipName}
@@ -184,39 +181,39 @@ export function StarMarketBuySheet({ visible, onClose, item, onSuccess }: Props)
                 ))}
               </ScrollView>
               {needsShip && !shipsHere ? (
-                <Text style={styles.error}>{UNSUPPORTED_SHIP_COUNTRY_MESSAGE}</Text>
+                <Text style={styles.error}>{unsupportedShipCountryMessage()}</Text>
               ) : null}
               <TextInput
                 style={styles.input}
-                placeholder={u("우편번호", "Postal code")}
+                placeholder={t("m.market.postal_code")}
                 placeholderTextColor={colors.textMuted}
                 value={shipPostal}
                 onChangeText={setShipPostal}
               />
               <TextInput
                 style={styles.input}
-                placeholder={u("주소", "Address")}
+                placeholder={t("m.market.address")}
                 placeholderTextColor={colors.textMuted}
                 value={shipAddress1}
                 onChangeText={setShipAddress1}
               />
               <TextInput
                 style={styles.input}
-                placeholder={u("상세 주소 (선택)", "Address line 2 (optional)")}
+                placeholder={t("m.market.address_line_2_optional")}
                 placeholderTextColor={colors.textMuted}
                 value={shipAddress2}
                 onChangeText={setShipAddress2}
               />
               <TextInput
                 style={styles.input}
-                placeholder={u("연락처 (선택)", "Phone (optional)")}
+                placeholder={t("m.market.phone_optional")}
                 placeholderTextColor={colors.textMuted}
                 value={shipPhone}
                 onChangeText={setShipPhone}
               />
               <TextInput
                 style={styles.input}
-                placeholder={u("수량", "Quantity")}
+                placeholder={t("m.market.quantity")}
                 placeholderTextColor={colors.textMuted}
                 value={quantity}
                 onChangeText={setQuantity}

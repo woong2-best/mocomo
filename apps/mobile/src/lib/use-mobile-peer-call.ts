@@ -46,6 +46,7 @@ import {
   type VoiceSignalSession,
   type VoiceWireSignal,
 } from "@/lib/supabase-call-signal";
+import { translate } from "@/i18n/runtime";
 
 export type MobilePeerCallState = "idle" | "connecting" | "connected" | "failed" | "closed";
 
@@ -191,7 +192,7 @@ export function useMobilePeerCall({
       if (cs === "connected") setState("connected");
       else if (cs === "failed") {
         setState("failed");
-        onFailedRef.current?.("통화 연결이 끊겼습니다. 잠시 후 다시 걸어 주세요.");
+        onFailedRef.current?.(translate("m.lib.the_call_was_disconnected_please_call"));
         onConnectionLostRef.current?.();
       }
     };
@@ -299,7 +300,7 @@ export function useMobilePeerCall({
         });
       } catch (e) {
         offered.current = false;
-        fail(e instanceof Error ? e.message : "미디어 연결 실패");
+        fail(e instanceof Error ? e.message : translate("m.lib.media_connection_failed"));
       } finally {
         makingOfferRef.current = false;
       }
@@ -327,7 +328,7 @@ export function useMobilePeerCall({
               void maybeOffer();
               return;
             }
-            void handleRemoteSignalRef.current(signal).catch(() => fail("시그널 처리 실패"));
+            void handleRemoteSignalRef.current(signal).catch(() => fail(translate("m.lib.signal_handling_failed")));
           },
         });
 
@@ -336,7 +337,7 @@ export function useMobilePeerCall({
           return;
         }
         if (!session) {
-          fail("시그널링 서버에 연결할 수 없습니다.");
+          fail(translate("m.lib.could_not_connect_to_the_signaling"));
           return;
         }
 
@@ -349,7 +350,7 @@ export function useMobilePeerCall({
           }, 1500);
         }
       } catch (e) {
-        fail(e instanceof Error ? e.message : "미디어 연결 실패");
+        fail(e instanceof Error ? e.message : translate("m.lib.media_connection_failed"));
       }
     })();
 

@@ -16,7 +16,7 @@ import { formatUsd } from "@/lib/money";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export function SellerListingsScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -28,12 +28,12 @@ export function SellerListingsScreen() {
 
   return (
     <Screen>
-      <AppHeader title={u("내 STAR 판매", "My STAR listings")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.market.my_star_listings")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : query.isError ? (
         <View style={styles.center}>
-          <Text style={styles.error}>{u("목록을 불러오지 못했습니다.", "Could not load list.")}</Text>
+          <Text style={styles.error}>{t("m.market.could_not_load_list")}</Text>
           <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
         </View>
       ) : (
@@ -42,7 +42,7 @@ export function SellerListingsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 40, paddingTop: spacing.sm }}
           ListEmptyComponent={
-            <Text style={styles.muted}>{u("판매 중인 STAR 상품이 없습니다. 등록은 웹에서 가능합니다.", "No STAR listings yet. Add them on the web.")}</Text>
+            <Text style={styles.muted}>{t("m.market.no_star_listings_yet_add_them")}</Text>
           }
           renderItem={({ item }) => (
             <Pressable
@@ -64,7 +64,7 @@ export function SellerListingsScreen() {
                 </Text>
                 <Text style={styles.price}>{formatUsd(item.priceAmount)}</Text>
                 <Text style={styles.sub}>
-                  {item.status} · {u("판매", "Sold")} {item.salesCount}
+                  {item.status} · {t("m.common.sold")} {item.salesCount}
                 </Text>
               </View>
             </Pressable>

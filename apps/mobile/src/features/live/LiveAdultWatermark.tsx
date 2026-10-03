@@ -6,7 +6,7 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** 19+ 성인 방송 썸네일 중앙 워터마크 */
+/** 19+ adult live thumbnail center watermark. */
 export function LiveAdultWatermark({ style }: Props) {
   return (
     <View style={[styles.wrap, style]} pointerEvents="none">

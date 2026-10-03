@@ -1,3 +1,5 @@
+import { translate } from "@/i18n/runtime";
+
 /** Shared identifiers — must match native config plugin + FCM payload. */
 export const POST_INTERACTION_CATEGORY = "post_interaction";
 
@@ -16,8 +18,8 @@ export async function registerPostInteractionCategory(): Promise<void> {
       identifier: POST_REPLY_ACTION,
       buttonTitle: ICON_ONLY_LABEL,
       textInput: {
-        submitButtonTitle: "전송",
-        placeholder: "답글…",
+        submitButtonTitle: translate("m.common.send"),
+        placeholder: translate("m.push.reply"),
       },
       options: {
         opensAppToForeground: false,

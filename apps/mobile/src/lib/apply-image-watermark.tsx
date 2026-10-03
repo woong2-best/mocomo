@@ -14,6 +14,7 @@ import {
   textOverlayFontSize,
 } from "@/features/compose/text-overlay-utils";
 import { getVideoFilter } from "@/lib/video-filters";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export type WatermarkCaptureJob = {
   item: LocalMediaDraft;
@@ -71,8 +72,9 @@ export type TextOverlayCaptureJob = {
   reject: (err: Error) => void;
 };
 
-/** Off-screen capture host — InlineComposeBox에서 1장씩 워터마크 합성 */
+/** Off-screen capture host — InlineComposeBox composites one watermarked still at a time. */
 export function WatermarkCaptureHost({ job, onDone }: CaptureProps) {
+  const { t } = useI18n();
   const ref = useRef<View>(null);
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export function WatermarkCaptureHost({ job, onDone }: CaptureProps) {
     const run = async () => {
       await new Promise((r) => setTimeout(r, 120));
       if (cancelled || !ref.current) {
-        job.reject(new Error("워터마크 합성을 시작할 수 없습니다."));
+        job.reject(new Error(t("m.lib.could_not_start_watermark_compositing")));
         onDone();
         return;
       }
@@ -101,7 +103,7 @@ export function WatermarkCaptureHost({ job, onDone }: CaptureProps) {
         });
       } catch (e) {
         if (!cancelled) {
-          job.reject(e instanceof Error ? e : new Error("워터마크 합성 실패"));
+          job.reject(e instanceof Error ? e : new Error(t("m.lib.watermark_compositing_failed")));
         }
       } finally {
         if (!cancelled) onDone();
@@ -175,6 +177,7 @@ export function WatermarkCaptureHost({ job, onDone }: CaptureProps) {
 
 /** Transparent PNG — text overlays for ffmpeg */
 export function TextOverlayCaptureHost({ job, onDone }: TextOverlayProps) {
+  const { t } = useI18n();
   const ref = useRef<View>(null);
 
   useEffect(() => {
@@ -184,7 +187,7 @@ export function TextOverlayCaptureHost({ job, onDone }: TextOverlayProps) {
     const run = async () => {
       await new Promise((r) => setTimeout(r, 120));
       if (cancelled || !ref.current) {
-        job.reject(new Error("텍스트 오버레이를 만들 수 없습니다."));
+        job.reject(new Error(t("m.lib.could_not_create_the_text_overlay")));
         onDone();
         return;
       }
@@ -198,7 +201,7 @@ export function TextOverlayCaptureHost({ job, onDone }: TextOverlayProps) {
         job.resolve(uri);
       } catch (e) {
         if (!cancelled) {
-          job.reject(e instanceof Error ? e : new Error("텍스트 오버레이 실패"));
+          job.reject(e instanceof Error ? e : new Error(t("m.lib.text_overlay_failed")));
         }
       } finally {
         if (!cancelled) onDone();
@@ -245,6 +248,7 @@ export function TextOverlayCaptureHost({ job, onDone }: TextOverlayProps) {
 
 /** Transparent PNG — video ffmpeg overlay */
 export function WatermarkOverlayHost({ job, onDone }: OverlayProps) {
+  const { t } = useI18n();
   const ref = useRef<View>(null);
 
   useEffect(() => {
@@ -254,7 +258,7 @@ export function WatermarkOverlayHost({ job, onDone }: OverlayProps) {
     const run = async () => {
       await new Promise((r) => setTimeout(r, 120));
       if (cancelled || !ref.current) {
-        job.reject(new Error("워터마크 오버레이를 만들 수 없습니다."));
+        job.reject(new Error(t("m.lib.could_not_create_the_watermark_overlay")));
         onDone();
         return;
       }
@@ -268,7 +272,7 @@ export function WatermarkOverlayHost({ job, onDone }: OverlayProps) {
         job.resolve(uri);
       } catch (e) {
         if (!cancelled) {
-          job.reject(e instanceof Error ? e : new Error("워터마크 오버레이 실패"));
+          job.reject(e instanceof Error ? e : new Error(t("m.lib.watermark_overlay_failed")));
         }
       } finally {
         if (!cancelled) onDone();

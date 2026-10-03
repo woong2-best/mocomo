@@ -9,12 +9,7 @@ import {
   View,
 } from "react-native";
 import { showIslandError } from "@/ui/IslandToast";
-import {
-  CREATOR_PAYOUT_BLOCKED_KO,
-  CREATOR_PAYOUT_BLOCKED_TOAST_KO,
-  fetchCreatorPayoutReady,
-  isStripeAccountNotReady,
-} from "@/lib/creator-payout";
+import { fetchCreatorPayoutReady, isStripeAccountNotReady } from "@/lib/creator-payout";
 import { useQuery } from "@tanstack/react-query";
 import { postLiveMocoDonation } from "@/api/live-donate";
 import { ApiError } from "@/api/client";
@@ -24,7 +19,7 @@ import {
   MOCO_DONATION_MAX_AMOUNT,
   MOCO_DONATION_MIN_SFX,
 } from "@/lib/moco-donation-sfx-catalog";
-import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
+import { mocoPurchaseTermsCopy } from "@/lib/gems/constants";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
@@ -46,16 +41,10 @@ function apiErrorMessage(e: unknown, fallback: string) {
 }
 
 export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSuccess }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
-  const payoutBlockedMsg = u(
-    CREATOR_PAYOUT_BLOCKED_KO,
-    "This creator has not linked a payout (Stripe) account yet."
-  );
-  const payoutToastMsg = u(
-    CREATOR_PAYOUT_BLOCKED_TOAST_KO,
-    "This creator has not linked a payout account yet."
-  );
+  const payoutBlockedMsg = t("m.live.this_creator_has_not_linked_a");
+  const payoutToastMsg = t("m.live.this_creator_has_not_linked_a_2");
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [sfxKey, setSfxKey] = useState(DONATION_SFX_CATALOG[0]?.id ?? "default");
   const [mocoAmount, setMocoAmount] = useState(String(MOCO_DONATION_MIN_SFX));
@@ -87,21 +76,18 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
 
   async function submit() {
     if (!termsAccepted) {
-      setError(u("후원 전 약관에 동의해 주세요.", "Accept the terms before tipping."));
+      setError(t("m.live.accept_the_terms_before_tipping"));
       return;
     }
     const trimmed = message.trim();
     if (!trimmed) {
-      setError(u("방송 화면에 표시할 메시지를 입력해 주세요.", "Enter a message to show on stream."));
+      setError(t("m.live.enter_a_message_to_show_on"));
       return;
     }
     const moco = Math.floor(Number(mocoAmount) || 0);
     if (moco < MOCO_DONATION_MIN_SFX || moco > MOCO_DONATION_MAX_AMOUNT) {
       setError(
-        u(
-          `MOCO는 ${MOCO_DONATION_MIN_SFX}~${MOCO_DONATION_MAX_AMOUNT.toLocaleString()} 범위입니다.`,
-          `MOCO must be between ${MOCO_DONATION_MIN_SFX} and ${MOCO_DONATION_MAX_AMOUNT.toLocaleString()}.`
-        )
+        t("m.live.moco_must_be_between_moco_donation", { MOCO_DONATION_MIN_SFX: String(MOCO_DONATION_MIN_SFX), MOCO_DONATION_MAX_AMOUNT: String(MOCO_DONATION_MAX_AMOUNT.toLocaleString()) })
       );
       return;
     }
@@ -116,25 +102,22 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
         message: trimmed,
       });
       if (!res.success) {
-        setError(res.error ?? u("후원에 실패했습니다.", "Tip failed."));
+        setError(res.error ?? t("m.live.tip_failed"));
         return;
       }
       onSuccess?.();
       onClose();
     } catch (e) {
       if (isStripeAccountNotReady(e)) {
-        showIslandError(u("후원 불가", "Tip unavailable"), payoutToastMsg);
+        showIslandError(t("m.live.tip_unavailable"), payoutToastMsg);
         setError(payoutBlockedMsg);
       } else if (e instanceof ApiError && e.status === 402) {
         showIslandError(
-          u("MOCO 부족", "Not enough MOCO"),
-          u(
-            "mocomo.net 웹사이트에서 MOCO를 충전한 뒤 다시 시도해 주세요.",
-            "Top up MOCO on mocomo.net and try again."
-          )
+          t("m.live.not_enough_moco"),
+          t("m.live.top_up_moco_on_mocomo_net")
         );
       } else {
-        setError(apiErrorMessage(e, u("후원에 실패했습니다.", "Tip failed.")));
+        setError(apiErrorMessage(e, t("m.live.tip_failed")));
       }
     } finally {
       setBusy(false);
@@ -146,16 +129,16 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
   return (
     <KeyboardSheet visible={visible} onClose={onClose} maxHeight="88%" sheetStyle={{ backgroundColor: colors.surface }}>
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{u("효과음 후원", "Sound effect tip")}</Text>
+        <Text style={styles.title}>{t("m.live.sound_effect_tip")}</Text>
         {typeof balance === "number" ? (
           <Text style={styles.balance}>
-            {u("보유 MOCO:", "MOCO balance:")} {balance.toLocaleString()}
+            {t("m.live.moco_balance")} {balance.toLocaleString()}
           </Text>
         ) : wallet.isLoading ? (
           <ActivityIndicator style={{ marginVertical: 8 }} />
         ) : null}
 
-        <Text style={styles.label}>{u("효과음", "Sound effect")}</Text>
+        <Text style={styles.label}>{t("m.live.sound_effect")}</Text>
         <View style={styles.sfxRow}>
           {DONATION_SFX_CATALOG.map((s) => (
             <Pressable
@@ -163,7 +146,9 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
               style={[styles.sfxChip, sfxKey === s.id && styles.sfxChipActive]}
               onPress={() => setSfxKey(s.id)}
             >
-              <Text style={[styles.sfxChipText, sfxKey === s.id && styles.sfxChipTextActive]}>{s.label}</Text>
+              <Text style={[styles.sfxChipText, sfxKey === s.id && styles.sfxChipTextActive]}>
+                {s.id === "default" ? t("m.live.donation_sfx_default") : s.label}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -174,30 +159,27 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
           value={mocoAmount}
           onChangeText={setMocoAmount}
           keyboardType="number-pad"
-          placeholder={u(`최소 ${MOCO_DONATION_MIN_SFX}`, `Min ${MOCO_DONATION_MIN_SFX}`)}
+          placeholder={t("m.live.min_moco_donation_min_sfx", { MOCO_DONATION_MIN_SFX: String(MOCO_DONATION_MIN_SFX) })}
           placeholderTextColor={colors.textMuted}
         />
 
-        <Text style={styles.label}>{u("방송 화면 메시지", "On-stream message")}</Text>
+        <Text style={styles.label}>{t("m.live.on_stream_message")}</Text>
         <TextInput
           style={[styles.input, styles.textarea]}
           value={message}
           onChangeText={(t) => setMessage(t.slice(0, 500))}
-          placeholder={u("후원과 함께 표시할 문구", "Message shown with your tip")}
+          placeholder={t("m.live.message_shown_with_your_tip")}
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={500}
         />
         <Text style={styles.hint}>
-          {u(
-            "OBS 알림에 닉네임·MOCO·메시지가 함께 노출됩니다.",
-            "OBS alerts show nickname, MOCO, and message."
-          )}
+          {t("m.live.obs_alerts_show_nickname_moco_and")}
         </Text>
 
         <Pressable style={styles.termsRow} onPress={() => setTermsAccepted((v) => !v)}>
           <View style={[styles.checkbox, termsAccepted && styles.checkboxOn]} />
-          <Text style={styles.termsText}>{MOCO_PURCHASE_TERMS_COPY}</Text>
+          <Text style={styles.termsText}>{mocoPurchaseTermsCopy()}</Text>
         </Pressable>
 
         {payoutBlocked ? <Text style={styles.error}>{payoutBlockedMsg}</Text> : null}
@@ -211,7 +193,7 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
           {busy ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.submitText}>{u("후원하기", "Send tip")}</Text>
+            <Text style={styles.submitText}>{t("m.live.send_tip")}</Text>
           )}
         </Pressable>
       </ScrollView>

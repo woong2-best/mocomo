@@ -43,7 +43,7 @@ export function CommentDonationSheet({
   channelId,
   onSuccess,
 }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { user } = useAuth();
@@ -69,15 +69,12 @@ export function CommentDonationSheet({
   async function submit() {
     if (effectiveAmount < MIN_TIP_USD_CENTS) {
       setError(
-        u(
-          `최소 ${formatUsd(MIN_TIP_USD_CENTS)}부터 후원할 수 있습니다.`,
-          `Minimum tip is ${formatUsd(MIN_TIP_USD_CENTS)}.`
-        )
+        t("m.live.minimum_tip_is_formatusd", { formatUsd: String(formatUsd(MIN_TIP_USD_CENTS)) })
       );
       return;
     }
     if (!trimmed) {
-      setError(u("채팅에 표시할 메시지를 입력해 주세요.", "Enter a message to show in chat."));
+      setError(t("m.live.enter_a_message_to_show_in"));
       return;
     }
     setBusy(true);
@@ -85,7 +82,7 @@ export function CommentDonationSheet({
     setPayBody({
       type: "TIP",
       amount: effectiveAmount,
-      orderName: u(`${displayName} 댓글 후원`, `${displayName} chat tip`),
+      orderName: t("m.live.displayname_chat_tip", { displayName: String(displayName) }),
       metadata: {
         receiverId: creatorId,
         username,
@@ -102,13 +99,10 @@ export function CommentDonationSheet({
     <>
       <KeyboardSheet visible={visible} onClose={onClose} maxHeight="88%" sheetStyle={{ backgroundColor: colors.surface }}>
         <Text style={styles.title}>
-          {u(`${displayName}에게 감사를 전하세요`, `Send thanks to ${displayName}`)}
+          {t("m.live.send_thanks_to_displayname", { displayName: String(displayName) })}
         </Text>
         <Text style={styles.sub}>
-          {u(
-            "댓글 후원을 구매하면 채팅에 하이라이트 댓글이 게시됩니다.",
-            "Purchasing a chat tip posts a highlighted message in chat."
-          )}
+          {t("m.live.purchasing_a_chat_tip_posts_a")}
         </Text>
 
         <View style={styles.preview}>
@@ -123,7 +117,7 @@ export function CommentDonationSheet({
                 </View>
               </View>
               <Text style={styles.previewMsg}>
-                {trimmed || u("후원 메시지 미리보기…", "Tip message preview…")}
+                {trimmed || t("m.live.tip_message_preview")}
               </Text>
             </View>
           </View>
@@ -150,10 +144,7 @@ export function CommentDonationSheet({
           style={styles.input}
           value={custom}
           onChangeText={setCustom}
-          placeholder={u(
-            `금액 직접 입력 (최소 ${formatUsd(MIN_TIP_USD_CENTS)})`,
-            `Custom amount (min ${formatUsd(MIN_TIP_USD_CENTS)})`
-          )}
+          placeholder={t("m.live.custom_amount_min_formatusd", { formatUsd: String(formatUsd(MIN_TIP_USD_CENTS)) })}
           placeholderTextColor={colors.textMuted}
           keyboardType="number-pad"
         />
@@ -162,7 +153,7 @@ export function CommentDonationSheet({
           style={[styles.input, styles.textarea]}
           value={message}
           onChangeText={(t) => setMessage(t.slice(0, COMMENT_DONATION_MESSAGE_MAX))}
-          placeholder={u("채팅에 표시할 메시지 (필수)", "Message for chat (required)")}
+          placeholder={t("m.live.message_for_chat_required")}
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={COMMENT_DONATION_MESSAGE_MAX}
@@ -172,10 +163,7 @@ export function CommentDonationSheet({
         </Text>
 
         <Text style={styles.fee}>
-          {u(
-            `수수료 10% · 크리에이터 정산 ${formatUsd(creatorGets)}`,
-            `10% fee · Creator receives ${formatUsd(creatorGets)}`
-          )}
+          {t("m.live.10_fee_creator_receives_formatusd", { formatUsd: String(formatUsd(creatorGets)) })}
         </Text>
 
         <Pressable
@@ -187,7 +175,7 @@ export function CommentDonationSheet({
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.submitText}>
-              {u("구매 후 보내기", "Pay & send")} · {formatUsd(effectiveAmount)}
+              {t("m.live.pay_send")} · {formatUsd(effectiveAmount)}
             </Text>
           )}
         </Pressable>

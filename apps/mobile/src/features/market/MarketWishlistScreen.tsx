@@ -15,7 +15,7 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
 export function MarketWishlistScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -25,7 +25,7 @@ export function MarketWishlistScreen() {
 
   return (
     <Screen>
-      <AppHeader title={u("찜리스트", "Wishlist")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.market.wishlist")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : (
@@ -35,7 +35,7 @@ export function MarketWishlistScreen() {
           numColumns={2}
           columnWrapperStyle={{ gap: 10, paddingHorizontal: spacing.md }}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24, gap: 10, paddingTop: spacing.sm }}
-          ListEmptyComponent={<Text style={styles.empty}>{u("찜한 상품이 없습니다.", "No wishlist items yet.")}</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>{t("m.market.no_wishlist_items_yet")}</Text>}
           renderItem={({ item }) => (
             <Pressable
               style={styles.card}

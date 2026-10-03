@@ -5,6 +5,7 @@ import {
   createPaidVideoWebHandoff,
   type WatermarkContentKind,
 } from "@/api/watermark";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   mediaId: string;
@@ -25,6 +26,7 @@ export function ForensicPaidVideoEmbed({
   mediaType = "video",
   style,
 }: Props) {
+  const { t } = useI18n();
   const [handoffUrl, setHandoffUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +38,7 @@ export function ForensicPaidVideoEmbed({
         if (!cancelled) setHandoffUrl(url);
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "워터마크 재생을 시작할 수 없습니다.");
+          setError(e instanceof Error ? e.message : t("m.media.could_not_start_watermarked_playback"));
         }
       }
     })();

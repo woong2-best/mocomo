@@ -15,7 +15,7 @@ export function DirectTradeDisputeSheet({
   visible: boolean;
   onClose: () => void;
 }) {
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const client = useQueryClient();
@@ -36,10 +36,10 @@ export function DirectTradeDisputeSheet({
           <View style={styles.head}>
             {selected ? (
               <Pressable onPress={() => setSelectedId(null)} hitSlop={8}>
-                <Text style={styles.back}>{u("목록", "List")}</Text>
+                <Text style={styles.back}>{t("m.marketplace.list")}</Text>
               </Pressable>
             ) : (
-              <Text style={styles.headTitle}>{u("분쟁", "Disputes")}</Text>
+              <Text style={styles.headTitle}>{t("m.marketplace.disputes")}</Text>
             )}
             <Pressable onPress={onClose} hitSlop={8}>
               <Text style={styles.back}>{t("common.close")}</Text>
@@ -48,7 +48,7 @@ export function DirectTradeDisputeSheet({
           {query.isLoading ? (
             <ActivityIndicator color={colors.terracotta} style={{ marginTop: spacing.lg }} />
           ) : query.isError ? (
-            <Text style={styles.empty}>{u("분쟁 정보를 불러오지 못했습니다.", "Could not load dispute info.")}</Text>
+            <Text style={styles.empty}>{t("m.marketplace.could_not_load_dispute_info")}</Text>
           ) : selected ? (
             <ScrollView contentContainerStyle={styles.detail}>
               <DirectTradeCard
@@ -62,7 +62,7 @@ export function DirectTradeDisputeSheet({
               />
             </ScrollView>
           ) : trades.length === 0 ? (
-            <Text style={styles.empty}>{u("진행 중인 직거래가 없습니다.", "No in-person trades in progress.")}</Text>
+            <Text style={styles.empty}>{t("m.marketplace.no_in_person_trades_in_progress")}</Text>
           ) : (
             <ScrollView>
               {trades.map((trade) => (

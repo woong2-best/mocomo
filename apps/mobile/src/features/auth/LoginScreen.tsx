@@ -71,7 +71,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 /** MoCoMo welcome login — Google + native credentials. */
 export function LoginScreen({ navigation, route }: Props) {
   const addAccountMode = route.params?.addAccount === true;
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const {
     openWebAuth,
@@ -212,13 +212,13 @@ export function LoginScreen({ navigation, route }: Props) {
           setCredentialsError(
             credentialsErrorMessage(
               e,
-              u("Google 로그인에 실패했습니다. 다시 시도해 주세요.", "Google sign-in failed. Please try again.")
+              t("m.auth.google_sign_in_failed_please_try")
             )
           );
         }
       } catch (e) {
         setCredentialsError(
-          credentialsErrorMessage(e, u("인증을 완료하지 못했습니다.", "Could not complete sign-in."))
+          credentialsErrorMessage(e, t("m.auth.could_not_complete_sign_in"))
         );
       } finally {
         setBusyProvider(null);
@@ -287,7 +287,7 @@ export function LoginScreen({ navigation, route }: Props) {
         setShowCelebration(true);
       } catch (e) {
         setSignupError(
-          credentialsErrorMessage(e, u("계정을 만들지 못했습니다.", "Could not create account."))
+          credentialsErrorMessage(e, t("m.auth.could_not_create_account"))
         );
         setPendingSignup(snapshot);
       } finally {
@@ -306,7 +306,7 @@ export function LoginScreen({ navigation, route }: Props) {
       await finishAddAccountIfNeeded();
     } catch (e) {
       setCredentialsError(
-        credentialsErrorMessage(e, u("로그인에 실패했습니다.", "Sign-in failed."))
+        credentialsErrorMessage(e, t("m.auth.sign_in_failed"))
       );
     } finally {
       setCredentialsBusy(false);

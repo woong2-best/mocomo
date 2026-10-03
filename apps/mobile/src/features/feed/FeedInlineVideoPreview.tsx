@@ -76,7 +76,7 @@ function FeedInlineVideoPreviewInner({
   embedded = false,
   monetization,
 }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const poster = useMemo(() => resolveVideoPoster(media), [media]);
   const src = useMemo(() => resolveVideoSrc(media), [media]);
   const isPaid =
@@ -261,7 +261,7 @@ function FeedInlineVideoPreviewInner({
         style={styles.openHit}
         onPress={openImmersive}
         accessibilityRole="button"
-        accessibilityLabel={u("영상 전체화면으로 보기", "Open video full screen")}
+        accessibilityLabel={t("m.feed.open_video_full_screen")}
       />
 
       <Pressable
@@ -269,7 +269,7 @@ function FeedInlineVideoPreviewInner({
         hitSlop={8}
         onPress={() => setMuted(!muted)}
         accessibilityRole="button"
-        accessibilityLabel={muted ? u("소리 켜기", "Unmute") : u("음소거", "Mute")}
+        accessibilityLabel={muted ? t("m.feed.unmute") : t("m.feed.mute")}
       >
         <Ionicons name={muted ? "volume-mute" : "volume-high"} size={16} color="#fff" />
       </Pressable>

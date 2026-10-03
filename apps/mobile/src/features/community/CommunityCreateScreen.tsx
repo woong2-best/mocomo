@@ -167,8 +167,8 @@ async function serializeDetailContent(
 
 export function CommunityCreateScreen() {
 
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => communityUi(u), [u]);
+  const { t, locale } = useI18n();
+  const copy = useMemo(() => communityUi(t), [t]);
   const { colors, isDark } = useTheme();
 
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);

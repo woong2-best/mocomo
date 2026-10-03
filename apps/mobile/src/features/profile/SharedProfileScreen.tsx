@@ -98,7 +98,7 @@ function filterByTab(posts: FeedPost[], tab: ProfileTabId): FeedPost[] {
 export function SharedProfileScreen({ username, showBack = true, preview, self = false }: Props) {
   const handle = username.trim();
   const insets = useSafeAreaInsets();
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -182,12 +182,12 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
   }, [pinnedPost, query.data?.posts, sort, tab]);
 
   const emptyMessage = useMemo(() => {
-    if (tab === "replies") return u("답글 탭은 곧 지원됩니다.", "Replies tab coming soon.");
-    if (tab === "wiki") return u("위키 기여가 없습니다.", "No wiki contributions yet.");
-    if (tab === "likes") return u("좋아요한 게시물이 없습니다.", "No liked posts yet.");
-    if (tab === "media") return u("미디어가 없습니다.", "No media yet.");
-    return u("아직 게시물이 없습니다.", "No posts yet.");
-  }, [tab, u]);
+    if (tab === "replies") return t("m.profile.replies_tab_coming_soon");
+    if (tab === "wiki") return t("m.profile.no_wiki_contributions_yet");
+    if (tab === "likes") return t("m.profile.no_liked_posts_yet");
+    if (tab === "media") return t("m.profile.no_media_yet");
+    return t("m.common.no_posts_yet");
+  }, [tab, t]);
 
   const renderItem = useCallback(
     ({ item }: { item: FeedPost }) => (
@@ -264,7 +264,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                     hitSlop={10}
                     style={styles.iconBtn}
                     accessibilityRole="button"
-                    accessibilityLabel={u("일정 · 메모 달력", "Schedule and memo calendar")}
+                    accessibilityLabel={t("m.profile.schedule_and_memo_calendar")}
                   >
                     <Ionicons name="calendar-outline" size={22} color={colors.brand} />
                   </Pressable>
@@ -274,7 +274,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                     hitSlop={10}
                     style={styles.moreBtn}
                     accessibilityRole="button"
-                    accessibilityLabel={u("프로필 옵션", "Profile options")}
+                    accessibilityLabel={t("m.profile.profile_options")}
                   >
                     <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
                   </Pressable>
@@ -328,8 +328,8 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                 username={user.username}
                 initialMuted={user.mutedByViewer ?? false}
                 onMuted={(muted) => {
-                  queryClient.setQueryData(userProfileQueryKey(handle), (prev) => {
-                    if (!prev) return prev;
+                  queryClient.setQueryData(userProfileQueryKey(handle), (prev: { user?: { mutedByViewer?: boolean } } | undefined) => {
+                    if (!prev?.user) return prev;
                     return { ...prev, user: { ...prev.user, mutedByViewer: muted } };
                   });
                 }}
@@ -359,7 +359,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
               {query.isFetching ? (
                 <ActivityIndicator color={colors.terracotta} />
               ) : (
-                <Text style={styles.error}>{u("프로필을 불러오지 못했습니다. 탭하여 다시 시도", "Could not load profile. Tap to retry")}</Text>
+                <Text style={styles.error}>{t("m.profile.could_not_load_profile_tap_to")}</Text>
               )}
             </Pressable>
           ) : (

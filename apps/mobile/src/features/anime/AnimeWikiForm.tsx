@@ -35,6 +35,7 @@ import { animeUi } from "@/features/anime/anime-ui";
 import { WikiContent } from "@/features/anime/WikiContent";
 import { extractYoutubeId } from "@/features/anime/wiki-youtube";
 import { characterNames } from "@/features/anime/wiki-article";
+import { cultureWikiEnglishOnlyViolation } from "@/lib/culture-wiki-english-only";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
@@ -75,8 +76,8 @@ async function pickAndUploadImage(aspect?: [number, number], permDeniedMsg?: str
 }
 
 export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => animeUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => animeUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -189,6 +190,20 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
       showIslandError(copy.inputCheckTitle, copy.titleRequired);
       return;
     }
+    const englishOnlyCode = cultureWikiEnglishOnlyViolation([
+      trimmed,
+      titleEn,
+      studio,
+      synopsis,
+      worldInfo,
+      infobox,
+      tags,
+      charactersText,
+    ]);
+    if (englishOnlyCode) {
+      showIslandError(copy.inputCheckTitle, t(englishOnlyCode));
+      return;
+    }
     mutation.mutate({
       title: trimmed,
       titleEn: titleEn.trim() || undefined,
@@ -224,6 +239,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.lead}>{copy.formIntro}</Text>
+          <Text style={styles.englishOnlyNotice}>{copy.englishOnlyNotice}</Text>
 
           <Label text={copy.titleLabel} colors={colors} />
           <TextInput
@@ -240,7 +256,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             style={styles.input}
             value={titleEn}
             onChangeText={setTitleEn}
-            placeholder="English title"
+            placeholder={copy.titleEnPh}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="words"
           />
@@ -257,7 +273,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
                     style={[styles.genreChip, active && styles.genreChipActive]}
                   >
                     <Text style={[styles.genreChipText, active && styles.genreChipTextActive]}>
-                      {genreLabel(g.id, locale)}
+                      {genreLabel(g.id)}
                     </Text>
                   </Pressable>
                 );
@@ -450,6 +466,12 @@ function createStyles(colors: ThemeColors) {
       lineHeight: 19,
       color: colors.textMuted,
       marginBottom: spacing.xs,
+    },
+    englishOnlyNotice: {
+      fontSize: 12,
+      lineHeight: 18,
+      color: colors.terracotta,
+      marginBottom: spacing.sm,
     },
     input: {
       marginTop: 6,

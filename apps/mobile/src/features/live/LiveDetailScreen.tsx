@@ -32,8 +32,8 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { liveUi } from "@/features/live/live-ui";
 
 export function LiveDetailScreen() {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -146,7 +146,7 @@ export function LiveDetailScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      {/* Player only — title overlays video; no host strip under the frame */}
+      {/* Player only ??title overlays video; no host strip under the frame */}
       <View
         style={[
           styles.playerWrap,

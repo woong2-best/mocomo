@@ -7,9 +7,11 @@ import { OreIcon } from "@/ui/OreIcon";
 import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /** Native parity with web `/support/tiers` — embedded in wallet or full screen. */
 export function SupportTiersPanel() {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -25,7 +27,7 @@ export function SupportTiersPanel() {
   }
 
   if (!data) {
-    return <Text style={styles.muted}>티어 정보를 불러오지 못했습니다.</Text>;
+    return <Text style={styles.muted}>{t("m.support.could_not_load_tier_info")}</Text>;
   }
 
   const currentTier = data.tiers.find((t) => t.level === data.current.level);
@@ -49,13 +51,13 @@ export function SupportTiersPanel() {
             <Text style={styles.heroLabelKo}>{data.current.labelKo}</Text>
             <Text style={styles.heroThreshold}>{data.current.minAmount.toLocaleString()} MOCO+</Text>
             <Text style={styles.heroHint}>
-              MOCO 구매가 아닌, 다른 사용자에게 후원을 완료한 누적 MOCO 기준 등급입니다.
+              {t("m.support.tiers_are_based_on_the_total")}
             </Text>
           </View>
 
           <FolkCard style={styles.progressCard}>
             <View style={styles.progressHead}>
-              <Text style={styles.progressCaption}>내 누적 후원</Text>
+              <Text style={styles.progressCaption}>{t("m.support.my_total_tips")}</Text>
               {data.next ? (
                 <OreIcon
                   uri={data.tiers.find((t) => t.level === data.next!.level)?.iconUrl ?? ""}
@@ -79,7 +81,7 @@ export function SupportTiersPanel() {
             <Text style={styles.progress}>{data.progress.message}</Text>
           </FolkCard>
 
-          <Text style={styles.sectionLabel}>전체 등급</Text>
+          <Text style={styles.sectionLabel}>{t("m.support.all_tiers")}</Text>
         </>
       }
       renderItem={({ item }) => {
@@ -93,7 +95,7 @@ export function SupportTiersPanel() {
               </Text>
               <Text style={styles.tierMin}>{item.minAmount.toLocaleString()} MOCO+</Text>
             </View>
-            {active ? <Text style={[styles.badge, { color: item.color }]}>현재</Text> : null}
+            {active ? <Text style={[styles.badge, { color: item.color }]}>{t("m.marketplace.current")}</Text> : null}
           </View>
         );
       }}

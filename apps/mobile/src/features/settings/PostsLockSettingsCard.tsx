@@ -11,8 +11,11 @@ import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
+import { translate } from "@/i18n/runtime";
 
 export function PostsLockSettingsCard() {
+  const { t } = useI18n();
   const { user, refreshMe } = useAuth();
   const queryClient = useQueryClient();
   const { colors } = useTheme();
@@ -39,9 +42,9 @@ export function PostsLockSettingsCard() {
         setLocked(next);
         await refreshMe();
         await queryClient.invalidateQueries({ queryKey: ["mobile-follow-requests"] });
-        showIslandToast("Saved", next ? "계정을 잠갔습니다." : "계정을 공개했습니다.");
+        showIslandToast("Saved", next ? t("m.settings.your_account_is_now_locked") : t("m.settings.your_account_is_now_public"));
       } catch (e) {
-        showIslandError("오류", errorMessage(e));
+        showIslandError(t("m.common.error"), errorMessage(e));
       } finally {
         setBusy(false);
       }
@@ -56,7 +59,7 @@ export function PostsLockSettingsCard() {
         await queryClient.invalidateQueries({ queryKey: ["mobile-follow-requests"] });
         await refreshMe();
       } catch (e) {
-        showIslandError("오류", errorMessage(e));
+        showIslandError(t("m.common.error"), errorMessage(e));
       }
     },
     [queryClient, refreshMe]
@@ -68,10 +71,9 @@ export function PostsLockSettingsCard() {
 
   return (
     <FolkCard>
-      <Text style={styles.cardTitle}>게시글 잠금</Text>
+      <Text style={styles.cardTitle}>{t("m.settings.lock_posts")}</Text>
       <Text style={styles.cardDesc}>
-        계정을 잠그면 승인된 팔로워만 게시물을 볼 수 있습니다. 이미 팔로우한 사람은 그대로 볼 수
-        있고, 새 팔로우는 요청이 됩니다.
+        {t("m.settings.when_your_account_is_locked_only")}
       </Text>
 
       <View style={styles.options}>
@@ -92,9 +94,9 @@ export function PostsLockSettingsCard() {
               size={18}
               color={!locked ? colors.terracotta : colors.textMuted}
             />
-            <Text style={[styles.optionTitle, !locked && { color: colors.terracotta }]}>공개</Text>
+            <Text style={[styles.optionTitle, !locked && { color: colors.terracotta }]}>{t("m.settings.public")}</Text>
           </View>
-          <Text style={styles.optionDesc}>누구나 글을 볼 수 있고, 팔로우가 즉시 적용됩니다.</Text>
+          <Text style={styles.optionDesc}>{t("m.settings.anyone_can_see_your_posts_and")}</Text>
         </Pressable>
 
         <Pressable
@@ -114,19 +116,19 @@ export function PostsLockSettingsCard() {
               size={18}
               color={locked ? colors.terracotta : colors.textMuted}
             />
-            <Text style={[styles.optionTitle, locked && { color: colors.terracotta }]}>잠금</Text>
+            <Text style={[styles.optionTitle, locked && { color: colors.terracotta }]}>{t("m.settings.locked")}</Text>
           </View>
           <Text style={styles.optionDesc}>
-            승인된 팔로워만 글을 볼 수 있습니다. 새 팔로우는 요청·승인 후 추가됩니다.
+            {t("m.settings.only_approved_followers_can_see_your")}
           </Text>
         </Pressable>
       </View>
 
       {locked || incoming.length > 0 ? (
         <View style={styles.requests}>
-          <Text style={styles.requestsTitle}>팔로우 요청</Text>
+          <Text style={styles.requestsTitle}>{t("m.settings.follow_requests")}</Text>
           {incoming.length === 0 ? (
-            <Text style={styles.optionDesc}>대기 중인 팔로우 요청이 없습니다.</Text>
+            <Text style={styles.optionDesc}>{t("m.settings.no_pending_follow_requests")}</Text>
           ) : (
             incoming.map((req) => (
               <View key={req.id} style={styles.requestRow}>
@@ -143,13 +145,13 @@ export function PostsLockSettingsCard() {
                   style={[styles.actBtn, { backgroundColor: colors.cobalt }]}
                   onPress={() => void act(req.user.id, "approve")}
                 >
-                  <Text style={styles.actBtnText}>수락</Text>
+                  <Text style={styles.actBtnText}>{t("m.live.accept")}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.actBtn, { borderColor: colors.border, borderWidth: 1 }]}
                   onPress={() => void act(req.user.id, "reject")}
                 >
-                  <Text style={[styles.actBtnText, { color: colors.text }]}>거절</Text>
+                  <Text style={[styles.actBtnText, { color: colors.text }]}>{t("m.messages.decline")}</Text>
                 </Pressable>
               </View>
             ))
@@ -164,7 +166,7 @@ function errorMessage(e: unknown) {
   if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
     return String((e.body as { error: string }).error);
   }
-  return "저장에 실패했습니다.";
+  return translate("m.common.could_not_save");
 }
 
 function createStyles(colors: ThemeColors) {

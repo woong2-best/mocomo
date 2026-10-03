@@ -8,16 +8,13 @@ import { LinkifiedText } from "@/ui/LinkifiedText";
 import { useTheme } from "@/theme/ThemeContext";
 import type { Locale } from "@/i18n";
 
-const SOURCE_LABELS: Partial<Record<Locale, Partial<Record<Locale, string>>>> = {
-  ko: { ko: "한국어", en: "영어", ja: "일본어", zh: "중국어" },
-  en: { ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese" },
-  ja: { ko: "韓国語", en: "英語", ja: "日本語", zh: "中国語" },
-  zh: { ko: "韩语", en: "英语", ja: "日语", zh: "中文" },
-};
-
 function sourceLanguageLabel(source: Locale, uiLocale: Locale): string {
-  const table = SOURCE_LABELS[uiLocale] ?? SOURCE_LABELS.en;
-  return table?.[source] ?? source;
+  const tag = uiLocale === "zh-TW" ? "zh-Hant" : uiLocale;
+  try {
+    return new Intl.DisplayNames([tag, "en"], { type: "language" }).of(source) ?? source;
+  } catch {
+    return source;
+  }
 }
 
 type Props = {

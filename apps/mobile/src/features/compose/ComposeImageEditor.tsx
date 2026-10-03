@@ -98,27 +98,27 @@ export function ComposeImageEditor({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createComposeEditorStyles(colors, isDark), [colors, isDark]);
 
   const aspectPresets = useMemo<AspectPreset[]>(
     () => [
-      { id: "free", label: u("원본", "Original") },
+      { id: "free", label: t("m.compose.original") },
       { id: "1:1", label: "1:1", aspect: 1 },
       { id: "4:5", label: "4:5", aspect: 4 / 5 },
       { id: "3:4", label: "3:4", aspect: 3 / 4 },
       { id: "16:9", label: "16:9", aspect: 16 / 9 },
     ],
-    [u]
+    [t]
   );
 
   const imageToolItems = useMemo(
     () =>
       [
-        { panel: "overlay" as const, icon: "shield-checkmark-outline" as const, label: u("워터마크", "Watermark") },
+        { panel: "overlay" as const, icon: "shield-checkmark-outline" as const, label: t("m.compose.watermark") },
       ] as const,
-    [u]
+    [t]
   );
 
   const [workingUri, setWorkingUri] = useState<string | null>(null);
@@ -161,12 +161,12 @@ export function ComposeImageEditor({
         setWidth(result.width);
         setHeight(result.height);
       } catch (e) {
-        setError(e instanceof Error ? e.message : u("편집 실패", "Edit failed"));
+        setError(e instanceof Error ? e.message : t("m.compose.edit_failed"));
       } finally {
         setBusy(false);
       }
     },
-    [u, workingUri]
+    [t, workingUri]
   );
 
   const onPickAudio = useCallback(async () => {
@@ -187,9 +187,9 @@ export function ComposeImageEditor({
       }));
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
-      showIslandError(u("오류", "Error"), u("오디오 파일을 불러오지 못했습니다.", "Could not load audio file."));
+      showIslandError(t("m.common.error"), t("m.compose.could_not_load_audio_file"));
     }
-  }, [u]);
+  }, [t]);
 
   const onAddText = useCallback(() => {
     setTextDraft("");
@@ -269,7 +269,7 @@ export function ComposeImageEditor({
           <Pressable onPress={onClose} hitSlop={12} style={styles.headerSide}>
             <Ionicons name="chevron-back" size={26} color={colors.terracotta} />
           </Pressable>
-          <Text style={styles.headerTitle}>{u("사진 편집", "Edit photo")}</Text>
+          <Text style={styles.headerTitle}>{t("m.compose.edit_photo")}</Text>
           <Pressable
             onPress={onDone}
             disabled={busy || !workingUri}
@@ -277,7 +277,7 @@ export function ComposeImageEditor({
             style={styles.headerSide}
           >
             <Text style={[styles.sheetDone, (busy || !workingUri) && { opacity: 0.4 }]}>
-              {u("적용", "Apply")}
+              {t("m.compose.apply")}
             </Text>
           </Pressable>
         </View>
@@ -366,19 +366,19 @@ export function ComposeImageEditor({
                 disabled={busy}
               >
                 <Ionicons name="crop-outline" size={22} color={colors.brand} />
-                <Text style={styles.cropAspectLabel}>{u("자유", "Free")}</Text>
+                <Text style={styles.cropAspectLabel}>{t("m.common.free")}</Text>
               </Pressable>
               <View style={styles.cropActionGroup}>
                 <MiniAction
                   icon="swap-horizontal-outline"
-                  label={u("좌우", "Flip H")}
+                  label={t("m.compose.flip_h")}
                   onPress={() => void runManipulate([{ flip: ImageManipulator.FlipType.Horizontal }])}
                   styles={styles}
                   colors={colors}
                 />
                 <MiniAction
                   icon="swap-vertical-outline"
-                  label={u("상하", "Flip V")}
+                  label={t("m.compose.flip_v")}
                   onPress={() => void runManipulate([{ flip: ImageManipulator.FlipType.Vertical }])}
                   styles={styles}
                   colors={colors}
@@ -393,7 +393,7 @@ export function ComposeImageEditor({
             <Pressable style={styles.trackRow} onPress={() => void onPickAudio()}>
               <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
               <Text style={styles.trackLabel}>
-                {edit.audioTrack ? `🎵 ${edit.audioTrack.filename}` : u("MP3 파일 선택", "Choose MP3 file")}
+                {edit.audioTrack ? `🎵 ${edit.audioTrack.filename}` : t("m.compose.choose_mp3_file")}
               </Text>
               {edit.audioTrack ? (
                 <Pressable
@@ -413,13 +413,13 @@ export function ComposeImageEditor({
               <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
               <Text style={styles.trackLabel}>
                 {edit.textOverlays.length > 0
-                  ? u(`텍스트 ${edit.textOverlays.length}개 · 탭해서 추가`, `${edit.textOverlays.length} text overlay(s) · tap to add`)
-                  : u("텍스트 추가", "Add text")}
+                  ? t("m.compose.length_text_overlay_s_tap_to", { length: String(edit.textOverlays.length) })
+                  : t("m.compose.add_text")}
               </Text>
             </Pressable>
             {selectedTextId ? (
               <>
-                <Text style={styles.textColorLabel}>{u("글자 색", "Text color")}</Text>
+                <Text style={styles.textColorLabel}>{t("m.compose.text_color")}</Text>
                 <TextColorPicker
                   value={
                     edit.textOverlays.find((t) => t.id === selectedTextId)?.color ??
@@ -445,12 +445,12 @@ export function ComposeImageEditor({
                     setSelectedTextId(null);
                   }}
                 >
-                  <Text style={styles.sheetMutedBtnText}>{u("선택 텍스트 삭제", "Delete selected text")}</Text>
+                  <Text style={styles.sheetMutedBtnText}>{t("m.compose.delete_selected_text")}</Text>
                 </Pressable>
               </>
             ) : edit.textOverlays.length > 0 ? (
               <Text style={styles.sheetHint}>
-                {u("미리보기에서 텍스트를 탭하면 색을 바꿀 수 있어요.", "Tap text in the preview to change its color.")}
+                {t("m.compose.tap_text_in_the_preview_to")}
               </Text>
             ) : null}
           </View>
@@ -466,7 +466,7 @@ export function ComposeImageEditor({
               />
             ) : (
               <Text style={styles.sheetHint}>
-                {u("로그인 후 워터마크를 사용할 수 있습니다.", "Sign in to use watermarks.")}
+                {t("m.compose.sign_in_to_use_watermarks")}
               </Text>
             )}
           </View>
@@ -499,7 +499,7 @@ export function ComposeImageEditor({
                     edit.filterId === f.id && styles.filterLabelActive,
                   ]}
                 >
-                  {f.label}
+                  {f.id === "none" ? t("m.compose.original") : f.label}
                 </Text>
               </Pressable>
             ))}
@@ -509,19 +509,19 @@ export function ComposeImageEditor({
         {panel === "adjust" ? (
           <View style={styles.sheetBody}>
             <AdjustRow
-              label={u("밝기", "Brightness")}
+              label={t("m.compose.brightness")}
               value={edit.brightness}
               onChange={(v) => setEdit((p) => ({ ...p, brightness: v }))}
               styles={styles}
             />
             <AdjustRow
-              label={u("대비", "Contrast")}
+              label={t("m.compose.contrast")}
               value={edit.contrast}
               onChange={(v) => setEdit((p) => ({ ...p, contrast: v }))}
               styles={styles}
             />
             <AdjustRow
-              label={u("채도", "Saturation")}
+              label={t("m.compose.saturation")}
               value={edit.saturation}
               onChange={(v) => setEdit((p) => ({ ...p, saturation: v }))}
               styles={styles}
@@ -562,10 +562,10 @@ export function ComposeImageEditor({
         <Modal visible={textModalOpen} transparent animationType="fade">
           <View style={styles.textModalRoot}>
             <View style={styles.textModalCard}>
-              <Text style={styles.textModalTitle}>{u("텍스트 추가", "Add text")}</Text>
+              <Text style={styles.textModalTitle}>{t("m.compose.add_text")}</Text>
               <TextInput
                 style={styles.textModalInput}
-                placeholder={u("내용 입력", "Enter text")}
+                placeholder={t("m.compose.enter_text")}
                 placeholderTextColor={colors.textMuted}
                 value={textDraft}
                 onChangeText={setTextDraft}
@@ -577,7 +577,7 @@ export function ComposeImageEditor({
                   <Text style={styles.sheetCancel}>{t("toast.cancel")}</Text>
                 </Pressable>
                 <Pressable onPress={confirmAddText}>
-                  <Text style={styles.sheetDone}>{u("추가", "Add")}</Text>
+                  <Text style={styles.sheetDone}>{t("m.common.add")}</Text>
                 </Pressable>
               </View>
             </View>

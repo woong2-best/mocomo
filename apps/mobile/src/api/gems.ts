@@ -47,7 +47,7 @@ export async function topupGemsWithSavedCard(moco: number, paymentMethodId: stri
   });
 }
 
-/** @deprecated payCheckoutWithGems(orderId) from checkout-payment 사용 */
+/** @deprecated Use payCheckoutWithGems(orderId) from checkout-payment. */
 export async function payWithGemsMobile(input: { orderId: string }) {
   return apiRequest<{ success: true; type: string; redirectPath?: string; balance?: number }>(
     MobileApi.gems,

@@ -58,7 +58,7 @@ const GRID_GAP = 14;
  * Culture Wiki — opaque fixed header + scrollable wood panel with framed posters.
  */
 export function AnimeListScreen() {
-  const { u, locale } = useI18n();
+  const { t, locale } = useI18n();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -108,14 +108,14 @@ export function AnimeListScreen() {
             hitSlop={12}
             style={styles.backHit}
             accessibilityRole="button"
-            accessibilityLabel={u("뒤로", "Back")}
+            accessibilityLabel={t("m.common.back")}
           >
             <Ionicons name="chevron-back" size={26} color={WIKI.text} />
           </Pressable>
           <View style={styles.searchRow}>
             <TextInput
               style={styles.input}
-              placeholder={u("작품 검색", "Search titles")}
+              placeholder={t("m.anime.search_titles")}
               placeholderTextColor={WIKI.textMuted}
               value={q}
               onChangeText={setQ}
@@ -127,9 +127,9 @@ export function AnimeListScreen() {
               onPress={onSearch}
               style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.88 }]}
               accessibilityRole="button"
-              accessibilityLabel={u("검색", "Search")}
+              accessibilityLabel={t("m.common.search")}
             >
-              <Text style={styles.searchBtnLabel}>{u("검색", "Search")}</Text>
+              <Text style={styles.searchBtnLabel}>{t("m.common.search")}</Text>
             </Pressable>
           </View>
         </View>
@@ -139,12 +139,12 @@ export function AnimeListScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryRow}
         >
-          <CategoryPlaque label={u("전체", "All")} active={genre === null} onPress={() => setGenre(null)} />
+          <CategoryPlaque label={t("m.common.all")} active={genre === null} onPress={() => setGenre(null)} />
           <Pressable
             onPress={onRegisterWork}
             style={({ pressed }) => [styles.addPlaque, pressed && { opacity: 0.88 }]}
             accessibilityRole="button"
-            accessibilityLabel={u("작품 등록", "Add title")}
+            accessibilityLabel={t("m.anime.add_title")}
           >
             <Ionicons name="add" size={20} color="#fff" />
           </Pressable>
@@ -190,9 +190,9 @@ export function AnimeListScreen() {
                   </View>
                 ) : query.isError && !query.data ? (
                   <View style={styles.centerState}>
-                    <Text style={styles.errorText}>{u("목록을 불러오지 못했습니다.", "Could not load the list.")}</Text>
+                    <Text style={styles.errorText}>{t("m.anime.could_not_load_the_list")}</Text>
                     <Pressable onPress={() => void query.refetch()} style={styles.retryBtn}>
-                      <Text style={styles.retryLabel}>{u("다시 시도", "Try again")}</Text>
+                      <Text style={styles.retryLabel}>{t("m.common.try_again")}</Text>
                     </Pressable>
                   </View>
                 ) : posters.length > 0 ? (
@@ -209,7 +209,7 @@ export function AnimeListScreen() {
                 ) : (
                   <View style={styles.centerState}>
                     <Text style={styles.emptyHint}>
-                      {u("작품을 불러오면 여기에 포스터가 표시됩니다", "Posters appear here when titles load.")}
+                      {t("m.anime.posters_appear_here_when_titles_load")}
                     </Text>
                   </View>
                 )}
@@ -254,7 +254,7 @@ function CategoryPlaque({
   );
 }
 
-/** Picture-frame poster card (액자). */
+/** Picture-frame poster card. */
 export function CultureWikiPosterCard({
   item,
   width,

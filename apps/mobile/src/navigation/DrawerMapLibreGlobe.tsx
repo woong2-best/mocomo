@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import type { MapEventPin } from "@/api/events";
 import { eventPinColor } from "@/features/events/event-map-colors";
 import type { Locale } from "@/i18n";
-import { uiText } from "@/i18n/ui-text";
+import { translate } from "@/i18n/runtime";
 
 const MAPLIBRE_VERSION = "6.1.0";
 
@@ -138,12 +138,12 @@ type GlobeUiLabels = {
 
 function globeUiLabels(locale: Locale): GlobeUiLabels {
   return {
-    permanent: uiText(locale, "상설", "Permanent"),
-    recommended: uiText(locale, "추천", "Recommended"),
-    ongoing: uiText(locale, "진행 중", "Ongoing"),
-    upcoming: uiText(locale, "예정", "Upcoming"),
-    googleSearch: uiText(locale, "Google 검색", "Google search"),
-    googleMaps: uiText(locale, "Google 지도", "Google Maps"),
+    permanent: translate("m.common.permanent"),
+    recommended: translate("m.common.recommended"),
+    ongoing: translate("m.common.ongoing"),
+    upcoming: translate("m.common.upcoming"),
+    googleSearch: translate("m.common.google_search"),
+    googleMaps: translate("m.common.google_maps"),
   };
 }
 

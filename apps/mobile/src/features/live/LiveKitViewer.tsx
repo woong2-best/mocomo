@@ -23,8 +23,8 @@ function RoomTracks({
   audioOnly: boolean;
   enableIosPip: boolean;
 }) {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -152,8 +152,8 @@ export function LiveKitViewer({
 }
 
 export function LiveKitConnecting() {
-  const { u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 

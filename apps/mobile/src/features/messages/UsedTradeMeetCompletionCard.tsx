@@ -24,7 +24,7 @@ export function UsedTradeMeetCompletionCard({
   sellerMeetConfirmedAt,
   onRefresh,
 }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [busy, setBusy] = useState(false);
@@ -39,11 +39,11 @@ export function UsedTradeMeetCompletionCard({
       await respondUsedTradeMeetCompletion(requestId, action);
       onRefresh?.();
       showIslandSuccess(
-        action === "confirm" ? u("응답했습니다", "Recorded") : u("거래 미완료 처리", "Marked incomplete"),
-        action === "confirm" ? u("상대방 확인을 기다립니다.", "Waiting for the other party.") : undefined
+        action === "confirm" ? t("m.messages.recorded") : t("m.messages.marked_incomplete"),
+        action === "confirm" ? t("m.messages.waiting_for_the_other_party") : undefined
       );
     } catch (e) {
-      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("처리하지 못했습니다.", "Could not complete action."));
+      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.messages.could_not_complete_action"));
     } finally {
       setBusy(false);
     }
@@ -51,12 +51,12 @@ export function UsedTradeMeetCompletionCard({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{u("거래가 완료되었나요?", "Was the trade completed?")}</Text>
+      <Text style={styles.title}>{t("m.messages.was_the_trade_completed")}</Text>
       {selfConfirmed ? (
         <Text style={styles.meta}>
           {peerConfirmed
-            ? u("거래가 완료되었습니다.", "Trade marked complete.")
-            : u("완료로 응답했습니다. 상대 확인을 기다려 주세요.", "You confirmed. Waiting for the other party.")}
+            ? t("m.messages.trade_marked_complete")
+            : t("m.messages.you_confirmed_waiting_for_the_other")}
         </Text>
       ) : (
         <View style={styles.actions}>
@@ -64,7 +64,7 @@ export function UsedTradeMeetCompletionCard({
             style={[styles.circle, styles.noBtn]}
             disabled={busy}
             onPress={() => void respond("decline")}
-            accessibilityLabel={u("미완료", "Not completed")}
+            accessibilityLabel={t("m.messages.not_completed")}
           >
             {busy ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="close" size={22} color="#fff" />}
           </Pressable>
@@ -72,7 +72,7 @@ export function UsedTradeMeetCompletionCard({
             style={[styles.circle, styles.yesBtn]}
             disabled={busy}
             onPress={() => void respond("confirm")}
-            accessibilityLabel={u("완료", "Completed")}
+            accessibilityLabel={t("m.messages.completed")}
           >
             {busy ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="checkmark" size={22} color="#fff" />}
           </Pressable>

@@ -10,6 +10,7 @@ import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { TFn } from "@/i18n/types";
 
 const BANKS = [
   { code: "004" },
@@ -21,29 +22,29 @@ const BANKS = [
   { code: "092" },
 ];
 
-function bankLabel(code: string, u: (ko: string, en: string) => string): string {
+function bankLabel(code: string, t: TFn): string {
   switch (code) {
     case "004":
-      return u("KB국민", "KB Kookmin");
+      return t("m.wallet.kb_kookmin");
     case "088":
-      return u("신한", "Shinhan");
+      return t("m.wallet.shinhan");
     case "020":
-      return u("우리", "Woori");
+      return t("m.wallet.woori");
     case "081":
-      return u("하나", "Hana");
+      return t("m.wallet.hana");
     case "011":
-      return u("NH농협", "NH NongHyup");
+      return t("m.wallet.nh_nonghyup");
     case "090":
-      return u("카카오", "Kakao");
+      return t("m.wallet.kakao");
     case "092":
-      return u("토스", "Toss");
+      return t("m.wallet.toss");
     default:
       return code;
   }
 }
 
 export function BankVerifyPanel({ onVerified }: { onVerified?: () => void }) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
@@ -70,10 +71,10 @@ export function BankVerifyPanel({ onVerified }: { onVerified?: () => void }) {
         return;
       }
       setSent(true);
-      setMsg(res.message ?? u("1원을 보냈습니다.", "We sent ₩1 to your account."));
+      setMsg(res.message ?? t("m.wallet.we_sent_1_to_your_account"));
       if ("devCode" in res && res.devCode) setCode(res.devCode);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("요청에 실패했습니다.", "Request failed."));
+      setError(e instanceof Error ? e.message : t("m.common.request_failed"));
     } finally {
       setBusy(false);
     }
@@ -90,14 +91,14 @@ export function BankVerifyPanel({ onVerified }: { onVerified?: () => void }) {
       }
       setMsg(
         res.displayAccount
-          ? u(`${res.displayAccount} 인증 완료`, `${res.displayAccount} verified`)
-          : u("인증이 완료되었습니다.", "Verification complete.")
+          ? t("m.wallet.displayaccount_verified", { displayAccount: String(res.displayAccount) })
+          : t("m.wallet.verification_complete")
       );
       void queryClient.invalidateQueries({ queryKey: ["mobile-bank-status"] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-wallet"] });
       onVerified?.();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("인증에 실패했습니다.", "Verification failed."));
+      setError(e instanceof Error ? e.message : t("m.common.verification_failed"));
     } finally {
       setBusy(false);
     }
@@ -110,9 +111,9 @@ export function BankVerifyPanel({ onVerified }: { onVerified?: () => void }) {
   if (verified) {
     return (
       <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-        <Text style={[styles.heading, { color: colors.text }]}>{u("수익 입금 계좌", "Payout bank account")}</Text>
+        <Text style={[styles.heading, { color: colors.text }]}>{t("m.wallet.payout_bank_account")}</Text>
         <Text style={[styles.body, { color: colors.success }]}>
-          ✓ {statusQuery.data?.displayAccount ?? u("인증된 계좌", "Verified account")}
+          ✓ {statusQuery.data?.displayAccount ?? t("m.wallet.verified_account")}
         </Text>
       </View>
     );
@@ -120,38 +121,35 @@ export function BankVerifyPanel({ onVerified }: { onVerified?: () => void }) {
 
   return (
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[styles.heading, { color: colors.text }]}>{u("수익 입금 계좌 (1원 인증)", "Payout account (₩1 verify)")}</Text>
+      <Text style={[styles.heading, { color: colors.text }]}>{t("m.wallet.payout_account_1_verify")}</Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        {u(
-          "계좌로 1원을 보내드립니다. 입금통장메모에 표시된 4자리 숫자를 입력하세요. 계정당 계좌 하나, 인증 후 변경 불가. 하루 3회까지 요청 가능합니다.",
-          "We send ₩1 to your account. Enter the 4-digit code from the transfer memo. One account per user, no changes after verify. Up to 3 requests per day."
-        )}
+        {t("m.wallet.we_send_1_to_your_account")}
       </Text>
 
-      <ScrollBankPicker bankCode={bankCode} onChange={setBankCode} colors={colors} u={u} />
+      <ScrollBankPicker bankCode={bankCode} onChange={setBankCode} colors={colors} t={t} />
 
       <TextInput
         value={accountNum}
         onChangeText={setAccountNum}
-        placeholder={u("계좌번호 (- 없이)", "Account number (no dashes)")}
+        placeholder={t("m.wallet.account_number_no_dashes")}
         keyboardType="number-pad"
         placeholderTextColor={colors.textMuted}
         style={[styles.input, { borderColor: colors.hairline, color: colors.text }]}
       />
 
       {!sent ? (
-        <FolkButton label={busy ? u("전송 중…", "Sending…") : u("1원 인증 요청", "Send ₩1 verification")} onPress={() => void send()} loading={busy} />
+        <FolkButton label={busy ? t("m.common.sending") : t("m.wallet.send_1_verification")} onPress={() => void send()} loading={busy} />
       ) : (
         <>
           <TextInput
             value={code}
             onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 4))}
-            placeholder={u("4자리 숫자", "4-digit code")}
+            placeholder={t("m.wallet.4_digit_code")}
             keyboardType="number-pad"
             placeholderTextColor={colors.textMuted}
             style={[styles.input, { borderColor: colors.hairline, color: colors.text }]}
           />
-          <FolkButton label={busy ? u("확인 중…", "Verifying…") : u("코드 확인", "Confirm code")} onPress={() => void verify()} loading={busy} />
+          <FolkButton label={busy ? t("m.wallet.verifying") : t("m.wallet.confirm_code")} onPress={() => void verify()} loading={busy} />
         </>
       )}
 
@@ -165,12 +163,12 @@ function ScrollBankPicker({
   bankCode,
   onChange,
   colors,
-  u,
+  t,
 }: {
   bankCode: string;
   onChange: (code: string) => void;
   colors: ThemeColors;
-  u: (ko: string, en: string) => string;
+  t: TFn;
 }) {
   return (
     <View style={stylesBank.row}>
@@ -186,7 +184,7 @@ function ScrollBankPicker({
             },
           ]}
         >
-          {bankLabel(b.code, u)}
+          {bankLabel(b.code, t)}
         </Text>
       ))}
     </View>

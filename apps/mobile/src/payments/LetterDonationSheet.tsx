@@ -44,7 +44,7 @@ export function LetterDonationSheet({
   roomId,
   onSuccess,
 }: Props) {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [amount, setAmount] = useState(2);
@@ -67,19 +67,19 @@ export function LetterDonationSheet({
 
   async function submit() {
     if (!roomId) {
-      setError(u("대화방에서만 편지를 보낼 수 있습니다.", "Letters can only be sent from a chat room."));
+      setError(t("m.payments.letters_can_only_be_sent_from"));
       return;
     }
     if (effectiveAmount < LETTER_DONATION_MIN_MOCO) {
-      setError(u(`최소 ${formatMoco(LETTER_DONATION_MIN_MOCO)}부터 보낼 수 있습니다.`, `Minimum ${formatMoco(LETTER_DONATION_MIN_MOCO)}.`));
+      setError(t("m.payments.minimum_formatmoco", { formatMoco: String(formatMoco(LETTER_DONATION_MIN_MOCO)) }));
       return;
     }
     if (!trimmed) {
-      setError(u("편지 내용을 입력해 주세요.", "Write your letter."));
+      setError(t("m.payments.write_your_letter"));
       return;
     }
     if (balance != null && balance < effectiveAmount) {
-      setError(u("MOCO 잔액이 부족합니다. mocomo.net 웹에서 충전해 주세요.", "Not enough MOCO. Top up on mocomo.net."));
+      setError(t("m.payments.not_enough_moco_top_up_on"));
       return;
     }
 
@@ -96,7 +96,7 @@ export function LetterDonationSheet({
       onSuccess?.();
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : u("편지를 보내지 못했습니다.", "Could not send letter."));
+      setError(e instanceof Error ? e.message : t("m.payments.could_not_send_letter"));
     } finally {
       setBusy(false);
     }
@@ -115,11 +115,11 @@ export function LetterDonationSheet({
       }}
     >
       <Image source={require("../../assets/wax-envelope.png")} style={styles.hero} resizeMode="cover" />
-      <Text style={styles.title}>{u(`${displayName}에게 편지`, `Letter to ${displayName}`)}</Text>
+      <Text style={styles.title}>{t("m.payments.letter_to_displayname", { displayName: String(displayName) })}</Text>
       <Text style={styles.sub}>
-        {u("최소", "Min")} {formatMoco(LETTER_DONATION_MIN_MOCO)} ·{" "}
-        {u("상대가 봉투를 열면 MOCO가 전달됩니다", "MOCO is delivered when they open the envelope")}
-        {balance != null ? ` · ${u("보유", "Balance")} ${formatMoco(balance)}` : ""}
+        {t("m.common.min")} {formatMoco(LETTER_DONATION_MIN_MOCO)} ·{" "}
+        {t("m.payments.moco_is_delivered_when_they_open")}
+        {balance != null ? ` · ${t("m.payments.balance")} ${formatMoco(balance)}` : ""}
       </Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presets}>
@@ -141,7 +141,7 @@ export function LetterDonationSheet({
 
       <TextInput
         style={styles.input}
-        placeholder={u("금액 직접 입력 (MOCO)", "Custom amount (MOCO)")}
+        placeholder={t("m.payments.custom_amount_moco")}
         placeholderTextColor={colors.textMuted}
         keyboardType="number-pad"
         value={custom}
@@ -149,7 +149,7 @@ export function LetterDonationSheet({
       />
       <TextInput
         style={[styles.input, styles.messageInput]}
-        placeholder={u("편지 내용", "Letter message")}
+        placeholder={t("m.payments.letter_message")}
         placeholderTextColor={colors.textMuted}
         value={message}
         onChangeText={(t) => setMessage(t.slice(0, LETTER_DONATION_MESSAGE_MAX))}
@@ -160,7 +160,7 @@ export function LetterDonationSheet({
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <FolkButton
-        label={busy ? u("보내는 중…", "Sending…") : u(`${formatMoco(effectiveAmount)} · 편지 보내기`, `${formatMoco(effectiveAmount)} · Send letter`)}
+        label={busy ? t("m.common.sending") : t("m.payments.formatmoco_send_letter", { formatMoco: String(formatMoco(effectiveAmount)) })}
         onPress={() => void submit()}
         loading={busy}
         disabled={busy || effectiveAmount < LETTER_DONATION_MIN_MOCO || !trimmed || !roomId}

@@ -11,9 +11,9 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 
-/** 레거시 라우트 — 판매자 온보딩은 웹 전용. 진입 시 브라우저로 바로 연다. */
+/** Legacy route — seller onboarding is web-only. Opens the browser on entry. */
 export function SellerRegisterScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -29,10 +29,10 @@ export function SellerRegisterScreen() {
 
   return (
     <Screen>
-      <AppHeader title={u("판매자 등록", "Seller registration")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.market.seller_registration")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
       <View style={styles.center}>
         <ActivityIndicator color={colors.terracotta} />
-        <Text style={styles.text}>{u("웹 판매자 등록 페이지를 여는 중…", "Opening seller registration in browser…")}</Text>
+        <Text style={styles.text}>{t("m.market.opening_seller_registration_in_browser")}</Text>
       </View>
     </Screen>
   );

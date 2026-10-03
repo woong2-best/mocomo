@@ -2,7 +2,7 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { createCheckout, confirmCheckout, type CheckoutBody } from "@/api/checkout";
 import { createStarMarketCheckout, type MarketplaceCheckoutBody } from "@/api/star-market";
-import { uiText } from "@/i18n/ui-text";
+import { translate } from "@/i18n/runtime";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -38,20 +38,20 @@ export async function openStripeCheckout(
   });
 
   if (result.type === "cancel" || result.type === "dismiss") {
-    throw new Error(uiText(locale, "결제가 취소되었습니다.", "Payment was canceled."));
+    throw new Error(translate("m.payments.payment_was_canceled"));
   }
 
   if (result.type !== "success" || !result.url) {
-    throw new Error(uiText(locale, "결제를 완료하지 못했습니다.", "Could not complete payment."));
+    throw new Error(translate("m.payments.could_not_complete_payment"));
   }
 
   if (result.url.includes("payment/cancel")) {
-    throw new Error(uiText(locale, "결제가 취소되었습니다.", "Payment was canceled."));
+    throw new Error(translate("m.payments.payment_was_canceled"));
   }
 
   const sessionId = extractSessionId(result.url);
   if (!sessionId) {
-    throw new Error(uiText(locale, "결제 세션을 확인하지 못했습니다.", "Could not verify payment session."));
+    throw new Error(translate("m.payments.could_not_verify_payment_session"));
   }
 
   const confirmed = await confirmCheckout(sessionId);
@@ -72,39 +72,38 @@ export async function openMarketplaceCheckout(
   });
 
   if (result.type === "cancel" || result.type === "dismiss") {
-    throw new Error(uiText(locale, "결제가 취소되었습니다.", "Payment was canceled."));
+    throw new Error(translate("m.payments.payment_was_canceled"));
   }
   if (result.type !== "success" || !result.url) {
-    throw new Error(uiText(locale, "결제를 완료하지 못했습니다.", "Could not complete payment."));
+    throw new Error(translate("m.payments.could_not_complete_payment"));
   }
   if (result.url.includes("payment/cancel")) {
-    throw new Error(uiText(locale, "결제가 취소되었습니다.", "Payment was canceled."));
+    throw new Error(translate("m.payments.payment_was_canceled"));
   }
 
   const sessionId = extractSessionId(result.url);
   if (!sessionId) {
-    throw new Error(uiText(locale, "결제 세션을 확인하지 못했습니다.", "Could not verify payment session."));
+    throw new Error(translate("m.payments.could_not_verify_payment_session"));
   }
 
   const confirmed = await confirmCheckout(sessionId);
   return { type: confirmed.type, alreadyPaid: confirmed.alreadyPaid };
 }
 
-export function paymentTypeLabel(type: string, locale?: string): string {
-  const u = (ko: string, en: string) => uiText(locale, ko, en);
+export function paymentTypeLabel(type: string, _locale?: string): string {
   const labels: Record<string, string> = {
-    TIP: u("후원", "Tip"),
-    CREATOR_SUBSCRIPTION: u("구독", "Subscription"),
-    PREMIUM: u("프리미엄", "Premium"),
-    PRODUCT: u("구매", "Purchase"),
-    MARKETPLACE: u("마켓 구매", "Marketplace purchase"),
-    EMOTICON: u("이모티콘", "Emoticon"),
-    CREATOR_EPISODE: u("회차 구매", "Episode purchase"),
-    POST_MEDIA: u("미디어 구매", "Media purchase"),
-    MESSAGE_MEDIA: u("팬아트 구매", "Fan art purchase"),
-    EVENT_REGISTRATION: u("이벤트 등록", "Event registration"),
-    STUDIO_ASSET: u("Studio 구매", "Studio purchase"),
-    CALL_BOOKING: u("통화 예약", "Call booking"),
+    TIP: translate("m.payments.tip"),
+    CREATOR_SUBSCRIPTION: translate("m.payments.subscription"),
+    PREMIUM: translate("m.payments.premium"),
+    PRODUCT: translate("m.payments.purchase"),
+    MARKETPLACE: translate("m.payments.marketplace_purchase"),
+    EMOTICON: translate("m.payments.emoticon"),
+    CREATOR_EPISODE: translate("m.payments.episode_purchase"),
+    POST_MEDIA: translate("m.payments.media_purchase"),
+    MESSAGE_MEDIA: translate("m.payments.fan_art_purchase"),
+    EVENT_REGISTRATION: translate("m.payments.event_registration"),
+    STUDIO_ASSET: translate("m.payments.studio_purchase"),
+    CALL_BOOKING: translate("m.common.call_booking"),
   };
-  return labels[type] ?? u("결제", "Payment");
+  return labels[type] ?? translate("m.payments.payment");
 }

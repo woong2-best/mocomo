@@ -56,7 +56,7 @@ export function MessageVoiceSession({
   setRecordSec,
   registerControls,
 }: Props) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordSecRef = useRef(recordSec);
@@ -94,7 +94,7 @@ export function MessageVoiceSession({
         if (!uri) return;
 
         if (durationMs > 0 && durationMs < 400) {
-          showIslandError(u("녹음이 너무 짧습니다.", "Recording is too short."));
+          showIslandError(t("m.messages.recording_is_too_short"));
           return;
         }
 
@@ -113,8 +113,8 @@ export function MessageVoiceSession({
         onSent();
       } catch (e) {
         showIslandError(
-          u("전송 실패", "Send failed"),
-          e instanceof Error ? e.message : u("음성을 보내지 못했습니다.", "Could not send voice message.")
+          t("m.messages.send_failed"),
+          e instanceof Error ? e.message : t("m.messages.could_not_send_voice_message")
         );
       } finally {
         onBusy(false);
@@ -136,7 +136,7 @@ export function MessageVoiceSession({
       setDraft,
       setRecordSec,
       setRecording,
-      u,
+      t,
     ]
   );
 
@@ -144,7 +144,7 @@ export function MessageVoiceSession({
     try {
       const perm = await requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        showIslandError(u("권한 필요", "Permission required"), u("마이크 접근이 필요합니다.", "Microphone access is required."));
+        showIslandError(t("m.common.permission_required"), t("m.messages.microphone_access_is_required"));
         return;
       }
       await setAudioModeAsync({
@@ -167,13 +167,13 @@ export function MessageVoiceSession({
       }, 1000);
     } catch {
       showIslandError(
-        u("녹음 실패", "Recording failed"),
-        u("음성 녹음을 시작할 수 없습니다.", "Could not start voice recording.")
+        t("m.messages.recording_failed"),
+        t("m.messages.could_not_start_voice_recording")
       );
       setRecording(false);
       clearRecordTimer();
     }
-  }, [audioRecorder, clearRecordTimer, finish, setRecordSec, setRecording, u]);
+  }, [audioRecorder, clearRecordTimer, finish, setRecordSec, setRecording, t]);
 
   useEffect(() => {
     registerControls({ start, finish });

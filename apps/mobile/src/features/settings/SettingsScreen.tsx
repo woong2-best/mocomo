@@ -29,13 +29,14 @@ import { Screen } from "@/ui/Screen";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import type { TFn } from "@/i18n/types";
 
 export function SettingsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const navigation = useNavigation();
   const { user, refreshMe, signOut } = useAuth();
-  const { setLocale: applyUiLocale, u, t } = useI18n();
+  const { setLocale: applyUiLocale, t } = useI18n();
 
   const [locale, setLocale] = useState(
     user?.locale ?? localeForCountry(user?.countryCode ?? "US")
@@ -55,9 +56,9 @@ export function SettingsScreen() {
       await patchMe({ locale, countryCode, timeZone: detectDeviceTimeZone() });
       await applyUiLocale(normalizeMobileLocale(locale) as Locale);
       await refreshMe();
-      showIslandToast(t("settings.saved"), u("지역·언어 설정이 업데이트되었습니다.", "Region and language updated."));
+      showIslandToast(t("settings.saved"), t("m.settings.region_and_language_updated"));
     } catch (e) {
-      showIslandError(u("오류", "Error"), errorMessage(e, u));
+      showIslandError(t("m.common.error"), errorMessage(e, t));
     } finally {
       setLocaleBusy(false);
     }
@@ -94,28 +95,28 @@ export function SettingsScreen() {
           <PostsLockSettingsCard />
 
           <FolkCard>
-            <Text style={styles.cardTitle}>계정</Text>
+            <Text style={styles.cardTitle}>{t("m.settings.account")}</Text>
             <Text style={styles.metaLine}>
-              닉네임: @{user?.username}
+              {t("m.settings.username")}{user?.username}
               {user?.countryCode ? ` · ${user.countryCode}` : ""}
             </Text>
-            <Text style={styles.metaMuted}>표시 이름: {user?.name || "—"}</Text>
+            <Text style={styles.metaMuted}>{t("m.settings.display_name")} {user?.name || "—"}</Text>
             {logoutConfirm ? (
               <View style={{ gap: spacing.sm }}>
-                <Text style={styles.cardDesc}>이 기기에서 로그아웃할까요?</Text>
+                <Text style={styles.cardDesc}>{t("m.settings.log_out_on_this_device")}</Text>
                 <FolkButton
-                  label="로그아웃"
+                  label={t("m.account.log_out")}
                   variant="secondary"
                   onPress={() => {
                     setLogoutConfirm(false);
                     void signOut();
                   }}
                 />
-                <FolkButton label="취소" variant="ghost" onPress={() => setLogoutConfirm(false)} />
+                <FolkButton label={t("toast.cancel")} variant="ghost" onPress={() => setLogoutConfirm(false)} />
               </View>
             ) : (
               <FolkButton
-                label="로그아웃"
+                label={t("m.account.log_out")}
                 variant="secondary"
                 onPress={() => setLogoutConfirm(true)}
               />
@@ -129,17 +130,17 @@ export function SettingsScreen() {
 
           <FolkCard style={{ borderColor: "rgba(196, 92, 62, 0.35)" }}>
             <Text style={[styles.cardTitle, { color: colors.terracotta }]}>Discover</Text>
-            <Text style={styles.cardDesc}>관심사 기반 추천을 웹에서 설정하세요.</Text>
+            <Text style={styles.cardDesc}>{t("m.settings.set_up_interest_based_recommendations_on")}</Text>
             <Pressable
               style={[styles.fillBtn, { backgroundColor: colors.terracotta }]}
               onPress={() => void Linking.openURL("https://mocomo.net/discover")}
             >
-              <Text style={styles.fillBtnText}>Discover 열기</Text>
+              <Text style={styles.fillBtnText}>{t("m.settings.open_discover")}</Text>
             </Pressable>
           </FolkCard>
 
           <FolkButton
-            label="약관 및 정책"
+            label={t("m.settings.terms_and_policies")}
             variant="secondary"
             onPress={() => navigation.navigate("LegalPolicies" as never)}
           />
@@ -149,11 +150,11 @@ export function SettingsScreen() {
   );
 }
 
-function errorMessage(e: unknown, u: (ko: string, en: string) => string) {
+function errorMessage(e: unknown, t: TFn) {
   if (e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body) {
     return String((e.body as { error: string }).error);
   }
-  return u("저장에 실패했습니다.", "Could not save.");
+  return t("m.common.could_not_save");
 }
 
 function createThemedStyles(colors: ThemeColors) {

@@ -22,7 +22,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 
 /** Full-screen compose modal — same composer as the feed strip. */
 export function ComposeScreen() {
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -32,7 +32,7 @@ export function ComposeScreen() {
   const quotedPostId = route.params?.quotedPostId;
   const quotedAuthorUsername = route.params?.quotedAuthorUsername;
   const quotedPreview = route.params?.quotedPreview;
-  const screenTitle = route.params?.initialTitle?.trim() || u("새 게시물", "New post");
+  const screenTitle = route.params?.initialTitle?.trim() || t("m.compose.new_post");
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -73,7 +73,7 @@ export function ComposeScreen() {
         onPosted={async () => {
           resetFeedPostOffset();
           await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
-          showIslandToast(t("toast.published"), u("게시물이 업로드되었습니다.", "Your post was uploaded."));
+          showIslandToast(t("toast.published"), t("m.compose.your_post_was_uploaded"));
           if (navigation.canGoBack()) navigation.goBack();
         }}
       />

@@ -3,6 +3,7 @@ import { ApiError, apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 import { GOOGLE_WEB_CLIENT_ID } from "@/config/env";
 import type { MobileAuthUser } from "@/auth/types";
+import { translate } from "@/i18n/runtime";
 
 type GoogleConfig = {
   enabled: boolean;
@@ -29,7 +30,7 @@ export type GoogleNativeAuthResult =
 
 /** Thrown when the device cannot run the native SDK — caller falls back to web. */
 export class GoogleNativeUnavailableError extends Error {
-  constructor(message = "이 기기에서는 Google 네이티브 로그인을 사용할 수 없습니다.") {
+  constructor(message = translate("m.auth.google_native_sign_in_unavailable_on_device")) {
     super(message);
     this.name = "GoogleNativeUnavailableError";
   }
@@ -37,7 +38,7 @@ export class GoogleNativeUnavailableError extends Error {
 
 export class GoogleNativeCancelledError extends Error {
   constructor() {
-    super("로그인이 취소되었습니다.");
+    super(translate("m.auth.sign_in_was_canceled"));
     this.name = "GoogleNativeCancelledError";
   }
 }
@@ -50,9 +51,9 @@ export function isGoogleDeveloperError(e: unknown): boolean {
 
 function googleNativeFailureMessage(e: unknown): string {
   if (isGoogleDeveloperError(e)) {
-    return "Google 로그인 설정 오류입니다. Play Store 설치본은 Firebase에 앱 서명 키 SHA-1이 등록되어 있어야 합니다.";
+    return translate("m.auth.google_sign_in_is_misconfigured_play");
   }
-  return e instanceof Error ? e.message : "Google 로그인에 실패했습니다.";
+  return e instanceof Error ? e.message : translate("m.auth.google_sign_in_failed");
 }
 
 type GoogleSigninModule =
@@ -160,7 +161,7 @@ async function ensureConfigured(): Promise<{
   const options = googleClientOptions(config);
   if (!config.enabled || !options) {
     throw new GoogleNativeUnavailableError(
-      "Google 로그인이 서버에 설정되지 않았습니다."
+      translate("m.auth.google_sign_in_is_not_configured")
     );
   }
 
@@ -214,7 +215,7 @@ async function openGoogleAccountChooser(): Promise<string> {
     }
     if (!hasPlay) {
       throw new GoogleNativeUnavailableError(
-        "Google Play 서비스를 사용할 수 없습니다."
+        translate("m.auth.google_play_services_are_unavailable")
       );
     }
   }
@@ -237,7 +238,7 @@ async function openGoogleAccountChooser(): Promise<string> {
       result.data.idToken ?? (await GoogleSignin.getTokens()).idToken;
     if (!idToken) {
       throw new GoogleNativeUnavailableError(
-        "Google 인증 토큰을 받지 못했습니다."
+        translate("m.auth.could_not_get_a_google_auth")
       );
     }
     return idToken;
@@ -252,7 +253,7 @@ async function openGoogleAccountChooser(): Promise<string> {
     }
     if (isErrorWithCode(e) && e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
       throw new GoogleNativeUnavailableError(
-        "Google Play 서비스를 사용할 수 없습니다."
+        translate("m.auth.google_play_services_are_unavailable")
       );
     }
     if (isGoogleDeveloperError(e)) {

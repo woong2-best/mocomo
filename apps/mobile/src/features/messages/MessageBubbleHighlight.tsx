@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { Animated, StyleSheet, View, type ViewStyle } from "react-native";
+import { Animated, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 export function MessageBubbleHighlight({
   highlighted,
@@ -7,7 +7,7 @@ export function MessageBubbleHighlight({
   children,
 }: {
   highlighted?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   children: ReactNode;
 }) {
   const translateX = useRef(new Animated.Value(0)).current;
@@ -34,7 +34,7 @@ export function MessageBubbleHighlight({
       {children}
       <Animated.View
         pointerEvents="none"
-        style={[StyleSheet.absoluteFillObject, styles.overlay, { opacity: overlay }]}
+        style={[StyleSheet.absoluteFill, styles.overlay, { opacity: overlay }]}
       />
     </Animated.View>
   );

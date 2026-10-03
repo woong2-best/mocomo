@@ -27,7 +27,7 @@ export function UsedWtbAlertCard({
   isOwner?: boolean;
   status?: string;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const [maxPrice, setMaxPrice] = useState("");
@@ -50,7 +50,7 @@ export function UsedWtbAlertCard({
       const msg =
         err instanceof ApiError && err.body && typeof err.body === "object" && "error" in err.body
           ? String((err.body as { error: string }).error)
-          : u("WTB 등록에 실패했습니다.", "Could not save WTB alert.");
+          : t("m.marketplace.could_not_save_wtb_alert");
       showIslandInfo("WTB", msg);
     },
   });
@@ -60,14 +60,14 @@ export function UsedWtbAlertCard({
   if (done) {
     return (
       <View style={styles.card}>
-        <Text style={styles.done}>{u("WTB 알림이 등록됐어요.", "WTB alert saved.")}</Text>
+        <Text style={styles.done}>{t("m.marketplace.wtb_alert_saved")}</Text>
       </View>
     );
   }
 
   const summary = [
     workTitle,
-    productType ? productTypeLabel(productType, u) : null,
+    productType ? productTypeLabel(productType, t) : null,
     characterName,
   ]
     .filter(Boolean)
@@ -75,27 +75,27 @@ export function UsedWtbAlertCard({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{u("WTB 알림 받기", "Get WTB alerts")}</Text>
+      <Text style={styles.title}>{t("m.marketplace.get_wtb_alerts")}</Text>
       <Text style={styles.hint}>
-        {u(`${summary} 조건의 새 글이 올라오면 알려 드려요.`, `We'll notify you when a new listing matches: ${summary}.`)}
+        {t("m.marketplace.we_ll_notify_you_when_a", { summary: String(summary) })}
       </Text>
       <TextInput
         style={styles.input}
         keyboardType="number-pad"
-        placeholder={u("희망 최대가 (선택)", "Max price (optional)")}
+        placeholder={t("m.marketplace.max_price_optional")}
         placeholderTextColor={colors.textMuted}
         value={maxPrice}
         onChangeText={setMaxPrice}
       />
       <TextInput
         style={styles.input}
-        placeholder={u("메모 (선택)", "Note (optional)")}
+        placeholder={t("m.marketplace.note_optional")}
         placeholderTextColor={colors.textMuted}
         value={note}
         onChangeText={setNote}
       />
       <FolkButton
-        label={u("WTB 알림 등록", "Save WTB alert")}
+        label={t("m.marketplace.save_wtb_alert")}
         loading={create.isPending}
         onPress={() => create.mutate()}
       />

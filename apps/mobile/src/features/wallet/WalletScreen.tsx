@@ -218,7 +218,7 @@ export function WalletScreen() {
                         { color: year === y ? colors.textOnAccent : colors.textMuted },
                       ]}
                     >
-                      {t(`${y}년`, String(y))}
+                      {t("m.wallet.year_label", { year: String(y) })}
                     </Text>
                   </Pressable>
                 ))}

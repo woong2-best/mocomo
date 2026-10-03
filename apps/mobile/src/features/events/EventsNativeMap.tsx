@@ -58,7 +58,7 @@ type Props = {
   focusPinId?: string | null;
   /** Drawer preview — no pan/zoom/pin taps */
   preview?: boolean;
-  /** 추천 장소 등록 — 지도 탭으로 좌표 선택 */
+  /** Recommended-place registration — tap the map to pick coordinates. */
   pickMode?: boolean;
   onMapPick?: (coords: { lat: number; lng: number }) => void;
   style?: object;

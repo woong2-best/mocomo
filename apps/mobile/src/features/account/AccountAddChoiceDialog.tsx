@@ -1,4 +1,5 @@
 import { MocomoAlertDialog, type MocomoAlertAction } from "@/ui/MocomoAlertDialog";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   visible: boolean;
@@ -15,17 +16,18 @@ export function AccountAddChoiceDialog({
   onAddExisting,
   embedded = false,
 }: Props) {
+  const { t } = useI18n();
   const actions: MocomoAlertAction[] = [
-    { label: "취소" },
-    { label: "새 계정", primary: true, onPress: onCreateNew },
-    { label: "계정 추가", primary: true, onPress: onAddExisting },
+    { label: t("toast.cancel") },
+    { label: t("m.auth.new_account"), primary: true, onPress: onCreateNew },
+    { label: t("m.account.add_account"), primary: true, onPress: onAddExisting },
   ];
 
   return (
     <MocomoAlertDialog
       visible={visible}
-      title="계정 추가"
-      message="어떤 작업을 할까요?"
+      title={t("m.account.add_account")}
+      message={t("m.account.what_would_you_like_to_do")}
       actions={actions}
       onDismiss={onClose}
       embedded={embedded}

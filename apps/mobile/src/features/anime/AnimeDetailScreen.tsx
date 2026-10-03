@@ -77,8 +77,8 @@ function WikiSectionBlock({
 }
 
 export function AnimeDetailScreen() {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => animeUi(u), [u]);
+  const { t, locale  } = useI18n();
+  const copy = useMemo(() => animeUi(t), [t]);
   const dateLocale = locale === "ko" ? "ko-KR" : "en-US";
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);

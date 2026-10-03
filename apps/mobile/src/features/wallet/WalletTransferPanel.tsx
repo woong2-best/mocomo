@@ -15,11 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthContext";
 import { fetchGemsWallet } from "@/api/gems";
 import { ApiError } from "@/api/client";
-import {
-  CREATOR_PAYOUT_BLOCKED_KO,
-  CREATOR_PAYOUT_BLOCKED_TOAST_KO,
-  isStripeAccountNotReady,
-} from "@/lib/creator-payout";
+import { isStripeAccountNotReady } from "@/lib/creator-payout";
 import { showIslandError } from "@/ui/IslandToast";
 import { transferMoco } from "@/api/moco-transfer";
 import { ATM_LETTER_MESSAGE_MAX } from "@/lib/chat-atm-letter";
@@ -150,7 +146,7 @@ function sanitizeAmountInput(raw: string) {
 }
 
 export function WalletTransferPanel() {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [username, setUsername] = useState("");
@@ -158,7 +154,7 @@ export function WalletTransferPanel() {
   const [letter, setLetter] = useState("");
   const [error, setError] = useState("");
   const [statusLine, setStatusLine] = useState(() =>
-    u("받는 사람 아이디와 보낼 MOCO를 입력해 주세요.", "Enter recipient username and MOCO amount.")
+    t("m.wallet.enter_recipient_username_and_moco_amount")
   );
   const [overlay, setOverlay] = useState<Overlay>(null);
 
@@ -178,10 +174,7 @@ export function WalletTransferPanel() {
       setAmount("");
       setLetter("");
       setStatusLine(
-        u(
-          `@${res.recipientUsername}의 정산에 ${res.amount.toLocaleString()} MOCO를 기록했습니다.`,
-          `Recorded ${res.amount.toLocaleString()} MOCO to @${res.recipientUsername}'s settlement.`
-        )
+        t("m.wallet.recorded_amount_moco_to_recipientusernam", { amount: String(res.amount.toLocaleString()), recipientUsername: String(res.recipientUsername) })
       );
       setError("");
       setOverlay("success");
@@ -191,15 +184,15 @@ export function WalletTransferPanel() {
     onError: (err) => {
       if (isStripeAccountNotReady(err)) {
         showIslandError(
-          u("후원 불가", "Can't send"),
-          u(CREATOR_PAYOUT_BLOCKED_TOAST_KO, "This creator hasn't linked a Stripe payout account yet.")
+          t("m.wallet.can_t_send"),
+          t("m.wallet.this_creator_hasn_t_linked_a")
         );
-        setError(u(CREATOR_PAYOUT_BLOCKED_KO, "This creator hasn't linked a Stripe payout account yet."));
-        setStatusLine(u(CREATOR_PAYOUT_BLOCKED_KO, "This creator hasn't linked a Stripe payout account yet."));
+        setError(t("m.wallet.this_creator_hasn_t_linked_a"));
+        setStatusLine(t("m.wallet.this_creator_hasn_t_linked_a"));
         setOverlay("failure");
         return;
       }
-      const msg = err instanceof ApiError ? err.message : u("전달에 실패했습니다.", "Transfer failed.");
+      const msg = err instanceof ApiError ? err.message : t("m.wallet.transfer_failed");
       setError(msg);
       setStatusLine(msg);
       setOverlay("failure");
@@ -214,46 +207,40 @@ export function WalletTransferPanel() {
     if (next.length > 7) return;
     setAmount(next);
     if (error) setError("");
-    setStatusLine(u("수량과 아이디를 확인한 뒤 [전달]을 눌러 주세요.", "Confirm amount and username, then tap Send."));
+    setStatusLine(t("m.wallet.confirm_amount_and_username_then_tap"));
   }
 
   function backspace() {
     if (pending || overlay || !amount) return;
     setAmount(amount.slice(0, -1));
-    setStatusLine(u("보낼 MOCO 수량을 입력해 주세요.", "Enter MOCO amount to send."));
+    setStatusLine(t("m.wallet.enter_moco_amount_to_send"));
   }
 
   function send() {
     if (pending || overlay) return;
     if (!username.trim() || parsed == null || parsed < 1) {
-      const msg = u("아이디와 1 MOCO 이상을 입력해 주세요.", "Enter a username and at least 1 MOCO.");
+      const msg = t("m.wallet.enter_a_username_and_at_least");
       setError(msg);
       setStatusLine(msg);
       setOverlay("failure");
       return;
     }
     if (parsed > held) {
-      const msg = u(
-        "보유 MOCO가 부족합니다. 결제로 충전한 MOCO만 보낼 수 있습니다.",
-        "Not enough purchased MOCO. Only checkout top-ups can be sent."
-      );
+      const msg = t("m.wallet.not_enough_purchased_moco_only_checkout");
       setError(msg);
       setStatusLine(msg);
       setOverlay("failure");
       return;
     }
     setError("");
-    setStatusLine(u("전달하는 중…", "Sending…"));
+    setStatusLine(t("m.common.sending"));
     mutation.mutate();
   }
 
   return (
     <View style={styles.wrap}>
       <Text style={styles.intro}>
-        {u(
-          "보낼 수 있는 것은 결제로 충전한 보유 MOCO입니다. 받는 사람의 정산에 기록되고, 메시지에는 편지가 도착합니다. 편지에 적을 말을 함께 보낼 수 있습니다.",
-          "You can send purchased MOCO from checkout. It credits the recipient's settlement and delivers an optional letter in messages."
-        )}
+        {t("m.wallet.you_can_send_purchased_moco_from")}
       </Text>
 
       <LinearGradient colors={["#d1d5db", "#aeb4bd", "#8b939e"]} style={styles.atmShell}>
@@ -285,9 +272,9 @@ export function WalletTransferPanel() {
                   />
                 </View>
                 <Text style={[styles.overlayTitle, overlay === "success" ? styles.overlayOk : styles.overlayFail]}>
-                  {overlay === "success" ? u("전달 완료", "Sent") : u("전달 실패", "Failed")}
+                  {overlay === "success" ? t("m.common.sent") : t("m.wallet.failed")}
                 </Text>
-                <Text style={styles.overlayDismiss}>{u("닫기", "Close")}</Text>
+                <Text style={styles.overlayDismiss}>{t("m.common.close")}</Text>
               </Pressable>
             ) : null}
 
@@ -307,10 +294,10 @@ export function WalletTransferPanel() {
               </View>
 
               <View style={styles.earthForm}>
-                <Text style={styles.fieldKicker}>{u("보낼 수 있는 보유 MOCO", "Purchased MOCO you can send")}</Text>
+                <Text style={styles.fieldKicker}>{t("m.wallet.purchased_moco_you_can_send")}</Text>
                 <Text style={styles.balanceLine}>{held.toLocaleString()} MOCO</Text>
 
-                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{u("받는 사람 아이디", "Recipient username")}</Text>
+                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.recipient_username")}</Text>
                 <TextInput
                   value={username}
                   editable={!pending && !overlay}
@@ -325,13 +312,13 @@ export function WalletTransferPanel() {
                   style={styles.usernameInput}
                 />
 
-                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{u("편지", "Letter")}</Text>
+                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.letter")}</Text>
                 <TextInput
                   value={letter}
                   editable={!pending && !overlay}
                   multiline
                   maxLength={ATM_LETTER_MESSAGE_MAX}
-                  placeholder={u("편지에 적을 말", "Message for the letter")}
+                  placeholder={t("m.wallet.message_for_the_letter")}
                   placeholderTextColor="rgba(0,0,0,0.35)"
                   onChangeText={(v) => {
                     setLetter(v.slice(0, ATM_LETTER_MESSAGE_MAX));
@@ -357,7 +344,7 @@ export function WalletTransferPanel() {
             {pending ? (
               <View style={styles.tickerPending}>
                 <ActivityIndicator size="small" color="#fcd34d" />
-                <Text style={styles.tickerText}>{u("처리 중…", "Processing…")}</Text>
+                <Text style={styles.tickerText}>{t("m.common.processing")}</Text>
               </View>
             ) : (
               <Text style={styles.tickerText}>{statusLine}</Text>
@@ -391,7 +378,7 @@ export function WalletTransferPanel() {
               </View>
               <View style={styles.keypadSide}>
                 <AtmActionKey
-                  label={u("지우기", "Clear")}
+                  label={t("m.wallet.clear")}
                   subLabel="←"
                   tone="clear"
                   disabled={pending || !!overlay || !amount}
@@ -399,7 +386,7 @@ export function WalletTransferPanel() {
                   onPress={backspace}
                 />
                 <AtmActionKey
-                  label={u("전달", "Send")}
+                  label={t("m.common.send")}
                   subLabel="SEND"
                   tone="confirm"
                   disabled={
@@ -420,10 +407,7 @@ export function WalletTransferPanel() {
             <Text style={styles.error}>{error}</Text>
           ) : (
             <Text style={styles.hint}>
-              {u(
-                "예: 보유 100 MOCO를 보내면 상대 정산에 100이 바로 쌓입니다. 상대 보유 MOCO는 그대로입니다.",
-                "Example: sending 100 MOCO adds 100 to their settlement; their purchased balance stays the same."
-              )}
+              {t("m.wallet.example_sending_100_moco_adds_100")}
             </Text>
           )}
         </View>

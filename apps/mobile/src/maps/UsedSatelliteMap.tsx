@@ -153,13 +153,13 @@ if (!maplibregl) {
   const showPin = (pin) => {
     const meta = [pin.when, pin.price].filter(Boolean).map((line) => '<span class="popup-meta">' + esc(line) + "</span>").join("");
     const links = [];
-    if (pin.searchUrl) links.push('<a href="#" data-url="' + esc(pin.searchUrl) + '">Google 검색</a>');
-    if (pin.mapUrl) links.push('<a href="#" data-url="' + esc(pin.mapUrl) + '">Google 지도</a>');
+    if (pin.searchUrl) links.push('<a href="#" data-url="' + esc(pin.searchUrl) + '">Google Search</a>');
+    if (pin.mapUrl) links.push('<a href="#" data-url="' + esc(pin.mapUrl) + '">Google Maps</a>');
     const linkBlock = links.length ? '<div class="popup-links">' + links.join("") + "</div>" : "";
     const placeLine = pin.place && !pin.searchUrl
       ? '<span class="popup-meta">' + esc(pin.place) + "</span>"
       : "";
-    const html = '<strong class="popup-title">' + esc(pin.title || "거래 장소") + "</strong>" + placeLine + meta + linkBlock;
+    const html = '<strong class="popup-title">' + esc(pin.title || "Meetup place") + "</strong>" + placeLine + meta + linkBlock;
     if (popup) popup.remove();
     popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 16 })
       .setLngLat([pin.lng, pin.lat])

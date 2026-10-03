@@ -40,8 +40,8 @@ const PLATFORM_CATS = MOBILE_LIVE_CATEGORIES.filter(
 );
 
 export function LiveGoLiveScreen() {
-  const { locale, u } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { locale, t } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

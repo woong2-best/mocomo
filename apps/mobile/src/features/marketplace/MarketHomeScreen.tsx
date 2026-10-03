@@ -34,7 +34,7 @@ export type MarketHubLane = "all" | "recommend" | "purchased" | "favorites" | "d
 type HubLane = MarketHubLane;
 
 type MarketHomeProps = {
-  /** 오른쪽 슬라이드 허브 (목록 위). */
+  /** Right-side slide hub above the list. */
   embedded?: boolean;
   onClose?: () => void;
   onOpenLane?: (lane: HubLane, q?: string) => void;
@@ -42,20 +42,20 @@ type MarketHomeProps = {
 
 export function MarketHomeScreen(props: MarketHomeProps = {}) {
   const { embedded = false, onClose, onOpenLane } = props;
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const shortcuts = useMemo(
     () =>
       [
-        { lane: "purchased" as const, label: u("구매내역", "Purchases"), icon: "bag-handle-outline" as const },
-        { my: true, label: u("판매내역", "Sales"), icon: "logo-usd" as const },
-        { lane: "favorites" as const, label: u("찜리스트", "Favorites"), icon: "heart-outline" as const },
+        { lane: "purchased" as const, label: t("m.marketplace.purchases"), icon: "bag-handle-outline" as const },
+        { my: true, label: t("m.marketplace.sales"), icon: "logo-usd" as const },
+        { lane: "favorites" as const, label: t("m.marketplace.favorites"), icon: "heart-outline" as const },
       ] satisfies {
         lane?: HubLane;
         my?: boolean;
         label: string;
         icon?: keyof typeof Ionicons.glyphMap;
       }[],
-    [u]
+    [t]
   );
   const { colors, isDark } = useTheme();
   const icon = isDark ? colors.text : colors.brand;
@@ -124,12 +124,12 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         ) : null}
 
         <View style={[styles.sectionHead, embedded && styles.sectionHeadEmbeddedTop]}>
-          <Text style={styles.sectionTitle}>{u("최근검색어", "Recent searches")}</Text>
+          <Text style={styles.sectionTitle}>{t("m.marketplace.recent_searches")}</Text>
           <Pressable
             hitSlop={10}
             onPress={() => setClearOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel={u("최근 검색어 메뉴", "Recent search menu")}
+            accessibilityLabel={t("m.marketplace.recent_search_menu")}
           >
             <Ionicons name="ellipsis-horizontal" size={18} color={icon} />
           </Pressable>
@@ -141,7 +141,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
           contentContainerStyle={styles.chipRow}
         >
           {recentQ.length === 0 ? (
-            <Text style={styles.muted}>{u("최근 검색어가 없습니다", "No recent searches")}</Text>
+            <Text style={styles.muted}>{t("m.marketplace.no_recent_searches")}</Text>
           ) : (
             recentQ.map((term) => (
               <Pressable key={term} style={styles.chip} onPress={() => openLane("all", term)}>
@@ -174,7 +174,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         </View>
 
         <ProductRail
-          title={u("최근 본 상품", "Recently viewed")}
+          title={t("m.common.recently_viewed")}
           items={recent.data?.items ?? []}
           loading={recent.isLoading && recentIds.length > 0}
           onMore={() => openLane("all")}
@@ -186,7 +186,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
           styles={styles}
         />
         <ProductRail
-          title={u("추천상품", "Recommended")}
+          title={t("m.common.recommended")}
           items={recommend.data?.items ?? []}
           loading={recommend.isLoading}
           onMore={() => openLane("recommend")}
@@ -243,7 +243,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
                 });
               }}
             >
-              <Text style={styles.popupBtnText}>{u("검색어 초기화", "Clear search history")}</Text>
+              <Text style={styles.popupBtnText}>{t("m.marketplace.clear_search_history")}</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -280,20 +280,20 @@ function ProductRail({
   ink: string;
   styles: ReturnType<typeof createStyles>;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   return (
     <View style={styles.rail}>
       <View style={styles.sectionHead}>
         <Text style={styles.railTitle}>{title}</Text>
         <Pressable onPress={onMore} style={styles.moreBtn} accessibilityRole="button">
-          <Text style={styles.moreText}>{u("전체보기", "See all")}</Text>
+          <Text style={styles.moreText}>{t("m.marketplace.see_all")}</Text>
           <Ionicons name="chevron-forward" size={16} color={ink} />
         </Pressable>
       </View>
       {loading ? (
         <ActivityIndicator color={ink} style={{ marginVertical: 24 }} />
       ) : items.length === 0 ? (
-        <Text style={styles.muted}>{u("아직 상품이 없습니다", "No listings yet")}</Text>
+        <Text style={styles.muted}>{t("m.common.no_listings_yet")}</Text>
       ) : (
         <View style={styles.grid}>
           {items.slice(0, 4).map((item) => (

@@ -6,7 +6,7 @@ type Props = {
   color?: string;
 };
 
-/** 답글 곡선 화살표 — 다크: 흰색, 라이트: 검정 */
+/** Reply curve arrow — dark: white, light: black. */
 export function ReplyBubbleIcon({ size = 16, color }: Props) {
   const { colors } = useTheme();
   const stroke = color ?? colors.text;

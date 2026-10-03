@@ -15,7 +15,7 @@ type HubTarget =
   | { kind: "tab"; route: keyof RootTabParamList };
 
 export function DiscoverHubScreen() {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -29,32 +29,32 @@ export function DiscoverHubScreen() {
       icon: keyof typeof Ionicons.glyphMap;
     }[] => [
       {
-        title: u("검색", "Search"),
-        subtitle: u("사람 · 게시 · 애니", "People · posts · anime"),
+        title: t("m.common.search"),
+        subtitle: t("m.discover.people_posts_anime"),
         target: { kind: "stack", route: "Search" },
         icon: "search-outline",
       },
       {
-        title: u("라이브", "Live"),
-        subtitle: u("시청 · 방송 시작", "Watch · go live"),
+        title: t("m.common.live"),
+        subtitle: t("m.discover.watch_go_live"),
         target: { kind: "stack", route: "LiveList" },
         icon: "radio-outline",
       },
       {
-        title: u("메세지", "Messages"),
+        title: t("m.discover.messages"),
         subtitle: "DM",
         target: { kind: "tab", route: "Messages" },
         icon: "chatbubbles-outline",
       },
       {
         title: "STAR",
-        subtitle: u("저장한 게시물", "Saved posts"),
+        subtitle: t("m.discover.saved_posts"),
         target: { kind: "stack", route: "StarList" },
         icon: "star-outline",
       },
       {
-        title: u("컬쳐 위키", "Culture wiki"),
-        subtitle: u("작품 탐색", "Browse titles"),
+        title: t("m.common.culture_wiki_2"),
+        subtitle: t("m.discover.browse_titles"),
         target: { kind: "stack", route: "AnimeList" },
         icon: "book-outline",
       },
@@ -66,35 +66,35 @@ export function DiscoverHubScreen() {
       },
       {
         title: "QnA",
-        subtitle: u("질문·답변 피드", "Q&A feed"),
+        subtitle: t("m.discover.q_a_feed"),
         target: { kind: "stack", route: "CommunityList" },
         icon: "people-outline",
       },
       {
-        title: u("이벤트", "Events"),
-        subtitle: u("참여·대회", "Join · contests"),
+        title: t("m.common.events"),
+        subtitle: t("m.discover.join_contests"),
         target: { kind: "stack", route: "EventsList" },
         icon: "calendar-outline",
       },
       {
-        title: u("지갑", "Wallet"),
-        subtitle: u("잔액·정산", "Balance · payouts"),
+        title: t("m.discover.wallet"),
+        subtitle: t("m.discover.balance_payouts"),
         target: { kind: "stack", route: "Wallet" },
         icon: "wallet-outline",
       },
       {
-        title: u("설정", "Settings"),
-        subtitle: u("프로필·언어", "Profile · language"),
+        title: t("m.discover.settings"),
+        subtitle: t("m.discover.profile_language"),
         target: { kind: "stack", route: "Settings" },
         icon: "settings-outline",
       },
     ],
-    [u]
+    [t]
   );
 
   return (
     <Screen>
-      <AppHeader title={u("탐색", "Discover")} leftLabel={u("뒤로", "Back")} onLeftPress={() => navigation.goBack()} />
+      <AppHeader title={t("m.discover.discover")} leftLabel={t("m.common.back")} onLeftPress={() => navigation.goBack()} />
       <View style={styles.grid}>
         {sections.map((s) => (
           <Pressable

@@ -23,8 +23,8 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { liveUi } from "@/features/live/live-ui";
 
 export function LiveListScreen() {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => liveUi(u), [u]);
+  const { t, locale } = useI18n();
+  const copy = useMemo(() => liveUi(t), [t]);
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);

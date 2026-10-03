@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { useTheme } from "@/theme/ThemeContext";
 import { shadows } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   onPress: () => void;
@@ -12,6 +13,7 @@ type Props = {
 
 /** Compose FAB above floating tab bar. */
 export function ComposeFab({ onPress, icon = "add" }: Props) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const bottom = floatingTabClearance(insets.bottom) + 8;
@@ -20,7 +22,7 @@ export function ComposeFab({ onPress, icon = "add" }: Props) {
     <View pointerEvents="box-none" style={[styles.wrap, { bottom }]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="새 글"
+        accessibilityLabel={t("m.compose.new_post")}
         onPress={onPress}
         style={({ pressed }) => [
           styles.fab,

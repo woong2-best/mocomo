@@ -1,9 +1,10 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { translate } from "@/i18n/runtime";
 async function loadFfmpeg() {
   try {
     return await import("ffmpeg-kit-react-native");
   } catch {
-    throw new Error("이 기기에서는 영상 변환을 사용할 수 없습니다.");
+    throw new Error(translate("m.lib.video_conversion_is_not_available_on"));
   }
 }
 
@@ -11,7 +12,7 @@ function stripFileUri(uri: string): string {
   return uri.startsWith("file://") ? uri.slice(7) : uri;
 }
 
-/** 배너 업로드용 — H.265 등 비호환 코덱을 MP4(H.264)로 변환 */
+/** Banner upload — convert incompatible codecs such as H.265 to MP4 (H.264). */
 export async function transcodeBannerVideoToH264(inputUri: string): Promise<{
   uri: string;
   mime: string;
@@ -47,7 +48,7 @@ export async function transcodeBannerVideoToH264(inputUri: string): Promise<{
   const code = await session.getReturnCode();
   if (!ReturnCode.isSuccess(code)) {
     const logs = await session.getAllLogsAsString();
-    throw new Error(logs?.slice(-400) || "배너 영상 변환에 실패했습니다.");
+    throw new Error(logs?.slice(-400) || translate("m.lib.banner_video_conversion_failed"));
   }
 
   return {

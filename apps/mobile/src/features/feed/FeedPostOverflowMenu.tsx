@@ -66,7 +66,7 @@ export function FeedPostOverflowMenu({
   onDeleted,
 }: Props) {
   const { colors } = useTheme();
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { width: windowWidth } = useWindowDimensions();
   const [featured, setFeatured] = useState(featuredOnProfile);
@@ -101,14 +101,14 @@ export function FeedPostOverflowMenu({
       showIslandSuccess(
         res.featured
           ? ownerPinLabels
-            ? u("프로필에 고정했습니다", "Pinned to your profile")
-            : u("프로필 메인에 올렸습니다", "Pinned to profile main")
+            ? t("m.feed.pinned_to_your_profile")
+            : t("m.feed.pinned_to_profile_main")
           : ownerPinLabels
-            ? u("프로필 고정을 해제했습니다", "Unpinned from profile")
-            : u("프로필 메인에서 내렸습니다", "Removed from profile main")
+            ? t("m.feed.unpinned_from_profile")
+            : t("m.feed.removed_from_profile_main")
       );
     } catch (e) {
-      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("처리에 실패했습니다.", "Something went wrong."));
+      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.common.something_went_wrong"));
     } finally {
       setBusy(null);
     }
@@ -124,7 +124,7 @@ export function FeedPostOverflowMenu({
         onDeleted?.();
         showIslandSuccess(t("toast.deleted"));
       } catch (e) {
-        showIslandError(u("오류", "Error"), e instanceof Error ? e.message : t("post.menu.deleteFailed"));
+        showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("post.menu.deleteFailed"));
       } finally {
         setBusy(null);
       }
@@ -141,7 +141,7 @@ export function FeedPostOverflowMenu({
       closeAll();
       showIslandSuccess(res.muted ? t("post.menu.mutedToast") : t("post.menu.unmutedToast"));
     } catch (e) {
-      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("처리에 실패했습니다.", "Something went wrong."));
+      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.common.something_went_wrong"));
     } finally {
       setBusy(null);
     }
@@ -155,9 +155,9 @@ export function FeedPostOverflowMenu({
         await blockUser(authorId);
         closeAll();
         onBlocked?.();
-        showIslandSuccess(u("차단했습니다", "User blocked"));
+        showIslandSuccess(t("m.common.user_blocked"));
       } catch (e) {
-        showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("차단에 실패했습니다.", "Could not block user."));
+        showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.common.could_not_block_user"));
       } finally {
         setBusy(null);
       }
@@ -184,13 +184,13 @@ export function FeedPostOverflowMenu({
             >
               {confirm === "block" ? (
                 <>
-                  <Text style={styles.confirmTitle}>{u("차단하기", "Block")}</Text>
+                  <Text style={styles.confirmTitle}>{t("m.common.block")}</Text>
                   <Text style={styles.confirmBody}>
-                    {u(`@${authorUsername} 님을 차단할까요?`, `Block @${authorUsername}?`)}
+                    {t("m.feed.block_authorusername", { authorUsername: String(authorUsername) })}
                   </Text>
                   <Pressable style={styles.row} onPress={runBlock} disabled={!!busy}>
                     <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>{u("차단하기", "Block")}</Text>
+                    <Text style={[styles.rowText, styles.dangerText]}>{t("m.common.block")}</Text>
                     {busy === "block" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}
@@ -216,11 +216,11 @@ export function FeedPostOverflowMenu({
                         <Text style={styles.rowText}>
                           {featured
                             ? ownerPinLabels
-                              ? u("프로필 고정 해제", "Unpin from profile")
-                              : u("프로필 메인에서 내리기", "Remove from profile main")
+                              ? t("m.feed.unpin_from_profile")
+                              : t("m.feed.remove_from_profile_main")
                             : ownerPinLabels
-                              ? u("프로필에 고정", "Pin to profile")
-                              : u("내 프로필 메인에 올리기", "Pin to my profile main")}
+                              ? t("m.feed.pin_to_profile")
+                              : t("m.feed.pin_to_my_profile_main")}
                         </Text>
                         {busy === "feature" ? (
                           <ActivityIndicator size="small" color={colors.cobalt} />
@@ -235,8 +235,8 @@ export function FeedPostOverflowMenu({
                     <Ionicons name={featured ? "pin-outline" : "pin"} size={18} color={colors.text} />
                     <Text style={styles.rowText}>
                       {featured
-                        ? u("프로필 메인에서 내리기", "Remove from profile main")
-                        : u("내 프로필 메인에 올리기", "Pin to my profile main")}
+                        ? t("m.feed.remove_from_profile_main")
+                        : t("m.feed.pin_to_my_profile_main")}
                     </Text>
                     {busy === "feature" ? (
                       <ActivityIndicator size="small" color={colors.cobalt} />
@@ -259,7 +259,7 @@ export function FeedPostOverflowMenu({
                   </Pressable>
                   <Pressable style={styles.row} onPress={onBlock} disabled={!!busy}>
                     <Ionicons name="ban-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>{u("차단하기", "Block")}</Text>
+                    <Text style={[styles.rowText, styles.dangerText]}>{t("m.common.block")}</Text>
                     {busy === "block" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}

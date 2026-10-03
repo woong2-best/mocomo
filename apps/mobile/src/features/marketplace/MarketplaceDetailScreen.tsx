@@ -31,10 +31,7 @@ import {
   toggleMarketplaceFavorite,
   toggleMarketplaceStar,
 } from "@/api/marketplace";
-import {
-  AUCTION_INSUFFICIENT_WALLET_MSG,
-  fetchAuctionDepositStatus,
-} from "@/api/auction-deposit";
+import { fetchAuctionDepositStatus } from "@/api/auction-deposit";
 import { UsedAuctionBidHoldSheet } from "@/payments/UsedAuctionBidHoldSheet";
 import { ApiError } from "@/api/client";
 import { UsedMeetMapCard } from "@/features/marketplace/UsedMeetMapCard";
@@ -43,7 +40,7 @@ import {
   UsedSaleStatsCard,
 } from "@/features/marketplace/UsedSubcultureDetailCards";
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
-import { USED_AUCTION_RETIRED, USED_AUCTION_RETIRED_MSG } from "@/lib/retired-product-features";
+import { USED_AUCTION_RETIRED } from "@/lib/retired-product-features";
 import {
   displayUsedRegion,
   formatUsedPrice,
@@ -123,7 +120,7 @@ function HeroVideoSlide({ url, width, active }: { url: string; width: number; ac
 }
 
 export function MarketplaceDetailScreen() {
-  const { t, u } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
 
@@ -207,7 +204,7 @@ export function MarketplaceDetailScreen() {
           style={{ width: screenWidth, aspectRatio: 1 }}
           onPress={() => openLightbox(index)}
           accessibilityRole="button"
-          accessibilityLabel={u("사진 크게 보기", "View photo full screen")}
+          accessibilityLabel={t("m.common.view_photo_full_screen")}
         >
           {isVideo ? (
             <HeroVideoSlide url={slide.url} width={screenWidth} active={heroIndex === index && !lightboxOpen} />
@@ -233,23 +230,23 @@ export function MarketplaceDetailScreen() {
     onSuccess: async (res) => {
       setMsg(
         res.starred
-          ? u("STAR에 저장했습니다.", "Saved to STAR.")
-          : u("STAR에서 뺐습니다.", "Removed from STAR.")
+          ? t("m.marketplace.saved_to_star")
+          : t("m.marketplace.removed_from_star")
       );
       await invalidate();
       void queryClient.invalidateQueries({ queryKey: ["mobile-star-market"] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-star-hub"] });
     },
-    onError: (err) => setMsg(apiErrMessage(err, u("STAR 저장에 실패했습니다.", "Could not update STAR."))),
+    onError: (err) => setMsg(apiErrMessage(err, t("m.marketplace.could_not_update_star"))),
   });
 
   const favorite = useMutation({
     mutationFn: () => toggleMarketplaceFavorite(route.params.id),
     onSuccess: async (res) => {
-      setMsg(res.favorited ? u("관심 등록", "Added to favorites") : u("관심 해제", "Removed from favorites"));
+      setMsg(res.favorited ? t("m.marketplace.added_to_favorites") : t("m.marketplace.removed_from_favorites"));
       await invalidate();
     },
-    onError: (err) => setMsg(apiErrMessage(err, u("관심 등록에 실패했습니다.", "Could not update favorites."))),
+    onError: (err) => setMsg(apiErrMessage(err, t("m.marketplace.could_not_update_favorites"))),
   });
 
   const trade = useMutation({
@@ -257,10 +254,10 @@ export function MarketplaceDetailScreen() {
     onSuccess: (res) => {
       navigation.navigate("MessageRoom", {
         roomId: res.roomId,
-        title: u("거래 메시지", "Trade chat"),
+        title: t("m.marketplace.trade_chat"),
       });
     },
-    onError: (err) => setMsg(apiErrMessage(err, u("채팅을 열 수 없습니다.", "Could not open chat."))),
+    onError: (err) => setMsg(apiErrMessage(err, t("m.common.could_not_open_chat"))),
   });
 
   const tradeComplete = useMutation({
@@ -268,15 +265,12 @@ export function MarketplaceDetailScreen() {
     onSuccess: async (res) => {
       setMsg(
         res.completed
-          ? u("거래가 완료되어 보증금 2 MOCO가 돌아왔습니다.", "Trade complete — your 2 MOCO deposit was returned.")
-          : u(
-              "거래 완료를 남겼습니다. 상대방도 누르면 보증금이 돌아옵니다.",
-              "You marked the trade complete. When the other party confirms, deposits are returned."
-            )
+          ? t("m.marketplace.trade_complete_your_2_moco_deposit")
+          : t("m.marketplace.you_marked_the_trade_complete_when")
       );
       await invalidate();
     },
-    onError: (err) => setMsg(apiErrMessage(err, u("거래 완료 처리에 실패했습니다.", "Could not confirm trade."))),
+    onError: (err) => setMsg(apiErrMessage(err, t("m.marketplace.could_not_confirm_trade"))),
   });
 
   const bid = useMutation({
@@ -292,10 +286,10 @@ export function MarketplaceDetailScreen() {
         return;
       }
       if (!res.amount) {
-        setMsg(u("입찰에 실패했습니다.", "Bid failed."));
+        setMsg(t("m.common.bid_failed"));
         return;
       }
-      setMsg(`${u("입찰 완료", "Bid placed")} · ${formatUsedPrice(res.amount, item?.currency, u)}`);
+      setMsg(`${t("m.marketplace.bid_placed")} · ${formatUsedPrice(res.amount, item?.currency, t)}`);
       setBidText("");
       await invalidate();
     },
@@ -310,32 +304,32 @@ export function MarketplaceDetailScreen() {
         setHoldSheet({ amount: parseListingPriceInput(bidText, item?.currency ?? "krw") });
         return;
       }
-      setMsg(apiErrMessage(err, u("입찰에 실패했습니다.", "Bid failed.")));
+      setMsg(apiErrMessage(err, t("m.common.bid_failed")));
     },
   });
 
   const onBid = async () => {
     if (USED_AUCTION_RETIRED) {
-      showIslandError(u("경매 종료", "Auctions ended"), USED_AUCTION_RETIRED_MSG);
+      showIslandError(t("m.marketplace.auctions_ended"), t("m.marketplace.auction_retired_msg"));
       return;
     }
     try {
       const deposit =
         depositQuery.data ?? (await fetchAuctionDepositStatus(route.params.id));
       if (!deposit.canParticipate) {
-        showIslandError(u("경매 참여 불가", "Cannot bid"), AUCTION_INSUFFICIENT_WALLET_MSG);
+        showIslandError(t("m.marketplace.cannot_bid"), t("m.marketplace.need_min_moco_to_bid"));
         return;
       }
     } catch {
       showIslandError(
-        u("경매 참여 불가", "Cannot bid"),
-        u("지갑 잔액을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.", "Could not verify wallet balance. Try again shortly.")
+        t("m.marketplace.cannot_bid"),
+        t("m.marketplace.could_not_verify_wallet_balance_try")
       );
       return;
     }
     const amount = parseListingPriceInput(bidText, item?.currency ?? "krw");
     if (!Number.isFinite(amount) || amount <= 0) {
-      showIslandError(u("입찰가", "Bid amount"), u("올바른 금액을 입력해 주세요.", "Enter a valid amount."));
+      showIslandError(t("m.marketplace.bid_amount"), t("m.marketplace.enter_a_valid_amount"));
       return;
     }
     bid.mutate(amount);
@@ -348,7 +342,7 @@ export function MarketplaceDetailScreen() {
           <Text style={styles.back}>{t("common.back")}</Text>
         </Pressable>
         <Text style={styles.heading}>
-          {item?.saleType === "AUCTION" && !USED_AUCTION_RETIRED ? u("경매", "Auction") : u("상품", "Listing")}
+          {item?.saleType === "AUCTION" && !USED_AUCTION_RETIRED ? t("m.marketplace.auction") : t("m.marketplace.listing")}
         </Text>
         <View style={styles.topActions}>
           {item ? (
@@ -358,13 +352,13 @@ export function MarketplaceDetailScreen() {
               hitSlop={10}
               accessibilityRole="button"
               accessibilityLabel={
-                item.starred ? u("STAR 해제", "Remove from STAR") : u("STAR 저장", "Save to STAR")
+                item.starred ? t("m.marketplace.remove_from_star") : t("m.common.save_to_star")
               }
               onPress={() => {
                 if (authStatus !== "signedIn") {
                   showIslandError(
-                    u("로그인 필요", "Sign in required"),
-                    u("STAR 저장은 로그인 후 이용할 수 있습니다.", "Sign in to save to STAR.")
+                    t("m.common.sign_in_required"),
+                    t("m.common.sign_in_to_save_to_star")
                   );
                   return;
                 }
@@ -388,14 +382,14 @@ export function MarketplaceDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel={
                 item.favorited
-                  ? u("관심 해제", "Remove favorite")
-                  : u("관심 등록", "Add to favorites")
+                  ? t("m.marketplace.remove_favorite")
+                  : t("m.marketplace.add_to_favorites")
               }
               onPress={() => {
                 if (authStatus !== "signedIn") {
                   showIslandError(
-                    u("로그인 필요", "Sign in required"),
-                    u("관심 등록은 로그인 후 이용할 수 있습니다.", "Sign in to save favorites.")
+                    t("m.common.sign_in_required"),
+                    t("m.marketplace.sign_in_to_save_favorites")
                   );
                   return;
                 }
@@ -414,7 +408,7 @@ export function MarketplaceDetailScreen() {
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.accent} />
       ) : query.isError || !item ? (
-        <Text style={styles.error}>{u("상품을 불러오지 못했습니다.", "Could not load listing.")}</Text>
+        <Text style={styles.error}>{t("m.marketplace.could_not_load_listing")}</Text>
       ) : (
         <View style={[styles.flex, { marginBottom: keyboardLift }]}>
         <ScrollView
@@ -454,22 +448,22 @@ export function MarketplaceDetailScreen() {
           <View style={styles.body}>
             {item.saleType === "AUCTION" && USED_AUCTION_RETIRED ? (
               <View style={styles.retiredBanner}>
-                <Text style={styles.retiredBannerText}>{USED_AUCTION_RETIRED_MSG}</Text>
+                <Text style={styles.retiredBannerText}>{t("m.marketplace.auction_retired_msg")}</Text>
               </View>
             ) : null}
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.price}>
               {item.saleType === "AUCTION"
-                ? `${u("최소 입찰", "Min bid")} ${
+                ? `${t("m.marketplace.min_bid")} ${
                     item.minNextBid != null
-                      ? formatUsedPrice(item.minNextBid, item.currency, u)
-                      : formatUsedPrice(Number(item.price ?? 0), item.currency, u)
+                      ? formatUsedPrice(item.minNextBid, item.currency, t)
+                      : formatUsedPrice(Number(item.price ?? 0), item.currency, t)
                   }${
                     item.bidCount != null
-                      ? ` · ${u(`입찰 ${item.bidCount}회`, `${item.bidCount} bids`)}`
+                      ? ` · ${t("m.marketplace.bidcount_bids", { bidCount: String(item.bidCount) })}`
                       : ""
                   }`
-                : formatUsedPrice(Number(item.price ?? 0), item.currency, u)}
+                : formatUsedPrice(Number(item.price ?? 0), item.currency, t)}
             </Text>
             {item.saleType === "AUCTION" && item.auctionEndsAt && !USED_AUCTION_RETIRED ? (
               <View style={styles.timer}>
@@ -485,12 +479,12 @@ export function MarketplaceDetailScreen() {
               tradeMode={item.tradeMode}
             />
             <Text style={styles.sub}>
-              {displayUsedRegion(item.region || "", u) || u("지역 미정", "Location TBD")}
+              {displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd")}
               {item.seller?.username ? ` · @${item.seller.username}` : ""}
             </Text>
             {item.meetPlace?.trim() ? (
               <Text style={styles.meetPlace}>
-                {u("거래 희망 장소", "Meetup")} · {item.meetPlace.trim()}
+                {t("m.marketplace.meetup")} · {item.meetPlace.trim()}
               </Text>
             ) : null}
 
@@ -516,13 +510,13 @@ export function MarketplaceDetailScreen() {
               item.status === "SOLD" ? (
                 <View style={styles.actions}>
                   <Pressable style={[styles.btn, styles.btnDisabled]} disabled>
-                    <Text style={styles.btnTextMuted}>{u("거래완료", "Trade completed")}</Text>
+                    <Text style={styles.btnTextMuted}>{t("m.marketplace.trade_completed")}</Text>
                   </Pressable>
                 </View>
-              ) : item.status === "RESERVED" && !item.reservedTradeParticipant ? (
+              ) : item.status === "RESERVED" && !(item as { reservedTradeParticipant?: boolean }).reservedTradeParticipant ? (
                 <View style={styles.actions}>
                   <Pressable style={[styles.btn, styles.btnDisabled]} disabled>
-                    <Text style={styles.btnTextMuted}>{u("예약됨", "Reserved")}</Text>
+                    <Text style={styles.btnTextMuted}>{t("m.common.reserved")}</Text>
                   </Pressable>
                 </View>
               ) : item.status !== "SOLD" ? (
@@ -541,7 +535,7 @@ export function MarketplaceDetailScreen() {
                       }
                     }}
                   >
-                    <Text style={styles.btnText}>{u("메시지 보내기", "Message")}</Text>
+                    <Text style={styles.btnText}>{t("m.common.message")}</Text>
                   </Pressable>
                 </View>
               ) : null
@@ -556,10 +550,7 @@ export function MarketplaceDetailScreen() {
             (item.isOwner || item.isWinningBidder) ? (
               <View style={styles.bidBox}>
                 <Text style={styles.bidLabel}>
-                  {u(
-                    "약속 시간에 거래 메시지에서 현장 도착 인증을 눌러 주세요. 양쪽이 인증되면 암호코드로 거래를 끝냅니다.",
-                    "At meetup time, confirm arrival in trade chat. When both confirm, finish with the passcode."
-                  )}
+                  {t("m.marketplace.at_meetup_time_confirm_arrival_in")}
                 </Text>
               </View>
             ) : null}
@@ -572,10 +563,7 @@ export function MarketplaceDetailScreen() {
             (item.isOwner || item.isWinningBidder) ? (
               <View style={styles.bidBox}>
                 <Text style={styles.bidLabel}>
-                  {u(
-                    "거래가 끝나면 판매자와 낙찰자가 각각 거래 완료를 눌러 주세요. 둘 다 누르면 보증금 2 MOCO가 각각 돌아옵니다.",
-                    "When done, seller and winning bidder each tap trade complete. Both deposits return when confirmed."
-                  )}
+                  {t("m.marketplace.when_done_seller_and_winning_bidder")}
                 </Text>
                 <Pressable
                   style={[styles.btn, (tradeComplete.isPending || mineTradeConfirmed(item)) && styles.btnDisabled]}
@@ -584,8 +572,8 @@ export function MarketplaceDetailScreen() {
                 >
                   <Text style={styles.btnText}>
                     {mineTradeConfirmed(item)
-                      ? u("상대방 확인 대기", "Waiting for other party")
-                      : u("거래 완료", "Mark complete")}
+                      ? t("m.marketplace.waiting_for_other_party")
+                      : t("m.marketplace.mark_complete")}
                   </Text>
                 </Pressable>
               </View>
@@ -611,7 +599,7 @@ export function MarketplaceDetailScreen() {
                   style={styles.quickChip}
                   onPress={() => setBidText(usedPriceInputValue(amount, item.currency))}
                 >
-                  <Text style={styles.quickChipText}>{formatUsedPrice(amount, item.currency, u)}</Text>
+                  <Text style={styles.quickChipText}>{formatUsedPrice(amount, item.currency, t)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -624,8 +612,8 @@ export function MarketplaceDetailScreen() {
                 keyboardType={(item.currency ?? "krw") === "usd" ? "decimal-pad" : "number-pad"}
                 placeholder={
                   (item.currency ?? "krw") === "usd"
-                    ? u("달러로 입력", "Amount in USD")
-                    : u("금액 입력", "Enter amount")
+                    ? t("m.marketplace.amount_in_usd")
+                    : t("m.marketplace.enter_amount")
                 }
                 placeholderTextColor={colors.textMuted}
                 value={bidText}
@@ -637,7 +625,7 @@ export function MarketplaceDetailScreen() {
               disabled={bid.isPending}
               onPress={onBid}
             >
-              <Text style={styles.btnText}>{u("입찰하기", "Place bid")}</Text>
+              <Text style={styles.btnText}>{t("m.marketplace.place_bid")}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -664,7 +652,7 @@ export function MarketplaceDetailScreen() {
           onClose={() => setHoldSheet(null)}
           onSuccess={async (res) => {
             setHoldSheet(null);
-            setMsg(`${u("입찰 완료", "Bid placed")} · ${formatUsedPrice(res.amount, item?.currency, u)}`);
+            setMsg(`${t("m.marketplace.bid_placed")} · ${formatUsedPrice(res.amount, item?.currency, t)}`);
             setBidText("");
             await invalidate();
           }}
@@ -737,9 +725,8 @@ function createThemedStyles(colors: ThemeColors) {
     paddingVertical: 12,
     alignItems: "center",
   },
-  btnDisabled: { opacity: 0.6 },
+  btnDisabled: { backgroundColor: "#9ca3af", opacity: 0.6 },
   btnText: { color: "#fff", fontWeight: "700" },
-  btnDisabled: { backgroundColor: "#9ca3af", opacity: 1 },
   btnTextMuted: { color: "#f3f4f6", fontWeight: "700" },
   btnSecondary: {
     flex: 1,

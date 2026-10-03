@@ -27,6 +27,7 @@ import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   slot: LiveBeadSlot;
@@ -61,6 +62,7 @@ function EmptyBeadCard({
   tone: number;
   focused: boolean;
 }) {
+  const { t } = useI18n();
   const tint = 8 + (tone % 8) * 2;
   return (
     <View style={[styles.emptyCard, { width, backgroundColor: `rgb(${tint},${tint + 2},${tint + 8})` }]}>
@@ -68,8 +70,8 @@ function EmptyBeadCard({
         <View style={[styles.emptyOrb, { opacity: 0.18 + (tone % 5) * 0.04 }]} />
         {focused ? (
           <View style={styles.emptyCopy}>
-            <Text style={styles.emptyTitle}>현재 라이브 방송이 없습니다</Text>
-            <Text style={styles.emptySub}>새로운 방송이 시작되면 이곳에 표시됩니다</Text>
+            <Text style={styles.emptyTitle}>{t("m.live.no_live_streams_right_now")}</Text>
+            <Text style={styles.emptySub}>{t("m.live.new_streams_will_appear_here_when")}</Text>
           </View>
         ) : (
           <Text style={styles.emptyHint}>{emptySlotHint(tone)}</Text>
@@ -90,6 +92,7 @@ function LiveBeadLiveCard({
   active: boolean;
   onOpenLive: (id: string) => void;
 }) {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const themed = useMemo(() => createLiveStyles(colors), [colors]);
   const adultGate = useAdultVerificationGate("LIVE");
@@ -155,7 +158,7 @@ function LiveBeadLiveCard({
       style={[themed.card, { width }]}
       onPress={open}
       accessibilityRole="button"
-      accessibilityLabel={`${title} 라이브 열기`}
+      accessibilityLabel={t("m.live.open_live_title", { title: String(title) })}
     >
       <View style={themed.player}>
         {active && detail?.isExternal && detail.external && !adultBlocked ? (
@@ -207,7 +210,7 @@ function LiveBeadLiveCard({
 
         {adultBlocked ? (
           <View style={themed.adultGate}>
-            <Text style={themed.adultTitle}>19+ 성인 방송</Text>
+            <Text style={themed.adultTitle}>{t("m.live.19_adult_stream")}</Text>
             <Pressable
               style={themed.adultBtn}
               onPress={(e) => {
@@ -217,7 +220,7 @@ function LiveBeadLiveCard({
                 });
               }}
             >
-              <Text style={themed.adultBtnText}>본인인증</Text>
+              <Text style={themed.adultBtnText}>{t("m.live.verify_identity")}</Text>
             </Pressable>
           </View>
         ) : null}

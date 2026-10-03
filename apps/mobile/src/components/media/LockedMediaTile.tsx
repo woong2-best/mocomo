@@ -10,6 +10,7 @@ import {
   type PaidMediaMonetization,
 } from "@/components/media/paid-media-types";
 import { useTheme } from "@/theme/ThemeContext";
+import { useI18n } from "@/i18n/I18nProvider";
 
 type Props = {
   media: FeedMedia;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function LockedMediaTile({ media, monetization, style }: Props) {
+  const { t } = useI18n();
   const { colors } = useTheme();
   const lockReason = normalizeLockReason(media.lockReason);
   const purchasePrice = resolvePurchasePriceKrw(
@@ -29,11 +31,11 @@ export function LockedMediaTile({ media, monetization, style }: Props) {
   const overlay = useMemo(() => {
     if (lockReason === "subscription" && monetization.authorId && subscriptionPrice > 0) {
       if (monetization.subscribedToAuthor) {
-        return <LockedMediaPaywallOverlay label="구독 중" />;
+        return <LockedMediaPaywallOverlay label={t("m.media.subscribed")} />;
       }
       return (
-        <LockedMediaPaywallOverlay label="구독 전용">
-          <Text style={styles.ctaHint}>정기 후원 기능이 종료되어 열람할 수 없습니다.</Text>
+        <LockedMediaPaywallOverlay label={t("m.media.subscribers_only")}>
+          <Text style={styles.ctaHint}>{t("m.media.recurring_support_has_ended_so_this")}</Text>
         </LockedMediaPaywallOverlay>
       );
     }
@@ -47,7 +49,7 @@ export function LockedMediaTile({ media, monetization, style }: Props) {
             paymentsEnabled={monetization.paymentsEnabled}
             username={monetization.authorUsername}
             postId={monetization.postId}
-            label="결제하기"
+            label={t("m.media.pay")}
             variant="label"
             onPurchaseSuccess={monetization.onPurchaseSuccess}
           />
@@ -55,7 +57,7 @@ export function LockedMediaTile({ media, monetization, style }: Props) {
       );
     }
 
-    return <LockedMediaPaywallOverlay label="열람 권한이 없습니다." />;
+    return <LockedMediaPaywallOverlay label={t("m.media.you_do_not_have_access_to")} />;
   }, [
     lockReason,
     media.id,

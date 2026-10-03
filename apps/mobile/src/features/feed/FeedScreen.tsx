@@ -115,7 +115,7 @@ function feedItemType(item: FeedPost): string {
 }
 
 export function FeedScreen() {
-  const { u, t } = useI18n();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
@@ -163,7 +163,7 @@ export function FeedScreen() {
   const bottomPad = floatingTabClearance(insets.bottom);
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
-  const feedListRef = useRef<ElementRef<typeof FlashList>>(null);
+  const feedListRef = useRef<ElementRef<typeof FlashList<FeedItem>>>(null);
 
   const query = useInfiniteQuery({
     queryKey: ["mobile-feed"],
@@ -512,7 +512,7 @@ export function FeedScreen() {
         </View>
       ) : query.isError && posts.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.error}>{u("피드를 불러오지 못했습니다.", "Could not load feed.")}</Text>
+          <Text style={styles.error}>{t("m.feed.could_not_load_feed")}</Text>
           <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
         </View>
       ) : (
@@ -552,7 +552,7 @@ export function FeedScreen() {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.muted}>{u("아직 게시물이 없습니다.", "No posts yet.")}</Text>
+              <Text style={styles.muted}>{t("m.common.no_posts_yet")}</Text>
             </View>
           }
           contentContainerStyle={{ paddingBottom: bottomPad }}
@@ -591,11 +591,11 @@ function HighlightsPanel({
   colors: ThemeColors;
   onPressPost: (id: string) => void;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   if (topLiked.length === 0 && topViewed.length === 0) {
     return (
       <Text style={{ color: colors.textMuted, padding: 16, fontWeight: "600" }}>
-        {u("아직 하이라이트가 없습니다.", "No highlights yet.")}
+        {t("m.feed.no_highlights_yet")}
       </Text>
     );
   }
@@ -685,12 +685,12 @@ function SearchResultsPanel({
   onPressUser: (user: UserProfileSeed) => void;
   onPressAnime: (slug: string) => void;
 }) {
-  const { u } = useI18n();
+  const { t } = useI18n();
   const total = data.users.length + data.posts.length + data.animes.length + data.liveStreams.length;
   if (total === 0) {
     return (
       <Text style={{ color: colors.textMuted, padding: 16, fontWeight: "600" }}>
-        {u("결과가 없습니다.", "No results.")}
+        {t("m.common.no_results")}
       </Text>
     );
   }
@@ -708,18 +708,18 @@ function SearchResultsPanel({
             <Text style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{person.name || person.username}</Text>
             <Text style={{ fontSize: 11, color: colors.textMuted }}>@{person.username}</Text>
           </View>
-          <Text style={{ fontSize: 10, fontWeight: "700", color: colors.terracotta }}>{u("사람", "People")}</Text>
+          <Text style={{ fontSize: 10, fontWeight: "700", color: colors.terracotta }}>{t("m.common.people")}</Text>
         </Pressable>
       ))}
       {data.posts.map((p) => (
         <Pressable key={`p-${p.id}`} onPress={() => onPressPost(p.id)} style={{ paddingVertical: 8, paddingHorizontal: 8 }}>
-          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>{u("게시물", "Posts")}</Text>
+          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>{t("m.common.posts")}</Text>
           <Text numberOfLines={2} style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{p.title || p.content.slice(0, 80)}</Text>
         </Pressable>
       ))}
       {data.animes.map((a) => (
         <Pressable key={`a-${a.slug}`} onPress={() => onPressAnime(a.slug)} style={{ paddingVertical: 8, paddingHorizontal: 8 }}>
-          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>{u("컬처위키", "Culture Wiki")}</Text>
+          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>{t("m.common.culture_wiki")}</Text>
           <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{a.title}</Text>
         </Pressable>
       ))}

@@ -63,7 +63,7 @@ function normalizeCountry(country: string | null | undefined) {
   return (country ?? "").trim().toLowerCase();
 }
 
-/** User ISO (KR) ↔ event pin country (kr) */
+/** User ISO (KR) vs event pin country (kr). */
 function matchesUserCountry(pinCountry: string, userCountryCode: string) {
   const pin = normalizeCountry(pinCountry);
   const user = normalizeCountry(userCountryCode);
@@ -89,7 +89,7 @@ function sortPinsByUserCountryThenDate(pins: MapEventPin[], userCountryCode: str
 
 function countryCode(country: string) {
   const raw = country.trim();
-  if (!raw) return "—";
+  if (!raw) return "";
   if (raw.length <= 3) return raw.toUpperCase();
   if (/korea/i.test(raw)) return "KR";
   if (/japan/i.test(raw)) return "JP";
@@ -132,7 +132,7 @@ function formatEventDates(pin: MapEventPin, copy: EventsUi, locale: string) {
   const end = new Date(pin.endsAt);
   if (Number.isNaN(end.getTime())) return startLabel;
   const endLabel = end.toLocaleDateString(dateLoc, { month: "long", day: "numeric" });
-  return `${startLabel} — ${endLabel}`;
+  return `${startLabel} – ${endLabel}`;
 }
 
 function formatPopupDate(pin: MapEventPin, copy: EventsUi, locale: string) {
@@ -395,8 +395,8 @@ function EventPinCard({
 }
 
 export function EventsMapScreen() {
-  const { u, locale } = useI18n();
-  const copy = useMemo(() => eventsUi(u), [u]);
+  const { t, locale } = useI18n();
+  const copy = useMemo(() => eventsUi(t), [t]);
   const tabs = useMemo(
     (): { id: PanelTab; label: string }[] => [
       { id: "venue", label: copy.mapTabVenue },

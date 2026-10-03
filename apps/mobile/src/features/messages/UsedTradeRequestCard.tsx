@@ -24,7 +24,7 @@ type Props = {
 };
 
 export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh }: Props) {
-  const { locale, u } = useI18n();
+  const { locale, t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -62,11 +62,11 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
       await queryClient.invalidateQueries({ queryKey: ["mobile-used-meet-pins"] });
       onRefresh?.();
       showIslandSuccess(
-        action === "approve" ? u("승인했습니다", "Approved") : u("거절했습니다", "Declined"),
-        action === "approve" ? u("이제 이 글은 수정할 수 없습니다.", "This listing can no longer be edited.") : undefined
+        action === "approve" ? t("m.messages.approved") : t("m.messages.declined"),
+        action === "approve" ? t("m.messages.this_listing_can_no_longer_be") : undefined
       );
     } catch (e) {
-      showIslandError(u("오류", "Error"), e instanceof Error ? e.message : u("처리하지 못했습니다.", "Could not complete action."));
+      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.messages.could_not_complete_action"));
     } finally {
       setBusy(false);
     }
@@ -89,28 +89,28 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
 
   const statusLabel =
     request.status === "PENDING"
-      ? u("대기 중", "Pending")
+      ? t("m.messages.pending")
       : request.status === "APPROVED"
-        ? u("예약됨", "Reserved")
+        ? t("m.common.reserved")
         : request.status === "REJECTED"
-          ? u("거절됨", "Declined")
-          : u("취소됨", "Cancelled");
+          ? t("m.messages.declined")
+          : t("m.common.cancelled");
 
   return (
     <Pressable
       onPress={openListing}
       style={styles.card}
       accessibilityRole="button"
-      accessibilityLabel={u("중고 상품 상세 보기", "View listing details")}
+      accessibilityLabel={t("m.messages.view_listing_details")}
     >
       <View style={styles.head}>
         <Ionicons name="bag-handle-outline" size={20} color={colors.cobalt} />
-        <Text style={styles.title}>{u("중고 거래 요청", "Used trade request")}</Text>
+        <Text style={styles.title}>{t("m.messages.used_trade_request")}</Text>
       </View>
       <Text style={styles.body}>
         {sentByMe
-          ? u("거래 일정을 보냈습니다.", "You sent a trade schedule.")
-          : u("거래 일정이 도착했습니다.", "A trade schedule arrived.")}
+          ? t("m.messages.you_sent_a_trade_schedule")
+          : t("m.messages.a_trade_schedule_arrived")}
       </Text>
       {request.meetAt ? <Text style={styles.meta}>{formatMeetAt(request.meetAt, locale)}</Text> : null}
       <Text style={styles.status}>{statusLabel}</Text>
@@ -123,7 +123,7 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
               e.stopPropagation?.();
               void respond("reject");
             }}
-            accessibilityLabel={u("거절", "Decline")}
+            accessibilityLabel={t("m.messages.decline")}
           >
             {busy ? (
               <ActivityIndicator color="#fff" size="small" />
@@ -138,7 +138,7 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
               e.stopPropagation?.();
               void respond("approve");
             }}
-            accessibilityLabel={u("승인", "Approve")}
+            accessibilityLabel={t("m.messages.approve")}
           >
             {busy ? (
               <ActivityIndicator color="#fff" size="small" />
@@ -155,12 +155,26 @@ export function UsedTradeRequestCard({ requestId, selfUserId, roomId, onRefresh 
 function formatMeetAt(iso: string, locale: Locale) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  const daysKo = ["일", "월", "화", "수", "목", "금", "토"];
-  const daysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const days = locale === "ko" ? daysKo : daysEn;
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `${date.getMonth() + 1}/${date.getDate()} (${days[date.getDay()]}) ${hh}:${mm}`;
+  const tag = locale === "zh-TW" ? "zh-Hant" : locale;
+  try {
+    return new Intl.DateTimeFormat(tag, {
+      month: "numeric",
+      day: "numeric",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "numeric",
+      day: "numeric",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+  }
 }
 
 function createStyles(colors: ThemeColors) {

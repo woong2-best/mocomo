@@ -12,12 +12,12 @@ export function ChatSettingsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation();
-  const { t, u } = useI18n();
+  const { t } = useI18n();
 
   return (
     <Screen safeTop={false}>
       <AppHeader
-        title={u("채팅 설정", "Chat settings")}
+        title={t("m.messages.chat_settings")}
         leftLabel={t("common.back")}
         onLeftPress={() => navigation.goBack()}
       />
