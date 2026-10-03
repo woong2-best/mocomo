@@ -28,27 +28,42 @@ export async function geocodeMustSearchSubcultureMapEntries(options?: {
   const max = options?.max ?? SUBCULTURE_MAP_MUST_SEARCH.length;
   let updated = 0;
 
-  for (const entry of SUBCULTURE_MAP_MUST_SEARCH.slice(0, max)) {
+  const total = SUBCULTURE_MAP_MUST_SEARCH.length;
+  const offset =
+    total > 0 ? Math.floor(Date.now() / (60 * 60 * 1000)) % Math.max(1, Math.ceil(total / max)) : 0;
+  const start = (offset * max) % total;
+  const rotated = [
+    ...SUBCULTURE_MAP_MUST_SEARCH.slice(start),
+    ...SUBCULTURE_MAP_MUST_SEARCH.slice(0, start),
+  ].slice(0, max);
+
+  for (const entry of rotated) {
     const externalKey = mustSearchExternalKey(entry);
     const stub = mustSearchEntryToFetchedEvent(entry);
     const { venueName, address } = mustSearchGeocodeQuery(entry);
 
+    let lat =
+      stub.lat && isPinCoordinateValid(entry.country, stub.lat, stub.lng) ? stub.lat : null;
+    let lng =
+      stub.lng && isPinCoordinateValid(entry.country, stub.lat, stub.lng) ? stub.lng : null;
+    let addressLabel = address;
+
     try {
       const coord = await geocodeEventVenueInCountry(entry.country, venueName, address);
+      if (coord && isPinCoordinateValid(entry.country, coord.lat, coord.lng)) {
+        lat = coord.lat;
+        lng = coord.lng;
+        addressLabel = coord.label;
+      }
+
       const payload = {
         title: stub.title,
         description: stub.description,
         category: stub.category,
         venueName,
-        address: coord?.label ?? address,
-        lat:
-          coord && isPinCoordinateValid(entry.country, coord.lat, coord.lng)
-            ? coord.lat
-            : null,
-        lng:
-          coord && isPinCoordinateValid(entry.country, coord.lat, coord.lng)
-            ? coord.lng
-            : null,
+        address: addressLabel,
+        lat,
+        lng,
         startsAt: new Date(stub.startsAt),
         endsAt: new Date(stub.endsAt),
         sourceUrl: stub.sourceUrl,

@@ -155,6 +155,8 @@ export function eventCountryFromExternalKey(
     return "kr";
   }
   if (key.startsWith("must-search-kr-")) return "kr";
+  if (key.startsWith("must-search-tw-")) return "tw";
+  if (key.startsWith("must-search-us-")) return "us";
   if (
     key.startsWith("auto-comicw") ||
     key.startsWith("auto-gstar") ||

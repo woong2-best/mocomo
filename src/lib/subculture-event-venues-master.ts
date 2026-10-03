@@ -455,8 +455,8 @@ export const SUBCULTURE_VENUE_MASTER: MasterVenue[] = [
     "nz",
     "ASB Showgrounds",
     "217 Green Lane West, Epsom, Auckland, New Zealand",
-    -36.9098,
-    174.7247,
+    -36.9042,
+    174.7718,
     ["asb showgrounds", "due drop events centre", "armageddon expo"]
   ),
 

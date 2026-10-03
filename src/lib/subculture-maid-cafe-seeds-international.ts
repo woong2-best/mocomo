@@ -297,19 +297,8 @@ export const GB_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   }),
 ];
 
-/** 대만 — 시먼딩 일대 대표 여포카페 존 */
-export const TW_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
-  maid("tw", {
-    externalKey: "venue-maid-tw-ximending-cluster",
-    title: "Ximending maid cafe street (Ximending)",
-    description: "Permanent · Taipei Ximending maid cafe district",
-    venueName: "西門町 女僕咖啡",
-    address: "台北市萬華區西門町",
-    lat: 25.042841,
-    lng: 121.507707,
-    sourceUrl: "https://www.google.com/maps/search/西門町+女僕咖啡",
-  }),
-];
+/** @deprecated 개별 매장은 `subculture-map-must-search-intl.ts` must-search 사용 */
+export const TW_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [];
 
 export const INTERNATIONAL_MAID_CAFE_SEEDS: SubcultureEventSeed[] = [
   ...JP_MAID_CAFE_SEEDS,

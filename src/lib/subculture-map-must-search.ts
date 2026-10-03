@@ -5,19 +5,25 @@
 
 import type { SubcultureEventCountry } from "@/lib/subculture-event-countries";
 import type { FetchedSubcultureEvent } from "@/lib/subculture-event-fetch/types";
+import { SUBCULTURE_MAP_MUST_SEARCH_INTL } from "@/lib/subculture-map-must-search-intl";
+import { isPinCoordinateValid } from "@/lib/subculture-event-geocode";
 
 export type SubcultureMapMustSearchEntry = {
-  /** 검색·표시용 상호 (한국어) */
+  /** 검색·표시용 상호 (현지어) */
   name: string;
   category: "maid_cafe";
   country: SubcultureEventCountry;
-  /** KR 행정 구역 라벨 (검색 보조) */
+  /** 행정 구역·도시 (검색 보조) */
   city: string;
-  /** 도로명·층 (한국어) */
+  /** 도로명·층 */
   address: string;
   note?: string;
   /** stable id suffix — 생략 시 name에서 생성 */
   id?: string;
+  /** 확정 좌표 — geocode 실패 시에도 지도에 표시 */
+  lat?: number;
+  lng?: number;
+  sourceUrl?: string;
 };
 
 const OPEN = "2024-01-01T12:00:00+09:00";
@@ -36,6 +42,17 @@ export function slugifyMustSearchName(name: string): string {
 
 export function mustSearchExternalKey(entry: SubcultureMapMustSearchEntry): string {
   const slug = entry.id ?? slugifyMustSearchName(entry.name);
+  if (entry.country === "tw") {
+    const region = entry.city.includes("台中")
+      ? "taichung"
+      : entry.city.includes("高雄")
+        ? "kaohsiung"
+        : "taipei";
+    return `must-search-tw-maid-${region}-${slug}`;
+  }
+  if (entry.country === "us") {
+    return `must-search-us-maid-${slug}`;
+  }
   const region = entry.city.includes("부산")
     ? "busan"
     : entry.city.includes("대구")
@@ -46,8 +63,51 @@ export function mustSearchExternalKey(entry: SubcultureMapMustSearchEntry): stri
   return `must-search-kr-maid-${region}-${slug}`;
 }
 
+/** KR 시드에서 이전한 확정 좌표 (geocode 보조) */
+const KR_MUST_SEARCH_FALLBACK_COORDS: Record<string, { lat: number; lng: number }> = {
+  kiraring: { lat: 35.1537751, lng: 129.0652953 },
+  "gakkou-tomo": { lat: 35.1537905, lng: 129.0672449 },
+  kuroheart: { lat: 35.1555099, lng: 129.0600667 },
+  "mochi-cos": { lat: 35.1573217, lng: 129.061811 },
+  dream: { lat: 35.1543148, lng: 129.0618196 },
+  teitaku: { lat: 35.1525823, lng: 129.0584061 },
+  "maidmoon-seomyeon": { lat: 35.1545913, lng: 129.0605085 },
+  naraka: { lat: 35.8678621, lng: 128.5978869 },
+  maidreamin: { lat: 37.5522169, lng: 126.9203449 },
+  "maji-tenshi": { lat: 37.5503279, lng: 126.921658 },
+  ohmy: { lat: 37.5531433, lng: 126.9219999 },
+  "maji-devi": { lat: 37.5503279, lng: 126.921658 },
+  "moemoekyun-matsuri": { lat: 37.5474108, lng: 126.9172952 },
+  "moemoekyun-devil": { lat: 37.5474108, lng: 126.9172952 },
+  elysion: { lat: 37.55024, lng: 126.9226954 },
+  "dokidoki-hongdae": { lat: 37.5527813, lng: 126.9229411 },
+  maidpia: { lat: 37.5553944, lng: 126.9252733 },
+  kawaii: { lat: 37.5500916, lng: 126.9233722 },
+  ayana: { lat: 37.5512, lng: 126.921864 },
+  moemoekyun: { lat: 37.5474108, lng: 126.9172952 },
+  "maidmoon-hongdae": { lat: 37.5522194, lng: 126.9209507 },
+};
+
+function resolvedMustSearchCoords(entry: SubcultureMapMustSearchEntry): {
+  lat: number;
+  lng: number;
+} | null {
+  if (
+    entry.lat != null &&
+    entry.lng != null &&
+    isPinCoordinateValid(entry.country, entry.lat, entry.lng)
+  ) {
+    return { lat: entry.lat, lng: entry.lng };
+  }
+  if (entry.id && entry.country === "kr") {
+    const fb = KR_MUST_SEARCH_FALLBACK_COORDS[entry.id];
+    if (fb && isPinCoordinateValid("kr", fb.lat, fb.lng)) return fb;
+  }
+  return null;
+}
+
 /** 상설 메이드 카페 — 국내 필수 검색 목록 */
-export const SUBCULTURE_MAP_MUST_SEARCH: SubcultureMapMustSearchEntry[] = [
+const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
   {
     name: "키라링",
     category: "maid_cafe",
@@ -411,17 +471,32 @@ export const SUBCULTURE_MAP_MUST_SEARCH: SubcultureMapMustSearchEntry[] = [
   },
 ];
 
+export const SUBCULTURE_MAP_MUST_SEARCH: SubcultureMapMustSearchEntry[] = [
+  ...SUBCULTURE_MAP_MUST_SEARCH_KR,
+  ...SUBCULTURE_MAP_MUST_SEARCH_INTL,
+];
+
 export function mustSearchGeocodeQuery(entry: SubcultureMapMustSearchEntry): {
   venueName: string;
   address: string;
 } {
   const venueName = entry.name.trim();
   const address = entry.address.trim();
-  const withCity =
-    address.startsWith(entry.city.trim()) || address.includes("서울") || address.includes("부산")
-      ? address
-      : `${entry.city.trim()} ${address}`;
-  return { venueName, address: withCity };
+  if (entry.country === "kr") {
+    const withCity =
+      address.startsWith(entry.city.trim()) ||
+      address.includes("서울") ||
+      address.includes("부산") ||
+      address.includes("대구") ||
+      address.includes("수원")
+        ? address
+        : `${entry.city.trim()} ${address}`;
+    return { venueName, address: withCity };
+  }
+  if (address.includes(entry.city.trim()) || address.includes("台灣") || address.includes("USA")) {
+    return { venueName, address };
+  }
+  return { venueName, address: `${entry.city.trim()} ${address}` };
 }
 
 export function mustSearchEntryToFetchedEvent(
@@ -431,6 +506,7 @@ export function mustSearchEntryToFetchedEvent(
   const description = entry.note
     ? `Permanent maid cafe · ${entry.note}`
     : `Permanent maid cafe · ${entry.city}`;
+  const coords = resolvedMustSearchCoords(entry);
   return {
     sourceId: "must-search",
     country: entry.country,
@@ -440,11 +516,11 @@ export function mustSearchEntryToFetchedEvent(
     category: entry.category,
     venueName,
     address,
-    lat: 0,
-    lng: 0,
+    lat: coords?.lat ?? 0,
+    lng: coords?.lng ?? 0,
     startsAt: OPEN,
     endsAt: ENDS,
-    sourceUrl: "https://mocomo.net/events/map",
+    sourceUrl: entry.sourceUrl ?? "https://mocomo.net/events/map",
   };
 }
 

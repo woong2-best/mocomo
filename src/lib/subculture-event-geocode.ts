@@ -84,6 +84,18 @@ export const VERIFIED_EVENT_VENUES: Record<
     address:
       "Rodovia dos Imigrantes, km 1,5 - Vila Água Funda, São Paulo - SP, 04329-900, Brazil",
   },
+  "official-my-comic-fiesta-2026": {
+    lat: 3.1538,
+    lng: 101.7123,
+    venueName: "Kuala Lumpur Convention Centre (KLCC)",
+    address: "Kuala Lumpur Convention Centre, KLCC, 50088 Kuala Lumpur, Malaysia",
+  },
+  "official-nz-armageddon-2026": {
+    lat: -36.9042,
+    lng: 174.7718,
+    venueName: "ASB Showgrounds",
+    address: "217 Green Lane West, Epsom, Auckland 1023, New Zealand",
+  },
 };
 
 export function verifiedVenueForEvent(externalKey: string | null | undefined) {

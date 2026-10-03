@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSubcultureMapPins, getSubcultureMapPinsForUser } from "@/lib/subculture-events";
+import {
+  getSubcultureMapPins,
+  getSubcultureMapPinsForUser,
+  syncSubcultureEventsIfDue,
+} from "@/lib/subculture-events";
 
 export async function GET(req: Request) {
   try {
+    await syncSubcultureEventsIfDue({ geocodeMax: 3, mustSearchGeocodeMax: 12 });
     const { searchParams } = new URL(req.url);
     const global = searchParams.get("global") === "1";
     const country = searchParams.get("country") ?? undefined;
