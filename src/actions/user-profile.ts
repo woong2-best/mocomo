@@ -1,13 +1,13 @@
 "use server";
 
-import { toggleFollow, type FollowToggleResult } from "@/actions/social";
+import { toggleFollow, type FollowIntent, type FollowToggleResult } from "@/actions/social";
 import { requireAuthMinimal } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export async function followUserAction(
   userId: string,
   username: string,
-  opts?: { listOwnerUsername?: string }
+  opts?: { listOwnerUsername?: string; intent?: FollowIntent }
 ): Promise<FollowToggleResult> {
   return toggleFollow(userId, username, opts);
 }

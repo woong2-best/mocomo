@@ -80,6 +80,7 @@ export type RecommendListItem = {
   sharedFollowCount: number;
   sharedTags: string[];
   viewerFollows: boolean;
+  postsLocked: boolean;
 };
 
 export const REC_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h

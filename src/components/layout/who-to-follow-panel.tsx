@@ -79,8 +79,8 @@ export function WhoToFollowPanel() {
   if (sessionPending || !signedIn) return null;
 
   return (
-    <section className="w-full bg-card border-b border-border flex flex-col min-h-0 h-full overflow-hidden">
-      <header className="px-3 py-2 border-b border-border flex items-center justify-between gap-2 shrink-0">
+    <section className="flex h-full min-h-0 w-full flex-col bg-card">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5">
         <h2 className="text-sm font-bold tracking-tight truncate">
           {t("whoToFollow.title")}
         </h2>
@@ -94,9 +94,9 @@ export function WhoToFollowPanel() {
       </header>
 
       {loading && items.length === 0 ? (
-        <ul className="divide-y divide-border overflow-hidden">
+        <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto overscroll-contain">
           {Array.from({ length: 4 }).map((_, i) => (
-            <li key={i} className="flex items-center gap-2 px-2.5 py-2">
+            <li key={i} className="flex items-center gap-2.5 px-3 py-2.5">
               <div className="h-9 w-9 rounded-full bg-muted/60 animate-pulse shrink-0" />
               <div className="flex-1 space-y-1.5 min-w-0">
                 <div className="h-3 w-24 bg-muted/60 animate-pulse rounded" />
@@ -110,14 +110,14 @@ export function WhoToFollowPanel() {
       ) : items.length === 0 ? (
         <p className="px-3 py-4 text-xs text-muted-foreground">{t("whoToFollow.empty")}</p>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden">
+        <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto overscroll-contain">
           {items.map((item) => {
             const displayName = userDisplayName(item);
             return (
               <li
                 key={item.id}
                 className={cn(
-                  "flex items-center gap-2 px-2.5 py-2 hover:bg-muted/40 transition-colors"
+                  "flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted/40 transition-colors"
                 )}
               >
                 <Link
@@ -157,13 +157,14 @@ export function WhoToFollowPanel() {
                   userId={item.id}
                   username={item.username}
                   initialFollowing={item.viewerFollows}
+                  postsLocked={item.postsLocked}
                   size="sm"
-                  className="shrink-0 h-7 px-2.5 text-[11px]"
-                  onFollowingChange={(following) => {
-                    if (following) {
-                      track(item.id, "FOLLOW");
-                      setItems((prev) => prev.filter((x) => x.id !== item.id));
-                    }
+                  className="h-8 shrink-0 px-2.5 text-[11px]"
+                  onFollowingChange={(following, meta) => {
+                    if (!meta?.committed) return;
+                    if (!following && !meta.requested) return;
+                    track(item.id, "FOLLOW");
+                    setItems((prev) => prev.filter((x) => x.id !== item.id));
                   }}
                 />
               </li>

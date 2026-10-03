@@ -1,6 +1,7 @@
 import type { RecommendationBucket, RecommendationEventType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getOrComputeFollowRecommendations } from "@/lib/follow-recommendations/compute";
+import { getExcludedUserIds } from "@/lib/follow-recommendations/exclude";
 import { REC_LIST_LIMIT, type RecommendListItem } from "@/lib/follow-recommendations/types";
 import { userDisplayName } from "@/lib/user-public-select";
 
@@ -59,10 +60,33 @@ export async function listFollowRecommendationsForUser(
   userId: string,
   limit = REC_LIST_LIMIT
 ): Promise<RecommendListItem[]> {
-  const rows = await getOrComputeFollowRecommendations(userId, limit);
-  if (!rows.length) return [];
+  const [excluded, pendingRequests, rows] = await Promise.all([
+    getExcludedUserIds(userId),
+    db.followRequest.findMany({
+      where: { requesterId: userId },
+      select: { targetId: true },
+    }),
+    getOrComputeFollowRecommendations(userId, limit),
+  ]);
+  for (const request of pendingRequests) excluded.add(request.targetId);
+  let visibleRows = rows.filter((row) => !excluded.has(row.candidateId));
+  if (visibleRows.length < rows.length) {
+    const staleIds = rows
+      .filter((row) => excluded.has(row.candidateId))
+      .map((row) => row.candidateId);
+    if (staleIds.length) {
+      await db.followRecommendation
+        .deleteMany({ where: { userId, candidateId: { in: staleIds } } })
+        .catch(() => {});
+    }
+    if (visibleRows.length < Math.min(3, limit)) {
+      const refreshed = await getOrComputeFollowRecommendations(userId, limit);
+      visibleRows = refreshed.filter((row) => !excluded.has(row.candidateId));
+    }
+  }
+  if (!visibleRows.length) return [];
 
-  const ids = rows.map((r) => r.candidateId);
+  const ids = visibleRows.map((r) => r.candidateId);
   const users = await db.user.findMany({
     where: { id: { in: ids } },
     select: {
@@ -71,12 +95,13 @@ export async function listFollowRecommendationsForUser(
       name: true,
       image: true,
       supportTierSent: true,
+      postsLocked: true,
     },
   });
   const byId = new Map(users.map((u) => [u.id, u]));
 
   const items: RecommendListItem[] = [];
-  for (const row of rows) {
+  for (const row of visibleRows) {
     const u = byId.get(row.candidateId);
     if (!u) continue;
     const shared = parseSharedFromReasons(row.reasons);
@@ -92,6 +117,7 @@ export async function listFollowRecommendationsForUser(
       sharedFollowCount: shared.sharedFollowCount,
       sharedTags: shared.sharedTags,
       viewerFollows: false,
+      postsLocked: u.postsLocked,
     });
   }
   return items;

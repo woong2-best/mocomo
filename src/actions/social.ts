@@ -10,6 +10,7 @@ import { platformPostWhere, qnaEngagementError } from "@/lib/post-scope";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import {
   toggleFollowForUser,
+  type FollowIntent,
   type FollowToggleResult,
 } from "@/lib/follow-service";
 import { assertUserBlockInteractionAllowed, getBlockedUserIdSet } from "@/lib/user-block";
@@ -19,17 +20,18 @@ import {
   rejectFollowRequestForUser,
 } from "@/lib/follow-request-service";
 
-export type { FollowToggleResult };
+export type { FollowIntent, FollowToggleResult };
 
 export async function toggleFollow(
   userId: string,
   targetUsername?: string,
-  opts?: { listOwnerUsername?: string }
+  opts?: { listOwnerUsername?: string; intent?: FollowIntent }
 ): Promise<FollowToggleResult> {
   const user = await requireAuthMinimal();
   return toggleFollowForUser(user.id, userId, {
     targetUsername,
     listOwnerUsername: opts?.listOwnerUsername,
+    intent: opts?.intent,
   });
 }
 

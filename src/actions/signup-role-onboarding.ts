@@ -18,7 +18,7 @@ export async function loadSignupRoleCosplayers() {
 
 export async function followOnboardingCosplayer(userId: string) {
   const user = await requireAuthForAction();
-  const result = await toggleFollowForUser(user.id, userId);
+  const result = await toggleFollowForUser(user.id, userId, { intent: "follow" });
   if ("error" in result) return { error: result.error };
   const pending = "requested" in result && result.requested === true;
   return {

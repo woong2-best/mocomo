@@ -30,8 +30,11 @@ export function ProfileFollowButton({
   initialFollowing: boolean;
   initialRequested?: boolean;
   postsLocked?: boolean;
-  /** 팔로워 수 등 낙관적 UI (선택) */
-  onFollowingChange?: (following: boolean) => void;
+  /** Optimistic UI, then again with meta.committed after the server agrees. */
+  onFollowingChange?: (
+    following: boolean,
+    meta?: { committed?: boolean; requested?: boolean }
+  ) => void;
   followLabel?: string;
   followingLabel?: string;
   requestLabel?: string;
@@ -46,12 +49,14 @@ export function ProfileFollowButton({
   const [following, setFollowing] = useState(initialFollowing);
   const [requested, setRequested] = useState(initialRequested);
   const [locked, setLocked] = useState(postsLocked);
+  const [pending, setPending] = useState(false);
   const userIdRef = useRef(userId);
   const inFlightRef = useRef(false);
-  const desiredFollowingRef = useRef(initialFollowing);
-  const desiredRequestedRef = useRef(initialRequested);
+  const mutationEpochRef = useRef(0);
   const serverFollowingRef = useRef(initialFollowing);
   const serverRequestedRef = useRef(initialRequested);
+  const onFollowingChangeRef = useRef(onFollowingChange);
+  onFollowingChangeRef.current = onFollowingChange;
 
   useEffect(() => {
     if (userIdRef.current !== userId) {
@@ -59,106 +64,109 @@ export function ProfileFollowButton({
       setFollowing(initialFollowing);
       setRequested(initialRequested);
       setLocked(postsLocked);
-      desiredFollowingRef.current = initialFollowing;
-      desiredRequestedRef.current = initialRequested;
+      setPending(false);
       serverFollowingRef.current = initialFollowing;
       serverRequestedRef.current = initialRequested;
       inFlightRef.current = false;
+      mutationEpochRef.current += 1;
     }
   }, [userId, initialFollowing, initialRequested, postsLocked]);
 
   useEffect(() => {
     if (!syncFollowingOnMount) return;
+    const epoch = mutationEpochRef.current;
     let cancelled = false;
-    void getFollowStatusAction(userId).then((res) => {
-      if (cancelled || inFlightRef.current) return;
-      if (typeof res.following === "boolean") {
-        serverFollowingRef.current = res.following;
-        desiredFollowingRef.current = res.following;
-        setFollowing(res.following);
-        onFollowingChange?.(res.following);
-      }
-      if (typeof res.requested === "boolean") {
-        serverRequestedRef.current = res.requested;
-        desiredRequestedRef.current = res.requested;
-        setRequested(res.requested);
-      }
-      if (typeof res.postsLocked === "boolean") {
-        setLocked(res.postsLocked);
-      }
-    });
+    void getFollowStatusAction(userId)
+      .then((res) => {
+        if (cancelled || inFlightRef.current || mutationEpochRef.current !== epoch) return;
+        if (typeof res.following === "boolean") {
+          serverFollowingRef.current = res.following;
+          setFollowing(res.following);
+        }
+        if (typeof res.requested === "boolean") {
+          serverRequestedRef.current = res.requested;
+          setRequested(res.requested);
+        }
+        if (typeof res.postsLocked === "boolean") {
+          setLocked(res.postsLocked);
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [userId, syncFollowingOnMount, onFollowingChange]);
+  }, [userId, syncFollowingOnMount]);
+
+  function revertToServer() {
+    setFollowing(serverFollowingRef.current);
+    setRequested(serverRequestedRef.current);
+    onFollowingChangeRef.current?.(serverFollowingRef.current);
+  }
 
   async function toggle() {
-    if (following) {
-      desiredFollowingRef.current = false;
-      desiredRequestedRef.current = false;
+    if (inFlightRef.current) return;
+    const requestUserId = userId;
+    const intent = following || requested ? "unfollow" : "follow";
+
+    if (intent === "unfollow") {
       setFollowing(false);
       setRequested(false);
-      onFollowingChange?.(false);
-    } else if (requested) {
-      desiredRequestedRef.current = false;
-      setRequested(false);
+      onFollowingChangeRef.current?.(false);
+    } else if (locked) {
+      setRequested(true);
     } else {
-      if (locked) {
-        desiredRequestedRef.current = true;
-        setRequested(true);
-      } else {
-        desiredFollowingRef.current = true;
-        setFollowing(true);
-        onFollowingChange?.(true);
-      }
+      setFollowing(true);
+      onFollowingChangeRef.current?.(true);
     }
 
-    if (inFlightRef.current) return;
     inFlightRef.current = true;
+    setPending(true);
+    mutationEpochRef.current += 1;
 
     try {
-      while (
-        serverFollowingRef.current !== desiredFollowingRef.current ||
-        serverRequestedRef.current !== desiredRequestedRef.current
-      ) {
-        const result = await followUserAction(userId, username, {
-          listOwnerUsername,
-        });
-        if (result && "error" in result && result.error) {
-          desiredFollowingRef.current = serverFollowingRef.current;
-          desiredRequestedRef.current = serverRequestedRef.current;
-          setFollowing(serverFollowingRef.current);
-          setRequested(serverRequestedRef.current);
-          onFollowingChange?.(serverFollowingRef.current);
-          break;
-        }
-        if (result && "following" in result) {
-          serverFollowingRef.current = !!result.following;
-          serverRequestedRef.current = !!result.requested;
-          if (result.following) {
-            desiredRequestedRef.current = false;
-          }
-        } else {
-          const status = await getFollowStatusAction(userId);
-          if (typeof status.following === "boolean") {
-            serverFollowingRef.current = status.following;
-          }
-          if (typeof status.requested === "boolean") {
-            serverRequestedRef.current = status.requested;
-          }
-        }
+      const result = await followUserAction(requestUserId, username, {
+        listOwnerUsername,
+        intent,
+      });
+      if (userIdRef.current !== requestUserId) return;
+      if (result && "error" in result && result.error) {
+        revertToServer();
+        return;
       }
-      setFollowing(desiredFollowingRef.current);
-      setRequested(desiredRequestedRef.current);
-      onFollowingChange?.(desiredFollowingRef.current);
+      if (result && "following" in result) {
+        const followingNow = !!result.following;
+        const requestedNow = !!result.requested && !followingNow;
+        serverFollowingRef.current = followingNow;
+        serverRequestedRef.current = requestedNow;
+        setFollowing(followingNow);
+        setRequested(requestedNow);
+        if (requestedNow) setLocked(true);
+        onFollowingChangeRef.current?.(followingNow, {
+          committed: true,
+          requested: requestedNow,
+        });
+        return;
+      }
+      const status = await getFollowStatusAction(requestUserId);
+      if (userIdRef.current !== requestUserId) return;
+      const followingNow = !!status.following;
+      const requestedNow = !!status.requested && !followingNow;
+      serverFollowingRef.current = followingNow;
+      serverRequestedRef.current = requestedNow;
+      setFollowing(followingNow);
+      setRequested(requestedNow);
+      if (typeof status.postsLocked === "boolean") setLocked(status.postsLocked);
+      onFollowingChangeRef.current?.(followingNow, {
+        committed: true,
+        requested: requestedNow,
+      });
     } catch {
-      desiredFollowingRef.current = serverFollowingRef.current;
-      desiredRequestedRef.current = serverRequestedRef.current;
-      setFollowing(serverFollowingRef.current);
-      setRequested(serverRequestedRef.current);
-      onFollowingChange?.(serverFollowingRef.current);
+      if (userIdRef.current === requestUserId) revertToServer();
     } finally {
-      inFlightRef.current = false;
+      if (userIdRef.current === requestUserId) {
+        inFlightRef.current = false;
+        setPending(false);
+      }
     }
   }
 
@@ -176,6 +184,7 @@ export function ProfileFollowButton({
         (following || showRequested) && "bg-transparent text-foreground border-border",
         className
       )}
+      aria-busy={pending}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
