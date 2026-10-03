@@ -9,7 +9,7 @@ import { getRankings } from "@/actions/events";
 import { getAnimeCountByGenre } from "@/actions/anime";
 import { getHighlightPeriodKey } from "@/lib/highlight-period";
 import { getWeeklyHighlights } from "@/lib/weekly-highlights";
-import { getSubcultureMapPins } from "@/lib/subculture-events";
+import { getSubcultureMapPins, type MapEventPin } from "@/lib/subculture-events";
 import { feedPostListSelect, feedPostListSelectNoReposts, mapFeedPost } from "@/lib/feed-query";
 import { platformPostWhere } from "@/lib/post-scope";
 
@@ -164,7 +164,10 @@ export async function getCachedSidebarPanelData(_pathname = "/") {
   const [tips, sidebarAds, eventPins] = await Promise.all([
     getCachedSidebarTips(),
     getCachedSidebarAds(),
-    getSubcultureMapPins(160),
+    getSubcultureMapPins(160).catch((err) => {
+      console.error("[sidebar] subculture map pins failed", err);
+      return [] as MapEventPin[];
+    }),
   ]);
   return { tips, sidebarAds, eventPins };
 }

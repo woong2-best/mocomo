@@ -19,9 +19,16 @@ export async function RightPanelAsync() {
     return <RightPanelHydrated initialData={null} countryCode="KR" />;
   }
 
-  const [countryCode, raw, sponsorEvent] = await Promise.all([
+  let raw: Awaited<ReturnType<typeof getCachedSidebarPanelData>>;
+  try {
+    raw = await getCachedSidebarPanelData(pathname);
+  } catch (e) {
+    console.error("[RightPanelAsync] sidebar panel data failed", e);
+    raw = { tips: [], sidebarAds: [], eventPins: [] };
+  }
+
+  const [countryCode, sponsorEvent] = await Promise.all([
     getRequestCountryCode(),
-    getCachedSidebarPanelData(pathname),
     getSponsorSpotPreview(),
   ]);
   const eventPins = selectSidebarEventPins(
