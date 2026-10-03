@@ -27,15 +27,6 @@ export function LegalFooterLinks({ className = "" }: { className?: string }) {
   return (
     <div className={`space-y-3 ${className}`}>
       <nav className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-5">
-          <Link href="/contribution-tower" className="font-bold text-[#1B3A6B] hover:underline dark:text-[#F5F0E6]">
-            {t("wallet.viewContributionTower")}
-          </Link>
-          <Link href="/events/new" className="folk-ancient-ad" aria-label={t("footer.placeAdAria")}>
-            {t("footer.placeAd")}
-          </Link>
-        </span>
-        <span className="text-border">·</span>
         {links.map((link, i) => (
           <span key={link.href} className="flex items-center gap-3">
             {i > 0 && <span className="text-border">·</span>}

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cinzel, Fredoka, Geist, Geist_Mono } from "next/font/google";
+import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AppProviders } from "@/components/providers/app-providers";
 import { ShellRouter } from "@/components/layout/shell-router";
@@ -23,12 +23,6 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-  display: "swap",
-});
-const ancientDisplay = Cinzel({
-  variable: "--font-ancient",
-  subsets: ["latin"],
-  weight: ["700"],
   display: "swap",
 });
 
@@ -74,7 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="mocomo-build-id" content={buildId} />
       </head>
-      <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} ${ancientDisplay.variable} font-sans folk-canvas`}>
+      <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
         <div className="folk-app-shell">
           <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
             <AppProviders>
