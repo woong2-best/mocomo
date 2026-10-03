@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import {
   SUBCULTURE_EVENT_SEEDS,
@@ -24,8 +25,10 @@ import { inferSubcultureEventPhase } from "@/lib/subculture-event-phase";
 import {
   geocodeMustSearchSubcultureMapEntries,
   purgeRetiredMustSearchPins,
+  upsertMustSearchCatalogPinsFast,
 } from "@/lib/subculture-map-must-search-sync";
 import { getActiveMustSearchEntries } from "@/lib/subculture-map-must-search";
+import { mergeMapPinsWithMustSearchCatalog } from "@/lib/subculture-map-must-search-pins";
 
 export type { MapEventPin } from "@/lib/subculture-event-pins";
 export { mapLinkForEvent } from "@/lib/subculture-event-pins";
@@ -150,14 +153,16 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
       take: Math.max(limit * 4, 500),
     });
 
-    const pins = sortMapPins(mapRowsToPins(rows)).slice(0, limit);
-    if (pins.length > 0) return pins;
+    const dbPins = sortMapPins(mapRowsToPins(rows));
+    if (dbPins.length > 0) {
+      return mergeMapPinsWithMustSearchCatalog(dbPins, limit);
+    }
   } catch {
     /* fall through */
   }
 
   const { events } = await fetchAllSubcultureEvents();
-  return sortMapPins(
+  const fallbackPins = sortMapPins(
     events
       .filter((e) => {
         if (e.externalKey.startsWith("auto-wiki-")) return false;
@@ -186,7 +191,8 @@ export async function querySubcultureMapPins(limit: number): Promise<MapEventPin
         imageUrl: e.imageUrl ?? null,
         roadViewImageUrl: e.roadViewImageUrl ?? null,
       }))
-  ).slice(0, limit);
+  );
+  return mergeMapPinsWithMustSearchCatalog(fallbackPins, limit);
 }
 
 /** 진행 중 → 예정 → 상설(메이드) 순, 각 그룹 내 시작일 오름차순 */
@@ -206,9 +212,12 @@ function sortMapPins(pins: MapEventPin[]): MapEventPin[] {
 
 /** 캐시된 핀 목록 (읽기 전용 — sync는 cron `/api/cron/subculture-events` 전용) */
 export async function getSubcultureMapPins(limit = 240): Promise<MapEventPin[]> {
+  after(() => {
+    void upsertMustSearchCatalogPinsFast().catch(() => {});
+  });
   return unstable_cache(
     async () => querySubcultureMapPins(limit),
-    ["subculture-map-pins-v17", String(limit)],
+    ["subculture-map-pins-v18", String(limit)],
     { revalidate: 600, tags: [SUBCULTURE_MAP_PINS_CACHE_TAG] }
   )();
 }
@@ -510,6 +519,7 @@ export async function syncSubcultureEventsIfDue(options?: {
 
   const { events, results } = await fetchAllSubcultureEvents();
   await upsertFetchedSubcultureEvents(events);
+  await upsertMustSearchCatalogPinsFast();
   const retiredPurged = await purgeRetiredMustSearchPins();
   if (retiredPurged > 0) {
     console.info("[subculture-events] purged retired must-search pins:", retiredPurged);

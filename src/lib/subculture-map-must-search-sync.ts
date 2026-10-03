@@ -27,6 +27,64 @@ export async function purgeRetiredMustSearchPins(): Promise<number> {
   }
 }
 
+/** API 없이 카탈로그 좌표만 DB upsert — cron·배경 sync용 (빠름) */
+export async function upsertMustSearchCatalogPinsFast(): Promise<number> {
+  try {
+    await db.subcultureEventPin.findFirst({ select: { id: true } });
+  } catch {
+    return 0;
+  }
+
+  let written = 0;
+  for (const entry of getActiveMustSearchEntries()) {
+    const externalKey = mustSearchExternalKey(entry);
+    const stub = mustSearchEntryToFetchedEvent(entry);
+    if (
+      !stub.lat ||
+      !stub.lng ||
+      !isPinCoordinateValid(entry.country, stub.lat, stub.lng)
+    ) {
+      continue;
+    }
+    const { venueName, address } = mustSearchGeocodeQuery(entry);
+    try {
+      await db.subcultureEventPin.upsert({
+        where: { externalKey },
+        create: {
+          externalKey,
+          title: stub.title,
+          description: stub.description,
+          category: stub.category,
+          venueName,
+          address,
+          lat: stub.lat,
+          lng: stub.lng,
+          startsAt: new Date(stub.startsAt),
+          endsAt: new Date(stub.endsAt),
+          sourceUrl: stub.sourceUrl,
+          source: "seed",
+        },
+        update: {
+          title: stub.title,
+          description: stub.description,
+          category: stub.category,
+          venueName,
+          address,
+          lat: stub.lat,
+          lng: stub.lng,
+          startsAt: new Date(stub.startsAt),
+          endsAt: new Date(stub.endsAt),
+          sourceUrl: stub.sourceUrl,
+        },
+      });
+      written += 1;
+    } catch {
+      /* skip */
+    }
+  }
+  return written;
+}
+
 /** sync 때마다 필수 검색 목록 geocode — Nominatim rate limit 준수 */
 export async function geocodeMustSearchSubcultureMapEntries(options?: {
   /** cron 타임아웃 방지 — 기본 전체 */
