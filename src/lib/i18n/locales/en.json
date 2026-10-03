@@ -515,6 +515,7 @@
   "tower.loadMore": "Load older blocks",
   "tower.loadingMore": "Loading…",
   "tower.blocksAria": "Contribution tower blocks",
+  "tower.emptyPhysics": "No blocks yet. Top up MOCO to place your first block.",
   "tower.empty": "No blocks yet. ",
   "tower.emptyTopUp": "Top up MOCO",
   "tower.emptySuffix": " to place your first block.",
