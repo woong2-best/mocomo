@@ -3,6 +3,7 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
+import Link from "next/link";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -21,7 +22,7 @@ export function Sidebar() {
   const { data: session } = useSession();
   const { t } = useLocale();
   const { open } = useSidebarToggle();
-  const expandedWidth = "14.5rem";
+  const expandedWidth = "19rem";
   const ownProfilePath = session?.user?.username ? `/u/${session.user.username}` : null;
 
   const navItems = mainNavItems
@@ -41,7 +42,7 @@ export function Sidebar() {
     <div
       className={cn(
         "hidden lg:block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
-        open ? "w-[14.5rem]" : "w-0"
+        open ? "w-[19rem]" : "w-0"
       )}
       aria-hidden={!open}
     >
@@ -86,8 +87,14 @@ export function Sidebar() {
           </div>
         </div>
 
-        <div className="folk-sidebar-legal shrink-0">
-          <LegalComplianceSidebarButton iconOnly={false} />
+        <div className="folk-sidebar-legal flex items-center gap-1.5">
+          <Link href="/events/map" className="folk-view-full-map-island">
+            {t("sidebar.eventsMapExpand")}
+          </Link>
+          <LegalComplianceSidebarButton
+            iconOnly={false}
+            className="w-auto shrink-0 whitespace-nowrap px-2"
+          />
         </div>
       </aside>
     </div>

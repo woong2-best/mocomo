@@ -21,7 +21,7 @@ function MapChunkPlaceholder({
     >
       <div className="absolute inset-0 flex min-w-0 items-center justify-center overflow-hidden px-2 text-center">
         <span className="max-w-full truncate text-[11px] leading-snug text-muted-foreground sm:text-xs">
-          지도 불러오는 중…
+          Loading map…
         </span>
       </div>
     </div>
@@ -58,6 +58,7 @@ export function SubcultureEventsMapLazy({
   defaultView,
   respectDefaultView,
   showAttribution,
+  pinHalo,
 }: {
   pins: MapEventPin[];
   heightClassName?: string;
@@ -72,6 +73,7 @@ export function SubcultureEventsMapLazy({
   defaultView?: { lat: number; lng: number; zoom: number };
   respectDefaultView?: boolean;
   showAttribution?: boolean;
+  pinHalo?: boolean;
 }) {
   if (!immersive && pins.length === 0) {
     return (
@@ -82,7 +84,7 @@ export function SubcultureEventsMapLazy({
           className
         )}
       >
-        표시할 행사가 없습니다
+        No events to show
       </div>
     );
   }
@@ -102,6 +104,7 @@ export function SubcultureEventsMapLazy({
       defaultView={defaultView}
       respectDefaultView={respectDefaultView}
       showAttribution={showAttribution}
+      pinHalo={pinHalo}
     />
   );
 }

@@ -11,9 +11,7 @@ const SidebarEventMapCard = dynamic(
   () => import("@/components/events/sidebar-event-map-card").then((m) => m.SidebarEventMapCard),
   {
     ssr: false,
-    loading: () => (
-      <div className="h-full min-h-[8rem] w-full rounded-2xl border border-violet-500/20 bg-muted/30" />
-    ),
+    loading: () => <div className="h-full min-h-[8rem] w-full bg-muted/30" />,
   }
 );
 
@@ -35,9 +33,13 @@ export type SidebarPanelData = {
 
 export function RightPanelSkeleton() {
   return (
-    <aside className="hidden lg:flex w-56 xl:w-60 min-w-0 shrink-0 h-full flex-col justify-start gap-3 shell-col-pad folk-panel-aside overflow-hidden overscroll-none">
-      <div className="h-[7.5rem] w-full shrink-0 rounded-2xl border-2 border-folk-gold/20 bg-muted/40 animate-pulse" />
-      <div className="min-h-0 flex-1 w-full rounded-2xl border border-violet-500/20 bg-muted/30 animate-pulse" />
+    <aside className="hidden lg:flex w-72 xl:w-80 min-w-0 shrink-0 h-full flex-col justify-start gap-2 overflow-hidden overscroll-none">
+      <img
+        src="/ads/your-ad-here.jpg"
+        alt="Your Ad Here"
+        className="block h-auto w-full shrink-0"
+      />
+      <div className="min-h-0 flex-1 w-full bg-muted/30 animate-pulse" />
     </aside>
   );
 }
@@ -49,7 +51,7 @@ export function RightPanelContent({ sidebarAds, eventPins, sponsorEvent }: Sideb
   }, []);
 
   return (
-    <aside className="hidden lg:flex w-56 xl:w-60 min-w-0 shrink-0 h-full flex-col justify-start gap-3 shell-col-pad folk-panel-aside overflow-hidden overscroll-none">
+    <aside className="hidden lg:flex w-72 xl:w-80 min-w-0 shrink-0 h-full flex-col justify-start gap-2 overflow-hidden overscroll-none">
       <div className="w-full shrink-0 grow-0">
         <SponsoredSidebarCard sidebarAds={sidebarAds} initialSponsorEvent={sponsorEvent ?? null} />
       </div>

@@ -70,10 +70,12 @@ function safeHttpUrl(url: string | null | undefined): string | null {
   return null;
 }
 
-function createPinElement(color: string): HTMLDivElement {
+function createPinElement(color: string, halo = false): HTMLDivElement {
   const el = document.createElement("div");
   el.className = "subculture-event-pin";
-  el.style.cssText = `width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,.35);cursor:pointer`;
+  el.style.cssText = halo
+    ? "width:22px;height:22px;box-sizing:border-box;background:#ff4d9a;border:4px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.78),0 2px 8px rgba(0,0,0,.45);cursor:pointer"
+    : `width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,.35);cursor:pointer`;
   return el;
 }
 
@@ -176,6 +178,7 @@ export function SubcultureEventsMap({
   defaultView,
   respectDefaultView = false,
   showAttribution = true,
+  pinHalo = false,
 }: {
   pins: MapEventPin[];
   className?: string;
@@ -197,6 +200,8 @@ export function SubcultureEventsMap({
   respectDefaultView?: boolean;
   /** false면 Esri 등 타일 저작권 표시 숨김 (사이드바 미리보기) */
   showAttribution?: boolean;
+  /** Sidebar preview pins — pink center, white ring, dark halo. */
+  pinHalo?: boolean;
 }) {
   const navigationControls = showNavigationControls ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -311,7 +316,7 @@ export function SubcultureEventsMap({
           offset: 12,
         }).setHTML(buildPinPopupHtml(pin));
 
-        const marker = new maplibregl.Marker({ element: createPinElement(color) })
+        const marker = new maplibregl.Marker({ element: createPinElement(color, pinHalo) })
           .setLngLat([pin.lng, pin.lat])
           .setPopup(popup)
           .addTo(map);
@@ -406,7 +411,7 @@ export function SubcultureEventsMap({
       setReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pins identity drives rebuild
-  }, [pins, interactive, navigationControls, defaultView, immersive, showAttribution]);
+  }, [pins, interactive, navigationControls, defaultView, immersive, showAttribution, pinHalo]);
 
   if (!immersive && pins.length === 0) {
     return (
@@ -417,7 +422,7 @@ export function SubcultureEventsMap({
           className
         )}
       >
-        표시할 행사가 없습니다
+        No events to show
       </div>
     );
   }
@@ -455,7 +460,7 @@ export function SubcultureEventsMap({
           )}
         >
           <span className="max-w-full truncate text-[11px] leading-snug sm:text-xs">
-            지도 불러오는 중…
+            Loading map…
           </span>
         </div>
       )}

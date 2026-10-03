@@ -1329,7 +1329,7 @@ html[data-client="app"] .native-live-pad {
   }
 
   .folk-sidebar-panel:not(.mobile-drawer-panel) .folk-sidebar-nav-stack {
-    padding-bottom: 3rem;
+    padding-bottom: 3.75rem;
   }
 
   .folk-sidebar-compose-btn {
@@ -1348,13 +1348,76 @@ html[data-client="app"] .native-live-pad {
   .folk-sidebar-panel:not(.mobile-drawer-panel) .folk-sidebar-legal {
     @apply absolute inset-x-0 bottom-0 z-20 border-t-0 bg-transparent backdrop-blur-none;
     margin-top: 0;
-    padding: 0.5rem 0.75rem 0.625rem;
+    margin-inline: 0;
+    padding: 0.5rem 0.65rem 0.625rem;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+
+  .folk-sidebar-panel > .folk-sidebar-legal {
+    position: absolute;
   }
 
   .folk-sidebar-legal-btn {
     @apply flex w-full items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 text-[10px] font-semibold leading-tight text-white backdrop-blur-sm shadow-none transition-all hover:border-folk-terracotta/80 hover:bg-white/15 active:scale-[0.98];
     padding-top: 0.3rem;
     padding-bottom: 0.3rem;
+  }
+
+  .folk-sidebar-legal .folk-sidebar-legal-btn {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .folk-view-full-map-island {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 9.25rem;
+    height: 2rem;
+    padding: 0 1.15rem;
+    border-radius: 9999px;
+    background: rgba(8, 10, 16, 0.9);
+    color: #f7f3ea;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 10px 22px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    transition: background-color 160ms ease, transform 160ms ease;
+  }
+
+  .folk-view-full-map-island:hover {
+    background: rgba(22, 28, 40, 0.96);
+  }
+
+  .folk-view-full-map-island:active {
+    transform: scale(0.98);
+  }
+
+  .folk-ancient-ad {
+    font-family: var(--font-ancient), "Palatino Linotype", Palatino, serif;
+    font-weight: 700;
+    font-size: clamp(3.4rem, 6.5vw, 5.6rem);
+    line-height: 0.78;
+    letter-spacing: 0.06em;
+    color: #e8cb8c;
+    text-shadow:
+      0 1px 0 #fff6dc,
+      0 2px 0 #a98445,
+      0 4px 0 #6d5424,
+      0 10px 18px rgba(0, 0, 0, 0.38);
+    padding: 0.15rem 0.2rem 0.2rem 0.35rem;
+  }
+
+  .folk-ancient-ad:hover {
+    color: #f6e2b4;
   }
 
   /* 3-column shell — 동일 패딩·구분선 */

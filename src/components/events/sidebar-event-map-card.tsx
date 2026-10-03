@@ -3,12 +3,9 @@ const i18n = createTranslator("en");
 
 
 import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Info, MapPin } from "lucide-react";
+import { Info } from "lucide-react";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
@@ -41,7 +38,7 @@ function MapAttributionButton({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border/70 bg-background/90 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/25 bg-[#1b2436]/90 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-[#28344c]"
         aria-label={i18n("events.s32iang")}
         aria-expanded={open}
       >
@@ -77,7 +74,7 @@ export function SidebarEventMapCard({
   /** 부모 높이에 맞춰 지도만 세로로 늘림 (광고는 고정) */
   fillHeight?: boolean;
 }) {
-  const { countryCode, t } = useLocale();
+  const { countryCode } = useLocale();
   const mapPins = useMemo(
     () =>
       selectSidebarEventPins(resolveSubculturePinsForUser(pins, countryCode)),
@@ -86,50 +83,24 @@ export function SidebarEventMapCard({
   const defaultView = getSubcultureMapDefaultView(countryCode);
 
   return (
-    <Card
+    <div
       className={cn(
-        "min-w-0 rounded-2xl border-violet-500/20 bg-card/95 shadow-sm overflow-hidden",
-        fillHeight ? "flex h-full min-h-0 flex-col" : "shrink-0",
+        "relative min-w-0 overflow-hidden",
+        fillHeight ? "h-full min-h-0" : "shrink-0",
         className
       )}
     >
-      <CardHeader className="pb-2 pt-3 px-3 shrink-0 space-y-0">
-        <CardTitle className="text-xs font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1 min-w-0 leading-snug">
-          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span className="min-w-0">{i18n("sidebar.eventsMapTitle")}</span>
-          <MapAttributionButton className="ml-0.5" />
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent
-        className={cn("min-w-0 p-0", fillHeight && "flex min-h-0 flex-1 flex-col")}
-      >
-        <div
-          className={cn(
-            "min-w-0 overflow-hidden px-3 pb-2",
-            fillHeight ? "min-h-0 flex-1" : undefined
-          )}
-        >
-          <SubcultureEventsMapLazy
-            pins={mapPins}
-            heightClassName={fillHeight ? "h-full w-full" : "aspect-[4/5] w-full"}
-            interactive
-            showNavigationControls={false}
-            showAttribution={false}
-            defaultView={defaultView}
-            className="subculture-events-map--sidebar w-full"
-          />
-        </div>
-
-        <div className="shrink-0 border-t border-border/50 px-3 py-2.5">
-          <Link
-            href="/events/map"
-            className="flex w-full items-center justify-center rounded-xl border border-violet-500/25 bg-violet-500/8 px-3 py-2 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-500/15 dark:text-violet-300 dark:hover:bg-violet-500/20"
-          >
-            {i18n("sidebar.eventsMapExpand")}
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
+      <SubcultureEventsMapLazy
+        pins={mapPins}
+        heightClassName={fillHeight ? "h-full w-full" : "aspect-[4/5] w-full"}
+        interactive
+        showNavigationControls={false}
+        showAttribution={false}
+        defaultView={defaultView}
+        pinHalo
+        className="subculture-events-map--sidebar h-full w-full rounded-none border-0"
+      />
+      <MapAttributionButton className="absolute right-2 top-2 z-30" />
+    </div>
   );
 }
