@@ -314,12 +314,12 @@ export const youtubeStreamingProvider: StreamingPlatformProvider = {
       // Common: YouTube Data API v3 not enabled on the GCP project → 403
       const apiHint =
         /accessNotConfigured|has not been used|disabled/i.test(channelBody)
-          ? " GCP에서 YouTube Data API v3를 사용 설정한 뒤 다시 시도해 주세요."
+          ? " Enable YouTube Data API v3 in Google Cloud, then try again."
           : /insufficientPermissions|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(channelBody)
-            ? " youtube.readonly 권한이 포함되지 않았습니다. Google 동의 화면에서 YouTube 권한을 허용해 주세요."
+            ? " The youtube.readonly permission was not granted. Allow YouTube access on the Google consent screen."
             : "";
       throw new Error(
-        `Not found.${apiHint} (${channelRes.status})`
+        `Could not load the YouTube channel.${apiHint} (${channelRes.status})`
       );
     }
     let channelJson: {

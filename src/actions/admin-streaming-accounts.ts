@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdminPermission } from "@/lib/admin/access";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
-import { logVerification } from "@/lib/streaming-accounts/service";
+import { logVerification, purgeStreamingAccounts } from "@/lib/streaming-accounts/service";
 
 export async function adminLoadStreamingAccounts(query: {
   q?: string;
@@ -125,7 +125,7 @@ export async function adminRevokeStreamingAccount(accountId: string, reason: str
 export async function adminDeleteStreamingAccount(accountId: string) {
   const admin = await requireAdminPermission("live", { action: "MODERATION_ACTION" });
 
-  await db.connectedStreamingAccount.delete({ where: { id: accountId } }).catch(() => null);
+  await purgeStreamingAccounts([accountId]);
 
   await logSiteAdminAudit({
     actorId: admin.id,

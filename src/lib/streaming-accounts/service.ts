@@ -1,4 +1,4 @@
-import type { StreamingVerificationMethod } from "@prisma/client";
+import { Prisma, type StreamingVerificationMethod } from "@prisma/client";
 import { db } from "@/lib/db";
 import type {
   ConnectedAccountRow,
@@ -80,7 +80,11 @@ async function logVerification(
   });
 }
 
-async function deleteStreamingAccountRecords(accountIds: string[]) {
+const ALREADY_LINKED =
+  "This streaming account is already linked to another MoCoMo account.";
+
+/** Removes the channel claim so another MoCoMo user can verify and register it. */
+export async function purgeStreamingAccounts(accountIds: string[]) {
   if (accountIds.length === 0) return;
   await db.$transaction([
     db.voiceChannel.updateMany({
@@ -96,14 +100,31 @@ async function deleteStreamingAccountRecords(accountIds: string[]) {
   ]);
 }
 
+/**
+ * A user unlink used to set revokedAt and keep the unique (platform, channelId) row.
+ * Those leftovers are not a live link. Moderation revokes stay reserved.
+ */
+function isUserReleasedClaim(row: {
+  revokedAt: Date | null;
+  revokedReason: string | null;
+}): boolean {
+  if (!row.revokedAt) return false;
+  const reason = row.revokedReason?.trim() ?? "";
+  return reason.length === 0 || reason === "User disconnected";
+}
+
 export async function listUserStreamingAccounts(
   userId: string
 ): Promise<StreamingAccountPublic[]> {
-  const revoked = await db.connectedStreamingAccount.findMany({
-    where: { userId, revokedAt: { not: null } },
+  const released = await db.connectedStreamingAccount.findMany({
+    where: {
+      userId,
+      revokedAt: { not: null },
+      OR: [{ revokedReason: null }, { revokedReason: "User disconnected" }],
+    },
     select: { id: true },
   });
-  await deleteStreamingAccountRecords(revoked.map((row) => row.id));
+  await purgeStreamingAccounts(released.map((row) => row.id));
 
   const rows = await db.connectedStreamingAccount.findMany({
     where: { userId, revokedAt: null },
@@ -134,7 +155,7 @@ export function startOAuthConnect(
   const url = provider.getConnectUrl(state, redirectUri);
   if (!url) {
     return {
-      error: `${platform} OAuth 클라이언트가 설정되지 않았습니다.`,
+      error: `${platform} OAuth client is not configured.`,
     };
   }
   return { url };
@@ -147,12 +168,22 @@ async function assertChannelNotLinked(
 ): Promise<{ error: string } | null> {
   const existing = await db.connectedStreamingAccount.findUnique({
     where: { platform_channelId: { platform, channelId } },
-    select: { userId: true, id: true },
+    select: { id: true, userId: true, revokedAt: true, revokedReason: true },
   });
-  if (existing && existing.userId !== userId) {
-    return {
-      error: "This streaming account is already linked to another MoCoMo account.",
-    };
+  if (!existing || existing.userId === userId) return null;
+  if (isUserReleasedClaim(existing)) {
+    await purgeStreamingAccounts([existing.id]);
+    return null;
+  }
+  return { error: ALREADY_LINKED };
+}
+
+function alreadyLinkedError(error: unknown): string | null {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    return ALREADY_LINKED;
   }
   return null;
 }
@@ -187,47 +218,62 @@ export async function completeOAuthConnect(
       ? encryptStreamingTokens(platform, tokens)
       : {};
 
-  const existing = await db.connectedStreamingAccount.findUnique({
-    where: {
-      platform_channelId: { platform, channelId: channel.channelId },
-    },
-  });
+  let account: { id: string };
+  try {
+    const existing = await db.connectedStreamingAccount.findUnique({
+      where: {
+        platform_channelId: { platform, channelId: channel.channelId },
+      },
+    });
 
-  const account = existing
-    ? await db.connectedStreamingAccount.update({
-        where: { id: existing.id },
-        data: {
-          userId: verified.userId,
-          channelName: channel.channelName,
-          channelUrl: channel.channelUrl,
-          profileImage: channel.profileImage,
-          verified: true,
-          verificationMethod: "OAUTH",
-          verificationCode: null,
-          verifiedAt: new Date(),
-          revokedAt: null,
-          revokedReason: null,
-          tokenExpiresAt: tokens.expiresAt,
-          ...tokenFields,
-        },
-        select: { id: true },
-      })
-    : await db.connectedStreamingAccount.create({
-        data: {
-          userId: verified.userId,
-          platform,
-          channelId: channel.channelId,
-          channelName: channel.channelName,
-          channelUrl: channel.channelUrl,
-          profileImage: channel.profileImage,
-          verified: true,
-          verificationMethod: "OAUTH",
-          verifiedAt: new Date(),
-          tokenExpiresAt: tokens.expiresAt,
-          ...tokenFields,
-        },
-        select: { id: true },
-      });
+    if (existing && existing.userId !== verified.userId) {
+      if (!isUserReleasedClaim(existing)) {
+        return { ok: false, error: ALREADY_LINKED };
+      }
+      await purgeStreamingAccounts([existing.id]);
+    }
+
+    const owned = existing && existing.userId === verified.userId ? existing : null;
+    account = owned
+      ? await db.connectedStreamingAccount.update({
+          where: { id: owned.id },
+          data: {
+            userId: verified.userId,
+            channelName: channel.channelName,
+            channelUrl: channel.channelUrl,
+            profileImage: channel.profileImage,
+            verified: true,
+            verificationMethod: "OAUTH",
+            verificationCode: null,
+            verifiedAt: new Date(),
+            revokedAt: null,
+            revokedReason: null,
+            tokenExpiresAt: tokens.expiresAt,
+            ...tokenFields,
+          },
+          select: { id: true },
+        })
+      : await db.connectedStreamingAccount.create({
+          data: {
+            userId: verified.userId,
+            platform,
+            channelId: channel.channelId,
+            channelName: channel.channelName,
+            channelUrl: channel.channelUrl,
+            profileImage: channel.profileImage,
+            verified: true,
+            verificationMethod: "OAUTH",
+            verifiedAt: new Date(),
+            tokenExpiresAt: tokens.expiresAt,
+            ...tokenFields,
+          },
+          select: { id: true },
+        });
+  } catch (e) {
+    const linked = alreadyLinkedError(e);
+    if (linked) return { ok: false, error: linked };
+    throw e;
+  }
 
   await logVerification(account.id, "CONNECT", {
     method: "OAUTH",
@@ -267,42 +313,57 @@ export async function startManualConnect(
 
   const code = generateVerificationCode();
 
-  const existing = await db.connectedStreamingAccount.findUnique({
-    where: {
-      platform_channelId: { platform, channelId: channel.channelId },
-    },
-  });
+  let account: { id: string };
+  try {
+    const existing = await db.connectedStreamingAccount.findUnique({
+      where: {
+        platform_channelId: { platform, channelId: channel.channelId },
+      },
+    });
 
-  const account = existing
-    ? await db.connectedStreamingAccount.update({
-        where: { id: existing.id },
-        data: {
-          userId,
-          channelName: channel.channelName,
-          channelUrl: channel.channelUrl,
-          profileImage: channel.profileImage,
-          verified: false,
-          verificationMethod: null,
-          verificationCode: code,
-          verifiedAt: null,
-          revokedAt: null,
-          revokedReason: null,
-        },
-        select: { id: true },
-      })
-    : await db.connectedStreamingAccount.create({
-        data: {
-          userId,
-          platform,
-          channelId: channel.channelId,
-          channelName: channel.channelName,
-          channelUrl: channel.channelUrl,
-          profileImage: channel.profileImage,
-          verified: false,
-          verificationCode: code,
-        },
-        select: { id: true },
-      });
+    if (existing && existing.userId !== userId) {
+      if (!isUserReleasedClaim(existing)) {
+        return { ok: false, error: ALREADY_LINKED };
+      }
+      await purgeStreamingAccounts([existing.id]);
+    }
+
+    const owned = existing && existing.userId === userId ? existing : null;
+    account = owned
+      ? await db.connectedStreamingAccount.update({
+          where: { id: owned.id },
+          data: {
+            userId,
+            channelName: channel.channelName,
+            channelUrl: channel.channelUrl,
+            profileImage: channel.profileImage,
+            verified: false,
+            verificationMethod: null,
+            verificationCode: code,
+            verifiedAt: null,
+            revokedAt: null,
+            revokedReason: null,
+          },
+          select: { id: true },
+        })
+      : await db.connectedStreamingAccount.create({
+          data: {
+            userId,
+            platform,
+            channelId: channel.channelId,
+            channelName: channel.channelName,
+            channelUrl: channel.channelUrl,
+            profileImage: channel.profileImage,
+            verified: false,
+            verificationCode: code,
+          },
+          select: { id: true },
+        });
+  } catch (e) {
+    const linked = alreadyLinkedError(e);
+    if (linked) return { ok: false, error: linked };
+    throw e;
+  }
 
   await logVerification(account.id, "CONNECT_PENDING", {
     method: "PROFILE_CODE",
@@ -406,7 +467,7 @@ export async function disconnectStreamingAccount(
     return { ok: false, error: "Account not found." };
   }
 
-  await deleteStreamingAccountRecords([accountId]);
+  await purgeStreamingAccounts([accountId]);
   return { ok: true };
 }
 

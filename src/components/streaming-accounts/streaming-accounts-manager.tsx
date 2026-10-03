@@ -109,7 +109,8 @@ export function StreamingAccountsManager({
           <CardTitle className="text-base">{t("streaming-accounts.s16331ud")}</CardTitle>
           <p className="text-sm text-muted-foreground">
             Verify a streaming account you own before receiving tips. Pasting a URL alone is
-            not supported.
+            not supported. Deleting an account releases that YouTube or Twitch channel, so
+            another MoCoMo account can verify and register it.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">

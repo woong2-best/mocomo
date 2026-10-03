@@ -20,7 +20,7 @@ export async function GET(
   if (oauthError) {
     const message =
       oauthError === "access_denied"
-        ? "로그인이 취소되었거나 앱 승인이 필요합니다. 다시 시도해 주세요."
+        ? "Sign-in was cancelled or the app still needs approval. Please try again."
         : oauthError;
     settingsUrl.searchParams.set("error", message);
     return NextResponse.redirect(settingsUrl);
