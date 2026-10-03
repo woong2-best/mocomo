@@ -86,7 +86,7 @@ export function SidebarEventMapCard({
     <div
       className={cn(
         "relative min-w-0 overflow-hidden",
-        fillHeight ? "h-full min-h-0" : "shrink-0",
+        fillHeight ? "absolute inset-0 h-full min-h-0" : "shrink-0",
         className
       )}
     >

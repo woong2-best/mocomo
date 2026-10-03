@@ -19,8 +19,8 @@ type SidebarAd = {
 
 const PLACEHOLDER_AD = "/ads/your-ad-here.jpg";
 
-/** Full-bleed creative. Height follows the art, capped so the map below stays visible. */
-const AD_SLOT_CLASS = "block h-auto w-full shrink-0";
+/** Fills the fixed 442/684 frame. contain keeps the whole image, never cropped. */
+const AD_SLOT_CLASS = "block h-full w-full object-contain";
 
 export function SponsoredSidebarCard({
   sidebarAds: _sidebarAds,
@@ -57,11 +57,11 @@ export function SponsoredSidebarCard({
   const hasSponsorEvent = event != null;
 
   return (
-    <div className="w-full shrink-0 grow-0 overflow-hidden bg-black/20">
+    <div className="h-full w-full overflow-hidden">
       {hasSponsorEvent ? (
         <SponsorAdClickLink
           linkUrl={event.linkUrl}
-          className="group relative block w-full shrink-0 hover:opacity-95 transition-opacity"
+          className="group relative block h-full w-full hover:opacity-95 transition-opacity"
           aria-label={event.title || t("sidebar.sponsored")}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -70,7 +70,7 @@ export function SponsoredSidebarCard({
       ) : (
         <Link
           href="/events/new"
-          className="block w-full shrink-0 transition-opacity hover:opacity-95"
+          className="block h-full w-full transition-opacity hover:opacity-95"
           aria-label="Your Ad Here"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}

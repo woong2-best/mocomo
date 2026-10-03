@@ -3,7 +3,6 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
-import Link from "next/link";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -87,13 +86,8 @@ export function Sidebar() {
           </div>
         </div>
 
-        <div className="folk-sidebar-dock">
-          <Link href="/contribution-tower" className="folk-sidebar-tower-link">
-            {t("wallet.viewContributionTower")}
-          </Link>
-          <div className="folk-sidebar-legal shrink-0">
-            <LegalComplianceSidebarButton iconOnly={false} />
-          </div>
+        <div className="folk-sidebar-legal shrink-0">
+          <LegalComplianceSidebarButton iconOnly={false} />
         </div>
       </aside>
     </div>

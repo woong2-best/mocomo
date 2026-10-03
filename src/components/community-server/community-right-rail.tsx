@@ -12,9 +12,9 @@ type RailData = {
 
 function CommunityRightRailSkeleton() {
   return (
-    <aside className="hidden lg:flex w-72 xl:w-80 min-w-0 shrink-0 h-full flex-col justify-start gap-2 overflow-hidden border-l border-border/60">
-      <div className="h-[42vh] w-full shrink-0 bg-muted/40 animate-pulse" />
-      <div className="min-h-0 flex-1 w-full bg-muted/30 animate-pulse" />
+    <aside className="right-panel-rail border-l border-border/60">
+      <div className="right-panel-ad bg-muted/40" />
+      <div className="right-panel-map bg-muted/30" />
     </aside>
   );
 }
@@ -50,11 +50,11 @@ export function CommunityRightRail() {
   if (!data) return <CommunityRightRailSkeleton />;
 
   return (
-    <aside className="hidden lg:flex w-72 xl:w-80 min-w-0 shrink-0 h-full flex-col justify-start gap-2 overflow-hidden overscroll-none border-l border-border/60">
-      <div className="w-full shrink-0 grow-0">
+    <aside className="right-panel-rail border-l border-border/60">
+      <div className="right-panel-ad">
         <SponsoredSidebarCard sidebarAds={data.sidebarAds} />
       </div>
-      <div className="min-h-0 w-full flex-1 overflow-hidden">
+      <div className="right-panel-map">
         <SidebarEventMapCard pins={data.eventPins} fillHeight />
       </div>
     </aside>

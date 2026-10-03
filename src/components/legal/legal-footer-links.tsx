@@ -26,16 +26,30 @@ export function LegalFooterLinks({ className = "" }: { className?: string }) {
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <nav className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        {links.map((link, i) => (
-          <span key={link.href} className="flex items-center gap-3">
-            {i > 0 && <span className="text-border">·</span>}
-            <Link href={link.href} className="hover:text-primary hover:underline">
-              {t(link.labelKey)}
-            </Link>
-          </span>
-        ))}
-      </nav>
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4">
+        <Link
+          href="/contribution-tower"
+          className="shrink-0 justify-self-start font-bold text-[#1B3A6B] hover:underline dark:text-[#F5F0E6]"
+        >
+          {t("wallet.viewContributionTower")}
+        </Link>
+        <nav className="flex min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {links.map((link, i) => (
+            <span key={link.href} className="flex items-center gap-3">
+              {i > 0 && <span className="text-border">·</span>}
+              <Link href={link.href} className="hover:text-primary hover:underline">
+                {t(link.labelKey)}
+              </Link>
+            </span>
+          ))}
+        </nav>
+        <Link
+          href="/events/new"
+          className="shrink-0 justify-self-end font-serif text-lg font-bold tracking-wide text-[#e8cb8c] hover:text-[#f6e2b4]"
+        >
+          Ad
+        </Link>
+      </div>
       <LegalEntityFooterNotice />
     </div>
   );
