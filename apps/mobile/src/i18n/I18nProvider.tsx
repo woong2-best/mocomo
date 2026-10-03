@@ -4,76 +4,110 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { useAuth } from "@/auth/AuthContext";
-import { API_BASE_URL } from "@/config/env";
+import { AppState } from "react-native";
+import { readDeviceLocale } from "@/i18n/device-locale";
+import { englishText, interpolate } from "@/i18n/messages";
+import { loadUiKeyTable, uiMessagesAppVersion } from "@/i18n/ui-key-cache";
 import {
-  createMobileTranslator,
-  getStoredMobileLocale,
-  initMobileI18n,
-  normalizeMobileLocale,
-  setMobileLocale,
-  type Locale,
-} from "@/i18n";
-import { localeForCountry } from "@/i18n/locale-from-country";
-import { uiText } from "@/i18n/ui-text";
+  prefetchUiTranslationModel,
+  translateUiKey,
+  uiKeyNeedsMlKit,
+} from "@/i18n/ui-translate-service";
+import { setRuntimeTranslator } from "@/i18n/runtime";
+import type { Locale } from "@/i18n";
+import type { TFn } from "@/i18n/types";
 
 type I18nContextValue = {
+  /** Device language used for UI ML Kit and UGC on-device translation. */
   locale: Locale;
-  t: (key: string, vars?: Record<string, string>) => string;
-  /** Inline KO/EN for strings not in the message catalog yet. */
-  u: (ko: string, en: string) => string;
+  t: TFn;
+  /** @deprecated Use `t("key")` — kept for a few legacy call sites during migration. */
+  u: TFn;
   setLocale: (locale: Locale) => Promise<void>;
   ready: boolean;
 };
 
-function countryLocale(user: { locale?: string | null; countryCode?: string | null } | null) {
-  if (!user?.countryCode) return null;
-  return localeForCountry(user.countryCode);
-}
-
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const [locale, setLocaleState] = useState<Locale>("en");
-  const [t, setT] = useState<(key: string, vars?: Record<string, string>) => string>(
-    () => (key: string) => key
-  );
+  const [locale, setLocaleState] = useState<Locale>(() => readDeviceLocale());
   const [ready, setReady] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const overlayRef = useRef<Record<string, string>>({});
+  const scheduledRef = useRef(new Set<string>());
 
-  const reload = useCallback(async (next: Locale) => {
-    const translator = await initMobileI18n(API_BASE_URL, next);
-    setT(() => translator);
-    setLocaleState(next);
-    setReady(true);
-  }, []);
+  const bump = useCallback(() => setRevision((n) => n + 1), []);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
-      const fromCountry = countryLocale(user);
-      const fromUser = user?.locale ? normalizeMobileLocale(user.locale) : null;
-      const stored = user ? await getStoredMobileLocale() : null;
-      const initial = fromUser ?? fromCountry ?? stored ?? "en";
-      await reload(initial);
+      overlayRef.current = await loadUiKeyTable(locale, uiMessagesAppVersion());
+      if (!cancelled) {
+        setReady(true);
+        bump();
+      }
     })();
-  }, [user?.locale, user?.countryCode, user, reload]);
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, bump]);
 
-  const u = useCallback((ko: string, en: string) => uiText(locale, ko, en), [locale]);
+  useEffect(() => {
+    void prefetchUiTranslationModel(locale);
+  }, [locale]);
 
-  const setLocale = useCallback(
-    async (next: Locale) => {
-      await setMobileLocale(next);
-      await reload(next);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      const next = readDeviceLocale();
+      setLocaleState((prev) => (prev === next ? prev : next));
+    });
+    return () => sub.remove();
+  }, []);
+
+  const scheduleKey = useCallback(
+    (key: string) => {
+      if (!uiKeyNeedsMlKit(key, locale)) return;
+      if (scheduledRef.current.has(key)) return;
+      scheduledRef.current.add(key);
+      void translateUiKey(key, locale).then((translated) => {
+        scheduledRef.current.delete(key);
+        if (translated) {
+          overlayRef.current[key] = translated;
+          bump();
+        }
+      });
     },
-    [reload]
+    [locale, bump]
   );
 
+  const t = useCallback<TFn>(
+    (key, vars) => {
+      const english = interpolate(englishText(key), vars);
+      if (!uiKeyNeedsMlKit(key, locale)) return english;
+      const cached = overlayRef.current[key];
+      if (cached) return interpolate(cached, vars);
+      scheduleKey(key);
+      return english;
+    },
+    [locale, scheduleKey, revision]
+  );
+
+  useEffect(() => {
+    setRuntimeTranslator(t);
+  }, [t]);
+
+  const setLocale = useCallback(async (next: Locale) => {
+    setLocaleState(next);
+  }, []);
+
   const value = useMemo(
-    () => ({ locale, t, u, setLocale, ready }),
-    [locale, t, u, setLocale, ready]
+    () => ({ locale, t, u: t, setLocale, ready }),
+    [locale, t, setLocale, ready]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -82,10 +116,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) {
+    const fallback: TFn = (key, vars) => interpolate(englishText(key), vars);
     return {
       locale: "en" as Locale,
-      t: (key: string) => key,
-      u: (_ko: string, en: string) => en,
+      t: fallback,
+      u: fallback,
       setLocale: async () => {},
       ready: false,
     };

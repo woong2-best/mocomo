@@ -33,9 +33,13 @@ function chunkText(text: string): string[] {
   return chunks.filter(Boolean);
 }
 
-async function loadTranslateText() {
+type TranslateTextModule = {
+  translate?: (opts: Record<string, unknown>) => Promise<unknown>;
+};
+
+async function loadTranslateText(): Promise<TranslateTextModule | null> {
   try {
-    return (await import("@react-native-ml-kit/translate-text")).default;
+    return (await import("@react-native-ml-kit/translate-text")).default as unknown as TranslateTextModule;
   } catch {
     return null;
   }

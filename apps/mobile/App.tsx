@@ -40,7 +40,7 @@ export default function App() {
               <I18nProvider>
                 <ClientTranslationProvider>
                   <View style={styles.appShell}>
-                    <ScreenErrorBoundary label="앱">
+                    <ScreenErrorBoundary label="App">
                       <RootNavigator />
                     </ScreenErrorBoundary>
                     <IslandToastHost />
