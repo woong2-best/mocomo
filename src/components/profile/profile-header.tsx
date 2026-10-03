@@ -20,6 +20,7 @@ import { CountryFlag } from "@/components/user/country-flag";
 import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-select";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { ProfileHeaderFeedActions } from "@/components/profile/profile-header-feed-actions";
+import { ProfileFollowCounts } from "@/components/profile/profile-follow-counts";
 import {
   ProfileLiveAvatarRing,
   ProfileLiveBanner,
@@ -282,16 +283,11 @@ export function ProfileHeader({
         )}
 
         <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="flex shrink-0 gap-4 text-sm">
-            <Link href={`/u/${user.username}/connections?tab=following`} className="hover:underline">
-              <span className="font-bold text-foreground">{user._count.following}</span>{" "}
-              <span className="text-muted-foreground">{t("lib.user.connections.s44bb989270")}</span>
-            </Link>
-            <Link href={`/u/${user.username}/connections?tab=followers`} className="hover:underline">
-              <span className="font-bold text-foreground">{user._count.followers}</span>{" "}
-              <span className="text-muted-foreground">{t("lib.user.connections.s88942fcf78")}</span>
-            </Link>
-          </div>
+          <ProfileFollowCounts
+            username={user.username}
+            followingCount={user._count.following}
+            followerCount={user._count.followers}
+          />
           <ProfileHeaderFeedActions />
         </div>
 

@@ -45,14 +45,6 @@ export async function UserConnectionsPage({
         <div className="px-6 py-16 max-w-sm">
           <h2 className="text-[31px] font-extrabold leading-tight tracking-tight">{empty.title}</h2>
           <p className="mt-3 text-[15px] text-muted-foreground leading-relaxed">{empty.description}</p>
-          {activeTab === "known" && !data.viewerId && (
-            <p className="mt-4 text-sm">
-              <a href="/auth/signin" className="text-primary hover:underline">
-                로그인
-              </a>
-              하면 아는 팔로워를 볼 수 있습니다.
-            </p>
-          )}
         </div>
       ) : (
         <ul>

@@ -10,8 +10,7 @@ export const CONNECTION_TABS = [
 export type ConnectionTab = (typeof CONNECTION_TABS)[number]["id"];
 
 export function parseConnectionTab(value: string | undefined): ConnectionTab {
-  const found = CONNECTION_TABS.find((t) => t.id === value);
-  return found?.id ?? "followers";
+  return value === "following" ? "following" : "followers";
 }
 
 export const CONNECTION_EMPTY: Record<

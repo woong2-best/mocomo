@@ -12,6 +12,7 @@ import { PostsLockSettingsForm } from "@/components/settings/posts-lock-settings
 import { WatermarkSettingsForm } from "@/components/settings/watermark-settings-form";
 import { isWatermarkPlacement } from "@/lib/media-watermark";
 import { FollowRequestsPanel } from "@/components/settings/follow-requests-panel";
+import { PrivacyListsCard } from "@/components/settings/privacy-lists-card";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AccountDeletionForm } from "@/components/settings/account-deletion-form";
 import { SettingsPageChrome } from "@/components/settings/settings-page-chrome";
@@ -98,6 +99,8 @@ export default async function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <PrivacyListsCard />
 
       <Card>
         <CardHeader>

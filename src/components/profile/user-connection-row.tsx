@@ -51,7 +51,7 @@ export function UserConnectionRow({
           {showFollowsYou && (
             <p className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <UserCheck className="h-3 w-3 shrink-0" />
-              나를 팔로우합니다
+              {t("profile.s1asyh7h")}
             </p>
           )}
           <DisplayNameWithSupportTier

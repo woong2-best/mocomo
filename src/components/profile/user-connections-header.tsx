@@ -42,7 +42,7 @@ export function UserConnectionsHeader({
         <div className="flex-1 min-w-0">
           <h1 className="font-bold text-[17px] leading-tight truncate">{displayName}</h1>
           <p className="text-sm text-muted-foreground truncate">
-            팔로워 {followerCount.toLocaleString()}명
+            {followerCount.toLocaleString()} {t("lib.user.connections.s88942fcf78")}
           </p>
         </div>
         <Link
@@ -58,7 +58,7 @@ export function UserConnectionsHeader({
         className="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-t border-border/40"
         aria-label={t("profile.s1469ssb")}
       >
-        {CONNECTION_TABS.map((tab) => {
+        {CONNECTION_TABS.filter((tab) => tab.id === "followers" || tab.id === "following").map((tab) => {
           const active = tab.id === activeTab;
           return (
             <Link
