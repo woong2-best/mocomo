@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCachedSession } from "@/lib/auth";
 import { isConnectablePlatform } from "@/lib/streaming-accounts/types";
-import { startOAuthConnect } from "@/lib/streaming-accounts/service";
+import {
+  existingPlatformAccountWarning,
+  findActivePlatformSlot,
+  startOAuthConnect,
+} from "@/lib/streaming-accounts/service";
 
 export async function GET(
   _req: Request,
@@ -17,6 +21,16 @@ export async function GET(
   if (!isConnectablePlatform(platform)) {
     return NextResponse.redirect(
       new URL("/settings/streaming-accounts?error=unsupported", _req.url)
+    );
+  }
+
+  const slot = await findActivePlatformSlot(session.user.id, platform);
+  if (slot) {
+    return NextResponse.redirect(
+      new URL(
+        `/settings/streaming-accounts?error=${encodeURIComponent(existingPlatformAccountWarning(platform))}`,
+        _req.url
+      )
     );
   }
 

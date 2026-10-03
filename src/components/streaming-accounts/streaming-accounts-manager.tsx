@@ -48,11 +48,28 @@ export function StreamingAccountsManager({
   );
   const [pending, startTransition] = useTransition();
 
-  async function onOAuthConnect(platform: string) {
+  function existingAccountWarning(platform: string): string | null {
+    const label = PLATFORM_LABELS[platform] ?? platform;
+    const alreadyConnected = accounts.some(
+      (account) => account.platform === platform && !account.revokedAt
+    );
+    if (!alreadyConnected) return null;
+    return `Delete your existing ${label} account before connecting another.`;
+  }
+
+  async function onOAuthConnect(platform: string, reconnect = false) {
+    if (!reconnect) {
+      const warning = existingAccountWarning(platform);
+      if (warning) {
+        setSuccess("");
+        setError(warning);
+        return;
+      }
+    }
     setError("");
     setSuccess("");
     startTransition(async () => {
-      const res = await connectStreamingAccountOAuth(platform);
+      const res = await connectStreamingAccountOAuth(platform, reconnect);
       if ("error" in res && res.error) {
         setError(errorText(res.error));
         return;
@@ -109,8 +126,9 @@ export function StreamingAccountsManager({
           <CardTitle className="text-base">{t("streaming-accounts.s16331ud")}</CardTitle>
           <p className="text-sm text-muted-foreground">
             Verify a streaming account you own before receiving tips. Pasting a URL alone is
-            not supported. Deleting an account releases that YouTube or Twitch channel, so
-            another MoCoMo account can verify and register it.
+            not supported. You can connect one YouTube account and one Twitch account.
+            Deleting an account releases that channel, so another MoCoMo account can verify
+            and register it.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -158,7 +176,7 @@ export function StreamingAccountsManager({
                     <Button
                       size="sm"
                       disabled={pending}
-                      onClick={() => onOAuthConnect(acc.platform)}
+                      onClick={() => onOAuthConnect(acc.platform, true)}
                     >
                       Connect with Google
                     </Button>
@@ -209,7 +227,11 @@ export function StreamingAccountsManager({
                   ? t("streaming-accounts.google_4")
                   : `Sign in with ${PLATFORM_LABELS[selectedPlatform]} to verify channel ownership.`}
               </p>
-              <Button disabled={pending} onClick={() => onOAuthConnect(selectedPlatform)}>
+              <Button
+                type="button"
+                disabled={pending}
+                onClick={() => onOAuthConnect(selectedPlatform)}
+              >
                 {`Connect ${PLATFORM_LABELS[selectedPlatform]}`}
               </Button>
               {selectedPlatform === "YOUTUBE" ? (

@@ -6,6 +6,8 @@ import type { ConnectableStreamingPlatform } from "@/lib/streaming-accounts/type
 import { isConnectablePlatform } from "@/lib/streaming-accounts/types";
 import {
   disconnectStreamingAccount,
+  existingPlatformAccountWarning,
+  findActivePlatformSlot,
   listUserStreamingAccounts,
   startManualConnect,
   startOAuthConnect,
@@ -19,10 +21,14 @@ export async function getMyStreamingAccounts() {
   return { accounts };
 }
 
-export async function connectStreamingAccountOAuth(platform: string) {
+export async function connectStreamingAccountOAuth(platform: string, reconnect = false) {
   const user = await requireAuthMinimal();
   if (!isConnectablePlatform(platform)) {
     return { error: "actions.sz6neik" };
+  }
+  if (!reconnect) {
+    const slot = await findActivePlatformSlot(user.id, platform);
+    if (slot) return { error: existingPlatformAccountWarning(platform) };
   }
   return startOAuthConnect(user.id, platform);
 }

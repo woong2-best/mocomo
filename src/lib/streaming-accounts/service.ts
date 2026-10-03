@@ -83,6 +83,27 @@ async function logVerification(
 const ALREADY_LINKED =
   "This streaming account is already linked to another MoCoMo account.";
 
+const PLATFORM_SLOT_LABEL: Record<string, string> = {
+  YOUTUBE: "YouTube",
+  TWITCH: "Twitch",
+};
+
+/** One YouTube and one Twitch per MoCoMo account. */
+export function existingPlatformAccountWarning(platform: string): string {
+  const label = PLATFORM_SLOT_LABEL[platform] ?? platform;
+  return `Delete your existing ${label} account before connecting another.`;
+}
+
+export async function findActivePlatformSlot(
+  userId: string,
+  platform: ConnectableStreamingPlatform
+) {
+  return db.connectedStreamingAccount.findFirst({
+    where: { userId, platform, revokedAt: null },
+    select: { id: true, channelId: true },
+  });
+}
+
 /** Removes the channel claim so another MoCoMo user can verify and register it. */
 export async function purgeStreamingAccounts(accountIds: string[]) {
   if (accountIds.length === 0) return;
@@ -212,6 +233,11 @@ export async function completeOAuthConnect(
 
   const conflict = await assertChannelNotLinked(platform, channel.channelId, verified.userId);
   if (conflict) return { ok: false, error: conflict.error };
+
+  const slot = await findActivePlatformSlot(verified.userId, platform);
+  if (slot && slot.channelId !== channel.channelId) {
+    return { ok: false, error: existingPlatformAccountWarning(platform) };
+  }
 
   const tokenFields =
     canStoreStreamingTokens() && tokens.accessToken
