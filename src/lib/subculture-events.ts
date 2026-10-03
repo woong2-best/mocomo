@@ -21,6 +21,8 @@ import {
 } from "@/lib/subculture-event-geocode";
 import { type MapEventPin } from "@/lib/subculture-event-pins";
 import { inferSubcultureEventPhase } from "@/lib/subculture-event-phase";
+import { geocodeMustSearchSubcultureMapEntries } from "@/lib/subculture-map-must-search-sync";
+import { SUBCULTURE_MAP_MUST_SEARCH } from "@/lib/subculture-map-must-search";
 
 export type { MapEventPin } from "@/lib/subculture-event-pins";
 export { mapLinkForEvent } from "@/lib/subculture-event-pins";
@@ -258,7 +260,8 @@ export async function upsertFetchedSubcultureEvents(
           sourceUrl: e.officialNoticeUrl ?? e.sourceUrl,
           source: e.externalKey.startsWith("auto-")
             ? "auto"
-            : e.externalKey.startsWith("venue-")
+            : e.externalKey.startsWith("must-search-") ||
+                e.externalKey.startsWith("venue-")
               ? "seed"
               : "official",
         };
@@ -473,9 +476,12 @@ export async function remediateSubcultureEventCoords(options?: {
 export async function syncSubcultureEventsIfDue(options?: {
   force?: boolean;
   geocodeMax?: number;
+  /** 필수 검색(메이드 카페 등) geocode 상한 — force 시 기본 전체 */
+  mustSearchGeocodeMax?: number;
 }): Promise<{
   synced: boolean;
   geocoded: number;
+  mustSearchGeocoded: number;
   reconciled: number;
   fetched: number;
   fetchErrors: string[];
@@ -484,11 +490,25 @@ export async function syncSubcultureEventsIfDue(options?: {
   const geocodeMax = options?.geocodeMax ?? 5;
 
   if (!force && !(await isSubcultureSyncDue())) {
-    return { synced: false, geocoded: 0, reconciled: 0, fetched: 0, fetchErrors: [] };
+    return {
+      synced: false,
+      geocoded: 0,
+      mustSearchGeocoded: 0,
+      reconciled: 0,
+      fetched: 0,
+      fetchErrors: [],
+    };
   }
+
+  const mustSearchGeocodeMax =
+    options?.mustSearchGeocodeMax ??
+    (force ? SUBCULTURE_MAP_MUST_SEARCH.length : Math.min(10, SUBCULTURE_MAP_MUST_SEARCH.length));
 
   const { events, results } = await fetchAllSubcultureEvents();
   await upsertFetchedSubcultureEvents(events);
+  const mustSearchGeocoded = await geocodeMustSearchSubcultureMapEntries({
+    max: mustSearchGeocodeMax,
+  });
   const { updated: reconciled } = await reconcileSubcultureVenueCoordsFromMaster();
   const geocoded = await geocodePendingSubcultureEvents(geocodeMax);
   const purged = await purgeInvalidSubculturePins();
@@ -501,6 +521,7 @@ export async function syncSubcultureEventsIfDue(options?: {
   return {
     synced: true,
     geocoded,
+    mustSearchGeocoded,
     reconciled,
     fetched: events.length,
     fetchErrors: results.filter((r) => r.error).map((r) => `${r.sourceId}: ${r.error}`),

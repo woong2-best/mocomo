@@ -19,6 +19,8 @@ import {
   fetchAnimeExpoEvents,
   fetchComicConEvents,
 } from "@/lib/subculture-event-fetch/sources/usa";
+import { getMustSearchFetchedSubcultureEvents } from "@/lib/subculture-map-must-search";
+
 const FETCHERS: { sourceId: string; run: () => Promise<FetchedSubcultureEvent[]> }[] = [
   { sourceId: "comicw", run: fetchComicWorldEvents },
   { sourceId: "gstar", run: fetchGstarEvents },
@@ -98,6 +100,7 @@ export async function fetchAllSubcultureEvents(): Promise<{
   const merged = new Map<string, FetchedSubcultureEvent>();
   for (const s of fallback) merged.set(s.externalKey, s);
   for (const a of auto) merged.set(a.externalKey, a);
+  for (const m of getMustSearchFetchedSubcultureEvents()) merged.set(m.externalKey, m);
 
   const now = Date.now();
   const events = [...merged.values()]
