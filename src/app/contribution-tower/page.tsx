@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function ContributionTowerPage() {
   const initial = await listContributionTowerBlocks({ limit: 200 });
   return (
-    <main className="min-h-[calc(100vh-8rem)] bg-gradient-to-b from-[#F5F0E6] via-background to-background dark:from-[#060d18] dark:via-[#0a1628] dark:to-[#0a1628]">
+    <main className="bg-[#0b1120]">
       <ContributionTowerView initial={initial} />
     </main>
   );

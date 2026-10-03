@@ -4,14 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { ContributionTowerBlockDto } from "@/lib/contribution-tower/service";
 import { useLocale } from "@/components/providers/locale-provider";
-import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import {
   ContributionTowerArena,
   blockToContributionPayload,
   type ContributionTowerArenaHandle,
 } from "@/components/contribution-tower/contribution-tower-arena";
+import pageStyles from "@/components/contribution-tower/contribution-tower-page.module.css";
+import toastStyles from "@/components/contribution-tower/contribution-tower-rock.module.css";
 
 const POLL_MS = 4000;
+const TOAST_MS = 2200;
 
 type ApiResponse = {
   blocks: ContributionTowerBlockDto[];
@@ -22,12 +24,26 @@ export function ContributionTowerView({ initial }: { initial: ApiResponse }) {
   const { t } = useLocale();
   const [totalVisible, setTotalVisible] = useState(initial.totalVisible);
   const [arenaHandle, setArenaHandle] = useState<ContributionTowerArenaHandle | null>(null);
+  const [toastText, setToastText] = useState<string | null>(null);
   const maxStackRef = useRef(initial.blocks.reduce((m, b) => Math.max(m, b.stackOrder), 0));
   const knownBlockIdsRef = useRef(new Set(initial.blocks.map((b) => b.id)));
+  const toastTimerRef = useRef<number | null>(null);
 
   const registerHandle = useCallback((handle: ContributionTowerArenaHandle | null) => {
     setArenaHandle(handle);
   }, []);
+
+  const showToast = useCallback(
+    (name: string) => {
+      if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
+      setToastText(t("tower.toastContributed", { name: name.trim() || t("tower.anonymous") }));
+      toastTimerRef.current = window.setTimeout(() => {
+        setToastText(null);
+        toastTimerRef.current = null;
+      }, TOAST_MS);
+    },
+    [t],
+  );
 
   const mergeIncoming = useCallback(
     (incoming: ContributionTowerBlockDto[]) => {
@@ -71,31 +87,45 @@ export function ContributionTowerView({ initial }: { initial: ApiResponse }) {
     return () => window.clearInterval(id);
   }, [pollNew]);
 
-  const emptyMessage = t("tower.emptyPhysics");
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   return (
-    <AppPageChrome maxWidth="2xl" spacing="md" className="pb-8">
-      <header className="space-y-2 text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#E85D04]">MoCoMo</p>
-        <h1 className="text-2xl font-black text-[#1B3A6B] dark:text-sky-100">{t("tower.title")}</h1>
-        <p className="text-sm leading-relaxed text-muted-foreground dark:text-sky-100/80">{t("tower.desc")}</p>
-        <p className="text-xs font-semibold tabular-nums text-muted-foreground dark:text-sky-100/70">
-          {t("tower.totalBlocksLine", { count: totalVisible.toLocaleString() })}
-        </p>
-      </header>
+    <div className={pageStyles.page}>
+      <div className={pageStyles.brand}>MOCO</div>
+      <h1 className={pageStyles.title}>{t("tower.title")}</h1>
+      <p className={pageStyles.desc}>{t("tower.desc")}</p>
+      <p className={pageStyles.count}>
+        {t("tower.totalBlocks")}{" "}
+        <strong className={pageStyles.countStrong}>{totalVisible.toLocaleString()}</strong>
+      </p>
 
       <ContributionTowerArena
-        emptyMessage={emptyMessage}
+        emptyPrefix={t("tower.emptyPrefix")}
+        emptyTopUpLabel={t("tower.emptyTopUp")}
+        emptySuffix={t("tower.emptySuffix")}
         initialBlocks={initial.blocks}
+        onContribution={showToast}
         registerHandle={registerHandle}
       />
 
-      <p className="text-center text-[11px] leading-relaxed text-muted-foreground dark:text-sky-100/65">
+      <p className={pageStyles.footer}>
         {t("tower.footer")}
-        <Link href="/legal/payment" className="underline">
+        <Link href="/legal/payment" className={pageStyles.footerLink}>
           {t("tower.paymentPolicy")}
         </Link>
       </p>
-    </AppPageChrome>
+
+      <div
+        className={`${toastStyles.toast} ${toastText ? toastStyles.toastShow : ""}`}
+        role="status"
+        aria-live="polite"
+      >
+        {toastText ?? ""}
+      </div>
+    </div>
   );
 }

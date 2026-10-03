@@ -1,0 +1,62 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.5rem 0.75rem 6.25rem;
+  min-height: calc(100vh - 8rem);
+  color: #e2e8f0;
+}
+
+.brand {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: #f59e0b;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #f8fafc;
+  text-align: center;
+}
+
+.desc {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #94a3b8;
+  max-width: 480px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.count {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.countStrong {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.footer {
+  margin-top: 1.75rem;
+  max-width: 480px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.footerLink {
+  color: #94a3b8;
+  text-decoration: underline;
+}
+
+.footerLink:hover {
+  color: #cbd5e1;
+}
