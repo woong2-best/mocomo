@@ -160,12 +160,6 @@ export function ProfileHeader({
           bannerVideoUrl={user.profile?.bannerVideoUrl}
           active
         />
-        {!isBlocked && streamingChannelLinks.length > 0 ? (
-          <ProfileStreamingChannelButtons
-            links={streamingChannelLinks}
-            className="absolute bottom-2 right-3 z-10 hidden sm:flex"
-          />
-        ) : null}
       </div>
 
       <div className="px-4 pb-4">
@@ -177,26 +171,19 @@ export function ProfileHeader({
           )}
 
           {!isBlocked && (
-            <div className="mb-1 flex min-w-0 flex-col items-end gap-2">
+            <div className="mb-1 flex min-w-0 max-w-[min(100%,20rem)] flex-wrap items-center justify-end gap-2 sm:max-w-none">
               {streamingChannelLinks.length > 0 ? (
-                <ProfileStreamingChannelButtons
-                  links={streamingChannelLinks}
-                  className="flex sm:hidden"
-                />
+                <ProfileStreamingChannelButtons links={streamingChannelLinks} />
               ) : null}
-              <div className="flex max-w-full flex-wrap justify-end gap-2">
-                {isSelf ? (
-                  <>
-                    <Link href="/settings/profile">
-                      <Button variant="outline" className="rounded-full font-bold px-5">
-                        프로필 수정
-                      </Button>
-                    </Link>
-                  </>
-                ) : (
-                  actionBar
-                )}
-              </div>
+              {isSelf ? (
+                <Link href="/settings/profile">
+                  <Button variant="outline" className="rounded-full font-bold px-5 shrink-0">
+                    {t("settings.editProfile")}
+                  </Button>
+                </Link>
+              ) : (
+                actionBar
+              )}
             </div>
           )}
         </div>

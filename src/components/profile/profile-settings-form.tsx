@@ -194,6 +194,12 @@ export function ProfileSettingsForm({
         </CardContent>
       </Card>
 
+      <ProfileStreamingSettings
+        accounts={streamingAccounts}
+        showYoutubeOnProfile={initial.showYoutubeOnProfile}
+        showTwitchOnProfile={initial.showTwitchOnProfile}
+      />
+
       <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle>{t("settings.editProfile")}</CardTitle>
@@ -202,7 +208,7 @@ export function ProfileSettingsForm({
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form id="profile-settings-form" onSubmit={handleSubmit} className="space-y-5">
             <ProfileBannerField
               bannerUrl={bannerUrl}
               bannerVideoUrl={bannerVideoUrl}
@@ -349,11 +355,6 @@ export function ProfileSettingsForm({
               defaultValue={initial.favoriteTags}
               placeholder={t("profile.scpx4gr")}
               className="rounded-xl"
-            />
-            <ProfileStreamingSettings
-              accounts={streamingAccounts}
-              showYoutubeOnProfile={initial.showYoutubeOnProfile}
-              showTwitchOnProfile={initial.showTwitchOnProfile}
             />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="showNsfw" defaultChecked={initial.showNsfw} />

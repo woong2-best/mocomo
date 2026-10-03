@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import type { StreamingAccountPublic } from "@/lib/streaming-accounts/types";
+import { ProfileStreamingBrandIcons } from "@/components/profile/profile-streaming-brand-icons";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Props = {
   accounts: StreamingAccountPublic[];
   showYoutubeOnProfile: boolean;
   showTwitchOnProfile: boolean;
+  /** Associates toggles with the main profile form when this card sits outside it. */
+  formId?: string;
 };
 
 function accountFor(
@@ -20,29 +24,34 @@ export function ProfileStreamingSettings({
   accounts,
   showYoutubeOnProfile,
   showTwitchOnProfile,
+  formId = "profile-settings-form",
 }: Props) {
   const youtube = accountFor(accounts, "YOUTUBE");
   const twitch = accountFor(accounts, "TWITCH");
 
   return (
-    <div className="rounded-xl border border-border/60 p-4 space-y-4 bg-muted/20">
-      <div>
-        <p className="text-sm font-medium">YouTube &amp; Twitch</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Link and verify channels under streaming settings. Verified channels can appear on your
-          public profile.
+    <Card className="rounded-2xl border-border/60">
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="text-base">YouTube &amp; Twitch</CardTitle>
+          <ProfileStreamingBrandIcons />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Connect and verify your channels, then choose whether they appear on your public profile.
         </p>
-        <Link
-          href="/settings/streaming-accounts"
-          className="inline-block mt-2 text-sm text-primary hover:underline"
-        >
-          Manage channel verification →
-        </Link>
-      </div>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-0">
+      <Link
+        href="/settings/streaming-accounts"
+        className="inline-flex text-sm font-medium text-primary hover:underline"
+      >
+        Connect or verify channels →
+      </Link>
 
       {!youtube ? (
         <input
           type="hidden"
+          form={formId}
           name="showYoutubeOnProfile"
           value={showYoutubeOnProfile ? "on" : "off"}
         />
@@ -50,6 +59,7 @@ export function ProfileStreamingSettings({
       <label className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-sm sm:min-h-0 sm:py-0">
         <input
           type="checkbox"
+          form={formId}
           name={youtube ? "showYoutubeOnProfile" : undefined}
           defaultChecked={showYoutubeOnProfile}
           disabled={!youtube}
@@ -68,6 +78,7 @@ export function ProfileStreamingSettings({
       {!twitch ? (
         <input
           type="hidden"
+          form={formId}
           name="showTwitchOnProfile"
           value={showTwitchOnProfile ? "on" : "off"}
         />
@@ -75,6 +86,7 @@ export function ProfileStreamingSettings({
       <label className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-sm sm:min-h-0 sm:py-0">
         <input
           type="checkbox"
+          form={formId}
           name={twitch ? "showTwitchOnProfile" : undefined}
           defaultChecked={showTwitchOnProfile}
           disabled={!twitch}
@@ -87,6 +99,7 @@ export function ProfileStreamingSettings({
           </span>
         </span>
       </label>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

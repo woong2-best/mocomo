@@ -42,9 +42,14 @@ export function ProfileStreamingChannelButtons({
             <img
               src={meta.iconSrc}
               alt=""
-              className={link.platform === "YOUTUBE" ? "h-7 w-auto" : "h-7 w-7"}
-              width={link.platform === "YOUTUBE" ? 40 : 28}
+              className={
+                link.platform === "YOUTUBE"
+                  ? "h-6 w-auto max-w-[2.25rem] object-contain sm:h-7"
+                  : "h-6 w-6 object-contain sm:h-7 sm:w-7"
+              }
+              width={link.platform === "YOUTUBE" ? 36 : 28}
               height={28}
+              decoding="async"
             />
           </a>
         );
