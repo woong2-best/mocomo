@@ -20,6 +20,16 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 const HANGUL = /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/;
 
+function lineHasHangul(line) {
+  if (HANGUL.test(line)) return true;
+  // Regex character-class ranges (`\uAC00-\uD7AF`) are not Hangul copy.
+  const withoutRanges = line.replace(/\\u[0-9A-Fa-f]{4}-\\u[0-9A-Fa-f]{4}/gi, "");
+  const decoded = withoutRanges.replace(/\\u([0-9A-Fa-f]{4})/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16))
+  );
+  return decoded !== withoutRanges && HANGUL.test(decoded);
+}
+
 const SCAN_ENTRIES = [
   "src",
   "App.tsx",
@@ -44,7 +54,9 @@ const SKIP_DIRS = new Set([
 ]);
 
 /** Paths relative to apps/mobile, forward slashes. Prefix match. */
-const ALLOWED_PREFIXES = ["src/data/server-values/"];
+const ALLOWED_PREFIXES = [
+  "src/data/server-values/",
+];
 
 /** This script itself and the Hangul-range literals it needs. */
 const ALLOWED_FILES = new Set(["scripts/check-no-hangul.cjs"]);
@@ -89,7 +101,7 @@ for (const file of files) {
   const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
   const hits = [];
   lines.forEach((line, i) => {
-    if (HANGUL.test(line)) hits.push(i + 1);
+    if (lineHasHangul(line)) hits.push(i + 1);
   });
   if (hits.length) {
     offenders.push({ file: relPath, hits });

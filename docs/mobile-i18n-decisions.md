@@ -22,6 +22,22 @@ One upstream bug matters: the Android wrapper reads the `requireWifi` option und
 (`requiresWifi`), so Wi-Fi-only downloads never applied. `scripts/patch-ml-kit-translate-wifi.cjs`
 (run from `postinstall`, same pattern as the other patch scripts) fixes it.
 
+## Translation-layer design
+
+- Device language comes from `expo-localization` (`readDeviceLocale()`), not the signed-in
+  profile locale. English devices skip ML Kit entirely.
+- `t(key, vars)` always starts from `src/i18n/en.json`. If a cached ML Kit string exists for
+  `(key, device language, app version)` it is used; otherwise English is shown and one translate
+  job is scheduled. When that job finishes the overlay updates once (no empty/loading flash).
+- Cache lives in AsyncStorage (`mocomo_ui_keys:{version}:{locale}`). MMKV is not a dependency.
+- Language models download in the background with `requireWifi: true`. Download/translate failures
+  and unsupported languages keep English.
+- Keys under `legal.*`, `wiki.*` and `brand.*` are never sent to ML Kit. Placeholders (`{name}`),
+  `MoCoMo` / `MOCO`, currency amounts and numeric dates are split out before translation
+  (`ui-translate-segments.ts`) and interpolated after, so values are never machine-translated.
+- User-generated content keeps the existing `TranslatableText` / `ClientTranslationProvider` path.
+  The UI layer never wraps posts, comments, messages or bios.
+
 ## Rules
 
 - Components never contain English (or any) literal UI copy. They call `t("key")`; the one English
@@ -32,13 +48,32 @@ One upstream bug matters: the Android wrapper reads the `requireWifi` option und
   dates and `{placeholders}` are protected during translation.
 - User-generated content (messages, posts, comments, bios) keeps using the existing
   `TranslatableText` path, unchanged.
-- `npm run check:i18n` (apps/mobile) fails if Hangul appears in the app source.
+- Server errors carry a catalog `code`. The client compares `ApiError.code` / `isApiErrorCode()`
+  and renders `t(code)`. It does not branch on Korean (or any) message text.
+- Culture Wiki is English-only. The editor shows `wiki.form.englishOnlyNotice` and blocks submit
+  when the combined fields are mostly non-English letters (`cultureWikiEnglishOnlyViolation`).
+- `npm run check:i18n` (apps/mobile) fails if Hangul appears in the app source, including
+  `\uAC00`-style escapes that decode to Hangul. Unicode *ranges* in regexes (`\uAC00-\uD7AF`)
+  are allowed because they are detectors, not copy.
 
 ## Allowed Hangul: `src/data/server-values/`
 
-Only values that must equal Korean data that already exists on the server or in user content:
-region names stored on used-market listings, legacy Korean chat templates that are parsed back
-out of stored messages, hashtag filters. They are identifiers / user data, not UI copy, and the
-UI shows English labels for them.
+Only values that must equal Korean data that already exists on the server or in user content.
+They are identifiers / user data, not UI copy, and the UI shows English labels for them.
 
-(Updated at the end of the migration with the final list, translation-layer design and skipped items.)
+| File | Why it stays |
+|---|---|
+| `korea-regions.ts` | Region names stored on used-market listings. Display goes through `displayUsedRegion()`. |
+| `used-catalog-ko.ts` | Legacy Korean catalog labels used to map stored listing categories. |
+| `legacy-chat-patterns.ts` | Regexes that parse Korean templates already stored in chat messages. |
+| `event-hashtag-filters.ts` | Hashtag strings that must match tags already on events. |
+| `kr-banks.ts` | Official Korean bank names for KR payout / verification matching. |
+| `commerce-defaults.ts` | Default commerce listing category (`굿즈`) already stored on the server. |
+
+## Skipped
+
+- `_codemod/` and one-off extract scripts — migration helpers, not shipped.
+- Archive / generated native projects / `node_modules` — outside app source.
+- User-generated content translation (`TranslatableText`) — unchanged by design.
+- Culture Wiki article bodies — English-only authoring; never ML Kit'd (`wiki.*` prefix).
+- Legal term bodies (`legal.*`) — English only, never ML Kit'd.
