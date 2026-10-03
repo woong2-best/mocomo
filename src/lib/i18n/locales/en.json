@@ -4883,7 +4883,7 @@
   "streaming-accounts.s5xm9a6": ". Only verified accounts can be selected.",
   "streaming-accounts.seedfmw": "Connected",
   "streaming-accounts.s1vfipan": "Account verified.",
-  "streaming-accounts.sckhf4b": "Disconnect this streaming account?",
+  "streaming-accounts.sckhf4b": "Remove this streaming account? It will be deleted.",
   "streaming-accounts.google_4": "Sign in with Google to verify your channel instantly.",
   "streaming-accounts.s1opvzpn": "Sign in with your account to verify channel ownership.",
   "streaming-accounts.sym68": "Connect {v0}",

@@ -40,7 +40,7 @@ export function StreamingAccountsManager({
   const connectableInitial = initialAccounts.filter(
     (acc) => acc.platform === "YOUTUBE" || acc.platform === "TWITCH"
   );
-  const [accounts] = useState(connectableInitial);
+  const [accounts, setAccounts] = useState(connectableInitial);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("YOUTUBE");
   const [error, setError] = useState(bannerError ?? "");
   const [success, setSuccess] = useState(
@@ -84,6 +84,7 @@ export function StreamingAccountsManager({
         setError(errorText(res.error));
         return;
       }
+      setAccounts((prev) => prev.filter((account) => account.id !== accountId));
       window.location.reload();
     });
   }

@@ -80,11 +80,33 @@ async function logVerification(
   });
 }
 
+async function deleteStreamingAccountRecords(accountIds: string[]) {
+  if (accountIds.length === 0) return;
+  await db.$transaction([
+    db.voiceChannel.updateMany({
+      where: { connectedStreamingAccountId: { in: accountIds } },
+      data: { connectedStreamingAccountId: null },
+    }),
+    db.streamingAccountVerificationLog.deleteMany({
+      where: { accountId: { in: accountIds } },
+    }),
+    db.connectedStreamingAccount.deleteMany({
+      where: { id: { in: accountIds } },
+    }),
+  ]);
+}
+
 export async function listUserStreamingAccounts(
   userId: string
 ): Promise<StreamingAccountPublic[]> {
+  const revoked = await db.connectedStreamingAccount.findMany({
+    where: { userId, revokedAt: { not: null } },
+    select: { id: true },
+  });
+  await deleteStreamingAccountRecords(revoked.map((row) => row.id));
+
   const rows = await db.connectedStreamingAccount.findMany({
-    where: { userId },
+    where: { userId, revokedAt: null },
     orderBy: [{ verified: "desc" }, { createdAt: "desc" }],
     select: ACCOUNT_SELECT,
   });
@@ -384,21 +406,7 @@ export async function disconnectStreamingAccount(
     return { ok: false, error: "Account not found." };
   }
 
-  await db.connectedStreamingAccount.update({
-    where: { id: accountId },
-    data: {
-      verified: false,
-      revokedAt: new Date(),
-      revokedReason: "User disconnected",
-      verificationCode: null,
-      encryptedTokenData: null,
-      encryptionIv: null,
-      encryptionAuthTag: null,
-      encryptionKeyId: null,
-      tokenExpiresAt: null,
-    },
-  });
-  await logVerification(accountId, "DISCONNECT", { actorId: userId });
+  await deleteStreamingAccountRecords([accountId]);
   return { ok: true };
 }
 
