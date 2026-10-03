@@ -27,6 +27,8 @@ export type ProfileUpdateInput = {
   mainCharacter?: string;
   showNsfw?: boolean;
   showBirthdayOnProfile?: boolean;
+  showYoutubeOnProfile?: boolean;
+  showTwitchOnProfile?: boolean;
   username?: string;
   name?: string;
   image?: string | null;
@@ -53,6 +55,8 @@ export type ProfileSettingsSnapshot = {
   birthMonth: string;
   birthDay: string;
   showBirthdayOnProfile: boolean;
+  showYoutubeOnProfile: boolean;
+  showTwitchOnProfile: boolean;
   usernameChangesRemaining: number;
   usernameChangeResetAt: string | null;
   locale: string;
@@ -100,6 +104,8 @@ export async function getProfileSettingsForUser(
     birthMonth: birth.month,
     birthDay: birth.day,
     showBirthdayOnProfile: user.profile?.showBirthdayOnProfile ?? false,
+    showYoutubeOnProfile: user.profile?.showYoutubeOnProfile ?? true,
+    showTwitchOnProfile: user.profile?.showTwitchOnProfile ?? true,
     usernameChangesRemaining: usernameChangesRemaining(recentUsernameChanges.length),
     usernameChangeResetAt: resetAt?.toISOString() ?? null,
     locale: user.locale,
@@ -130,6 +136,8 @@ export async function applyProfileUpdateForUser(
     birthDay,
     clearBirthDate,
     showBirthdayOnProfile,
+    showYoutubeOnProfile,
+    showTwitchOnProfile,
     bannerUrl,
     bannerVideoUrl,
     ...profileData
@@ -200,6 +208,12 @@ export async function applyProfileUpdateForUser(
   if (showBirthdayOnProfile !== undefined) {
     profilePayload.showBirthdayOnProfile = showBirthdayOnProfile;
   }
+  if (showYoutubeOnProfile !== undefined) {
+    profilePayload.showYoutubeOnProfile = showYoutubeOnProfile;
+  }
+  if (showTwitchOnProfile !== undefined) {
+    profilePayload.showTwitchOnProfile = showTwitchOnProfile;
+  }
 
   const userUpdate: {
     showNsfw?: boolean;
@@ -243,6 +257,8 @@ export async function applyProfileUpdateForUser(
         ...(bannerUrl !== undefined ? { bannerUrl: bannerUrl || null } : {}),
         ...(bannerVideoUrl !== undefined ? { bannerVideoUrl: bannerVideoUrl || null } : {}),
         ...(showBirthdayOnProfile !== undefined ? { showBirthdayOnProfile } : {}),
+        ...(showYoutubeOnProfile !== undefined ? { showYoutubeOnProfile } : {}),
+        ...(showTwitchOnProfile !== undefined ? { showTwitchOnProfile } : {}),
       },
       update: profilePayload,
     });

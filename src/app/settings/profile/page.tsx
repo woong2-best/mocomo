@@ -9,6 +9,7 @@ import {
   usernameChangeWindowStart,
   usernameChangesRemaining,
 } from "@/lib/username-policy";
+import { listUserStreamingAccounts } from "@/lib/streaming-accounts/service";
 
 export default async function ProfileSettingsPage() {
   const session = await auth();
@@ -39,6 +40,8 @@ export default async function ProfileSettingsPage() {
   });
   const resetAt = usernameChangeResetAt(recentUsernameChanges);
 
+  const streamingAccounts = await listUserStreamingAccounts(user.id);
+
   const cosplayPhotos: CosplayGalleryPhoto[] =
     user.cosplayerProfile?.photos.map((p) => ({
       id: p.id,
@@ -65,6 +68,8 @@ export default async function ProfileSettingsPage() {
         birthMonth: birth.month,
         birthDay: birth.day,
         showBirthdayOnProfile: user.profile?.showBirthdayOnProfile ?? false,
+        showYoutubeOnProfile: user.profile?.showYoutubeOnProfile ?? true,
+        showTwitchOnProfile: user.profile?.showTwitchOnProfile ?? true,
         usernameChangesRemaining: usernameChangesRemaining(recentUsernameChanges.length),
         usernameChangeResetAt: resetAt?.toISOString() ?? null,
       }}
@@ -73,6 +78,7 @@ export default async function ProfileSettingsPage() {
           ? { username: user.username, photos: cosplayPhotos }
           : null
       }
+      streamingAccounts={streamingAccounts}
     />
   );
 }

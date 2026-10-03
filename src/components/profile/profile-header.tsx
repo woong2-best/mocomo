@@ -26,6 +26,8 @@ import {
 } from "@/components/profile/profile-live-banner";
 import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
 import type { ProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
+import { ProfileStreamingChannelButtons } from "@/components/profile/profile-streaming-channel-buttons";
+import type { ProfileStreamingChannelLink } from "@/lib/profile-public-streaming";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
 
@@ -39,6 +41,7 @@ export function ProfileHeader({
   mutedByViewer = false,
   actionBar,
   liveBroadcast = null,
+  streamingChannelLinks = [],
 }: {
   user: {
     id: string;
@@ -78,6 +81,7 @@ export function ProfileHeader({
   mutedByViewer?: boolean;
   actionBar?: ReactNode | null;
   liveBroadcast?: ProfileLiveBroadcast | null;
+  streamingChannelLinks?: ProfileStreamingChannelLink[];
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
   const displayName = userDisplayName(user);
@@ -156,6 +160,12 @@ export function ProfileHeader({
           bannerVideoUrl={user.profile?.bannerVideoUrl}
           active
         />
+        {!isBlocked && streamingChannelLinks.length > 0 ? (
+          <ProfileStreamingChannelButtons
+            links={streamingChannelLinks}
+            className="absolute bottom-2 right-3 z-10"
+          />
+        ) : null}
       </div>
 
       <div className="px-4 pb-4">

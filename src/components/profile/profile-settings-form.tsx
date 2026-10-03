@@ -33,6 +33,8 @@ import {
 import Link from "next/link";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { sanitizeBirthDigitInput } from "@/lib/birth-date";
+import { ProfileStreamingSettings } from "@/components/profile/profile-streaming-settings";
+import type { StreamingAccountPublic } from "@/lib/streaming-accounts/types";
 
 function clampBirthDigits(e: React.FormEvent<HTMLInputElement>, maxLength: number) {
   const el = e.currentTarget;
@@ -58,14 +60,18 @@ type Initial = {
   birthMonth: string;
   birthDay: string;
   showBirthdayOnProfile: boolean;
+  showYoutubeOnProfile: boolean;
+  showTwitchOnProfile: boolean;
 };
 
 export function ProfileSettingsForm({
   initial,
   cosplayerProfile,
+  streamingAccounts = [],
 }: {
   initial: Initial;
   cosplayerProfile: { username: string; photos: CosplayGalleryPhoto[] } | null;
+  streamingAccounts?: StreamingAccountPublic[];
 }) {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -132,6 +138,8 @@ export function ProfileSettingsForm({
       favoriteTags: tags,
       showNsfw: form.get("showNsfw") === "on",
       showBirthdayOnProfile: form.get("showBirthdayOnProfile") === "on",
+      showYoutubeOnProfile: form.get("showYoutubeOnProfile") === "on",
+      showTwitchOnProfile: form.get("showTwitchOnProfile") === "on",
       ...(clearBirth
         ? { clearBirthDate: true }
         : {
@@ -341,6 +349,11 @@ export function ProfileSettingsForm({
               defaultValue={initial.favoriteTags}
               placeholder={t("profile.scpx4gr")}
               className="rounded-xl"
+            />
+            <ProfileStreamingSettings
+              accounts={streamingAccounts}
+              showYoutubeOnProfile={initial.showYoutubeOnProfile}
+              showTwitchOnProfile={initial.showTwitchOnProfile}
             />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="showNsfw" defaultChecked={initial.showNsfw} />

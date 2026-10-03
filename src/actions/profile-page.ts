@@ -47,6 +47,10 @@ import type { UserPublicFields } from "@/lib/user-public-select";
 import { nsfwPostWhere, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { loadProfilePostActivities } from "@/lib/repost-timeline";
 import { applyViewerBlockPolicyToPosts } from "@/lib/user-block";
+import {
+  getVisibleProfileStreamingLinks,
+  type ProfileStreamingChannelLink,
+} from "@/lib/profile-public-streaming";
 
 const PAGE_SIZE = 10;
 const MEDIA_GRID_PAGE_SIZE = 30;
@@ -91,6 +95,8 @@ const profileUserSelect = {
       mainCharacter: true,
       snsLinks: true,
       showBirthdayOnProfile: true,
+      showYoutubeOnProfile: true,
+      showTwitchOnProfile: true,
     },
   },
   cosplayerProfile: {
@@ -260,6 +266,12 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     }
   }
 
+  const profileBlocked =
+    relationship.blockedByViewer || relationship.blockedViewer;
+  const streamingChannelLinks: ProfileStreamingChannelLink[] = profileBlocked
+    ? []
+    : await getVisibleProfileStreamingLinks(user.id, user.profile);
+
   return {
     user: shownUser,
     author: toProfileAuthor(shownUser),
@@ -270,6 +282,7 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     canViewPosts,
     relationship,
     hasPayoutAccount,
+    streamingChannelLinks,
   };
 });
 

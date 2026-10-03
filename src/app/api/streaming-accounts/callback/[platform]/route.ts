@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { isConnectablePlatform } from "@/lib/streaming-accounts/types";
 import { completeOAuthConnect } from "@/lib/streaming-accounts/service";
+import { verifyStreamingOAuthState } from "@/lib/streaming-accounts/oauth-state";
+import { revalidateProfileStreamingForUser } from "@/lib/revalidate-profile-streaming";
 
 export async function GET(
   req: Request,
@@ -33,6 +35,11 @@ export async function GET(
   if (!result.ok) {
     settingsUrl.searchParams.set("error", result.error);
     return NextResponse.redirect(settingsUrl);
+  }
+
+  const statePayload = verifyStreamingOAuthState(state, platform);
+  if (!("error" in statePayload)) {
+    await revalidateProfileStreamingForUser(statePayload.userId);
   }
 
   settingsUrl.searchParams.set("connected", platform);

@@ -38,6 +38,10 @@ export type LegalDocument = {
 const GOVERNING_LAW_PARAGRAPH =
   "본 약관 및 서비스와 관련된 사항에는 미합중국 와이오밍 주(State of Wyoming, United States of America)의 법률이 적용됩니다(법률 충돌 원칙은 제외). 본 약관 또는 서비스와 관련하여 분쟁이 발생하여 소송이 제기되는 경우, 와이오밍 주 관할 법원을 전속 관할로 합니다. 다만 이용자의 거주국 강행법규가 적용되는 범위에서는 해당 법령이 우선할 수 있습니다.";
 
+/** English disclaimer for third-party streaming brand integrations (YouTube, Twitch). */
+export const THIRD_PARTY_STREAMING_DISCLAIMER =
+  "This service is not affiliated with, endorsed by, or sponsored by YouTube or Twitch. All product and company names are trademarks of their respective holders.";
+
 export const COMMUNITY_POLICY: LegalDocument = {
   slug: "policy",
   title: "MoCoMo 운영원칙 및 이용정책",
@@ -299,6 +303,10 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     {
       type: "p",
       text: "② 이용자가 외부 소셜 계정(Google, Discord 등)을 통해 가입·로그인하는 경우, 회사는 해당 서비스 제공자로부터 가입·본인 식별에 필요한 최소한의 계정 정보(식별자, 이메일, 프로필 등)를 제공받아 처리합니다. 이용자는 각 외부 서비스의 이용약관 및 개인정보 처리방침을 준수해야 합니다.",
+    },
+    {
+      type: "p",
+      text: THIRD_PARTY_STREAMING_DISCLAIMER,
     },
     {
       type: "p",

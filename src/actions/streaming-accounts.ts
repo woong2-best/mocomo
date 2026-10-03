@@ -11,6 +11,7 @@ import {
   startOAuthConnect,
   verifyManualAccount,
 } from "@/lib/streaming-accounts/service";
+import { revalidateProfileStreamingForUser } from "@/lib/revalidate-profile-streaming";
 
 export async function getMyStreamingAccounts() {
   const user = await requireAuthMinimal();
@@ -46,6 +47,7 @@ export async function verifyStreamingAccount(accountId: string) {
   if (!result.ok) return { error: result.error };
   revalidatePath("/settings/streaming-accounts");
   revalidatePath("/live/external/new");
+  await revalidateProfileStreamingForUser(user.id);
   return { ok: true as const };
 }
 
@@ -55,6 +57,7 @@ export async function disconnectStreamingAccountAction(accountId: string) {
   if (!result.ok) return { error: result.error };
   revalidatePath("/settings/streaming-accounts");
   revalidatePath("/live/external/new");
+  await revalidateProfileStreamingForUser(user.id);
   return { ok: true as const };
 }
 
