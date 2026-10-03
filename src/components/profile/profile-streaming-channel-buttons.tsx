@@ -2,15 +2,17 @@ import type { ProfileStreamingChannelLink } from "@/lib/profile-public-streaming
 
 const PLATFORM_META: Record<
   ProfileStreamingChannelLink["platform"],
-  { iconSrc: string; label: string }
+  { iconSrc: string; label: string; imgClass: string }
 > = {
   YOUTUBE: {
-    iconSrc: "/brand/youtube.png",
+    iconSrc: "/brand/youtube.svg",
     label: "YouTube channel",
+    imgClass: "h-7 w-auto sm:h-8",
   },
   TWITCH: {
     iconSrc: "/brand/twitch.svg",
     label: "Twitch channel",
+    imgClass: "h-7 w-auto sm:h-8",
   },
 };
 
@@ -24,7 +26,7 @@ export function ProfileStreamingChannelButtons({
   if (links.length === 0) return null;
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-2.5 ${className}`}>
       {links.map((link) => {
         const meta = PLATFORM_META[link.platform];
         return (
@@ -35,20 +37,15 @@ export function ProfileStreamingChannelButtons({
             rel="noopener noreferrer"
             title={link.channelName}
             aria-label={`${meta.label}: ${link.channelName}`}
-            className="inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-full bg-background/95 shadow-md ring-1 ring-border/60 backdrop-blur-sm transition hover:brightness-110 active:scale-95 sm:h-10 sm:w-10"
+            className="inline-flex shrink-0 touch-manipulation items-center justify-center rounded-sm opacity-90 transition hover:opacity-100 active:opacity-80"
           >
-            {/* Brand assets: /brand/youtube.png, /brand/twitch.svg */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={meta.iconSrc}
               alt=""
-              className={
-                link.platform === "YOUTUBE"
-                  ? "h-6 w-auto max-w-[2.25rem] object-contain sm:h-7"
-                  : "h-6 w-6 object-contain sm:h-7 sm:w-7"
-              }
-              width={link.platform === "YOUTUBE" ? 36 : 28}
-              height={28}
+              className={meta.imgClass}
+              width={32}
+              height={32}
               decoding="async"
             />
           </a>
