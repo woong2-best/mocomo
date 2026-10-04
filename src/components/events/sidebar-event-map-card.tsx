@@ -5,7 +5,7 @@ const i18n = createTranslator("en");
 import { createTranslator } from "@/lib/i18n/messages";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Info } from "lucide-react";
+import Link from "next/link";
 import { SubcultureEventsMapLazy } from "@/components/events/subculture-events-map-lazy";
 import { useLocale } from "@/components/providers/locale-provider";
 import {
@@ -38,11 +38,13 @@ function MapAttributionButton({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/25 bg-[#1b2436]/90 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-[#28344c]"
+        className="map-glass-control map-glass-icon-btn"
         aria-label={i18n("events.s32iang")}
         aria-expanded={open}
       >
-        <Info className="h-3.5 w-3.5" strokeWidth={2.25} />
+        <span aria-hidden className="font-serif">
+          i
+        </span>
       </button>
       {open ? (
         <div
@@ -100,7 +102,17 @@ export function SidebarEventMapCard({
         pinHalo
         className="subculture-events-map--sidebar h-full w-full rounded-none border-0"
       />
-      <MapAttributionButton className="absolute right-2 top-2 z-30" />
+      <div className="pointer-events-none absolute inset-x-0 top-2.5 z-30 px-2.5">
+        <div className="relative flex items-center justify-end">
+          <Link
+            href="/events/map"
+            className="map-glass-control map-glass-pill pointer-events-auto absolute left-1/2 -translate-x-1/2"
+          >
+            {i18n("sidebar.eventsMapExpand")}
+          </Link>
+          <MapAttributionButton className="pointer-events-auto" />
+        </div>
+      </div>
     </div>
   );
 }

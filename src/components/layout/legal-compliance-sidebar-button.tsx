@@ -23,11 +23,7 @@ export function LegalComplianceSidebarButton({
       type="button"
       onClick={toggle}
       aria-expanded={isOpen}
-      className={cn(
-        "folk-sidebar-legal-btn",
-        isOpen && "border-folk-terracotta/80 bg-white/15",
-        className
-      )}
+      className={cn("map-glass-control folk-sidebar-legal-btn", className)}
     >
       {iconOnly ? (
         <>
