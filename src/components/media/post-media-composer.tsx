@@ -38,7 +38,9 @@ import {
   type WatermarkOptions,
 } from "@/lib/media-watermark";
 import { filesFromClipboard } from "@/lib/clipboard-files";
+import { formatSaleMoco } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { PaidAttachDialog } from "@/components/media/paid-attach-dialog";
 
 export type PostMediaItem = {
   url: string;
@@ -46,6 +48,8 @@ export type PostMediaItem = {
   width?: number | null;
   height?: number | null;
   duration?: number | null;
+  /** USD cents. Set by the Attach popup (MOCO → cents). */
+  priceKrw?: number;
 };
 
 type PostMediaComposerProps = {
@@ -56,6 +60,8 @@ type PostMediaComposerProps = {
   allowVideo?: boolean;
   /** false면 Video 촬영 버튼 숨김 */
   allowVideoCapture?: boolean;
+  /** Compose: hide camera/video capture and open the MOCO attach popup instead. */
+  enablePaidAttach?: boolean;
   /** default 레이아웃 — Video 파일 버튼 바로 옆 (유료 판매 금액 등) */
   afterVideoButton?: ReactNode;
   layout?: "default" | "toolbar";
@@ -107,6 +113,7 @@ export const PostMediaComposer = forwardRef<
   maxVideos = 10,
   allowVideo = true,
   allowVideoCapture = false,
+  enablePaidAttach = false,
   afterVideoButton,
   layout = "default",
   toolbarFooter,
@@ -129,6 +136,7 @@ export const PostMediaComposer = forwardRef<
   const canAddVideo = allowVideo && videoCount < maxVideos;
 
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [watermarkOptions, setWatermarkOptions] = useState(EMPTY_WATERMARK_OPTIONS);
@@ -153,6 +161,11 @@ export const PostMediaComposer = forwardRef<
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
+
+  function commitItems(next: PostMediaItem[]) {
+    itemsRef.current = next;
+    onChange(next);
+  }
 
   function resolveUploadOpts(
     options: WatermarkOptions = watermarkOptionsRef.current
@@ -237,10 +250,10 @@ export const PostMediaComposer = forwardRef<
         if (!url) continue;
         const itemIndex = pending.baseCount + i;
         if (next[itemIndex]?.type === "IMAGE") {
-          next[itemIndex] = { url, type: "IMAGE" };
+          next[itemIndex] = { ...next[itemIndex], url, type: "IMAGE" };
         }
       }
-      onChange(next);
+      commitItems(next);
 
       if (errors.length > 0) {
         setError(
@@ -260,7 +273,8 @@ export const PostMediaComposer = forwardRef<
   async function performGalleryUpload(
     files: File[],
     baseItems: PostMediaItem[],
-    previewUrls: string[]
+    previewUrls: string[],
+    priceKrw = 0
   ) {
     const gen = ++galleryUploadGenRef.current;
     setUploading(true);
@@ -269,7 +283,11 @@ export const PostMediaComposer = forwardRef<
 
     let next = [
       ...baseItems,
-      ...previewUrls.map((url) => ({ url, type: "IMAGE" as const })),
+      ...previewUrls.map((url) => ({
+        url,
+        type: "IMAGE" as const,
+        ...(priceKrw > 0 ? { priceKrw } : {}),
+      })),
     ];
     const errors: string[] = [];
 
@@ -307,11 +325,11 @@ export const PostMediaComposer = forwardRef<
           errors.push(error);
         } else if (url) {
           next = next.map((item) =>
-            item.url === previewUrl ? { url, type: "IMAGE" as const } : item
+            item.url === previewUrl ? { ...item, url, type: "IMAGE" as const } : item
           );
         }
       }
-      onChange(next);
+      commitItems(next);
 
       if (errors.length > 0) {
         setError(
@@ -322,7 +340,7 @@ export const PostMediaComposer = forwardRef<
       }
     } catch (e) {
       if (gen !== galleryUploadGenRef.current) return;
-      onChange(baseItems);
+      commitItems(baseItems);
       setError(e instanceof Error ? e.message : t("media.s28j1hw"));
       previewUrls.forEach((u) => URL.revokeObjectURL(u));
     } finally {
@@ -330,27 +348,35 @@ export const PostMediaComposer = forwardRef<
     }
   }
 
-  async function uploadFilesDirect(files: File[]) {
+  async function uploadFilesDirect(files: File[], priceKrw = 0) {
     const baseItems = items;
     const previewUrls: string[] = [];
     files.forEach((f) => {
       previewUrls.push(URL.createObjectURL(f));
     });
 
-    onChange([
+    commitItems([
       ...baseItems,
-      ...previewUrls.map((url) => ({ url, type: "IMAGE" as const })),
+      ...previewUrls.map((url) => ({
+        url,
+        type: "IMAGE" as const,
+        ...(priceKrw > 0 ? { priceKrw } : {}),
+      })),
     ]);
 
-    await performGalleryUpload(files, baseItems, previewUrls);
+    await performGalleryUpload(files, baseItems, previewUrls, priceKrw);
   }
 
-  function stageGalleryFiles(files: File[]) {
+  function stageGalleryFiles(files: File[], priceKrw = 0) {
     const baseCount = items.length;
     const previewUrls = files.map((f) => URL.createObjectURL(f));
-    onChange([
+    commitItems([
       ...items,
-      ...previewUrls.map((url) => ({ url, type: "IMAGE" as const })),
+      ...previewUrls.map((url) => ({
+        url,
+        type: "IMAGE" as const,
+        ...(priceKrw > 0 ? { priceKrw } : {}),
+      })),
     ]);
     pendingGalleryRef.current = { files, previewUrls, baseCount };
     setUploading(true);
@@ -373,20 +399,19 @@ export const PostMediaComposer = forwardRef<
     void uploadFilesDirect([new File([blob], name, { type: mimeType || "image/jpeg" })]);
   }
 
-  async function uploadVideosDirect(files: File[]) {
+  async function uploadVideosDirect(files: File[], priceKrw = 0) {
     const baseItems = itemsRef.current;
     const previewUrls = files.map((f) => URL.createObjectURL(f));
-    onChange([
-      ...baseItems,
-      ...previewUrls.map((url) => ({ url, type: "VIDEO" as const })),
-    ]);
+    const priced = (url: string) => ({
+      url,
+      type: "VIDEO" as const,
+      ...(priceKrw > 0 ? { priceKrw } : {}),
+    });
+    commitItems([...baseItems, ...previewUrls.map(priced)]);
     setUploading(true);
     onUploadingChange?.(true);
     setError("");
-    let next = [
-      ...baseItems,
-      ...previewUrls.map((url) => ({ url, type: "VIDEO" as const })),
-    ];
+    let next = [...baseItems, ...previewUrls.map(priced)];
     const errors: string[] = [];
     try {
       for (let i = 0; i < files.length; i++) {
@@ -402,6 +427,7 @@ export const PostMediaComposer = forwardRef<
           next = next.map((item) =>
             item.url === previewUrl
               ? {
+                  ...item,
                   url,
                   type: "VIDEO" as const,
                   width: meta.width,
@@ -417,7 +443,7 @@ export const PostMediaComposer = forwardRef<
           URL.revokeObjectURL(previewUrl);
         }
       }
-      onChange(next);
+      commitItems(next);
       if (errors.length > 0) {
         setError(errors[0] ?? t("profile.s1eazbik"));
       }
@@ -452,7 +478,7 @@ export const PostMediaComposer = forwardRef<
     input.click();
   }
 
-  async function ingestGalleryImages(list: File[]) {
+  async function ingestGalleryImages(list: File[], priceKrw = 0) {
     setError("");
     const remaining = maxImages - itemsRef.current.filter((m) => m.type === "IMAGE").length;
     if (remaining <= 0) {
@@ -467,11 +493,11 @@ export const PostMediaComposer = forwardRef<
     if (list.length > remaining) {
       setError(t("media.svmuumy", { v0: maxImages, v1: batch.length }));
     }
-    if (watermarkCreditLabel && !quickUpload) {
-      stageGalleryFiles(batch);
+    if (watermarkCreditLabel && !quickUpload && priceKrw <= 0) {
+      stageGalleryFiles(batch, priceKrw);
       return;
     }
-    await uploadFilesDirect(batch);
+    await uploadFilesDirect(batch, priceKrw);
   }
 
   async function onGalleryImagePick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -482,7 +508,7 @@ export const PostMediaComposer = forwardRef<
     await ingestGalleryImages(list);
   }
 
-  function ingestVideoFiles(files: File[]) {
+  function ingestVideoFiles(files: File[], priceKrw = 0) {
     const remaining =
       maxVideos - itemsRef.current.filter((m) => m.type === "VIDEO").length;
     if (remaining <= 0) {
@@ -494,7 +520,26 @@ export const PostMediaComposer = forwardRef<
       setError(t("media.s1i5tstg", { v0: maxVideos, v1: batch.length }));
     }
     setError("");
-    void uploadVideosDirect(batch);
+    void uploadVideosDirect(batch, priceKrw);
+  }
+
+  async function onPaidAttach(picked: File[], priceKrw: number) {
+    const images = picked.filter((f) => isGalleryImageFile(f, true));
+    const videos = allowVideo
+      ? picked.filter((f) => isGalleryVideoFile(f)).map((f) => normalizeGalleryVideoFile(f))
+      : [];
+    if (images.length === 0 && videos.length === 0) {
+      setError(t("compose.attach.needFile"));
+      return;
+    }
+    if (images.length > 0) await ingestGalleryImages(images, priceKrw);
+    if (videos.length > 0) {
+      const remaining =
+        maxVideos - itemsRef.current.filter((m) => m.type === "VIDEO").length;
+      if (remaining > 0) {
+        await uploadVideosDirect(videos.slice(0, remaining), priceKrw);
+      }
+    }
   }
 
   function handlePaste(event: React.ClipboardEvent): boolean {
@@ -572,6 +617,16 @@ export const PostMediaComposer = forwardRef<
           {afterVideoButton}
         </>
       )}
+      {enablePaidAttach && (canAddImage || canAddVideo) && (
+        <button
+          type="button"
+          className="h-9 px-2.5 rounded-full text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-40"
+          disabled={disabled || uploading}
+          onClick={() => setAttachOpen(true)}
+        >
+          {t("compose.attach")}
+        </button>
+      )}
     </>
   );
 
@@ -614,6 +669,11 @@ export const PostMediaComposer = forwardRef<
                 {t("lib.web.push.se9d6e13c5d")}
               </span>
             )}
+            {(m.priceKrw ?? 0) > 0 && (
+              <span className="pointer-events-none absolute top-0.5 left-0.5 z-[1] rounded bg-black/70 px-1 text-[10px] font-semibold text-white">
+                {formatSaleMoco(m.priceKrw ?? 0)}
+              </span>
+            )}
             {isLocalPreviewUrl(m.url) && (
               <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/35">
                 <Loader2 className="h-5 w-5 animate-spin text-white" aria-hidden />
@@ -645,6 +705,7 @@ export const PostMediaComposer = forwardRef<
       <div className="flex flex-wrap gap-2">
         {canAddImage && (
           <>
+            {!enablePaidAttach && (
             <Button
               type="button"
               variant="outline"
@@ -656,6 +717,7 @@ export const PostMediaComposer = forwardRef<
               <Camera className="h-4 w-4" />
               {t("media.s1wicxfv")}
             </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -671,7 +733,7 @@ export const PostMediaComposer = forwardRef<
         )}
         {canAddVideo && (
           <div className="flex flex-wrap items-center gap-2">
-            {allowVideoCapture && (
+            {allowVideoCapture && !enablePaidAttach && (
               <Button
                 type="button"
                 variant="outline"
@@ -697,6 +759,18 @@ export const PostMediaComposer = forwardRef<
             </Button>
             {afterVideoButton}
           </div>
+        )}
+        {enablePaidAttach && (canAddImage || canAddVideo) && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            disabled={disabled || uploading}
+            onClick={() => setAttachOpen(true)}
+          >
+            {t("compose.attach")}
+          </Button>
         )}
       </div>
       )}
@@ -728,6 +802,15 @@ export const PostMediaComposer = forwardRef<
         enableFaceFilter={enableFaceFilter}
         onCapture={onCameraCapture}
       />
+
+      {enablePaidAttach ? (
+        <PaidAttachDialog
+          open={attachOpen}
+          onOpenChange={setAttachOpen}
+          disabled={disabled || uploading}
+          onConfirm={onPaidAttach}
+        />
+      ) : null}
 
       <PostMediaLightbox
         open={previewOpen}

@@ -65,6 +65,20 @@ export const LETTER_DONATION_MIN_USD_CENTS = 500;
 export const SALE_MEDIA_MIN_PRICE_USD_CENTS = 100;
 export const SALE_MEDIA_MAX_PRICE_USD_CENTS = 100_000;
 
+/** 1 MOCO = $5. Keep in sync with src/lib/gems/constants.ts */
+export const SALE_MOCO_USD_CENTS = 500;
+
+/** Paid attach price: MOCO (one decimal) → USD cents stored on media. */
+export function saleCentsFromMoco(moco: number): number {
+  return Math.round(moco * SALE_MOCO_USD_CENTS);
+}
+
+export function formatSaleMoco(cents: number): string {
+  const tenths = Math.round(Math.abs(cents) / (SALE_MOCO_USD_CENTS / 10));
+  const value = tenths / 10;
+  return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} MOCO`;
+}
+
 /** Parse user-facing USD dollar input (e.g. "1", "1.00") to cents. */
 export function parseUsdDollarsToCents(raw: string): number {
   const trimmed = raw.trim().replace(/,/g, "");

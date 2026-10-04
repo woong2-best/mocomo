@@ -30,6 +30,7 @@ async function uploadLocalMedia(item: LocalMediaDraft) {
     width: item.width,
     height: item.height,
     duration: item.duration != null ? Math.round(item.duration) : undefined,
+    priceKrw: item.priceKrw && item.priceKrw > 0 ? Math.floor(item.priceKrw) : undefined,
   };
 }
 
@@ -56,7 +57,8 @@ export async function publishComposePost(input: {
 
   const media = [];
   for (const item of input.media) {
-    media.push(await uploadLocalMedia(item));
+    const uploaded = await uploadLocalMedia(item);
+    media.push(input.isNsfw ? { ...uploaded, priceKrw: undefined } : uploaded);
   }
 
   const poll = input.poll

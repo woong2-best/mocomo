@@ -115,12 +115,14 @@ export function ComposeForm({
   const canSubmit =
     content.trim().length > 0 || media.length > 0 || (isQuoteCompose && !submitBusy);
   const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
+  const paidMediaCents = media.reduce((max, m) => Math.max(max, m.priceKrw ?? 0), 0);
   const showInstantPurchase = visibility !== "PUBLIC" && contentRating !== "ADULT";
   const adultBlocksPaid = contentRating === "ADULT";
+  const paidAttachEnabled = !isQuoteCompose && !communityId && !adultBlocksPaid;
   const paidPriceIntent =
     !adultBlocksPaid &&
-    (instantPriceCents > 0 || instantPriceUsd.trim().length > 0);
-  const showPaidMediaRequired = paidPriceIntent && media.length === 0;
+    (instantPriceCents > 0 || instantPriceUsd.trim().length > 0 || paidMediaCents > 0);
+  const showPaidMediaRequired = paidPriceIntent && media.length === 0 && paidMediaCents === 0;
   const sellingIntent = paidPriceIntent || visibility !== "PUBLIC";
   const showSettlementBanner = !payoutAccountRegistered && sellingIntent;
   const walletCallbackUrl = useMemo(
@@ -171,8 +173,13 @@ export function ComposeForm({
     };
   }, []);
 
-  const toggleNsfw = () =>
+  const toggleNsfw = () => {
+    if (contentRating !== "ADULT" && media.some((m) => (m.priceKrw ?? 0) > 0)) {
+      setError(t("compose.attach.nsfwBlocked"));
+      return;
+    }
     setContentRating((v) => (v === "ADULT" ? "GENERAL" : "ADULT"));
+  };
 
   const nsfwToggle = (
     <NsfwToggleButton
@@ -226,7 +233,7 @@ export function ComposeForm({
       }
     }
 
-    const pricingErr = validateSaleMediaPricing(0, instantPriceCents);
+    const pricingErr = validateSaleMediaPricing(paidMediaCents, instantPriceCents);
     if (pricingErr) {
       setError(pricingErr);
       return;
@@ -243,7 +250,7 @@ export function ComposeForm({
       media: media.map((m) => ({
         url: m.url,
         type: m.type,
-        priceKrw: 0,
+        priceKrw: communityId || contentRating === "ADULT" ? 0 : Math.max(0, Math.floor(m.priceKrw ?? 0)),
         width: m.width ?? null,
         height: m.height ?? null,
         duration: m.duration ?? null,
@@ -382,6 +389,7 @@ export function ComposeForm({
               maxVideos={10}
               layout="toolbar"
               allowVideoCapture={false}
+              enablePaidAttach={paidAttachEnabled}
               watermarkCreditLabel={watermarkCreditLabel}
               onUploadingChange={setMediaUploading}
               toolbarFooterStart={
@@ -481,6 +489,7 @@ export function ComposeForm({
             maxImages={100}
             maxVideos={10}
             allowVideoCapture={false}
+            enablePaidAttach={paidAttachEnabled}
             onUploadingChange={setMediaUploading}
           />
         </>
@@ -494,6 +503,7 @@ export function ComposeForm({
             maxImages={100}
             maxVideos={10}
             allowVideoCapture={false}
+            enablePaidAttach={paidAttachEnabled}
             onUploadingChange={setMediaUploading}
             afterVideoButton={nsfwToggle}
           />

@@ -37,7 +37,14 @@ export async function voteOnPostPoll(postId: string, optionId: string) {
 
 export async function createPost(input: {
   content: string;
-  media?: { url: string; type: "IMAGE" | "VIDEO"; width?: number; height?: number; duration?: number }[];
+  media?: {
+    url: string;
+    type: "IMAGE" | "VIDEO";
+    width?: number;
+    height?: number;
+    duration?: number;
+    priceKrw?: number;
+  }[];
   poll?: CreatePostPollPayload;
   collaboratorUserIds?: string[];
   isNsfw?: boolean;

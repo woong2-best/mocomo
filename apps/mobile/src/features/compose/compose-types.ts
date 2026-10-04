@@ -82,6 +82,8 @@ export type LocalMediaDraft = {
   duration?: number;
   videoEdit?: VideoEditDraft;
   imageEdit?: ImageEditDraft;
+  /** USD cents from the Attach popup. */
+  priceKrw?: number;
 };
 
 export type PollDraft = {

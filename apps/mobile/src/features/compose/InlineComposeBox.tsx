@@ -41,7 +41,9 @@ import {
 import { prepareImageForUpload } from "@/lib/prepare-image-upload";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import type { MenuAnchor } from "@/features/feed/FeedPostOverflowMenu";
+import { ComposeAttachModal } from "@/features/compose/ComposeAttachModal";
 import { ComposeQuotePreview } from "@/features/compose/ComposeQuotePreview";
+import { formatSaleMoco } from "@/lib/money";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
@@ -162,6 +164,8 @@ export function InlineComposeBox({
     open: false,
     index: 0,
   });
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachPicked, setAttachPicked] = useState<PickerAsset[]>([]);
   const [watermarkMod, setWatermarkMod] = useState<typeof import("@/lib/apply-image-watermark") | null>(
     null
   );
@@ -250,40 +254,35 @@ export function InlineComposeBox({
     focusInput();
   }, [appendAssets, focusInput, t]);
 
-  const takePhoto = useCallback(async () => {
+  const pickAttachMedia = useCallback(async () => {
     const ImagePicker = await loadImagePicker();
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      showIslandError(t("m.common.permission_required"), t("m.compose.allow_camera_access"));
+      showIslandError(t("m.common.permission_required"), t("m.compose.allow_access_to_your_photo_and"));
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      cameraType: ImagePicker.CameraType.back,
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      allowsMultipleSelection: true,
+      selectionLimit: 8,
       quality: 0.88,
+      videoMaxDuration: 180,
     });
-    if (result.canceled) return;
-    appendAssets(result.assets);
-    focusInput();
-  }, [appendAssets, focusInput, t]);
+    if (result.canceled || result.assets.length === 0) return;
+    setAttachPicked(result.assets);
+  }, [t]);
 
-  const recordVideo = useCallback(async () => {
-    const ImagePicker = await loadImagePicker();
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      showIslandError(t("m.common.permission_required"), t("m.compose.allow_camera_access"));
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["videos"],
-      cameraType: ImagePicker.CameraType.back,
-      videoMaxDuration: 60,
-      quality: 0.85,
-    });
-    if (result.canceled) return;
-    appendAssets(result.assets);
-    focusInput();
-  }, [appendAssets, focusInput, t]);
+  const confirmAttach = useCallback(
+    (priceKrw: number) => {
+      if (!attachPicked.length) return;
+      const drafts = attachPicked.map((asset) => ({ ...assetToDraft(asset), priceKrw }));
+      setMedia((prev) => [...prev, ...drafts].slice(0, 8));
+      setAttachPicked([]);
+      setAttachOpen(false);
+      focusInput();
+    },
+    [attachPicked, focusInput]
+  );
 
   const togglePoll = useCallback(() => {
     setPoll((prev) =>
@@ -488,6 +487,11 @@ export function InlineComposeBox({
                   <Ionicons name="videocam" size={12} color="#fff" />
                 </View>
               ) : null}
+              {(item.priceKrw ?? 0) > 0 ? (
+                <View style={styles.priceBadge} pointerEvents="none">
+                  <Text style={styles.priceBadgeText}>{formatSaleMoco(item.priceKrw ?? 0)}</Text>
+                </View>
+              ) : null}
               <Pressable
                 style={styles.mediaRemove}
                 onPress={() => setMedia((prev) => prev.filter((m) => m.id !== item.id))}
@@ -531,8 +535,25 @@ export function InlineComposeBox({
       <View style={styles.toolbar}>
         <View style={styles.toolbarLeading}>
           <ToolIcon name="image-outline" onPress={() => void pickGallery()} disabled={busy} color={colors.terracotta} />
-          <ToolIcon name="camera-outline" onPress={() => void takePhoto()} disabled={busy} color={colors.terracotta} />
-          <ToolIcon name="videocam-outline" onPress={() => void recordVideo()} disabled={busy} color={colors.terracotta} />
+          {!isQuoteCompose ? (
+            <Pressable
+              onPress={() => {
+                if (isNsfw) {
+                  showIslandError(t("m.common.error"), t("m.compose.attach_nsfw"));
+                  return;
+                }
+                setAttachPicked([]);
+                setAttachOpen(true);
+              }}
+              disabled={busy}
+              hitSlop={8}
+              style={{ opacity: busy ? 0.45 : 1 }}
+              accessibilityRole="button"
+              accessibilityLabel={t("m.compose.attach")}
+            >
+              <Text style={styles.attachBtnText}>{t("m.compose.attach")}</Text>
+            </Pressable>
+          ) : null}
           {!isQuoteCompose ? (
             <>
               <ToolIcon
@@ -556,7 +577,13 @@ export function InlineComposeBox({
               </View>
               <NsfwToggleButton
                 active={isNsfw}
-                onToggle={() => setIsNsfw((v) => !v)}
+                onToggle={() => {
+                  if (!isNsfw && media.some((m) => (m.priceKrw ?? 0) > 0)) {
+                    showIslandError(t("m.common.error"), t("m.compose.attach_nsfw"));
+                    return;
+                  }
+                  setIsNsfw((v) => !v);
+                }}
                 disabled={busy}
               />
             </>
@@ -604,6 +631,23 @@ export function InlineComposeBox({
         images={composeLightboxImages}
         initialIndex={mediaLightbox.index}
         onClose={() => setMediaLightbox((prev) => ({ ...prev, open: false }))}
+      />
+
+      <ComposeAttachModal
+        visible={attachOpen}
+        colors={colors}
+        busy={busy}
+        pickedLabel={
+          attachPicked.length > 0
+            ? t("m.compose.attach_picked", { count: String(attachPicked.length) })
+            : null
+        }
+        onClose={() => {
+          setAttachOpen(false);
+          setAttachPicked([]);
+        }}
+        onPick={() => void pickAttachMedia()}
+        onConfirm={confirmAttach}
       />
     </View>
   );
@@ -1029,6 +1073,18 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 5,
       paddingVertical: 2,
     },
+    priceBadge: {
+      position: "absolute",
+      left: 4,
+      top: 4,
+      maxWidth: 78,
+      backgroundColor: "rgba(0,0,0,0.62)",
+      borderRadius: 8,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+    },
+    priceBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
+    attachBtnText: { color: colors.brand, fontSize: 14, fontWeight: "800" },
     mediaRemove: {
       position: "absolute",
       top: 4,
