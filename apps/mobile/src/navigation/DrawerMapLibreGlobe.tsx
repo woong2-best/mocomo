@@ -339,10 +339,29 @@ if (!maplibregl) {
     if (!pin.startsAt || Number.isNaN(d.getTime())) return "";
     return (d.getMonth() + 1) + "/" + d.getDate();
   };
+  const maidCafeLabel = (country) => {
+    const c = String(country || "").trim().toLowerCase();
+    if (c === "kr") return "메이드 카페";
+    if (c === "jp") return "メイドカフェ";
+    if (c === "cn") return "女仆咖啡厅";
+    if (c === "tw" || c === "hk" || c === "mo") return "女僕咖啡廳";
+    return "maid cafe";
+  };
   const googleSearch = (pin) => {
-    const parts = [pin.venue, pin.title];
-    if (pin.country && pin.country !== "other") parts.push(pin.country);
-    return "https://www.google.com/search?q=" + encodeURIComponent(parts.filter(Boolean).join(" "));
+    const venue = String(pin.venue || pin.venueName || "").trim();
+    const title = String(pin.title || "").trim();
+    const name = venue || title;
+    const country = String(pin.country || "").trim().toLowerCase();
+    if (pin.category === "maid_cafe") {
+      const parts = [name, maidCafeLabel(country)];
+      if (country && country !== "other") parts.push(country.toUpperCase());
+      return "https://www.google.com/search?q=" + encodeURIComponent(parts.filter(Boolean).join(" "));
+    }
+    const parts = [];
+    if (venue) parts.push(venue);
+    if (title && title.toLocaleLowerCase() !== venue.toLocaleLowerCase()) parts.push(title);
+    if (country && country !== "other") parts.push(country.toUpperCase());
+    return "https://www.google.com/search?q=" + encodeURIComponent(parts.join(" "));
   };
   const placeLink = (pin) => {
     const label = [pin.venue, pin.title].filter(Boolean).join(" ");

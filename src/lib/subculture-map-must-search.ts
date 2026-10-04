@@ -124,7 +124,6 @@ const KR_MUST_SEARCH_FALLBACK_COORDS: Record<string, { lat: number; lng: number 
   "melti-angel": { lat: 37.5550482, lng: 126.9268037 },
   "my-bunny": { lat: 37.5548809, lng: 126.9288965 },
   "irland-o-lounge": { lat: 37.5489826, lng: 126.9208993 },
-  hiraru: { lat: 37.5493504, lng: 126.9168171 },
   deredere: { lat: 37.5484826, lng: 126.9222805 },
   "doki-777": { lat: 37.5504493, lng: 126.9213624 },
 };
@@ -494,14 +493,6 @@ const SUBCULTURE_MAP_MUST_SEARCH_KR: SubcultureMapMustSearchEntry[] = [
     city: "서울 마포구",
     address: "서울 마포구 어울마당로 44-1 4층",
     id: "irland-o-lounge",
-  },
-  {
-    name: "히라루",
-    category: "maid_cafe",
-    country: "kr",
-    city: "서울 마포구",
-    address: "서울 마포구 독막로3길 21 2층",
-    id: "hiraru",
   },
   {
     name: "데레데레",

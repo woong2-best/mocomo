@@ -1,6 +1,7 @@
 import type { SubcultureEventCountry } from "@/lib/subculture-event-seeds";
 import { googleMapsExternalUrl } from "@/lib/maps/google-external-url";
 import type { SubcultureEventPhase } from "@/lib/subculture-event-phase";
+import { googleSearchUrlForMapPin } from "@/lib/subculture-venue-google-search";
 
 export type MapEventPin = {
   id: string;
@@ -25,11 +26,7 @@ export type MapEventPin = {
 };
 
 export function googleSearchUrlForEvent(pin: MapEventPin): string {
-  const parts = [pin.venueName, pin.title, pin.country !== "other" ? pin.country : null].filter(
-    Boolean
-  );
-  const q = encodeURIComponent(parts.join(" "));
-  return `https://www.google.com/search?q=${q}`;
+  return googleSearchUrlForMapPin(pin);
 }
 
 export function mapLinkForEvent(pin: MapEventPin): { label: string; url: string } {

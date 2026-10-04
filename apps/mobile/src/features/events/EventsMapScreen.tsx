@@ -31,6 +31,7 @@ import type { RootStackParamList } from "@/navigation/types";
 import { googleMapsExternalUrl } from "@/maps/google-external-url";
 import { useI18n } from "@/i18n/I18nProvider";
 import { eventsUi, type EventsUi } from "@/features/events/events-ui";
+import { googleSearchUrlForMapPin } from "@/features/events/map-pin-google-search";
 
 type PanelTab = "venue" | "maid_cafe" | "recommendation";
 
@@ -98,12 +99,7 @@ function countryCode(country: string) {
 }
 
 function googleSearchUrlForEvent(pin: MapEventPin) {
-  const parts = [
-    pin.venueName,
-    pin.title,
-    pin.country && pin.country !== "other" ? pin.country.toUpperCase() : null,
-  ].filter(Boolean);
-  return `https://www.google.com/search?q=${encodeURIComponent(parts.join(" "))}`;
+  return googleSearchUrlForMapPin(pin);
 }
 
 function externalMapLink(pin: MapEventPin, mapsLabel: string) {

@@ -150,4 +150,5 @@ export const RETIRED_MUST_SEARCH_EXTERNAL_KEYS = [
   "must-search-tw-maid-kaohsiung-tsukuyomi-kaohsiung",
   /** No fixed storefront — convention pop-up only (miraimaidcafe.com) */
   "must-search-us-maid-mirai-orlando",
+  "must-search-kr-maid-seoul-hiraru",
 ] as const;
