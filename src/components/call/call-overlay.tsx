@@ -65,7 +65,7 @@ function PermissionBanner({
           className="flex w-full items-center justify-center gap-2 py-1"
         >
           {micChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <MicOff className="h-4 w-4" />}
-          마이크 권한이 필요합니다
+          {t("call.sqnjif7")}
         </button>
       )}
       {camDenied && onCameraCheck && (
@@ -76,7 +76,7 @@ function PermissionBanner({
           className="flex w-full items-center justify-center gap-2 py-1"
         >
           {cameraChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <VideoOff className="h-4 w-4" />}
-          카메라 권한이 필요합니다
+          {t("call.s1g8931j")}
         </button>
       )}
     </div>

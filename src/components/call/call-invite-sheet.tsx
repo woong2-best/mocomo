@@ -49,7 +49,7 @@ export function CallInviteSheet({
 
       {query.trim() && (
         <p className="mt-6 text-center text-sm text-white/45">
-          그룹 통화 초대는 곧 지원됩니다.
+          {t("call.sbrq3q0")}
         </p>
       )}
     </CallBottomSheet>

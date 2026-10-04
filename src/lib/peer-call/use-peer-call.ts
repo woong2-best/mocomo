@@ -9,6 +9,7 @@ import {
   type VoiceSignalSession,
   type VoiceWireSignal,
 } from "@/lib/peer-call/supabase-signal";
+import { enhanceCallMicrophone } from "@/lib/peer-call/voice-process";
 
 export type PeerCallState = "idle" | "connecting" | "connected" | "failed" | "closed";
 
@@ -30,6 +31,29 @@ function holdMic(stream: MediaStream) {
 
 function releaseMic(stream: MediaStream | null) {
   if (stream && heldMic === stream) heldMic = null;
+}
+
+function signalKey(payload: CallSignalPayload): string {
+  if (payload.type === "offer" || payload.type === "answer") {
+    const body = typeof payload.sdp?.sdp === "string" ? payload.sdp.sdp : "";
+    return `${payload.type}:${body}`;
+  }
+  if (payload.type === "ice") {
+    const candidate = payload.candidate;
+    return `ice:${candidate?.candidate ?? ""}:${candidate?.sdpMid ?? ""}:${candidate?.sdpMLineIndex ?? ""}`;
+  }
+  return payload.type;
+}
+
+function isBenignSignalingError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const name = "name" in error ? String(error.name) : "";
+  const message = "message" in error ? String(error.message) : "";
+  return (
+    name === "InvalidStateError" ||
+    name === "InvalidAccessError" ||
+    /wrong state|InvalidState|stable|have-local-offer|have-remote-offer/i.test(message)
+  );
 }
 
 function asSdp(
@@ -75,8 +99,14 @@ export function usePeerCall({
   onRemoteHangup,
 }: UsePeerCallOptions) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const creatingPcRef = useRef<Promise<RTCPeerConnection> | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const rawMicRef = useRef<MediaStream | null>(null);
+  const voiceStopRef = useRef<(() => void) | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
+  const epochRef = useRef(0);
+  const appliedSignalsRef = useRef(new Set<string>());
+  const signalChainRef = useRef(Promise.resolve());
   const rtcConfigRef = useRef<RTCConfiguration | null>(null);
   const makingOfferRef = useRef(false);
   const ignoreOfferRef = useRef(false);
@@ -131,6 +161,7 @@ export function usePeerCall({
   const cleanup = useCallback(() => {
     const pc = pcRef.current;
     pcRef.current = null;
+    creatingPcRef.current = null;
     pendingIceRef.current = [];
     if (pc) {
       pc.onicecandidate = null;
@@ -138,10 +169,16 @@ export function usePeerCall({
       pc.onconnectionstatechange = null;
       pc.close();
     }
+    voiceStopRef.current?.();
+    voiceStopRef.current = null;
     for (const track of localStreamRef.current?.getTracks() ?? []) {
       track.stop();
     }
-    releaseMic(localStreamRef.current);
+    for (const track of rawMicRef.current?.getTracks() ?? []) {
+      track.stop();
+    }
+    releaseMic(rawMicRef.current);
+    rawMicRef.current = null;
     localStreamRef.current = null;
     remoteStreamRef.current = null;
     rtcConfigRef.current = null;
@@ -160,10 +197,14 @@ export function usePeerCall({
         : false,
     });
     holdMic(stream);
-    localStreamRef.current = stream;
-    setLocalStream(stream);
-    setCameraEnabled(wantsVideo && stream.getVideoTracks().some((t) => t.enabled));
-    return stream;
+    rawMicRef.current = stream;
+    const enhanced = await enhanceCallMicrophone(stream);
+    voiceStopRef.current = enhanced.stop;
+    const local = enhanced.stream;
+    localStreamRef.current = local;
+    setLocalStream(local);
+    setCameraEnabled(wantsVideo && local.getVideoTracks().some((t) => t.enabled));
+    return local;
   }, []);
 
   const flushIce = useCallback(async (pc: RTCPeerConnection) => {
@@ -182,63 +223,100 @@ export function usePeerCall({
     if (existing && existing.connectionState !== "closed") {
       return existing;
     }
+    if (creatingPcRef.current) return creatingPcRef.current;
 
-    const cfg =
-      rtcConfiguration ??
-      rtcConfigRef.current ??
-      (await fetchWebRtcIceConfiguration());
-    rtcConfigRef.current = cfg;
+    const pending = (async () => {
+      const epochAtStart = epochRef.current;
+      const again = pcRef.current;
+      if (again && again.connectionState !== "closed") return again;
 
-    const pc = new RTCPeerConnection(cfg);
-    pcRef.current = pc;
-
-    pc.onicecandidate = (ev) => {
-      if (ev.candidate) {
-        emitSignal({ type: "ice", candidate: ev.candidate.toJSON() });
+      const cfg =
+        rtcConfiguration ??
+        rtcConfigRef.current ??
+        (await fetchWebRtcIceConfiguration());
+      if (epochRef.current !== epochAtStart) {
+        const current = pcRef.current;
+        if (current) return current;
+        const abandoned = new RTCPeerConnection();
+        abandoned.close();
+        return abandoned;
       }
-    };
+      rtcConfigRef.current = cfg;
 
-    pc.ontrack = (ev) => {
-      const [first] = ev.streams;
-      if (first) {
-        remoteStreamRef.current = first;
-        setRemoteStream(first);
-        return;
-      }
-      const merged = remoteStreamRef.current ?? new MediaStream();
-      if (!merged.getTracks().some((track) => track.id === ev.track.id)) {
-        merged.addTrack(ev.track);
-      }
-      remoteStreamRef.current = merged;
-      setRemoteStream(merged);
-    };
+      const current = pcRef.current;
+      if (current && current.connectionState !== "closed") return current;
 
-    pc.onconnectionstatechange = () => {
-      const cs = pc.connectionState;
-      if (cs === "connected") {
-        setState("connected");
-        onConnectedRef.current?.();
-      } else if (cs === "failed") {
-        setState("failed");
-        onFailedRef.current?.("Call disconnected. If you are not on the same Wi‑Fi, try again in a moment.");
-        onConnectionLostRef.current?.();
-      }
-    };
+      const pc = new RTCPeerConnection(cfg);
+      pcRef.current = pc;
 
-    const local = await ensureLocalStream();
-    for (const track of local.getTracks()) {
-      pc.addTrack(track, local);
+      pc.onicecandidate = (ev) => {
+        if (ev.candidate) {
+          emitSignal({ type: "ice", candidate: ev.candidate.toJSON() });
+        }
+      };
+
+      pc.ontrack = (ev) => {
+        const [first] = ev.streams;
+        if (first) {
+          remoteStreamRef.current = first;
+          setRemoteStream(first);
+          return;
+        }
+        const merged = remoteStreamRef.current ?? new MediaStream();
+        if (!merged.getTracks().some((track) => track.id === ev.track.id)) {
+          merged.addTrack(ev.track);
+        }
+        remoteStreamRef.current = merged;
+        setRemoteStream(merged);
+      };
+
+      pc.onconnectionstatechange = () => {
+        const cs = pc.connectionState;
+        if (cs === "connected") {
+          setState("connected");
+          onConnectedRef.current?.();
+        } else if (cs === "failed") {
+          setState("failed");
+          onFailedRef.current?.("Call disconnected. If you are not on the same Wi‑Fi, try again in a moment.");
+          onConnectionLostRef.current?.();
+        }
+      };
+
+      const local = await ensureLocalStream();
+      if (epochRef.current !== epochAtStart || pcRef.current !== pc || pc.connectionState === "closed") {
+        pc.close();
+        if (pcRef.current === pc) pcRef.current = null;
+        const current = pcRef.current;
+        return current ?? pc;
+      }
+      for (const track of local.getTracks()) {
+        pc.addTrack(track, local);
+      }
+
+      return pc;
+    })();
+
+    creatingPcRef.current = pending;
+    try {
+      return await pending;
+    } finally {
+      if (creatingPcRef.current === pending) creatingPcRef.current = null;
     }
-
-    return pc;
   }, [emitSignal, ensureLocalStream]);
 
   const handleRemoteSignal = useCallback(
     async (payload: CallSignalPayload) => {
+      const epoch = epochRef.current;
+      const live = () => epochRef.current === epoch;
+      const key = signalKey(payload);
+      if (payload.type !== "hangup" && appliedSignalsRef.current.has(key)) return;
+
       const pc = pcRef.current ?? (await createPeerConnection());
+      if (!live() || pc.connectionState === "closed") return;
       const polite = politeRef.current;
 
       if (payload.type === "hangup") {
+        appliedSignalsRef.current.add(key);
         onRemoteHangupRef.current?.();
         cleanup();
         return;
@@ -252,14 +330,31 @@ export function usePeerCall({
 
         const offer = asSdp(payload.sdp, "offer");
         if (!offer.sdp) return;
-        if (answeredRef.current && pc.currentRemoteDescription?.sdp === offer.sdp) return;
-        try {
-          await pc.setRemoteDescription(offer);
-        } catch {
+        if (pc.currentRemoteDescription?.sdp === offer.sdp) {
+          appliedSignalsRef.current.add(key);
           return;
         }
+        try {
+          if (offerCollision && pc.signalingState === "have-local-offer") {
+            await pc.setLocalDescription({ type: "rollback" });
+          }
+          if (!live()) return;
+          await pc.setRemoteDescription(offer);
+        } catch (error) {
+          if (isBenignSignalingError(error)) return;
+          throw error;
+        }
+        if (!live()) return;
+        appliedSignalsRef.current.add(key);
         await flushIce(pc);
+        if (
+          pc.signalingState !== "have-remote-offer" &&
+          pc.signalingState !== "have-local-pranswer"
+        ) {
+          return;
+        }
         const answer = await pc.createAnswer();
+        if (!live()) return;
         await pc.setLocalDescription(answer);
         answeredRef.current = true;
         emitSignal({ type: "answer", sdp: answer });
@@ -268,13 +363,19 @@ export function usePeerCall({
       }
 
       if (payload.type === "answer") {
-        if (pc.signalingState === "have-local-offer") {
-          const answer = asSdp(payload.sdp, "answer");
-          if (!answer.sdp) return;
+        if (pc.signalingState !== "have-local-offer") return;
+        const answer = asSdp(payload.sdp, "answer");
+        if (!answer.sdp) return;
+        try {
           await pc.setRemoteDescription(answer);
-          answeredRef.current = true;
-          await flushIce(pc);
+        } catch (error) {
+          if (isBenignSignalingError(error)) return;
+          throw error;
         }
+        if (!live()) return;
+        appliedSignalsRef.current.add(key);
+        answeredRef.current = true;
+        await flushIce(pc);
         return;
       }
 
@@ -286,8 +387,10 @@ export function usePeerCall({
         }
         try {
           await pc.addIceCandidate(payload.candidate);
-        } catch {
-          /* ignore stale ICE */
+          appliedSignalsRef.current.add(key);
+        } catch (error) {
+          if (isBenignSignalingError(error)) return;
+          /* stale ICE from the other path */
         }
       }
     },
@@ -299,36 +402,57 @@ export function usePeerCall({
   const handleRemoteSignalRef = useRef(handleRemoteSignal);
   handleRemoteSignalRef.current = handleRemoteSignal;
 
+  const enqueueSignalRef = useRef<(payload: CallSignalPayload) => void>(() => undefined);
+
   useEffect(() => {
     if (!enabled || !callId || !signalingRoomId || !userId) return;
+
+    const epoch = ++epochRef.current;
+    answeredRef.current = false;
+    makingOfferRef.current = false;
+    appliedSignalsRef.current = new Set();
+    pendingIceRef.current = [];
+    signalChainRef.current = Promise.resolve();
 
     let cancelled = false;
     let session: VoiceSignalSession | null = null;
     let offerTimer: ReturnType<typeof setTimeout> | null = null;
     const offered = { current: false };
+    const live = () => !cancelled && epochRef.current === epoch;
 
     const fail = (message: string) => {
-      if (cancelled) return;
+      if (!live()) return;
       setState("failed");
       onFailedRef.current?.(message);
     };
 
+    const enqueueSignal = (payload: CallSignalPayload) => {
+      signalChainRef.current = signalChainRef.current
+        .then(async () => {
+          if (!live()) return;
+          await handleRemoteSignalRef.current(payload);
+        })
+        .catch((error: unknown) => {
+          if (!live() || isBenignSignalingError(error)) return;
+          fail("An error occurred while processing signaling.");
+        });
+    };
+    enqueueSignalRef.current = enqueueSignal;
+
     const maybeOffer = async () => {
-      if (!isCallerRef.current || cancelled) return;
+      if (!isCallerRef.current || !live()) return;
+      if (offered.current) {
+        const local = pcRef.current?.localDescription;
+        if (local?.type === "offer") emitSignal({ type: "offer", sdp: local });
+        return;
+      }
+      offered.current = true;
       try {
         const pc = await createPeerConnectionRef.current();
-        if (cancelled) return;
-        if (offered.current) {
-          const local = pc.localDescription;
-          if (local?.type === "offer") {
-            emitSignal({ type: "offer", sdp: local });
-          }
-          return;
-        }
-        offered.current = true;
+        if (!live()) return;
         makingOfferRef.current = true;
         const offer = await pc.createOffer();
-        if (cancelled) return;
+        if (!live()) return;
         await pc.setLocalDescription(offer);
         emitSignal({ type: "offer", sdp: offer });
       } catch (e) {
@@ -343,13 +467,13 @@ export function usePeerCall({
       try {
         setState("connecting");
         const rtcConfiguration = await fetchWebRtcIceConfiguration();
-        if (cancelled) return;
+        if (!live()) return;
 
         session = await openVoiceSignalChannel({
           signalingRoomId,
           userId,
           onSignal: (fromUserId, signal) => {
-            if (cancelled || fromUserId !== peerUserIdRef.current) return;
+            if (!live() || fromUserId !== peerUserIdRef.current) return;
             if (signal.type === "hello") {
               if (!isCallerRef.current) sessionSendRef.current({ type: "ready" });
               return;
@@ -358,25 +482,36 @@ export function usePeerCall({
               void maybeOffer();
               return;
             }
-            void handleRemoteSignalRef.current(signal).catch(() => {
-              fail("An error occurred while processing signaling.");
-            });
+            enqueueSignal(signal);
           },
         });
 
-        if (cancelled) {
+        if (!live()) {
           session?.close();
           return;
         }
         if (session) {
           sessionSendRef.current = session.send;
         } else if (!socketRef.current?.connected) {
-          fail("Could not connect to the signaling server.");
-          return;
+          const sock = socketRef.current;
+          if (sock) {
+            await new Promise<void>((resolve) => {
+              const timer = window.setTimeout(resolve, 4000);
+              sock.once("connect", () => {
+                window.clearTimeout(timer);
+                resolve();
+              });
+            });
+          }
+          if (!live()) return;
+          if (!socketRef.current?.connected) {
+            fail("Could not connect to the signaling server.");
+            return;
+          }
         }
 
         await createPeerConnectionRef.current(rtcConfiguration);
-        if (cancelled) return;
+        if (!live()) return;
         session?.send({ type: "hello" });
         if (session && !isCaller) session.send({ type: "ready" });
 
@@ -388,7 +523,7 @@ export function usePeerCall({
 
         for (const queued of initialSignalsRef.current ?? []) {
           if (queued.callId !== callId || queued.fromUserId !== peerUserIdRef.current) continue;
-          void handleRemoteSignalRef.current(queued.payload);
+          enqueueSignal(queued.payload);
         }
       } catch (e) {
         fail(e instanceof Error ? e.message : "Media connection failed.");
@@ -397,9 +532,8 @@ export function usePeerCall({
 
     const retry = isCaller
       ? setTimeout(() => {
-          if (answeredRef.current || cancelled) return;
-          const pc = pcRef.current;
-          const local = pc?.localDescription;
+          if (answeredRef.current || !live()) return;
+          const local = pcRef.current?.localDescription;
           if (local?.type === "offer" && local.sdp) {
             emitSignal({ type: "offer", sdp: local });
           }
@@ -408,6 +542,8 @@ export function usePeerCall({
 
     return () => {
       cancelled = true;
+      epochRef.current += 1;
+      enqueueSignalRef.current = () => undefined;
       if (offerTimer) clearTimeout(offerTimer);
       if (retry) clearTimeout(retry);
       sessionSendRef.current = () => undefined;
@@ -420,9 +556,7 @@ export function usePeerCall({
     if (!enabled || !socket) return;
     const onSignal = (data: CallSignalEvent) => {
       if (data.callId !== callIdRef.current || data.fromUserId !== peerUserIdRef.current) return;
-      void handleRemoteSignalRef.current(data.payload).catch(() => {
-        onFailedRef.current?.("An error occurred while processing signaling.");
-      });
+      enqueueSignalRef.current(data.payload);
     };
     socket.on("call_signal", onSignal);
     return () => {
@@ -431,6 +565,9 @@ export function usePeerCall({
   }, [enabled, socket]);
 
   const setMic = useCallback((on: boolean) => {
+    for (const track of rawMicRef.current?.getAudioTracks() ?? []) {
+      track.enabled = on;
+    }
     for (const track of localStreamRef.current?.getAudioTracks() ?? []) {
       track.enabled = on;
     }

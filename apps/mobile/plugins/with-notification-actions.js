@@ -58,8 +58,8 @@ function injectIosCategories(appDelegate) {
         title: "",
         icon: UNNotificationActionIcon(templateImageName: "notification-action-reply"),
         options: [],
-        textInputButtonTitle: "전송",
-        textInputPlaceholder: "답글…"
+        textInputButtonTitle: "Send",
+        textInputPlaceholder: "Reply…"
       )
       let star = UNNotificationAction(
         identifier: "post_star",

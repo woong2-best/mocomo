@@ -4,7 +4,6 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { Mic, MicOff, PhoneOff, SwitchCamera, Video, VideoOff, Volume2, VolumeX } from "lucide-react";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 function ControlIcon({
@@ -44,21 +43,23 @@ export function PeerCallControlBar({
   video = false,
   micEnabled,
   cameraEnabled,
+  speakerOn,
   onToggleMic,
   onToggleCamera,
   onFlipCamera,
+  onToggleSpeaker,
   onHangup,
 }: {
   video?: boolean;
   micEnabled: boolean;
   cameraEnabled: boolean;
+  speakerOn: boolean;
   onToggleMic: () => void;
   onToggleCamera: () => void;
   onFlipCamera: () => void;
+  onToggleSpeaker: () => void;
   onHangup: () => void;
 }) {
-  const [speakerOn, setSpeakerOn] = useState(true);
-
   return (
     <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-safe pt-6">
       <div className="mx-auto flex max-w-md items-center justify-center">
@@ -90,7 +91,7 @@ export function PeerCallControlBar({
           <ControlIcon
             active={speakerOn}
             label={speakerOn ? t("call.shhcshs") : t("call.shhi1d4")}
-            onClick={() => setSpeakerOn((v) => !v)}
+            onClick={onToggleSpeaker}
           >
             {speakerOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
           </ControlIcon>

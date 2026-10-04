@@ -20,7 +20,6 @@ import {
   weekdayLabels,
   type CalendarCell,
 } from "@/lib/kr-calendar";
-import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
@@ -347,6 +346,37 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
 
       {loadError ? <Text style={styles.errorText}>{t("m.profile.could_not_load_memos")}</Text> : null}
 
+      {target ? (
+        <View style={styles.memoSection}>
+          <Text style={styles.sheetTitle}>{memoTitle}</Text>
+          {memoSubtitle ? <Text style={styles.sheetHoliday}>{memoSubtitle}</Text> : null}
+          <TextInput
+            style={[styles.memoInput, !editingDay && styles.memoInputReadonly]}
+            value={memoDraft}
+            onChangeText={setMemoDraft}
+            placeholder={editingDay ? t("m.profile.memo_for_this_day") : undefined}
+            placeholderTextColor={colors.textMuted}
+            multiline
+            editable={editingDay}
+            autoFocus={editingDay}
+          />
+          <View style={styles.sheetActions}>
+            <FolkButton
+              label={editingDay ? t("toast.cancel") : t("common.close")}
+              variant="ghost"
+              onPress={() => setTarget(null)}
+            />
+            {editingDay ? (
+              <FolkButton
+                label={saving ? t("m.common.saving") : t("m.common.save")}
+                loading={saving}
+                onPress={() => void saveMemo()}
+              />
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+
       <Modal
         visible={monthPickerOpen}
         transparent
@@ -399,44 +429,6 @@ export function ProfileCalendarPanel({ countryCode, timeZone }: Props) {
           </View>
         </View>
       </Modal>
-
-      <KeyboardSheet
-        visible={!!target}
-        onClose={() => setTarget(null)}
-        maxHeight="55%"
-        sheetStyle={{ backgroundColor: colors.surfaceRaised }}
-      >
-        {target ? (
-          <>
-            <Text style={styles.sheetTitle}>{memoTitle}</Text>
-            {memoSubtitle ? <Text style={styles.sheetHoliday}>{memoSubtitle}</Text> : null}
-            <TextInput
-              style={[styles.memoInput, !editingDay && styles.memoInputReadonly]}
-              value={memoDraft}
-              onChangeText={setMemoDraft}
-              placeholder={editingDay ? t("m.profile.memo_for_this_day") : undefined}
-              placeholderTextColor={colors.textMuted}
-              multiline
-              editable={editingDay}
-              autoFocus={editingDay}
-            />
-            <View style={styles.sheetActions}>
-              <FolkButton
-                label={editingDay ? t("toast.cancel") : t("common.close")}
-                variant="ghost"
-                onPress={() => setTarget(null)}
-              />
-              {editingDay ? (
-                <FolkButton
-                  label={saving ? t("m.common.saving") : t("m.common.save")}
-                  loading={saving}
-                  onPress={() => void saveMemo()}
-                />
-              ) : null}
-            </View>
-          </>
-        ) : null}
-      </KeyboardSheet>
     </View>
   );
 }
@@ -661,6 +653,15 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     },
     pickerMonthTextActive: {
       color: red,
+    },
+    memoSection: {
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: cellBorder,
+      backgroundColor: colors.surfaceRaised,
     },
     sheetTitle: { fontSize: 17, fontWeight: "800", color: colors.text },
     sheetHoliday: { color: colors.terracotta, fontWeight: "700", marginTop: 4 },

@@ -17,6 +17,8 @@ import {
   Text,
   TextInput,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
@@ -143,6 +145,8 @@ export function FeedScreen() {
   const [searchQ, setSearchQ] = useState("");
   const [searchSubmitted, setSearchSubmitted] = useState("");
   const [isFeedScrolling, setIsFeedScrolling] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const showScrollTopRef = useRef(false);
   const searchRef = useRef<TextInput>(null);
   const firstPaintMarked = useRef(false);
   const activePreviewIdRef = useRef<string | null>(null);
@@ -237,11 +241,41 @@ export function FeedScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
+  const hideScrollTop = useCallback(() => {
+    if (!showScrollTopRef.current) return;
+    showScrollTopRef.current = false;
+    setShowScrollTop(false);
+  }, []);
+
   const onComposePosted = useCallback(async () => {
     resetFeedPostOffset();
     feedListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    hideScrollTop();
     await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
-  }, [queryClient]);
+  }, [hideScrollTop, queryClient]);
+
+  const onFeedScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const next = e.nativeEvent.contentOffset.y > 80;
+    if (next === showScrollTopRef.current) return;
+    showScrollTopRef.current = next;
+    setShowScrollTop(next);
+  }, []);
+
+  const scrollFeedToTop = useCallback(() => {
+    feedListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    hideScrollTop();
+  }, [hideScrollTop]);
+
+  const composeHeader = useMemo(
+    () => (
+      <InlineComposeBox
+        avatarUrl={user?.image}
+        avatarLetter={user?.name || user?.username || "?"}
+        onPosted={() => void onComposePosted()}
+      />
+    ),
+    [onComposePosted, user?.image, user?.name, user?.username]
+  );
 
   const onDrawerNavigate = useCallback(
     (route: DrawerRoute) => {
@@ -500,22 +534,7 @@ export function FeedScreen() {
         </View>
       ) : null}
 
-      <InlineComposeBox
-        avatarUrl={user?.image}
-        avatarLetter={user?.name || user?.username || "?"}
-        onPosted={() => void onComposePosted()}
-      />
-
-      {query.isLoading && posts.length === 0 ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.terracotta} />
-        </View>
-      ) : query.isError && posts.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.error}>{t("m.feed.could_not_load_feed")}</Text>
-          <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
-        </View>
-      ) : (
+      <View style={styles.feedWrap}>
         <FlashList
           ref={feedListRef}
           data={feedItems}
@@ -526,6 +545,10 @@ export function FeedScreen() {
           getItemType={getItemType}
           extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${isFeedScrolling ? 1 : 0}:${visiblePostIds.join(",")}`}
           drawDistance={PerformanceBudgets.feedDrawDistance}
+          ListHeaderComponent={composeHeader}
+          keyboardShouldPersistTaps="handled"
+          onScroll={onFeedScroll}
+          scrollEventThrottle={16}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           onScrollBeginDrag={() => setIsFeedScrolling(true)}
@@ -551,13 +574,38 @@ export function FeedScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.muted}>{t("m.common.no_posts_yet")}</Text>
-            </View>
+            query.isLoading ? (
+              <View style={styles.center}>
+                <ActivityIndicator color={colors.terracotta} />
+              </View>
+            ) : query.isError ? (
+              <View style={styles.center}>
+                <Text style={styles.error}>{t("m.feed.could_not_load_feed")}</Text>
+                <FolkButton label={t("toast.retry")} onPress={() => void query.refetch()} />
+              </View>
+            ) : (
+              <View style={styles.center}>
+                <Text style={styles.muted}>{t("m.common.no_posts_yet")}</Text>
+              </View>
+            )
           }
           contentContainerStyle={{ paddingBottom: bottomPad }}
         />
-      )}
+
+        {showScrollTop ? (
+          <View style={styles.scrollTopWrap} pointerEvents="box-none">
+            <Pressable
+              onPress={scrollFeedToTop}
+              hitSlop={8}
+              style={({ pressed }) => [styles.scrollTopBtn, pressed && styles.scrollTopBtnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t("m.feed.scroll_to_top")}
+            >
+              <Ionicons name="chevron-up" size={22} color={styles.headerIcon.color} />
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
 
       {drawerReady || drawerOpen ? <FeedSideDrawerHost
         visible={drawerOpen}
@@ -746,6 +794,35 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       height: 36,
       alignItems: "center",
       justifyContent: "center",
+    },
+    feedWrap: {
+      flex: 1,
+    },
+    scrollTopWrap: {
+      position: "absolute",
+      top: 8,
+      left: 0,
+      right: 0,
+      alignItems: "center",
+      zIndex: 20,
+    },
+    scrollTopBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceRaised,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+      elevation: 6,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.35 : 0.18,
+      shadowRadius: 6,
+    },
+    scrollTopBtnPressed: {
+      opacity: 0.82,
     },
     alarmDot: {
       position: "absolute",

@@ -10,7 +10,6 @@ import { PeerCallControlBar } from "@/components/call/peer-call-control-bar";
 import { CallTopBar } from "@/components/call/call-top-bar";
 import { CallRingingStage } from "@/components/call/call-overlay";
 import { CallInviteSheet } from "@/components/call/call-invite-sheet";
-import { CallSettingsSheet } from "@/components/call/call-settings-sheet";
 import type { Socket } from "socket.io-client";
 import type { CallParticipant } from "@/lib/call-types";
 import type { CallSignalEvent } from "@/lib/peer-call/types";
@@ -33,15 +32,21 @@ function VideoAttach({ stream, className }: { stream: MediaStream | null; classN
   return <video ref={ref} autoPlay playsInline muted className={className} />;
 }
 
-function AudioAttach({ stream }: { stream: MediaStream | null }) {
+function AudioAttach({ stream, speakerOn }: { stream: MediaStream | null; speakerOn: boolean }) {
   const ref = useRef<HTMLAudioElement>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     el.srcObject = stream;
-    el.volume = 1;
-    void el.play().catch(() => undefined);
-  }, [stream]);
+    el.muted = !speakerOn;
+    el.volume = speakerOn ? 1 : 0;
+    const play = () => {
+      void el.play().catch(() => undefined);
+    };
+    play();
+    el.addEventListener("canplay", play);
+    return () => el.removeEventListener("canplay", play);
+  }, [stream, speakerOn]);
   return <audio ref={ref} autoPlay playsInline />;
 }
 
@@ -157,7 +162,7 @@ export function PeerCallRoom({
   onCallFailed?: () => void;
 }) {
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(true);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const onPeerFailed = useCallback((msg: string) => setError(msg), []);
@@ -187,19 +192,16 @@ export function PeerCallRoom({
     return () => clearInterval(id);
   }, [phase]);
 
-  if (error) {
-    return (
-      <div className="flex h-full items-center justify-center bg-black px-6">
-        <p className="text-center text-sm text-red-400">{error}</p>
-      </div>
-    );
-  }
-
   if (enabled && peerCall.state === "connecting") {
     return (
       <div className="relative flex h-full min-h-0 flex-col bg-gradient-to-b from-zinc-900 via-black to-zinc-950 text-white">
-        <AudioAttach stream={peerCall.remoteStream} />
+        <AudioAttach stream={peerCall.remoteStream} speakerOn={speakerOn} />
         <CallTopBar onMinimize={onMinimize} />
+        {error ? (
+          <p className="absolute inset-x-4 top-14 z-30 rounded-xl bg-red-500/20 px-3 py-2 text-center text-xs text-red-200">
+            {error}
+          </p>
+        ) : null}
         <CallRingingStage
           peer={peer}
           isVideo={video}
@@ -211,9 +213,11 @@ export function PeerCallRoom({
             video={video}
             micEnabled={peerCall.micEnabled}
             cameraEnabled={peerCall.cameraEnabled}
+            speakerOn={speakerOn}
             onToggleMic={() => peerCall.setMic(!peerCall.micEnabled)}
             onToggleCamera={() => peerCall.setCamera(!peerCall.cameraEnabled)}
             onFlipCamera={() => void peerCall.flipCamera()}
+            onToggleSpeaker={() => setSpeakerOn((on) => !on)}
             onHangup={() => {
               peerCall.hangup();
               onHangup();
@@ -226,11 +230,10 @@ export function PeerCallRoom({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-black text-white">
-      <AudioAttach stream={peerCall.remoteStream} />
+      <AudioAttach stream={peerCall.remoteStream} speakerOn={speakerOn} />
       <CallTopBar
         onMinimize={onMinimize}
         onInvite={() => setInviteOpen(true)}
-        onSettings={() => setSettingsOpen(true)}
       />
 
       <div className="min-h-0 flex-1">
@@ -258,23 +261,24 @@ export function PeerCallRoom({
         video={video}
         micEnabled={peerCall.micEnabled}
         cameraEnabled={peerCall.cameraEnabled}
+        speakerOn={speakerOn}
         onToggleMic={() => peerCall.setMic(!peerCall.micEnabled)}
         onToggleCamera={() => peerCall.setCamera(!peerCall.cameraEnabled)}
         onFlipCamera={() => void peerCall.flipCamera()}
+        onToggleSpeaker={() => setSpeakerOn((on) => !on)}
         onHangup={() => {
           peerCall.hangup();
           onHangup();
         }}
       />
 
-      <CallInviteSheet open={inviteOpen} onClose={() => setInviteOpen(false)} peer={peer} />
-      {settingsOpen ? (
-        <CallSettingsSheet
-          open={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-          localStream={peerCall.localStream}
-        />
+      {error ? (
+        <p className="absolute inset-x-4 top-14 z-30 rounded-xl bg-red-500/20 px-3 py-2 text-center text-xs text-red-200">
+          {error}
+        </p>
       ) : null}
+
+      <CallInviteSheet open={inviteOpen} onClose={() => setInviteOpen(false)} peer={peer} />
     </div>
   );
 }

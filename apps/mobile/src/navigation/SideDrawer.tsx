@@ -4,7 +4,6 @@ import {
   AppState,
   type AppStateStatus,
   Easing,
-  Linking,
   Modal,
   Pressable,
   StyleSheet,
@@ -23,16 +22,12 @@ import { AccountsBottomSheet } from "@/features/account/AccountMenuSheet";
 import { ProfileFollowListSheet } from "@/features/profile/ProfileFollowListSheet";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
-import { API_BASE_URL } from "@/config/env";
 import { DrawerSubcultureMapCard } from "@/navigation/DrawerSubcultureMapCard";
 import { prefetchDrawerRoute, warmDrawerBundles } from "@/navigation/tab-warmup";
 import type { DrawerRoute } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { FOLK_EXPLORE_ACCENT, radii, spacing, type ThemeColors } from "@/theme/tokens";
-
-/** Web `/events/new` — ad registration (EventCreateForm, daily MOCO billing). */
-const AD_REGISTER_URL = `${API_BASE_URL.replace(/\/$/, "")}/events/new`;
 
 export type { DrawerRoute } from "@/navigation/types";
 
@@ -43,28 +38,21 @@ type Props = {
   onAddAccountLogin?: (intent: "signin" | "signup") => void;
 };
 
-type ExploreItem =
-  | {
-      route: DrawerRoute;
-      labelKey: string;
-      icon: keyof typeof Ionicons.glyphMap;
-      accent?: boolean;
-    }
-  | {
-      externalUrl: string;
-      label: string;
-      icon: keyof typeof Ionicons.glyphMap;
-      accent?: boolean;
-    };
+type ExploreItem = {
+  route: DrawerRoute;
+  labelKey: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  accent?: boolean;
+};
 
 const EXPLORE: ExploreItem[] = [
-  { route: "LiveList", labelKey: "nav.live", icon: "radio-outline", accent: true },
   { route: "Used", labelKey: "nav.market", icon: "cart-outline", accent: true },
+  { route: "LiveList", labelKey: "nav.live", icon: "radio-outline", accent: true },
   { route: "StarList", labelKey: "nav.star", icon: "star-outline" },
   { route: "CommunityList", labelKey: "nav.communities", icon: "people-outline" },
   { route: "AnimeList", labelKey: "nav.anime", icon: "book-outline" },
-  { externalUrl: AD_REGISTER_URL, label: "Ad", icon: "megaphone-outline", accent: true },
   { route: "Wallet", labelKey: "nav.wallet", icon: "wallet-outline" },
+  { route: "LiveStudio", labelKey: "nav.studio", icon: "tv-outline", accent: true },
 ];
 
 const OPEN_MS = 280;
@@ -398,36 +386,19 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
             <View style={styles.menuBlock}>
               <Text style={styles.sectionTitle}>{t("nav.explore")}</Text>
-              {EXPLORE.map((item) =>
-                "externalUrl" in item ? (
-                  <DrawerRow
-                    key={item.label}
-                    label={item.label}
-                    icon={item.icon}
-                    iconColor={item.accent ? FOLK_EXPLORE_ACCENT : rowIcon}
-                    labelColor={item.accent ? FOLK_EXPLORE_ACCENT : rowLabel}
-                    chevronColor={rowChevron}
-                    rowHeight={layout.rowH}
-                    onPress={() => {
-                      setAccountSheetOpen(false);
-                      onClose();
-                      void Linking.openURL(item.externalUrl).catch(() => undefined);
-                    }}
-                  />
-                ) : (
-                  <DrawerRow
-                    key={item.route}
-                    label={t(item.labelKey)}
-                    icon={item.icon}
-                    iconColor={item.accent ? FOLK_EXPLORE_ACCENT : rowIcon}
-                    labelColor={item.accent ? FOLK_EXPLORE_ACCENT : rowLabel}
-                    chevronColor={rowChevron}
-                    rowHeight={layout.rowH}
-                    onPressIn={() => prefetch(item.route)}
-                    onPress={() => go(item.route)}
-                  />
-                )
-              )}
+              {EXPLORE.map((item) => (
+                <DrawerRow
+                  key={item.route}
+                  label={t(item.labelKey)}
+                  icon={item.icon}
+                  iconColor={item.accent ? FOLK_EXPLORE_ACCENT : rowIcon}
+                  labelColor={item.accent ? FOLK_EXPLORE_ACCENT : rowLabel}
+                  chevronColor={rowChevron}
+                  rowHeight={layout.rowH}
+                  onPressIn={() => prefetch(item.route)}
+                  onPress={() => go(item.route)}
+                />
+              ))}
             </View>
 
             <DrawerSubcultureMapCard

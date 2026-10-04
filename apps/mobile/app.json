@@ -2,7 +2,7 @@
   "expo": {
     "name": "MoCoMo",
     "slug": "mocomo",
-    "version": "1.0.198",
+    "version": "1.0.199",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -39,7 +39,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "거래 장소에 도착했는지 확인할 때만, 앱을 사용하는 동안 위치를 한 번 사용합니다."
+          "locationWhenInUsePermission": "MoCoMo uses your location once while the app is open to confirm arrival at a meetup place."
         }
       ],
       "@maplibre/maplibre-react-native"
@@ -56,13 +56,13 @@
         "NSPhotoLibraryUsageDescription": "???? ???????????????? ?????????????",
         "NSCameraUsageDescription": "???? ?????????? ?????????????????",
         "NSMicrophoneUsageDescription": "??? ??? ???????????????????????????????",
-        "NSLocationWhenInUseUsageDescription": "거래 장소에 도착했는지 확인할 때만, 앱을 사용하는 동안 위치를 한 번 사용합니다."
+        "NSLocationWhenInUseUsageDescription": "MoCoMo uses your location once while the app is open to confirm arrival at a meetup place."
       }
     },
     "android": {
       "package": "net.mocomo.app",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 209,
+      "versionCode": 405,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#F5F0E8",

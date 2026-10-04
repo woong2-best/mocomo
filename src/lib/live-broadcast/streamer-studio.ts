@@ -7,6 +7,10 @@ import {
   type EffectiveBroadcastRole,
 } from "@/lib/live-broadcast/permissions";
 import { isBroadcastPickCategory } from "@/lib/live-categories";
+import {
+  normalizeScheduleWeekdays,
+  parseScheduleTime,
+} from "@/lib/live-broadcast/weekly-schedule";
 
 export async function getStreamerStaffRole(
   hostUserId: string,
@@ -350,4 +354,68 @@ export function normalizeStudioCategory(
   if (!cat) return null;
   if (!isBroadcastPickCategory(cat)) return null;
   return cat;
+}
+
+export type StudioSettingsInput = {
+  defaultTitle?: string;
+  defaultCategory?: LiveStreamCategory | null;
+  announcement?: string;
+  bio?: string;
+  scheduleNote?: string;
+  scheduleWeekdays?: number[];
+  scheduleTime?: string | null;
+};
+
+export async function getStreamerStudioSettings(userId: string) {
+  const profile = await db.streamerProfile.findUnique({
+    where: { userId },
+  });
+  return {
+    bio: profile?.bio ?? "",
+    announcement: profile?.announcement ?? "",
+    scheduleNote: profile?.scheduleNote ?? "",
+    scheduleWeekdays: normalizeScheduleWeekdays(profile?.scheduleWeekdays ?? []),
+    scheduleTime: profile?.scheduleTime ?? "",
+    defaultTitle: profile?.defaultTitle ?? "",
+    defaultCategory: (profile?.defaultCategory ?? "JUST_CHATTING") as LiveStreamCategory,
+  };
+}
+
+export async function updateStreamerStudioSettings(userId: string, data: StudioSettingsInput) {
+  const category = normalizeStudioCategory(data.defaultCategory);
+  const weekdays =
+    data.scheduleWeekdays !== undefined
+      ? normalizeScheduleWeekdays(data.scheduleWeekdays)
+      : undefined;
+  const scheduleTime =
+    data.scheduleTime !== undefined ? parseScheduleTime(data.scheduleTime) : undefined;
+
+  await db.streamerProfile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      defaultTitle: data.defaultTitle?.trim().slice(0, 120) || null,
+      defaultCategory: category,
+      announcement: data.announcement?.trim().slice(0, 500) || null,
+      bio: data.bio?.trim().slice(0, 500) || null,
+      scheduleNote: data.scheduleNote?.trim().slice(0, 300) || null,
+      scheduleWeekdays: weekdays ?? [],
+      scheduleTime: scheduleTime ?? null,
+    },
+    update: {
+      ...(data.defaultTitle !== undefined
+        ? { defaultTitle: data.defaultTitle.trim().slice(0, 120) || null }
+        : {}),
+      ...(data.defaultCategory !== undefined ? { defaultCategory: category } : {}),
+      ...(data.announcement !== undefined
+        ? { announcement: data.announcement.trim().slice(0, 500) || null }
+        : {}),
+      ...(data.bio !== undefined ? { bio: data.bio.trim().slice(0, 500) || null } : {}),
+      ...(data.scheduleNote !== undefined
+        ? { scheduleNote: data.scheduleNote.trim().slice(0, 300) || null }
+        : {}),
+      ...(weekdays !== undefined ? { scheduleWeekdays: weekdays } : {}),
+      ...(scheduleTime !== undefined ? { scheduleTime } : {}),
+    },
+  });
 }

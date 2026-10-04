@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+  Dimensions,
   Modal,
   Pressable,
   ScrollView,
@@ -10,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileCalendarPanel } from "@/features/profile/ProfileCalendarPanel";
+import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -29,9 +31,14 @@ export function ProfileCalendarSheet({
   timeZone,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const keyboardHeight = useKeyboardBottomInset();
   const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const sheetHeight = useMemo(
+    () => Math.round(Dimensions.get("window").height * 0.88),
+    []
+  );
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -40,7 +47,11 @@ export function ProfileCalendarSheet({
         <View
           style={[
             styles.sheet,
-            { paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12) },
+            {
+              height: sheetHeight,
+              paddingTop: 12,
+              paddingBottom: Math.max(insets.bottom, 12),
+            },
           ]}
         >
           <View style={styles.header}>
@@ -56,9 +67,13 @@ export function ProfileCalendarSheet({
             </Pressable>
           </View>
           <ScrollView
+            style={styles.scroll}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.scrollBody}
+            contentContainerStyle={[
+              styles.scrollBody,
+              { paddingBottom: spacing.lg + keyboardHeight },
+            ]}
           >
             <ProfileCalendarPanel countryCode={countryCode} timeZone={timeZone} />
           </ScrollView>
@@ -76,7 +91,6 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: "rgba(0,0,0,0.45)",
     },
     sheet: {
-      maxHeight: "88%",
       backgroundColor: colors.background,
       borderTopLeftRadius: radii.lg,
       borderTopRightRadius: radii.lg,
@@ -99,6 +113,7 @@ function createStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
     },
-    scrollBody: { paddingBottom: spacing.sm },
+    scroll: { flex: 1 },
+    scrollBody: { flexGrow: 1 },
   });
 }

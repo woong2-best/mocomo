@@ -68,6 +68,7 @@ export function warmDrawerBundles(): void {
   void import("@/features/events/EventsListScreen");
   void import("@/features/events/EventsMapScreen");
   void import("@/features/settings/SettingsScreen");
+  void import("@/features/live/LiveStudioScreen");
   void import("@/features/legal/LegalPoliciesScreen");
 }
 
@@ -230,6 +231,20 @@ export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute
       void queryClient.prefetchQuery({
         queryKey: ["mobile-events-map", true],
         queryFn: () => fetchEventsMap({ global: true }),
+        staleTime: STALE_MS,
+      });
+      return;
+    case "LiveStudio":
+      void queryClient.prefetchQuery({
+        queryKey: ["mobile-live-studio"],
+        queryFn: () =>
+          import("@/api/live-studio").then((mod) => mod.fetchStudioSettings()),
+        staleTime: STALE_MS,
+      });
+      void queryClient.prefetchQuery({
+        queryKey: ["mobile-live-studio-accounts"],
+        queryFn: () =>
+          import("@/api/live-studio").then((mod) => mod.fetchStudioAccounts()),
         staleTime: STALE_MS,
       });
       return;
