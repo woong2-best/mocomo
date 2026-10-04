@@ -16,10 +16,13 @@ export type OverlayTokenPayload = {
   exp: number;
   /** VoiceChannel.createdAt unix sec — binds token to one broadcast session */
   broadcastSid?: number;
+  /** Set on Live Studio links. Equals channelId and follows the host's current broadcast. */
+  hostUserId?: string;
 };
 
 const CHAT_TTL_SEC = 48 * 3600;
 const DONATION_TTL_SEC = 7 * 24 * 3600;
+const HOST_OVERLAY_TTL_SEC = 180 * 24 * 3600;
 
 function b64url(buf: Buffer | string): string {
   const b = typeof buf === "string" ? Buffer.from(buf, "utf8") : buf;
@@ -43,7 +46,7 @@ export function overlayBroadcastSid(createdAt: Date): number {
 export function mintOverlayToken(
   channelId: string,
   kind: "chat" | "donation",
-  opts?: { broadcastSid?: number; ttlSec?: number }
+  opts?: { broadcastSid?: number; ttlSec?: number; hostUserId?: string }
 ): string | null {
   const sec = secret();
   if (!sec) return null;
@@ -53,15 +56,26 @@ export function mintOverlayToken(
     kind,
     exp: Math.floor(Date.now() / 1000) + ttl,
     ...(opts?.broadcastSid != null ? { broadcastSid: opts.broadcastSid } : {}),
+    ...(opts?.hostUserId ? { hostUserId: opts.hostUserId } : {}),
   };
   const body = b64url(JSON.stringify(payload));
   const sig = b64url(createHmac("sha256", sec).update(body).digest());
   return `${body}.${sig}`;
 }
 
-export function verifyOverlayToken(
-  token: string,
-  expected: { channelId: string; kind: "chat" | "donation" }
+/** Live Studio browser source. Stays valid across broadcasts for this host. */
+export function mintHostOverlayToken(
+  hostUserId: string,
+  kind: "chat" | "donation"
+): string | null {
+  return mintOverlayToken(hostUserId, kind, {
+    hostUserId,
+    ttlSec: HOST_OVERLAY_TTL_SEC,
+  });
+}
+
+function parseOverlayToken(
+  token: string
 ): { ok: true; payload: OverlayTokenPayload } | { ok: false; error: string } {
   const sec = secret();
   if (!sec) return { ok: false, error: "Overlay secret is not configured." };
@@ -77,12 +91,21 @@ export function verifyOverlayToken(
   } catch {
     return { ok: false, error: "Invalid token signature." };
   }
-  let payload: OverlayTokenPayload;
   try {
-    payload = JSON.parse(fromB64url(body).toString("utf8")) as OverlayTokenPayload;
+    const payload = JSON.parse(fromB64url(body).toString("utf8")) as OverlayTokenPayload;
+    return { ok: true, payload };
   } catch {
     return { ok: false, error: "Could not read token." };
   }
+}
+
+export function verifyOverlayToken(
+  token: string,
+  expected: { channelId: string; kind: "chat" | "donation" }
+): { ok: true; payload: OverlayTokenPayload } | { ok: false; error: string } {
+  const parsed = parseOverlayToken(token);
+  if (!parsed.ok) return parsed;
+  const { payload } = parsed;
   if (payload.channelId !== expected.channelId || payload.kind !== expected.kind) {
     return { ok: false, error: "Token audience does not match." };
   }
@@ -90,4 +113,20 @@ export function verifyOverlayToken(
     return { ok: false, error: "Token expired." };
   }
   return { ok: true, payload };
+}
+
+export function verifyHostOverlayToken(
+  token: string,
+  kind: "chat" | "donation"
+): { ok: true; payload: OverlayTokenPayload & { hostUserId: string } } | { ok: false; error: string } {
+  const parsed = parseOverlayToken(token);
+  if (!parsed.ok) return parsed;
+  const { payload } = parsed;
+  if (!payload.hostUserId || payload.hostUserId !== payload.channelId || payload.kind !== kind) {
+    return { ok: false, error: "Token audience does not match." };
+  }
+  if (payload.exp < Math.floor(Date.now() / 1000)) {
+    return { ok: false, error: "Token expired." };
+  }
+  return { ok: true, payload: { ...payload, hostUserId: payload.hostUserId } };
 }

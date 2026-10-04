@@ -13,14 +13,19 @@ import {
 export function OverlayChatClient({
   channelId,
   token,
+  feedPath,
+  platformChatPath,
 }: {
   channelId: string;
   token: string;
+  feedPath?: string;
+  platformChatPath?: string;
 }) {
   const { t } = useLocale();
   const { messages, meta, platformReady, platformError, state, error } = useObsChatFeed(
     channelId,
-    token
+    token,
+    { feedPath, platformChatPath }
   );
 
   const waitingText =

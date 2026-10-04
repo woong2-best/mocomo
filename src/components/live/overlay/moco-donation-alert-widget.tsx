@@ -24,9 +24,11 @@ function playSfx(src: string | null, onDone: () => void) {
 export function MocoDonationAlertWidget({
   channelId,
   token,
+  apiBase,
 }: {
   channelId: string;
   token: string;
+  apiBase?: string;
 }) {
   const { t } = useLocale();
   const [current, setCurrent] = useState<MocoDonationPayload | null>(null);
@@ -39,7 +41,7 @@ export function MocoDonationAlertWidget({
   const notifyPlaying = useCallback(
     async (donationId: string) => {
       try {
-        await fetch(`/api/overlay/${channelId}/moco-donations`, {
+        await fetch(apiBase ?? `/api/overlay/${channelId}/moco-donations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token, donation_id: donationId, action: "playing" }),
@@ -48,13 +50,13 @@ export function MocoDonationAlertWidget({
         /* ignore */
       }
     },
-    [channelId, token]
+    [apiBase, channelId, token]
   );
 
   const notifyComplete = useCallback(
     async (donationId: string) => {
       try {
-        await fetch(`/api/overlay/${channelId}/moco-donations`, {
+        await fetch(apiBase ?? `/api/overlay/${channelId}/moco-donations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token, donation_id: donationId, action: "complete" }),
@@ -63,7 +65,7 @@ export function MocoDonationAlertWidget({
         /* ignore */
       }
     },
-    [channelId, token]
+    [apiBase, channelId, token]
   );
 
   const currentRef = useRef<MocoDonationPayload | null>(null);
@@ -141,7 +143,8 @@ export function MocoDonationAlertWidget({
 
     async function poll() {
       try {
-        const res = await fetch(`/api/overlay/${channelId}/moco-donations?token=${encodeURIComponent(token)}`);
+        const base = apiBase ?? `/api/overlay/${channelId}/moco-donations`;
+        const res = await fetch(`${base}?token=${encodeURIComponent(token)}`);
         if (!res.ok) return;
         const data = (await res.json()) as { donations?: MocoDonationPayload[] };
         if (!cancelled && data.donations?.length) enqueue(data.donations);
@@ -152,6 +155,11 @@ export function MocoDonationAlertWidget({
 
     void poll();
     const id = setInterval(() => void poll(), 5000);
+
+    if (!channelId) return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
 
     const socket = io({ path: "/socket.io", transports: ["websocket", "polling"] });
     socketRef.current = socket;
@@ -172,7 +180,7 @@ export function MocoDonationAlertWidget({
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [channelId, token, enqueue, finishCurrent]);
+  }, [apiBase, channelId, token, enqueue, finishCurrent]);
 
   if (!current) return null;
 

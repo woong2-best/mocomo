@@ -56,9 +56,11 @@ function SideAlertCard({ item }: { item: AlertItem }) {
 export function OverlayDonationClient({
   channelId,
   token,
+  alertsPath,
 }: {
   channelId: string;
   token: string;
+  alertsPath?: string;
 }) {
   const [visible, setVisible] = useState<AlertItem[]>([]);
   const seen = useRef(new Set<string>());
@@ -72,7 +74,8 @@ export function OverlayDonationClient({
     async function tick() {
       try {
         const q = new URLSearchParams({ token, since: sinceRef.current });
-        const res = await fetch(`/api/overlay/${channelId}/alerts?${q}`);
+        const path = alertsPath ?? `/api/overlay/${channelId}/alerts`;
+        const res = await fetch(`${path}?${q}`);
         if (!res.ok) return;
         const data = (await res.json()) as { alerts: AlertItem[] };
         if (cancelled || !data.alerts?.length) return;
@@ -107,7 +110,7 @@ export function OverlayDonationClient({
       window.clearInterval(poll);
       window.clearInterval(show);
     };
-  }, [channelId, token]);
+  }, [alertsPath, channelId, token]);
 
   return (
     <div

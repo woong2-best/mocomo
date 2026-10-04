@@ -18,6 +18,10 @@ import { checkYoutubeMadeForKids } from "@/lib/live-external/youtube-kids";
 import { probeChzzkEmbed } from "@/lib/live-external/chzzk-probe";
 import { mintOverlayToken, overlayBroadcastSid } from "@/lib/live-external/overlay-token";
 import { buildYoutubeNativeObsChatSetup } from "@/lib/live-external/youtube-obs-chat";
+import {
+  mintOverlayUrlsForOwner,
+  mintStudioObsChatForUser,
+} from "@/lib/live-external/studio-obs-url";
 import { platformToLiveExternal } from "@/lib/streaming-accounts/types";
 import {
   getAccountTokens,
@@ -234,54 +238,13 @@ function afterNotify(hostId: string, channelId: string, title: string) {
 
 export async function mintLiveOverlayUrls(channelId: string) {
   const user = await requireAuthMinimal();
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: {
-      createdBy: true,
-      createdAt: true,
-      externalProvider: true,
-      externalId: true,
-    },
-  });
-  if (!channel || channel.createdBy !== user.id) {
-    return { error: "actions.url_2" };
-  }
-  const broadcastSid = overlayBroadcastSid(channel.createdAt);
-  const chatToken = mintOverlayToken(channelId, "chat", { broadcastSid });
-  const donationToken = mintOverlayToken(channelId, "donation", { broadcastSid });
-  if (!chatToken || !donationToken) {
-    return { error: "actions.live_overlay_secret_auth_secret" };
-  }
-
-  const youtubeNative =
-    channel.externalProvider === "YOUTUBE" && channel.externalId
-      ? buildYoutubeNativeObsChatSetup(channel.externalId, "")
-      : null;
-
-  return {
-    chatUrl: `/obs/chat/${channelId}?token=${encodeURIComponent(chatToken)}`,
-    donationUrl: `/overlay/donation/${channelId}?token=${encodeURIComponent(donationToken)}`,
-    mocoWidgetUrl: `/widget/alert?streamer_id=${encodeURIComponent(channelId)}&token=${encodeURIComponent(donationToken)}`,
-    youtubeNative,
-  };
+  return mintOverlayUrlsForOwner(user.id, channelId);
 }
 
 /** Live Studio — mint OBS chat URL for the host's current live/scheduled broadcast. */
 export async function mintStudioObsChatUrl() {
   const user = await requireAuthMinimal();
-  const { activeHostBroadcastWhere } = await import(
-    "@/lib/live-broadcast/session-queries"
-  );
-  const channel = await db.voiceChannel.findFirst({
-    where: activeHostBroadcastWhere(user.id),
-    orderBy: { createdAt: "desc" },
-    select: { id: true },
-  });
-  if (!channel) {
-    const { t } = await getServerTranslator();
-    return { errorKey: "live.obsChat.noActiveBroadcast" as const, error: "live.obsChat.noActiveBroadcast" };
-  }
-  return mintLiveOverlayUrls(channel.id);
+  return mintStudioObsChatForUser(user.id);
 }
 
 export async function getVerifiedStreamingAccountsForLive() {

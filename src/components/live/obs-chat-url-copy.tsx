@@ -31,16 +31,16 @@ export function ObsChatUrlCopy({
   className,
 }: Props) {
   const { t } = useLocale();
-  const [obsChatUrl, setObsChatUrl] = useState<string | null>(null);
+  const [urls, setUrls] = useState<{ chat: string; video: string; chatTip: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"chat" | "video" | "chatTip" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    setObsChatUrl(null);
+    setUrls(null);
 
     void (async () => {
       const res = channelId
@@ -54,7 +54,12 @@ export function ObsChatUrlCopy({
       }
       if ("chatUrl" in res && res.chatUrl) {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
-        setObsChatUrl(`${origin}${res.chatUrl}`);
+        const abs = (path: string | null | undefined) => (path ? `${origin}${path}` : "");
+        setUrls({
+          chat: abs(res.chatUrl),
+          video: "mocoWidgetUrl" in res ? abs(res.mocoWidgetUrl) : "",
+          chatTip: "donationUrl" in res ? abs(res.donationUrl) : "",
+        });
       }
       setLoading(false);
     })();
@@ -64,16 +69,16 @@ export function ObsChatUrlCopy({
     };
   }, [channelId]);
 
-  const copyUrl = useCallback(async () => {
-    if (!obsChatUrl) return;
+  const copyUrl = useCallback(async (kind: "chat" | "video" | "chatTip", value: string) => {
+    if (!value) return;
     try {
-      await navigator.clipboard.writeText(obsChatUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(value);
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 2000);
     } catch {
       /* ignore */
     }
-  }, [obsChatUrl]);
+  }, []);
 
   if (variant === "compact") {
     return (
@@ -83,18 +88,18 @@ export function ObsChatUrlCopy({
           size="sm"
           variant="secondary"
           className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-semibold"
-          disabled={!obsChatUrl || loading}
-          onClick={() => void copyUrl()}
-          title={obsChatUrl ?? error ?? t("live.obsChat.title")}
+          disabled={!urls?.chat || loading}
+          onClick={() => void copyUrl("chat", urls?.chat ?? "")}
+          title={urls?.chat ?? error ?? t("live.obsChat.title")}
         >
           {loading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : copied ? (
+          ) : copied === "chat" ? (
             <Check className="h-3.5 w-3.5" />
           ) : (
             <Copy className="h-3.5 w-3.5" />
           )}
-          {copied ? t("live.obsChat.copied") : t("live.obsChat.compactLabel")}
+          {copied === "chat" ? t("live.obsChat.copied") : t("live.obsChat.compactLabel")}
         </Button>
       </div>
     );
@@ -118,18 +123,36 @@ export function ObsChatUrlCopy({
         </p>
       ) : error ? (
         <p className="text-xs text-muted-foreground">{error}</p>
-      ) : obsChatUrl ? (
-        <>
-          <Button
-            type="button"
-            className="w-full sm:w-auto gap-2 font-semibold rounded-xl"
-            onClick={() => void copyUrl()}
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? t("live.obsChat.copied") : t("live.obsChat.copy")}
-          </Button>
-          <p className="break-all font-mono text-[10px] text-muted-foreground">{obsChatUrl}</p>
-        </>
+      ) : urls ? (
+        <ul className="space-y-3">
+          {(
+            [
+              ["chat", t("live.obsChat.chat"), urls.chat],
+              ["video", t("live.obsChat.videoDonation"), urls.video],
+              ["chatTip", t("live.obsChat.chatDonation"), urls.chatTip],
+            ] as const
+          ).map(([kind, label, value]) =>
+            value ? (
+              <li key={kind} className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{label}</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-lg"
+                    onClick={() => void copyUrl(kind, value)}
+                  >
+                    {copied === kind ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied === kind ? t("live.obsChat.copied") : t("live.obsChat.copy")}
+                  </Button>
+                </div>
+                <p className="break-all rounded-md bg-muted/50 px-2 py-1.5 font-mono text-[10px] text-muted-foreground">
+                  {value}
+                </p>
+              </li>
+            ) : null
+          )}
+        </ul>
       ) : null}
     </div>
   );

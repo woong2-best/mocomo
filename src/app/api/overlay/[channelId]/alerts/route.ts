@@ -1,22 +1,13 @@
 import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { assertOverlayBroadcastAccess } from "@/lib/live-external/overlay-access";
+import { listOverlayAlerts } from "@/lib/live-external/overlay-alerts";
 
-export type OverlayAlertItem = {
-  id: string;
-  kind: "tip" | "cheer" | "chat";
-  username: string;
-  amount: number;
-  message: string | null;
-  at: string;
-  eventType?: string;
-  rouletteLabel?: string;
-};
+export const dynamic = "force-dynamic";
 
-/** OBS 브라우저 소스 — 라이브 페이지 후원·CP·채팅 알림 (token auth) */
+/** OBS browser source — chat tips, cheers, and chat alerts. */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ channelId: string }> }
@@ -35,108 +26,15 @@ export async function GET(
 
   const broadcastAccess = await assertOverlayBroadcastAccess(channelId, verified.payload);
   if (!broadcastAccess.ok) {
-    return NextResponse.json({ error: errorText(broadcastAccess.error) }, { status: broadcastAccess.status });
+    return NextResponse.json(
+      { error: errorText(broadcastAccess.error) },
+      { status: broadcastAccess.status }
+    );
   }
 
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { createdBy: true, createdAt: true, donationAlertsOnStream: true },
-  });
-  if (!channel) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  const listed = await listOverlayAlerts(channelId, since);
+  if (!listed.ok) {
+    return NextResponse.json({ error: errorText(listed.error) }, { status: listed.status });
   }
-
-  if (!channel.donationAlertsOnStream) {
-    return NextResponse.json({ alerts: [] });
-  }
-
-  const requested = since ? new Date(since) : new Date(Date.now() - 10 * 60_000);
-  if (Number.isNaN(requested.getTime())) {
-    return NextResponse.json({ error: "Invalid since format." }, { status: 400 });
-  }
-  // Never reach behind the channel itself, whatever the caller asks for.
-  const sinceDate = new Date(Math.max(requested.getTime(), channel.createdAt.getTime()));
-
-  const [tips, cheers, chats] = await Promise.all([
-    db.tip.findMany({
-      where: {
-        receiverId: channel.createdBy,
-        channelId,
-        createdAt: { gt: sinceDate },
-      },
-      orderBy: { createdAt: "asc" },
-      take: 20,
-      select: {
-        id: true,
-        amount: true,
-        message: true,
-        createdAt: true,
-        sender: { select: { username: true } },
-      },
-    }),
-    db.liveSupportEvent.findMany({
-      where: { channelId, createdAt: { gt: sinceDate } },
-      orderBy: { createdAt: "asc" },
-      take: 20,
-      select: {
-        id: true,
-        type: true,
-        amount: true,
-        message: true,
-        metadata: true,
-        createdAt: true,
-        sender: { select: { username: true } },
-      },
-    }),
-    db.liveChatMessage.findMany({
-      where: {
-        channelId,
-        createdAt: { gt: sinceDate },
-      },
-      orderBy: { createdAt: "asc" },
-      take: 30,
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        user: { select: { username: true } },
-      },
-    }),
-  ]);
-
-  const alerts: OverlayAlertItem[] = [
-    ...tips.map((t) => ({
-      id: t.id,
-      kind: "tip" as const,
-      username: t.sender.username,
-      amount: t.amount,
-      message: t.message,
-      at: t.createdAt.toISOString(),
-    })),
-    ...cheers.map((c) => ({
-      id: c.id,
-      kind: "cheer" as const,
-      username: c.sender.username,
-      amount: c.amount,
-      message: c.message,
-      at: c.createdAt.toISOString(),
-      eventType: c.type,
-      rouletteLabel:
-        typeof (c.metadata as { rouletteLabel?: string } | null)?.rouletteLabel === "string"
-          ? (c.metadata as { rouletteLabel: string }).rouletteLabel
-          : undefined,
-    })),
-    ...chats
-      .filter((m) => m.content.trim().length > 0 && m.content.trim().length <= 120)
-      .map((m) => ({
-        id: `chat-${m.id}`,
-        kind: "chat" as const,
-        username: m.user.username,
-        amount: 0,
-        message: m.content.trim(),
-        at: m.createdAt.toISOString(),
-      })),
-  ].sort((a, b) => a.at.localeCompare(b.at));
-
-  return NextResponse.json({ alerts: alerts.slice(-24) });
+  return NextResponse.json({ alerts: listed.alerts });
 }

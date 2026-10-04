@@ -8,5 +8,5 @@ type Props = {
 
 /** Host-only: compact OBS chat URL copy on the live broadcast page. */
 export function ExternalLiveHostDashboard({ channelId }: Props) {
-  return <ObsChatUrlCopy channelId={channelId} variant="compact" className="mb-2" />;
+  return <ObsChatUrlCopy channelId={channelId} variant="full" className="mb-3" />;
 }

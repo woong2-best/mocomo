@@ -1,12 +1,12 @@
 import { errorText } from "@/lib/i18n/error-text";
 import { OverlayDonationClient } from "@/components/live/overlay/overlay-donation-client";
-import { MocoDonationAlertWidget } from "@/components/live/overlay/moco-donation-alert-widget";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 
 export const dynamic = "force-dynamic";
 
 /**
- * OBS Browser Source — 라이브 페이지 후원·CP·채팅 알림 (화면 오른쪽)
+ * OBS browser source — chat tips, cheers, and chat alerts only.
+ * Video tips use /widget/alert.
  * Example: /overlay/donation/{channelId}?token=...
  */
 export default async function OverlayDonationPage({
@@ -41,7 +41,6 @@ export default async function OverlayDonationPage({
 
   return (
     <div style={{ background: "transparent", minHeight: "100vh", margin: 0 }}>
-      <MocoDonationAlertWidget channelId={streamerId} token={token} />
       <OverlayDonationClient channelId={streamerId} token={token} />
     </div>
   );
