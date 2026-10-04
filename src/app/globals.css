@@ -1414,14 +1414,14 @@ html[data-client="app"] .native-live-pad {
   }
 
   .map-glass-pill {
-    @apply inline-flex items-center justify-center whitespace-nowrap text-xs font-semibold tracking-wide;
-    min-height: 2rem;
-    padding-inline: 1.35rem;
+    @apply inline-flex items-center justify-center whitespace-nowrap text-[11px] font-semibold tracking-wide;
+    min-height: 1.625rem;
+    padding-inline: 1.15rem;
     border-radius: 9999px;
   }
 
   .map-glass-icon-btn {
-    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold leading-none;
+    @apply inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold leading-none;
   }
 
   .folk-sidebar-panel:not(.mobile-drawer-panel) .folk-sidebar-legal {
