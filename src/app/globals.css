@@ -6,6 +6,7 @@
 @layer base {
   :root {
     --header-h: calc(3.5rem + env(safe-area-inset-top, 0px));
+    --ad-ratio: 2 / 3;
     --profile-compact-h: 3.25rem;
     /* Floating glass pill — parity with apps/mobile tab-layout.ts (68 + 10 + 14 + safe) */
     --mobile-nav-h: calc(92px + max(env(safe-area-inset-bottom, 0px), 8px));
@@ -1365,7 +1366,7 @@ html[data-client="app"] .native-live-pad {
   .right-panel-ad {
     flex: none;
     width: 100%;
-    aspect-ratio: 442 / 684;
+    aspect-ratio: var(--ad-ratio);
     overflow: hidden;
   }
 
@@ -1373,7 +1374,8 @@ html[data-client="app"] .native-live-pad {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    object-position: center top;
   }
 
   .right-panel-map {

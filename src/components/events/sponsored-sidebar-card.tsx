@@ -19,8 +19,7 @@ type SidebarAd = {
 
 const PLACEHOLDER_AD = "/ads/your-ad-here.jpg";
 
-/** Fills the fixed 442/684 frame. contain keeps the whole image, never cropped. */
-const AD_SLOT_CLASS = "block h-full w-full object-contain";
+const AD_SLOT_CLASS = "block h-full w-full";
 
 export function SponsoredSidebarCard({
   sidebarAds: _sidebarAds,
