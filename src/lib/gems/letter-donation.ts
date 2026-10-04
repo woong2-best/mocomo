@@ -11,11 +11,13 @@ import {
 import { notifyTip } from "@/lib/notifications";
 import { assertCreatorPayoutsEnabled } from "@/lib/creator-payout-ready";
 import { tierFromAmount } from "@/lib/tiers";
+import { joinMoco, mocoToTenths, parseSpendableMoco, splitUnsignedTenths } from "@/lib/moco/decimal-amount";
+import { ledgerCentsToMoco } from "@/lib/gems/display";
 
 export const LETTER_DONATION_GIFT_SOURCE = "letter_donation";
 
 function gemsToAmountCents(gems: number) {
-  return gems * MOCO_USD_CENTS;
+  return Math.round(gems * MOCO_USD_CENTS);
 }
 
 async function updateSupportStats(senderId: string, receiverId: string, amountCents: number) {
@@ -73,9 +75,11 @@ export async function spendMocoOnLetterDonation(input: {
   if (input.fanId === input.creatorId) {
     return { error: "You cannot send a letter to yourself." as const };
   }
-  if (!Number.isInteger(input.moco) || input.moco < LETTER_DONATION_MIN_MOCO) {
+  const moco = parseSpendableMoco(input.moco);
+  if (moco == null || moco < LETTER_DONATION_MIN_MOCO) {
     return { error: `최소 ${LETTER_DONATION_MIN_MOCO} MOCO부터 보낼 수 있습니다.` as const };
   }
+  const parts = splitUnsignedTenths(mocoToTenths(moco)!);
 
   const message = input.message.trim();
   if (!message) return { error: "Enter letter content." as const };
@@ -110,7 +114,7 @@ export async function spendMocoOnLetterDonation(input: {
     return { error: "The recipient is not in this conversation." as const };
   }
 
-  const amountCents = gemsToAmountCents(input.moco);
+  const amountCents = gemsToAmountCents(moco);
 
   try {
     const { tip, giftEvent } = await db.$transaction(async (tx) => {
@@ -128,13 +132,14 @@ export async function spendMocoOnLetterDonation(input: {
         data: {
           fanId: input.fanId,
           creatorId: input.creatorId,
-          gems: input.moco,
+          gems: parts.whole,
+          gemsTenths: parts.tenths,
           source: LETTER_DONATION_GIFT_SOURCE,
           contentId: tipRow.id,
         },
       });
 
-      await consumeGemsFifo(input.fanId, input.moco, giftEventRow.id, tx);
+      await consumeGemsFifo(input.fanId, moco, giftEventRow.id, tx);
 
       await tx.message.create({
         data: {
@@ -160,7 +165,7 @@ export async function spendMocoOnLetterDonation(input: {
     return {
       success: true as const,
       tipId: tip.id,
-      moco: input.moco,
+      moco,
       giftEventId: giftEvent.id,
       balance,
     };
@@ -194,7 +199,7 @@ export async function claimLetterDonationMoco(input: {
     return { error: "Permission denied." as const, status: 403 as const };
   }
 
-  const moco = Math.max(0, Math.floor(tip.amount / MOCO_USD_CENTS));
+  const moco = ledgerCentsToMoco(tip.amount);
   const tipPayload = {
     id: tip.id,
     amount: tip.amount,
@@ -213,7 +218,7 @@ export async function claimLetterDonationMoco(input: {
       contentId: tip.id,
       creatorId: tip.receiverId,
     },
-    select: { id: true, gems: true },
+    select: { id: true, gems: true, gemsTenths: true },
   });
 
   // Legacy Stripe letters — open UI only (settlement already handled at payment time)
@@ -225,23 +230,24 @@ export async function claimLetterDonationMoco(input: {
     where: {
       referenceType: "letter_donation_open",
       referenceId: tip.id,
-      delta: { gt: 0 },
+      OR: [{ delta: { gt: 0 } }, { deltaTenths: { gt: 0 } }],
     },
     select: { id: true },
   });
+  const creditedMoco = joinMoco(giftEvent.gems, giftEvent.gemsTenths);
   if (existingCredit) {
     return {
       success: true as const,
       tip: tipPayload,
       credited: false,
       alreadyCredited: true,
-      mocoCredited: giftEvent.gems,
+      mocoCredited: creditedMoco,
     };
   }
 
   await creditSettlementMoco({
     userId: tip.receiverId,
-    amount: giftEvent.gems,
+    amount: creditedMoco,
     reason: "Letter tip opened · MOCO received",
     referenceType: "letter_donation_open",
     referenceId: tip.id,
@@ -255,6 +261,6 @@ export async function claimLetterDonationMoco(input: {
     tip: tipPayload,
     credited: true,
     alreadyCredited: false,
-    mocoCredited: giftEvent.gems,
+    mocoCredited: creditedMoco,
   };
 }

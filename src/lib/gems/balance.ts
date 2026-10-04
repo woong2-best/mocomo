@@ -1,23 +1,30 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { joinMoco } from "@/lib/moco/decimal-amount";
 
-/** Recompute denormalized User.gemBalance from GemPurchase.remainingGems */
-export async function syncUserGemBalance(fanId: string) {
-  const agg = await db.gemPurchase.aggregate({
+type BalanceClient = Prisma.TransactionClient | typeof db;
+
+/** Recompute denormalized User.gemBalance (+ tenths) from GemPurchase rows. */
+export async function syncUserGemBalance(fanId: string, tx?: Prisma.TransactionClient) {
+  const client: BalanceClient = tx ?? db;
+  const agg = await client.gemPurchase.aggregate({
     where: { fanId, refunded: false },
-    _sum: { remainingGems: true },
+    _sum: { remainingGems: true, remainingTenths: true },
   });
-  const balance = agg._sum.remainingGems ?? 0;
-  await db.user.update({
+  const totalTenths = (agg._sum.remainingGems ?? 0) * 10 + (agg._sum.remainingTenths ?? 0);
+  const gemBalance = Math.floor(totalTenths / 10);
+  const gemBalanceTenths = totalTenths % 10;
+  await client.user.update({
     where: { id: fanId },
-    data: { gemBalance: balance },
+    data: { gemBalance, gemBalanceTenths },
   });
-  return balance;
+  return joinMoco(gemBalance, gemBalanceTenths);
 }
 
 export async function getUserGemBalance(fanId: string): Promise<number> {
   const user = await db.user.findUnique({
     where: { id: fanId },
-    select: { gemBalance: true },
+    select: { gemBalance: true, gemBalanceTenths: true },
   });
-  return user?.gemBalance ?? 0;
+  return joinMoco(user?.gemBalance ?? 0, user?.gemBalanceTenths ?? 0);
 }

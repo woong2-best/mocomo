@@ -18,11 +18,12 @@ import {
   LETTER_DONATION_MIN_MOCO,
 } from "@/lib/chat-letter-donation";
 import { useI18n } from "@/i18n/I18nProvider";
+import { formatMocoCount, parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco-amount";
 
 const PRESETS = [1, 2, 5, 10, 20];
 
 function formatMoco(moco: number) {
-  return `${Math.max(0, Math.floor(moco)).toLocaleString()} MOCO`;
+  return `${formatMocoCount(moco)} MOCO`;
 }
 
 type Props = {
@@ -54,7 +55,8 @@ export function LetterDonationSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const effectiveAmount = custom ? parseInt(custom.replace(/\D/g, ""), 10) || 0 : amount;
+  const customAmount = custom ? parseSpendableMoco(custom) : null;
+  const effectiveAmount = custom ? (customAmount ?? 0) : amount;
   const trimmed = message.trim();
 
   useEffect(() => {
@@ -143,9 +145,9 @@ export function LetterDonationSheet({
         style={styles.input}
         placeholder={t("m.payments.custom_amount_moco")}
         placeholderTextColor={colors.textMuted}
-        keyboardType="number-pad"
+        keyboardType="decimal-pad"
         value={custom}
-        onChangeText={setCustom}
+        onChangeText={(value) => setCustom(sanitizeMocoDecimalInput(value))}
       />
       <TextInput
         style={[styles.input, styles.messageInput]}

@@ -18,6 +18,7 @@ import { ApiError } from "@/api/client";
 import { isStripeAccountNotReady } from "@/lib/creator-payout";
 import { showIslandError } from "@/ui/IslandToast";
 import { transferMoco } from "@/api/moco-transfer";
+import { appendMocoDecimalChar, formatMocoCount, parseSpendableMoco } from "@/lib/moco-amount";
 import { ATM_LETTER_MESSAGE_MAX } from "@/lib/chat-atm-letter";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -141,10 +142,6 @@ function AtmActionKey({
   );
 }
 
-function sanitizeAmountInput(raw: string) {
-  return raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
-}
-
 export function WalletTransferPanel() {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -165,8 +162,12 @@ export function WalletTransferPanel() {
   });
 
   const held = gems.data?.balance ?? 0;
-  const parsed = /^\d+$/.test(amount) ? Number(amount) : null;
-  const displayAmount = amount ? Number(amount).toLocaleString() : "0";
+  const parsed = parseSpendableMoco(amount);
+  const displayAmount = amount.endsWith(".")
+    ? `${formatMocoCount(Number(amount.slice(0, -1) || "0"))}.`
+    : amount
+      ? formatMocoCount(Number(amount))
+      : "0";
 
   const mutation = useMutation({
     mutationFn: () => transferMoco(username.trim(), parsed ?? 0, letter),
@@ -203,8 +204,8 @@ export function WalletTransferPanel() {
 
   function appendDigit(digit: string) {
     if (pending || overlay) return;
-    const next = sanitizeAmountInput(amount + digit);
-    if (next.length > 7) return;
+    const next = appendMocoDecimalChar(amount, digit);
+    if (next === amount) return;
     setAmount(next);
     if (error) setError("");
     setStatusLine(t("m.wallet.confirm_amount_and_username_then_tap"));
@@ -218,14 +219,14 @@ export function WalletTransferPanel() {
 
   function send() {
     if (pending || overlay) return;
-    if (!username.trim() || parsed == null || parsed < 1) {
+    if (!username.trim() || parsed == null || parsed < 0.1) {
       const msg = t("m.wallet.enter_a_username_and_at_least");
       setError(msg);
       setStatusLine(msg);
       setOverlay("failure");
       return;
     }
-    if (parsed > held) {
+    if (Math.round(parsed * 10) > Math.round(held * 10)) {
       const msg = t("m.wallet.not_enough_purchased_moco_only_checkout");
       setError(msg);
       setStatusLine(msg);
@@ -295,7 +296,7 @@ export function WalletTransferPanel() {
 
               <View style={styles.earthForm}>
                 <Text style={styles.fieldKicker}>{t("m.wallet.purchased_moco_you_can_send")}</Text>
-                <Text style={styles.balanceLine}>{held.toLocaleString()} MOCO</Text>
+                <Text style={styles.balanceLine}>{formatMocoCount(held)} MOCO</Text>
 
                 <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.recipient_username")}</Text>
                 <TextInput
@@ -369,12 +370,11 @@ export function WalletTransferPanel() {
                   <AtmNumKey label="8" disabled={pending || !!overlay} onPress={() => appendDigit("8")} />
                   <AtmNumKey label="9" disabled={pending || !!overlay} onPress={() => appendDigit("9")} />
                 </View>
-                <AtmNumKey
-                  label="0"
-                  wide
-                  disabled={pending || !!overlay}
-                  onPress={() => appendDigit("0")}
-                />
+                <View style={styles.keyRow}>
+                  <AtmNumKey label="." disabled={pending || !!overlay} onPress={() => appendDigit(".")} />
+                  <AtmNumKey label="0" disabled={pending || !!overlay} onPress={() => appendDigit("0")} />
+                  <View style={styles.numKeySpacer} />
+                </View>
               </View>
               <View style={styles.keypadSide}>
                 <AtmActionKey
@@ -394,7 +394,7 @@ export function WalletTransferPanel() {
                     !!overlay ||
                     !username.trim() ||
                     parsed == null ||
-                    parsed < 1
+                    parsed < 0.1
                   }
                   tall
                   onPress={send}
@@ -712,6 +712,9 @@ const styles = StyleSheet.create({
     flex: 0,
     width: "100%",
     alignSelf: "stretch",
+  },
+  numKeySpacer: {
+    flex: 1,
   },
   numKeyFace: {
     flex: 1,

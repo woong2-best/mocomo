@@ -4,6 +4,8 @@
 
 import type { MocoTransactionType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { InsufficientGemsBalanceError, consumeGemPurchaseTenths } from "@/lib/gems/fifo";
+import { joinMoco, joinSignedMoco, mocoToTenths, splitSignedTenths } from "@/lib/moco/decimal-amount";
 
 type Tx = Prisma.TransactionClient;
 
@@ -16,32 +18,14 @@ export type RecordMocoBurnInput = {
   metadata?: Record<string, unknown>;
 };
 
-async function consumePurchasedGemsFifo(tx: Tx, userId: string, gems: number) {
-  if (gems <= 0) return;
-  const purchases = await tx.gemPurchase.findMany({
-    where: { fanId: userId, remainingGems: { gt: 0 }, refunded: false },
-    orderBy: { createdAt: "asc" },
-  });
-  let remaining = gems;
-  for (const purchase of purchases) {
-    if (remaining <= 0) break;
-    const deduct = Math.min(purchase.remainingGems, remaining);
-    await tx.gemPurchase.update({
-      where: { id: purchase.id },
-      data: { remainingGems: purchase.remainingGems - deduct },
-    });
-    remaining -= deduct;
+async function consumePurchasedGemsTenths(tx: Tx, userId: string, tenths: number) {
+  if (tenths <= 0) return;
+  try {
+    await consumeGemPurchaseTenths(tx, userId, tenths);
+  } catch (err) {
+    if (err instanceof InsufficientGemsBalanceError) throw new Error("INSUFFICIENT_MOCO");
+    throw err;
   }
-  if (remaining > 0) throw new Error("INSUFFICIENT_MOCO");
-
-  const agg = await tx.gemPurchase.aggregate({
-    where: { fanId: userId, refunded: false },
-    _sum: { remainingGems: true },
-  });
-  await tx.user.update({
-    where: { id: userId },
-    data: { gemBalance: agg._sum.remainingGems ?? 0 },
-  });
 }
 
 /** purchasedMoco(mocoPoints → gemBalance FIFO)에서 Burn + 원장 기록 (멱등) */
@@ -49,7 +33,8 @@ export async function burnPurchasedMocoWithHistory(
   tx: Tx,
   input: RecordMocoBurnInput
 ): Promise<{ recorded: boolean }> {
-  if (input.amountMoco <= 0) throw new Error("INVALID_MOCO_AMOUNT");
+  const needTenths = mocoToTenths(input.amountMoco);
+  if (needTenths == null) throw new Error("INVALID_MOCO_AMOUNT");
 
   const existing = await tx.mocoTransactionHistory.findUnique({
     where: {
@@ -62,25 +47,39 @@ export async function burnPurchasedMocoWithHistory(
     (await tx.platformWallet.findUnique({ where: { userId: input.userId } })) ??
     (await tx.platformWallet.create({ data: { userId: input.userId } }));
 
-  const fromPoints = Math.min(wallet.mocoPoints, input.amountMoco);
-  const fromGems = input.amountMoco - fromPoints;
+  const pointsAvailable = wallet.mocoPoints * 10 + wallet.mocoPointsTenths;
+  const fromPointsTenths = Math.min(pointsAvailable, needTenths);
+  const fromGemsTenths = needTenths - fromPointsTenths;
 
-  if (fromPoints > 0) {
+  if (fromPointsTenths > 0) {
+    const next = pointsAvailable - fromPointsTenths;
     const moved = await tx.platformWallet.updateMany({
-      where: { id: wallet.id, mocoPoints: { gte: fromPoints } },
-      data: { mocoPoints: { decrement: fromPoints } },
+      where: {
+        id: wallet.id,
+        mocoPoints: wallet.mocoPoints,
+        mocoPointsTenths: wallet.mocoPointsTenths,
+      },
+      data: {
+        mocoPoints: Math.floor(next / 10),
+        mocoPointsTenths: next % 10,
+      },
     });
     if (moved.count === 0) throw new Error("INSUFFICIENT_MOCO");
   }
 
-  if (fromGems > 0) {
-    await consumePurchasedGemsFifo(tx, input.userId, fromGems);
+  if (fromGemsTenths > 0) {
+    await consumePurchasedGemsTenths(tx, input.userId, fromGemsTenths);
   }
+
+  const signed = splitSignedTenths(-needTenths);
+  const fromPoints = joinMoco(0, fromPointsTenths);
+  const fromGems = joinMoco(0, fromGemsTenths);
 
   await tx.mocoTransactionHistory.create({
     data: {
       userId: input.userId,
-      amount: -input.amountMoco,
+      amount: signed.whole,
+      amountTenths: signed.tenths,
       type: input.type,
       reason: input.reason,
       referenceId: input.referenceId,
@@ -142,17 +141,26 @@ export function adPurchaseReason(days: number): string {
 export const AUCTION_PENALTY_REASON = "Auction win non-payment penalty deduction";
 
 export async function listMocoTransactionHistory(userId: string, take = 50) {
-  return db.mocoTransactionHistory.findMany({
+  const rows = await db.mocoTransactionHistory.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
     take,
     select: {
       id: true,
       amount: true,
+      amountTenths: true,
       type: true,
       reason: true,
       referenceId: true,
       createdAt: true,
     },
   });
+  return rows.map((row) => ({
+    id: row.id,
+    amount: joinSignedMoco(row.amount, row.amountTenths),
+    type: row.type,
+    reason: row.reason,
+    referenceId: row.referenceId,
+    createdAt: row.createdAt,
+  }));
 }

@@ -6,7 +6,7 @@ import { spendGemsOnGift } from "@/lib/gems/gift";
 import type { GiftEventSource } from "@/lib/gems/constants";
 
 function gemsToAmountCents(gems: number) {
-  return gems * MOCO_USD_CENTS;
+  return Math.round(gems * MOCO_USD_CENTS);
 }
 
 async function updateSupportStats(senderId: string, receiverId: string, amountCents: number) {

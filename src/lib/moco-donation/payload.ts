@@ -2,6 +2,7 @@ import type { MocoDonation } from "@prisma/client";
 import { extractYoutubeVideoId } from "@/lib/video-donation";
 import { resolveDonationSfx } from "@/lib/moco-donation/sfx-catalog";
 import type { MocoDonationPayload } from "@/lib/moco-donation/types";
+import { joinMoco } from "@/lib/moco/decimal-amount";
 
 type Row = MocoDonation & { user: { username: string } };
 
@@ -12,7 +13,7 @@ export function toMocoDonationPayload(row: Row): MocoDonationPayload {
     channelId: row.channelId,
     streamerId: row.streamerId,
     type: row.type,
-    mocoAmount: row.mocoAmount,
+    mocoAmount: joinMoco(row.mocoAmount, row.mocoAmountTenths),
     mediaUrl: row.mediaUrl,
     videoId: row.mediaUrl ? extractYoutubeVideoId(row.mediaUrl) : null,
     videoTitle: row.videoTitle,

@@ -5,11 +5,16 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { ATM_LETTER_MESSAGE_MAX } from "@/lib/chat-atm-letter";
 import { MAX_PEER_TRANSFER_MOCO, transferPurchasedMocoToUser } from "@/lib/moco/peer-transfer";
+import { parseSpendableMoco } from "@/lib/moco/decimal-amount";
 import { stripeAccountNotReadyPayload } from "@/lib/creator-payout-ready";
 
 const bodySchema = z.object({
   username: z.string().trim().min(1).max(32),
-  amount: z.number().int().positive().max(MAX_PEER_TRANSFER_MOCO),
+  amount: z
+    .number()
+    .positive()
+    .max(MAX_PEER_TRANSFER_MOCO)
+    .refine((value) => parseSpendableMoco(value) != null),
   message: z.string().max(ATM_LETTER_MESSAGE_MAX).optional(),
 });
 
@@ -54,7 +59,7 @@ export async function POST(req: NextRequest) {
     senderId: auth.user.id,
     senderUsername: auth.user.username,
     recipientUsername: parsed.data.username,
-    amount: parsed.data.amount,
+    amount: parseSpendableMoco(parsed.data.amount) ?? parsed.data.amount,
     message: parsed.data.message,
   });
   if ("error" in result) {

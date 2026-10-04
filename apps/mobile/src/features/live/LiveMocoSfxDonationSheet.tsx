@@ -20,6 +20,7 @@ import {
   MOCO_DONATION_MIN_SFX,
 } from "@/lib/moco-donation-sfx-catalog";
 import { mocoPurchaseTermsCopy } from "@/lib/gems/constants";
+import { parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco-amount";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
@@ -84,8 +85,8 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
       setError(t("m.live.enter_a_message_to_show_on"));
       return;
     }
-    const moco = Math.floor(Number(mocoAmount) || 0);
-    if (moco < MOCO_DONATION_MIN_SFX || moco > MOCO_DONATION_MAX_AMOUNT) {
+    const moco = parseSpendableMoco(mocoAmount);
+    if (moco == null || moco < MOCO_DONATION_MIN_SFX || moco > MOCO_DONATION_MAX_AMOUNT) {
       setError(
         t("m.live.moco_must_be_between_moco_donation", { MOCO_DONATION_MIN_SFX: String(MOCO_DONATION_MIN_SFX), MOCO_DONATION_MAX_AMOUNT: String(MOCO_DONATION_MAX_AMOUNT.toLocaleString()) })
       );
@@ -157,8 +158,8 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
         <TextInput
           style={styles.input}
           value={mocoAmount}
-          onChangeText={setMocoAmount}
-          keyboardType="number-pad"
+          onChangeText={(value) => setMocoAmount(sanitizeMocoDecimalInput(value))}
+          keyboardType="decimal-pad"
           placeholder={t("m.live.min_moco_donation_min_sfx", { MOCO_DONATION_MIN_SFX: String(MOCO_DONATION_MIN_SFX) })}
           placeholderTextColor={colors.textMuted}
         />

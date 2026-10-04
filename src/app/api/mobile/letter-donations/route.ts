@@ -6,6 +6,7 @@ import { getUserGemBalance } from "@/lib/gems/balance";
 import { spendMocoOnLetterDonation } from "@/lib/gems/letter-donation";
 import { stripeAccountNotReadyPayload } from "@/lib/creator-payout-ready";
 import { LETTER_DONATION_MIN_MOCO } from "@/lib/chat-letter-donation";
+import { parseSpendableMoco } from "@/lib/moco/decimal-amount";
 
 /** POST /api/mobile/letter-donations — spend MOCO, deliver sealed letter in DM */
 export async function POST(req: NextRequest) {
@@ -30,12 +31,14 @@ export async function POST(req: NextRequest) {
   const receiverId = body.receiverId?.trim() ?? "";
   const roomId = body.roomId?.trim() ?? "";
   const message = typeof body.message === "string" ? body.message : "";
-  const moco = typeof body.moco === "number" ? body.moco : Number.parseInt(String(body.moco ?? ""), 10);
+  const moco = parseSpendableMoco(
+    typeof body.moco === "number" ? body.moco : String(body.moco ?? "")
+  );
 
   if (!receiverId || !roomId) {
     return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
-  if (!Number.isInteger(moco) || moco < LETTER_DONATION_MIN_MOCO) {
+  if (moco == null || moco < LETTER_DONATION_MIN_MOCO) {
     return NextResponse.json(
       { error: `최소 ${LETTER_DONATION_MIN_MOCO} MOCO부터 보낼 수 있습니다.` },
       { status: 400 }

@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { MocoSettlementCycleStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { syncEarnedMocoDisplayTier } from "@/lib/settlement-moco/balance";
+import { joinMoco } from "@/lib/moco/decimal-amount";
 import { previousMonthEarnedPeriod, type MocoEarnedPeriod } from "@/lib/settlement-moco/cycle-period";
 import { isOnDemandPayoutEnabled } from "@/lib/settlement-moco/feature-flags";
 
@@ -67,7 +68,9 @@ export async function lockCreatorSettlementCycleInTx(
       walletId: wallet.id,
       bucket: "SETTLEMENT_MOCO",
       delta: -available,
+      deltaTenths: 0,
       balanceAfter: updated.settlementMocoPoints,
+      balanceAfterTenths: updated.settlementMocoPointsTenths,
       reason: "Monthly settlement lock (Available → Processing)",
       referenceType: "moco_settlement_cycle",
       referenceId: cycle.id,
@@ -78,7 +81,11 @@ export async function lockCreatorSettlementCycleInTx(
     },
   });
 
-  await syncEarnedMocoDisplayTier(userId, updated.settlementMocoPoints, tx);
+  await syncEarnedMocoDisplayTier(
+    userId,
+    joinMoco(updated.settlementMocoPoints, updated.settlementMocoPointsTenths),
+    tx
+  );
 
   return { ok: true, cycleId: cycle.id, lockedMoco: available };
 }

@@ -2,7 +2,7 @@
 
 export const ATM_LETTER_MESSAGE_MAX = 500;
 
-const MARKER_RE = /\[\[mocomo:atm-letter:(\d+)\]\]/i;
+const MARKER_RE = /\[\[mocomo:atm-letter:(\d+(?:\.\d)?)\]\]/i;
 
 export type ParsedAtmLetter = {
   amount: number;
@@ -14,7 +14,8 @@ export function parseAtmLetter(content: string | null | undefined): ParsedAtmLet
   const match = content.match(MARKER_RE);
   if (!match?.[1]) return null;
   const amount = Number(match[1]);
-  if (!Number.isInteger(amount) || amount < 1) return null;
+  if (!Number.isFinite(amount) || amount < 0.1) return null;
+  if (Math.abs(amount * 10 - Math.round(amount * 10)) > 1e-6) return null;
   const message = content.replace(MARKER_RE, "").trim();
   return { amount, message };
 }

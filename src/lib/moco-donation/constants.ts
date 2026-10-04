@@ -11,8 +11,8 @@ export const MOCO_DONATION_MIN_AMOUNT: Partial<Record<MocoDonationType, number>>
   VIDEO: number;
 } = {
   VIDEO: 1,
-  SFX: 1,
-  CHAT: 1,
+  SFX: 0.1,
+  CHAT: 0.1,
 };
 
 export const MOCO_DONATION_MAX_AMOUNT = 10_000;

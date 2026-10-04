@@ -42,7 +42,7 @@ export async function GET(
     return NextResponse.json({ error: "Permission denied." }, { status: 403 });
   }
 
-  const moco = Math.max(0, Math.floor(tip.amount / MOCO_USD_CENTS));
+  const moco = Math.round(Math.max(0, tip.amount) / (MOCO_USD_CENTS / 10)) / 10;
   const giftEvent = await db.giftEvent.findFirst({
     where: {
       source: LETTER_DONATION_GIFT_SOURCE,

@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   const result = await createMocoDonation({
     userId: userResult.userId,
     streamerId,
-    mocoAmount: body.moco_amount != null ? Math.floor(Number(body.moco_amount)) : undefined,
+    mocoAmount: body.moco_amount != null ? Number(body.moco_amount) : undefined,
     type: typeRaw,
     mediaUrl: body.media_url,
     message: body.message,

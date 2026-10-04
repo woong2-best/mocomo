@@ -5,15 +5,16 @@ import {
   creditCreatorAllocationCents,
   creatorAllocationCentsFromMoco,
 } from "@/lib/moco/topup-ledger";
+import { joinMoco, mocoToTenths, splitUnsignedTenths } from "@/lib/moco/decimal-amount";
 
 export type SettlementMocoBucket = "SETTLEMENT_MOCO";
 
 export async function getSettlementMocoBalance(userId: string): Promise<number> {
   const wallet = await db.platformWallet.findUnique({
     where: { userId },
-    select: { settlementMocoPoints: true },
+    select: { settlementMocoPoints: true, settlementMocoPointsTenths: true },
   });
-  return wallet?.settlementMocoPoints ?? 0;
+  return joinMoco(wallet?.settlementMocoPoints ?? 0, wallet?.settlementMocoPointsTenths ?? 0);
 }
 
 /** @deprecated earned MOCO는 후원 1:1 적립 — FX 변환 사용 안 함 */
@@ -50,7 +51,8 @@ export async function creditSettlementMocoInTx(
   tx: Prisma.TransactionClient,
   input: CreditSettlementMocoInput
 ) {
-  if (input.amount <= 0) return null;
+  const addTenths = mocoToTenths(input.amount);
+  if (addTenths == null) return null;
   const existingWallet = await tx.platformWallet.findUnique({ where: { userId: input.userId } });
   const wallet =
     existingWallet ?? (await tx.platformWallet.create({ data: { userId: input.userId } }));
@@ -62,7 +64,7 @@ export async function creditSettlementMocoInTx(
         bucket: "SETTLEMENT_MOCO",
         referenceType: input.referenceType,
         referenceId: input.referenceId,
-        delta: { gt: 0 },
+        OR: [{ delta: { gt: 0 } }, { deltaTenths: { gt: 0 } }],
       },
     });
     if (existing) {
@@ -70,17 +72,26 @@ export async function creditSettlementMocoInTx(
     }
   }
 
+  const next = splitUnsignedTenths(
+    wallet.settlementMocoPoints * 10 + wallet.settlementMocoPointsTenths + addTenths
+  );
+  const delta = splitUnsignedTenths(addTenths);
   const row = await tx.platformWallet.update({
     where: { id: wallet.id },
-    data: { settlementMocoPoints: { increment: input.amount } },
+    data: {
+      settlementMocoPoints: next.whole,
+      settlementMocoPointsTenths: next.tenths,
+    },
   });
 
   await tx.platformWalletLedger.create({
     data: {
       walletId: wallet.id,
       bucket: "SETTLEMENT_MOCO",
-      delta: input.amount,
+      delta: delta.whole,
+      deltaTenths: delta.tenths,
       balanceAfter: row.settlementMocoPoints,
+      balanceAfterTenths: row.settlementMocoPointsTenths,
       reason: input.reason,
       referenceType: input.referenceType,
       referenceId: input.referenceId,
@@ -88,7 +99,11 @@ export async function creditSettlementMocoInTx(
     },
   });
 
-  await syncEarnedMocoDisplayTier(input.userId, row.settlementMocoPoints, tx);
+  await syncEarnedMocoDisplayTier(
+    input.userId,
+    joinMoco(row.settlementMocoPoints, row.settlementMocoPointsTenths),
+    tx
+  );
   await creditCreatorAllocationCents(
     tx,
     input.userId,
@@ -99,7 +114,7 @@ export async function creditSettlementMocoInTx(
 
 /** 후원·전달 수령 시 earnedMoco 적립 (보유 MOCO에는 넣지 않음, 멱등) */
 export async function creditSettlementMoco(input: CreditSettlementMocoInput) {
-  if (input.amount <= 0) return null;
+  if (mocoToTenths(input.amount) == null) return null;
   await getOrCreatePlatformWallet(input.userId);
   return db.$transaction((tx) => creditSettlementMocoInTx(tx, input));
 }
@@ -128,7 +143,9 @@ export async function debitSettlementMocoForReward(input: {
         walletId: wallet.id,
         bucket: "SETTLEMENT_MOCO",
         delta: -deduct,
+        deltaTenths: 0,
         balanceAfter: updated.settlementMocoPoints,
+        balanceAfterTenths: updated.settlementMocoPointsTenths,
         reason: "Monthly settlement tier deduction",
         referenceType: "reward_payout_batch",
         referenceId: input.batchId,

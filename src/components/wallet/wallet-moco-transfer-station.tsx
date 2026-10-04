@@ -18,7 +18,11 @@ import {
 import { pushErrorToast } from "@/lib/published-toast-store";
 import { ATM_LETTER_MESSAGE_MAX } from "@/lib/chat-atm-letter";
 import { formatMocoDisplay } from "@/lib/gems/display";
-import { sanitizeMocoTopupInput } from "@/lib/gems/constants";
+import {
+  appendMocoDecimalChar,
+  mocoCovers,
+  parseSpendableMoco,
+} from "@/lib/moco/decimal-amount";
 import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +32,17 @@ type Props = {
 };
 
 type AtmOverlay = "success" | "failure" | null;
+
+function formatTypingMoco(raw: string): string {
+  if (!raw) return "0";
+  if (raw.endsWith(".")) {
+    const head = Number(raw.slice(0, -1) || "0");
+    return `${Number.isFinite(head) ? head.toLocaleString() : "0"}.`;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return raw;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
 
 function AtmNumKey({
   label,
@@ -113,8 +128,8 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
   const [atmOverlay, setAtmOverlay] = useState<AtmOverlay>(null);
   const [pending, startTransition] = useTransition();
 
-  const parsed = /^\d+$/.test(amount) ? Number(amount) : null;
-  const displayAmount = amount ? Number(amount).toLocaleString() : "0";
+  const parsed = parseSpendableMoco(amount);
+  const displayAmount = formatTypingMoco(amount);
   const blocked = recipientPayoutsEnabled === false;
 
   function lookup() {
@@ -145,8 +160,8 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
 
   function appendDigit(digit: string) {
     if (pending || atmOverlay) return;
-    const next = sanitizeMocoTopupInput(amount + digit).replace(/^0+(?=\d)/, "").slice(0, 7);
-    if (next === amount && digit === "0" && !amount) return;
+    const next = appendMocoDecimalChar(amount, digit);
+    if (next === amount) return;
     setAmount(next);
     if (error) setError("");
     setStatusLine(t("wallet.sceowmi"));
@@ -160,14 +175,14 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
 
   function send() {
     if (pending || atmOverlay) return;
-    if (!username.trim() || parsed == null || parsed < 1) {
+    if (!username.trim() || parsed == null || parsed < 0.1) {
       const msg = t("wallet.1_moco");
       setError(msg);
       setStatusLine(msg);
       setAtmOverlay("failure");
       return;
     }
-    if (parsed > balance) {
+    if (!mocoCovers(balance, parsed)) {
       const msg = t("wallet.moco_moco");
       setError(msg);
       setStatusLine(msg);
@@ -379,7 +394,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
                   !!atmOverlay ||
                   !username.trim() ||
                   parsed == null ||
-                  parsed < 1 ||
+                  parsed < 0.1 ||
                   blocked
                 }
                 onPress={send}
@@ -387,10 +402,16 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
               />
 
               <AtmNumKey
+                label="."
+                disabled={pending || !!atmOverlay}
+                onPress={() => appendDigit(".")}
+                className="col-start-1 row-start-4"
+              />
+              <AtmNumKey
                 label="0"
                 disabled={pending || !!atmOverlay}
                 onPress={() => appendDigit("0")}
-                className="col-span-3 col-start-1 row-start-4"
+                className="col-span-2 col-start-2 row-start-4"
               />
             </div>
           </div>

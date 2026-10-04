@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { quoteMocoTopupLedger } from "@/lib/moco/stripe-pass-through";
+import { MOCO_USD_CENTS } from "@/lib/gems/constants";
+import { quoteMocoTopupLedger, splitMocoFaceValueCents } from "@/lib/moco/stripe-pass-through";
 
 type Tx = Prisma.TransactionClient;
 
@@ -58,10 +59,12 @@ export async function creditCreatorAllocationCents(
   });
 }
 
-/** Earned MOCO from tips — face value × 95% (integer cents). */
+/** Earned MOCO from tips — face value × 95% (cents). 0.1 MOCO = $0.50 face. */
 export function creatorAllocationCentsFromMoco(moco: number): number {
-  const ledger = quoteMocoTopupLedger(Math.max(0, Math.floor(moco)));
-  return ledger.creatorAllocationCents;
+  if (!Number.isFinite(moco) || moco <= 0) return 0;
+  const basePriceCents = Math.round(moco * MOCO_USD_CENTS);
+  if (basePriceCents <= 0) return 0;
+  return splitMocoFaceValueCents(basePriceCents).creatorAllocationCents;
 }
 
 export async function getCreatorBalanceCents(creatorId: string): Promise<number> {

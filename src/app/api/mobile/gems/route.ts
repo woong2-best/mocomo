@@ -19,6 +19,7 @@ import {
   prepareCheckoutPaymentIntent,
 } from "@/lib/stripe-pay-intent-service";
 import { stripePaymentAuthenticateUrl } from "@/lib/stripe-payment-return-url";
+import { joinMoco } from "@/lib/moco/decimal-amount";
 
 /** GET — gem balance + packages (balance = web/mobile 동일 availableMoco) */
 export async function GET(req: NextRequest) {
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
         id: true,
         gems: true,
         remainingGems: true,
+        remainingTenths: true,
         krwAmount: true,
         refunded: true,
         refundedUsd: true,
@@ -55,8 +57,9 @@ export async function GET(req: NextRequest) {
     availableMocoBalance: snap.availableMocoBalance,
     minTopupMoco: MIN_MOCO_TOPUP_COUNT,
     termsCopy: GEM_PURCHASE_TERMS_COPY,
-    purchases: purchases.map((p) => ({
+    purchases: purchases.map(({ remainingTenths, remainingGems, ...p }) => ({
       ...p,
+      remainingGems: joinMoco(remainingGems, remainingTenths),
       createdAt: p.createdAt.toISOString(),
     })),
   });

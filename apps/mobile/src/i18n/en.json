@@ -2196,7 +2196,7 @@
   "m.wallet.earnings": "Earnings",
   "m.wallet.earnings_excel_export": "Earnings Excel export",
   "m.wallet.enabled_payouts_enabled": "Enabled (payouts_enabled)",
-  "m.wallet.enter_a_username_and_at_least": "Enter a username and at least 1 MOCO.",
+  "m.wallet.enter_a_username_and_at_least": "Enter a username and at least 0.1 MOCO.",
   "m.wallet.enter_moco_amount_to_send": "Enter MOCO amount to send.",
   "m.wallet.enter_recipient_username_and_moco_amount": "Enter recipient username and MOCO amount.",
   "m.wallet.example_sending_100_moco_adds_100": "Example: sending 100 MOCO adds 100 to their settlement; their purchased balance stays the same.",

@@ -300,6 +300,8 @@ model User {
   stripeCustomerId String? @unique
   /** 젬(Gems) 잔액 — GemPurchase.remainingGems 합과 동기화 */
   gemBalance Int @default(0)
+  /** 0–9, extra 0.1 MOCO on gemBalance (transfer · donation) */
+  gemBalanceTenths Int @default(0)
   /** 회원 탈퇴 요청 시각 (30일 복구 기간) */
   deletedAt           DateTime?
   /** 영구 삭제 예정 시각 — 탈퇴 시점 + 30일 */
@@ -2200,6 +2202,8 @@ model GemPurchase {
   krwAmount             Int
   gems                  Int
   remainingGems         Int
+  /** 0–9 leftover after remainingGems */
+  remainingTenths       Int      @default(0)
   pricePerGemUsd        Float
   stripePaymentIntentId String   @unique
   refunded              Boolean  @default(false)
@@ -2278,6 +2282,8 @@ model GiftEvent {
   fanId         String
   creatorId     String
   gems          Int
+  /** 0–9, so 0.1 MOCO is gems=0 gemsTenths=1 */
+  gemsTenths    Int       @default(0)
   source        String
   contentId     String?
   timestamp     DateTime  @default(now())
@@ -2300,6 +2306,7 @@ model GiftEventAllocation {
   giftEventId   String
   gemPurchaseId String
   gemsUsed      Int
+  gemsUsedTenths Int     @default(0)
   createdAt     DateTime @default(now())
 
   giftEvent   GiftEvent   @relation(fields: [giftEventId], references: [id], onDelete: Cascade)
@@ -2450,6 +2457,8 @@ model MocoDonation {
   streamerId  String
   userId      String
   mocoAmount  Int
+  /** 0–9 fractional MOCO alongside mocoAmount */
+  mocoAmountTenths Int @default(0)
   type        MocoDonationType
   mediaUrl    String?
   message     String?            @db.Text
@@ -3135,6 +3144,8 @@ model MocoTransactionHistory {
   userId      String
   /** 차감 시 음수 */
   amount      Int
+  /** Signed 0.1 place, same sign as amount (0.1 burn → amount 0, amountTenths -1) */
+  amountTenths Int @default(0)
   type        MocoTransactionType
   reason      String
   referenceId String
@@ -4732,10 +4743,14 @@ model PlatformWallet {
   userId          String   @unique
   /** purchasedMoco — 마켓·경매 충전분 (환불·인출·정산 등급 불가) */
   mocoPoints      Int      @default(0)
+  /** 0–9 on mocoPoints */
+  mocoPointsTenths Int     @default(0)
   /** 경매 입찰 보증금 등 동결 MOCO (lockedMocoBalance) */
   lockedMocoBalance Int    @default(0)
   /** earnedMoco — 후원 수령분, 월간 정산 차감 후 잔여 이월 */
   settlementMocoPoints Int @default(0)
+  /** 0–9 on settlementMocoPoints. Cash-out still uses whole MOCO. */
+  settlementMocoPointsTenths Int @default(0)
   siteCreditKrw   Int      @default(0)
   promoCreditKrw  Int      @default(0)
   refundCreditKrw Int      @default(0)
@@ -4939,7 +4954,10 @@ model PlatformWalletLedger {
   /** MOCO_POINTS | SITE_CREDIT | PROMO_CREDIT | REFUND_CREDIT */
   bucket        String
   delta         Int
+  /** Signed tenth alongside delta */
+  deltaTenths   Int      @default(0)
   balanceAfter  Int
+  balanceAfterTenths Int @default(0)
   reason        String
   referenceType String?
   referenceId   String?

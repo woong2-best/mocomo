@@ -6,6 +6,7 @@ import { burnPurchasedMocoWithHistory } from "@/lib/moco/transaction-history";
 import { deliverPeerTransferLetter } from "@/lib/moco/peer-transfer-letter";
 import { creditSettlementMocoInTx } from "@/lib/settlement-moco/economy";
 import { getMocoBalanceSnapshot } from "@/lib/auction-deposit/service";
+import { joinMoco, mocoCovers, parseSpendableMoco } from "@/lib/moco/decimal-amount";
 import { assertCreatorPayoutsEnabled, isCreatorPayoutsEnabled } from "@/lib/creator-payout-ready";
 
 /** 한 번에 전달할 수 있는 구매 MOCO 상한 */
@@ -58,9 +59,11 @@ export async function transferPurchasedMocoToUser(input: {
   amount: number;
   message?: string | null;
 }) {
-  if (!Number.isInteger(input.amount) || input.amount < 1) {
-    return { error: "MOCO to send must be an integer of 1 or more." as const };
+  const amount = parseSpendableMoco(input.amount);
+  if (amount == null) {
+    return { error: "Send at least 0.1 MOCO, in steps of 0.1." as const };
   }
+  input = { ...input, amount };
   if (input.amount > MAX_PEER_TRANSFER_MOCO) {
     return { error: "Amount exceeds the maximum you can send at once." as const };
   }
@@ -76,7 +79,7 @@ export async function transferPurchasedMocoToUser(input: {
   if (!payout.ok) return { error: payout.error, code: payout.code };
 
   const before = await getMocoBalanceSnapshot(input.senderId);
-  if (before.availableMocoBalance < input.amount) {
+  if (!mocoCovers(before.availableMocoBalance, input.amount)) {
     return { error: "Insufficient MOCO balance. Only MOCO purchased via payment can be sent." as const };
   }
 
@@ -101,7 +104,11 @@ export async function transferPurchasedMocoToUser(input: {
         metadata: { senderId: input.senderId, senderUsername: input.senderUsername },
       });
 
-      return { recipientSettlementAfter: credited?.settlementMocoPoints ?? input.amount };
+      return {
+        recipientSettlementAfter: credited
+          ? joinMoco(credited.settlementMocoPoints, credited.settlementMocoPointsTenths)
+          : input.amount,
+      };
     });
 
     const after = await getMocoBalanceSnapshot(input.senderId);

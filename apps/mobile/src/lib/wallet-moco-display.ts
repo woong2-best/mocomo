@@ -3,12 +3,13 @@ const MOCO_USD_CENTS = 500;
 
 export function ledgerCentsToMoco(cents: number): number {
   if (!Number.isFinite(cents) || cents === 0) return 0;
-  return Math.max(0, Math.round(Math.abs(cents) / MOCO_USD_CENTS));
+  return Math.round(Math.abs(cents) / (MOCO_USD_CENTS / 10)) / 10;
 }
 
 export function formatMocoDisplay(moco: number): string {
-  const n = Math.max(0, Math.floor(moco));
-  return `${n.toLocaleString()} MOCO`;
+  const tenths = Math.round(Math.max(0, moco) * 10);
+  const value = tenths / 10;
+  return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} MOCO`;
 }
 
 export function formatMocoSignedFromCents(cents: number, positive: boolean): string {

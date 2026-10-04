@@ -103,7 +103,7 @@ export function LetterDonationCard({
 
   const letterY = slide.interpolate({ inputRange: [0, 1], outputRange: [24, -36] });
   const letterOpacity = slide.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
-  const moco = tip.moco > 0 ? tip.moco : Math.max(0, Math.floor(tip.amount / 500));
+  const moco = tip.moco > 0 ? tip.moco : Math.round(Math.max(0, tip.amount) / 50) / 10;
 
   return (
     <View style={styles.wrap}>

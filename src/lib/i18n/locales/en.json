@@ -1693,7 +1693,7 @@
   "wallet.100_moco_100_moco": "e.g. Sending 100 of your MOCO adds 100 to their earnings right away. Their own MOCO balance doesn't change.",
   "wallet.sceowmi": "Check the amount and username, then press [Send].",
   "wallet.moco_6": "Enter how much MOCO to send.",
-  "wallet.1_moco": "Enter a username and at least 1 MOCO.",
+  "wallet.1_moco": "Enter a username and at least 0.1 MOCO.",
   "wallet.moco_moco": "Not enough MOCO. You can only send MOCO you bought.",
   "wallet.s58so4x": "Sending…",
   "wallet.moco_7": "Recorded {v1} MOCO in @{v0}'s earnings.",

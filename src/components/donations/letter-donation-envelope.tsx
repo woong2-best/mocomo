@@ -76,7 +76,7 @@ export function LetterDonationEnvelope({
             {message}
           </p>
           <p className="mt-3 text-right text-base font-black text-[#1B4A8C] tabular-nums">
-            {Math.max(0, Math.floor(amount / 500)).toLocaleString()} MOCO
+            {(Math.round(Math.max(0, amount) / 50) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 })} MOCO
           </p>
           <p className="text-[10px] text-[#8b7355] text-right mt-1">{t("donations.moco")}</p>
         </div>

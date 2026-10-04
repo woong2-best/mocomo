@@ -15,6 +15,7 @@ import { toMocoDonationPayload } from "@/lib/moco-donation/payload";
 import { prepareMocoVideoDonation } from "@/lib/moco-donation/prepare-video-donation";
 import { isValidDonationSfxKey, resolveDonationSfx } from "@/lib/moco-donation/sfx-catalog";
 import { assertCreatorPayoutsEnabled } from "@/lib/creator-payout-ready";
+import { mocoToTenths, parseSpendableMoco, splitUnsignedTenths } from "@/lib/moco/decimal-amount";
 
 export type CreateMocoDonationInput = {
   userId: string;
@@ -78,7 +79,7 @@ export async function createMocoDonation(
 
   let mediaUrl: string | null = null;
   let message = input.message?.trim().slice(0, 500) || null;
-  let mocoAmount = Math.floor(Number(input.mocoAmount) || 0);
+  let mocoAmount = parseSpendableMoco(input.mocoAmount ?? 0) ?? 0;
   let videoTitle: string | null = null;
   let startSec = 0;
   let endSec: number | null = null;
@@ -117,7 +118,8 @@ export async function createMocoDonation(
     }
     sfxKey = resolveDonationSfx(key).id;
     const min = MOCO_DONATION_MIN_AMOUNT.SFX;
-    if (!Number.isInteger(mocoAmount) || mocoAmount < min || mocoAmount > MOCO_DONATION_MAX_AMOUNT) {
+    const parsed = parseSpendableMoco(mocoAmount);
+    if (parsed == null || parsed < min || parsed > MOCO_DONATION_MAX_AMOUNT) {
       return {
         success: false,
         error: `MOCO는 ${min}~${MOCO_DONATION_MAX_AMOUNT.toLocaleString()} 범위여야 합니다.`,
@@ -126,6 +128,7 @@ export async function createMocoDonation(
     if (!message) {
       return { success: false, error: "Enter a message to show on the stream." };
     }
+    mocoAmount = parsed;
   } else {
     return { success: false, error: "Unsupported donation type." };
   }
@@ -137,12 +140,18 @@ export async function createMocoDonation(
   }
 
   try {
+    const parts = splitUnsignedTenths(mocoToTenths(mocoAmount) ?? 0);
+    if (parts.whole === 0 && parts.tenths === 0) {
+      return { success: false, error: "Invalid MOCO amount." };
+    }
+
     const { donation } = await db.$transaction(async (tx) => {
       const giftEvent = await tx.giftEvent.create({
         data: {
           fanId: input.userId,
           creatorId: target.streamerId,
-          gems: mocoAmount,
+          gems: parts.whole,
+          gemsTenths: parts.tenths,
           source: "live_moco_donation",
           contentId: target.channelId,
         },
@@ -155,7 +164,8 @@ export async function createMocoDonation(
           channelId: target.channelId,
           streamerId: target.streamerId,
           userId: input.userId,
-          mocoAmount,
+          mocoAmount: parts.whole,
+          mocoAmountTenths: parts.tenths,
           type,
           mediaUrl,
           message,

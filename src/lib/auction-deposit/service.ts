@@ -19,6 +19,8 @@ import {
   AUCTION_PENALTY_REASON,
   burnLockedMocoWithHistory,
 } from "@/lib/moco/transaction-history";
+import { joinMoco } from "@/lib/moco/decimal-amount";
+import { InsufficientGemsBalanceError, consumeGemPurchaseTenths } from "@/lib/gems/fifo";
 
 type Tx = Prisma.TransactionClient;
 
@@ -33,10 +35,13 @@ export type MocoBalanceSnapshot = {
 export async function getMocoBalanceSnapshot(userId: string): Promise<MocoBalanceSnapshot> {
   const [wallet, user] = await Promise.all([
     getOrCreatePlatformWallet(userId),
-    db.user.findUnique({ where: { id: userId }, select: { gemBalance: true } }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { gemBalance: true, gemBalanceTenths: true },
+    }),
   ]);
-  const mocoPointsBalance = wallet.mocoPoints;
-  const purchasedGemBalance = user?.gemBalance ?? 0;
+  const mocoPointsBalance = joinMoco(wallet.mocoPoints, wallet.mocoPointsTenths);
+  const purchasedGemBalance = joinMoco(user?.gemBalance ?? 0, user?.gemBalanceTenths ?? 0);
   return {
     availableMocoBalance: mocoPointsBalance + purchasedGemBalance,
     lockedMocoBalance: wallet.lockedMocoBalance,
@@ -63,30 +68,12 @@ async function consumePurchasedGemsForDeposit(
   referenceId: string
 ) {
   if (gems <= 0) return;
-  const purchases = await tx.gemPurchase.findMany({
-    where: { fanId: userId, remainingGems: { gt: 0 }, refunded: false },
-    orderBy: { createdAt: "asc" },
-  });
-  let remaining = gems;
-  for (const purchase of purchases) {
-    if (remaining <= 0) break;
-    const deduct = Math.min(purchase.remainingGems, remaining);
-    await tx.gemPurchase.update({
-      where: { id: purchase.id },
-      data: { remainingGems: purchase.remainingGems - deduct },
-    });
-    remaining -= deduct;
+  try {
+    await consumeGemPurchaseTenths(tx, userId, gems * 10);
+  } catch (err) {
+    if (err instanceof InsufficientGemsBalanceError) throw new Error("INSUFFICIENT_DEPOSIT");
+    throw err;
   }
-  if (remaining > 0) throw new Error("INSUFFICIENT_DEPOSIT");
-
-  const agg = await tx.gemPurchase.aggregate({
-    where: { fanId: userId, refunded: false },
-    _sum: { remainingGems: true },
-  });
-  await tx.user.update({
-    where: { id: userId },
-    data: { gemBalance: agg._sum.remainingGems ?? 0 },
-  });
 
   const wallet = await tx.platformWallet.findUnique({ where: { userId } });
   if (wallet) {

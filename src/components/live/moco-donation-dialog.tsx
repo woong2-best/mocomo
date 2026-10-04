@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
 import { formatMocoDisplay } from "@/lib/gems/display";
 import { MOCO_DONATION_MIN_AMOUNT } from "@/lib/moco-donation/constants";
+import { parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco/decimal-amount";
 import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
 import { DONATION_SFX_CATALOG } from "@/lib/moco-donation/sfx-catalog";
 import { toastIfStripeAccountNotReady, useCreatorPayoutReady } from "@/components/support/use-creator-payout-ready";
@@ -59,9 +60,9 @@ export function MocoDonationDialog({
       setError(t("live.donation.messageRequired"));
       return;
     }
-    const moco = Math.floor(Number(mocoAmount) || 0);
+    const moco = parseSpendableMoco(mocoAmount);
     const min = MOCO_DONATION_MIN_AMOUNT.SFX;
-    if (moco < min) {
+    if (moco == null || moco < min) {
       setError(t("live.donation.minAmount", { min: String(min) }));
       return;
     }
@@ -142,10 +143,10 @@ export function MocoDonationDialog({
 
           <div className="flex h-11 items-center gap-2 rounded-lg border-2 border-[#1B3A6B] bg-white px-3 shadow-sm">
             <Input
-              type="number"
-              min={MOCO_DONATION_MIN_AMOUNT.SFX}
+              type="text"
+              inputMode="decimal"
               value={mocoAmount}
-              onChange={(e) => setMocoAmount(e.target.value)}
+              onChange={(e) => setMocoAmount(sanitizeMocoDecimalInput(e.target.value))}
               className="border-0 text-lg font-bold shadow-none focus-visible:ring-0"
             />
             <span className="text-sm font-black text-[#E85D04]">MOCO</span>

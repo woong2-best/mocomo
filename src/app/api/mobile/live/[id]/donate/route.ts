@@ -63,7 +63,7 @@ export async function POST(
   const result = await createMocoDonation({
     userId: authResult.user.id,
     streamerId: channelId,
-    mocoAmount: body.moco_amount != null ? Math.floor(Number(body.moco_amount)) : undefined,
+    mocoAmount: body.moco_amount != null ? Number(body.moco_amount) : undefined,
     type,
     mediaUrl: body.media_url,
     message: body.message,

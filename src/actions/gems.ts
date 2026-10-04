@@ -24,6 +24,7 @@ import {
   spendGemsOnPostMedia,
 } from "@/lib/gems/spend-bridge";
 import { db } from "@/lib/db";
+import { joinMoco } from "@/lib/moco/decimal-amount";
 
 export async function getMyGemBalance() {
   const user = await requireAuth();
@@ -277,6 +278,7 @@ export async function getMyGemPurchases(take = 30) {
           id: true,
           gems: true,
           remainingGems: true,
+          remainingTenths: true,
           krwAmount: true,
           refunded: true,
           refundedUsd: true,
@@ -285,7 +287,13 @@ export async function getMyGemPurchases(take = 30) {
       }),
       getUserGemBalance(user.id),
     ]);
-    return { purchases, balance };
+    return {
+      purchases: purchases.map(({ remainingTenths, remainingGems, ...rest }) => ({
+        ...rest,
+        remainingGems: joinMoco(remainingGems, remainingTenths),
+      })),
+      balance,
+    };
   } catch (e) {
     console.error("[getMyGemPurchases]", e);
     return { purchases: [], balance: 0 };

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { isOnDemandPayoutEnabled } from "@/lib/settlement-moco/feature-flags";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { getCreatorPayoutDashboard } from "@/lib/settlement-moco/payout-gate";
+import { joinMoco } from "@/lib/moco/decimal-amount";
 
 /** @deprecated Custom Connect 제거 — Express 온보딩 사용 */
 export const registerSchema = z.object({
@@ -95,11 +96,16 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
     const [settlementMoco, userGems, userTier] = await Promise.all([
       db.platformWallet.findUnique({
         where: { userId },
-        select: { settlementMocoPoints: true, mocoPoints: true },
+        select: {
+          settlementMocoPoints: true,
+          settlementMocoPointsTenths: true,
+          mocoPoints: true,
+          mocoPointsTenths: true,
+        },
       }),
       db.user.findUnique({
         where: { id: userId },
-        select: { gemBalance: true },
+        select: { gemBalance: true, gemBalanceTenths: true },
       }),
       db.user.findUnique({
         where: { id: userId },
@@ -136,13 +142,25 @@ export async function getCreatorSettlementStatusForUser(userId: string) {
           }
         : null,
       /** earnedMoco — 후원 수령·정산 대상 (월간 차감 후 이월) */
-      settlementMocoPoints: settlementMoco?.settlementMocoPoints ?? 0,
-      earnedMocoPoints: settlementMoco?.settlementMocoPoints ?? 0,
+      settlementMocoPoints: joinMoco(
+        settlementMoco?.settlementMocoPoints ?? 0,
+        settlementMoco?.settlementMocoPointsTenths ?? 0
+      ),
+      earnedMocoPoints: joinMoco(
+        settlementMoco?.settlementMocoPoints ?? 0,
+        settlementMoco?.settlementMocoPointsTenths ?? 0
+      ),
       earnedMocoTier: userTier?.earnedMocoTier ?? "SEED",
       /** purchasedMoco — 충전만으로는 정산 등급·출금 불가 */
       purchasedMocoPoints:
-        (userGems?.gemBalance ?? 0) + (settlementMoco?.mocoPoints ?? 0),
-      rewardProgress: rewardTierProgress(settlementMoco?.settlementMocoPoints ?? 0),
+        joinMoco(userGems?.gemBalance ?? 0, userGems?.gemBalanceTenths ?? 0) +
+        joinMoco(settlementMoco?.mocoPoints ?? 0, settlementMoco?.mocoPointsTenths ?? 0),
+      rewardProgress: rewardTierProgress(
+        joinMoco(
+          settlementMoco?.settlementMocoPoints ?? 0,
+          settlementMoco?.settlementMocoPointsTenths ?? 0
+        )
+      ),
       onDemandPayoutEnabled: isOnDemandPayoutEnabled(),
       recentRewards,
       payoutDashboard,
