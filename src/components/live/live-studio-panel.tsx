@@ -96,7 +96,13 @@ const WEEKDAY_KEYS: { d: number; key: MessageKey }[] = [
   { d: 0, key: "live.weekday.sun" },
 ];
 
-export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
+export function LiveStudioPanel({
+  initial,
+  overlayUrls,
+}: {
+  initial: StudioInitial;
+  overlayUrls?: { chat: string; video: string; chatTip: string } | null;
+}) {
   const { locale, t } = useLocale();
   const firstPartyOn = isFirstPartyLiveEnabled();
   const externalOn = isExternalLiveEnabled();
@@ -265,7 +271,7 @@ export function LiveStudioPanel({ initial }: { initial: StudioInitial }) {
 
         <FolkBrushDivider className="opacity-50" />
 
-        <ObsChatUrlCopy variant="full" />
+        <ObsChatUrlCopy variant="full" initialUrls={overlayUrls} />
 
         {actionError ? (
           <p className="text-sm text-destructive rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2">

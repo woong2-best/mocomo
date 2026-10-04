@@ -12,9 +12,13 @@ import { mintLiveOverlayUrls, mintStudioObsChatUrl } from "@/actions/live-extern
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
+type OverlayUrls = { chat: string; video: string; chatTip: string };
+
 type Props = {
   /** Active live channel — host dashboard. Omit to mint from Live Studio. */
   channelId?: string;
+  /** Server-rendered Live Studio links. Shown immediately, before any client fetch. */
+  initialUrls?: OverlayUrls | null;
   /** compact = single small button (live room); full = studio block */
   variant?: "compact" | "full";
   className?: string;
@@ -27,16 +31,18 @@ type Props = {
  */
 export function ObsChatUrlCopy({
   channelId,
+  initialUrls,
   variant = "full",
   className,
 }: Props) {
   const { t } = useLocale();
-  const [urls, setUrls] = useState<{ chat: string; video: string; chatTip: string } | null>(null);
+  const [urls, setUrls] = useState<OverlayUrls | null>(initialUrls ?? null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialUrls);
   const [copied, setCopied] = useState<"chat" | "video" | "chatTip" | null>(null);
 
   useEffect(() => {
+    if (initialUrls) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -67,7 +73,7 @@ export function ObsChatUrlCopy({
     return () => {
       cancelled = true;
     };
-  }, [channelId]);
+  }, [channelId, initialUrls]);
 
   const copyUrl = useCallback(async (kind: "chat" | "video" | "chatTip", value: string) => {
     if (!value) return;
@@ -146,9 +152,13 @@ export function ObsChatUrlCopy({
                     {copied === kind ? t("live.obsChat.copied") : t("live.obsChat.copy")}
                   </Button>
                 </div>
-                <p className="break-all rounded-md bg-muted/50 px-2 py-1.5 font-mono text-[10px] text-muted-foreground">
-                  {value}
-                </p>
+                <input
+                  readOnly
+                  value={value}
+                  onFocus={(event) => event.currentTarget.select()}
+                  aria-label={label}
+                  className="w-full break-all rounded-md border border-border bg-muted/50 px-2 py-1.5 font-mono text-[11px] text-foreground"
+                />
               </li>
             ) : null
           )}
