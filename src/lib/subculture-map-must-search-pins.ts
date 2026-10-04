@@ -3,7 +3,10 @@ import { isPinCoordinateValid } from "@/lib/subculture-event-geocode";
 import type { MapEventPin } from "@/lib/subculture-event-pins";
 import { inferSubcultureEventPhase } from "@/lib/subculture-event-phase";
 import { SUBCULTURE_EVENT_CATEGORY_LABELS } from "@/lib/subculture-event-types";
-import { getMustSearchFetchedSubcultureEvents } from "@/lib/subculture-map-must-search";
+import {
+  getMustSearchFetchedSubcultureEvents,
+  RETIRED_MUST_SEARCH_EXTERNAL_KEYS,
+} from "@/lib/subculture-map-must-search";
 
 /** must-search 카탈로그 → 지도 핀 (DB sync 없이도 표시) */
 export function mustSearchCatalogToMapPins(): MapEventPin[] {
@@ -42,7 +45,8 @@ export function mergeMapPinsWithMustSearchCatalog(
 ): MapEventPin[] {
   const catalog = mustSearchCatalogToMapPins();
   const catalogIds = new Set(catalog.map((p) => p.id));
-  const rest = dbPins.filter((p) => !catalogIds.has(p.id));
+  const retiredIds = new Set<string>(RETIRED_MUST_SEARCH_EXTERNAL_KEYS);
+  const rest = dbPins.filter((p) => !catalogIds.has(p.id) && !retiredIds.has(p.id));
   const combined = [...catalog, ...rest];
   const sorted = combined.sort((a, b) => {
     const phaseRank = (p: MapEventPin) => {
