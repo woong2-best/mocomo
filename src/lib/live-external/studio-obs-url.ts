@@ -36,7 +36,7 @@ export async function mintOverlayUrlsForOwner(userId: string, channelId: string)
   return {
     chatUrl: `/obs/chat/${channelId}?token=${encodeURIComponent(chatToken)}`,
     donationUrl: `/overlay/donation/${channelId}?token=${encodeURIComponent(donationToken)}`,
-    mocoWidgetUrl: `/widget/alert?streamer_id=${encodeURIComponent(channelId)}&token=${encodeURIComponent(donationToken)}`,
+    mocoWidgetUrl: `/overlay/video/${channelId}?token=${encodeURIComponent(donationToken)}`,
     youtubeNative,
   };
 }

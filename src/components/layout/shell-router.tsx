@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { NativeAppShell } from "@/components/layout/native-app-shell";
 import { ClientPlatformProvider, useClientPlatform } from "@/components/providers/client-platform-provider";
+import { isObsOverlayPath } from "@/lib/obs-overlay-path";
 import { isStudioHostname } from "@/studio/lib/host";
 import { usePathname } from "next/navigation";
 
@@ -25,8 +26,7 @@ function ShellSwitch({
   if (
     pathname?.startsWith("/studio") ||
     pathname?.startsWith("/admin") ||
-    pathname?.startsWith("/overlay") ||
-    pathname?.startsWith("/obs") ||
+    isObsOverlayPath(pathname) ||
     isStudioHost
   ) {
     return <>{children}</>;

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { ObsTransparentStyles } from "@/components/live/overlay/obs-transparent-styles";
 
-/** Minimal chrome for OBS browser sources — transparent page. */
-export default function OverlayLayout({ children }: { children: ReactNode }) {
+/** Legacy /widget/alert OBS source — same transparent shell as /overlay. */
+export default function WidgetLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <ObsTransparentStyles />

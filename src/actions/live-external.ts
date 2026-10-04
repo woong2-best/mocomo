@@ -218,7 +218,7 @@ export async function createExternalLiveStream(data: {
           ? `/overlay/donation/${channel.id}?token=${encodeURIComponent(donationToken)}`
           : null,
         mocoWidgetUrl: donationToken
-          ? `/widget/alert?streamer_id=${encodeURIComponent(channel.id)}&token=${encodeURIComponent(donationToken)}`
+          ? `/overlay/video/${channel.id}?token=${encodeURIComponent(donationToken)}`
           : null,
         youtubeNative:
           parsed.provider === "YOUTUBE"
