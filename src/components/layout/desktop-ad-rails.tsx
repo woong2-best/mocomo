@@ -109,7 +109,7 @@ export function DesktopAdRails() {
           side="right"
           className={cn(
             "absolute top-[4.5rem]",
-            hasRightPanel ? "right-[16.25rem]" : "right-4"
+            hasRightPanel ? "right-[calc(var(--right-panel-w)+1rem)]" : "right-4"
           )}
         />
       )}

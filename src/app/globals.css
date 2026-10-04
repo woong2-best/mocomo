@@ -7,6 +7,8 @@
   :root {
     --header-h: calc(3.5rem + env(safe-area-inset-top, 0px));
     --ad-ratio: 2 / 3;
+    /* Right rail (ad + map) — was w-56 / xl:w-60 before full-bleed 20rem */
+    --right-panel-w: 14rem;
     --profile-compact-h: 3.25rem;
     /* Floating glass pill — parity with apps/mobile tab-layout.ts (68 + 10 + 14 + safe) */
     --mobile-nav-h: calc(92px + max(env(safe-area-inset-bottom, 0px), 8px));
@@ -37,6 +39,12 @@
     --radius: 0.625rem;
     --sidebar-block: 40 38% 96%;
     --sidebar-block-hover: 40 30% 91%;
+  }
+
+  @media (min-width: 1280px) {
+    :root {
+      --right-panel-w: 15rem;
+    }
   }
 
   .dark {
@@ -1355,7 +1363,7 @@ html[data-client="app"] .native-live-pad {
       display: flex;
       flex: none;
       flex-direction: column;
-      width: 20rem;
+      width: var(--right-panel-w);
       height: calc(100dvh - var(--header-h));
       min-height: 0;
       overflow: hidden;
