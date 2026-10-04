@@ -13,16 +13,6 @@ export function registerScheduledJob(jobType: string, handler: JobHandler) {
 export async function ensureDefaultScheduledJobs() {
   const defaults = [
     {
-      name: "promotions.expiry_notify",
-      jobType: "promotions.expiry",
-      cronExpr: "0 15 * * *",
-    },
-    {
-      name: "promotions.scheduled_assign",
-      jobType: "promotions.assign",
-      cronExpr: "0 15 * * *",
-    },
-    {
       name: "settlements.stats_refresh",
       jobType: "settlements.stats",
       cronExpr: "0 16 * * *",
@@ -96,39 +86,18 @@ export async function runScheduledJobByType(jobType: string, payload?: unknown) 
   return { ok: true as const, results };
 }
 
-/** Cron 엔드포인트용 — 등록된 프로모션/정산 잡 일괄 실행 */
+/** Cron endpoint — run registered settlement jobs. */
 export async function runPlatformSchedulerTick() {
   await ensureDefaultScheduledJobs();
 
-  if (!JOB_HANDLERS["promotions.expiry"]) {
-    registerScheduledJob("promotions.expiry", async () => {
-      const { notifyPromotionExpiries } = await import("@/lib/admin/services/promotions");
-      const r = await notifyPromotionExpiries();
-      return { detail: `notified=${r.notified}` };
-    });
-  }
-  if (!JOB_HANDLERS["promotions.assign"]) {
-    registerScheduledJob("promotions.assign", async () => {
-      const { runScheduledPromotionAssignments } = await import(
-        "@/lib/admin/services/promotions"
-      );
-      const r = await runScheduledPromotionAssignments();
-      return { detail: `assigned=${r.assigned}` };
-    });
-  }
   if (!JOB_HANDLERS["settlements.stats"]) {
     registerScheduledJob("settlements.stats", async () => {
       return { detail: "noop" };
     });
   }
 
-  const [expiry, assign, stats] = await Promise.all([
-    runScheduledJobByType("promotions.expiry"),
-    runScheduledJobByType("promotions.assign"),
-    runScheduledJobByType("settlements.stats"),
-  ]);
-
-  return { expiry, assign, stats };
+  const stats = await runScheduledJobByType("settlements.stats");
+  return { stats };
 }
 
 export type { Prisma };

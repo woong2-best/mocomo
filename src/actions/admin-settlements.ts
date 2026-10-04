@@ -64,7 +64,7 @@ export async function adminCreateSettlementAction(input: {
       actorId: actor.id,
     });
     revalidatePath("/admin/settlements");
-    return { success: true as const, id: res.settlement.id, preview: res.preview };
+    return { success: true as const, id: res.settlement.id };
   } catch (e) {
     return { error: errMsg(e) };
   }

@@ -31,9 +31,9 @@ export default async function AdminStreamingAccountsPage({
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("app.admin.sfb579g")}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">스트리밍 연동</h1>
         <p className="text-sm text-muted-foreground">
-          OAuth·수동 검증 상태 · 사기 연결 해제 · 검증 로그
+          모코모 아이디나 유저 ID로 검색하면 그 계정의 유튜브·트위치 연동을 볼 수 있습니다.
         </p>
       </div>
       <Suspense fallback={<p className="text-sm text-muted-foreground">{t("app.admin.srv43d")}</p>}>
@@ -43,6 +43,7 @@ export default async function AdminStreamingAccountsPage({
           page={res.data.page}
           totalPages={res.data.totalPages}
           query={query}
+          users={res.data.users}
         />
       </Suspense>
     </div>

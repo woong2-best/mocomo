@@ -42,8 +42,7 @@ type QuickAction = {
     | "MarketOrders"
     | "MarketWishlist"
     | "MarketRecent"
-    | "MarketCreatorItems"
-    | "MarketCoupons";
+    | "MarketCreatorItems";
 };
 
 const QUICK_ACTIONS: QuickAction[] = [
@@ -51,7 +50,6 @@ const QUICK_ACTIONS: QuickAction[] = [
   { key: "wishlist", icon: "heart-outline", route: "MarketWishlist" },
   { key: "recent", icon: "time-outline", route: "MarketRecent" },
   { key: "creators", icon: "people-outline", route: "MarketCreatorItems" },
-  { key: "coupons", icon: "ticket-outline", route: "MarketCoupons" },
 ];
 
 function quickActionLabel(key: string, t: TFn): string {
@@ -64,8 +62,6 @@ function quickActionLabel(key: string, t: TFn): string {
       return t("m.common.recently_viewed");
     case "creators":
       return t("m.market.creators");
-    case "coupons":
-      return t("m.market.coupons");
     default:
       return key;
   }

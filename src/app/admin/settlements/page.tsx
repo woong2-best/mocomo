@@ -27,7 +27,7 @@ export default async function AdminSettlementsPage({
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{t("lib.admin.spaxfox")}</h1>
         <p className="text-sm text-muted-foreground">
-          Settlement · Item · History · Promotion/Coupon 미리보기 · 실DB
+          Settlement · Item · History
         </p>
       </div>
       <AdminSettlementsPanel

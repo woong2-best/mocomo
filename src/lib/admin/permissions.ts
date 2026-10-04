@@ -7,10 +7,6 @@ export type AdminPermission =
   | "users.write"
   | "creators"
   | "settlements"
-  | "coupons"
-  | "coupons.write"
-  | "coupons.assign"
-  | "coupons.delete"
   | "products"
   | "communities"
   | "live"
@@ -28,10 +24,6 @@ export const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
   "users.write",
   "creators",
   "settlements",
-  "coupons",
-  "coupons.write",
-  "coupons.assign",
-  "coupons.delete",
   "products",
   "communities",
   "live",
@@ -71,8 +63,8 @@ const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
   ],
   MODERATOR: ["dashboard", "reports", "communities", "live"],
   SETTLEMENT_MANAGER: ["dashboard", "settlements", "statistics", "audit"],
-  CUSTOMER_SUPPORT: ["dashboard", "users", "reports", "audit", "coupons"],
-  MARKETING: ["dashboard", "coupons", "coupons.write", "coupons.assign", "ads", "statistics"],
+  CUSTOMER_SUPPORT: ["dashboard", "users", "reports", "audit"],
+  MARKETING: ["dashboard", "ads", "statistics"],
 };
 
 export function isAdminCmsRole(role: string): boolean {
@@ -94,9 +86,7 @@ export function pathPermission(pathname: string): AdminPermission | null {
   if (pathname.startsWith("/admin/settlements") || pathname.startsWith("/admin/finance")) {
     return "settlements";
   }
-  if (pathname.startsWith("/admin/coupons") || pathname.startsWith("/admin/promotions")) {
-    return "coupons";
-  }  if (pathname.startsWith("/admin/products")) return "products";
+  if (pathname.startsWith("/admin/products")) return "products";
   if (pathname.startsWith("/admin/communities")) return "communities";
   if (pathname.startsWith("/admin/live")) return "live";
   if (

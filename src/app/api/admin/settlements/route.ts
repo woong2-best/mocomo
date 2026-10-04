@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       actorId: actor.id,
     });
     return NextResponse.json(
-      { ok: true, settlement: res.settlement, preview: res.preview },
+      { ok: true, settlement: res.settlement },
       { status: 201 }
     );
   } catch (e) {

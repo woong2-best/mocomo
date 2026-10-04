@@ -1,8 +1,5 @@
 "use client";
 
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
@@ -41,15 +38,57 @@ type LogItem = {
   createdAt: Date;
 };
 
+type LinkedChannel = {
+  id: string;
+  platform: string;
+  channelId: string;
+  channelName: string;
+  channelUrl: string;
+  verified: boolean;
+  revokedAt: Date | null;
+};
+
+type UserMatch = {
+  id: string;
+  username: string;
+  connectedStreamingAccounts: LinkedChannel[];
+};
+
 type Props = {
   items: AccountItem[];
+  users: UserMatch[];
   total: number;
   page: number;
   totalPages: number;
   query: { q?: string; verified?: string; page?: number };
 };
 
-export function AdminStreamingAccountsTable({ items, total, page, totalPages, query }: Props) {
+function channelFor(user: UserMatch, platform: "YOUTUBE" | "TWITCH") {
+  return user.connectedStreamingAccounts.find((account) => account.platform === platform);
+}
+
+function ChannelLine({ account, emptyLabel }: { account?: LinkedChannel; emptyLabel: string }) {
+  if (!account) return <span className="text-muted-foreground">{emptyLabel}</span>;
+  return (
+    <span>
+      <a href={account.channelUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+        {account.channelName}
+      </a>
+      <span className="ml-1 text-xs text-muted-foreground">
+        {account.revokedAt ? "해제됨" : account.verified ? "인증됨" : "미인증"}
+      </span>
+    </span>
+  );
+}
+
+export function AdminStreamingAccountsTable({
+  items,
+  users,
+  total,
+  page,
+  totalPages,
+  query,
+}: Props) {
   const [q, setQ] = useState(query.q ?? "");
   const [logsFor, setLogsFor] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogItem[]>([]);
@@ -72,7 +111,7 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
   }
 
   function onRevoke(accountId: string) {
-    const reason = prompt(t("admin.s1tc52s6"));
+    const reason = prompt("해제 사유를 입력하세요.");
     if (!reason?.trim()) return;
     startTransition(async () => {
       await adminRevokeStreamingAccount(accountId, reason);
@@ -81,7 +120,7 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
   }
 
   function onDelete(accountId: string) {
-    if (!confirm(t("admin.s1hjf72y"))) return;
+    if (!confirm("이 스트리밍 연동을 삭제할까요?")) return;
     startTransition(async () => {
       await adminDeleteStreamingAccount(accountId);
       window.location.reload();
@@ -104,7 +143,7 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
           name="q"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={t("admin.skfduhc")}
+          placeholder="모코모 아이디 또는 유저 ID"
           className="max-w-xs"
         />
         <select
@@ -112,15 +151,41 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
           defaultValue={query.verified ?? "all"}
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
         >
-          <option value="all">{t("lib.live.categories.s934dd25ec5")}</option>
-          <option value="yes">{t("streaming-accounts.su72qr")}</option>
-          <option value="no">{t("streaming-accounts.ssi6u5")}</option>
-          <option value="revoked">{t("streaming-accounts.sw8k5c")}</option>
+          <option value="all">전체</option>
+          <option value="yes">인증됨</option>
+          <option value="no">미인증</option>
+          <option value="revoked">해제됨</option>
         </select>
         <Button type="submit" size="sm">
           검색
         </Button>
       </form>
+
+      {query.q ? (
+        <div className="space-y-2 rounded-xl border border-border p-4">
+          <h2 className="font-medium">아이디 검색 결과</h2>
+          {users.length === 0 ? (
+            <p className="text-sm text-muted-foreground">일치하는 모코모 계정이 없습니다.</p>
+          ) : (
+            users.map((user) => (
+              <div key={user.id} className="rounded-lg border border-border/70 p-3 text-sm">
+                <p>
+                  <Link href={`/admin/users/${user.id}`} className="font-medium hover:underline">
+                    @{user.username}
+                  </Link>
+                  <span className="ml-2 break-all text-xs text-muted-foreground">{user.id}</span>
+                </p>
+                <p className="mt-1">
+                  유튜브: <ChannelLine account={channelFor(user, "YOUTUBE")} emptyLabel="연동 없음" />
+                </p>
+                <p>
+                  트위치: <ChannelLine account={channelFor(user, "TWITCH")} emptyLabel="연동 없음" />
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      ) : null}
 
       <p className="text-sm text-muted-foreground">총 {total.toLocaleString()}건</p>
 
@@ -128,12 +193,12 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
-              <th className="px-3 py-2 font-medium">{t("admin.sw3sn1")}</th>
-              <th className="px-3 py-2 font-medium">{t("community-server.szpsc")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.mocomo_2")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.sxxkr")}</th>
-              <th className="px-3 py-2 font-medium">{t("admin.swba4")}</th>
-              <th className="px-3 py-2 text-right font-medium">{t("admin.sz13o")}</th>
+              <th className="px-3 py-2 font-medium">플랫폼</th>
+              <th className="px-3 py-2 font-medium">채널</th>
+              <th className="px-3 py-2 font-medium">모코모 아이디</th>
+              <th className="px-3 py-2 font-medium">상태</th>
+              <th className="px-3 py-2 font-medium">로그</th>
+              <th className="px-3 py-2 text-right font-medium">작업</th>
             </tr>
           </thead>
           <tbody>
@@ -155,14 +220,15 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
                   <Link href={`/admin/users/${row.user.id}`} className="hover:underline">
                     @{row.user.username}
                   </Link>
+                  <div className="max-w-[180px] truncate text-xs text-muted-foreground">{row.user.id}</div>
                 </td>
                 <td className="px-3 py-2">
                   {row.revokedAt ? (
-                    <Badge variant="destructive">{t("community-server.s11elk")}</Badge>
+                    <Badge variant="destructive">해제됨</Badge>
                   ) : row.verified ? (
-                    <Badge>{t("lib.admin.sz19h")}</Badge>
+                    <Badge>인증됨</Badge>
                   ) : (
-                    <Badge variant="secondary">{t("lib.direct-trade.svei8")}</Badge>
+                    <Badge variant="secondary">미인증</Badge>
                   )}
                   {row.verificationMethod ? (
                     <span className="ml-1 text-xs text-muted-foreground">
@@ -234,7 +300,7 @@ export function AdminStreamingAccountsTable({ items, total, page, totalPages, qu
       {logsFor ? (
         <div className="rounded-xl border border-border p-4">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="font-medium">{t("admin.s1onb667")}</h3>
+            <h3 className="font-medium">검증 로그</h3>
             <Button size="sm" variant="ghost" onClick={() => setLogsFor(null)}>
               닫기
             </Button>

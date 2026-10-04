@@ -196,6 +196,10 @@ export function RootNavigator() {
               getComponent={() => require("@/features/live/LiveGoLiveScreen").LiveGoLiveScreen}
             />
             <Stack.Screen
+              name="LiveStudio"
+              getComponent={() => require("@/features/live/LiveStudioScreen").LiveStudioScreen}
+            />
+            <Stack.Screen
               name="MarketplaceList"
               getComponent={() =>
                 require("@/features/marketplace/MarketplaceListScreen").MarketplaceListScreen
@@ -269,12 +273,6 @@ export function RootNavigator() {
               name="MarketCreatorItems"
               getComponent={() =>
                 require("@/features/market/MarketCreatorItemsScreen").MarketCreatorItemsScreen
-              }
-            />
-            <Stack.Screen
-              name="MarketCoupons"
-              getComponent={() =>
-                require("@/features/market/MarketCouponsScreen").MarketCouponsScreen
               }
             />
             <Stack.Screen

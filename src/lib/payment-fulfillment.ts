@@ -60,16 +60,7 @@ async function fulfillTip(
     if (!donationCheck.ok) return { error: donationCheck.error };
   }
 
-  const { applyBenefitsToSettlement } = await import("@/lib/admin/services/promotions");
-  const feeResult = await applyBenefitsToSettlement({
-    userId: receiverId,
-    grossAmountKrw: amount,
-    referenceType: "tip_settlement",
-    referenceId: paymentIntentId ?? undefined,
-    note: `tip from ${sender.username}`,
-  });
-  const platformFee = feeResult.feeAfterKrw;
-  const sellerAmount = feeResult.sellerAmountKrw;
+  const { platformFee, sellerAmount } = splitPlatformFee(amount);
 
   const tip = await db.tip.create({
     data: {

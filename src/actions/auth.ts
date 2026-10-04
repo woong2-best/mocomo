@@ -5,7 +5,6 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
-import { after } from "next/server";
 import { db } from "@/lib/db";
 import { ACCOUNT_SUSPENDED_SIGNUP_MESSAGE } from "@/lib/account-status";
 import { findRestrictedIdentityUser } from "@/lib/ban-evasion";
@@ -299,15 +298,6 @@ export async function completeAuthWithCode(
       }),
       clearTokens,
     ]);
-    // 가입 완료 시 프로모션 자동 지급
-    after(async () => {
-      try {
-        const { runPromotionTrigger } = await import("@/lib/admin/services/promotions");
-        await runPromotionTrigger("ON_SIGNUP", user.id);
-      } catch {
-        /* ignore */
-      }
-    });
   }
 
   return { success: true, mode: options.mode };

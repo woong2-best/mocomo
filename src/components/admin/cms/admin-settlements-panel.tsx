@@ -7,12 +7,11 @@ const t = createTranslator("en");
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   adminCreateSettlementAction,
   adminTransitionSettlementAction,
 } from "@/actions/admin-settlements";
-import { adminPreviewSettlementBenefitsAction } from "@/actions/admin-promotions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,43 +58,10 @@ export function AdminSettlementsPanel({
   const [pending, start] = useTransition();
   const [userId, setUserId] = useState("");
   const [gross, setGross] = useState("4500000");
-  const [preview, setPreview] = useState<{
-    grossAmountKrw: number;
-    discountAmountKrw: number;
-    sellerAmountKrw: number;
-    feeAfterKrw: number;
-    appliedPromotion: { name: string } | null;
-    appliedPromotions?: { name: string }[];
-    appliedCoupon: unknown;
-    steps: { label: string; saved: number }[];
-  } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!userId.trim() || Number(gross) <= 0) {
-      setPreview(null);
-      return;
-    }
-    const t = setTimeout(() => {
-      void adminPreviewSettlementBenefitsAction(userId.trim(), Number(gross)).then((res) => {
-        if (res.ok) {
-          setPreview({
-            grossAmountKrw: res.data.grossAmountKrw,
-            discountAmountKrw: res.data.discountAmountKrw,
-            sellerAmountKrw: res.data.sellerAmountKrw,
-            feeAfterKrw: res.data.feeAfterKrw,
-            appliedPromotion: res.data.appliedPromotion
-              ? { name: res.data.appliedPromotion.name }
-              : null,
-            appliedPromotions: res.data.appliedPromotions?.map((p) => ({ name: p.name })),
-            appliedCoupon: res.data.appliedCoupon,
-            steps: res.data.steps,
-          });
-        } else setPreview(null);
-      });
-    }, 350);
-    return () => clearTimeout(t);
-  }, [userId, gross]);
+  const grossAmount = Math.max(0, Math.floor(Number(gross) || 0));
+  const feeAmount = Math.floor(grossAmount * 0.1);
+  const payoutAmount = grossAmount - feeAmount;
 
   return (
     <div className="space-y-6">
@@ -112,41 +78,15 @@ export function AdminSettlementsPanel({
           </div>
         </div>
 
-        {preview ? (
+        {grossAmount > 0 ? (
           <div className="rounded-lg bg-muted/40 p-3 text-sm space-y-1">
             <p>
-              총 수익{" "}
-              <strong>₩{preview.grossAmountKrw.toLocaleString()}</strong>
+              총 수익 <strong>₩{grossAmount.toLocaleString()}</strong>
             </p>
+            <p>수수료 ₩{feeAmount.toLocaleString()}</p>
             <p>
-              적용될 Promotion{" "}
-              <strong>
-                {preview.appliedPromotions?.length
-                  ? preview.appliedPromotions.map((p) => p.name).join(" + ")
-                  : preview.appliedPromotion?.name ?? t("lib.creator.subscription.sd58fa73adc")}
-              </strong>
-              {preview.appliedCoupon ? t("admin.coupon") : ""}
+              예상 지급액 <strong>₩{payoutAmount.toLocaleString()}</strong>
             </p>
-            <p>
-              절감 금액{" "}
-              <strong>₩{preview.discountAmountKrw.toLocaleString()}</strong>
-            </p>
-            <p>
-              수수료(적용 후) ₩{preview.feeAfterKrw.toLocaleString()}
-            </p>
-            <p>
-              예상 지급액{" "}
-              <strong>₩{preview.sellerAmountKrw.toLocaleString()}</strong>
-            </p>
-            {preview.steps.length > 0 ? (
-              <ul className="text-xs text-muted-foreground pt-1">
-                {preview.steps.map((s, i) => (
-                  <li key={i}>
-                    {s.label}: −₩{s.saved.toLocaleString()}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">{t("admin.s164bpjx")}</p>

@@ -13,6 +13,7 @@ export type DrawerRoute =
   | "MarketplaceList"
   | "SellerListings"
   | "LiveList"
+  | "LiveStudio"
   | "Discover"
   | "Search"
   | "Activity"
@@ -55,6 +56,7 @@ export type RootStackParamList = {
   LiveList: undefined;
   LiveDetail: { id: string };
   LiveGoLive: undefined;
+  LiveStudio: undefined;
   MarketplaceList:
     | {
         lane?: "all" | "recommend" | "purchased" | "favorites" | "disputes";
@@ -80,7 +82,6 @@ export type RootStackParamList = {
   MarketWishlist: undefined;
   MarketRecent: undefined;
   MarketCreatorItems: undefined;
-  MarketCoupons: undefined;
   MarketSellItem: undefined;
   CommunityList: undefined;
   CommunityDetail: { slug: string };

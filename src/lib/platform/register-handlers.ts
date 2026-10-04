@@ -41,15 +41,6 @@ export function registerPlatformEventHandlers() {
   onPlatformEvent("SettlementApproved", async () => {
     /* user notify는 settlements 서비스에서 처리 */
   });
-
-  onPlatformEvent("PromotionExpired", async (e) => {
-    await notifyAdmins({
-      title: "Promotion expired",
-      body: String(e.payload.name ?? "promotion"),
-      link: "/admin/promotions",
-      type: "ADMIN_PROMOTION",
-    });
-  });
 }
 
 registerPlatformEventHandlers();

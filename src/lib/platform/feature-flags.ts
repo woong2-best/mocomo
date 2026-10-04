@@ -1,8 +1,6 @@
 import { db } from "@/lib/db";
 
 export const DEFAULT_FEATURE_FLAGS: Record<string, { enabled: boolean; description: string }> = {
-  promotion: { enabled: true, description: "Promotion auto benefits" },
-  coupon: { enabled: true, description: "Coupon code benefits" },
   auction: { enabled: true, description: "Used-goods auction" },
   live: { enabled: true, description: "Live streaming" },
   marketplace: { enabled: true, description: "Marketplace" },

@@ -136,11 +136,6 @@ export default async function SettingsPage() {
                 {t("settings.editProfile")}
               </Button>
             </Link>
-            <Link href="/coupons">
-              <Button variant="outline" size="sm">
-                {t("settings.smbdh4s")}
-              </Button>
-            </Link>
           </div>
         </CardContent>
       </Card>

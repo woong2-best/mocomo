@@ -26,6 +26,7 @@ export async function adminLoadStreamingAccounts(query: {
       | { channelName: { contains: string; mode: "insensitive" } }
       | { channelId: { contains: string; mode: "insensitive" } }
       | { user: { username: { contains: string; mode: "insensitive" } } }
+      | { userId: string }
     >;
     verified?: boolean;
     revokedAt?: { not: null } | null;
@@ -37,6 +38,7 @@ export async function adminLoadStreamingAccounts(query: {
       { channelName: { contains: q, mode: "insensitive" } },
       { channelId: { contains: q, mode: "insensitive" } },
       { user: { username: { contains: q, mode: "insensitive" } } },
+      { userId: q },
     ];
   }
 
@@ -49,6 +51,37 @@ export async function adminLoadStreamingAccounts(query: {
   } else if (query.verified === "revoked") {
     where.revokedAt = { not: null };
   }
+
+  const matchedUsers = q
+    ? await db.user.findMany({
+        where: {
+          OR: [
+            { id: q },
+            { username: { equals: q, mode: "insensitive" } },
+            { username: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        take: 20,
+        orderBy: { username: "asc" },
+        select: {
+          id: true,
+          username: true,
+          connectedStreamingAccounts: {
+            where: { platform: { in: ["YOUTUBE", "TWITCH"] } },
+            orderBy: { platform: "asc" },
+            select: {
+              id: true,
+              platform: true,
+              channelId: true,
+              channelName: true,
+              channelUrl: true,
+              verified: true,
+              revokedAt: true,
+            },
+          },
+        },
+      })
+    : [];
 
   const [items, total] = await Promise.all([
     db.connectedStreamingAccount.findMany({
@@ -79,6 +112,7 @@ export async function adminLoadStreamingAccounts(query: {
     ok: true as const,
     data: {
       items,
+      users: matchedUsers,
       total,
       page,
       totalPages: Math.max(1, Math.ceil(total / take)),

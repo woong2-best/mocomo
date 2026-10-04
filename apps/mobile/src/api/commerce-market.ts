@@ -220,28 +220,6 @@ export async function fetchMarketSponsorAd() {
   }>(MobileApi.marketSponsorAd);
 }
 
-export async function fetchMyCoupons() {
-  return apiRequest<{
-    coupons: {
-      id: string;
-      code: string;
-      name: string;
-      benefitLabel: string;
-      status: string;
-      remainingBenefitKrw: number | null;
-      useCount: number;
-      endsAt: string | null;
-    }[];
-    promotions: {
-      id: string;
-      name: string;
-      benefitLabel: string;
-      status: string;
-      remainingBenefitKrw: number | null;
-    }[];
-  }>(MobileApi.couponsMine, { auth: true });
-}
-
 export async function fetchMeProfile() {
   return apiRequest<{
     user: { username: string; name: string | null; image: string | null };

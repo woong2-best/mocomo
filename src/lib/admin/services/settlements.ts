@@ -2,8 +2,8 @@ import type { Prisma, SettlementStatus, SettlementItemType } from "@prisma/clien
 import { db } from "@/lib/db";
 import { logSiteAdminAudit } from "@/lib/site-admin-audit";
 import type { AdminActor } from "@/lib/admin/access";
-import { previewUserSettlementBenefits } from "@/lib/admin/services/promotions";
 import { createNotification } from "@/lib/notifications";
+import { splitPlatformFee } from "@/lib/settlement";
 import { writeBenefitPreviewLedger } from "@/lib/platform/settlement-ledger";
 import { emitPlatformEvent } from "@/lib/platform/event-bus";
 import "@/lib/platform/register-handlers";
@@ -47,30 +47,22 @@ export async function createSettlementDraft(input: {
   periodEnd?: Date;
   actorId?: string;
 }) {
-  const preview = await previewUserSettlementBenefits(input.userId, input.grossAmountKrw);
+  const grossAmountKrw = Math.max(0, Math.floor(input.grossAmountKrw));
+  const { platformFee, sellerAmount } = splitPlatformFee(grossAmountKrw);
   const lines: SettlementLineInput[] = [
     ...(input.lines ?? [
       {
         type: "OTHER" as const,
         label: "Gross revenue",
-        amountKrw: input.grossAmountKrw,
+        amountKrw: grossAmountKrw,
       },
     ]),
     {
       type: "PLATFORM_FEE",
       label: "Platform fee",
-      amountKrw: -preview.feeBeforeKrw,
+      amountKrw: -platformFee,
     },
   ];
-  if (preview.discountAmountKrw > 0) {
-    lines.push({
-      type: preview.appliedPromotion ? "PROMOTION_DISCOUNT" : "COUPON_DISCOUNT",
-      label: preview.appliedPromotion
-        ? `Promotion · ${preview.appliedPromotion.name}`
-        : "Coupon discount",
-      amountKrw: preview.discountAmountKrw,
-    });
-  }
 
   const settlement = await db.settlement.create({
     data: {
@@ -79,10 +71,10 @@ export async function createSettlementDraft(input: {
       title: input.title ?? "Settlement draft",
       periodStart: input.periodStart,
       periodEnd: input.periodEnd,
-      grossAmountKrw: preview.grossAmountKrw,
-      feeAmountKrw: preview.feeAfterKrw,
-      discountAmountKrw: preview.discountAmountKrw,
-      netAmountKrw: preview.sellerAmountKrw,
+      grossAmountKrw,
+      feeAmountKrw: platformFee,
+      discountAmountKrw: 0,
+      netAmountKrw: sellerAmount,
       items: {
         create: lines.map((l) => ({
           type: l.type,
@@ -107,18 +99,16 @@ export async function createSettlementDraft(input: {
   await writeBenefitPreviewLedger({
     settlementId: settlement.id,
     userId: input.userId,
-    grossAmountKrw: preview.grossAmountKrw,
-    feeBeforeKrw: preview.feeBeforeKrw,
-    feeAfterKrw: preview.feeAfterKrw,
-    discountAmountKrw: preview.discountAmountKrw,
-    sellerAmountKrw: preview.sellerAmountKrw,
-    promotionNames: preview.appliedPromotions.map((p) => p.name),
-    couponApplied: !!preview.appliedCoupon,
+    grossAmountKrw,
+    feeBeforeKrw: platformFee,
+    feeAfterKrw: platformFee,
+    discountAmountKrw: 0,
+    sellerAmountKrw: sellerAmount,
     referenceType: "settlement_draft",
     referenceId: settlement.id,
   });
 
-  return { settlement, preview };
+  return { settlement };
 }
 
 export async function listSettlements(query: {
