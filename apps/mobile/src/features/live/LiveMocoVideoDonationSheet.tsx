@@ -15,7 +15,6 @@ import { useQuery } from "@tanstack/react-query";
 import { previewLiveVideoDonation, postLiveMocoDonation } from "@/api/live-donate";
 import { ApiError } from "@/api/client";
 import { fetchGemsWallet } from "@/api/gems";
-import { formatSecLabel } from "@/lib/format-sec-label";
 import { mocoPurchaseTermsCopy } from "@/lib/gems/constants";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -32,9 +31,11 @@ type Props = {
 type Quote = {
   videoId: string;
   videoTitle: string | null;
-  segmentSec: number;
+  durationSec: number;
+  playSec: number;
   maxPlaySec: number;
-  mocoAmount: number;
+  mocoLabel: string;
+  usdCents: number;
 };
 
 function apiErrorMessage(e: unknown, fallback: string) {
@@ -55,8 +56,8 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
   const [urlInput, setUrlInput] = useState("");
   const [message, setMessage] = useState("");
   const [startSec, setStartSec] = useState("0");
-  const [endSec, setEndSec] = useState("30");
-  const [playToEnd, setPlayToEnd] = useState(false);
+  const [playSec, setPlaySec] = useState("10");
+  const [noRefundAccepted, setNoRefundAccepted] = useState(false);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -81,25 +82,24 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
       setUrlInput("");
       setMessage("");
       setStartSec("0");
-      setEndSec("30");
-      setPlayToEnd(false);
+      setPlaySec("10");
+      setNoRefundAccepted(false);
       setQuote(null);
       setError("");
       setTermsAccepted(false);
     }
   }, [visible]);
 
-  async function loadQuote(mediaUrl: string): Promise<Quote | null> {
+  async function loadQuote(mediaUrl: string, nextPlay = playSec, nextStart = startSec): Promise<Quote | null> {
     setQuoteLoading(true);
     setError("");
     try {
-      const start = Math.max(0, Math.floor(Number(startSec) || 0));
-      const end = Math.max(start + 1, Math.floor(Number(endSec) || 0));
+      const start = Math.max(0, Math.floor(Number(nextStart) || 0));
+      const seconds = Math.max(1, Math.floor(Number(nextPlay) || 1));
       const res = await previewLiveVideoDonation(channelId, {
         media_url: mediaUrl,
+        play_sec: seconds,
         start_sec: start,
-        end_sec: playToEnd ? null : end,
-        play_to_end: playToEnd,
       });
       if (!res.ok || !res.video_id) {
         setError(res.error ?? t("m.live.could_not_load_the_video"));
@@ -109,11 +109,14 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
       const next: Quote = {
         videoId: res.video_id,
         videoTitle: res.video_title ?? null,
-        segmentSec: res.segment_sec ?? 0,
+        durationSec: res.duration_sec ?? seconds,
+        playSec: res.play_sec ?? seconds,
         maxPlaySec: res.max_play_sec ?? 60,
-        mocoAmount: res.moco_amount ?? 0,
+        mocoLabel: res.moco_label ?? "",
+        usdCents: res.usd_cents ?? 0,
       };
       setQuote(next);
+      setPlaySec(String(next.playSec));
       return next;
     } catch (e) {
       setError(apiErrorMessage(e, t("m.live.could_not_load_the_video")));
@@ -130,12 +133,12 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
       setError(t("m.live.enter_a_youtube_url"));
       return;
     }
-    const q = await loadQuote(url);
+    const q = (await loadQuote(url, "10", "0")) ?? (await loadQuote(url, "1", "0"));
     if (q) setStep(2);
   }
 
   async function submit() {
-    if (!termsAccepted) {
+    if (!termsAccepted || !noRefundAccepted) {
       setError(t("m.live.accept_the_terms_before_tipping"));
       return;
     }
@@ -149,14 +152,13 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
     setError("");
     try {
       const start = Math.max(0, Math.floor(Number(startSec) || 0));
-      const end = Math.max(start + 1, Math.floor(Number(endSec) || 0));
+      const seconds = Math.max(1, Math.floor(Number(playSec) || 1));
       const res = await postLiveMocoDonation(channelId, {
         type: "VIDEO",
         media_url: url,
         message: message.trim() || undefined,
+        play_sec: seconds,
         start_sec: start,
-        end_sec: playToEnd ? null : end,
-        play_to_end: playToEnd,
       });
       if (!res.success) {
         setError(res.error ?? t("m.live.tip_failed"));
@@ -189,7 +191,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{t("m.live.youtube_video_tip")}</Text>
         <Text style={styles.step}>
-          {step === 1 ? "1/2 · URL" : t("m.live.2_2_segment_moco")}
+          {step === 1 ? "1/2 · URL" : "2/2 · Length and amount"}
         </Text>
         {typeof balance === "number" ? (
           <Text style={styles.balance}>
@@ -249,23 +251,26 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
                     />
                   </View>
                   <View style={styles.half}>
-                    <Text style={styles.label}>{t("m.live.end_sec")}</Text>
+                    <Text style={styles.label}>{t("m.live.playback_seconds")}</Text>
                     <TextInput
                       style={styles.input}
-                      value={endSec}
-                      onChangeText={setEndSec}
+                      value={playSec}
+                      onChangeText={(value) => {
+                        const cap = Math.min(quote.maxPlaySec, Math.max(1, quote.durationSec - Math.floor(Number(startSec) || 0)));
+                        const n = Math.floor(Number(value.replace(/\D/g, "")) || 0);
+                        if (!value) {
+                          setPlaySec("");
+                          return;
+                        }
+                        setPlaySec(String(Math.min(cap, Math.max(1, n))));
+                      }}
                       keyboardType="number-pad"
-                      editable={!playToEnd}
                     />
                   </View>
                 </View>
-
-                <Pressable style={styles.playToEndRow} onPress={() => setPlayToEnd((v) => !v)}>
-                  <View style={[styles.checkbox, playToEnd && styles.checkboxOn]} />
-                  <Text style={styles.playToEndText}>
-                    {t("m.live.play_to_end_max_maxplaysec_s", { maxPlaySec: String(quote.maxPlaySec) })}
-                  </Text>
-                </Pressable>
+                <Text style={styles.quoteSub}>
+                  Video {quote.durationSec}s · creator max {quote.maxPlaySec}s
+                </Text>
 
                 <Pressable
                   style={styles.outlineBtn}
@@ -282,13 +287,17 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
                 </Pressable>
 
                 <View style={styles.quoteBox}>
-                  <Text style={styles.quoteSub}>
-                    {t("m.common.play")} {formatSecLabel(quote.segmentSec)}
-                  </Text>
-                  <Text style={styles.quoteMoco}>{quote.mocoAmount.toLocaleString()} MOCO</Text>
+                  <Text style={styles.quoteSub}>Amount due</Text>
+                  <Text style={styles.quoteMoco}>{quote.mocoLabel} MOCO</Text>
+                  <Text style={styles.quoteSub}>${(quote.usdCents / 100).toFixed(2)}</Text>
                 </View>
               </>
             ) : null}
+
+            <Pressable style={styles.termsRow} onPress={() => setNoRefundAccepted((v) => !v)}>
+              <View style={[styles.checkbox, noRefundAccepted && styles.checkboxOn]} />
+              <Text style={styles.termsText}>{t("m.live.video_donation_no_refund")}</Text>
+            </Pressable>
 
             <Pressable style={styles.termsRow} onPress={() => setTermsAccepted((v) => !v)}>
               <View style={[styles.checkbox, termsAccepted && styles.checkboxOn]} />
@@ -310,7 +319,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
                 {busy ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.submitText}>{t("m.live.send_tip")}</Text>
+                  <Text style={styles.submitText}>{t("m.live.youtube_video_tip")}</Text>
                 )}
               </Pressable>
             </View>

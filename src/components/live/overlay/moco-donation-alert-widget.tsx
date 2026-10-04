@@ -6,7 +6,6 @@ const t = createTranslator("en");
 import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import { youtubeEmbedUrl } from "@/lib/video-donation";
 import type { MocoDonationPayload } from "@/lib/moco-donation/types";
 
 function playSfx(src: string | null, onDone: () => void) {
@@ -37,6 +36,14 @@ export function MocoDonationAlertWidget({
   const seenRef = useRef(new Set<string>());
   const socketRef = useRef<Socket | null>(null);
   const playTimerRef = useRef<number | null>(null);
+  const endsAtRef = useRef(0);
+  const remainingMsRef = useRef(0);
+  const playerRef = useRef<{
+    pauseVideo?: () => void;
+    playVideo?: () => void;
+    setVolume?: (volume: number) => void;
+    destroy?: () => void;
+  } | null>(null);
 
   const notifyPlaying = useCallback(
     async (donationId: string) => {
@@ -90,7 +97,7 @@ export function MocoDonationAlertWidget({
     let next: MocoDonationPayload | undefined;
     while (queueRef.current.length > 0) {
       const candidate = queueRef.current.shift()!;
-      if (candidate.status === "SKIPPED" || candidate.status === "COMPLETED") continue;
+      if (candidate.status === "SKIPPED" || candidate.status === "COMPLETED" || candidate.status === "CANCELLED") continue;
       next = candidate;
       break;
     }
@@ -101,8 +108,9 @@ export function MocoDonationAlertWidget({
     void notifyPlaying(next.id);
 
     if (next.type === "VIDEO" && next.videoId) {
-      const ms =
-        (next.segmentPlaySec ?? next.maxPlaySec ?? 60) * 1000 + 500;
+      const ms = (next.segmentPlaySec ?? next.maxPlaySec ?? 60) * 1000 + 500;
+      remainingMsRef.current = ms;
+      endsAtRef.current = Date.now() + ms;
       playTimerRef.current = window.setTimeout(() => finishCurrent(), ms);
       return;
     }
@@ -123,7 +131,7 @@ export function MocoDonationAlertWidget({
     (items: MocoDonationPayload[]) => {
       for (const item of items) {
         if (seenRef.current.has(item.id)) continue;
-        if (item.status === "COMPLETED" || item.status === "SKIPPED") continue;
+        if (item.status === "COMPLETED" || item.status === "SKIPPED" || item.status === "CANCELLED") continue;
         seenRef.current.add(item.id);
         queueRef.current.push(item);
       }
@@ -173,6 +181,31 @@ export function MocoDonationAlertWidget({
     socket.on("donation_completed", (data: MocoDonationPayload) => {
       if (currentRef.current?.id === data.id) finishCurrent();
     });
+    socket.on("donation_cancelled", (data: MocoDonationPayload) => {
+      queueRef.current = queueRef.current.filter((item) => item.id !== data.id);
+      seenRef.current.delete(data.id);
+    });
+    socket.on("donation_player_control", (control: { action?: string; volume?: number }) => {
+      const player = playerRef.current;
+      if (control.action === "pause") {
+        player?.pauseVideo?.();
+        if (playTimerRef.current) {
+          remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
+          window.clearTimeout(playTimerRef.current);
+          playTimerRef.current = null;
+        }
+      }
+      if (control.action === "resume") {
+        player?.playVideo?.();
+        if (!playTimerRef.current && remainingMsRef.current > 0) {
+          endsAtRef.current = Date.now() + remainingMsRef.current;
+          playTimerRef.current = window.setTimeout(() => finishCurrent(), remainingMsRef.current);
+        }
+      }
+      if (control.action === "volume" && typeof control.volume === "number") {
+        player?.setVolume?.(control.volume);
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -182,11 +215,55 @@ export function MocoDonationAlertWidget({
     };
   }, [apiBase, channelId, token, enqueue, finishCurrent]);
 
+  useEffect(() => {
+    if (!current || current.type !== "VIDEO" || !current.videoId) return;
+    const videoId = current.videoId;
+    const start = current.startSec || 0;
+    const end = current.endSec && !current.playToEnd ? current.endSec : undefined;
+    let cancelled = false;
+
+    const mount = () => {
+      const YT = (window as unknown as { YT?: { Player: new (el: HTMLElement, opts: object) => typeof playerRef.current } }).YT;
+      const slot = document.getElementById("moco-yt-slot");
+      if (cancelled || !YT?.Player || !slot) return;
+      playerRef.current?.destroy?.();
+      slot.replaceChildren();
+      const holder = document.createElement("div");
+      holder.style.width = "100%";
+      holder.style.height = "100%";
+      slot.appendChild(holder);
+      playerRef.current = new YT.Player(holder, {
+        videoId,
+        playerVars: { autoplay: 1, start, end, rel: 0, playsinline: 1 },
+      });
+    };
+
+    const w = window as unknown as { YT?: { Player?: unknown }; onYouTubeIframeAPIReady?: () => void };
+    if (w.YT?.Player) mount();
+    else {
+      const prev = w.onYouTubeIframeAPIReady;
+      w.onYouTubeIframeAPIReady = () => {
+        prev?.();
+        mount();
+      };
+      if (!document.querySelector("script[data-moco-yt-api='1']")) {
+        const script = document.createElement("script");
+        script.src = "https://www.youtube.com/iframe_api";
+        script.dataset.mocoYtApi = "1";
+        document.body.appendChild(script);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      playerRef.current?.destroy?.();
+      playerRef.current = null;
+    };
+  }, [current]);
+
   if (!current) return null;
 
   const name = current.username.startsWith("@") ? current.username.slice(1) : current.username;
-  const embedEnd =
-    current.endSec && !current.playToEnd ? current.endSec : undefined;
 
   return (
     <div
@@ -214,7 +291,7 @@ export function MocoDonationAlertWidget({
         <p style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
           <span style={{ color: "#5dff6a" }}>{name}</span>
           <span>{t("live.szbs")} </span>
-          <span style={{ color: "#ffe44d" }}>{current.mocoAmount.toLocaleString()} MOCO</span>
+          <span style={{ color: "#ffe44d" }}>{current.mocoLabel} MOCO</span>
           <span> {t("live.swe9sl")}</span>
         </p>
 
@@ -234,17 +311,8 @@ export function MocoDonationAlertWidget({
         ) : null}
 
         {current.type === "VIDEO" && current.videoId ? (
-          <div style={{ marginTop: 12, aspectRatio: "16/9", borderRadius: 12, overflow: "hidden" }}>
-            <iframe
-              title={t("live.moco")}
-              src={youtubeEmbedUrl(current.videoId, {
-                autoplay: true,
-                startSec: current.startSec,
-                endSec: embedEnd,
-              })}
-              style={{ width: "100%", height: "100%", border: 0 }}
-              allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
-            />
+          <div style={{ marginTop: 12, aspectRatio: "16/9", borderRadius: 12, overflow: "hidden", pointerEvents: "auto" }}>
+            <div id="moco-yt-slot" style={{ width: "100%", height: "100%" }} />
           </div>
         ) : null}
       </div>

@@ -10,6 +10,7 @@ import {
   markMocoDonationPlaying,
 } from "@/lib/moco-donation/service";
 import { relayMocoDonationEvent } from "@/lib/moco-donation-socket-relay";
+import { closeChannelIfHostGone } from "@/lib/moco-donation/disconnect-sweep";
 
 /** OBS MOCO 도네이션 큐 — 폴링 폴백 + 재생 상태 갱신 */
 export async function GET(
@@ -31,6 +32,8 @@ export async function GET(
   if (!broadcastAccess.ok) {
     return NextResponse.json({ error: errorText(broadcastAccess.error) }, { status: broadcastAccess.status });
   }
+
+  void closeChannelIfHostGone(channelId);
 
   const sinceMs = Number(req.nextUrl.searchParams.get("since") ?? "0");
   const since = Number.isFinite(sinceMs) && sinceMs > 0 ? new Date(sinceMs) : undefined;

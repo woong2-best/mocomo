@@ -143,5 +143,7 @@ export const MobileApi = {
   liveAlerts: (id: string) => `/api/mobile/live/${id}/alerts`,
   liveDonate: (id: string) => `/api/mobile/live/${id}/donate`,
   liveDonateVideoPreview: (id: string) => `/api/mobile/live/${id}/donate/video/preview`,
+  liveVideoDonations: (id: string) => `/api/mobile/live/${id}/video-donations`,
+  liveEnd: (id: string) => `/api/mobile/live/${id}/end`,
   highlights: "/api/mobile/highlights",
 } as const;

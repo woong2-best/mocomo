@@ -8,6 +8,8 @@ export type YoutubeVideoMeta = {
   embeddable: boolean;
   privacyStatus: string;
   ageRestricted: boolean;
+  regionRestricted: boolean;
+  liveBroadcastContent: string;
 };
 
 export type YoutubeValidationResult =
@@ -46,8 +48,12 @@ export async function fetchYoutubeVideoMeta(videoId: string): Promise<YoutubeVid
   const json = (await res.json()) as {
     items?: Array<{
       id: string;
-      snippet?: { title?: string; channelId?: string };
-      contentDetails?: { duration?: string };
+      snippet?: { title?: string; channelId?: string; liveBroadcastContent?: string };
+      contentDetails?: {
+        duration?: string;
+        regionRestriction?: { allowed?: string[]; blocked?: string[] };
+        contentRating?: { ytRating?: string };
+      };
       status?: {
         embeddable?: boolean;
         privacyStatus?: string;
@@ -59,9 +65,12 @@ export async function fetchYoutubeVideoMeta(videoId: string): Promise<YoutubeVid
   const item = json.items?.[0];
   if (!item?.id) return null;
 
-  const durationSec = parseIso8601Duration(item.contentDetails?.duration ?? "PT0S");
-  const ytRating = item.status?.contentRating?.ytRating;
+  const durationSec = parseIso8601Duration(item.contentDetails?.duration ?? "");
+  const ytRating =
+    item.status?.contentRating?.ytRating ?? item.contentDetails?.contentRating?.ytRating;
   const ageRestricted = ytRating === "ytAgeRestricted";
+  const region = item.contentDetails?.regionRestriction;
+  const regionRestricted = Boolean(region?.blocked?.length || region?.allowed?.length);
 
   return {
     videoId: item.id,
@@ -71,6 +80,8 @@ export async function fetchYoutubeVideoMeta(videoId: string): Promise<YoutubeVid
     embeddable: item.status?.embeddable !== false,
     privacyStatus: item.status?.privacyStatus ?? "unknown",
     ageRestricted,
+    regionRestricted,
+    liveBroadcastContent: item.snippet?.liveBroadcastContent ?? "none",
   };
 }
 
@@ -115,8 +126,32 @@ export async function validateYoutubeForDonation(input: {
   if (meta.ageRestricted) {
     return {
       ok: false,
-      error: "Age-restricted videos cannot be sponsored.",
+      error: "Age-restricted videos cannot be used.",
       code: "YOUTUBE_AGE_RESTRICTED",
+    };
+  }
+
+  if (meta.regionRestricted) {
+    return {
+      ok: false,
+      error: "Region-blocked videos cannot be used.",
+      code: "YOUTUBE_REGION_BLOCKED",
+    };
+  }
+
+  if (meta.liveBroadcastContent === "live" || meta.liveBroadcastContent === "upcoming") {
+    return {
+      ok: false,
+      error: "Live streams and premieres cannot be used, because they have no fixed length.",
+      code: "YOUTUBE_LIVE_OR_PREMIERE",
+    };
+  }
+
+  if (meta.durationSec <= 0) {
+    return {
+      ok: false,
+      error: "This video has no duration, so it cannot be used.",
+      code: "YOUTUBE_NO_DURATION",
     };
   }
 

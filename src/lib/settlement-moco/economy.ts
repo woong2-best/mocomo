@@ -5,6 +5,9 @@ import {
   creditCreatorAllocationCents,
   creatorAllocationCentsFromMoco,
 } from "@/lib/moco/topup-ledger";
+import { splitMocoFaceValueCents } from "@/lib/moco/stripe-pass-through";
+import { MOCO_USD_CENTS } from "@/lib/gems/constants";
+import { splitCenti } from "@/lib/moco-donation/video-pricing";
 import { joinMoco, mocoToTenths, splitUnsignedTenths } from "@/lib/moco/decimal-amount";
 
 export type SettlementMocoBucket = "SETTLEMENT_MOCO";
@@ -108,6 +111,77 @@ export async function creditSettlementMocoInTx(
     tx,
     input.userId,
     creatorAllocationCentsFromMoco(input.amount)
+  );
+  return row;
+}
+
+/** Video-donation settlement in 0.01 MOCO units. Idempotent per reference id. */
+export async function creditSettlementMocoCentiInTx(
+  tx: Prisma.TransactionClient,
+  input: {
+    userId: string;
+    centi: number;
+    reason: string;
+    referenceType: string;
+    referenceId: string;
+    metadata?: Record<string, unknown>;
+  }
+) {
+  if (!Number.isInteger(input.centi) || input.centi <= 0) return null;
+  const existingWallet = await tx.platformWallet.findUnique({ where: { userId: input.userId } });
+  const wallet =
+    existingWallet ?? (await tx.platformWallet.create({ data: { userId: input.userId } }));
+
+  const existing = await tx.platformWalletLedger.findFirst({
+    where: {
+      walletId: wallet.id,
+      bucket: "SETTLEMENT_MOCO",
+      referenceType: input.referenceType,
+      referenceId: input.referenceId,
+      OR: [{ delta: { gt: 0 } }, { deltaTenths: { gt: 0 } }, { deltaHundredths: { gt: 0 } }],
+    },
+  });
+  if (existing) return wallet;
+
+  const total =
+    wallet.settlementMocoPoints * 100 +
+    wallet.settlementMocoPointsTenths * 10 +
+    wallet.settlementMocoPointsHundredths +
+    input.centi;
+  const whole = Math.floor(total / 100);
+  const rem = total % 100;
+  const delta = splitCenti(input.centi);
+  const row = await tx.platformWallet.update({
+    where: { id: wallet.id },
+    data: {
+      settlementMocoPoints: whole,
+      settlementMocoPointsTenths: Math.floor(rem / 10),
+      settlementMocoPointsHundredths: rem % 10,
+    },
+  });
+
+  await tx.platformWalletLedger.create({
+    data: {
+      walletId: wallet.id,
+      bucket: "SETTLEMENT_MOCO",
+      delta: delta.whole,
+      deltaTenths: delta.tenths,
+      deltaHundredths: delta.hundredths,
+      balanceAfter: row.settlementMocoPoints,
+      balanceAfterTenths: row.settlementMocoPointsTenths,
+      balanceAfterHundredths: row.settlementMocoPointsHundredths,
+      reason: input.reason,
+      referenceType: input.referenceType,
+      referenceId: input.referenceId,
+      metadata: input.metadata as Prisma.InputJsonValue | undefined,
+    },
+  });
+
+  await syncEarnedMocoDisplayTier(input.userId, total / 100, tx);
+  await creditCreatorAllocationCents(
+    tx,
+    input.userId,
+    splitMocoFaceValueCents(input.centi * (MOCO_USD_CENTS / 100)).creatorAllocationCents
   );
   return row;
 }

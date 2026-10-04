@@ -165,8 +165,13 @@ export function ExternalLiveRoomClient(props: Props) {
     };
   }, [channelId, leaveRoom]);
 
-  function handleEndStream() {
+  async function handleEndStream() {
     if (endingRef.current) return;
+    const { confirmEndStreamIfVideoQueue, fetchVideoDonationPendingCount } = await import(
+      "@/components/live/video-donation-room-controls"
+    );
+    const pending = await fetchVideoDonationPendingCount(channelId);
+    if (!confirmEndStreamIfVideoQueue(pending)) return;
     endingRef.current = true;
     endedRef.current = true;
     router.replace("/live");

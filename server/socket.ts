@@ -277,8 +277,12 @@ const httpServer = createServer((req, res) => {
           channelId?: string;
           event?: string;
           donation?: { id?: string };
+          control?: { action?: string; volume?: number };
         };
-        if (body.channelId && body.event && body.donation?.id) {
+        if (body.channelId && body.event === "donation_player_control" && body.control?.action) {
+          io.to(`widget:${body.channelId}`).emit("donation_player_control", body.control);
+          io.to(`live:${body.channelId}`).emit("donation_player_control", body.control);
+        } else if (body.channelId && body.event && body.donation?.id) {
           io.to(`widget:${body.channelId}`).emit(body.event, body.donation);
           io.to(`live:${body.channelId}`).emit(body.event, body.donation);
         }
@@ -743,4 +747,11 @@ io.on("connection", (socket: AuthedSocket) => {
 
 httpServer.listen(PORT, () => {
   console.log(`[MoCoMo] Socket.IO server on :${PORT} (auth token required)`);
+  const sweep = () => {
+    void import("../src/lib/moco-donation/disconnect-sweep")
+      .then((mod) => mod.sweepDisconnectedLiveHosts())
+      .catch((err) => console.warn("[socket] video donation sweep failed", err));
+  };
+  sweep();
+  setInterval(sweep, 60_000);
 });

@@ -32,6 +32,7 @@ export async function POST(
     media_url?: string;
     message?: string;
     sfx_key?: string;
+    play_sec?: number;
     start_sec?: number;
     end_sec?: number;
     play_to_end?: boolean;
@@ -68,6 +69,7 @@ export async function POST(
     mediaUrl: body.media_url,
     message: body.message,
     sfxKey: body.sfx_key,
+    playSec: body.play_sec,
     startSec: body.start_sec,
     endSec: body.end_sec,
     playToEnd: body.play_to_end,

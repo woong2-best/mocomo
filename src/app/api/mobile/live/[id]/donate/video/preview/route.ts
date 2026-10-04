@@ -24,6 +24,7 @@ export async function POST(
 
   let body: {
     media_url?: string;
+    play_sec?: number;
     start_sec?: number;
     end_sec?: number;
     play_to_end?: boolean;
@@ -37,6 +38,7 @@ export async function POST(
   const prepared = await prepareMocoVideoDonation({
     channelId,
     mediaUrl: body.media_url ?? "",
+    playSec: body.play_sec,
     startSec: body.start_sec,
     endSec: body.end_sec,
     playToEnd: body.play_to_end,
@@ -50,11 +52,17 @@ export async function POST(
     ok: true,
     video_id: prepared.videoId,
     video_title: prepared.videoTitle,
-    segment_sec: prepared.segmentSec,
+    duration_sec: prepared.durationSec,
+    segment_sec: prepared.quote.playSec,
+    play_sec: prepared.quote.playSec,
+    billed_sec: prepared.quote.billedSec,
     max_play_sec: prepared.maxPlaySec,
-    moco_amount: prepared.mocoAmount,
+    moco_amount: prepared.quote.mocoCenti / 100,
+    moco_centi: prepared.quote.mocoCenti,
+    moco_label: prepared.quote.mocoLabel,
+    usd_cents: prepared.quote.usdCents,
     start_sec: prepared.startSec,
     end_sec: prepared.endSec,
-    play_to_end: prepared.playToEnd,
+    play_to_end: false,
   });
 }

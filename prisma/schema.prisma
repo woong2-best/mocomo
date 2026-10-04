@@ -134,6 +134,8 @@ enum MocoDonationStatus {
   PLAYING
   COMPLETED
   SKIPPED
+  /** Refunded before playback (user cancel, host queue delete, or stream end). */
+  CANCELLED
 }
 
 enum LiveSupportMissionStatus {
@@ -302,6 +304,8 @@ model User {
   gemBalance Int @default(0)
   /** 0–9, extra 0.1 MOCO on gemBalance (transfer · donation) */
   gemBalanceTenths Int @default(0)
+  /** 0–9, extra 0.01 MOCO beyond tenths. 1 unit = 0.01 MOCO. */
+  gemBalanceHundredths Int @default(0)
   /** 회원 탈퇴 요청 시각 (30일 복구 기간) */
   deletedAt           DateTime?
   /** 영구 삭제 예정 시각 — 탈퇴 시점 + 30일 */
@@ -1788,6 +1792,10 @@ model VoiceChannel {
   /** MOCO 영상 도네 — 초당 MOCO, 최소 MOCO (maxPlaySec는 videoDonationMaxSec) */
   videoDonationRateMocoPerSec Int @default(1)
   videoDonationMinMoco        Int @default(2)
+  /** Video donations on/off. Off or not-live rejects new video donations. */
+  videoDonationEnabled Boolean @default(true)
+  /** Price per 10 seconds. 1 = 0.01 MOCO. Default 10 = 0.1 MOCO / 10s. */
+  videoDonationRateCentiPer10Sec Int @default(10)
   /** { videoIds, channelIds, keywords } */
   videoDonationBlocklistJson  Json?
   vodUrl           String?
@@ -2204,6 +2212,8 @@ model GemPurchase {
   remainingGems         Int
   /** 0–9 leftover after remainingGems */
   remainingTenths       Int      @default(0)
+  /** 0–9 leftover 0.01 MOCO after tenths */
+  remainingHundredths   Int      @default(0)
   pricePerGemUsd        Float
   stripePaymentIntentId String   @unique
   refunded              Boolean  @default(false)
@@ -2284,6 +2294,8 @@ model GiftEvent {
   gems          Int
   /** 0–9, so 0.1 MOCO is gems=0 gemsTenths=1 */
   gemsTenths    Int       @default(0)
+  /** 0–9, extra 0.01 MOCO */
+  gemsHundredths Int      @default(0)
   source        String
   contentId     String?
   timestamp     DateTime  @default(now())
@@ -2307,6 +2319,7 @@ model GiftEventAllocation {
   gemPurchaseId String
   gemsUsed      Int
   gemsUsedTenths Int     @default(0)
+  gemsUsedHundredths Int @default(0)
   createdAt     DateTime @default(now())
 
   giftEvent   GiftEvent   @relation(fields: [giftEventId], references: [id], onDelete: Cascade)
@@ -2459,6 +2472,13 @@ model MocoDonation {
   mocoAmount  Int
   /** 0–9 fractional MOCO alongside mocoAmount */
   mocoAmountTenths Int @default(0)
+  /** 0–9, extra 0.01 MOCO */
+  mocoAmountHundredths Int @default(0)
+  /** Canonical video price. 1 = 0.01 MOCO. Never store this as a float. */
+  mocoCenti   Int                @default(0)
+  settledAt   DateTime?
+  refundedAt  DateTime?
+  refundReason String?           @db.VarChar(40)
   type        MocoDonationType
   mediaUrl    String?
   message     String?            @db.Text
@@ -4751,6 +4771,8 @@ model PlatformWallet {
   settlementMocoPoints Int @default(0)
   /** 0–9 on settlementMocoPoints. Cash-out still uses whole MOCO. */
   settlementMocoPointsTenths Int @default(0)
+  /** 0–9, extra 0.01 earned MOCO */
+  settlementMocoPointsHundredths Int @default(0)
   siteCreditKrw   Int      @default(0)
   promoCreditKrw  Int      @default(0)
   refundCreditKrw Int      @default(0)
@@ -4956,8 +4978,10 @@ model PlatformWalletLedger {
   delta         Int
   /** Signed tenth alongside delta */
   deltaTenths   Int      @default(0)
+  deltaHundredths Int    @default(0)
   balanceAfter  Int
   balanceAfterTenths Int @default(0)
+  balanceAfterHundredths Int @default(0)
   reason        String
   referenceType String?
   referenceId   String?

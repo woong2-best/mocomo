@@ -67,6 +67,10 @@ export async function autoEndAbandonedLiveChannels(): Promise<number> {
       data: SESSION_END_DATA,
     });
     await db.voiceMember.deleteMany({ where: { channelId: ch.id } });
+    const { finalizeVideoDonationsForChannel } = await import("@/lib/moco-donation/service");
+    await finalizeVideoDonationsForChannel(ch.id).catch((err) => {
+      console.warn("[live-abandon] video donation finalize failed", { channelId: ch.id, err });
+    });
     if (process.env.NODE_ENV !== "test") {
       console.info("[live-abandon] auto-ended", {
         channelId: ch.id,

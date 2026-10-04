@@ -98,6 +98,11 @@ export async function releaseBroadcastSession(
 
   void relayLiveEndedToSocket(channelId);
 
+  const { finalizeVideoDonationsForChannel } = await import("@/lib/moco-donation/service");
+  await finalizeVideoDonationsForChannel(channelId).catch((err) => {
+    console.warn("[live-broadcast] video donation finalize failed", { channelId, err });
+  });
+
   logSession("release", { channelId, hostUserId, reason, name: channel.name });
   return true;
 }
@@ -152,6 +157,10 @@ export async function releaseAllHostBroadcastSessions(
       data: SESSION_END_DATA,
     });
     await db.voiceMember.deleteMany({ where: { channelId: ch.id } });
+    const { finalizeVideoDonationsForChannel } = await import("@/lib/moco-donation/service");
+    await finalizeVideoDonationsForChannel(ch.id).catch((err) => {
+      console.warn("[live-broadcast] video donation finalize failed", { channelId: ch.id, err });
+    });
     released.push({ channelId: ch.id, name: ch.name });
     logSession("release-all", { channelId: ch.id, hostUserId, reason });
   }
@@ -164,6 +173,10 @@ export async function releaseAllHostBroadcastSessions(
     if (released.some((r) => r.channelId === ch.id)) continue;
     await db.voiceChannel.update({ where: { id: ch.id }, data: SESSION_END_DATA });
     await db.voiceMember.deleteMany({ where: { channelId: ch.id } });
+    const { finalizeVideoDonationsForChannel } = await import("@/lib/moco-donation/service");
+    await finalizeVideoDonationsForChannel(ch.id).catch((err) => {
+      console.warn("[live-broadcast] video donation finalize failed", { channelId: ch.id, err });
+    });
     released.push({ channelId: ch.id, name: ch.name });
   }
 

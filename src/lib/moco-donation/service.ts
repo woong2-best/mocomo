@@ -2,9 +2,10 @@ import type { MocoDonationType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { filterLiveChatContent } from "@/lib/live-chat-filter";
 import { ensureStringArray } from "@/lib/ensure-array";
-import { consumeGemsFifo, InsufficientGemsBalanceError } from "@/lib/gems/fifo";
+import { consumeGemPurchaseCenti, consumeGemsFifo, InsufficientGemsBalanceError, refundGiftEventCenti } from "@/lib/gems/fifo";
 import { syncUserGemBalance } from "@/lib/gems/balance";
-import { creditSettlementMoco } from "@/lib/settlement-moco/economy";
+import { creditSettlementMoco, creditSettlementMocoCentiInTx } from "@/lib/settlement-moco/economy";
+import { splitCenti } from "@/lib/moco-donation/video-pricing";
 import { relayMocoDonationEvent } from "@/lib/moco-donation-socket-relay";
 import {
   MOCO_DONATION_MAX_AMOUNT,
@@ -25,6 +26,7 @@ export type CreateMocoDonationInput = {
   mediaUrl?: string;
   message?: string;
   sfxKey?: string;
+  playSec?: number;
   startSec?: number;
   endSec?: number | null;
   playToEnd?: boolean;
@@ -87,6 +89,7 @@ export async function createMocoDonation(
   let segmentPlaySec: number | null = null;
   let maxPlaySec = 60;
   let sfxKey: string | null = null;
+  let mocoCenti = 0;
 
   if (type === "VIDEO") {
     const raw = input.mediaUrl?.trim() ?? "";
@@ -95,6 +98,7 @@ export async function createMocoDonation(
     const prepared = await prepareMocoVideoDonation({
       channelId: target.channelId,
       mediaUrl: raw,
+      playSec: input.playSec,
       startSec: input.startSec,
       endSec: input.endSec,
       playToEnd: input.playToEnd,
@@ -105,11 +109,12 @@ export async function createMocoDonation(
 
     mediaUrl = prepared.mediaUrl;
     videoTitle = prepared.videoTitle;
-    mocoAmount = prepared.mocoAmount;
+    mocoCenti = prepared.quote.mocoCenti;
+    mocoAmount = mocoCenti / 100;
     startSec = prepared.startSec;
     endSec = prepared.endSec;
-    playToEnd = prepared.playToEnd;
-    segmentPlaySec = prepared.segmentSec;
+    playToEnd = false;
+    segmentPlaySec = prepared.quote.playSec;
     maxPlaySec = prepared.maxPlaySec;
   } else if (type === "SFX") {
     const key = input.sfxKey?.trim();
@@ -140,8 +145,10 @@ export async function createMocoDonation(
   }
 
   try {
-    const parts = splitUnsignedTenths(mocoToTenths(mocoAmount) ?? 0);
-    if (parts.whole === 0 && parts.tenths === 0) {
+    const centiParts = type === "VIDEO" ? splitCenti(mocoCenti) : null;
+    const parts =
+      centiParts ?? splitUnsignedTenths(mocoToTenths(mocoAmount) ?? 0);
+    if (parts.whole === 0 && parts.tenths === 0 && (centiParts?.hundredths ?? 0) === 0) {
       return { success: false, error: "Invalid MOCO amount." };
     }
 
@@ -152,12 +159,28 @@ export async function createMocoDonation(
           creatorId: target.streamerId,
           gems: parts.whole,
           gemsTenths: parts.tenths,
+          gemsHundredths: centiParts?.hundredths ?? 0,
           source: "live_moco_donation",
           contentId: target.channelId,
         },
       });
 
-      await consumeGemsFifo(input.userId, mocoAmount, giftEvent.id, tx);
+      if (centiParts) {
+        await consumeGemPurchaseCenti(tx, input.userId, mocoCenti, async ({ gemPurchaseId, centi }) => {
+          const used = splitCenti(centi);
+          await tx.giftEventAllocation.create({
+            data: {
+              giftEventId: giftEvent.id,
+              gemPurchaseId,
+              gemsUsed: used.whole,
+              gemsUsedTenths: used.tenths,
+              gemsUsedHundredths: used.hundredths,
+            },
+          });
+        });
+      } else {
+        await consumeGemsFifo(input.userId, mocoAmount, giftEvent.id, tx);
+      }
 
       const donation = await tx.mocoDonation.create({
         data: {
@@ -166,6 +189,8 @@ export async function createMocoDonation(
           userId: input.userId,
           mocoAmount: parts.whole,
           mocoAmountTenths: parts.tenths,
+          mocoAmountHundredths: centiParts?.hundredths ?? 0,
+          mocoCenti: centiParts ? mocoCenti : parts.whole * 100 + parts.tenths * 10,
           type,
           mediaUrl,
           message,
@@ -186,14 +211,16 @@ export async function createMocoDonation(
       return { donation, giftEventId: giftEvent.id };
     });
 
-    await creditSettlementMoco({
-      userId: target.streamerId,
-      amount: mocoAmount,
-      reason: "MOCO live donation (SFX · video)",
-      referenceType: "gift_event",
-      referenceId: donation.giftEventId!,
-      metadata: { source: "live_moco_donation", type, channelId: target.channelId },
-    });
+    if (type !== "VIDEO") {
+      await creditSettlementMoco({
+        userId: target.streamerId,
+        amount: mocoAmount,
+        reason: "MOCO live donation (SFX)",
+        referenceType: "gift_event",
+        referenceId: donation.giftEventId!,
+        metadata: { source: "live_moco_donation", type, channelId: target.channelId },
+      });
+    }
 
     const balance = await syncUserGemBalance(input.userId);
     const payload = toMocoDonationPayload(donation);
@@ -226,6 +253,9 @@ export async function skipMocoDonation(input: {
   if (row.streamerId !== input.hostUserId) {
     return { ok: false, error: "Only the host can skip." };
   }
+  if (row.type === "VIDEO" && row.status !== "PLAYING") {
+    return { ok: false, error: "Skip only applies to the video that is playing." };
+  }
   if (row.status !== "PENDING" && row.status !== "PLAYING") {
     return { ok: false, error: "Cannot skip in the current state." };
   }
@@ -242,13 +272,15 @@ export async function skipMocoDonation(input: {
   return { ok: true };
 }
 
+/** Records the moment the creator screen actually starts playback. Refunds are refused after this. */
 export async function markMocoDonationPlaying(donationId: string, channelId: string) {
   const row = await db.mocoDonation.findUnique({ where: { id: donationId } });
   if (!row || row.channelId !== channelId || row.status !== "PENDING") return null;
 
+  const playedAt = new Date();
   return db.mocoDonation.update({
     where: { id: donationId },
-    data: { status: "PLAYING", playedAt: new Date() },
+    data: { status: "PLAYING", playedAt },
     include: { user: { select: { username: true } } },
   });
 }
@@ -256,15 +288,138 @@ export async function markMocoDonationPlaying(donationId: string, channelId: str
 export async function completeMocoDonation(donationId: string, channelId: string) {
   const row = await db.mocoDonation.findUnique({ where: { id: donationId } });
   if (!row || row.channelId !== channelId) return null;
-  if (row.status !== "PLAYING" && row.status !== "PENDING") return null;
+  if (row.status !== "PLAYING" || !row.playedAt) return null;
 
   return db.mocoDonation.update({
     where: { id: donationId },
     data: {
       status: "COMPLETED",
       completedAt: new Date(),
-      ...(row.playedAt ? {} : { playedAt: new Date() }),
     },
     include: { user: { select: { username: true } } },
   });
+}
+
+type RefundReason = "USER_CANCEL" | "HOST_QUEUE_DELETE" | "STREAM_ENDED";
+
+async function refundPendingVideoDonation(
+  donationId: string,
+  reason: RefundReason,
+  actor: { userId?: string; hostId?: string }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const row = await db.mocoDonation.findUnique({ where: { id: donationId } });
+  if (!row || row.type !== "VIDEO") return { ok: false, error: "Donation not found." };
+  if (actor.userId && row.userId !== actor.userId) {
+    return { ok: false, error: "You can only cancel your own donation." };
+  }
+  if (actor.hostId && row.streamerId !== actor.hostId) {
+    return { ok: false, error: "Only the host can remove a queued video." };
+  }
+  if (row.playedAt || row.status !== "PENDING") {
+    return { ok: false, error: "Playback has already started, so this donation cannot be cancelled." };
+  }
+  if (!row.giftEventId) return { ok: false, error: "Donation not found." };
+
+  const updated = await db.$transaction(async (tx) => {
+    const claimed = await tx.mocoDonation.updateMany({
+      where: { id: row.id, status: "PENDING", playedAt: null, refundedAt: null },
+      data: {
+        status: "CANCELLED",
+        refundedAt: new Date(),
+        refundReason: reason,
+        completedAt: new Date(),
+      },
+    });
+    if (claimed.count !== 1) return false;
+    await refundGiftEventCenti(tx, row.giftEventId!, row.userId);
+    return true;
+  });
+  if (!updated) return { ok: false, error: "This donation is no longer in the queue." };
+
+  const fresh = await db.mocoDonation.findUnique({
+    where: { id: row.id },
+    include: { user: { select: { username: true } } },
+  });
+  if (fresh) {
+    void relayMocoDonationEvent(row.channelId, {
+      event: "donation_cancelled",
+      donation: toMocoDonationPayload(fresh),
+    });
+  }
+  return { ok: true };
+}
+
+export async function cancelQueuedVideoDonation(input: { userId: string; donationId: string }) {
+  return refundPendingVideoDonation(input.donationId, "USER_CANCEL", { userId: input.userId });
+}
+
+export async function deleteQueuedVideoDonation(input: { hostUserId: string; donationId: string }) {
+  return refundPendingVideoDonation(input.donationId, "HOST_QUEUE_DELETE", { hostId: input.hostUserId });
+}
+
+/**
+ * Stream end: settle donations whose playback started, refund the rest.
+ * Safe to call more than once for the same channel.
+ */
+export async function finalizeVideoDonationsForChannel(channelId: string): Promise<{
+  settled: number;
+  refunded: number;
+}> {
+  const rows = await db.mocoDonation.findMany({
+    where: {
+      channelId,
+      type: "VIDEO",
+      OR: [
+        { status: "PENDING", refundedAt: null },
+        {
+          playedAt: { not: null },
+          settledAt: null,
+          status: { in: ["PLAYING", "COMPLETED", "SKIPPED"] },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      status: true,
+      playedAt: true,
+      streamerId: true,
+      mocoCenti: true,
+      giftEventId: true,
+      userId: true,
+    },
+  });
+
+  let settled = 0;
+  let refunded = 0;
+  for (const row of rows) {
+    if (row.playedAt && row.status !== "PENDING") {
+      const did = await db.$transaction(async (tx) => {
+        const claimed = await tx.mocoDonation.updateMany({
+          where: { id: row.id, settledAt: null, playedAt: { not: null } },
+          data: {
+            settledAt: new Date(),
+            ...(row.status === "PLAYING" ? { status: "COMPLETED" as const, completedAt: new Date() } : {}),
+          },
+        });
+        if (claimed.count !== 1) return false;
+        await creditSettlementMocoCentiInTx(tx, {
+          userId: row.streamerId,
+          centi: row.mocoCenti,
+          reason: "Video donation settled at stream end",
+          referenceType: "video_donation_settle",
+          referenceId: row.id,
+          metadata: { channelId, giftEventId: row.giftEventId },
+        });
+        return true;
+      });
+      if (did) settled += 1;
+      continue;
+    }
+
+    if (row.status === "PENDING" && !row.playedAt) {
+      const result = await refundPendingVideoDonation(row.id, "STREAM_ENDED", {});
+      if (result.ok) refunded += 1;
+    }
+  }
+  return { settled, refunded };
 }

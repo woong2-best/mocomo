@@ -214,8 +214,13 @@ export function LiveRoomClient({
     setJoined(true);
   }
 
-  function handleEndStream() {
+  async function handleEndStream() {
     if (endingStreamRef.current) return;
+    const { confirmEndStreamIfVideoQueue, fetchVideoDonationPendingCount } = await import(
+      "@/components/live/video-donation-room-controls"
+    );
+    const pending = await fetchVideoDonationPendingCount(channelId);
+    if (!confirmEndStreamIfVideoQueue(pending)) return;
     endingStreamRef.current = true;
     router.replace("/live");
     void endLiveStream(channelId);

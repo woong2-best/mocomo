@@ -29,6 +29,7 @@ import { relayLiveChatMessage } from "@/hooks/use-live-socket";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { ensureArray } from "@/lib/ensure-array";
 import { LiveDonationToolbar } from "@/components/live/live-donation-toolbar";
+import { VideoDonationRoomControls } from "@/components/live/video-donation-room-controls";
 import { ExternalLiveDonationBar } from "@/components/live/external-live-donation-bar";
 import {
   CommentDonationChatCard,
@@ -384,6 +385,7 @@ function LiveChatInner({
       </div>
       {session?.user ? (
         <div className="shrink-0 space-y-2 border-t border-border/60 p-2.5">
+          <VideoDonationRoomControls channelId={channelId} isHost={isHost} />
           {isExternal ? (
             <ExternalLiveDonationBar
               channelId={channelId}

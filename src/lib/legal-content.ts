@@ -256,7 +256,7 @@ export const COMMUNITY_POLICY: LegalDocument = {
 export const TERMS_OF_SERVICE: LegalDocument = {
   slug: "terms",
   title: "MoCoMo 이용약관",
-  updatedAt: "2026년 9월 25일",
+  updatedAt: "2026년 10월 4일",
   intro:
     '본 약관은 미합중국 와이오밍 주에 설립된 MoCoMo LLC(이하 "회사" 또는 "MoCoMo")가 제공하는 웹사이트(mocomo.net), 모바일 애플리케이션 및 관련 서비스의 이용 조건을 규정합니다.',
   blocks: [
@@ -1154,6 +1154,24 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     {
       type: "p",
       text: "⑤ (일부 무효 시의 효력) 본 조항 또는 본 약관의 일부 조항이 거주국 강행법규나 관할 법원의 판결에 의해 무효 또는 집행 불가능하게 되더라도, 이는 다른 조항의 효력에 영향을 미치지 아니하며 나머지 조항은 계속하여 완전한 효력을 유지합니다.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "Video Donations" },
+    {
+      type: "p",
+      text: "MOCO spent on a video donation is a donation to the creator. It is not a purchase of views, watch time, or promotion. Playing the YouTube video on the creator's live screen is an optional add-on to that donation.",
+    },
+    {
+      type: "p",
+      text: "The creator decides whether a donated video plays, when it plays, and for how long, within the length the donor selected and the creator's maximum. MoCoMo does not guarantee that a video will play, when it will play, or how many people will see it.",
+    },
+    {
+      type: "p",
+      text: "Video donations may not be used to advertise, promote, or drive traffic to a video, channel, or product. Videos play in the official YouTube embed player. YouTube's terms and playback rules apply, including any ads YouTube shows. Embedding, age, region, privacy, and availability limits are enforced before payment. Live streams and premieres are not allowed.",
+    },
+    {
+      type: "p",
+      text: "A video donation is not refunded once playback has started on the creator's screen, including when the creator skips it immediately after it starts. MOCO is refunded in full, and the video is not played, when: the creator removes it from the queue before playback; the donor cancels it while it is still waiting in the queue; or the stream ends before playback starts. MOCO from donations whose playback started is settled to the creator when the stream ends. Cancelled, queue-deleted, and unplayed donations are excluded from that settlement.",
     },
     { type: "hr" },
     { type: "h2", text: "제21조 (문의)" },

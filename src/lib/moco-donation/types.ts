@@ -6,6 +6,10 @@ export type MocoDonationPayload = {
   streamerId: string;
   type: MocoDonationType;
   mocoAmount: number;
+  /** 1 = 0.01 MOCO */
+  mocoCenti: number;
+  mocoLabel: string;
+  playedAt: number | null;
   mediaUrl: string | null;
   videoId: string | null;
   videoTitle: string | null;

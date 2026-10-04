@@ -19,19 +19,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
 import { formatMocoDisplay } from "@/lib/gems/display";
 import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
-import { formatSecLabel, youtubeEmbedUrl } from "@/lib/video-donation";
+import { youtubeEmbedUrl } from "@/lib/video-donation";
 import { toastIfStripeAccountNotReady, useCreatorPayoutReady } from "@/components/support/use-creator-payout-ready";
 import { useLocale } from "@/components/providers/locale-provider";
 
 type PreviewQuote = {
   videoId: string;
   videoTitle: string | null;
-  segmentSec: number;
+  durationSec: number;
+  playSec: number;
   maxPlaySec: number;
-  mocoAmount: number;
+  mocoLabel: string;
+  usdCents: number;
   startSec: number;
-  endSec: number | null;
-  playToEnd: boolean;
 };
 
 export function MocoVideoDonationDialog({
@@ -53,8 +53,8 @@ export function MocoVideoDonationDialog({
   const [urlInput, setUrlInput] = useState("");
   const [message, setMessage] = useState("");
   const [startSec, setStartSec] = useState(0);
-  const [endSec, setEndSec] = useState(30);
-  const [playToEnd, setPlayToEnd] = useState(false);
+  const [playSec, setPlaySec] = useState(10);
+  const [noRefundAccepted, setNoRefundAccepted] = useState(false);
   const [quote, setQuote] = useState<PreviewQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
@@ -70,8 +70,8 @@ export function MocoVideoDonationDialog({
     setUrlInput("");
     setMessage("");
     setStartSec(0);
-    setEndSec(30);
-    setPlayToEnd(false);
+    setPlaySec(10);
+    setNoRefundAccepted(false);
     setQuote(null);
     setQuoteError("");
     setError("");
@@ -82,7 +82,7 @@ export function MocoVideoDonationDialog({
     if (!open) resetForm();
   }, [open, resetForm]);
 
-  async function fetchQuote(mediaUrl: string): Promise<PreviewQuote | null> {
+  async function fetchQuote(mediaUrl: string, nextPlaySec = playSec, nextStart = startSec): Promise<PreviewQuote | null> {
     setQuoteLoading(true);
     setQuoteError("");
     try {
@@ -93,9 +93,8 @@ export function MocoVideoDonationDialog({
         body: JSON.stringify({
           streamer_id: streamerId,
           media_url: mediaUrl,
-          start_sec: startSec,
-          end_sec: playToEnd ? null : endSec,
-          play_to_end: playToEnd,
+          play_sec: nextPlaySec,
+          start_sec: nextStart,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -107,14 +106,15 @@ export function MocoVideoDonationDialog({
       const next: PreviewQuote = {
         videoId: body.video_id,
         videoTitle: body.video_title ?? null,
-        segmentSec: body.segment_sec,
+        durationSec: body.duration_sec,
+        playSec: body.play_sec,
         maxPlaySec: body.max_play_sec,
-        mocoAmount: body.moco_amount,
+        mocoLabel: body.moco_label,
+        usdCents: body.usd_cents,
         startSec: body.start_sec,
-        endSec: body.end_sec,
-        playToEnd: body.play_to_end,
       };
       setQuote(next);
+      setPlaySec(body.play_sec);
       return next;
     } finally {
       setQuoteLoading(false);
@@ -128,18 +128,18 @@ export function MocoVideoDonationDialog({
       return;
     }
     setError("");
-    const q = await fetchQuote(url);
+    const q = (await fetchQuote(url, 10, 0)) ?? (await fetchQuote(url, 1, 0));
     if (q) setStep(2);
   }
 
   async function refreshQuote() {
     const url = urlInput.trim();
     if (!url) return;
-    await fetchQuote(url);
+    await fetchQuote(url, playSec, startSec);
   }
 
   async function submit() {
-    if (!termsAccepted) {
+    if (!termsAccepted || !noRefundAccepted) {
       setError(t("live.donation.acceptTerms"));
       return;
     }
@@ -161,9 +161,8 @@ export function MocoVideoDonationDialog({
           type: "VIDEO",
           media_url: url,
           message: message.trim() || undefined,
+          play_sec: playSec,
           start_sec: startSec,
-          end_sec: playToEnd ? null : endSec,
-          play_to_end: playToEnd,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -260,10 +259,7 @@ export function MocoVideoDonationDialog({
                   <div className="aspect-video rounded-lg overflow-hidden bg-black">
                     <iframe
                       title={t("live.donation.video.previewIframeTitle")}
-                      src={youtubeEmbedUrl(quote.videoId, {
-                        startSec: quote.startSec,
-                        endSec: quote.playToEnd ? undefined : quote.endSec ?? undefined,
-                      })}
+                      src={youtubeEmbedUrl(quote.videoId, { startSec: quote.startSec })}
                       className="h-full w-full border-0"
                       allow="accelerometer; encrypted-media; picture-in-picture"
                     />
@@ -275,41 +271,57 @@ export function MocoVideoDonationDialog({
                       <Input
                         type="number"
                         min={0}
+                        max={Math.max(0, quote.durationSec - 1)}
                         value={startSec}
                         onChange={(e) => setStartSec(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
                         className="border-2 border-[#1B3A6B]"
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label>{t("live.donation.video.endSec")}</Label>
+                      <Label>{t("live.donation.video.playSec")}</Label>
                       <Input
                         type="number"
-                        min={startSec + 1}
-                        value={endSec}
-                        disabled={playToEnd}
-                        onChange={(e) => setEndSec(Math.max(startSec + 1, Math.floor(Number(e.target.value) || 0)))}
+                        min={1}
+                        max={Math.min(quote.maxPlaySec, Math.max(1, quote.durationSec - startSec))}
+                        value={playSec}
+                        onChange={(e) => {
+                          const cap = Math.min(quote.maxPlaySec, Math.max(1, quote.durationSec - startSec));
+                          setPlaySec(Math.min(cap, Math.max(1, Math.floor(Number(e.target.value) || 1))));
+                        }}
                         className="border-2 border-[#1B3A6B]"
                       />
                     </div>
                   </div>
-
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input type="checkbox" checked={playToEnd} onChange={(e) => setPlayToEnd(e.target.checked)} />
-                    {t("live.donation.video.playToEnd", { max: String(quote.maxPlaySec) })}
-                  </label>
+                  <p className="text-[11px] text-muted-foreground">
+                    {t("live.donation.video.lengthCap", {
+                      duration: String(quote.durationSec),
+                      max: String(quote.maxPlaySec),
+                    })}
+                  </p>
 
                   <Button type="button" variant="outline" size="sm" disabled={quoteLoading} onClick={() => void refreshQuote()}>
                     {quoteLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : t("live.donation.video.recalcQuote")}
                   </Button>
 
                   <div className="rounded-lg border-2 border-[#E85D04]/40 bg-[#FFF8F0] px-3 py-2 text-center">
-                    <p className="text-xs text-muted-foreground">
-                      {t("live.donation.video.segmentDuration", { duration: formatSecLabel(quote.segmentSec) })}
-                    </p>
-                    <p className="text-xl font-black text-[#E85D04]">{formatMocoDisplay(quote.mocoAmount)} MOCO</p>
+                    <p className="text-xs text-muted-foreground">{t("live.donation.video.priceLabel")}</p>
+                    <p className="text-xl font-black text-[#E85D04]">{quote.mocoLabel} MOCO</p>
+                    <p className="text-xs text-muted-foreground">${(quote.usdCents / 100).toFixed(2)}</p>
                   </div>
                 </>
               ) : null}
+
+              <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={noRefundAccepted}
+                  onChange={(e) => setNoRefundAccepted(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span className="text-[11px] leading-relaxed text-muted-foreground">
+                  {t("live.donation.video.noRefundSkip")}
+                </span>
+              </label>
 
               <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
                 <input
@@ -335,7 +347,7 @@ export function MocoVideoDonationDialog({
                   title={payoutBlocked ? payoutBlockedMsg : undefined}
                   onClick={() => void submit()}
                 >
-                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("live.donation.submit")}
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("live.donation.video.submit")}
                 </Button>
               </div>
             </>

@@ -3,7 +3,9 @@ import type { MocoDonationPayload } from "@/lib/moco-donation/types";
 export type MocoDonationRelayBody =
   | { event: "new_donation"; donation: MocoDonationPayload }
   | { event: "donation_skipped"; donation: MocoDonationPayload }
-  | { event: "donation_completed"; donation: MocoDonationPayload };
+  | { event: "donation_completed"; donation: MocoDonationPayload }
+  | { event: "donation_cancelled"; donation: MocoDonationPayload }
+  | { event: "donation_player_control"; control: { action: "pause" | "resume" | "volume"; volume?: number } };
 
 function relayBaseUrl(): string | null {
   const explicit = process.env.SOCKET_RELAY_URL?.trim();

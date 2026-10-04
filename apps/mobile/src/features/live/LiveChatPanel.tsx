@@ -23,6 +23,7 @@ import { commentDonationPinMs } from "@/lib/comment-donation";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { LiveSupportPanels } from "@/features/live/LiveSupportPanels";
 import { LiveSupportSheet } from "@/features/live/LiveSupportSheet";
+import { LiveVideoDonationBar } from "@/features/live/LiveVideoDonationBar";
 import { CommentDonationCard, CommentDonationTicker } from "@/features/live/CommentDonationCard";
 import { LiveMocoDonationMenuSheet } from "@/features/live/LiveMocoDonationMenuSheet";
 import { LiveMocoSfxDonationSheet } from "@/features/live/LiveMocoSfxDonationSheet";
@@ -460,6 +461,7 @@ export function LiveChatPanel({
         </View>
       ) : null}
 
+      <LiveVideoDonationBar channelId={channelId} isHost={isHost} />
       <View
         style={[
           styles.composer,
