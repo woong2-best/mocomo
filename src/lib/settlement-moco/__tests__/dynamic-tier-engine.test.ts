@@ -22,16 +22,21 @@ describe("dynamic tier engine", () => {
   });
 
   it("prices withdrawal from matrix tier mapped to withdraw amount", () => {
-    expect(netUsdCentsFromRewardMatrix(700)).toBe(332_500);
-    expect(netUsdCentsFromRewardMatrix(100)).toBe(47_500);
+    expect(netUsdCentsFromRewardMatrix(700)).toBe(338_625);
+    expect(netUsdCentsFromRewardMatrix(100)).toBe(47_800);
   });
 
-  it("aligns pass-through cents with matrix (475¢ per MOCO)", () => {
+  it("pays the published tier amount at each threshold", () => {
+    expect(netUsdCentsFromRewardMatrix(10)).toBe(4_725);
+    expect(netUsdCentsFromRewardMatrix(2200)).toBe(1_065_900);
+    expect(netUsdCentsFromRewardMatrix(100_000)).toBe(49_500_000);
+  });
+
+  it("keeps the 5% face-value pass-through split independent of the tier matrix", () => {
     for (const w of [10, 90, 700, 1000, 15_000]) {
-      const matrix = netUsdCentsFromRewardMatrix(w);
       const pass = passThroughCentsForWithdrawMoco(w);
-      expect(matrix).toBe(pass.netTransferCents);
       expect(pass.faceValueCents).toBe(w * 500);
+      expect(pass.netTransferCents).toBe(w * 475);
       expect(pass.platformMarginCents + pass.netTransferCents).toBe(pass.faceValueCents);
     }
   });
@@ -48,7 +53,7 @@ describe("dynamic tier engine", () => {
     expect(q.activeTierAfter.label).toBe("Genesis");
     expect(q.balanceAfterMoco).toBe(100);
     expect(q.payoutTier.label).toBe("Transcend");
-    expect(q.transfer.netMinor).toBe(332_500);
+    expect(q.transfer.netMinor).toBe(338_625);
     expect(q.transfer.currency).toBe("usd");
   });
 
