@@ -19,6 +19,85 @@ function playSfx(src: string | null, onDone: () => void) {
   void audio.play().catch(() => onDone());
 }
 
+const YT_ORIGIN = "https://www.youtube.com";
+const CAPTION_STROKE =
+  "0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000, 0 0 6px #000, 0 0 14px rgba(0,0,0,0.9)";
+
+function buildObsYoutubeEmbed(input: {
+  videoId: string;
+  startSec: number;
+  endSec?: number;
+  origin: string;
+}) {
+  const params = new URLSearchParams({
+    autoplay: "1",
+    mute: "1",
+    controls: "0",
+    disablekb: "1",
+    fs: "0",
+    modestbranding: "1",
+    rel: "0",
+    playsinline: "1",
+    iv_load_policy: "3",
+    cc_load_policy: "0",
+    enablejsapi: "1",
+    origin: input.origin,
+  });
+  const start = Math.max(0, Math.floor(input.startSec));
+  if (start > 0) params.set("start", String(start));
+  if (input.endSec != null && input.endSec > start) {
+    params.set("end", String(Math.floor(input.endSec)));
+  }
+  return `${YT_ORIGIN}/embed/${encodeURIComponent(input.videoId)}?${params.toString()}`;
+}
+
+function postYoutube(iframe: HTMLIFrameElement | null, func: string, args: unknown[] = []) {
+  const win = iframe?.contentWindow;
+  if (!win) return;
+  win.postMessage(JSON.stringify({ event: "command", func, args }), YT_ORIGIN);
+}
+
+function parseYtMessage(data: unknown): { event?: string; info?: unknown } | null {
+  if (typeof data === "string") {
+    if (!data.startsWith("{")) return null;
+    try {
+      return JSON.parse(data) as { event?: string; info?: unknown };
+    } catch {
+      return null;
+    }
+  }
+  if (data && typeof data === "object") return data as { event?: string; info?: unknown };
+  return null;
+}
+
+function ytPlayerState(info: unknown): number | null {
+  if (typeof info === "number") return info;
+  if (info && typeof info === "object" && "playerState" in info) {
+    const value = (info as { playerState?: unknown }).playerState;
+    return typeof value === "number" ? value : null;
+  }
+  return null;
+}
+
+/** YouTube oEmbed width/height follows the clip (16:9, 4:3, 9:16), not a fixed frame. */
+async function probeVideoRatio(videoId: string): Promise<number | null> {
+  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) return null;
+  try {
+    const watch = `https://www.youtube.com/watch?v=${videoId}`;
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(watch)}&format=json`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { width?: number; height?: number };
+    if (!data.width || !data.height || data.height < 1) return null;
+    const ratio = data.width / data.height;
+    if (ratio < 0.2 || ratio > 5) return null;
+    return ratio;
+  } catch {
+    return null;
+  }
+}
+
 /** OBS Browser Source — MOCO Video·SFX 도네이션 순차 재생 */
 export function MocoDonationAlertWidget({
   channelId,
@@ -31,6 +110,7 @@ export function MocoDonationAlertWidget({
 }) {
   const { t } = useLocale();
   const [current, setCurrent] = useState<MocoDonationPayload | null>(null);
+  const [frameRatio, setFrameRatio] = useState(16 / 9);
   const queueRef = useRef<MocoDonationPayload[]>([]);
   const playingRef = useRef(false);
   const seenRef = useRef(new Set<string>());
@@ -38,11 +118,14 @@ export function MocoDonationAlertWidget({
   const playTimerRef = useRef<number | null>(null);
   const endsAtRef = useRef(0);
   const remainingMsRef = useRef(0);
+  const pausedRef = useRef(false);
+  const volumeRef = useRef(100);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const kickRef = useRef<() => void>(() => {});
   const playerRef = useRef<{
     pauseVideo?: () => void;
     playVideo?: () => void;
     setVolume?: (volume: number) => void;
-    destroy?: () => void;
   } | null>(null);
 
   const notifyPlaying = useCallback(
@@ -188,6 +271,7 @@ export function MocoDonationAlertWidget({
     socket.on("donation_player_control", (control: { action?: string; volume?: number }) => {
       const player = playerRef.current;
       if (control.action === "pause") {
+        pausedRef.current = true;
         player?.pauseVideo?.();
         if (playTimerRef.current) {
           remainingMsRef.current = Math.max(0, endsAtRef.current - Date.now());
@@ -196,6 +280,7 @@ export function MocoDonationAlertWidget({
         }
       }
       if (control.action === "resume") {
+        pausedRef.current = false;
         player?.playVideo?.();
         if (!playTimerRef.current && remainingMsRef.current > 0) {
           endsAtRef.current = Date.now() + remainingMsRef.current;
@@ -203,6 +288,7 @@ export function MocoDonationAlertWidget({
         }
       }
       if (control.action === "volume" && typeof control.volume === "number") {
+        volumeRef.current = control.volume;
         player?.setVolume?.(control.volume);
       }
     });
@@ -216,54 +302,158 @@ export function MocoDonationAlertWidget({
   }, [apiBase, channelId, token, enqueue, finishCurrent]);
 
   useEffect(() => {
-    if (!current || current.type !== "VIDEO" || !current.videoId) return;
-    const videoId = current.videoId;
-    const start = current.startSec || 0;
-    const end = current.endSec && !current.playToEnd ? current.endSec : undefined;
+    const videoId = current?.type === "VIDEO" ? current.videoId : null;
+    if (!videoId) return;
     let cancelled = false;
-
-    const mount = () => {
-      const YT = (window as unknown as { YT?: { Player: new (el: HTMLElement, opts: object) => typeof playerRef.current } }).YT;
-      const slot = document.getElementById("moco-yt-slot");
-      if (cancelled || !YT?.Player || !slot) return;
-      playerRef.current?.destroy?.();
-      slot.replaceChildren();
-      const holder = document.createElement("div");
-      holder.style.width = "100%";
-      holder.style.height = "100%";
-      slot.appendChild(holder);
-      playerRef.current = new YT.Player(holder, {
-        videoId,
-        playerVars: { autoplay: 1, start, end, rel: 0, playsinline: 1 },
-      });
-    };
-
-    const w = window as unknown as { YT?: { Player?: unknown }; onYouTubeIframeAPIReady?: () => void };
-    if (w.YT?.Player) mount();
-    else {
-      const prev = w.onYouTubeIframeAPIReady;
-      w.onYouTubeIframeAPIReady = () => {
-        prev?.();
-        mount();
-      };
-      if (!document.querySelector("script[data-moco-yt-api='1']")) {
-        const script = document.createElement("script");
-        script.src = "https://www.youtube.com/iframe_api";
-        script.dataset.mocoYtApi = "1";
-        document.body.appendChild(script);
-      }
-    }
-
+    setFrameRatio(16 / 9);
+    void probeVideoRatio(videoId).then((ratio) => {
+      if (!cancelled && ratio) setFrameRatio(ratio);
+    });
     return () => {
       cancelled = true;
-      playerRef.current?.destroy?.();
+    };
+  }, [current]);
+
+  useEffect(() => {
+    if (!current || current.type !== "VIDEO" || !current.videoId) {
+      kickRef.current = () => {};
       playerRef.current = null;
+      return;
+    }
+
+    let stopped = false;
+    let audible = false;
+    pausedRef.current = false;
+
+    const frame = () => iframeRef.current;
+
+    const kick = () => {
+      if (stopped || pausedRef.current || audible) return;
+      const iframe = frame();
+      if (!iframe?.contentWindow) return;
+      iframe.contentWindow.postMessage(JSON.stringify({ event: "listening" }), YT_ORIGIN);
+      postYoutube(iframe, "addEventListener", ["onReady"]);
+      postYoutube(iframe, "addEventListener", ["onStateChange"]);
+      postYoutube(iframe, "mute");
+      postYoutube(iframe, "playVideo");
+    };
+
+    kickRef.current = kick;
+
+    playerRef.current = {
+      pauseVideo: () => postYoutube(frame(), "pauseVideo"),
+      playVideo: () => {
+        postYoutube(frame(), "playVideo");
+      },
+      setVolume: (volume: number) => {
+        volumeRef.current = volume;
+        postYoutube(frame(), "setVolume", [volume]);
+        postYoutube(frame(), volume > 0 ? "unMute" : "mute");
+      },
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== frame()?.contentWindow) return;
+      const data = parseYtMessage(event.data);
+      if (!data || stopped) return;
+      const state = ytPlayerState(data.info);
+      if (data.event === "onReady" || state === -1 || state === 5) kick();
+      if (state === 1 && !audible && !pausedRef.current) {
+        audible = true;
+        const volume = volumeRef.current;
+        postYoutube(frame(), "setVolume", [volume]);
+        if (volume > 0) postYoutube(frame(), "unMute");
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    const timers = [80, 400, 900, 1600, 2800, 4500].map((ms) => window.setTimeout(kick, ms));
+    kick();
+
+    return () => {
+      stopped = true;
+      kickRef.current = () => {};
+      playerRef.current = null;
+      window.removeEventListener("message", onMessage);
+      for (const timer of timers) window.clearTimeout(timer);
     };
   }, [current]);
 
   if (!current) return null;
 
   const name = current.username.startsWith("@") ? current.username.slice(1) : current.username;
+  const caption = (
+    <div
+      style={{
+        color: "#fff",
+        fontFamily: "system-ui, sans-serif",
+        textShadow: CAPTION_STROKE,
+      }}
+    >
+      <p style={{ margin: 0, fontSize: "clamp(18px, 2.6vw, 48px)", fontWeight: 800, lineHeight: 1.25 }}>
+        <span style={{ color: "#5dff6a" }}>{name}</span>
+        <span>{t("live.szbs")} </span>
+        <span style={{ color: "#ffe44d" }}>{current.mocoLabel} MOCO</span>
+        <span> {t("live.swe9sl")}</span>
+      </p>
+      {current.message ? (
+        <p
+          style={{
+            margin: "8px 0 0",
+            fontSize: current.type === "SFX" ? "clamp(20px, 2.4vw, 42px)" : "clamp(16px, 2vw, 36px)",
+            fontWeight: current.type === "SFX" ? 700 : 600,
+            lineHeight: 1.4,
+            wordBreak: "break-word",
+          }}
+        >
+          {current.message}
+        </p>
+      ) : null}
+    </div>
+  );
+
+  if (current.type === "VIDEO" && current.videoId && typeof window !== "undefined") {
+    const embedSrc = buildObsYoutubeEmbed({
+      videoId: current.videoId,
+      startSec: current.startSec || 0,
+      endSec: current.endSec && !current.playToEnd ? current.endSec : undefined,
+      origin: window.location.origin,
+    });
+
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          overflow: "hidden",
+          background: "transparent",
+          pointerEvents: "none",
+        }}
+      >
+        <iframe
+          key={current.id}
+          ref={iframeRef}
+          title={current.videoTitle ?? name}
+          src={embedSrc}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          referrerPolicy="strict-origin-when-cross-origin"
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: `max(100vw, calc(100vh * ${frameRatio}))`,
+            height: `max(100vh, calc(100vw / ${frameRatio}))`,
+            transform: "translate(-50%, -50%)",
+            border: "none",
+            display: "block",
+            background: "transparent",
+          }}
+          onLoad={() => kickRef.current()}
+        />
+        <div style={{ position: "absolute", top: 16, left: 20, right: 20, zIndex: 2 }}>{caption}</div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -272,50 +462,12 @@ export function MocoDonationAlertWidget({
         inset: 0,
         pointerEvents: "none",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "system-ui, sans-serif",
+        alignItems: "flex-start",
+        justifyContent: "flex-start",
+        padding: 20,
       }}
     >
-      <div
-        style={{
-          background: "rgba(8, 10, 18, 0.92)",
-          border: "2px solid rgba(93, 255, 106, 0.55)",
-          borderRadius: 16,
-          padding: 16,
-          maxWidth: "min(720px, 92vw)",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.65)",
-          color: "#fff",
-        }}
-      >
-        <p style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
-          <span style={{ color: "#5dff6a" }}>{name}</span>
-          <span>{t("live.szbs")} </span>
-          <span style={{ color: "#ffe44d" }}>{current.mocoLabel} MOCO</span>
-          <span> {t("live.swe9sl")}</span>
-        </p>
-
-        {current.message ? (
-          <p
-            style={{
-              marginTop: current.type === "SFX" ? 14 : 12,
-              fontSize: current.type === "SFX" ? 22 : 16,
-              fontWeight: current.type === "SFX" ? 700 : 400,
-              lineHeight: 1.45,
-              opacity: 0.98,
-              wordBreak: "break-word",
-            }}
-          >
-            {current.message}
-          </p>
-        ) : null}
-
-        {current.type === "VIDEO" && current.videoId ? (
-          <div style={{ marginTop: 12, aspectRatio: "16/9", borderRadius: 12, overflow: "hidden", pointerEvents: "auto" }}>
-            <div id="moco-yt-slot" style={{ width: "100%", height: "100%" }} />
-          </div>
-        ) : null}
-      </div>
+      {caption}
     </div>
   );
 }
