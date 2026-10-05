@@ -96,7 +96,7 @@ test("overlayChatMeta exposes externalId for Twitch and Chzzk", () => {
     createdBy: "host1",
     createdAt: new Date(),
     isLive: true,
-    liveStatus: "LIVE",
+    liveStatus: "LIVE" as const,
     broadcastMode: "EXTERNAL",
     mediaSourceType: "EXTERNAL",
     externalChannelId: null,
