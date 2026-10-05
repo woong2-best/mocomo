@@ -1,6 +1,5 @@
 "use client";
 
-import { useLocale } from "@/components/providers/locale-provider";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -30,7 +29,6 @@ const STROKE =
   "0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000, 0 0 6px #000, 0 0 12px rgba(0,0,0,0.85)";
 
 function formatDonorName(username: string, anonymous?: boolean) {
-  const { t } = useLocale();
   if (anonymous) return t("live.stf9b7w");
   return username.startsWith("@") ? username.slice(1) : username;
 }

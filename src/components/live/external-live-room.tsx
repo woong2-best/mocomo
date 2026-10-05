@@ -12,7 +12,9 @@ import { LiveChatProvider, useLiveChatOptional } from "@/components/live/live-ch
 import { LiveSupportProvider } from "@/components/live/live-support-provider";
 import { LiveDonationBar } from "@/components/live/live-donation-bar";
 import { LiveHostDirectorPanel } from "@/components/live/live-host-director-panel";
+import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { ensureArray } from "@/lib/ensure-array";
+import { cn } from "@/lib/utils";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { formatUsd } from "@/lib/money";
@@ -99,8 +101,10 @@ export function ExternalLiveRoom({
   viewerSupportTotal,
   onPlatformEnded,
 }: Props) {
+  const { t } = useLocale();
   const [viewerCount, setViewerCount] = useState(0);
   const [hostPin, setHostPin] = useState(pinnedMessage ?? "");
+  const [hostTab, setHostTab] = useState<"director" | "chat">("director");
   const displayTitle = platformTitle?.trim() || title;
   const displayDescription = platformDescription?.trim() || null;
   const ranking = ensureArray<{ username: string; amount: number }>(tipRanking);
@@ -166,7 +170,33 @@ export function ExternalLiveRoom({
       >
         <ExternalLiveEndWatcher channelId={channelId} onEnded={onPlatformEnded} />
         {isHost ? (
-          <div className="live-studio-twitch mx-auto w-full min-h-[calc(100dvh-5.5rem)] space-y-3 px-1 sm:px-0">
+          <div className="live-studio-twitch mx-auto flex w-full flex-col space-y-3 px-1 sm:px-0 lg:h-[calc(100dvh-5.5rem)]">
+            <div className="flex shrink-0 gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 lg:hidden">
+              <button
+                type="button"
+                className={cn(
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold",
+                  hostTab === "director"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                )}
+                onClick={() => setHostTab("director")}
+              >
+                {t("live.director.tabDirector")}
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold",
+                  hostTab === "chat"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                )}
+                onClick={() => setHostTab("chat")}
+              >
+                {t("live.director.tabChat")}
+              </button>
+            </div>
             <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.95fr)_minmax(300px,0.9fr)]">
               <div className="min-w-0">
                 {player}
@@ -185,17 +215,31 @@ export function ExternalLiveRoom({
                   hostFollowing={hostFollowing}
                 />
               </div>
-              <aside className="min-h-[420px] lg:min-h-0 lg:h-[calc(100dvh-6.5rem)]">
-                <LiveHostDirectorPanel
-                  channelId={channelId}
-                  viewerCount={viewerCount}
-                  donationGoalKrw={donationGoalKrw}
-                  tipTotalKrw={tipTotalKrw}
-                  onPinnedChange={setHostPin}
-                />
+              <aside
+                className={cn(
+                  "min-h-[360px] lg:min-h-0 lg:h-full",
+                  hostTab === "director" ? "block" : "hidden lg:block"
+                )}
+              >
+                <LiveStudioErrorBoundary channelId={channelId} inline>
+                  <LiveHostDirectorPanel
+                    channelId={channelId}
+                    viewerCount={viewerCount}
+                    donationGoalKrw={donationGoalKrw}
+                    tipTotalKrw={tipTotalKrw}
+                    onPinnedChange={setHostPin}
+                  />
+                </LiveStudioErrorBoundary>
               </aside>
-              <aside className="min-h-[70vh] lg:min-h-0 lg:h-[calc(100dvh-6.5rem)]">
-                {chat}
+              <aside
+                className={cn(
+                  "h-[min(70vh,560px)] lg:h-full",
+                  hostTab === "chat" ? "block" : "hidden lg:block"
+                )}
+              >
+                <LiveStudioErrorBoundary channelId={channelId} inline>
+                  {chat}
+                </LiveStudioErrorBoundary>
               </aside>
             </div>
           </div>

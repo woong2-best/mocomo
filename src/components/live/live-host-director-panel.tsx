@@ -23,7 +23,6 @@ import { LiveHostSettings } from "@/components/live/live-host-settings";
 import { LiveRoleManagementPanel } from "@/components/live/live-role-management-panel";
 import { LiveChatBansPanel } from "@/components/live/live-chat-bans-panel";
 import { VideoDonationRoomControls } from "@/components/live/video-donation-room-controls";
-import { LiveVideoDonationPanel } from "@/components/live/live-video-donation-panel";
 import {
   getLiveStudioSettings,
   searchLiveStudioUsersAction,
@@ -66,9 +65,11 @@ function DirectorSection({
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <details
-      open={defaultOpen}
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
       className="group rounded-xl border border-border/70 bg-card/80"
     >
       <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
@@ -83,7 +84,9 @@ function DirectorSection({
           ▾
         </span>
       </summary>
-      <div className="space-y-2 border-t border-border/60 px-3 py-3">{children}</div>
+      {open ? (
+        <div className="space-y-2 border-t border-border/60 px-3 py-3">{children}</div>
+      ) : null}
     </details>
   );
 }
@@ -320,7 +323,6 @@ export function LiveHostDirectorPanel({
           hint={t("live.director.queueHint")}
         >
           <VideoDonationRoomControls channelId={channelId} isHost />
-          <LiveVideoDonationPanel channelId={channelId} isHost />
         </DirectorSection>
 
         <DirectorSection

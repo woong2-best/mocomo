@@ -5,7 +5,6 @@ import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
-import { useLocale } from "@/components/providers/locale-provider";
 import { memo, useEffect, useRef, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { usePlatformChat } from "@/components/live/platform-chat-provider";
@@ -166,8 +165,6 @@ function LiveChatInner({
   }, [displayMessages]);
 
   function onScroll() {
-  const { t } = useLocale();
-
     const el = scrollRef.current;
     if (!el) return;
     stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;

@@ -4,13 +4,13 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, Radio } from "lucide-react";
 import { LiveMobilePortraitHost } from "@/components/live/mobile/live-mobile-portrait-host";
-import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostDirectorPanel } from "@/components/live/live-host-director-panel";
+import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
 import { useLiveCollabState } from "@/hooks/use-live-collab-state";
 import { liveCategoryLabel } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,20 @@ import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { VoiceLiveHostStudio } from "@/components/voice-live/voice-live-studio";
 import { LiveMobilePortraitVoiceHost } from "@/components/live/mobile/live-mobile-portrait-voice-host";
 import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/live-donation-alert-overlay";
+import { cn } from "@/lib/utils";
+
+/** Phone portrait only — do not flip at the 1024px studio breakpoint (that remounts the publisher). */
+function usePhonePortrait() {
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 640px) and (orientation: portrait)");
+    const update = () => setActive(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return active;
+}
 
 /** 호스트 스튜디오 — 브라우저 송출 + 채팅 + 설정 */
 export function LiveHostStudioShell({
@@ -67,13 +81,13 @@ export function LiveHostStudioShell({
   isNsfw?: boolean;
 }) {
   const { t } = useLocale();
-  const mobilePortrait = useLiveMobilePortrait();
+  const phonePortrait = usePhonePortrait();
   const collab = useLiveCollabState(channelId);
   const coHostLabel =
     collab.coHost?.name ?? collab.coHost?.username ?? undefined;
 
   if (isVoiceBroadcastMode(broadcastMode)) {
-    if (mobilePortrait) {
+    if (phonePortrait) {
       return (
         <LiveMobilePortraitVoiceHost
           channelId={channelId}
@@ -119,7 +133,7 @@ export function LiveHostStudioShell({
     );
   }
 
-  if (mobilePortrait) {
+  if (phonePortrait) {
     return (
       <LiveMobilePortraitHost
         channelId={channelId}
@@ -217,9 +231,10 @@ function LiveHostThreeColumn({
 }) {
   const { t } = useLocale();
   const [pinnedMessage, setPinnedMessage] = useState<string>("");
+  const [tab, setTab] = useState<"director" | "chat">("director");
 
   return (
-    <div className="flex w-full min-h-[calc(100dvh-4.75rem)] flex-col">
+    <div className="flex w-full flex-col lg:h-[calc(100dvh-4.75rem)]">
       <header className="sticky top-0 z-20 flex shrink-0 flex-wrap items-center gap-2 border-b border-border/60 bg-background/95 py-2 backdrop-blur-sm sm:gap-3">
         <span
           className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
@@ -245,35 +260,72 @@ function LiveHostThreeColumn({
         </Button>
       </header>
 
+      <div className="mt-2 flex shrink-0 gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 lg:hidden">
+        <button
+          type="button"
+          className={cn(
+            "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold",
+            tab === "director" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+          )}
+          onClick={() => setTab("director")}
+        >
+          {t("live.director.tabDirector")}
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold",
+            tab === "chat" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+          )}
+          onClick={() => setTab("chat")}
+        >
+          {t("live.director.tabChat")}
+        </button>
+      </div>
+
       <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 items-stretch gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.95fr)_minmax(300px,0.9fr)]">
         <section className="min-w-0">{video}</section>
-        <aside className="min-h-[420px] lg:min-h-0 lg:h-[calc(100dvh-6.25rem)]">
-          <LiveHostDirectorPanel
-            channelId={channelId}
-            viewerCount={viewerCount}
-            donationGoalKrw={donationGoalKrw}
-            tipTotalKrw={tipTotalKrw}
-            slowModeSeconds={slowModeSeconds}
-            chatBannedWords={chatBannedWords}
-            donationAlertsOnStream={donationAlertsOnStream}
-            isNsfw={isNsfw}
-            onPinnedChange={setPinnedMessage}
-          />
+        <aside
+          className={cn(
+            "min-h-[360px] lg:min-h-0 lg:h-full",
+            tab === "director" ? "block" : "hidden lg:block"
+          )}
+        >
+          <LiveStudioErrorBoundary channelId={channelId} inline>
+            <LiveHostDirectorPanel
+              channelId={channelId}
+              viewerCount={viewerCount}
+              donationGoalKrw={donationGoalKrw}
+              tipTotalKrw={tipTotalKrw}
+              slowModeSeconds={slowModeSeconds}
+              chatBannedWords={chatBannedWords}
+              donationAlertsOnStream={donationAlertsOnStream}
+              isNsfw={isNsfw}
+              onPinnedChange={setPinnedMessage}
+            />
+          </LiveStudioErrorBoundary>
         </aside>
-        <aside className="min-h-[70vh] lg:min-h-0 lg:h-[calc(100dvh-6.25rem)]">
-          <LiveChat
-            channelId={channelId}
-            viewerCount={viewerCount}
-            onViewerCount={onViewerCount}
-            isHost
-            canModerate
-            hostUserId={hostUserId}
-            hostUsername={hostUsername}
-            hostDisplayName={hostDisplayName}
-            pinnedMessage={pinnedMessage}
-            hideDonationControls
-            className="h-full min-h-0"
-          />
+        <aside
+          className={cn(
+            "h-[min(70vh,560px)] lg:h-full",
+            tab === "chat" ? "block" : "hidden lg:block"
+          )}
+        >
+          <LiveStudioErrorBoundary channelId={channelId} inline>
+            <LiveChat
+              channelId={channelId}
+              viewerCount={viewerCount}
+              onViewerCount={onViewerCount}
+              isHost
+              canModerate
+              hostUserId={hostUserId}
+              hostUsername={hostUsername}
+              hostDisplayName={hostDisplayName}
+              pinnedMessage={pinnedMessage}
+              hideDonationControls
+              className="h-full min-h-0"
+            />
+          </LiveStudioErrorBoundary>
         </aside>
       </div>
     </div>

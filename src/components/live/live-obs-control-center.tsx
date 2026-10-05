@@ -1,6 +1,5 @@
 "use client";
 
-import { useLocale } from "@/components/providers/locale-provider";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
@@ -29,7 +28,6 @@ async function fetchObsCredentials(channelId: string, refresh = false): Promise<
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-  const { t } = useLocale();
     throw new Error(typeof body.error === "string" ? body.error : t("live.obs_5"));
   }
   const server = body.obsServer || body.url || "";
