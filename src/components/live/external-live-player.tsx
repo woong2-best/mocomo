@@ -8,9 +8,10 @@ import { useLocale } from "@/components/providers/locale-provider";
  * External platform iframe player — clean embed without title/avatar overlay.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Link2, Maximize2 } from "lucide-react";
 import { YoutubeEmbedGuide } from "@/components/live/youtube-embed-guide";
+import { withYoutubeLiveEmbedParams } from "@/lib/live-external/parse";
 import { providerDisplayName } from "@/lib/live-external/platform-metadata";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 
@@ -18,6 +19,65 @@ const YT_EMBED_ORIGINS = new Set([
   "https://www.youtube.com",
   "https://www.youtube-nocookie.com",
 ]);
+
+/** Behind more than this is DVR/resume, not YouTube's normal live delay. */
+const YT_LIVE_DVR_BEHIND_SEC = 15;
+const YT_LIVE_SEEK_MAX = 6;
+
+type YtPlayerInfo = {
+  currentTime?: number;
+  duration?: number;
+  isLive?: boolean;
+  videoData?: { isLive?: boolean };
+};
+
+function parseYtMessage(data: unknown): { event?: string; info?: unknown } | null {
+  if (typeof data === "string") {
+    if (!data.startsWith("{")) return null;
+    try {
+      return JSON.parse(data) as { event?: string; info?: unknown };
+    } catch {
+      return null;
+    }
+  }
+  if (data && typeof data === "object") {
+    return data as { event?: string; info?: unknown };
+  }
+  return null;
+}
+
+function postYoutubeCommand(
+  iframe: HTMLIFrameElement | null,
+  func: string,
+  args: unknown[] = [],
+  targetOrigin = "*"
+) {
+  const win = iframe?.contentWindow;
+  if (!win) return;
+  win.postMessage(JSON.stringify({ event: "command", func, args }), targetOrigin);
+}
+
+function handshakeYoutube(iframe: HTMLIFrameElement | null, targetOrigin = "*") {
+  const win = iframe?.contentWindow;
+  if (!win) return;
+  win.postMessage(JSON.stringify({ event: "listening" }), targetOrigin);
+  postYoutubeCommand(iframe, "addEventListener", ["onReady"], targetOrigin);
+  postYoutubeCommand(iframe, "addEventListener", ["onStateChange"], targetOrigin);
+}
+
+function seekYoutubeLiveHead(iframe: HTMLIFrameElement | null, targetOrigin = "*") {
+  // YouTube clamps an overshoot to the live head on DVR-enabled lives.
+  postYoutubeCommand(iframe, "seekTo", [1e10, true], targetOrigin);
+}
+
+function youtubeFrameOrigin(embedUrl: string | null): string {
+  try {
+    if (embedUrl) return new URL(embedUrl).origin;
+  } catch {
+    /* ignore */
+  }
+  return "https://www.youtube-nocookie.com";
+}
 
 type Props = {
   provider: LiveExternalProvider;
@@ -43,9 +103,18 @@ export function ExternalLivePlayer({
   const { t } = useLocale();
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const sawLiveRef = useRef(false);
   const endedRef = useRef(false);
+  const liveSeekDoneRef = useRef(false);
+  const liveSeekAttemptsRef = useRef(0);
+  const [pageOrigin, setPageOrigin] = useState("");
   const showIframe = embedSupported && !!embedUrl;
+  const playerSrc = useMemo(() => {
+    if (!embedUrl) return null;
+    if (provider !== "YOUTUBE") return embedUrl;
+    return withYoutubeLiveEmbedParams(embedUrl, pageOrigin || null);
+  }, [embedUrl, pageOrigin, provider]);
 
   const signalEnded = useCallback(() => {
     if (endedRef.current || !onPlatformEnded) return;
@@ -53,39 +122,84 @@ export function ExternalLivePlayer({
     onPlatformEnded();
   }, [onPlatformEnded]);
 
+  const snapToLiveEdge = useCallback((origin: string, force = false) => {
+    if (liveSeekDoneRef.current) return;
+    if (!force && liveSeekAttemptsRef.current >= YT_LIVE_SEEK_MAX) {
+      liveSeekDoneRef.current = true;
+      return;
+    }
+    liveSeekAttemptsRef.current += 1;
+    seekYoutubeLiveHead(iframeRef.current, origin);
+  }, []);
+
   useEffect(() => {
-    if (provider !== "YOUTUBE" || !onPlatformEnded) return;
+    setPageOrigin(window.location.origin);
+  }, []);
+
+  useEffect(() => {
+    liveSeekDoneRef.current = false;
+    liveSeekAttemptsRef.current = 0;
+    sawLiveRef.current = false;
+    endedRef.current = false;
+  }, [embedUrl]);
+
+  useEffect(() => {
+    if (provider !== "YOUTUBE" || !showIframe) return;
 
     function onMessage(event: MessageEvent) {
       if (!YT_EMBED_ORIGINS.has(event.origin)) return;
-      if (typeof event.data !== "string" || !event.data.startsWith("{")) return;
-      try {
-        const data = JSON.parse(event.data) as {
-          event?: string;
-          info?: unknown;
-        };
+      const data = parseYtMessage(event.data);
+      if (!data) return;
 
-        if (data.event === "infoDelivery" && data.info && typeof data.info === "object") {
-          const info = data.info as {
-            isLive?: boolean;
-            videoData?: { isLive?: boolean };
-          };
-          const liveFlag = info.isLive ?? info.videoData?.isLive;
-          if (liveFlag === true) sawLiveRef.current = true;
-          if (liveFlag === false && sawLiveRef.current) signalEnded();
-        }
+      if (data.event === "listening" || data.event === "onReady" || data.event === "initialDelivery") {
+        handshakeYoutube(iframeRef.current, event.origin);
+        snapToLiveEdge(event.origin, true);
+      }
 
-        if (data.event === "onStateChange" && data.info === 0 && sawLiveRef.current) {
+      if (data.event === "onStateChange") {
+        // 1 = playing — join should land on the live head, not DVR resume.
+        if (data.info === 1) snapToLiveEdge(event.origin);
+        if (data.info === 0 && sawLiveRef.current) signalEnded();
+      }
+
+      if (data.event === "infoDelivery" && data.info && typeof data.info === "object") {
+        const info = data.info as YtPlayerInfo;
+        const liveFlag = info.isLive ?? info.videoData?.isLive;
+        if (liveFlag === true) sawLiveRef.current = true;
+        if (liveFlag === false && sawLiveRef.current) {
           signalEnded();
+          return;
         }
-      } catch {
-        /* ignore non-JSON postMessages */
+        if (liveFlag === false) return;
+
+        const current = info.currentTime;
+        const duration = info.duration;
+        if (typeof current === "number" && typeof duration === "number" && duration > 0) {
+          const behind = duration - current;
+          if (behind > YT_LIVE_DVR_BEHIND_SEC) {
+            snapToLiveEdge(event.origin);
+          } else if (liveSeekAttemptsRef.current > 0) {
+            liveSeekDoneRef.current = true;
+          }
+        }
       }
     }
 
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [provider, onPlatformEnded, signalEnded]);
+  }, [provider, showIframe, signalEnded, snapToLiveEdge]);
+
+  useEffect(() => {
+    if (provider !== "YOUTUBE" || !showIframe || !playerSrc) return;
+    const frameOrigin = youtubeFrameOrigin(playerSrc);
+    const timers = [350, 1200, 2800].map((ms) =>
+      window.setTimeout(() => {
+        handshakeYoutube(iframeRef.current, frameOrigin);
+        snapToLiveEdge(frameOrigin);
+      }, ms)
+    );
+    return () => timers.forEach((id) => window.clearTimeout(id));
+  }, [playerSrc, provider, showIframe, snapToLiveEdge]);
 
   const toggleFullscreen = useCallback(async () => {
     const el = containerRef.current;
@@ -110,12 +224,19 @@ export function ExternalLivePlayer({
         {showIframe ? (
           <>
             <iframe
+              ref={iframeRef}
               title={title}
-              src={embedUrl}
+              src={playerSrc ?? embedUrl}
               className="absolute inset-0 h-full w-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
+              onLoad={() => {
+                if (provider !== "YOUTUBE") return;
+                const frameOrigin = youtubeFrameOrigin(playerSrc);
+                handshakeYoutube(iframeRef.current, frameOrigin);
+                snapToLiveEdge(frameOrigin, true);
+              }}
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-end p-2 sm:p-3">
               <div className="pointer-events-auto flex items-center gap-1.5">

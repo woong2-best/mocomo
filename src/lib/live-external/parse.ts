@@ -104,13 +104,32 @@ export function buildYoutubeEmbedUrl(videoId: string): string {
     modestbranding: "1",
     autoplay: "1",
     playsinline: "1",
+    // Needed so the viewer player can seek to the live head on join.
+    enablejsapi: "1",
   });
   return `https://www.youtube-nocookie.com/embed/${videoId}?${q}`;
+}
+
+/** Client-side: origin + JS API so we can snap DVR resume to the live edge. */
+export function withYoutubeLiveEmbedParams(embedUrl: string, origin?: string | null): string {
+  try {
+    const u = new URL(embedUrl);
+    u.searchParams.set("rel", "0");
+    u.searchParams.set("modestbranding", "1");
+    u.searchParams.set("autoplay", "1");
+    u.searchParams.set("playsinline", "1");
+    u.searchParams.set("enablejsapi", "1");
+    if (origin) u.searchParams.set("origin", origin);
+    return u.toString();
+  } catch {
+    return embedUrl;
+  }
 }
 
 export function buildTwitchEmbedUrl(channelLogin: string, parents?: string[]): string {
   const q = new URLSearchParams();
   q.set("channel", channelLogin);
+  q.set("autoplay", "true");
   for (const p of parents ?? twitchParentHosts()) {
     q.append("parent", p);
   }

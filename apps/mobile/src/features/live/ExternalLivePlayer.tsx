@@ -58,8 +58,19 @@ function withYoutubeEmbedParams(embedUrl: string, origin: string): string {
     u.searchParams.set("fs", "0");
     u.searchParams.set("disablekb", "1");
     u.searchParams.set("cc_load_policy", "0");
-    if (!u.searchParams.has("enablejsapi")) u.searchParams.set("enablejsapi", "1");
+    u.searchParams.set("enablejsapi", "1");
     u.searchParams.set("origin", origin);
+    return u.toString();
+  } catch {
+    return embedUrl;
+  }
+}
+
+function withTwitchEmbedParams(embedUrl: string): string {
+  try {
+    const u = new URL(embedUrl);
+    if (!u.hostname.includes("twitch.tv")) return embedUrl;
+    if (!u.searchParams.has("autoplay")) u.searchParams.set("autoplay", "true");
     return u.toString();
   } catch {
     return embedUrl;
@@ -69,6 +80,12 @@ function withYoutubeEmbedParams(embedUrl: string, origin: string): string {
 function youtubeEmbedHtml(embedUrl: string, title: string): string {
   const safeTitle = title.replace(/[<>&"']/g, "");
   const src = embedUrl.replace(/"/g, "&quot;");
+  let targetOrigin = "https://www.youtube-nocookie.com";
+  try {
+    targetOrigin = new URL(embedUrl).origin;
+  } catch {
+    /* keep default */
+  }
   return `<!DOCTYPE html><html><head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
@@ -79,6 +96,7 @@ function youtubeEmbedHtml(embedUrl: string, title: string): string {
   .veil-br{position:absolute;right:0;bottom:0;width:96px;height:36px;background:linear-gradient(270deg,rgba(0,0,0,.55),transparent);pointer-events:none;z-index:2}
 </style></head><body>
 <iframe
+  id="yt"
   title="${safeTitle}"
   src="${src}"
   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
@@ -86,6 +104,63 @@ function youtubeEmbedHtml(embedUrl: string, title: string): string {
   referrerpolicy="strict-origin-when-cross-origin"
 ></iframe>
 <div class="veil-br"></div>
+<script>
+(function(){
+  var iframe = document.getElementById("yt");
+  var target = ${JSON.stringify(targetOrigin)};
+  var done = false;
+  var attempts = 0;
+  var MAX = 6;
+  var BEHIND = 15;
+  function cmd(func, args) {
+    if (!iframe || !iframe.contentWindow) return;
+    iframe.contentWindow.postMessage(JSON.stringify({event:"command",func:func,args:args||[]}), target);
+  }
+  function listen() {
+    if (!iframe || !iframe.contentWindow) return;
+    iframe.contentWindow.postMessage(JSON.stringify({event:"listening"}), target);
+    cmd("addEventListener", ["onReady"]);
+    cmd("addEventListener", ["onStateChange"]);
+  }
+  function snap(force) {
+    if (done) return;
+    if (!force && attempts >= MAX) { done = true; return; }
+    attempts += 1;
+    cmd("seekTo", [1e10, true]);
+  }
+  function parse(data) {
+    if (typeof data === "string") {
+      if (data.charAt(0) !== "{") return null;
+      try { return JSON.parse(data); } catch (e) { return null; }
+    }
+    return data && typeof data === "object" ? data : null;
+  }
+  if (iframe) iframe.addEventListener("load", function(){ listen(); snap(true); });
+  window.addEventListener("message", function(e) {
+    if (e.origin !== target) return;
+    var data = parse(e.data);
+    if (!data) return;
+    if (data.event === "listening" || data.event === "onReady" || data.event === "initialDelivery") {
+      listen();
+      snap(true);
+    }
+    if (data.event === "onStateChange" && data.info === 1) snap(false);
+    if (data.event === "infoDelivery" && data.info) {
+      var info = data.info;
+      var live = info.isLive != null ? info.isLive : (info.videoData && info.videoData.isLive);
+      if (live === false) return;
+      var t = info.currentTime, d = info.duration;
+      if (typeof t === "number" && typeof d === "number" && d > 0) {
+        if (d - t > BEHIND) snap(false);
+        else if (attempts > 0) done = true;
+      }
+    }
+  });
+  setTimeout(function(){ listen(); snap(true); }, 400);
+  setTimeout(function(){ snap(false); }, 1400);
+  setTimeout(function(){ snap(false); }, 2800);
+})();
+</script>
 </body></html>`;
 }
 
@@ -111,7 +186,7 @@ export function ExternalLivePlayer({
   const embedUrl = rawEmbed
     ? youtube
       ? withYoutubeEmbedParams(rawEmbed, origin)
-      : rawEmbed
+      : withTwitchEmbedParams(rawEmbed)
     : null;
   const showEmbed = active && external.embedSupported && !!embedUrl && !failed;
 
