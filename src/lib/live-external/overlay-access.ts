@@ -1,3 +1,4 @@
+import type { LiveStreamStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { canViewerEnterLiveRoom } from "@/lib/live-channel-active";
 import { activeHostBroadcastWhere } from "@/lib/live-broadcast/session-queries";
@@ -23,7 +24,7 @@ export type OverlayBroadcastRow = {
   createdBy: string;
   createdAt: Date;
   isLive: boolean;
-  liveStatus: string;
+  liveStatus: LiveStreamStatus;
   broadcastMode: string;
   mediaSourceType: string;
   externalProvider: string | null;
