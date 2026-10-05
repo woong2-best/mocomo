@@ -4,24 +4,16 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { useLocale } from "@/components/providers/locale-provider";
-import { Eye, Radio, Settings2 } from "lucide-react";
+import { useState } from "react";
+import { Eye, Radio } from "lucide-react";
 import { LiveMobilePortraitHost } from "@/components/live/mobile/live-mobile-portrait-host";
 import { useLiveMobilePortrait } from "@/hooks/use-live-mobile-portrait";
 import { LiveChat } from "@/components/live/live-chat";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
-import { LiveHostSettings } from "@/components/live/live-host-settings";
-import { LiveControlPanel } from "@/components/live/live-control-panel";
+import { LiveHostDirectorPanel } from "@/components/live/live-host-director-panel";
 import { useLiveCollabState } from "@/hooks/use-live-collab-state";
 import { liveCategoryLabel } from "@/lib/live-categories";
-import { ensureStringArray } from "@/lib/ensure-array";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import type { LiveBroadcastMode, LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { isVoiceBroadcastMode } from "@/lib/live-voice-broadcast";
 import { VoiceLiveHostStudio } from "@/components/voice-live/voice-live-studio";
@@ -32,10 +24,15 @@ import { LiveDonationAlertOverlay, type LiveTipAlert } from "@/components/live/l
 export function LiveHostStudioShell({
   channelId,
   channelName,
+  hostUserId,
+  hostUsername,
+  hostDisplayName,
   viewerCount,
   onViewerCount,
   onEndStream,
   category,
+  donationGoalKrw,
+  tipTotalKrw,
   slowModeSeconds,
   chatBannedWords,
   collabPassword,
@@ -43,7 +40,6 @@ export function LiveHostStudioShell({
   donationAlertsOnStream = false,
   broadcastMode,
   hostImage,
-  hostDisplayName,
   isNsfw = false,
 }: {
   channelId: string;
@@ -93,39 +89,33 @@ export function LiveHostStudioShell({
       );
     }
     return (
-      <div className="flex flex-col w-full">
-        <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0">
-          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-violet-600/15 text-violet-700 dark:text-violet-300 flex items-center gap-1">
-            <Radio className="h-3 w-3" />
-            {t("live.s1m3i5fo")}
-          </span>
-          <h1 className="text-base sm:text-lg font-bold truncate flex-1 min-w-0">{channelName}</h1>
-          <span className="text-sm text-muted-foreground flex items-center gap-1 tabular-nums">
-            <Eye className="h-4 w-4" />
-            {viewerCount}
-          </span>
-          <Button variant="destructive" size="sm" className="rounded-xl gap-1" onClick={onEndStream}>
-            {t("live.s1dubywf")}
-          </Button>
-        </header>
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 lg:gap-6 mt-3 items-start">
+      <LiveHostThreeColumn
+        channelId={channelId}
+        channelName={channelName}
+        hostUserId={hostUserId}
+        hostUsername={hostUsername}
+        hostDisplayName={hostDisplayName}
+        viewerCount={viewerCount}
+        onViewerCount={onViewerCount}
+        onEndStream={onEndStream}
+        category={category}
+        donationGoalKrw={donationGoalKrw}
+        tipTotalKrw={tipTotalKrw}
+        slowModeSeconds={slowModeSeconds}
+        chatBannedWords={chatBannedWords}
+        donationAlertsOnStream={donationAlertsOnStream}
+        isNsfw={isNsfw}
+        liveBadge={t("live.s1m3i5fo")}
+        liveBadgeClass="bg-violet-600/15 text-violet-700 dark:text-violet-300"
+        video={
           <VoiceLiveHostStudio
             channelId={channelId}
             channelName={channelName}
             hostImage={hostImage}
             hostDisplayName={hostDisplayName}
           />
-          <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] border border-border/60 rounded-xl overflow-hidden bg-card/30">
-            <LiveChat
-              channelId={channelId}
-              viewerCount={viewerCount}
-              onViewerCount={onViewerCount}
-              isHost
-              canModerate
-            />
-          </div>
-        </div>
-      </div>
+        }
+      />
     );
   }
 
@@ -149,67 +139,25 @@ export function LiveHostStudioShell({
   }
 
   return (
-    <div className="flex flex-col w-full">
-      <header className="flex flex-wrap items-center gap-2 sm:gap-3 py-2 border-b border-border/60 shrink-0 sticky top-0 z-20 bg-background/95 backdrop-blur-sm">
-        <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground flex items-center gap-1">
-          <Radio className="h-3 w-3" />
-          {t("nav.liveStudio")}
-        </span>
-        {category && (
-          <span className="text-[11px] px-2 py-0.5 rounded-md bg-muted font-medium">
-            {liveCategoryLabel(category)}
-          </span>
-        )}
-        <h1 className="text-base sm:text-lg font-bold truncate flex-1 min-w-0">{channelName}</h1>
-        <span className="text-sm text-muted-foreground flex items-center gap-1 tabular-nums">
-          <Eye className="h-4 w-4" />
-          {viewerCount}
-        </span>
-
-        <LiveControlPanel
-          channelId={channelId}
-          slowModeSeconds={slowModeSeconds}
-          chatBannedWords={chatBannedWords}
-          initialCollabSplit={collab.splitEnabled}
-          initialDonationAlertsOnStream={donationAlertsOnStream}
-          initialIsNsfw={isNsfw}
-          collabCoHostName={coHostLabel ?? null}
-        />
-
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="rounded-xl gap-1">
-              <Settings2 className="h-4 w-4" />
-              {t("settings.title")}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-2xl max-w-md max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{t("live.s1duasqh")}</DialogTitle>
-            </DialogHeader>
-            <div className="pt-2 space-y-4">
-              <LiveHostSettings
-                channelId={channelId}
-                slowModeSeconds={slowModeSeconds ?? 0}
-                bannedWords={ensureStringArray(chatBannedWords)}
-                initialCollabSplit={collab.splitEnabled}
-                initialDonationAlertsOnStream={donationAlertsOnStream}
-                initialIsNsfw={isNsfw}
-                collabCoHostName={coHostLabel ?? null}
-                embedded
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Button variant="destructive" size="sm" className="rounded-xl gap-1" onClick={onEndStream}>
-          <Radio className="h-4 w-4" />
-          {t("live.s1dubywf")}
-        </Button>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 lg:gap-6 mt-3 items-start">
-        <div className="min-w-0 w-full relative">
+    <LiveHostThreeColumn
+      channelId={channelId}
+      channelName={channelName}
+      hostUserId={hostUserId}
+      hostUsername={hostUsername}
+      hostDisplayName={hostDisplayName}
+      viewerCount={viewerCount}
+      onViewerCount={onViewerCount}
+      onEndStream={onEndStream}
+      category={category}
+      donationGoalKrw={donationGoalKrw}
+      tipTotalKrw={tipTotalKrw}
+      slowModeSeconds={slowModeSeconds}
+      chatBannedWords={chatBannedWords}
+      donationAlertsOnStream={donationAlertsOnStream}
+      isNsfw={isNsfw}
+      liveBadge={t("nav.liveStudio")}
+      video={
+        <div className="relative min-w-0 w-full">
           <LiveBrowserStudio
             channelId={channelId}
             channelName={channelName}
@@ -223,15 +171,110 @@ export function LiveHostStudioShell({
           />
           {donationAlertsOnStream ? <LiveDonationAlertOverlay tips={recentTips} /> : null}
         </div>
-        <div className="min-h-[360px] lg:sticky lg:top-[3.25rem] lg:max-h-[calc(100vh-5rem)] border border-border/60 rounded-xl overflow-hidden bg-card/30">
+      }
+    />
+  );
+}
+
+function LiveHostThreeColumn({
+  channelId,
+  channelName,
+  hostUserId,
+  hostUsername,
+  hostDisplayName,
+  viewerCount,
+  onViewerCount,
+  onEndStream,
+  category,
+  donationGoalKrw,
+  tipTotalKrw,
+  slowModeSeconds,
+  chatBannedWords,
+  donationAlertsOnStream,
+  isNsfw,
+  liveBadge,
+  liveBadgeClass,
+  video,
+}: {
+  channelId: string;
+  channelName: string;
+  hostUserId: string;
+  hostUsername?: string;
+  hostDisplayName?: string;
+  viewerCount: number;
+  onViewerCount?: (n: number) => void;
+  onEndStream: () => void;
+  category?: LiveStreamCategory;
+  donationGoalKrw?: number | null;
+  tipTotalKrw?: number;
+  slowModeSeconds?: number;
+  chatBannedWords?: string[];
+  donationAlertsOnStream?: boolean;
+  isNsfw?: boolean;
+  liveBadge: string;
+  liveBadgeClass?: string;
+  video: React.ReactNode;
+}) {
+  const { t } = useLocale();
+  const [pinnedMessage, setPinnedMessage] = useState<string>("");
+
+  return (
+    <div className="flex w-full min-h-[calc(100dvh-4.75rem)] flex-col">
+      <header className="sticky top-0 z-20 flex shrink-0 flex-wrap items-center gap-2 border-b border-border/60 bg-background/95 py-2 backdrop-blur-sm sm:gap-3">
+        <span
+          className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
+            liveBadgeClass ?? "bg-muted text-muted-foreground"
+          }`}
+        >
+          <Radio className="h-3 w-3" />
+          {liveBadge}
+        </span>
+        {category ? (
+          <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium">
+            {liveCategoryLabel(category)}
+          </span>
+        ) : null}
+        <h1 className="min-w-0 flex-1 truncate text-base font-bold sm:text-lg">{channelName}</h1>
+        <span className="flex items-center gap-1 text-sm tabular-nums text-muted-foreground">
+          <Eye className="h-4 w-4" />
+          {viewerCount}
+        </span>
+        <Button variant="destructive" size="sm" className="gap-1 rounded-xl" onClick={onEndStream}>
+          <Radio className="h-4 w-4" />
+          {t("live.s1dubywf")}
+        </Button>
+      </header>
+
+      <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 items-stretch gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.95fr)_minmax(300px,0.9fr)]">
+        <section className="min-w-0">{video}</section>
+        <aside className="min-h-[420px] lg:min-h-0 lg:h-[calc(100dvh-6.25rem)]">
+          <LiveHostDirectorPanel
+            channelId={channelId}
+            viewerCount={viewerCount}
+            donationGoalKrw={donationGoalKrw}
+            tipTotalKrw={tipTotalKrw}
+            slowModeSeconds={slowModeSeconds}
+            chatBannedWords={chatBannedWords}
+            donationAlertsOnStream={donationAlertsOnStream}
+            isNsfw={isNsfw}
+            onPinnedChange={setPinnedMessage}
+          />
+        </aside>
+        <aside className="min-h-[70vh] lg:min-h-0 lg:h-[calc(100dvh-6.25rem)]">
           <LiveChat
             channelId={channelId}
             viewerCount={viewerCount}
             onViewerCount={onViewerCount}
             isHost
             canModerate
+            hostUserId={hostUserId}
+            hostUsername={hostUsername}
+            hostDisplayName={hostDisplayName}
+            pinnedMessage={pinnedMessage}
+            hideDonationControls
+            className="h-full min-h-0"
           />
-        </div>
+        </aside>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { getCachedLiveTipsForChannel } from "@/lib/cached-live-tips";
 import { db } from "@/lib/db";
+import { USD_CENTS_PER_MOCO_CENTI } from "@/lib/moco-donation/video-pricing";
 
 export async function GET(
   req: NextRequest,
@@ -35,7 +36,7 @@ export async function GET(
     ? new Date(sinceMs)
     : new Date(Date.now() - 120_000);
 
-  const [{ tipTotalKrw, tipRanking }, recentRows, cheerAgg, recentCheerRows] = await Promise.all([
+  const [{ tipTotalKrw, tipRanking }, recentRows, cheerAgg, recentCheerRows, mocoRows] = await Promise.all([
     getCachedLiveTipsForChannel(channel.createdBy, channel.createdAt),
     db.tip
       .findMany({
@@ -78,6 +79,23 @@ export async function GET(
         },
       })
       .catch(() => []),
+    db.mocoDonation
+      .findMany({
+        where: {
+          channelId,
+          status: { not: "CANCELLED" },
+          refundedAt: null,
+        },
+        select: {
+          userId: true,
+          mocoCenti: true,
+          mocoAmount: true,
+          mocoAmountTenths: true,
+          mocoAmountHundredths: true,
+          user: { select: { username: true } },
+        },
+      })
+      .catch(() => []),
   ]);
 
   const cheerTotalCp = cheerAgg._sum.amount ?? 0;
@@ -117,6 +135,26 @@ export async function GET(
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5);
 
+  const mocoCentiByName = new Map<string, number>();
+  for (const row of mocoRows) {
+    const centi =
+      row.mocoCenti > 0
+        ? row.mocoCenti
+        : row.mocoAmount * 100 + row.mocoAmountTenths * 10 + row.mocoAmountHundredths;
+    const name = row.user.username;
+    mocoCentiByName.set(name, (mocoCentiByName.get(name) ?? 0) + centi);
+  }
+  for (const r of tipRanking) {
+    const tipCenti = Math.round(r.amount / USD_CENTS_PER_MOCO_CENTI);
+    if (tipCenti <= 0) continue;
+    mocoCentiByName.set(r.username, (mocoCentiByName.get(r.username) ?? 0) + tipCenti);
+  }
+  const mocoRanking = [...mocoCentiByName.entries()]
+    .map(([username, mocoCenti]) => ({ username, mocoCenti }))
+    .sort((a, b) => b.mocoCenti - a.mocoCenti)
+    .slice(0, 10);
+  const mocoTotalCenti = [...mocoCentiByName.values()].reduce((sum, n) => sum + n, 0);
+
   const recentTips = [
     ...recentRows.map((t) => ({
       id: t.id,
@@ -149,6 +187,8 @@ export async function GET(
     cheerTotalCp,
     combinedGoalTotal: tipTotalKrw + cheerTotalCp,
     tipRanking: mergedRanking,
+    mocoTotalCenti,
+    mocoRanking,
     recentTips: donationAlertsOnStream ? recentTips : [],
     donationAlertsOnStream,
     serverTime: Date.now(),

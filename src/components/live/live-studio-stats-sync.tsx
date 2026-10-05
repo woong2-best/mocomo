@@ -13,6 +13,8 @@ export function LiveStudioStatsSync({
     cheerTotalCp?: number;
     combinedGoalTotal?: number;
     tipRanking: { username: string; amount: number }[];
+    mocoTotalCenti?: number;
+    mocoRanking?: { username: string; mocoCenti: number }[];
     recentTips: { id: string; amount: number; message: string | null; username: string; at: number }[];
     donationAlertsOnStream?: boolean;
   }) => void;
@@ -39,6 +41,8 @@ export function LiveStudioStatsSync({
           cheerTotalCp: body.cheerTotalCp ?? 0,
           combinedGoalTotal: body.combinedGoalTotal ?? body.tipTotalKrw ?? 0,
           tipRanking: body.tipRanking ?? [],
+          mocoTotalCenti: body.mocoTotalCenti ?? 0,
+          mocoRanking: body.mocoRanking ?? [],
           recentTips: body.recentTips ?? [],
           donationAlertsOnStream: body.donationAlertsOnStream,
         });

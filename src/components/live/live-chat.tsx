@@ -43,6 +43,7 @@ import {
   CHAT_SOURCE_USERNAME_COLOR,
   type UnifiedChatSource,
 } from "@/lib/live-external/platform-chat/merge-messages";
+import { cn } from "@/lib/utils";
 
 export type LiveChatMessageKind = "chat" | "support" | "tip" | "mission";
 
@@ -83,6 +84,8 @@ function LiveChatInner({
   externalProvider,
   externalId,
   variant = "default",
+  className,
+  hideDonationControls = false,
 }: {
   channelId: string;
   viewerCount: number;
@@ -100,6 +103,8 @@ function LiveChatInner({
   externalProvider?: LiveExternalProvider | null;
   externalId?: string | null;
   variant?: "default" | "external";
+  className?: string;
+  hideDonationControls?: boolean;
 }) {
   const { data: session } = useSession();
   const username = session?.user?.username ?? session?.user?.name ?? "me";
@@ -234,7 +239,7 @@ function LiveChatInner({
           : null;
 
   return (
-    <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background">
+    <div className={cn("flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background", className)}>
       <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-muted/30 px-3 py-2.5">
         <span className="text-sm font-semibold">
           {t("live.chat.title")}
@@ -261,7 +266,7 @@ function LiveChatInner({
           {viewerCount}
         </span>
       </div>
-      {isExternal ? (
+      {pinnedMessage?.trim() ? (
         <div className="shrink-0 px-2 pt-2">
           <LivePinnedMessageBar message={pinnedMessage} />
         </div>
@@ -385,7 +390,9 @@ function LiveChatInner({
       </div>
       {session?.user ? (
         <div className="shrink-0 space-y-2 border-t border-border/60 p-2.5">
-          <VideoDonationRoomControls channelId={channelId} isHost={isHost} />
+          {hideDonationControls ? null : (
+            <VideoDonationRoomControls channelId={channelId} isHost={isHost} />
+          )}
           {isExternal && !isHost ? (
             <ExternalLiveDonationBar
               channelId={channelId}
