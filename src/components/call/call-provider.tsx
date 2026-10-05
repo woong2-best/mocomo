@@ -25,6 +25,7 @@ import {
   type CameraCheckResult,
 } from "@/lib/camera";
 import { CallOverlay } from "@/components/call/call-overlay";
+import { CallNatBlockedDialog } from "@/components/call/call-nat-blocked-dialog";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
 import { prefetchWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
 import {
@@ -99,6 +100,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const [micChecking, setMicChecking] = useState(false);
   const [cameraChecking, setCameraChecking] = useState(false);
   const [callMinimized, setCallMinimized] = useState(false);
+  const [natBlockedOpen, setNatBlockedOpen] = useState(false);
   const { socket, socketReady } = useAppSocket();
   const pendingEmitsRef = useRef<{ event: string; payload: Record<string, unknown> }[]>([]);
   const startCallGenRef = useRef(0);
@@ -660,6 +662,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     <CallActionsContext.Provider value={value}>
       <CallBusyContext.Provider value={busy}>
         {children}
+        <CallNatBlockedDialog open={natBlockedOpen} onClose={() => setNatBlockedOpen(false)} />
         {busy && (
           <CallOverlay
             callState={callState}
@@ -703,7 +706,10 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
                   }}
                   onRemoteHangup={() => endFromRemote(callState.call.id, "ended")}
                   onMinimize={() => setCallMinimized(true)}
-                  onCallFailed={() => endFromRemote(callState.call.id, "ended")}
+                  onCallFailed={() => {
+                    setNatBlockedOpen(true);
+                    hangup(callState.call.id);
+                  }}
                 />
               ) : undefined
             }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MediaStream, RTCPeerConnection } from "@livekit/react-native-webrtc";
 import { fetchMobileWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
+import { CALL_NAT_BLOCKED_MESSAGE } from "@/lib/p2p-ice";
 import { ensureLiveKitGlobals } from "@/native/livekit-bootstrap";
 
 type IceInit = {
@@ -101,6 +102,7 @@ export function useMobilePeerCall({
   const pendingIceRef = useRef<IceInit[]>([]);
   const appliedSignalsRef = useRef(new Set<string>());
   const answeredRef = useRef(false);
+  const natFailedRef = useRef(false);
   const sessionSendRef = useRef<(signal: VoiceWireSignal) => void>(() => undefined);
   const onFailedRef = useRef(onFailed);
   const onConnectionLostRef = useRef(onConnectionLost);
@@ -211,14 +213,27 @@ export function useMobilePeerCall({
       setRemoteStream(merged);
     };
 
+    const failNatBlocked = () => {
+      if (natFailedRef.current || pcRef.current !== pc) return;
+      natFailedRef.current = true;
+      for (const track of localStreamRef.current?.getTracks() ?? []) {
+        track.stop();
+      }
+      setState("failed");
+      setFailure(CALL_NAT_BLOCKED_MESSAGE);
+      onFailedRef.current?.(CALL_NAT_BLOCKED_MESSAGE);
+      sessionSendRef.current({ type: "hangup" });
+      onConnectionLostRef.current?.();
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === "failed") failNatBlocked();
+    };
+
     pc.onconnectionstatechange = () => {
       const cs = pc.connectionState;
       if (cs === "connected") setState("connected");
-      else if (cs === "failed") {
-        setState("failed");
-        onFailedRef.current?.(translate("m.lib.the_call_was_disconnected_please_call"));
-        onConnectionLostRef.current?.();
-      }
+      else if (cs === "failed") failNatBlocked();
     };
 
     const local = await ensureLocalStream();
@@ -322,6 +337,7 @@ export function useMobilePeerCall({
     const offered = { current: false };
     appliedSignalsRef.current = new Set();
     answeredRef.current = false;
+    natFailedRef.current = false;
     pendingIceRef.current = [];
 
     const fail = (message: string) => {

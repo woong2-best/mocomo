@@ -3859,6 +3859,8 @@
   "call.s6y69qd": "Waiting to connect…",
   "call.s121ftcl": "Connecting video…",
   "call.s1ygtvdm": "Connecting audio…",
+  "call.nat_blocked_title": "Check your Wi-Fi",
+  "call.nat_blocked": "Direct voice or video connection is not possible on this network (firewall or LTE symmetric NAT). Please switch to Wi-Fi and try again.",
   "chat.enter_shift_enter": "Enter to send · Shift+Enter for new line",
   "chat.s2pusd4": "Type a message",
   "chat.ssjcvk": "Send",

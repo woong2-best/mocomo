@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { endDmCall, fetchMobileCallSync } from "@/api/calls";
 import { useAuth } from "@/auth/AuthContext";
 import { getAccessToken } from "@/auth/token-store";
 import { API_BASE_URL } from "@/config/env";
+import { CALL_NAT_BLOCKED_MESSAGE, CALL_NAT_BLOCKED_TITLE } from "@/lib/p2p-ice";
 import { publishUserCallEvent } from "@/lib/supabase-call-signal";
 import { useMobilePeerCall } from "@/lib/use-mobile-peer-call";
 import { startCallForeground, stopCallForeground } from "mocomo-call-audio";
@@ -87,6 +88,11 @@ export function MobileCallSessionProvider({ children }: { children: ReactNode })
     peerUserId: live?.peerUserId ?? "",
     isCaller: live?.isCaller ?? false,
     enabled: Boolean(live && user?.id),
+    onFailed: (message) => {
+      if (message === CALL_NAT_BLOCKED_MESSAGE) {
+        Alert.alert(CALL_NAT_BLOCKED_TITLE, CALL_NAT_BLOCKED_MESSAGE);
+      }
+    },
     onRemoteHangup: () => {
       const current = liveRef.current;
       clearLocal();

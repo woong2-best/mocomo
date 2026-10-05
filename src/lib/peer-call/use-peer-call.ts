@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Socket } from "socket.io-client";
 import { fetchWebRtcIceConfiguration } from "@/lib/webrtc-ice-config";
+import { CALL_NAT_BLOCKED_MESSAGE } from "@/lib/peer-call/p2p-ice";
 import type { CallSignalEvent, CallSignalPayload } from "@/lib/peer-call/types";
 import {
   openVoiceSignalChannel,
@@ -120,6 +121,7 @@ export function usePeerCall({
   const isCallerRef = useRef(isCaller);
   const socketRef = useRef(socket);
   const answeredRef = useRef(false);
+  const natFailedRef = useRef(false);
   const initialSignalsRef = useRef(initialSignals);
   initialSignalsRef.current = initialSignals;
 
@@ -164,6 +166,7 @@ export function usePeerCall({
       pc.onicecandidate = null;
       pc.ontrack = null;
       pc.onconnectionstatechange = null;
+      pc.oniceconnectionstatechange = null;
       pc.close();
     }
     for (const track of localStreamRef.current?.getTracks() ?? []) {
@@ -262,15 +265,32 @@ export function usePeerCall({
         setRemoteStream(merged);
       };
 
+      const failNatBlocked = () => {
+        if (natFailedRef.current || pcRef.current !== pc) return;
+        natFailedRef.current = true;
+        for (const track of localStreamRef.current?.getTracks() ?? []) {
+          track.stop();
+        }
+        for (const track of rawMicRef.current?.getTracks() ?? []) {
+          track.stop();
+        }
+        setState("failed");
+        onFailedRef.current?.(CALL_NAT_BLOCKED_MESSAGE);
+        emitSignal({ type: "hangup" });
+        onConnectionLostRef.current?.();
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "failed") failNatBlocked();
+      };
+
       pc.onconnectionstatechange = () => {
         const cs = pc.connectionState;
         if (cs === "connected") {
           setState("connected");
           onConnectedRef.current?.();
         } else if (cs === "failed") {
-          setState("failed");
-          onFailedRef.current?.("Call disconnected. If you are not on the same Wi‑Fi, try again in a moment.");
-          onConnectionLostRef.current?.();
+          failNatBlocked();
         }
       };
 
@@ -401,6 +421,7 @@ export function usePeerCall({
 
     const epoch = ++epochRef.current;
     answeredRef.current = false;
+    natFailedRef.current = false;
     makingOfferRef.current = false;
     appliedSignalsRef.current = new Set();
     pendingIceRef.current = [];

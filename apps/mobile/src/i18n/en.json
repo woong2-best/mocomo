@@ -1801,6 +1801,8 @@
   "m.messages.attached": "Attached",
   "m.messages.attachment": "Attachment",
   "m.messages.call_failed": "Call failed",
+  "m.messages.nat_blocked_title": "Check your Wi-Fi",
+  "m.messages.nat_blocked": "Direct voice or video connection is not possible on this network (firewall or LTE symmetric NAT). Please switch to Wi-Fi and try again.",
   "m.messages.camera": "Camera",
   "m.messages.cancel_reply": "Cancel reply",
   "m.messages.cannot_call": "Cannot call",
