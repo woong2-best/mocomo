@@ -12,7 +12,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import Link from "next/link";
-import { Eye, Radio, User } from "lucide-react";
+import { Eye, User } from "lucide-react";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import {
   buildLiveBeadSlots,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/live-bead-slots";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
+import { LiveStillPoster } from "@/components/live/live-still-poster";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -299,8 +300,6 @@ function EmptyBead({ tone, focused }: { tone: number; focused: boolean }) {
 
 function LiveBead({ channel, host }: { channel: LiveHubChannel; host?: LiveHubHost }) {
   const { locale } = useLocale();
-  const thumb = channel.thumbnailUrl ?? host?.image;
-
   return (
     <Link
       href={`/voice/${channel.id}`}
@@ -308,14 +307,7 @@ function LiveBead({ channel, host }: { channel: LiveHubChannel; host?: LiveHubHo
       className="block w-full rounded-xl overflow-hidden border border-white/10 bg-[#0A0C10] shadow-md"
     >
       <div className="relative aspect-video bg-black overflow-hidden">
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[hsl(var(--folk-cobalt)/0.16)]">
-            <Radio className="h-6 w-6 text-folk-terracotta/40" />
-          </div>
-        )}
+        <LiveStillPoster src={channel.thumbnailUrl} />
         {isLiveAdultChannel(channel) ? <LiveAdultWatermark /> : null}
         <div className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 rounded bg-black/65 px-1.5 py-0.5 text-[9px] font-semibold text-white tabular-nums">
           <Eye className="h-2.5 w-2.5" />

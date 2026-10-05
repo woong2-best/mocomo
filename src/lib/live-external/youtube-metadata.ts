@@ -13,6 +13,7 @@ function apiKey(): string | null {
 export type YoutubeVideoMetadata = {
   title: string | null;
   description: string | null;
+  thumbnailUrl: string | null;
 };
 
 export async function fetchYoutubeVideoMetadata(
@@ -38,14 +39,30 @@ export async function fetchYoutubeVideoMetadata(
       if (res.ok) {
         const data = (await res.json()) as {
           items?: Array<{
-            snippet?: { title?: string; description?: string };
+            snippet?: {
+              title?: string;
+              description?: string;
+              thumbnails?: {
+                maxres?: { url?: string };
+                standard?: { url?: string };
+                high?: { url?: string };
+                medium?: { url?: string };
+              };
+            };
           }>;
         };
         const snippet = data.items?.[0]?.snippet;
         if (snippet) {
+          const thumbs = snippet.thumbnails;
           return {
             title: snippet.title?.trim() || null,
             description: snippet.description?.trim() || null,
+            thumbnailUrl:
+              thumbs?.maxres?.url?.trim() ||
+              thumbs?.standard?.url?.trim() ||
+              thumbs?.high?.url?.trim() ||
+              thumbs?.medium?.url?.trim() ||
+              `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
           };
         }
       }
@@ -61,15 +78,21 @@ export async function fetchYoutubeVideoMetadata(
       { next: { revalidate: 300 } }
     );
     if (oembed.ok) {
-      const data = (await oembed.json()) as { title?: string };
+      const data = (await oembed.json()) as { title?: string; thumbnail_url?: string };
       return {
         title: data.title?.trim() || null,
         description: null,
+        thumbnailUrl:
+          data.thumbnail_url?.trim() || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       };
     }
   } catch {
     /* optional */
   }
 
-  return { title: null, description: null };
+  return {
+    title: null,
+    description: null,
+    thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+  };
 }

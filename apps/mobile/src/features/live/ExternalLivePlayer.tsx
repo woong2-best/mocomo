@@ -1,17 +1,21 @@
 import { useMemo, useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import type { LiveExternalInfo } from "@/api/live";
 import { API_BASE_URL, APP_PACKAGE_ID } from "@/config/env";
 import { liveUi } from "@/features/live/live-ui";
+import { freshLiveStill, youtubeStillFromEmbed } from "@/features/live/live-still";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
+import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 
 type Props = {
   external: LiveExternalInfo;
   title: string;
+  posterUrl?: string | null;
   /** When false, keep the WebView mounted but paused-looking (unload source). */
   active?: boolean;
   /**
@@ -184,6 +188,7 @@ function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): 
 export function ExternalLivePlayer({
   external,
   title,
+  posterUrl,
   active = true,
   showChrome = false,
   onPress,
@@ -193,6 +198,8 @@ export function ExternalLivePlayer({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [failed, setFailed] = useState(false);
+  const [started, setStarted] = useState(false);
+  const stillUrl = freshLiveStill(posterUrl) ?? youtubeStillFromEmbed(external.embedUrl);
   const origin = useMemo(() => embedRefererOrigin(), []);
   const rawEmbed = external.embedUrl;
   const youtube = !!rawEmbed && isYoutubeEmbed(rawEmbed);
@@ -201,7 +208,7 @@ export function ExternalLivePlayer({
       ? withYoutubeEmbedParams(rawEmbed, origin)
       : withTwitchEmbedParams(rawEmbed)
     : null;
-  const showEmbed = active && external.embedSupported && !!embedUrl && !failed;
+  const showEmbed = active && started && external.embedSupported && !!embedUrl && !failed;
 
   const source = useMemo(() => {
     if (!embedUrl) return undefined;
@@ -223,7 +230,29 @@ export function ExternalLivePlayer({
   return (
     <View style={[styles.wrap, !showChrome && styles.wrapFill]}>
       <View style={!showChrome ? styles.playerFill : styles.player}>
-        {showEmbed && source ? (
+        {!started ? (
+          <Pressable
+            style={styles.poster}
+            onPress={() => {
+              if (onPress) onPress();
+              else setStarted(true);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={copy.openLiveA11y(title)}
+          >
+            {stillUrl ? (
+              <Image
+                source={{ uri: stillUrl }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                cachePolicy={IMAGE_CACHE_POLICY}
+                transition={0}
+              />
+            ) : (
+              <View style={styles.fallback} />
+            )}
+          </Pressable>
+        ) : showEmbed && source ? (
           <View style={styles.webview} pointerEvents={onPress ? "none" : "auto"}>
             <WebView
               key={`${external.provider}-${embedUrl}`}
@@ -300,6 +329,7 @@ function createStyles(_colors: ThemeColors) {
       backgroundColor: "#000",
     },
     webview: { flex: 1, backgroundColor: "#000", opacity: 0.99 },
+    poster: { ...StyleSheet.absoluteFillObject, backgroundColor: "#000" },
     fallback: {
       flex: 1,
       alignItems: "center",

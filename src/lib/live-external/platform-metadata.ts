@@ -1,9 +1,11 @@
 import type { LiveExternalProvider } from "./types";
 import { fetchYoutubeVideoMetadata } from "./youtube-metadata";
+import { normalizePlatformThumbUrl, twitchStillThumb } from "@/lib/live-preview-thumb";
 
 export type ExternalPlatformMetadata = {
   title: string | null;
   description: string | null;
+  thumbnailUrl: string | null;
 };
 
 function twitchCreds(): { clientId: string; clientSecret: string } | null {
@@ -40,10 +42,10 @@ async function fetchTwitchStreamMetadata(
   channelLogin: string
 ): Promise<ExternalPlatformMetadata> {
   const creds = twitchCreds();
-  if (!creds) return { title: null, description: null };
+  if (!creds) return { title: null, description: null, thumbnailUrl: twitchStillThumb(channelLogin) };
 
   const token = await twitchAppToken(creds);
-  if (!token) return { title: null, description: null };
+  if (!token) return { title: null, description: null, thumbnailUrl: twitchStillThumb(channelLogin) };
 
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -65,14 +67,17 @@ async function fetchTwitchStreamMetadata(
 
     let title: string | null = null;
     let description: string | null = null;
+    let thumbnailUrl: string | null = twitchStillThumb(login);
 
     if (streamRes.ok) {
       const json = (await streamRes.json()) as {
-        data?: Array<{ title?: string; game_name?: string }>;
+        data?: Array<{ title?: string; game_name?: string; thumbnail_url?: string }>;
       };
       const stream = json.data?.[0];
       title = stream?.title?.trim() || null;
       if (stream?.game_name?.trim()) description = stream.game_name.trim();
+      const apiThumb = normalizePlatformThumbUrl(stream?.thumbnail_url);
+      if (apiThumb) thumbnailUrl = apiThumb;
     }
 
     let userId: string | null = null;
@@ -106,15 +111,17 @@ async function fetchTwitchStreamMetadata(
       }
     }
 
-    return { title, description };
+    return { title, description, thumbnailUrl };
   } catch {
-    return { title: null, description: null };
+    return { title: null, description: null, thumbnailUrl: twitchStillThumb(channelLogin) };
   }
 }
 
 type ChzzkLiveDetail = {
   liveTitle?: string | null;
   liveCategoryValue?: string | null;
+  liveImageUrl?: string | null;
+  defaultThumbnailImageUrl?: string | null;
 };
 
 async function fetchChzzkLiveDetail(channelId: string): Promise<ChzzkLiveDetail | null> {
@@ -174,6 +181,9 @@ async function fetchChzzkStreamMetadata(
   return {
     title: live?.liveTitle?.trim() || null,
     description: description || live?.liveCategoryValue?.trim() || null,
+    thumbnailUrl:
+      normalizePlatformThumbUrl(live?.liveImageUrl) ||
+      normalizePlatformThumbUrl(live?.defaultThumbnailImageUrl),
   };
 }
 
@@ -191,7 +201,7 @@ export async function fetchExternalPlatformMetadata(
   if (provider === "CHZZK") {
     return fetchChzzkStreamMetadata(externalId);
   }
-  return { title: null, description: null };
+  return { title: null, description: null, thumbnailUrl: null };
 }
 
 export function providerDisplayName(provider: LiveExternalProvider): string {

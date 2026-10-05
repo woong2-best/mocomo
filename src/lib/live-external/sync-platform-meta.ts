@@ -18,18 +18,19 @@ export async function syncExternalChannelPlatformMeta(params: {
   externalId: string;
   currentName?: string | null;
   currentDescription?: string | null;
+  currentThumbnailUrl?: string | null;
 }): Promise<ExternalPlatformMetadata> {
   const meta = await fetchExternalPlatformMetadata(params.provider, params.externalId);
   const nextName = meta.title?.trim().slice(0, 120) || null;
   const nextDescription = meta.description?.trim().slice(0, 500) || null;
-
-  if (!nextName && !nextDescription) return meta;
+  const nextThumb = meta.thumbnailUrl?.trim() || null;
 
   const nameChanged = nextName != null && nextName !== (params.currentName ?? "").trim();
   const descChanged =
     nextDescription != null && nextDescription !== (params.currentDescription ?? "").trim();
+  const thumbChanged = nextThumb != null && nextThumb !== (params.currentThumbnailUrl ?? "").trim();
 
-  if (!nameChanged && !descChanged) return meta;
+  if (!nameChanged && !descChanged && !thumbChanged) return meta;
 
   try {
     await db.voiceChannel.update({
@@ -37,6 +38,7 @@ export async function syncExternalChannelPlatformMeta(params: {
       data: {
         ...(nameChanged && nextName ? { name: nextName } : {}),
         ...(descChanged ? { description: nextDescription } : {}),
+        ...(thumbChanged && nextThumb ? { thumbnailUrl: nextThumb } : {}),
       },
     });
     revalidateLiveHubCache();

@@ -5,7 +5,7 @@ const t = createTranslator("en");
 
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Radio, User } from "lucide-react";
+import { User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { LiveHeroPreviewVideo } from "@/components/live/live-hero-preview-video";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
@@ -109,7 +109,6 @@ function LiveHeroCarouselInner({
       >
         {heroItems.map((ch, slideIndex) => {
           const host = hostMap[ch.createdBy];
-          const thumb = ch.thumbnailUrl ?? host?.image ?? null;
           const isActive = slideIndex === active;
 
           return (
@@ -123,15 +122,10 @@ function LiveHeroCarouselInner({
                 <LiveHeroPreviewVideo
                   channelId={ch.id}
                   broadcastMode={ch.broadcastMode}
-                  active={isActive}
-                  posterUrl={thumb}
+                  active={false}
+                  posterUrl={ch.thumbnailUrl}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                 />
-                {!thumb ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[hsl(var(--folk-cobalt)/0.25)] to-[hsl(var(--folk-gold)/0.2)]">
-                    <Radio className="h-14 w-14 text-folk-terracotta/40" />
-                  </div>
-                ) : null}
                 {isLiveAdultChannel(ch) ? <LiveAdultWatermark /> : null}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/40 pointer-events-none" />
 

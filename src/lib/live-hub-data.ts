@@ -8,6 +8,7 @@ import {
   filterChannelsWithPresentHost,
 } from "@/lib/live-abandon";
 import { isExternalLiveEnabled, isFirstPartyLiveEnabled } from "@/lib/live-feature";
+import { resolveLiveStillThumb } from "@/lib/live-preview-thumb";
 
 /** /live 허브·팔로우 라이브 목록 캐시 */
 export const LIVE_HUB_CACHE_TAG = "live-hub";
@@ -33,6 +34,8 @@ export type LiveHubChannel = {
   thumbnailUrl: string | null;
   broadcastMode?: string | null;
   isNsfw?: boolean;
+  externalProvider?: string | null;
+  externalId?: string | null;
 };
 
 export type LiveHubHost = {
@@ -105,6 +108,9 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory, mode: LiveHub
       thumbnailUrl: true,
       broadcastMode: true,
       isNsfw: true,
+      externalProvider: true,
+      externalId: true,
+      rtmpIngressId: true,
     },
     orderBy: { createdAt: "desc" },
     take: LIVE_HUB_MAX_CHANNELS,
@@ -122,11 +128,45 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory, mode: LiveHub
   });
   const viewerMap = Object.fromEntries(viewerGroups.map((g) => [g.channelId, g._count._all]));
   return channels
-    .map((c) => ({
-      ...c,
-      viewerCount: viewerMap[c.id] ?? 0,
-    }))
-    .sort((a, b) => b.viewerCount - a.viewerCount) as LiveHubChannel[];
+    .map((c) => toHubChannel(c, viewerMap[c.id] ?? 0))
+    .sort((a, b) => b.viewerCount - a.viewerCount);
+}
+
+function toHubChannel(
+  c: {
+    id: string;
+    name: string;
+    createdBy: string;
+    category: LiveStreamCategory;
+    tags: string[];
+    thumbnailUrl: string | null;
+    broadcastMode?: string | null;
+    isNsfw?: boolean;
+    externalProvider?: string | null;
+    externalId?: string | null;
+    rtmpIngressId?: string | null;
+  },
+  viewerCount: number
+): LiveHubChannel {
+  return {
+    id: c.id,
+    name: c.name,
+    createdBy: c.createdBy,
+    viewerCount,
+    category: c.category,
+    tags: c.tags,
+    thumbnailUrl: resolveLiveStillThumb({
+      thumbnailUrl: c.thumbnailUrl,
+      broadcastMode: c.broadcastMode,
+      externalProvider: c.externalProvider,
+      externalId: c.externalId,
+      rtmpIngressId: c.rtmpIngressId,
+    }),
+    broadcastMode: c.broadcastMode ?? null,
+    isNsfw: c.isNsfw === true,
+    externalProvider: c.externalProvider ?? null,
+    externalId: c.externalId ?? null,
+  };
 }
 
 async function fetchRecommendedStreamers() {
@@ -175,6 +215,9 @@ async function fetchFollowedLive(userId: string) {
       thumbnailUrl: true,
       broadcastMode: true,
       isNsfw: true,
+      externalProvider: true,
+      externalId: true,
+      rtmpIngressId: true,
     },
     take: 12,
   });
@@ -189,8 +232,8 @@ async function fetchFollowedLive(userId: string) {
   });
   const viewerMap = Object.fromEntries(viewerGroups.map((g) => [g.channelId, g._count._all]));
   return channels
-    .map((c) => ({ ...c, viewerCount: viewerMap[c.id] ?? 0 }))
-    .sort((a, b) => b.viewerCount - a.viewerCount) as LiveHubChannel[];
+    .map((c) => toHubChannel(c, viewerMap[c.id] ?? 0))
+    .sort((a, b) => b.viewerCount - a.viewerCount);
 }
 
 /** 카테고리·모드별 실시간 방송 목록만 (탭 전환 시 이 부분만 다시 불러옴) */

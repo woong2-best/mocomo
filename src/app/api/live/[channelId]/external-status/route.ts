@@ -40,6 +40,7 @@ export async function GET(
       connectedStreamingAccountId: true,
       name: true,
       description: true,
+      thumbnailUrl: true,
     },
   });
 
@@ -94,6 +95,7 @@ export async function GET(
       externalId: channel.externalId,
       currentName: channel.name,
       currentDescription: channel.description,
+      currentThumbnailUrl: channel.thumbnailUrl,
     });
     if (meta.title?.trim()) title = meta.title.trim().slice(0, 120);
     if (meta.description?.trim()) description = meta.description.trim().slice(0, 500);

@@ -311,6 +311,7 @@ export function LiveDetailScreen() {
               <ExternalLivePlayer
                 external={item.external}
                 title={item.title}
+                posterUrl={item.thumbnailUrl}
                 active
                 showChrome={false}
               />

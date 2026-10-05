@@ -12,7 +12,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import Link from "next/link";
-import { Eye, Radio } from "lucide-react";
+import { Eye } from "lucide-react";
+import { LiveStillPoster } from "@/components/live/live-still-poster";
 import { LIVE_HERO_CARD_ASPECT, OFF_AIR_TV_SRC } from "@/components/live/live-off-air-tv-asset";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { wrapIndex } from "@/lib/live-bead-slots";
@@ -388,8 +389,6 @@ function EmptyHeroCard({ tone }: { tone: number }) {
 
 function LiveHeroCard({ channel, host }: { channel: LiveHubChannel; host?: LiveHubHost }) {
   const { locale } = useLocale();
-  const thumb = channel.thumbnailUrl ?? host?.image;
-
   return (
     <Link
       href={`/voice/${channel.id}`}
@@ -400,14 +399,7 @@ function LiveHeroCard({ channel, host }: { channel: LiveHubChannel; host?: LiveH
       )}
     >
       <div className="relative h-full w-full bg-black">
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[hsl(var(--folk-cobalt)/0.2)]">
-            <Radio className="h-12 w-12 text-folk-terracotta/45" />
-          </div>
-        )}
+        <LiveStillPoster src={channel.thumbnailUrl} />
         {isLiveAdultChannel(channel) ? <LiveAdultWatermark /> : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/15" />
         <span className="live-badge absolute top-2.5 left-2.5 !bg-emerald-600">

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { liveHostBroadcastWhere } from "@/lib/live-broadcast/session-queries";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
+import { resolveLiveStillThumb } from "@/lib/live-preview-thumb";
 
 export type ProfileLiveBroadcast = {
   channelId: string;
@@ -28,6 +29,9 @@ export async function getProfileLiveBroadcast(
       createdAt: true,
       broadcastMode: true,
       thumbnailUrl: true,
+      rtmpIngressId: true,
+      externalProvider: true,
+      externalId: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -41,6 +45,12 @@ export async function getProfileLiveBroadcast(
     channelId: ch.id,
     name: ch.name,
     broadcastMode: ch.broadcastMode,
-    thumbnailUrl: ch.thumbnailUrl,
+    thumbnailUrl: resolveLiveStillThumb({
+      thumbnailUrl: ch.thumbnailUrl,
+      broadcastMode: ch.broadcastMode,
+      externalProvider: ch.externalProvider,
+      externalId: ch.externalId,
+      rtmpIngressId: ch.rtmpIngressId,
+    }),
   };
 }

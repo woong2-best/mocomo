@@ -22,7 +22,7 @@ type Props = {
 function LiveStreamCardInner({ item, cardWidth, onPress, onOverflow }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const thumb = item.thumbnailUrl ?? item.host?.image ?? null;
+  const thumb = item.thumbnailUrl?.trim() || null;
   const decode = feedMediaDecodeWidth(cardWidth);
   const tags = (item.tags ?? []).slice(0, 2);
 

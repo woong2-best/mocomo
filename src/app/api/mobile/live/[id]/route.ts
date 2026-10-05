@@ -14,6 +14,7 @@ import {
 } from "@/lib/live-channel-active";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { canViewNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
+import { resolveLiveStillThumb } from "@/lib/live-preview-thumb";
 
 export async function GET(
   req: NextRequest,
@@ -41,6 +42,7 @@ export async function GET(
       thumbnailUrl: true,
       broadcastMode: true,
       mediaSourceType: true,
+      rtmpIngressId: true,
       externalProvider: true,
       externalId: true,
       externalWatchUrl: true,
@@ -107,6 +109,7 @@ export async function GET(
     platformTitle?: string | null;
     platformDescription?: string | null;
   } | null = null;
+  let platformThumb: string | null = null;
 
   if (isExternal) {
     const resolved = resolveExternalEmbed({
@@ -118,6 +121,7 @@ export async function GET(
         resolved.provider,
         resolved.externalId
       );
+      platformThumb = platformMeta.thumbnailUrl?.trim() || null;
       external = {
         provider: resolved.provider,
         embedUrl: resolved.embedUrl,
@@ -157,7 +161,14 @@ export async function GET(
       id: channel.id,
       title: platformTitle || channel.name,
       description: platformDescription || channel.description,
-      thumbnailUrl: channel.thumbnailUrl,
+      thumbnailUrl: resolveLiveStillThumb({
+        thumbnailUrl: channel.thumbnailUrl || platformThumb,
+        broadcastMode: channel.broadcastMode,
+        mediaSourceType: channel.mediaSourceType,
+        externalProvider: channel.externalProvider,
+        externalId: channel.externalId,
+        rtmpIngressId: channel.rtmpIngressId,
+      }),
       viewerCount: channel.members.length,
       category: channel.category,
       tags: channel.tags ?? [],

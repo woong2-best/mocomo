@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,15 +11,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchLiveDetail,
-  fetchLiveToken,
   type LiveListItem,
-  type LiveToken,
 } from "@/api/live";
-import { ApiError } from "@/api/client";
-import { ExternalLivePlayer } from "@/features/live/ExternalLivePlayer";
 import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWatermark";
 import { liveCategoryLabel, providerLabel } from "@/features/live/live-categories";
-import { LiveKitConnecting, LiveKitViewer } from "@/features/live/LiveKitViewer";
+import { LiveKitConnecting } from "@/features/live/LiveKitViewer";
 import { LiveViewerBadge } from "@/features/live/LiveViewerBadge";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
@@ -48,9 +44,8 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const adultGate = useAdultVerificationGate("LIVE");
-  const [creds, setCreds] = useState<LiveToken | null>(null);
-  const [tokenBusy, setTokenBusy] = useState(false);
-  const [tokenError, setTokenError] = useState<string | null>(null);
+  const tokenBusy = false;
+  const tokenError = null as string | null;
 
   const detailQuery = useQuery({
     queryKey: ["mobile-live", item.id],
@@ -61,7 +56,7 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
   });
 
   const detail = detailQuery.data?.item;
-  const thumb = item.thumbnailUrl ?? item.host?.image ?? null;
+  const thumb = item.thumbnailUrl?.trim() || null;
   const decode = feedMediaDecodeWidth(cardWidth);
 
   const adultBlocked =
@@ -70,49 +65,6 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
     isLiveAdultItem(detail) &&
     (detail.accessDeniedReason === "ADULT_VERIFICATION_REQUIRED" || detail.canEnter === false);
 
-  useEffect(() => {
-    if (!active) {
-      setCreds(null);
-      setTokenError(null);
-      setTokenBusy(false);
-      return;
-    }
-    if (!detail || detail.isExternal || !detail.isLive || adultBlocked) return;
-    if (creds) return;
-
-    let cancelled = false;
-    setTokenBusy(true);
-    setTokenError(null);
-    void (async () => {
-      try {
-        if (!detail.isHost && isLiveAdultItem(detail)) {
-          const ok = await adultGate.ensureAdult();
-          if (!ok || cancelled) return;
-        }
-        const token = await fetchLiveToken(item.id);
-        if (!cancelled) setCreds(token);
-      } catch (err) {
-        if (cancelled) return;
-        const msg =
-          err instanceof ApiError &&
-          err.body &&
-          typeof err.body === "object" &&
-          "error" in err.body &&
-          typeof (err.body as { error: unknown }).error === "string"
-            ? (err.body as { error: string }).error
-            : copy.connectError;
-        setTokenError(msg);
-      } finally {
-        if (!cancelled) setTokenBusy(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // intentionally omit creds / adultGate from deps ??reconnect only when stream identity changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, adultBlocked, detail?.id, detail?.isExternal, detail?.isLive, detail?.isHost, item.id]);
 
   const provider =
     detail?.isExternal && detail.external
@@ -124,23 +76,7 @@ function LiveFeedCardInner({ item, cardWidth, active, onPress }: Props) {
   return (
     <View style={[styles.card, { width: cardWidth }]}>
       <View style={styles.playerSlot}>
-        {active && detail?.isExternal && detail.external && !adultBlocked ? (
-          <ExternalLivePlayer
-            external={detail.external}
-            title={detail.title}
-            active
-            showChrome={false}
-          />
-        ) : active && !detail?.isExternal && creds ? (
-          <View style={styles.nativePlayer}>
-            <LiveKitViewer
-              creds={creds}
-              onDisconnected={() => {
-                setCreds(null);
-              }}
-            />
-          </View>
-        ) : active && detailQuery.isError ? (
+        {active && detailQuery.isError ? (
           <Pressable style={styles.posterFill} onPress={() => void detailQuery.refetch()}>
             {thumb ? (
               <Image

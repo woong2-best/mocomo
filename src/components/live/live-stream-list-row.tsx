@@ -5,7 +5,8 @@ const t = createTranslator("en");
 
 import Link from "next/link";
 import { memo } from "react";
-import { Radio, User } from "lucide-react";
+import { User } from "lucide-react";
+import { LiveStillPoster } from "@/components/live/live-still-poster";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
@@ -34,7 +35,6 @@ function LiveStreamListRowInner({
   host?: LiveHubHost;
 }) {
   const { locale , t } = useLocale();
-  const thumb = ch.thumbnailUrl ?? host?.image;
   const tags = (ch.tags ?? []).slice(0, 2);
 
   return (
@@ -44,18 +44,10 @@ function LiveStreamListRowInner({
       className="group flex gap-3 sm:gap-4 py-3 border-b border-border/60 last:border-b-0 hover:bg-muted/30 -mx-1 px-1 rounded-lg transition-colors"
     >
       <div className="relative w-[128px] sm:w-[148px] shrink-0 aspect-video overflow-hidden rounded-lg bg-black/20">
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={thumb}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted">
-            <Radio className="h-6 w-6 text-folk-terracotta/40" />
-          </div>
-        )}
+        <LiveStillPoster
+          src={ch.thumbnailUrl}
+          className="transition-transform duration-300 group-hover:scale-[1.03]"
+        />
         {isLiveAdultChannel(ch) ? <LiveAdultWatermark /> : null}
         <div className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white">
           <span className="h-1.5 w-1.5 rounded-full bg-[#E02020]" />

@@ -38,6 +38,7 @@ import { setPhotoAvatarRenderMode } from "@/lib/photo-avatar/photo-avatar-storag
 import { LiveScreenShareCompositor } from "@/lib/live/live-screen-share-compositor";
 import { LiveVideoChatOverlay } from "@/components/live/live-video-chat-overlay";
 import { useLiveChatOverlay } from "@/hooks/use-live-chat-overlay";
+import { useLivePreviewStillCapture } from "@/hooks/use-live-preview-still-capture";
 
 const VTUBER_STORAGE_KEY = "mocomo_live_vtuber";
 const VTUBER_LAYOUT_KEY = "mocomo_live_vtuber_layout";
@@ -155,6 +156,13 @@ export function LiveBrowserStudio({
   useEffect(() => {
     onAirChange?.(whipConnected && publishState === "live_here");
   }, [whipConnected, publishState, onAirChange]);
+
+  useLivePreviewStillCapture({
+    channelId,
+    enabled: whipConnected && publishState === "live_here",
+    videoRef,
+    previewHostRef,
+  });
 
   useEffect(() => {
     if (!vtuberMode) {

@@ -21,7 +21,7 @@ type Props = {
 function LiveTopHeroCardInner({ item, width, onPress }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const thumb = item.thumbnailUrl ?? item.host?.image ?? null;
+  const thumb = item.thumbnailUrl?.trim() || null;
   const highlightTag = (item.tags ?? [])[0] ?? null;
 
   return (

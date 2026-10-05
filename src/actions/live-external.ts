@@ -163,7 +163,10 @@ export async function createExternalLiveStream(data: {
         liveStatus: goLive ? "LIVE" : "SCHEDULED",
         category: resolvedCategory,
         description,
-        thumbnailUrl: data.thumbnailUrl?.trim() || null,
+        thumbnailUrl:
+          data.thumbnailUrl?.trim() ||
+          platformMeta.thumbnailUrl?.trim() ||
+          null,
         broadcastMode: "EXTERNAL",
         mediaSourceType: "EXTERNAL",
         externalProvider: parsed.provider,

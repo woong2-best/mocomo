@@ -130,6 +130,7 @@ export function ExternalLiveRoom({
             isHost={isHost}
             hostImage={host.image}
             hostUsername={host.username}
+            externalId={externalId}
             onPlatformEnded={onPlatformEnded}
           />
           <ExternalLiveStreamInfo

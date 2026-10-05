@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,17 +11,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchLiveDetail,
-  fetchLiveToken,
   type LiveListItem,
-  type LiveToken,
 } from "@/api/live";
-import { ExternalLivePlayer } from "@/features/live/ExternalLivePlayer";
 import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWatermark";
 import {
   emptySlotHint,
   type LiveBeadSlot,
 } from "@/features/live/live-bead-slots";
-import { LiveKitConnecting, LiveKitViewer } from "@/features/live/LiveKitViewer";
+import { LiveKitConnecting } from "@/features/live/LiveKitViewer";
 import { LiveViewerBadge } from "@/features/live/LiveViewerBadge";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
@@ -96,8 +93,7 @@ function LiveBeadLiveCard({
   const { colors } = useTheme();
   const themed = useMemo(() => createLiveStyles(colors), [colors]);
   const adultGate = useAdultVerificationGate("LIVE");
-  const [creds, setCreds] = useState<LiveToken | null>(null);
-  const [tokenBusy, setTokenBusy] = useState(false);
+  const tokenBusy = false;
 
   const detailQuery = useQuery({
     queryKey: ["mobile-live", item.id],
@@ -108,7 +104,7 @@ function LiveBeadLiveCard({
   });
 
   const detail = detailQuery.data?.item;
-  const thumb = item.thumbnailUrl ?? item.host?.image ?? null;
+  const thumb = item.thumbnailUrl?.trim() || null;
   const decode = feedMediaDecodeWidth(width);
   const title = detail?.title ?? item.title;
 
@@ -118,38 +114,6 @@ function LiveBeadLiveCard({
     isLiveAdultItem(detail) &&
     (detail.accessDeniedReason === "ADULT_VERIFICATION_REQUIRED" || detail.canEnter === false);
 
-  useEffect(() => {
-    if (!active) {
-      setCreds(null);
-      setTokenBusy(false);
-      return;
-    }
-    if (!detail || detail.isExternal || !detail.isLive || adultBlocked) return;
-    if (creds) return;
-
-    let cancelled = false;
-    setTokenBusy(true);
-    void (async () => {
-      try {
-        if (!detail.isHost && isLiveAdultItem(detail)) {
-          const ok = await adultGate.ensureAdult();
-          if (!ok || cancelled) return;
-        }
-        const token = await fetchLiveToken(item.id);
-        if (!cancelled) setCreds(token);
-      } catch (err) {
-        if (cancelled) return;
-        void err;
-      } finally {
-        if (!cancelled) setTokenBusy(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, adultBlocked, detail?.id, detail?.isExternal, detail?.isLive, item.id]);
 
   const open = () => onOpenLive(item.id);
 
@@ -161,19 +125,7 @@ function LiveBeadLiveCard({
       accessibilityLabel={t("m.live.open_live_title", { title: String(title) })}
     >
       <View style={themed.player}>
-        {active && detail?.isExternal && detail.external && !adultBlocked ? (
-          <ExternalLivePlayer
-            external={detail.external}
-            title={title}
-            active
-            showChrome={false}
-            onPress={open}
-          />
-        ) : active && !detail?.isExternal && creds ? (
-          <View style={themed.fill} pointerEvents="none">
-            <LiveKitViewer creds={creds} onDisconnected={() => setCreds(null)} />
-          </View>
-        ) : active && (detailQuery.isLoading || tokenBusy) ? (
+        {active && (detailQuery.isLoading || tokenBusy) && !thumb ? (
           <View style={themed.fill}>
             {thumb ? (
               <Image

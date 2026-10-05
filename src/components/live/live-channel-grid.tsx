@@ -3,12 +3,13 @@
 import { memo, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Eye, Radio, User } from "lucide-react";
+import { Eye, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
+import { LiveStillPoster } from "@/components/live/live-still-poster";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -19,24 +20,16 @@ import { cn } from "@/lib/utils";
 export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHubHost }) {
   const reduced = usePrefersReducedMotion();
   const { locale } = useLocale();
-  const thumb = ch.thumbnailUrl ?? host?.image;
+  const thumb = ch.thumbnailUrl;
   const tags = (ch.tags ?? []).slice(0, 2);
 
   const card = (
     <Link href={`/voice/${ch.id}`} prefetch={false} className="group block min-w-0">
       <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-sm backdrop-blur-[2px]">
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={thumb}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[hsl(var(--folk-cobalt)/0.35)] to-[hsl(var(--folk-gold)/0.25)]">
-            <Radio className="h-10 w-10 text-folk-terracotta/55" />
-          </div>
-        )}
+        <LiveStillPoster
+          src={thumb}
+          className="transition-transform duration-500 group-hover:scale-[1.03]"
+        />
         {isLiveAdultChannel(ch) ? <LiveAdultWatermark /> : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
         <span className="live-badge absolute top-2.5 left-2.5 !bg-emerald-600">

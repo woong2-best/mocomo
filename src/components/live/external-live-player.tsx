@@ -11,8 +11,10 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Link2, Maximize2 } from "lucide-react";
 import { YoutubeEmbedGuide } from "@/components/live/youtube-embed-guide";
+import { LiveStillPoster } from "@/components/live/live-still-poster";
 import { withYoutubeLiveEmbedParams } from "@/lib/live-external/parse";
 import { providerDisplayName } from "@/lib/live-external/platform-metadata";
+import { resolvePlayerStillThumb } from "@/lib/live-preview-thumb";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 
 const YT_EMBED_ORIGINS = new Set([
@@ -88,6 +90,8 @@ type Props = {
   isHost?: boolean;
   hostImage?: string | null;
   hostUsername?: string;
+  posterUrl?: string | null;
+  externalId?: string | null;
   onPlatformEnded?: () => void;
 };
 
@@ -98,6 +102,8 @@ export function ExternalLivePlayer({
   title,
   embedSupported,
   isHost = false,
+  posterUrl,
+  externalId,
   onPlatformEnded,
 }: Props) {
   const { t } = useLocale();
@@ -109,7 +115,14 @@ export function ExternalLivePlayer({
   const liveSeekDoneRef = useRef(false);
   const liveSeekAttemptsRef = useRef(0);
   const [pageOrigin, setPageOrigin] = useState("");
-  const showIframe = embedSupported && !!embedUrl;
+  const [playbackStarted, setPlaybackStarted] = useState(false);
+  const stillUrl = resolvePlayerStillThumb({
+    posterUrl,
+    provider,
+    embedUrl,
+    externalId,
+  });
+  const showIframe = embedSupported && !!embedUrl && playbackStarted;
   const playerSrc = useMemo(() => {
     if (!embedUrl) return null;
     if (provider !== "YOUTUBE") return embedUrl;
@@ -141,6 +154,7 @@ export function ExternalLivePlayer({
     liveSeekAttemptsRef.current = 0;
     sawLiveRef.current = false;
     endedRef.current = false;
+    setPlaybackStarted(false);
   }, [embedUrl]);
 
   useEffect(() => {
@@ -221,6 +235,16 @@ export function ExternalLivePlayer({
       className="external-live-player relative w-full overflow-hidden rounded-xl bg-black ring-1 ring-border/40"
     >
       <div className="relative aspect-video w-full min-h-[220px] bg-black">
+        {!playbackStarted && embedSupported && embedUrl ? (
+          <button
+            type="button"
+            onClick={() => setPlaybackStarted(true)}
+            className="absolute inset-0 z-10 block h-full w-full cursor-pointer border-0 bg-transparent p-0"
+            aria-label={title}
+          >
+            <LiveStillPoster src={stillUrl} />
+          </button>
+        ) : null}
         {showIframe ? (
           <>
             <iframe
@@ -260,7 +284,7 @@ export function ExternalLivePlayer({
               </div>
             </div>
           </>
-        ) : (
+        ) : !playbackStarted && embedSupported && embedUrl ? null : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
             {provider === "YOUTUBE" && isHost ? (
               <YoutubeEmbedGuide variant="player" watchUrl={watchUrl} />

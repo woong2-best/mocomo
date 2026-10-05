@@ -7,6 +7,7 @@ import type { LiveListItem } from "@/api/live";
 import { formatViewerCount, formatViewerCountCompact } from "@/features/live/live-categories";
 import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWatermark";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
+import { freshLiveStill } from "@/features/live/live-still";
 
 type RowProps = {
   item: LiveListItem;
@@ -17,7 +18,7 @@ function LiveBrowseRowInner({ item, onPress }: RowProps) {
   const { width } = useWindowDimensions();
   const thumbW = Math.round(Math.min(width * 0.42, 188));
   const decode = feedMediaDecodeWidth(thumbW);
-  const thumb = item.thumbnailUrl ?? item.host?.image ?? null;
+  const thumb = freshLiveStill(item.thumbnailUrl);
 
   return (
     <Pressable style={styles.row} onPress={onPress}>
@@ -66,7 +67,7 @@ type HeroProps = {
 function LiveBrowseHeroInner({ item, onPress }: HeroProps) {
   const { width } = useWindowDimensions();
   const decode = feedMediaDecodeWidth(width);
-  const thumb = item.thumbnailUrl ?? item.host?.image ?? null;
+  const thumb = freshLiveStill(item.thumbnailUrl);
   const height = Math.round(width * (9 / 16));
 
   const source = useMemo(
