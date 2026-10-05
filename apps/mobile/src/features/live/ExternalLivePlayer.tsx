@@ -77,90 +77,103 @@ function withTwitchEmbedParams(embedUrl: string): string {
   }
 }
 
-function youtubeEmbedHtml(embedUrl: string, title: string): string {
-  const safeTitle = title.replace(/[<>&"']/g, "");
-  const src = embedUrl.replace(/"/g, "&quot;");
-  let targetOrigin = "https://www.youtube-nocookie.com";
+function youtubeVideoIdFromEmbed(url: string): string | null {
   try {
-    targetOrigin = new URL(embedUrl).origin;
+    const parts = new URL(url).pathname.split("/").filter(Boolean);
+    const i = parts.indexOf("embed");
+    const id = i >= 0 ? parts[i + 1] : null;
+    return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
   } catch {
-    /* keep default */
+    return null;
   }
-  return `<!DOCTYPE html><html><head>
+}
+
+function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): string {
+  const safeTitle = title.replace(/[<>&"']/g, "");
+  const videoId = youtubeVideoIdFromEmbed(embedUrl);
+  const src = embedUrl.replace(/"/g, "&quot;");
+  const apiJs = `
+  var player = null;
+  var done = false;
+  var attempts = 0;
+  var MAX = 8;
+  var BEHIND = 15;
+  function snap(force) {
+    if (done || !player || typeof player.seekTo !== "function") return;
+    try {
+      var data = player.getVideoData ? player.getVideoData() : {};
+      if (data && data.isLive === false) { done = true; return; }
+      var d = typeof player.getDuration === "function" ? player.getDuration() : 0;
+      var t = typeof player.getCurrentTime === "function" ? player.getCurrentTime() : 0;
+      if (force || !d || (d - t) > BEHIND) {
+        if (!force && attempts >= MAX) { done = true; return; }
+        attempts += 1;
+        player.seekTo(d > 0 ? d : 1e10, true);
+        if (typeof player.playVideo === "function") player.playVideo();
+      } else if (d > 0) {
+        done = true;
+      }
+    } catch (e) {}
+  }
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player("player", {
+      host: "https://www.youtube-nocookie.com",
+      width: "100%",
+      height: "100%",
+      videoId: ${JSON.stringify(videoId ?? "")},
+      playerVars: {
+        autoplay: 1,
+        playsinline: 1,
+        modestbranding: 1,
+        rel: 0,
+        controls: 0,
+        fs: 0,
+        disablekb: 1,
+        iv_load_policy: 3,
+        cc_load_policy: 0,
+        origin: ${JSON.stringify(pageOrigin)}
+      },
+      events: {
+        onReady: function(e) {
+          snap(true);
+          try { e.target.playVideo(); } catch (x) {}
+        },
+        onStateChange: function(e) {
+          if (e.data === 1 || e.data === 3) snap(false);
+        }
+      }
+    });
+  }
+  setTimeout(function(){ snap(true); }, 800);
+  setTimeout(function(){ snap(false); }, 2000);
+  setTimeout(function(){ snap(false); }, 4000);
+  setTimeout(function(){ snap(false); }, 7000);
+  `;
+
+  if (!videoId) {
+    return `<!DOCTYPE html><html><head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <style>
   html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
   iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  /* Cover residual YouTube watermark only ??no solid black panels */
+</style></head><body>
+<iframe title="${safeTitle}" src="${src}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+</body></html>`;
+  }
+
+  return `<!DOCTYPE html><html><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<style>
+  html,body,#player{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
+  #player,#player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
   .veil-br{position:absolute;right:0;bottom:0;width:96px;height:36px;background:linear-gradient(270deg,rgba(0,0,0,.55),transparent);pointer-events:none;z-index:2}
 </style></head><body>
-<iframe
-  id="yt"
-  title="${safeTitle}"
-  src="${src}"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-  allowfullscreen
-  referrerpolicy="strict-origin-when-cross-origin"
-></iframe>
+<div id="player"></div>
 <div class="veil-br"></div>
-<script>
-(function(){
-  var iframe = document.getElementById("yt");
-  var target = ${JSON.stringify(targetOrigin)};
-  var done = false;
-  var attempts = 0;
-  var MAX = 6;
-  var BEHIND = 15;
-  function cmd(func, args) {
-    if (!iframe || !iframe.contentWindow) return;
-    iframe.contentWindow.postMessage(JSON.stringify({event:"command",func:func,args:args||[]}), target);
-  }
-  function listen() {
-    if (!iframe || !iframe.contentWindow) return;
-    iframe.contentWindow.postMessage(JSON.stringify({event:"listening"}), target);
-    cmd("addEventListener", ["onReady"]);
-    cmd("addEventListener", ["onStateChange"]);
-  }
-  function snap(force) {
-    if (done) return;
-    if (!force && attempts >= MAX) { done = true; return; }
-    attempts += 1;
-    cmd("seekTo", [1e10, true]);
-  }
-  function parse(data) {
-    if (typeof data === "string") {
-      if (data.charAt(0) !== "{") return null;
-      try { return JSON.parse(data); } catch (e) { return null; }
-    }
-    return data && typeof data === "object" ? data : null;
-  }
-  if (iframe) iframe.addEventListener("load", function(){ listen(); snap(true); });
-  window.addEventListener("message", function(e) {
-    if (e.origin !== target) return;
-    var data = parse(e.data);
-    if (!data) return;
-    if (data.event === "listening" || data.event === "onReady" || data.event === "initialDelivery") {
-      listen();
-      snap(true);
-    }
-    if (data.event === "onStateChange" && data.info === 1) snap(false);
-    if (data.event === "infoDelivery" && data.info) {
-      var info = data.info;
-      var live = info.isLive != null ? info.isLive : (info.videoData && info.videoData.isLive);
-      if (live === false) return;
-      var t = info.currentTime, d = info.duration;
-      if (typeof t === "number" && typeof d === "number" && d > 0) {
-        if (d - t > BEHIND) snap(false);
-        else if (attempts > 0) done = true;
-      }
-    }
-  });
-  setTimeout(function(){ listen(); snap(true); }, 400);
-  setTimeout(function(){ snap(false); }, 1400);
-  setTimeout(function(){ snap(false); }, 2800);
-})();
-</script>
+<script>${apiJs}</script>
+<script src="https://www.youtube.com/iframe_api"></script>
 </body></html>`;
 }
 
@@ -194,7 +207,7 @@ export function ExternalLivePlayer({
     if (!embedUrl) return undefined;
     if (youtube) {
       return {
-        html: youtubeEmbedHtml(embedUrl, title),
+        html: youtubeEmbedHtml(embedUrl, title, origin),
         baseUrl: origin.endsWith("/") ? origin : `${origin}/`,
       };
     }
