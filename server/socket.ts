@@ -185,6 +185,34 @@ const httpServer = createServer((req, res) => {
     });
     return;
   }
+  if (req.method === "POST" && req.url === "/relay/live-chat-deleted") {
+    if (!RELAY_SECRET || req.headers["x-relay-secret"] !== RELAY_SECRET) {
+      res.writeHead(401);
+      res.end();
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+          channelId?: string;
+          messageId?: string;
+        };
+        if (body.channelId && body.messageId) {
+          const payload = { channelId: body.channelId, messageId: body.messageId };
+          io.to(`live:${body.channelId}`).emit("live_chat_deleted", payload);
+          io.to(`widget:${body.channelId}`).emit("live_chat_deleted", payload);
+        }
+        res.writeHead(204);
+        res.end();
+      } catch {
+        res.writeHead(400);
+        res.end();
+      }
+    });
+    return;
+  }
   if (req.method === "POST" && req.url === "/relay/live-support-event") {
     if (!RELAY_SECRET || req.headers["x-relay-secret"] !== RELAY_SECRET) {
       res.writeHead(401);

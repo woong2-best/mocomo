@@ -12,6 +12,7 @@ import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import { mapLiveChatMessagesWithRoles, mapSingleLiveChatMessage } from "@/lib/live-broadcast/map-chat";
 import { assertCanSendLiveChat } from "@/lib/live-broadcast/chat-access";
 import { hasBroadcastPermission } from "@/lib/live-broadcast/permissions";
+import { listLiveChatDeletedIds } from "@/lib/live-chat-deletion";
 
 async function ensureLiveMember(channelId: string, userId: string, isHost: boolean) {
   await db.voiceMember.upsert({
@@ -51,24 +52,28 @@ export async function GET(
 
   await ensureLiveMember(channelId, authResult.user.id, access.isHost);
 
-  const messages = initial
-    ? (
-        await db.liveChatMessage.findMany({
-          where: { channelId },
-          orderBy: { createdAt: "desc" },
-          take: 80,
+  const sinceDate = since ? new Date(since) : null;
+  const [messages, deletedIds] = await Promise.all([
+    initial
+      ? db.liveChatMessage
+          .findMany({
+            where: { channelId },
+            orderBy: { createdAt: "desc" },
+            take: 80,
+            include: { user: { select: userPublicSelectMinimal } },
+          })
+          .then((rows) => rows.reverse())
+      : db.liveChatMessage.findMany({
+          where: {
+            channelId,
+            createdAt: { gt: sinceDate ?? new Date(0) },
+          },
+          orderBy: { createdAt: "asc" },
+          take: 50,
           include: { user: { select: userPublicSelectMinimal } },
-        })
-      ).reverse()
-    : await db.liveChatMessage.findMany({
-        where: {
-          channelId,
-          createdAt: { gt: since ? new Date(since) : new Date(0) },
-        },
-        orderBy: { createdAt: "asc" },
-        take: 50,
-        include: { user: { select: userPublicSelectMinimal } },
-      });
+        }),
+    initial ? Promise.resolve([] as string[]) : listLiveChatDeletedIds(channelId, sinceDate),
+  ]);
 
   const viewerCount = await countActiveLiveViewers(channelId);
 
@@ -76,6 +81,7 @@ export async function GET(
     ok: true,
     viewerCount,
     messages: await mapLiveChatMessagesWithRoles(channelId, messages),
+    deletedIds,
   });
 }
 

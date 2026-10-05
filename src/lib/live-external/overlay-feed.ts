@@ -9,12 +9,14 @@ import {
 } from "@/lib/live-external/platform-chat/merge-messages";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 import { cheerRowToUnified, tipRowToUnified } from "@/lib/live-support/support-to-chat";
+import { listLiveChatDeletedIds } from "@/lib/live-chat-deletion";
 
 export type OverlayFeedResult =
   | {
       ok: true;
       live: true;
       messages: UnifiedChatMessage[];
+      deletedIds: string[];
       meta: { provider: LiveExternalProvider; externalId?: string } | null;
       platformReady: boolean;
       platformError: string | null;
@@ -52,20 +54,23 @@ export async function buildOverlayChatFeed(params: {
     select: { createdBy: true, createdAt: true, donationAlertsOnStream: true },
   });
 
-  const dbMessages = await db.liveChatMessage.findMany({
-    where: {
-      channelId: params.channelId,
-      createdAt: { gt: sinceDate },
-    },
-    orderBy: { createdAt: "asc" },
-    take: 100,
-    select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      user: { select: { username: true } },
-    },
-  });
+  const [dbMessages, deletedIds] = await Promise.all([
+    db.liveChatMessage.findMany({
+      where: {
+        channelId: params.channelId,
+        createdAt: { gt: sinceDate },
+      },
+      orderBy: { createdAt: "asc" },
+      take: 100,
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        user: { select: { username: true } },
+      },
+    }),
+    listLiveChatDeletedIds(params.channelId, sinceDate),
+  ]);
 
   const mocomoUnified: UnifiedChatMessage[] = dbMessages.map((m) => ({
     id: m.id,
@@ -158,6 +163,7 @@ export async function buildOverlayChatFeed(params: {
     ok: true,
     live: true,
     messages: allMessages,
+    deletedIds,
     meta,
     platformReady,
     platformError,

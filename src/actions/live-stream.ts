@@ -28,6 +28,8 @@ import { moderateLiveChatFast } from "@/lib/ai-moderation";
 import { provisionObsIngress } from "@/lib/obs-ingress-service";
 import { getOrCreateUserObsStreamKey } from "@/lib/user-obs-stream-key";
 import { getSrsRtmpUrl } from "@/lib/srs";
+import { listLiveChatDeletedIds, recordLiveChatDeletion } from "@/lib/live-chat-deletion";
+import { relayLiveChatDeleted } from "@/lib/live-chat-socket-relay";
 import {
   endHostBroadcastChannel,
   prepareHostForNewBroadcast,
@@ -685,12 +687,15 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
   }
 
   const sinceDate = since ? new Date(since) : new Date(0);
-  const messages = await db.liveChatMessage.findMany({
-    where: { channelId, createdAt: { gt: sinceDate } },
-    orderBy: { createdAt: "asc" },
-    take: 50,
-    include: { user: { select: userPublicSelectMinimal } },
-  });
+  const [messages, deletedIds] = await Promise.all([
+    db.liveChatMessage.findMany({
+      where: { channelId, createdAt: { gt: sinceDate } },
+      orderBy: { createdAt: "asc" },
+      take: 50,
+      include: { user: { select: userPublicSelectMinimal } },
+    }),
+    listLiveChatDeletedIds(channelId, sinceDate),
+  ]);
 
   const viewerCount = await countActiveLiveViewers(channelId);
   const channel = await db.voiceChannel.findUnique({
@@ -734,6 +739,7 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
     isHost: access.isHost,
     hostUserId: access.hostUserId,
     messages: messages.map(mapLiveChatMessage),
+    deletedIds,
     recentTips,
   };
 }
@@ -750,9 +756,13 @@ export async function deleteLiveChatMessage(channelId: string, messageId: string
     return { error: "actions.s5gbayd" };
   }
 
-  await db.liveChatMessage.deleteMany({
+  const deleted = await db.liveChatMessage.deleteMany({
     where: { id: messageId, channelId },
   });
+  if (deleted.count > 0) {
+    await recordLiveChatDeletion(channelId, messageId);
+    void relayLiveChatDeleted(channelId, messageId);
+  }
   return { success: true as const };
 }
 

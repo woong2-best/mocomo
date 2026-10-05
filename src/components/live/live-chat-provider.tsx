@@ -16,7 +16,7 @@ import {
 } from "react";
 import type { Socket } from "socket.io-client";
 import { subscribeLiveChat, useLiveSocket } from "@/hooks/use-live-socket";
-import { ensureArray } from "@/lib/ensure-array";
+import { ensureArray, ensureStringArray } from "@/lib/ensure-array";
 import type { LiveChatMessage } from "@/components/live/live-chat";
 
 type LiveChatContextValue = {
@@ -144,8 +144,8 @@ export function LiveChatProvider({
   }, [channelId]);
 
   useEffect(() => {
-    return subscribeLiveChat(socket, appendMessage, onViewerCount);
-  }, [socket, appendMessage, onViewerCount]);
+    return subscribeLiveChat(socket, appendMessage, onViewerCount, removeMessage);
+  }, [socket, appendMessage, onViewerCount, removeMessage]);
 
   const poll = useCallback(async () => {
     try {
@@ -157,6 +157,12 @@ export function LiveChatProvider({
       if (!res.ok || !body.ok) return;
       if (typeof body.viewerCount === "number") {
         onViewerCount?.(body.viewerCount);
+      }
+      const deletedIds = ensureStringArray(body.deletedIds);
+      if (deletedIds.length) {
+        setMessages((prev) =>
+          ensureArray<LiveChatMessage>(prev).filter((m) => !deletedIds.includes(m.id))
+        );
       }
       mergeMessages(ensureArray<LiveChatMessage>(body.messages));
     } catch {

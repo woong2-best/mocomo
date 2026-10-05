@@ -96,6 +96,7 @@ export function useObsChatFeed(
 
         const data = (await res.json()) as {
           messages?: UnifiedChatMessage[];
+          deletedIds?: string[];
           meta?: FeedMeta;
           platformReady?: boolean;
           platformError?: string | null;
@@ -137,10 +138,13 @@ export function useObsChatFeed(
         if (data.nextPageToken) pollRef.current.pageToken = data.nextPageToken;
         if (data.pollingIntervalMs) pollRef.current.intervalMs = data.pollingIntervalMs;
 
-        if (!switchedChannel && data.messages?.length) {
+        if (!switchedChannel && (data.messages?.length || data.deletedIds?.length)) {
+          const incoming = data.messages ?? [];
+          const deleted = new Set(data.deletedIds ?? []);
           setFeedMessages((prev) => {
             const map = new Map(prev.map((m) => [m.id, m]));
-            for (const m of data.messages!) map.set(m.id, m);
+            for (const m of incoming) map.set(m.id, m);
+            for (const id of deleted) map.delete(id);
             const next = [...map.values()]
               .sort((a, b) => a.at - b.at)
               .slice(-MAX_MESSAGES);

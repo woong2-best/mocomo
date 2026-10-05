@@ -1847,6 +1847,7 @@ model VoiceChannel {
   broadcastRoleLogs   BroadcastRoleLog[]
   liveChatBans        LiveChatBan[]
   liveChatTimeouts    LiveChatTimeout[]
+  liveChatDeletions   LiveChatDeletion[]
 
   @@index([isLive, liveStatus, createdAt(sort: Desc)])
   @@index([isLive, liveStatus, category, createdAt(sort: Desc)])
@@ -1913,6 +1914,19 @@ model LiveChatMessage {
 
   @@index([channelId, createdAt])
   @@index([channelId, userId, createdAt(sort: Desc)])
+}
+
+/** Tombstone so OBS/mobile can drop a chat line after hard-delete. */
+model LiveChatDeletion {
+  id        String   @id @default(cuid())
+  channelId String
+  messageId String
+  deletedAt DateTime @default(now())
+
+  channel VoiceChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, messageId])
+  @@index([channelId, deletedAt])
 }
 
 model BroadcastRoleAssignment {

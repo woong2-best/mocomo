@@ -59,7 +59,8 @@ export function relayLiveChatMessage(
 export function subscribeLiveChat(
   socket: Socket | null,
   onMessage: (msg: LiveChatMessage) => void,
-  onViewers?: (count: number) => void
+  onViewers?: (count: number) => void,
+  onDeleted?: (messageId: string) => void
 ) {
   if (!socket) return () => {};
   const onChat = (payload: LiveChatMessage & { channelId?: string }) => {
@@ -76,11 +77,16 @@ export function subscribeLiveChat(
     });
   };
   const onViewersEvt = (count: number) => onViewers?.(count);
+  const onDeletedEvt = (payload: { messageId?: string }) => {
+    if (payload.messageId) onDeleted?.(payload.messageId);
+  };
   socket.on("live_chat_message", onChat);
   socket.on("live_viewers", onViewersEvt);
+  socket.on("live_chat_deleted", onDeletedEvt);
   return () => {
     socket.off("live_chat_message", onChat);
     socket.off("live_viewers", onViewersEvt);
+    socket.off("live_chat_deleted", onDeletedEvt);
   };
 }
 

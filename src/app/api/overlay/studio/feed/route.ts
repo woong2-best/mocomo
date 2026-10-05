@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 const idle = {
   live: false,
   messages: [],
+  deletedIds: [],
   meta: null,
   platformReady: false,
   platformError: null,

@@ -18,12 +18,15 @@ function connectLiveSocket(token: string): Socket {
 /** Real-time MoCoMo live chat (Socket.IO). Falls back to HTTP poll when disconnected. */
 export function useMobileLiveChatSocket(
   channelId: string,
-  onMessage: (msg: LiveChatMessage) => void
+  onMessage: (msg: LiveChatMessage) => void,
+  onDeleted?: (messageId: string) => void
 ) {
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const onMessageRef = useRef(onMessage);
   onMessageRef.current = onMessage;
+  const onDeletedRef = useRef(onDeleted);
+  onDeletedRef.current = onDeleted;
 
   useEffect(() => {
     if (!SOCKET_URL || !channelId) return;
@@ -49,6 +52,9 @@ export function useMobileLiveChatSocket(
       socket.on("live_chat_message", (payload: LiveChatMessage) => {
         if (!payload?.id || !payload.username) return;
         onMessageRef.current(payload);
+      });
+      socket.on("live_chat_deleted", (payload: { messageId?: string }) => {
+        if (payload?.messageId) onDeletedRef.current?.(payload.messageId);
       });
     })();
 

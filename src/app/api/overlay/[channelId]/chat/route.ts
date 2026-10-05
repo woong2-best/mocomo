@@ -1,6 +1,7 @@
 import { errorText } from "@/lib/i18n/error-text";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { listLiveChatDeletedIds } from "@/lib/live-chat-deletion";
 import { verifyOverlayToken } from "@/lib/live-external/overlay-token";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import {
@@ -35,20 +36,23 @@ export async function GET(
     return NextResponse.json({ error: "Invalid since format." }, { status: 400 });
   }
 
-  const messages = await db.liveChatMessage.findMany({
-    where: {
-      channelId,
-      createdAt: { gt: sinceDate },
-    },
-    orderBy: { createdAt: "asc" },
-    take: 50,
-    select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      user: { select: { username: true } },
-    },
-  });
+  const [messages, deletedIds] = await Promise.all([
+    db.liveChatMessage.findMany({
+      where: {
+        channelId,
+        createdAt: { gt: sinceDate },
+      },
+      orderBy: { createdAt: "asc" },
+      take: 50,
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        user: { select: { username: true } },
+      },
+    }),
+    listLiveChatDeletedIds(channelId, sinceDate),
+  ]);
 
   return NextResponse.json({
     live: true,
@@ -58,6 +62,7 @@ export async function GET(
       content: m.content,
       at: m.createdAt.toISOString(),
     })),
+    deletedIds,
     meta: overlayChatMeta(access.channel),
   });
 }

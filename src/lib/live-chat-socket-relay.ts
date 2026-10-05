@@ -45,3 +45,23 @@ export async function relayLiveChatToSocket(
     /* socket server optional */
   }
 }
+
+export async function relayLiveChatDeleted(channelId: string, messageId: string): Promise<void> {
+  const base = relayBaseUrl();
+  const secret = process.env.SOCKET_RELAY_SECRET?.trim();
+  if (!base || !secret) return;
+
+  try {
+    await fetch(`${base}/relay/live-chat-deleted`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-relay-secret": secret,
+      },
+      body: JSON.stringify({ channelId, messageId }),
+      signal: AbortSignal.timeout(2000),
+    });
+  } catch {
+    /* socket server optional */
+  }
+}

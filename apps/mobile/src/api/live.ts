@@ -172,7 +172,12 @@ export async function fetchLiveChat(
   if (opts?.initial) params.set("initial", "1");
   if (opts?.since != null) params.set("since", new Date(opts.since).toISOString());
   const suffix = params.toString() ? `?${params}` : "";
-  return apiRequest<{ ok: boolean; viewerCount: number; messages: LiveChatMessage[] }>(
+  return apiRequest<{
+    ok: boolean;
+    viewerCount: number;
+    messages: LiveChatMessage[];
+    deletedIds?: string[];
+  }>(
     `${MobileApi.live}/${id}/chat${suffix}`,
     { auth: true, signal: opts?.signal, timeoutMs: 12_000 }
   );

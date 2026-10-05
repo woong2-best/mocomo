@@ -111,9 +111,14 @@ export function LiveChatPanel({
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
   }, []);
 
+  const removeChatLine = useCallback((messageId: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+  }, []);
+
   const { connected: socketConnected, relayMessage } = useMobileLiveChatSocket(
     channelId,
-    mergeChatLine
+    mergeChatLine,
+    removeChatLine
   );
 
   const mergeSupportLine = useCallback((line: LiveChatMessage) => {
@@ -139,6 +144,10 @@ export function LiveChatPanel({
         });
         if (cancelled) return;
         onViewerCount?.(res.viewerCount);
+        if (res.deletedIds?.length) {
+          const gone = new Set(res.deletedIds);
+          setMessages((prev) => prev.filter((m) => !gone.has(m.id)));
+        }
         if (res.messages.length) {
           setMessages((prev) => {
             const map = new Map(prev.map((m) => [m.id, m]));
