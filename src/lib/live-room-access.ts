@@ -67,14 +67,11 @@ export async function resolveLiveChannelAccess(
   const liveStatus = channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED");
 
   if (isHost) {
-    if (liveStatus === "ENDED") {
-      return { allowed: false, reason: "ENDED" };
-    }
     return {
       allowed: true,
       isHost: true,
       hostUserId: channel.createdBy,
-      canPublish: true,
+      canPublish: liveStatus !== "ENDED",
     };
   }
 

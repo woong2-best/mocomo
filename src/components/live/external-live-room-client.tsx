@@ -54,14 +54,12 @@ const POLL_MS = 5_000;
 /** Refresh YT/Twitch title+description every ~30s (every 6th status poll). */
 const META_EVERY_N = 6;
 
-function shouldLeaveAfterStatus(data: {
+function shouldViewerLeaveAfterStatus(data: {
   mocomoLive?: boolean;
   ended?: boolean;
-  platformOnAir?: boolean | null;
 }): boolean {
   if (data.ended) return true;
   if (data.mocomoLive === false) return true;
-  if (data.platformOnAir === false) return true;
   return false;
 }
 
@@ -140,7 +138,7 @@ export function ExternalLiveRoomClient(props: Props) {
             setLiveDescription(data.description?.trim() || null);
           }
         }
-        if (shouldLeaveAfterStatus(data)) {
+        if (!isHost && shouldViewerLeaveAfterStatus(data)) {
           leaveRoom();
         }
       } catch {
@@ -163,7 +161,7 @@ export function ExternalLiveRoomClient(props: Props) {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [channelId, leaveRoom]);
+  }, [channelId, isHost, leaveRoom]);
 
   async function handleEndStream() {
     if (endingRef.current) return;
@@ -201,7 +199,7 @@ export function ExternalLiveRoomClient(props: Props) {
         title={liveTitle}
         platformTitle={liveTitle}
         platformDescription={liveDescription}
-        onPlatformEnded={leaveRoom}
+        onPlatformEnded={isHost ? undefined : leaveRoom}
       />
     </>
   );

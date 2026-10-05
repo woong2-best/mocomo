@@ -17,7 +17,11 @@ type ExternalChannelRow = {
   externalId: string | null;
   externalChannelId?: string | null;
   connectedStreamingAccountId: string | null;
+  createdAt?: Date;
 };
+
+/** YouTube/Twitch often lag behind a just-started broadcast. */
+const AUTO_END_GRACE_MS = 15 * 60 * 1000;
 
 async function resolveAccessToken(
   connectedStreamingAccountId: string | null
@@ -50,11 +54,13 @@ async function resolveAccessToken(
   return tokens?.accessToken ?? null;
 }
 
-export async function syncExternalPlatformLiveEnd(
+const HOST_STUDIO_PRESENT_MS = 90_000;
+
+async function peekPlatformOnAir(
   channel: ExternalChannelRow
-): Promise<{ ended: boolean; platformOnAir: boolean | null }> {
+): Promise<{ onAir: boolean | null; confident: boolean }> {
   if (!channel.externalProvider || !channel.externalId) {
-    return { ended: false, platformOnAir: null };
+    return { onAir: null, confident: false };
   }
 
   const provider = channel.externalProvider.toUpperCase() as LiveExternalProvider;
@@ -71,16 +77,65 @@ export async function syncExternalPlatformLiveEnd(
   });
 
   if (!status.confident) {
+    return { onAir: null, confident: false };
+  }
+  return { onAir: status.onAir, confident: true };
+}
+
+/** Observe-only — never ends the MoCoMo room. Used by the in-studio poll. */
+export async function peekExternalPlatformLiveStatus(
+  channel: ExternalChannelRow
+): Promise<{ ended: boolean; platformOnAir: boolean | null }> {
+  const peek = await peekPlatformOnAir(channel);
+  if (!peek.confident) {
+    return { ended: false, platformOnAir: null };
+  }
+  return { ended: false, platformOnAir: peek.onAir };
+}
+
+async function isHostSittingInStudio(
+  channelId: string,
+  hostUserId: string
+): Promise<boolean> {
+  const cutoff = new Date(Date.now() - HOST_STUDIO_PRESENT_MS);
+  const hostSeen = await db.voiceMember.findFirst({
+    where: { channelId, userId: hostUserId, lastSeenAt: { gte: cutoff } },
+    select: { userId: true },
+  });
+  return !!hostSeen;
+}
+
+export async function syncExternalPlatformLiveEnd(
+  channel: ExternalChannelRow
+): Promise<{ ended: boolean; platformOnAir: boolean | null }> {
+  const peek = await peekPlatformOnAir(channel);
+  if (!peek.confident) {
     return { ended: false, platformOnAir: null };
   }
 
-  if (status.onAir) {
+  if (peek.onAir) {
     return { ended: false, platformOnAir: true };
   }
 
   const mocomoLive =
     channel.isLive && channel.liveStatus !== "ENDED";
   if (!mocomoLive) {
+    return { ended: false, platformOnAir: false };
+  }
+
+  if (await isHostSittingInStudio(channel.id, channel.createdBy)) {
+    return { ended: false, platformOnAir: false };
+  }
+
+  const createdAt =
+    channel.createdAt ??
+    (
+      await db.voiceChannel.findUnique({
+        where: { id: channel.id },
+        select: { createdAt: true },
+      })
+    )?.createdAt;
+  if (createdAt && Date.now() - createdAt.getTime() < AUTO_END_GRACE_MS) {
     return { ended: false, platformOnAir: false };
   }
 
@@ -115,6 +170,7 @@ export async function autoEndExternalPlatformOffChannels(): Promise<number> {
       externalId: true,
       externalChannelId: true,
       connectedStreamingAccountId: true,
+      createdAt: true,
     },
   });
 
@@ -144,6 +200,7 @@ export async function autoEndExternalPlatformOffForHost(hostUserId: string): Pro
       externalId: true,
       externalChannelId: true,
       connectedStreamingAccountId: true,
+      createdAt: true,
     },
   });
 

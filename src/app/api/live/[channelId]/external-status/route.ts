@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
-import { syncExternalPlatformLiveEnd } from "@/lib/live-external/sync-platform-end";
+import { peekExternalPlatformLiveStatus } from "@/lib/live-external/sync-platform-end";
 import { syncExternalChannelPlatformMeta } from "@/lib/live-external/sync-platform-meta";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
 
@@ -60,14 +60,14 @@ export async function GET(
       ok: true,
       mocomoLive: false,
       platformOnAir: false,
-      ended: true,
+      ended: !access.isHost,
       provider: channel.externalProvider,
       title: channel.name,
       description: channel.description,
     });
   }
 
-  const sync = await syncExternalPlatformLiveEnd({
+  const peek = await peekExternalPlatformLiveStatus({
     id: channelId,
     createdBy: channel.createdBy,
     isLive: channel.isLive,
@@ -78,7 +78,7 @@ export async function GET(
     connectedStreamingAccountId: channel.connectedStreamingAccountId,
   });
 
-  const stillLive = channel.isLive && channel.liveStatus !== "ENDED" && !sync.ended;
+  const stillLive = mocomoLive;
 
   let title = channel.name;
   let description = channel.description;
@@ -104,8 +104,8 @@ export async function GET(
   return NextResponse.json({
     ok: true,
     mocomoLive: stillLive,
-    platformOnAir: sync.platformOnAir,
-    ended: sync.ended || !stillLive,
+    platformOnAir: peek.platformOnAir,
+    ended: access.isHost ? false : !stillLive,
     provider: channel.externalProvider as LiveExternalProvider | null,
     title,
     description,
