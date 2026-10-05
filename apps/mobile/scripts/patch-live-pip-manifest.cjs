@@ -4,7 +4,7 @@ let c = fs.readFileSync(p, "utf8");
 if (!c.includes("supportsPictureInPicture")) {
   c = c.replace(
     'android:screenOrientation="portrait"',
-    'android:supportsPictureInPicture="true" android:enableOnBackInvokedCallback="false" android:screenOrientation="portrait"'
+    'android:supportsPictureInPicture="true" android:enableOnBackInvokedCallback="false" android:screenOrientation="unspecified"'
   );
 }
 const oldCfg =

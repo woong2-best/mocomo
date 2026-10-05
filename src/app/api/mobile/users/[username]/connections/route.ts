@@ -23,7 +23,8 @@ export async function GET(
   if ("error" in authResult) return authResult.error;
 
   const { username: raw } = await params;
-  const username = decodeURIComponent(raw ?? "").trim();
+  let username = decodeURIComponent(raw ?? "").trim();
+  while (username.startsWith("@")) username = username.slice(1).trim();
   if (!username || username.length > 64) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }

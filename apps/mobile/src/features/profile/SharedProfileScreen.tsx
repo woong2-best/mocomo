@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   ActivityIndicator,
   FlatList,
@@ -35,6 +36,7 @@ import {
   USER_PROFILE_STALE_MS,
   useUserProfileNav,
   userProfileQueryKey,
+  normalizeProfileUsername,
   type UserProfileSeed,
 } from "@/features/profile/user-profile-nav";
 import { Screen } from "@/ui/Screen";
@@ -96,7 +98,7 @@ function filterByTab(posts: FeedPost[], tab: ProfileTabId): FeedPost[] {
 }
 
 export function SharedProfileScreen({ username, showBack = true, preview, self = false }: Props) {
-  const handle = username.trim();
+  const handle = useMemo(() => normalizeProfileUsername(username), [username]);
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   const { colors } = useTheme();
@@ -118,7 +120,16 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
     queryFn: () => fetchUserProfile(handle),
     staleTime: USER_PROFILE_STALE_MS,
     enabled: handle.length > 0,
+    retry: 2,
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (handle.length > 0 && query.isError && !query.isFetching) {
+        void query.refetch();
+      }
+    }, [handle, query.isError, query.isFetching, query.refetch])
+  );
 
   const followMut = useMutation({
     mutationFn: () => toggleFollowUser(query.data!.user.id),
@@ -164,7 +175,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
   });
 
   const user = query.data?.user;
-  const pending = !user && query.isPending;
+  const pending = !user && (query.isPending || query.isFetching);
   const knownSelf = self || (!!authUser?.username && authUser.username === handle);
   const headerUser = user ?? seedProfileUser(handle, preview, knownSelf);
   const following = followingLocal ?? user?.following ?? false;

@@ -3,7 +3,7 @@
     "name": "MoCoMo",
     "slug": "mocomo",
     "version": "1.0.201",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "mocomo",
@@ -56,7 +56,12 @@
         "NSPhotoLibraryUsageDescription": "???? ???????????????? ?????????????",
         "NSCameraUsageDescription": "???? ?????????? ?????????????????",
         "NSMicrophoneUsageDescription": "??? ??? ???????????????????????????????",
-        "NSLocationWhenInUseUsageDescription": "MoCoMo uses your location once while the app is open to confirm arrival at a meetup place."
+        "NSLocationWhenInUseUsageDescription": "MoCoMo uses your location once while the app is open to confirm arrival at a meetup place.",
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
       }
     },
     "android": {

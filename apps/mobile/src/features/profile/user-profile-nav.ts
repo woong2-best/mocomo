@@ -3,8 +3,11 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { fetchUserProfile } from "@/api/social";
+import { normalizeProfileUsername } from "@/lib/profile-username";
 import { prefetchImageUrls } from "@/perf/image";
 import type { RootStackParamList } from "@/navigation/types";
+
+export { normalizeProfileUsername } from "@/lib/profile-username";
 
 /** Identity already visible on a feed card, chat row, or search hit. */
 export type UserProfileSeed = {
@@ -16,7 +19,8 @@ export type UserProfileSeed = {
 export const USER_PROFILE_STALE_MS = 60_000;
 
 export function userProfileQueryKey(username: string) {
-  return ["mobile-user", username] as const;
+  const handle = normalizeProfileUsername(username);
+  return ["mobile-user", handle.toLowerCase()] as const;
 }
 
 let profileScreenWarmed = false;
@@ -33,7 +37,7 @@ export function warmUserProfileScreen() {
 }
 
 export function prefetchUserProfile(queryClient: QueryClient, seed: UserProfileSeed) {
-  const username = seed.username.trim();
+  const username = normalizeProfileUsername(seed.username);
   if (!username || username === "anonymous") return;
   warmUserProfileScreen();
   if (seed.image) prefetchImageUrls([seed.image], 1);
@@ -41,6 +45,7 @@ export function prefetchUserProfile(queryClient: QueryClient, seed: UserProfileS
     queryKey: userProfileQueryKey(username),
     queryFn: () => fetchUserProfile(username),
     staleTime: USER_PROFILE_STALE_MS,
+    retry: 2,
   });
 }
 
@@ -51,7 +56,7 @@ export function openUserProfile(
   navigation.navigate({
     name: "UserProfile",
     params: {
-      username: seed.username.trim(),
+      username: normalizeProfileUsername(seed.username),
       name: seed.name ?? null,
       image: seed.image ?? null,
     },

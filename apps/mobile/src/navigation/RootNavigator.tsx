@@ -111,6 +111,7 @@ export function RootNavigator() {
           headerShown: false,
           animation: "slide_from_right",
           freezeOnBlur: true,
+          orientation: "portrait",
         }}
       >
         {status === "signedIn" ? (
@@ -190,6 +191,7 @@ export function RootNavigator() {
             <Stack.Screen
               name="LiveDetail"
               getComponent={() => require("@/features/live/LiveDetailScreen").LiveDetailScreen}
+              options={{ orientation: "all" }}
             />
             <Stack.Screen
               name="LiveGoLive"

@@ -1,6 +1,7 @@
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 import type { FeedPost } from "@/api/feed";
+import { normalizeProfileUsername } from "@/lib/profile-username";
 
 export type SearchResult = {
   users: {
@@ -213,11 +214,12 @@ export type ProfileUser = {
 };
 
 export async function fetchUserProfile(username: string) {
+  const handle = normalizeProfileUsername(username);
   return apiRequest<{
     user: ProfileUser;
     pinnedPost: FeedPost | null;
     posts: FeedPost[];
-  }>(MobileApi.user(username), { auth: true });
+  }>(MobileApi.user(handle), { auth: true, timeoutMs: 25_000 });
 }
 
 export type FollowListTab = "followers" | "following";

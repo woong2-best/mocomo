@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Image } from "expo-image";
@@ -26,6 +28,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { LiveDonationAlertOverlay } from "@/features/live/LiveDonationAlertOverlay";
+import { LiveLandscapeFeaturesPanel } from "@/features/live/LiveLandscapeFeaturesPanel";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { useLivePictureInPicture } from "@/features/live/useLivePictureInPicture";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -37,8 +40,10 @@ export function LiveDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const landscape = windowWidth > windowHeight;
   const { keyboardLift } = useKeyboardLift();
-  const keyboardOpen = keyboardLift > 80;
+  const keyboardOpen = keyboardLift > 80 && !landscape;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "LiveDetail">>();
   const { user } = useAuth();
@@ -48,6 +53,8 @@ export function LiveDetailScreen() {
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+  const [chatOpen, setChatOpen] = useState(true);
+  const [featuresOpen, setFeaturesOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ["mobile-live", route.params.id],
@@ -58,6 +65,31 @@ export function LiveDetailScreen() {
   const item = query.data?.item;
 
   const onViewerCount = useCallback((n: number) => setViewerCount(n), []);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ orientation: "all" });
+    return () => {
+      navigation.setOptions({ orientation: "portrait" });
+    };
+  }, [navigation]);
+
+  const enterLandscape = useCallback(() => {
+    setChatOpen(true);
+    navigation.setOptions({ orientation: "landscape" });
+  }, [navigation]);
+
+  const exitLandscape = useCallback(() => {
+    navigation.setOptions({ orientation: "portrait" });
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!landscape) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      exitLandscape();
+      return true;
+    });
+    return () => sub.remove();
+  }, [exitLandscape, landscape]);
 
   const startFirstParty = async () => {
     if (item && !item.isHost && isLiveAdultItem(item)) {
@@ -142,23 +174,89 @@ export function LiveDetailScreen() {
   }
 
   const viewers = viewerCount || item.viewerCount;
+  const canChat = (item.canEnter !== false || item.isLive) && !adultBlocked;
+  const showChat = !inPip && canChat;
+  const showFeatures =
+    landscape &&
+    !inPip &&
+    featuresOpen &&
+    !adultBlocked &&
+    !!item.host.id;
+  const chatWidth = Math.min(360, Math.max(260, Math.round(windowWidth * 0.36)));
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
-      {/* Player only ??title overlays video; no host strip under the frame */}
+    <View style={[styles.root, landscape && !inPip ? styles.rootLandscape : null]}>
+      <StatusBar style="light" hidden={landscape && !inPip} />
       <View
         style={[
           styles.playerWrap,
           inPip && styles.playerWrapPip,
+          landscape && !inPip ? styles.playerWrapLandscape : null,
           keyboardOpen && !inPip ? styles.playerWrapKeyboard : null,
         ]}
       >
         {!inPip ? (
-          <View style={[styles.playerChrome, { paddingTop: insets.top + 6 }]} pointerEvents="box-none">
-            <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.chromeBtn}>
+          <View
+            style={[
+              styles.playerChrome,
+              {
+                paddingTop: landscape ? 8 : insets.top + 6,
+                paddingLeft: landscape ? Math.max(insets.left, 8) : 8,
+                paddingRight: landscape ? 8 : 8,
+              },
+            ]}
+            pointerEvents="box-none"
+          >
+            <Pressable
+              onPress={() => (landscape ? exitLandscape() : navigation.goBack())}
+              hitSlop={12}
+              style={styles.chromeBtn}
+            >
               <Ionicons name="chevron-back" size={22} color="#fff" />
             </Pressable>
+            <View style={styles.chromeRight} pointerEvents="box-none">
+              {landscape ? (
+                <>
+                  <Pressable
+                    onPress={() => setFeaturesOpen((v) => !v)}
+                    hitSlop={8}
+                    style={[styles.chromeBtn, featuresOpen && styles.chromeBtnOn]}
+                    accessibilityRole="button"
+                    accessibilityLabel={featuresOpen ? copy.hideFeatures : copy.showFeatures}
+                  >
+                    <Ionicons name="sparkles" size={18} color="#fff" />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setChatOpen((v) => !v)}
+                    hitSlop={8}
+                    style={[styles.chromeBtn, chatOpen && styles.chromeBtnOn]}
+                    accessibilityRole="button"
+                    accessibilityLabel={chatOpen ? copy.hideChat : copy.showChat}
+                  >
+                    <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
+                  </Pressable>
+                  <Pressable
+                    onPress={exitLandscape}
+                    hitSlop={8}
+                    style={styles.chromeBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={copy.exitLandscape}
+                  >
+                    <Ionicons name="contract" size={18} color="#fff" />
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable
+                  onPress={enterLandscape}
+                  hitSlop={8}
+                  style={styles.chromeBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={copy.expandVideo}
+                >
+                  <Ionicons name="expand" size={18} color="#fff" />
+                </Pressable>
+              )}
+            </View>
           </View>
         ) : null}
 
@@ -166,6 +264,7 @@ export function LiveDetailScreen() {
           style={[
             styles.playerSurface,
             inPip && styles.playerSurfacePip,
+            landscape && !inPip ? styles.playerSurfaceLandscape : null,
             keyboardOpen && !inPip ? styles.playerSurfaceKeyboard : null,
           ]}
         >
@@ -266,10 +365,30 @@ export function LiveDetailScreen() {
         {tokenError && !inPip ? <Text style={styles.errorInline}>{tokenError}</Text> : null}
       </View>
 
-      {!inPip ? (
-        (item.canEnter !== false || item.isLive) && !adultBlocked ? (
+      {showFeatures ? (
+        <LiveLandscapeFeaturesPanel
+          channelId={item.id}
+          hostUserId={item.host.id}
+          hostUsername={item.host.username}
+          hostDisplayName={item.host.name || item.host.username}
+          hostImage={item.host.image}
+          hostFollowing={item.hostFollowing}
+          isHost={item.isHost}
+          currentUserId={user?.id}
+        />
+      ) : null}
+
+      {showChat ? (
+        <View
+          style={
+            landscape
+              ? { width: chatOpen ? chatWidth : 0, overflow: "hidden", height: "100%" }
+              : styles.chatColumn
+          }
+        >
           <LiveChatPanel
             immersive
+            sidebar={landscape}
             channelId={item.id}
             viewerCount={viewers}
             onViewerCount={onViewerCount}
@@ -282,11 +401,11 @@ export function LiveDetailScreen() {
             currentUserId={user?.id}
             streamStartedAt={item.streamStartedAt}
           />
-        ) : (
-          <View style={styles.chatPlaceholder}>
-            <Text style={styles.endedSub}>{copy.chatUnavailable}</Text>
-          </View>
-        )
+        </View>
+      ) : !inPip && !landscape ? (
+        <View style={styles.chatPlaceholder}>
+          <Text style={styles.endedSub}>{copy.chatUnavailable}</Text>
+        </View>
       ) : null}
     </View>
   );
@@ -295,6 +414,7 @@ export function LiveDetailScreen() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: "#0b0b0d" },
+    rootLandscape: { flexDirection: "row" },
     center: { alignItems: "center", justifyContent: "center", gap: 10, padding: spacing.lg },
     topBack: { padding: spacing.md },
     playerWrap: {
@@ -302,28 +422,41 @@ function createStyles(colors: ThemeColors) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: "#1f1f24",
     },
+    playerWrapLandscape: { flex: 1, height: "100%", borderBottomWidth: 0 },
     playerWrapPip: { flex: 1, borderBottomWidth: 0 },
     playerWrapKeyboard: { borderBottomWidth: 0 },
     playerChrome: {
       position: "absolute",
       top: 0,
       left: 0,
+      right: 0,
       zIndex: 5,
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: 8,
       paddingBottom: 6,
     },
+    chromeRight: { flexDirection: "row", alignItems: "center", gap: 8 },
     chromeBtn: {
       padding: 6,
       borderRadius: 18,
       backgroundColor: "rgba(0,0,0,0.4)",
+    },
+    chromeBtnOn: {
+      backgroundColor: "rgba(37,99,235,0.72)",
     },
     playerSurface: {
       width: "100%",
       aspectRatio: 16 / 9,
       backgroundColor: "#000",
       overflow: "hidden",
+    },
+    playerSurfaceLandscape: {
+      flex: 1,
+      aspectRatio: undefined,
+      width: "100%",
+      height: "100%",
     },
     playerSurfacePip: {
       flex: 1,
@@ -379,6 +512,7 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 12,
       paddingBottom: 6,
     },
+    chatColumn: { flex: 1 },
     chatPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   });
 }

@@ -32,16 +32,23 @@ const profileTimelinePostSelect = {
   author: { select: userPublicSelect },
 } as const;
 
+function toIsoDate(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : String(value);
+}
+
+function parseProfileUsername(raw: string | undefined): string {
+  let username = decodeURIComponent(raw ?? "").trim();
+  while (username.startsWith("@")) username = username.slice(1).trim();
+  return username;
+}
+
 function serializeQuotedPost(
   quoted: { createdAt: Date | string; [key: string]: unknown } | null | undefined
 ) {
   if (!quoted) return null;
   return {
     ...quoted,
-    createdAt:
-      quoted.createdAt instanceof Date
-        ? quoted.createdAt.toISOString()
-        : String(quoted.createdAt),
+    createdAt: toIsoDate(quoted.createdAt),
   };
 }
 
@@ -52,8 +59,9 @@ export async function GET(
   const limited = await rateLimitPublicApi(req, "mobile-user-profile", 60);
   if (limited) return limited;
 
+  try {
   const { username: raw } = await params;
-  const username = decodeURIComponent(raw ?? "").trim();
+  const username = parseProfileUsername(raw);
   if (!username || username.length > 64) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
@@ -178,16 +186,16 @@ export async function GET(
     ...posts.map((post) => ({
       ...post,
       activityKey: `post:${post.id}`,
-      activityAt: post.createdAt.toISOString(),
+      activityAt: toIsoDate(post.createdAt),
       repostBy: null,
     })),
     ...reposts.map((row) => ({
       ...row.post,
       activityKey: `repost:${row.id}`,
-      activityAt: row.createdAt.toISOString(),
+      activityAt: toIsoDate(row.createdAt),
       repostBy: {
         id: row.id,
-        createdAt: row.createdAt.toISOString(),
+        createdAt: toIsoDate(row.createdAt),
         user: row.user,
       },
     })),
@@ -227,12 +235,12 @@ export async function GET(
   const gatedPosts = await gatePosts(activities);
 
   const gatedPinned = pinnedRaw
-    ? (await gatePosts([{ ...pinnedRaw, activityKey: `post:${pinnedRaw.id}`, activityAt: pinnedRaw.createdAt.toISOString(), repostBy: null }]))[0] ?? null
+    ? (await gatePosts([{ ...pinnedRaw, activityKey: `post:${pinnedRaw.id}`, activityAt: toIsoDate(pinnedRaw.createdAt), repostBy: null }]))[0] ?? null
     : null;
 
   const mapPostResponse = (p: (typeof gatedPosts)[number]) => ({
     ...p,
-    createdAt: p.createdAt.toISOString(),
+    createdAt: toIsoDate(p.createdAt),
     profilePinned: !!viewerProfileMainPostId && p.id === viewerProfileMainPostId,
     quotedPost: serializeQuotedPost(p.quotedPost),
   });
@@ -255,7 +263,7 @@ export async function GET(
       bannerUrl: user.profile?.bannerUrl ?? null,
       bannerVideoUrl: user.profile?.bannerVideoUrl ?? null,
       countryCode: user.countryCode ?? null,
-      createdAt: user.createdAt.toISOString(),
+      createdAt: toIsoDate(user.createdAt),
       counts: {
         posts: user._count.posts,
         followers: user._count.followers,
@@ -276,4 +284,8 @@ export async function GET(
     pinnedPost: gatedPinned ? mapPostResponse(gatedPinned) : null,
     posts: gatedPosts.map(mapPostResponse),
   });
+  } catch (e) {
+    console.error("[api/mobile/users/[username]]", e);
+    return NextResponse.json({ error: "Could not load profile." }, { status: 503 });
+  }
 }

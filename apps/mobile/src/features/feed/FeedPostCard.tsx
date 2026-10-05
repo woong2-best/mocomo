@@ -254,7 +254,7 @@ function FeedPostCardInner({
     void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
     void queryClient.invalidateQueries({ queryKey: ["mobile-post", post.id] });
     if (user?.username) {
-      void queryClient.invalidateQueries({ queryKey: ["mobile-user", user.username] });
+      void queryClient.invalidateQueries({ queryKey: userProfileQueryKey(user.username) });
     }
     if (route.name === "PostDetail" && navigation.canGoBack()) {
       navigation.goBack();

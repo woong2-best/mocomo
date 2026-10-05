@@ -28,6 +28,7 @@ import {
   prepareProfileBannerImage,
 } from "@/lib/prepare-profile-media";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
+import { userProfileQueryKey } from "@/features/profile/user-profile-nav";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
@@ -137,7 +138,7 @@ export function ProfileEditScreen() {
       await refreshMe();
       await queryClient.invalidateQueries({ queryKey: ["mobile-profile-edit"] });
       if (authUser?.username) {
-        await queryClient.invalidateQueries({ queryKey: ["mobile-user", authUser.username] });
+        await queryClient.invalidateQueries({ queryKey: userProfileQueryKey(authUser.username) });
       }
       await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
     },
@@ -202,7 +203,7 @@ export function ProfileEditScreen() {
       await refreshMe();
       await queryClient.invalidateQueries({ queryKey: ["mobile-profile-edit"] });
       if (authUser?.username) {
-        await queryClient.invalidateQueries({ queryKey: ["mobile-user", authUser.username] });
+        await queryClient.invalidateQueries({ queryKey: userProfileQueryKey(authUser.username) });
       }
       showIslandToast("Saved", t("m.profile.profile_updated"));
       // Let the island pill paint before popping the screen.

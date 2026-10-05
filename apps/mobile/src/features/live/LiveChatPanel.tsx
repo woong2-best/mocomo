@@ -54,6 +54,8 @@ type Props = {
   streamStartedAt?: string;
   /** Chzzk-style dark chat that fills remaining viewport under the player. */
   immersive?: boolean;
+  /** Narrow right-rail chat for landscape watch. */
+  sidebar?: boolean;
 };
 
 export function LiveChatPanel({
@@ -69,6 +71,7 @@ export function LiveChatPanel({
   currentUserId,
   streamStartedAt,
   immersive = false,
+  sidebar = false,
 }: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => liveUi(t), [t]);
@@ -78,8 +81,8 @@ export function LiveChatPanel({
   const { keyboardLift } = useKeyboardLift();
   const keyboardOpen = keyboardLift > 80;
   const styles = useMemo(
-    () => createStyles(colors, immersive),
-    [colors, immersive]
+    () => createStyles(colors, immersive, sidebar),
+    [colors, immersive, sidebar]
   );
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -347,7 +350,7 @@ export function LiveChatPanel({
     ? Math.max(keyboardLift - (Platform.OS === "ios" ? insets.bottom : 0), 0)
     : 0;
   const composerPadBottom = immersive
-    ? Math.max(insets.bottom, 8) + keyboardComposerLift
+    ? (sidebar ? Math.max(8, keyboardComposerLift) : Math.max(insets.bottom, 8) + keyboardComposerLift)
     : keyboardComposerLift;
 
   return (
@@ -688,11 +691,12 @@ const supportStyles = StyleSheet.create({
   content: { fontSize: 13, fontWeight: "700", lineHeight: 18 },
 });
 
-function createStyles(colors: ThemeColors, immersive: boolean) {
+function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false) {
   if (immersive) {
     return StyleSheet.create({
       root: {
         flex: 1,
+        minHeight: sidebar ? 0 : undefined,
         backgroundColor: "#0b0b0d",
         overflow: "hidden",
       },
