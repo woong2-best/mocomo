@@ -3,16 +3,19 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useI18n } from "@/i18n/I18nProvider";
 import { liveUi } from "@/features/live/live-ui";
 
+/** Chzzk-style cheese button — orange squircle with white $. */
+const CHEESE_ORANGE = "#FF7800";
+
 type Props = {
   onPress: () => void;
   disabled?: boolean;
   size?: number;
 };
 
-/** Chzzk-cheese analogue — bright MOCO coin for live tips / cheer. */
 function MocoTipButtonInner({ onPress, disabled, size = 40 }: Props) {
   const { t } = useI18n();
   const copy = liveUi(t);
+  const radius = size * 0.26;
 
   return (
     <Pressable
@@ -22,8 +25,8 @@ function MocoTipButtonInner({ onPress, disabled, size = 40 }: Props) {
       onPress={onPress}
       style={[styles.hit, { width: size, height: size, opacity: disabled ? 0.45 : 1 }]}
     >
-      <View style={[styles.coin, { width: size, height: size, borderRadius: size * 0.28 }]}>
-        <Text style={[styles.text, { fontSize: Math.max(9, size * 0.22) }]}>MOCO</Text>
+      <View style={[styles.coin, { width: size, height: size, borderRadius: radius }]}>
+        <Text style={[styles.dollar, { fontSize: size * 0.52, lineHeight: size * 0.56 }]}>$</Text>
       </View>
     </Pressable>
   );
@@ -34,20 +37,14 @@ export const MocoTipButton = memo(MocoTipButtonInner);
 const styles = StyleSheet.create({
   hit: { alignItems: "center", justifyContent: "center" },
   coin: {
-    backgroundColor: "#F5C518",
-    borderWidth: 2,
-    borderColor: "#E8A317",
+    backgroundColor: CHEESE_ORANGE,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
   },
-  text: {
-    color: "#1a1200",
-    fontWeight: "900",
-    letterSpacing: -0.3,
+  dollar: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    includeFontPadding: false,
+    textAlign: "center",
   },
 });

@@ -39,15 +39,22 @@ export function MocoVideoDonationDialog({
   userImageUrl,
   onSuccess,
   trigger,
+  open: openControlled,
+  onOpenChange: onOpenChangeControlled,
 }: {
   streamerId: string;
   mocoBalance?: number;
   userImageUrl?: string | null;
   onSuccess?: (remaining: number) => void;
   trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const { t } = useLocale();
-  const [open, setOpen] = useState(false);
+  const [openUncontrolled, setOpenUncontrolled] = useState(false);
+  const controlled = openControlled !== undefined;
+  const open = controlled ? openControlled : openUncontrolled;
+  const setOpen = controlled ? (onOpenChangeControlled ?? (() => {})) : setOpenUncontrolled;
   const [step, setStep] = useState<1 | 2>(1);
   const [urlInput, setUrlInput] = useState("");
   const [message, setMessage] = useState("");
@@ -183,9 +190,11 @@ export function MocoVideoDonationDialog({
     </Button>
   );
 
+  const showTrigger = !controlled;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger>
+      {showTrigger ? <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger> : null}
       <DialogContent className="sm:max-w-md p-0 overflow-hidden gap-0 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="px-4 pt-4">
           <DialogTitle className="flex items-center gap-2">

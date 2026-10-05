@@ -28,9 +28,9 @@ import { ReportButton } from "@/components/report/report-button";
 import { relayLiveChatMessage } from "@/hooks/use-live-socket";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { ensureArray } from "@/lib/ensure-array";
-import { LiveDonationToolbar } from "@/components/live/live-donation-toolbar";
 import { VideoDonationRoomControls } from "@/components/live/video-donation-room-controls";
 import { ExternalLiveDonationBar } from "@/components/live/external-live-donation-bar";
+import { LiveMocoDonationComposerButton } from "@/components/live/live-moco-donation-composer-button";
 import {
   CommentDonationChatCard,
   CommentDonationTicker,
@@ -386,15 +386,13 @@ function LiveChatInner({
       {session?.user ? (
         <div className="shrink-0 space-y-2 border-t border-border/60 p-2.5">
           <VideoDonationRoomControls channelId={channelId} isHost={isHost} />
-          {isExternal ? (
+          {isExternal && !isHost ? (
             <ExternalLiveDonationBar
               channelId={channelId}
               hostDisplayName={hostDisplayName ?? hostUsername ?? t("live.spfk49s")}
               isHost={isHost}
             />
-          ) : (
-            <LiveDonationToolbar channelId={channelId} isHost={isHost} />
-          )}
+          ) : null}
           <div className="flex gap-2">
             <Input
               value={text}
@@ -405,6 +403,14 @@ function LiveChatInner({
               maxLength={200}
               disabled={sending}
             />
+            {!isHost ? (
+              <LiveMocoDonationComposerButton
+                channelId={channelId}
+                hostDisplayName={hostDisplayName ?? hostUsername}
+                buttonSize={36}
+                className="h-9 w-9"
+              />
+            ) : null}
             <Button
               size="sm"
               className="h-9 shrink-0 rounded-lg bg-folk-terracotta px-3 hover:bg-folk-terracotta/90"

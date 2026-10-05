@@ -30,15 +30,22 @@ export function MocoDonationDialog({
   userImageUrl,
   onSuccess,
   trigger,
+  open: openControlled,
+  onOpenChange: onOpenChangeControlled,
 }: {
   streamerId: string;
   mocoBalance?: number;
   userImageUrl?: string | null;
   onSuccess?: (remaining: number) => void;
   trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const { t } = useLocale();
-  const [open, setOpen] = useState(false);
+  const [openUncontrolled, setOpenUncontrolled] = useState(false);
+  const controlled = openControlled !== undefined;
+  const open = controlled ? openControlled : openUncontrolled;
+  const setOpen = controlled ? (onOpenChangeControlled ?? (() => {})) : setOpenUncontrolled;
   const [mocoAmount, setMocoAmount] = useState(String(MOCO_DONATION_MIN_AMOUNT.SFX));
   const [sfxKey, setSfxKey] = useState(DONATION_SFX_CATALOG[0]?.id ?? "default");
   const [message, setMessage] = useState("");
@@ -100,9 +107,11 @@ export function MocoDonationDialog({
     </Button>
   );
 
+  const showTrigger = !controlled;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger>
+      {showTrigger ? <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger> : null}
       <DialogContent className="sm:max-w-md p-0 overflow-hidden gap-0">
         <DialogHeader className="px-4 pt-4">
           <DialogTitle>{t("live.donation.sfx.title")}</DialogTitle>

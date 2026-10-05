@@ -1,18 +1,13 @@
 "use client";
 
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 import { useLocale } from "@/components/providers/locale-provider";
 import { useState } from "react";
 import { Target } from "lucide-react";
 import { LiveSupportDialog } from "@/components/live/live-support-dialog";
-import { MocoDonationDialog } from "@/components/live/moco-donation-dialog";
-import { MocoVideoDonationDialog } from "@/components/live/moco-video-donation-dialog";
 import { useLiveChat } from "@/components/live/live-chat-provider";
 import { cn } from "@/lib/utils";
 
-/** External live viewer — YouTube Video · MOCO 효과음 · 미션 */
+/** External live viewer — mission (MOCO video/SFX via chat composer $ button). */
 export function ExternalLiveDonationBar({
   channelId,
   hostDisplayName,
@@ -35,22 +30,6 @@ export function ExternalLiveDonationBar({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <MocoVideoDonationDialog
-        streamerId={channelId}
-        trigger={
-          <button type="button" className={btnClass}>
-            {t("live.sh6wx58")}
-          </button>
-        }
-      />
-      <MocoDonationDialog
-        streamerId={channelId}
-        trigger={
-          <button type="button" className={btnClass}>
-            {t("live.sc8rtpw")}
-          </button>
-        }
-      />
       <LiveSupportDialog
         channelId={channelId}
         hostDisplayName={hostDisplayName}
