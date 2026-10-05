@@ -7,7 +7,46 @@ import { useState } from "react";
 import { useCall, useCallBusy } from "@/components/call/call-provider";
 import type { CallParticipant } from "@/lib/call-types";
 import { Button } from "@/components/ui/button";
-import { Phone } from "lucide-react";
+import { Phone, Video } from "lucide-react";
+
+function VideoCallButton({
+  calleeId,
+  chatRoomId,
+  calleePeer,
+  disabled,
+  busy,
+  onError,
+}: {
+  calleeId: string;
+  chatRoomId: string;
+  calleePeer: CallParticipant;
+  disabled?: boolean;
+  busy: boolean;
+  onError: (msg: string) => void;
+}) {
+  const { startCall } = useCall();
+
+  async function handleCall() {
+    onError("");
+    const result = await startCall(calleeId, chatRoomId, "VIDEO", calleePeer);
+    if (result.error) onError(result.error);
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      className="rounded-xl shrink-0"
+      disabled={disabled || busy}
+      onClick={handleCall}
+      title={t("call.sh6w58f")}
+      aria-label={t("call.sh6w58f")}
+    >
+      <Video className="h-4 w-4" />
+    </Button>
+  );
+}
 
 function VoiceCallButton({
   calleeId,
@@ -64,6 +103,14 @@ export function DmCallButtons({
 
   return (
     <div className="relative flex items-center gap-1.5 shrink-0">
+      <VideoCallButton
+        calleeId={calleeId}
+        chatRoomId={chatRoomId}
+        calleePeer={calleePeer}
+        disabled={disabled}
+        busy={busy}
+        onError={setError}
+      />
       <VoiceCallButton
         calleeId={calleeId}
         chatRoomId={chatRoomId}

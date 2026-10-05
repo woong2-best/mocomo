@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { endDmCall, fetchMobileCallSync } from "@/api/calls";
+import { endDmCall, fetchMobileCallSync, type DmCallType } from "@/api/calls";
 import { useAuth } from "@/auth/AuthContext";
 import { getAccessToken } from "@/auth/token-store";
 import { API_BASE_URL } from "@/config/env";
@@ -21,6 +21,7 @@ export type LiveCall = {
   isCaller: boolean;
   displayName: string;
   displayImage: string | null;
+  callType: DmCallType;
   resumeName: "DmCall" | "IncomingCall";
   resumeParams: RootStackParamList["DmCall"] | RootStackParamList["IncomingCall"];
 };
@@ -87,6 +88,7 @@ export function MobileCallSessionProvider({ children }: { children: ReactNode })
     userId: user?.id ?? "",
     peerUserId: live?.peerUserId ?? "",
     isCaller: live?.isCaller ?? false,
+    video: live?.callType === "VIDEO",
     enabled: Boolean(live && user?.id),
     onFailed: (message) => {
       if (message === CALL_NAT_BLOCKED_MESSAGE) {
@@ -182,7 +184,7 @@ export function MobileCallSessionProvider({ children }: { children: ReactNode })
     <MobileCallSessionContext.Provider value={value}>
       <View style={styles.host}>
       {children}
-      {live && peer.remoteStream ? (
+      {live && live.callType === "AUDIO" && peer.remoteStream ? (
         <HiddenCallAudio streamURL={peer.remoteStream.toURL()} />
       ) : null}
       {live && collapsed ? (

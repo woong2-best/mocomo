@@ -3,9 +3,10 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { acceptDmCall, declineDmCall, endDmCall, fetchMobileCallSync } from "@/api/calls";
+import { acceptDmCall, declineDmCall, endDmCall, fetchMobileCallSync, type DmCallType } from "@/api/calls";
 import { useAuth } from "@/auth/AuthContext";
 import { publishUserCallEvent, subscribeUserCallEvents } from "@/lib/supabase-call-signal";
+import { DmCallLiveView } from "@/features/messages/DmCallLiveView";
 import { useMobileCallSession } from "@/features/messages/MobileCallSession";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -32,6 +33,7 @@ export function IncomingCallScreen() {
   const [callerImage, setCallerImage] = useState<string | null>(resumed?.displayImage ?? null);
   const [callerId, setCallerId] = useState<string | null>(resumed?.peerUserId ?? null);
   const [signalingRoomId, setSignalingRoomId] = useState<string | null>(resumed?.signalingRoomId ?? null);
+  const [callType, setCallType] = useState<DmCallType>(resumed?.callType ?? "AUDIO");
   const [error, setError] = useState<string | null>(null);
   const closedRef = useRef(false);
   const hadLiveRef = useRef(false);
@@ -114,6 +116,7 @@ export function IncomingCallScreen() {
         setCallerImage(caller.image);
         setCallerId(caller.id);
         setSignalingRoomId(data.call.signalingRoomId);
+        setCallType(data.call.callType);
       })
       .catch(() => undefined);
     return () => {
@@ -143,6 +146,7 @@ export function IncomingCallScreen() {
       setCallerImage(caller.image);
       setCallerId(caller.id);
       setSignalingRoomId(res.call.signalingRoomId);
+      setCallType(res.call.callType);
       void publishUserCallEvent(caller.id, "accepted", callId);
       setPhase("live");
     } catch (e) {
@@ -160,10 +164,11 @@ export function IncomingCallScreen() {
       isCaller: false,
       displayName: callerName,
       displayImage: callerImage,
+      callType,
       resumeName: "IncomingCall",
       resumeParams: { callId },
     });
-  }, [callId, callerId, callerImage, callerName, phase, session, signalingRoomId, user?.id]);
+  }, [callId, callType, callerId, callerImage, callerName, phase, session, signalingRoomId, user?.id]);
 
   const hangUp = useCallback(async () => {
     if (closedRef.current) return;
@@ -181,7 +186,11 @@ export function IncomingCallScreen() {
   if (phase === "ringing") {
     return (
       <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <Text style={styles.label}>{t("m.messages.incoming_voice_call")}</Text>
+        <Text style={styles.label}>
+          {callType === "VIDEO"
+            ? t("m.messages.incoming_video_call")
+            : t("m.messages.incoming_voice_call")}
+        </Text>
         <FolkAvatar uri={callerImage} name={callerName} size={96} />
         <Text style={styles.name}>{callerName}</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -206,26 +215,36 @@ export function IncomingCallScreen() {
     );
   }
 
+  const isVideo = callType === "VIDEO";
+  const statusHint =
+    session.peer.state === "failed"
+      ? (session.peer.failure ?? t("m.messages.call_failed"))
+      : session.peer.state === "connected"
+        ? isVideo
+          ? t("m.messages.on_video_call")
+          : t("m.messages.on_voice_call")
+        : isVideo
+          ? t("m.messages.connecting_video")
+          : t("m.messages.connecting_voice");
+
   return (
     <View style={styles.liveRoot}>
-      <View style={styles.audioStage}>
-        <Text style={styles.stageHint}>
-          {session.peer.state === "failed"
-            ? (session.peer.failure ?? t("m.messages.call_failed"))
-            : session.peer.state === "connected"
-              ? t("m.messages.on_voice_call")
-              : t("m.messages.connecting_voice")}
-        </Text>
-        <Pressable
-          style={styles.micBtn}
-          onPress={() => session.peer.setMic(!session.peer.micEnabled)}
-          accessibilityLabel={
-            session.peer.micEnabled ? t("m.messages.mute_mic") : t("m.messages.unmute_mic")
-          }
-        >
-          <Ionicons name={session.peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
-        </Pressable>
-      </View>
+      <DmCallLiveView
+        isVideo={isVideo}
+        displayName={callerName}
+        displayImage={callerImage}
+        state={session.peer.state}
+        statusHint={statusHint}
+        localStream={session.peer.localStream}
+        remoteStream={session.peer.remoteStream}
+        micEnabled={session.peer.micEnabled}
+        cameraEnabled={session.peer.cameraEnabled}
+        onToggleMic={() => session.peer.setMic(!session.peer.micEnabled)}
+        onToggleCamera={
+          isVideo ? () => session.peer.setCamera(!session.peer.cameraEnabled) : undefined
+        }
+        topInset={insets.top}
+      />
       <View style={[styles.liveBar, { paddingBottom: insets.bottom + spacing.md }]}>
         <Text style={styles.liveName}>{callerName}</Text>
         <Pressable style={[styles.btn, styles.decline]} onPress={() => void hangUp()}>

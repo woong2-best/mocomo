@@ -78,6 +78,7 @@ export function useMobilePeerCall({
   userId,
   peerUserId,
   isCaller,
+  video,
   enabled,
   onFailed,
   onConnectionLost,
@@ -88,6 +89,7 @@ export function useMobilePeerCall({
   userId: string;
   peerUserId: string;
   isCaller: boolean;
+  video: boolean;
   enabled: boolean;
   onFailed?: (message: string) => void;
   onConnectionLost?: () => void;
@@ -109,12 +111,14 @@ export function useMobilePeerCall({
   const onRemoteHangupRef = useRef(onRemoteHangup);
   const peerUserIdRef = useRef(peerUserId);
   const isCallerRef = useRef(isCaller);
+  const videoRef = useRef(video);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [state, setState] = useState<MobilePeerCallState>("idle");
   const [failure, setFailure] = useState<string | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
+  const [cameraEnabled, setCameraEnabled] = useState(video);
 
   useEffect(() => {
     onFailedRef.current = onFailed;
@@ -122,7 +126,9 @@ export function useMobilePeerCall({
     onRemoteHangupRef.current = onRemoteHangup;
     peerUserIdRef.current = peerUserId;
     isCallerRef.current = isCaller;
+    videoRef.current = video;
     politeRef.current = !isCaller;
+    setCameraEnabled(video);
   });
 
   const cleanup = useCallback(() => {
@@ -149,13 +155,17 @@ export function useMobilePeerCall({
       autoGainControl: true,
       channelCount: 1,
     };
+    const wantsVideo = videoRef.current;
     const { mediaDevices } = await loadWebrtc();
     const stream = (await mediaDevices.getUserMedia({
       audio: audioConstraints as never,
-      video: false,
+      video: wantsVideo
+        ? ({ facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } as never)
+        : (false as never),
     })) as MediaStream;
     localStreamRef.current = stream;
     setLocalStream(stream);
+    setCameraEnabled(wantsVideo && stream.getVideoTracks().some((t) => t.enabled));
     return stream;
   }, []);
 
@@ -446,10 +456,27 @@ export function useMobilePeerCall({
     setMicEnabled(on);
   }, []);
 
+  const setCamera = useCallback((on: boolean) => {
+    for (const track of localStreamRef.current?.getVideoTracks() ?? []) {
+      track.enabled = on;
+    }
+    setCameraEnabled(on);
+  }, []);
+
   const hangup = useCallback(() => {
     sessionSendRef.current({ type: "hangup" });
     cleanup();
   }, [cleanup]);
 
-  return { localStream, remoteStream, state, failure, micEnabled, setMic, hangup };
+  return {
+    localStream,
+    remoteStream,
+    state,
+    failure,
+    micEnabled,
+    cameraEnabled,
+    setMic,
+    setCamera,
+    hangup,
+  };
 }

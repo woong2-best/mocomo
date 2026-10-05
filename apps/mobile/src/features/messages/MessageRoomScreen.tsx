@@ -270,19 +270,22 @@ export function MessageRoomScreen() {
     void voiceControlsRef.current?.start();
   }, [busy, recording, finishRecording, voiceArmed]);
 
-  const startCall = useCallback(() => {
-    if (!peerId) {
-      showIslandError(t("m.messages.cannot_call"), t("m.messages.peer_info_is_not_loaded_yet"));
-      return;
-    }
-    navigation.navigate("DmCall", {
-      roomId,
-      calleeId: peerId,
-      callType: "AUDIO",
-      displayName: title,
-      displayImage: peerImage,
-    });
-  }, [navigation, peerId, peerImage, roomId, title, t]);
+  const startCall = useCallback(
+    (type: "AUDIO" | "VIDEO") => {
+      if (!peerId) {
+        showIslandError(t("m.messages.cannot_call"), t("m.messages.peer_info_is_not_loaded_yet"));
+        return;
+      }
+      navigation.navigate("DmCall", {
+        roomId,
+        calleeId: peerId,
+        callType: type,
+        displayName: title,
+        displayImage: peerImage,
+      });
+    },
+    [navigation, peerId, peerImage, roomId, title, t]
+  );
 
   const serverLocked = room?.isLocked === true;
   const roomLocked = roomLockedLocal || serverLocked;
@@ -452,13 +455,22 @@ export function MessageRoomScreen() {
             </Pressable>
           ) : null}
           {!isGroup && canCallPeer ? (
-            <Pressable
-              style={styles.callBtn}
-              onPress={startCall}
-              accessibilityLabel={t("m.messages.voice_call")}
-            >
-              <Ionicons name="call-outline" size={18} color={colors.cobalt} />
-            </Pressable>
+            <>
+              <Pressable
+                style={styles.callBtn}
+                onPress={() => startCall("VIDEO")}
+                accessibilityLabel={t("m.messages.video_call")}
+              >
+                <Ionicons name="videocam-outline" size={18} color={colors.cobalt} />
+              </Pressable>
+              <Pressable
+                style={styles.callBtn}
+                onPress={() => startCall("AUDIO")}
+                accessibilityLabel={t("m.messages.voice_call")}
+              >
+                <Ionicons name="call-outline" size={18} color={colors.cobalt} />
+              </Pressable>
+            </>
           ) : null}
         </View>
       </View>

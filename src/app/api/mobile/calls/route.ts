@@ -85,8 +85,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Phone app places voice calls only. Video is not offered from messages.
-  const callType = CallType.AUDIO;
+  const callType = parsed.data.callType === "VIDEO" ? CallType.VIDEO : CallType.AUDIO;
   const call = await db.voiceCall.create({
     data: {
       callerId: user.id,

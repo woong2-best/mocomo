@@ -7,6 +7,7 @@ import { ApiError } from "@/api/client";
 import { endDmCall, fetchMobileCallSync, initiateDmCall, acceptDmCall, type DmCallPayload } from "@/api/calls";
 import { useAuth } from "@/auth/AuthContext";
 import { publishUserCallEvent, subscribeUserCallEvents } from "@/lib/supabase-call-signal";
+import { DmCallLiveView } from "@/features/messages/DmCallLiveView";
 import { useMobileCallSession } from "@/features/messages/MobileCallSession";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -32,7 +33,8 @@ export function DmCallScreen() {
   const { user } = useAuth();
   const session = useMobileCallSession();
   const route = useRoute<RouteProp<RootStackParamList, "DmCall">>();
-  const { roomId, calleeId, displayName, displayImage } = route.params;
+  const { roomId, calleeId, callType, displayName, displayImage } = route.params;
+  const isVideo = callType === "VIDEO";
   const resumed =
     session.live != null &&
     (session.live.peerUserId === calleeId ||
@@ -118,7 +120,7 @@ export function DmCallScreen() {
         const res = await initiateDmCall({
           calleeId,
           chatRoomId: roomId,
-          callType: "AUDIO",
+          callType,
         });
         if (cancelled) {
           void endDmCall(res.call.id).catch(() => undefined);
@@ -148,7 +150,7 @@ export function DmCallScreen() {
     return () => {
       cancelled = true;
     };
-  }, [calleeId, roomId, user?.id]);
+  }, [calleeId, callType, roomId, user?.id]);
 
   useEffect(() => {
     if (!user?.id || !call || (phase !== "ringing" && phase !== "live")) return;
@@ -184,11 +186,12 @@ export function DmCallScreen() {
       isCaller: selfIsCaller,
       displayName,
       displayImage: displayImage ?? null,
+      callType: call.callType,
       resumeName: "DmCall",
       resumeParams: {
         roomId,
         calleeId,
-        callType: "AUDIO",
+        callType: call.callType,
         displayName,
         displayImage,
       },
@@ -229,6 +232,18 @@ export function DmCallScreen() {
   }
 
   const liveReady = phase === "live" && (call || session.live) && user?.id;
+  const liveCallType = call?.callType ?? callType;
+  const liveIsVideo = liveCallType === "VIDEO";
+  const statusHint =
+    session.peer.state === "failed"
+      ? (session.peer.failure ?? t("m.messages.call_failed"))
+      : session.peer.state === "connected"
+        ? liveIsVideo
+          ? t("m.messages.on_video_call")
+          : t("m.messages.on_voice_call")
+        : liveIsVideo
+          ? t("m.messages.connecting_video")
+          : t("m.messages.connecting_voice");
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -239,35 +254,32 @@ export function DmCallScreen() {
           <Text style={styles.sub}>
             {phase === "ringing"
               ? t("m.messages.ringing")
-              : t("m.messages.connecting")}
+              : isVideo
+                ? t("m.messages.connecting_video")
+                : t("m.messages.connecting")}
           </Text>
           <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />
         </View>
       ) : (
         <View style={styles.room}>
-          <View style={styles.audioStage}>
-            <Text style={styles.stageHint}>
-              {session.peer.state === "failed"
-                ? (session.peer.failure ?? t("m.messages.call_failed"))
-                : session.peer.state === "connected"
-                  ? t("m.messages.on_voice_call")
-                  : t("m.messages.connecting_voice")}
-            </Text>
-            <Pressable
-              style={styles.micBtn}
-              onPress={() => session.peer.setMic(!session.peer.micEnabled)}
-              accessibilityLabel={
-                session.peer.micEnabled ? t("m.messages.mute_mic") : t("m.messages.unmute_mic")
-              }
-            >
-              <Ionicons name={session.peer.micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
-            </Pressable>
-          </View>
-          <View style={[styles.overlayTop, { paddingTop: insets.top + 12 }]}>
-            <FolkAvatar uri={displayImage} name={displayName} size={44} />
-            <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.sub}>{t("m.messages.voice_call")}</Text>
-          </View>
+          <DmCallLiveView
+            isVideo={liveIsVideo}
+            displayName={displayName}
+            displayImage={displayImage ?? null}
+            state={session.peer.state}
+            statusHint={statusHint}
+            localStream={session.peer.localStream}
+            remoteStream={session.peer.remoteStream}
+            micEnabled={session.peer.micEnabled}
+            cameraEnabled={session.peer.cameraEnabled}
+            onToggleMic={() => session.peer.setMic(!session.peer.micEnabled)}
+            onToggleCamera={
+              liveIsVideo
+                ? () => session.peer.setCamera(!session.peer.cameraEnabled)
+                : undefined
+            }
+            topInset={insets.top}
+          />
         </View>
       )}
 
