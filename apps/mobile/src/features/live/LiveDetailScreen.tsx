@@ -21,7 +21,7 @@ import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWa
 import { LiveChatPanel } from "@/features/live/LiveChatPanel";
 import { LiveKitConnecting, LiveKitViewer } from "@/features/live/LiveKitViewer";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
-import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { useKeyboardLift } from "@/lib/use-keyboard-inset";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -37,8 +37,8 @@ export function LiveDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const keyboardHeight = useKeyboardBottomInset();
-  const keyboardOpen = keyboardHeight > 80;
+  const { keyboardLift } = useKeyboardLift();
+  const keyboardOpen = keyboardLift > 80;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "LiveDetail">>();
   const { user } = useAuth();

@@ -15,7 +15,6 @@ import { resolveStreamerTarget } from "@/lib/moco-donation/resolve-streamer";
 import { toMocoDonationPayload } from "@/lib/moco-donation/payload";
 import { prepareMocoVideoDonation } from "@/lib/moco-donation/prepare-video-donation";
 import { isValidDonationSfxKey, resolveDonationSfx } from "@/lib/moco-donation/sfx-catalog";
-import { assertCreatorPayoutsEnabled } from "@/lib/creator-payout-ready";
 import { mocoToTenths, parseSpendableMoco, splitUnsignedTenths } from "@/lib/moco/decimal-amount";
 
 export type CreateMocoDonationInput = {
@@ -72,11 +71,6 @@ export async function createMocoDonation(
 
   if (input.userId === target.streamerId) {
     return { success: false, error: "You cannot donate to your own stream." };
-  }
-
-  const payout = await assertCreatorPayoutsEnabled(target.streamerId);
-  if (!payout.ok) {
-    return { success: false, error: payout.error, code: payout.code };
   }
 
   let mediaUrl: string | null = null;

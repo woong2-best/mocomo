@@ -20,7 +20,7 @@ import {
 import { ApiError } from "@/api/client";
 import { alertToChatLine } from "@/lib/live-support";
 import { commentDonationPinMs } from "@/lib/comment-donation";
-import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { useKeyboardLift } from "@/lib/use-keyboard-inset";
 import { LiveSupportPanels } from "@/features/live/LiveSupportPanels";
 import { LiveSupportSheet } from "@/features/live/LiveSupportSheet";
 import { LiveVideoDonationBar } from "@/features/live/LiveVideoDonationBar";
@@ -75,8 +75,8 @@ export function LiveChatPanel({
   const { colors } = useTheme();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const keyboardHeight = useKeyboardBottomInset();
-  const keyboardOpen = keyboardHeight > 80;
+  const { keyboardLift } = useKeyboardLift();
+  const keyboardOpen = keyboardLift > 80;
   const styles = useMemo(
     () => createStyles(colors, immersive),
     [colors, immersive]
@@ -343,11 +343,12 @@ export function LiveChatPanel({
 
   const mocoSheetOpen = mocoMenuOpen || mocoVideoOpen || mocoSfxOpen;
 
-  // Android uses window resize; avoid double-offset. iOS needs KAV padding.
-  const composerPadBottom = immersive
-    ? Math.max(insets.bottom, 8) +
-      (Platform.OS === "ios" && keyboardOpen ? Math.max(keyboardHeight - insets.bottom, 0) : 0)
+  const keyboardComposerLift = keyboardOpen
+    ? Math.max(keyboardLift - (Platform.OS === "ios" ? insets.bottom : 0), 0)
     : 0;
+  const composerPadBottom = immersive
+    ? Math.max(insets.bottom, 8) + keyboardComposerLift
+    : keyboardComposerLift;
 
   return (
     <KeyboardAvoidingView
@@ -474,7 +475,7 @@ export function LiveChatPanel({
       <View
         style={[
           styles.composer,
-          immersive ? { paddingBottom: composerPadBottom } : null,
+          composerPadBottom > 0 ? { paddingBottom: composerPadBottom } : null,
           (cheerOpen || missionOpen || mocoSheetOpen) && styles.composerHidden,
         ]}
       >

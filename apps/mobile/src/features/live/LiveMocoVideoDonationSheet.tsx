@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 import { showIslandError } from "@/ui/IslandToast";
-import { fetchCreatorPayoutReady, isStripeAccountNotReady } from "@/lib/creator-payout";
 import { useQuery } from "@tanstack/react-query";
 import { previewLiveVideoDonation, postLiveMocoDonation } from "@/api/live-donate";
 import { ApiError } from "@/api/client";
@@ -49,8 +48,6 @@ function apiErrorMessage(e: unknown, fallback: string) {
 export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSuccess }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
-  const payoutBlockedMsg = t("m.live.this_creator_has_not_linked_a");
-  const payoutToastMsg = t("m.live.this_creator_has_not_linked_a_2");
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [step, setStep] = useState<1 | 2>(1);
   const [urlInput, setUrlInput] = useState("");
@@ -62,12 +59,6 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
-  const payout = useQuery({
-    queryKey: ["payout-ready", channelId],
-    queryFn: () => fetchCreatorPayoutReady(channelId),
-    enabled: visible && !!channelId,
-  });
-  const payoutBlocked = payout.data?.payoutsEnabled === false;
   const [error, setError] = useState("");
 
   const wallet = useQuery({
@@ -167,10 +158,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
       onSuccess?.();
       onClose();
     } catch (e) {
-      if (isStripeAccountNotReady(e)) {
-        showIslandError(t("m.live.tip_unavailable"), payoutToastMsg);
-        setError(payoutBlockedMsg);
-      } else if (e instanceof ApiError && e.status === 402) {
+      if (e instanceof ApiError && e.status === 402) {
         showIslandError(
           t("m.live.not_enough_moco"),
           t("m.live.top_up_moco_on_mocomo_net")
@@ -304,7 +292,6 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
               <Text style={styles.termsText}>{mocoPurchaseTermsCopy()}</Text>
             </Pressable>
 
-            {payoutBlocked ? <Text style={styles.error}>{payoutBlockedMsg}</Text> : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <View style={styles.actions}>
@@ -312,8 +299,8 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
                 <Text style={styles.outlineBtnText}>{t("m.common.back")}</Text>
               </Pressable>
               <Pressable
-                style={[styles.submit, styles.submitGreen, styles.flex1, (busy || !quote || payoutBlocked) && styles.submitDisabled]}
-                disabled={busy || !quote || payoutBlocked}
+                style={[styles.submit, styles.submitGreen, styles.flex1, (busy || !quote) && styles.submitDisabled]}
+                disabled={busy || !quote}
                 onPress={() => void submit()}
               >
                 {busy ? (

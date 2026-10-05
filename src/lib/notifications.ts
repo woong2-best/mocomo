@@ -9,6 +9,7 @@ import {
   isPostInteractionPush,
 } from "@/lib/post-push-enrich";
 import { isAppAlarmType } from "@/lib/app-alarm";
+import { displayableImageUrl } from "@/lib/displayable-image-url";
 
 export type NotificationInput = {
   userId: string;
@@ -731,6 +732,16 @@ export async function notifyGoodsOrder(
   });
 }
 
+/** FCM downloads this URL itself, so it must be a public https address. */
+function livePushImageUrl(image: string | null | undefined): string | undefined {
+  const displayable = displayableImageUrl(image);
+  if (!displayable) return undefined;
+  if (displayable.startsWith("https://")) return displayable;
+  if (!displayable.startsWith("/")) return undefined;
+  const base = (process.env.NEXT_PUBLIC_APP_URL || "https://mocomo.net").replace(/\/$/, "");
+  return `${base}${displayable}`;
+}
+
 export async function notifyLiveStart(
   followerIds: string[],
   hostId: string,
@@ -738,16 +749,22 @@ export async function notifyLiveStart(
   channelId: string,
   title: string
 ) {
-  const body = `${hostUsername}님이 「${title.slice(0, 40)}」 방송을 시작했습니다.`;
+  const host = await db.user.findUnique({
+    where: { id: hostId },
+    select: { name: true, username: true, image: true },
+  });
+  const nickname = host?.name?.trim() || host?.username?.trim() || hostUsername;
+  const broadcastTitle = title.replace(/\s+/g, " ").trim().slice(0, 120);
   const link = `/voice/${channelId}`;
+  const imageUrl = livePushImageUrl(host?.image);
   const rows: NotificationInput[] = followerIds
     .filter((id) => id !== hostId)
     .map((userId) => ({
       userId,
       actorId: hostId,
       type: "live",
-      title: "Start live",
-      body,
+      title: nickname,
+      body: broadcastTitle,
       link,
     }));
   await createNotificationsMany(rows);
@@ -757,11 +774,12 @@ export async function notifyLiveStart(
         .then(({ deliverMobilePush }) =>
           deliverMobilePush({
             userId: row.userId,
-            title: "Start live",
-            body,
+            title: nickname,
+            body: broadcastTitle,
             url: link,
             tag: `live-${channelId}`,
             type: "live",
+            data: imageUrl ? { imageUrl } : undefined,
           })
         )
         .catch(() => undefined)

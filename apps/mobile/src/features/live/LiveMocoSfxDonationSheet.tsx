@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import { showIslandError } from "@/ui/IslandToast";
-import { fetchCreatorPayoutReady, isStripeAccountNotReady } from "@/lib/creator-payout";
 import { useQuery } from "@tanstack/react-query";
 import { postLiveMocoDonation } from "@/api/live-donate";
 import { ApiError } from "@/api/client";
@@ -44,8 +43,6 @@ function apiErrorMessage(e: unknown, fallback: string) {
 export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSuccess }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
-  const payoutBlockedMsg = t("m.live.this_creator_has_not_linked_a");
-  const payoutToastMsg = t("m.live.this_creator_has_not_linked_a_2");
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [sfxKey, setSfxKey] = useState(DONATION_SFX_CATALOG[0]?.id ?? "default");
   const [mocoAmount, setMocoAmount] = useState(String(MOCO_DONATION_MIN_SFX));
@@ -53,13 +50,6 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const payout = useQuery({
-    queryKey: ["payout-ready", channelId],
-    queryFn: () => fetchCreatorPayoutReady(channelId),
-    enabled: visible && !!channelId,
-  });
-  const payoutBlocked = payout.data?.payoutsEnabled === false;
-
   const wallet = useQuery({
     queryKey: ["gems-wallet"],
     queryFn: fetchGemsWallet,
@@ -109,10 +99,7 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
       onSuccess?.();
       onClose();
     } catch (e) {
-      if (isStripeAccountNotReady(e)) {
-        showIslandError(t("m.live.tip_unavailable"), payoutToastMsg);
-        setError(payoutBlockedMsg);
-      } else if (e instanceof ApiError && e.status === 402) {
+      if (e instanceof ApiError && e.status === 402) {
         showIslandError(
           t("m.live.not_enough_moco"),
           t("m.live.top_up_moco_on_mocomo_net")
@@ -183,12 +170,11 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
           <Text style={styles.termsText}>{mocoPurchaseTermsCopy()}</Text>
         </Pressable>
 
-        {payoutBlocked ? <Text style={styles.error}>{payoutBlockedMsg}</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Pressable
-          style={[styles.submit, (busy || payoutBlocked) && styles.submitDisabled]}
-          disabled={busy || payoutBlocked}
+          style={[styles.submit, busy && styles.submitDisabled]}
+          disabled={busy}
           onPress={() => void submit()}
         >
           {busy ? (
