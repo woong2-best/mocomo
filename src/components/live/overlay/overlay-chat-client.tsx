@@ -49,7 +49,7 @@ export function OverlayChatClient({
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      {state === "loading" ? <StatusLine text={t("live.sh1cmpi")} /> : null}
+      {state === "loading" ? <StatusLine text={t("live.se7nb0m")} dim /> : null}
       {state === "error" ? <StatusLine text={error ?? t("live.sypx0")} warn /> : null}
       {state === "ended" ? <StatusLine text={t("live.sa8v8bc")} dim /> : null}
       {state === "live" && messages.length === 0 ? (

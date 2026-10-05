@@ -27,13 +27,7 @@ export async function GET(
     return NextResponse.json({ error: errorText(access.error) }, { status: access.status });
   }
 
-  const channel = await db.voiceChannel.findUnique({
-    where: { id: channelId },
-    select: { createdBy: true },
-  });
-  if (!channel) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
-  }
+  const liveChannelId = access.channel.id;
 
   const sinceDate = since ? new Date(since) : new Date(Date.now() - 10 * 60_000);
   if (Number.isNaN(sinceDate.getTime())) {
@@ -42,8 +36,8 @@ export async function GET(
 
   const tips = await db.tip.findMany({
     where: {
-      receiverId: channel.createdBy,
-      channelId,
+      receiverId: access.channel.createdBy,
+      channelId: liveChannelId,
       createdAt: { gt: sinceDate },
     },
     orderBy: { createdAt: "asc" },

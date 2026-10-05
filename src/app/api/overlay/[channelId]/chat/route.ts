@@ -36,10 +36,12 @@ export async function GET(
     return NextResponse.json({ error: "Invalid since format." }, { status: 400 });
   }
 
+  const liveChannelId = access.channel.id;
+
   const [messages, deletedIds] = await Promise.all([
     db.liveChatMessage.findMany({
       where: {
-        channelId,
+        channelId: liveChannelId,
         createdAt: { gt: sinceDate },
       },
       orderBy: { createdAt: "asc" },
@@ -51,7 +53,7 @@ export async function GET(
         user: { select: { username: true } },
       },
     }),
-    listLiveChatDeletedIds(channelId, sinceDate),
+    listLiveChatDeletedIds(liveChannelId, sinceDate),
   ]);
 
   return NextResponse.json({

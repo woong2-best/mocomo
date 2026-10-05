@@ -17,8 +17,10 @@ import { parseTwitchIrcPrivmsg } from "../twitch-irc";
 import { chzzkChatWsServerId } from "../chzzk-live-chat";
 import { overlayChatMeta } from "../../overlay-access";
 import {
+  mintHostOverlayToken,
   mintOverlayToken,
   overlayBroadcastSid,
+  verifyHostOverlayToken,
   verifyOverlayToken,
 } from "../../overlay-token";
 
@@ -90,6 +92,8 @@ test("chzzkChatWsServerId is stable for same chatChannelId", () => {
 
 test("overlayChatMeta exposes externalId for Twitch and Chzzk", () => {
   const base = {
+    id: "ch1",
+    createdBy: "host1",
     createdAt: new Date(),
     isLive: true,
     liveStatus: "LIVE",
@@ -144,4 +148,22 @@ test("overlay token mint + verify with broadcastSid", () => {
   }
   const wrongChannel = verifyOverlayToken(token!, { channelId: "other", kind: "chat" });
   assert.equal(wrongChannel.ok, false);
+});
+
+test("host overlay token is stable and reusable across broadcasts", () => {
+  process.env.LIVE_OVERLAY_SECRET = "test-overlay-secret-key-32bytes!!";
+  const first = mintHostOverlayToken("host-1", "chat");
+  const second = mintHostOverlayToken("host-1", "chat");
+  assert.ok(first);
+  assert.equal(first, second);
+  const verified = verifyHostOverlayToken(first!, "chat");
+  assert.equal(verified.ok, true);
+  if (verified.ok) {
+    assert.equal(verified.payload.hostUserId, "host-1");
+    assert.equal(verified.payload.channelId, "host-1");
+  }
+  const donation = mintHostOverlayToken("host-1", "donation");
+  assert.ok(donation);
+  assert.notEqual(donation, first);
+  assert.equal(verifyHostOverlayToken(donation!, "donation").ok, true);
 });

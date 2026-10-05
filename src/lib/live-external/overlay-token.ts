@@ -22,7 +22,8 @@ export type OverlayTokenPayload = {
 
 const CHAT_TTL_SEC = 48 * 3600;
 const DONATION_TTL_SEC = 7 * 24 * 3600;
-const HOST_OVERLAY_TTL_SEC = 180 * 24 * 3600;
+/** Far-future exp so Live Studio OBS URLs are byte-identical every time they are copied. */
+const HOST_OVERLAY_STABLE_EXP = Math.floor(Date.UTC(2035, 0, 1) / 1000);
 
 function b64url(buf: Buffer | string): string {
   const b = typeof buf === "string" ? Buffer.from(buf, "utf8") : buf;
@@ -46,7 +47,7 @@ export function overlayBroadcastSid(createdAt: Date): number {
 export function mintOverlayToken(
   channelId: string,
   kind: "chat" | "donation",
-  opts?: { broadcastSid?: number; ttlSec?: number; hostUserId?: string }
+  opts?: { broadcastSid?: number; ttlSec?: number; exp?: number; hostUserId?: string }
 ): string | null {
   const sec = secret();
   if (!sec) return null;
@@ -54,7 +55,7 @@ export function mintOverlayToken(
   const payload: OverlayTokenPayload = {
     channelId,
     kind,
-    exp: Math.floor(Date.now() / 1000) + ttl,
+    exp: opts?.exp ?? Math.floor(Date.now() / 1000) + ttl,
     ...(opts?.broadcastSid != null ? { broadcastSid: opts.broadcastSid } : {}),
     ...(opts?.hostUserId ? { hostUserId: opts.hostUserId } : {}),
   };
@@ -63,14 +64,14 @@ export function mintOverlayToken(
   return `${body}.${sig}`;
 }
 
-/** Live Studio browser source. Stays valid across broadcasts for this host. */
+/** Live Studio browser source. Same URL for every broadcast of this host. */
 export function mintHostOverlayToken(
   hostUserId: string,
   kind: "chat" | "donation"
 ): string | null {
   return mintOverlayToken(hostUserId, kind, {
     hostUserId,
-    ttlSec: HOST_OVERLAY_TTL_SEC,
+    exp: HOST_OVERLAY_STABLE_EXP,
   });
 }
 

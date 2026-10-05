@@ -2,8 +2,6 @@ import { db } from "@/lib/db";
 import { activeHostBroadcastWhere } from "@/lib/live-broadcast/session-queries";
 import {
   mintHostOverlayToken,
-  mintOverlayToken,
-  overlayBroadcastSid,
   verifyHostOverlayToken,
 } from "@/lib/live-external/overlay-token";
 import { buildYoutubeNativeObsChatSetup } from "@/lib/live-external/youtube-obs-chat";
@@ -13,7 +11,6 @@ export async function mintOverlayUrlsForOwner(userId: string, channelId: string)
     where: { id: channelId },
     select: {
       createdBy: true,
-      createdAt: true,
       externalProvider: true,
       externalId: true,
     },
@@ -21,24 +18,16 @@ export async function mintOverlayUrlsForOwner(userId: string, channelId: string)
   if (!channel || channel.createdBy !== userId) {
     return { error: "actions.url_2" as const };
   }
-  const broadcastSid = overlayBroadcastSid(channel.createdAt);
-  const chatToken = mintOverlayToken(channelId, "chat", { broadcastSid });
-  const donationToken = mintOverlayToken(channelId, "donation", { broadcastSid });
-  if (!chatToken || !donationToken) {
-    return { error: "actions.live_overlay_secret_auth_secret" as const };
-  }
+
+  const minted = await mintStudioObsChatForUser(userId);
+  if ("error" in minted) return minted;
 
   const youtubeNative =
     channel.externalProvider === "YOUTUBE" && channel.externalId
       ? buildYoutubeNativeObsChatSetup(channel.externalId, "")
       : null;
 
-  return {
-    chatUrl: `/obs/chat/${channelId}?token=${encodeURIComponent(chatToken)}`,
-    donationUrl: `/overlay/donation/${channelId}?token=${encodeURIComponent(donationToken)}`,
-    mocoWidgetUrl: `/overlay/video/${channelId}?token=${encodeURIComponent(donationToken)}`,
-    youtubeNative,
-  };
+  return { ...minted, youtubeNative };
 }
 
 /** Live Studio — stable OBS links that follow this host's current broadcast. */

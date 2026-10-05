@@ -32,7 +32,7 @@ export async function GET(
     );
   }
 
-  const listed = await listOverlayAlerts(channelId, since);
+  const listed = await listOverlayAlerts(broadcastAccess.channel.id, since);
   if (!listed.ok) {
     return NextResponse.json({ error: errorText(listed.error) }, { status: listed.status });
   }

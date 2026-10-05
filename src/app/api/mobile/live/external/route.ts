@@ -12,7 +12,7 @@ import { revalidateLiveHubCache } from "@/lib/live-hub-data";
 import { isExternalLiveEnabled } from "@/lib/live-feature";
 import { checkYoutubeMadeForKids } from "@/lib/live-external/youtube-kids";
 import { probeChzzkEmbed } from "@/lib/live-external/chzzk-probe";
-import { mintOverlayToken, overlayBroadcastSid } from "@/lib/live-external/overlay-token";
+import { mintStudioObsChatForUser } from "@/lib/live-external/studio-obs-url";
 import { platformToLiveExternal } from "@/lib/streaming-accounts/types";
 import {
   getAccountTokens,
@@ -219,9 +219,7 @@ export async function POST(req: NextRequest) {
 
     revalidateLiveHubCache();
 
-    const chatToken = mintOverlayToken(channel.id, "chat", {
-      broadcastSid: overlayBroadcastSid(channel.createdAt),
-    });
+    const overlayUrls = await mintStudioObsChatForUser(user.id);
 
     return NextResponse.json({
       channel: { id: channel.id, name: channel.name },
@@ -229,9 +227,9 @@ export async function POST(req: NextRequest) {
       watchUrl: parsed.watchUrl,
       embedSupported: parsed.provider === "CHZZK" ? chzzkEmbedOk : parsed.embedSupported,
       overlay: {
-        chatUrl: chatToken
-          ? `/obs/chat/${channel.id}?token=${encodeURIComponent(chatToken)}`
-          : null,
+        chatUrl: "chatUrl" in overlayUrls ? overlayUrls.chatUrl : null,
+        donationUrl: "donationUrl" in overlayUrls ? overlayUrls.donationUrl : null,
+        mocoWidgetUrl: "mocoWidgetUrl" in overlayUrls ? overlayUrls.mocoWidgetUrl : null,
       },
     });
   } catch (e) {

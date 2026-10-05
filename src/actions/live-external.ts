@@ -16,7 +16,6 @@ import { revalidateLiveHubCache } from "@/lib/live-hub-data";
 import { isExternalLiveEnabled } from "@/lib/live-feature";
 import { checkYoutubeMadeForKids } from "@/lib/live-external/youtube-kids";
 import { probeChzzkEmbed } from "@/lib/live-external/chzzk-probe";
-import { mintOverlayToken, overlayBroadcastSid } from "@/lib/live-external/overlay-token";
 import { buildYoutubeNativeObsChatSetup } from "@/lib/live-external/youtube-obs-chat";
 import {
   mintOverlayUrlsForOwner,
@@ -204,9 +203,7 @@ export async function createExternalLiveStream(data: {
     revalidateLiveHubCache();
     revalidateTag(liveRoomCacheTag(channel.id));
 
-    const broadcastSid = overlayBroadcastSid(channel.createdAt);
-    const chatToken = mintOverlayToken(channel.id, "chat", { broadcastSid });
-    const donationToken = mintOverlayToken(channel.id, "donation", { broadcastSid });
+    const overlayUrls = await mintStudioObsChatForUser(user.id);
 
     return {
       channel,
@@ -214,15 +211,9 @@ export async function createExternalLiveStream(data: {
       watchUrl: parsed.watchUrl,
       embedSupported: parsed.provider === "CHZZK" ? chzzkEmbedOk : parsed.embedSupported,
       overlay: {
-        chatUrl: chatToken
-          ? `/obs/chat/${channel.id}?token=${encodeURIComponent(chatToken)}`
-          : null,
-        donationUrl: donationToken
-          ? `/overlay/donation/${channel.id}?token=${encodeURIComponent(donationToken)}`
-          : null,
-        mocoWidgetUrl: donationToken
-          ? `/overlay/video/${channel.id}?token=${encodeURIComponent(donationToken)}`
-          : null,
+        chatUrl: "chatUrl" in overlayUrls ? overlayUrls.chatUrl : null,
+        donationUrl: "donationUrl" in overlayUrls ? overlayUrls.donationUrl : null,
+        mocoWidgetUrl: "mocoWidgetUrl" in overlayUrls ? overlayUrls.mocoWidgetUrl : null,
         youtubeNative:
           parsed.provider === "YOUTUBE"
             ? buildYoutubeNativeObsChatSetup(parsed.externalId, "")

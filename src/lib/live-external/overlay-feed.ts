@@ -23,6 +23,7 @@ export type OverlayFeedResult =
       nextPageToken: string | null;
       liveChatId: string | null;
       pollingIntervalMs: number;
+      channelId: string;
     }
   | { ok: false; error: string; status: number };
 
@@ -38,6 +39,7 @@ export async function buildOverlayChatFeed(params: {
   if (!access.ok) {
     return { ok: false, error: access.error, status: access.status };
   }
+  const channelId = access.channel.id;
 
   const sinceDate = params.since
     ? new Date(params.since)
@@ -50,14 +52,14 @@ export async function buildOverlayChatFeed(params: {
   const meta = overlayChatMeta(channel);
 
   const channelSettings = await db.voiceChannel.findUnique({
-    where: { id: params.channelId },
+    where: { id: channelId },
     select: { createdBy: true, createdAt: true, donationAlertsOnStream: true },
   });
 
   const [dbMessages, deletedIds] = await Promise.all([
     db.liveChatMessage.findMany({
       where: {
-        channelId: params.channelId,
+        channelId,
         createdAt: { gt: sinceDate },
       },
       orderBy: { createdAt: "asc" },
@@ -69,7 +71,7 @@ export async function buildOverlayChatFeed(params: {
         user: { select: { username: true } },
       },
     }),
-    listLiveChatDeletedIds(params.channelId, sinceDate),
+    listLiveChatDeletedIds(channelId, sinceDate),
   ]);
 
   const mocomoUnified: UnifiedChatMessage[] = dbMessages.map((m) => ({
@@ -123,7 +125,7 @@ export async function buildOverlayChatFeed(params: {
       db.tip.findMany({
         where: {
           receiverId: channelSettings.createdBy,
-          channelId: params.channelId,
+          channelId,
           createdAt: { gt: sinceForSupport },
         },
         orderBy: { createdAt: "asc" },
@@ -137,7 +139,7 @@ export async function buildOverlayChatFeed(params: {
         },
       }),
       db.liveSupportEvent.findMany({
-        where: { channelId: params.channelId, createdAt: { gt: sinceForSupport } },
+        where: { channelId, createdAt: { gt: sinceForSupport } },
         orderBy: { createdAt: "asc" },
         take: 20,
         select: {
@@ -170,5 +172,6 @@ export async function buildOverlayChatFeed(params: {
     nextPageToken,
     liveChatId,
     pollingIntervalMs,
+    channelId,
   };
 }

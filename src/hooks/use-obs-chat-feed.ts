@@ -84,13 +84,22 @@ export function useObsChatFeed(
         const feedPath = options?.feedPath ?? `/api/overlay/${channelId}/feed`;
         const res = await fetch(`${feedPath}?${q}`, { cache: "no-store" });
         if (res.status === 410) {
-          setState("ended");
+          setState("loading");
+          setError(null);
+          setMeta(null);
+          setFeedMessages([]);
+          if (!cancelled) {
+            timer = setTimeout(() => void tick(), Math.max(pollRef.current.intervalMs, 4000));
+          }
           return;
         }
         if (!res.ok) {
           const body = (await res.json().catch(() => null)) as { error?: string } | null;
           setError(errorText(body?.error ?? i18n("hooks.s1u5ixy")));
           setState("error");
+          if (!cancelled) {
+            timer = setTimeout(() => void tick(), Math.max(pollRef.current.intervalMs, 5000));
+          }
           return;
         }
 
@@ -126,6 +135,7 @@ export function useObsChatFeed(
           setState("loading");
           setError(null);
           setMeta(null);
+          setFeedMessages([]);
         } else if (data.meta) setMeta(data.meta);
         if (data.live !== false) {
           setFeedPlatformReady(!!data.platformReady);

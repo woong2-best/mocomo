@@ -33,14 +33,15 @@ export async function GET(
     return NextResponse.json({ error: errorText(broadcastAccess.error) }, { status: broadcastAccess.status });
   }
 
-  void closeChannelIfHostGone(channelId);
+  const liveChannelId = broadcastAccess.channel.id;
+  void closeChannelIfHostGone(liveChannelId);
 
   const sinceMs = Number(req.nextUrl.searchParams.get("since") ?? "0");
   const since = Number.isFinite(sinceMs) && sinceMs > 0 ? new Date(sinceMs) : undefined;
 
   const rows = await db.mocoDonation.findMany({
     where: {
-      channelId,
+      channelId: liveChannelId,
       status: { in: ["PENDING", "PLAYING"] },
       ...(since ? { createdAt: { gt: since } } : {}),
     },
@@ -50,7 +51,7 @@ export async function GET(
   });
 
   const playing = await db.mocoDonation.findFirst({
-    where: { channelId, status: "PLAYING" },
+    where: { channelId: liveChannelId, status: "PLAYING" },
     include: { user: { select: { username: true } } },
   });
 
@@ -93,23 +94,25 @@ export async function POST(
     return NextResponse.json({ error: "Required field missing." }, { status: 400 });
   }
 
+  const liveChannelId = broadcastAccess.channel.id;
+
   if (body.action === "playing") {
-    const updated = await markMocoDonationPlaying(donationId, channelId);
+    const updated = await markMocoDonationPlaying(donationId, liveChannelId);
     if (!updated) {
       return NextResponse.json({ error: "Not found." }, { status: 400 });
     }
     const payload = toMocoDonationPayload(updated);
-    void relayMocoDonationEvent(channelId, { event: "new_donation", donation: payload });
+    void relayMocoDonationEvent(liveChannelId, { event: "new_donation", donation: payload });
     return NextResponse.json({ ok: true, donation: payload });
   }
 
   if (body.action === "complete") {
-    const updated = await completeMocoDonation(donationId, channelId);
+    const updated = await completeMocoDonation(donationId, liveChannelId);
     if (!updated) {
       return NextResponse.json({ error: "Not found." }, { status: 400 });
     }
     const payload = toMocoDonationPayload(updated);
-    void relayMocoDonationEvent(channelId, { event: "donation_completed", donation: payload });
+    void relayMocoDonationEvent(liveChannelId, { event: "donation_completed", donation: payload });
     return NextResponse.json({ ok: true, donation: payload });
   }
 
