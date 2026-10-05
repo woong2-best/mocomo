@@ -482,24 +482,20 @@ export function LiveChatPanel({
           (cheerOpen || missionOpen || mocoSheetOpen) && styles.composerHidden,
         ]}
       >
-        {immersive ? (
-          <View style={styles.composerAvatar}>
-            <Ionicons name="person" size={18} color="#9ca3af" />
-          </View>
-        ) : null}
+        {immersive && canMoco ? <MocoTipButton onPress={openMoco} size={36} /> : null}
         <TextInput
           style={styles.input}
           value={draft}
           onChangeText={setDraft}
           placeholder={immersive ? copy.chatPlaceholderImmersive : copy.chatPlaceholder}
-          placeholderTextColor={immersive ? "#6b7280" : colors.textMuted}
+          placeholderTextColor={immersive ? "#A39F93" : colors.textMuted}
           maxLength={200}
           editable={!sending}
           onSubmitEditing={() => void onSend()}
           returnKeyType="send"
           blurOnSubmit={false}
         />
-        {canMoco ? <MocoTipButton onPress={openMoco} /> : null}
+        {!immersive && canMoco ? <MocoTipButton onPress={openMoco} /> : null}
         {!immersive ? (
           <Pressable
             style={[styles.send, (!draft.trim() || sending) && styles.sendDisabled]}
@@ -514,14 +510,16 @@ export function LiveChatPanel({
           </Pressable>
         ) : (
           <Pressable
-            style={[styles.sendImmersive, (!draft.trim() || sending) && styles.sendImmersiveDisabled]}
+            style={styles.sendImmersive}
             onPress={() => void onSend()}
             disabled={!draft.trim() || sending}
+            accessibilityRole="button"
+            accessibilityLabel={copy.send}
           >
             {sending ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Ionicons name="send" size={16} color="#fff" />
+              <Ionicons name="caret-forward" size={20} color="#D5DCE6" />
             )}
           </Pressable>
         )}
@@ -697,7 +695,7 @@ function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false) 
       root: {
         flex: 1,
         minHeight: sidebar ? 0 : undefined,
-        backgroundColor: "#0b0b0d",
+        backgroundColor: "#131C2D",
         overflow: "hidden",
       },
       header: { display: "none" },
@@ -755,11 +753,9 @@ function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false) 
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        paddingHorizontal: 10,
-        paddingTop: 8,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: "#1f1f24",
-        backgroundColor: "#0b0b0d",
+        paddingHorizontal: 12,
+        paddingTop: 6,
+        backgroundColor: "#1A2539",
       },
       composerHidden: {
         opacity: 0,
@@ -780,13 +776,14 @@ function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false) 
       input: {
         flex: 1,
         borderWidth: 0,
-        borderRadius: 20,
+        borderRadius: 18,
+        minHeight: 36,
         paddingHorizontal: 14,
-        paddingVertical: Platform.OS === "ios" ? 10 : 8,
-        color: "#f3f4f6",
-        fontWeight: "600",
+        paddingVertical: Platform.OS === "ios" ? 6 : 4,
+        color: "#F4F6F8",
+        fontWeight: "500",
         fontSize: 14,
-        backgroundColor: "#1a1a1f",
+        backgroundColor: "#233043",
       },
       send: {},
       sendDisabled: {},
@@ -795,11 +792,13 @@ function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false) 
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: "#2563eb",
+        backgroundColor: "#1B355A",
         alignItems: "center",
         justifyContent: "center",
+        paddingLeft: 2,
       },
-      sendImmersiveDisabled: { opacity: 0.4 },
+      sendImmersiveDisabled: {},
+      sendChevron: {},
       dollarBtn: {},
     });
   }
@@ -924,6 +923,7 @@ function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false) 
     sendText: { color: "#fff", fontWeight: "800", fontSize: 13 },
     sendImmersive: { display: "none" },
     sendImmersiveDisabled: {},
+    sendChevron: {},
     dollarBtn: {
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,

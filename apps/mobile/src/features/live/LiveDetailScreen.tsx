@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
@@ -23,16 +23,15 @@ import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWa
 import { LiveChatPanel } from "@/features/live/LiveChatPanel";
 import { LiveKitConnecting, LiveKitViewer } from "@/features/live/LiveKitViewer";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
-import { useKeyboardLift } from "@/lib/use-keyboard-inset";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { LiveDonationAlertOverlay } from "@/features/live/LiveDonationAlertOverlay";
-import { LiveLandscapeFeaturesPanel } from "@/features/live/LiveLandscapeFeaturesPanel";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
 import { useLivePictureInPicture } from "@/features/live/useLivePictureInPicture";
 import { useI18n } from "@/i18n/I18nProvider";
 import { liveUi } from "@/features/live/live-ui";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 
 export function LiveDetailScreen() {
   const { t } = useI18n();
@@ -42,9 +41,8 @@ export function LiveDetailScreen() {
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const landscape = windowWidth > windowHeight;
-  const { keyboardLift } = useKeyboardLift();
-  const keyboardOpen = keyboardLift > 80 && !landscape;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const route = useRoute<RouteProp<RootStackParamList, "LiveDetail">>();
   const { user } = useAuth();
   const adultGate = useAdultVerificationGate("LIVE");
@@ -54,7 +52,11 @@ export function LiveDetailScreen() {
   const [tokenLoading, setTokenLoading] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [chatOpen, setChatOpen] = useState(true);
-  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [landscapeChrome, setLandscapeChrome] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+  const wasLandscape = useRef(false);
+  const forcedLandscape = useRef(false);
 
   const query = useQuery({
     queryKey: ["mobile-live", route.params.id],
@@ -67,29 +69,56 @@ export function LiveDetailScreen() {
   const onViewerCount = useCallback((n: number) => setViewerCount(n), []);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ orientation: "all" });
+    // Portrait + both landscapes. Never upside-down (360° invert).
+    navigation.setOptions({ orientation: "default" });
     return () => {
       navigation.setOptions({ orientation: "portrait" });
     };
   }, [navigation]);
 
   const enterLandscape = useCallback(() => {
-    setChatOpen(true);
+    setChatOpen(false);
+    setLandscapeChrome(false);
+    setPaused(false);
+    forcedLandscape.current = true;
     navigation.setOptions({ orientation: "landscape" });
   }, [navigation]);
 
   const exitLandscape = useCallback(() => {
-    navigation.setOptions({ orientation: "portrait" });
+    forcedLandscape.current = false;
+    navigation.setOptions({ orientation: "default" });
   }, [navigation]);
 
   useEffect(() => {
     if (!landscape) return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      exitLandscape();
-      return true;
+      if (forcedLandscape.current) {
+        exitLandscape();
+        return true;
+      }
+      return false;
     });
     return () => sub.remove();
   }, [exitLandscape, landscape]);
+
+  useEffect(() => {
+    if (landscape && !wasLandscape.current) {
+      setChatOpen(false);
+      setLandscapeChrome(false);
+    }
+    if (!landscape) {
+      setPaused(false);
+      setLandscapeChrome(false);
+      setStageSize({ w: 0, h: 0 });
+    }
+    wasLandscape.current = landscape;
+  }, [landscape]);
+
+  useEffect(() => {
+    if (!landscape || !landscapeChrome) return;
+    const id = setTimeout(() => setLandscapeChrome(false), 4000);
+    return () => clearTimeout(id);
+  }, [landscape, landscapeChrome, paused, chatOpen]);
 
   const startFirstParty = async () => {
     if (item && !item.isHost && isLiveAdultItem(item)) {
@@ -176,98 +205,154 @@ export function LiveDetailScreen() {
   const viewers = viewerCount || item.viewerCount;
   const canChat = (item.canEnter !== false || item.isLive) && !adultBlocked;
   const showChat = !inPip && canChat;
-  const showFeatures =
+  const chatWidth = Math.min(360, Math.max(260, Math.round(windowWidth * 0.36)));
+  const landscapePlayer =
     landscape &&
     !inPip &&
-    featuresOpen &&
-    !adultBlocked &&
-    !!item.host.id;
-  const chatWidth = Math.min(360, Math.max(260, Math.round(windowWidth * 0.36)));
+    ((!!item.isExternal && !!item.external && !adultBlocked) || (watchingFirstParty && !!creds));
+  const fittedFrame = (() => {
+    const w = stageSize.w;
+    const h = stageSize.h;
+    if (w <= 0 || h <= 0) return null;
+    if (w / h > 16 / 9) {
+      const height = h;
+      return { width: height * (16 / 9), height };
+    }
+    const width = w;
+    return { width, height: width * (9 / 16) };
+  })();
 
   return (
     <View style={[styles.root, landscape && !inPip ? styles.rootLandscape : null]}>
       <StatusBar style="light" hidden={landscape && !inPip} />
+      {!inPip && !landscape ? <View style={[styles.statusShield, { height: insets.top }]} /> : null}
       <View
         style={[
           styles.playerWrap,
           inPip && styles.playerWrapPip,
           landscape && !inPip ? styles.playerWrapLandscape : null,
-          keyboardOpen && !inPip ? styles.playerWrapKeyboard : null,
         ]}
       >
-        {!inPip ? (
-          <View
-            style={[
-              styles.playerChrome,
-              {
-                paddingTop: landscape ? 8 : insets.top + 6,
-                paddingLeft: landscape ? Math.max(insets.left, 8) : 8,
-                paddingRight: landscape ? 8 : 8,
-              },
-            ]}
-            pointerEvents="box-none"
-          >
+        {!inPip && !landscape ? (
+          <View style={[styles.playerChrome, styles.portraitChrome]} pointerEvents="box-none">
             <Pressable
-              onPress={() => (landscape ? exitLandscape() : navigation.goBack())}
+              onPress={() => navigation.goBack()}
               hitSlop={12}
-              style={styles.chromeBtn}
+              style={styles.portraitIconBtn}
+              accessibilityRole="button"
+              accessibilityLabel={copy.back}
             >
-              <Ionicons name="chevron-back" size={22} color="#fff" />
+              <Ionicons name="chevron-back" size={30} color="#fff" />
             </Pressable>
             <View style={styles.chromeRight} pointerEvents="box-none">
-              {landscape ? (
-                <>
-                  <Pressable
-                    onPress={() => setFeaturesOpen((v) => !v)}
-                    hitSlop={8}
-                    style={[styles.chromeBtn, featuresOpen && styles.chromeBtnOn]}
-                    accessibilityRole="button"
-                    accessibilityLabel={featuresOpen ? copy.hideFeatures : copy.showFeatures}
-                  >
-                    <Ionicons name="sparkles" size={18} color="#fff" />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setChatOpen((v) => !v)}
-                    hitSlop={8}
-                    style={[styles.chromeBtn, chatOpen && styles.chromeBtnOn]}
-                    accessibilityRole="button"
-                    accessibilityLabel={chatOpen ? copy.hideChat : copy.showChat}
-                  >
-                    <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
-                  </Pressable>
-                  <Pressable
-                    onPress={exitLandscape}
-                    hitSlop={8}
-                    style={styles.chromeBtn}
-                    accessibilityRole="button"
-                    accessibilityLabel={copy.exitLandscape}
-                  >
-                    <Ionicons name="contract" size={18} color="#fff" />
-                  </Pressable>
-                </>
-              ) : (
+              <Pressable
+                onPressIn={() =>
+                  prefetchUserProfile({
+                    username: item.host.username,
+                    name: item.host.name,
+                    image: item.host.image,
+                  })
+                }
+                onPress={() =>
+                  openUserProfile({
+                    username: item.host.username,
+                    name: item.host.name,
+                    image: item.host.image,
+                  })
+                }
+                hitSlop={8}
+                style={styles.profileBtn}
+                accessibilityRole="button"
+                accessibilityLabel={copy.profile}
+              >
+                <Ionicons name="person" size={18} color="#f3f4f6" />
+              </Pressable>
+              <Pressable
+                onPress={enterLandscape}
+                hitSlop={8}
+                style={styles.portraitIconBtn}
+                accessibilityRole="button"
+                accessibilityLabel={copy.expandVideo}
+              >
+                <Ionicons name="expand" size={24} color="#fff" />
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {!inPip && landscape && landscapeChrome && landscapePlayer ? (
+          <View style={styles.landscapeOverlay} pointerEvents="box-none">
+            <View
+              style={[
+                styles.playerChrome,
+                {
+                  paddingTop: 8,
+                  paddingLeft: Math.max(insets.left, 8),
+                  paddingRight: Math.max(insets.right, 8),
+                },
+              ]}
+              pointerEvents="box-none"
+            >
+              <Pressable
+                onPress={exitLandscape}
+                hitSlop={12}
+                style={styles.chromeBtn}
+                accessibilityRole="button"
+                accessibilityLabel={copy.exitLandscape}
+              >
+                <Ionicons name="chevron-back" size={22} color="#fff" />
+              </Pressable>
+              <View style={styles.chromeRight} pointerEvents="box-none">
                 <Pressable
-                  onPress={enterLandscape}
+                  onPress={() => setChatOpen((v) => !v)}
+                  hitSlop={8}
+                  style={[styles.chromeBtn, chatOpen && styles.chromeBtnOn]}
+                  accessibilityRole="button"
+                  accessibilityLabel={chatOpen ? copy.hideChat : copy.showChat}
+                >
+                  <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
+                </Pressable>
+                <Pressable
+                  onPress={exitLandscape}
                   hitSlop={8}
                   style={styles.chromeBtn}
                   accessibilityRole="button"
-                  accessibilityLabel={copy.expandVideo}
+                  accessibilityLabel={copy.exitLandscape}
                 >
-                  <Ionicons name="expand" size={18} color="#fff" />
+                  <Ionicons name="contract" size={18} color="#fff" />
                 </Pressable>
-              )}
+              </View>
+            </View>
+            <View style={styles.pauseSlot} pointerEvents="box-none">
+              <Pressable
+                style={styles.pauseBtn}
+                onPress={() => setPaused((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={paused ? copy.play : copy.pause}
+              >
+                <Ionicons name={paused ? "play" : "pause"} size={34} color="#fff" />
+              </Pressable>
             </View>
           </View>
         ) : null}
 
         <View
           style={[
-            styles.playerSurface,
+            landscape && !inPip ? styles.playerStageLandscape : styles.playerSurface,
             inPip && styles.playerSurfacePip,
-            landscape && !inPip ? styles.playerSurfaceLandscape : null,
-            keyboardOpen && !inPip ? styles.playerSurfaceKeyboard : null,
           ]}
+          onLayout={
+            landscape && !inPip
+              ? (event) => {
+                  const { width, height } = event.nativeEvent.layout;
+                  setStageSize((prev) =>
+                    prev.w === width && prev.h === height ? prev : { w: width, h: height }
+                  );
+                }
+              : undefined
+          }
         >
+          <View style={landscape && !inPip && fittedFrame ? [styles.videoFrame, fittedFrame] : styles.videoFrameFill}>
           {item.isLive && item.donationAlertsOnStream && !inPip ? (
             <LiveDonationAlertOverlay
               channelId={item.id}
@@ -314,12 +399,15 @@ export function LiveDetailScreen() {
                 posterUrl={item.thumbnailUrl}
                 active
                 showChrome={false}
+                paused={paused}
+                startImmediately={landscape}
               />
             )
           ) : watchingFirstParty && creds ? (
             <LiveKitViewer
               creds={creds}
               enablePip
+              paused={paused}
               onDisconnected={() => {
                 setWatchingFirstParty(false);
                 setCreds(null);
@@ -332,6 +420,7 @@ export function LiveDetailScreen() {
               <Image
                 source={{ uri: item.thumbnailUrl }}
                 style={styles.hero}
+                contentFit={landscape ? "contain" : "cover"}
                 cachePolicy={IMAGE_CACHE_POLICY}
                 transition={0}
               />
@@ -361,23 +450,14 @@ export function LiveDetailScreen() {
               <Ionicons name="radio" size={40} color="#F5C518" style={{ opacity: 0.5 }} />
             </View>
           )}
+          </View>
+          {landscapePlayer ? (
+            <Pressable style={styles.tapCatch} onPress={() => setLandscapeChrome((open) => !open)} />
+          ) : null}
         </View>
 
         {tokenError && !inPip ? <Text style={styles.errorInline}>{tokenError}</Text> : null}
       </View>
-
-      {showFeatures ? (
-        <LiveLandscapeFeaturesPanel
-          channelId={item.id}
-          hostUserId={item.host.id}
-          hostUsername={item.host.username}
-          hostDisplayName={item.host.name || item.host.username}
-          hostImage={item.host.image}
-          hostFollowing={item.hostFollowing}
-          isHost={item.isHost}
-          currentUserId={user?.id}
-        />
-      ) : null}
 
       {showChat ? (
         <View
@@ -414,18 +494,53 @@ export function LiveDetailScreen() {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: "#0b0b0d" },
-    rootLandscape: { flexDirection: "row" },
+    root: { flex: 1, backgroundColor: "#131C2D" },
+    rootLandscape: { flexDirection: "row", backgroundColor: "#000" },
     center: { alignItems: "center", justifyContent: "center", gap: 10, padding: spacing.lg },
     topBack: { padding: spacing.md },
+    statusShield: { width: "100%", backgroundColor: "#131C2D" },
+    portraitChrome: { paddingTop: 6, paddingHorizontal: 6, paddingBottom: 4 },
+    portraitIconBtn: { padding: 4 },
+    profileBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#6D6E70",
+    },
     playerWrap: {
       backgroundColor: "#000",
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: "#1f1f24",
+      flexShrink: 0,
     },
-    playerWrapLandscape: { flex: 1, height: "100%", borderBottomWidth: 0 },
+    playerWrapLandscape: { flex: 1, height: "100%", borderBottomWidth: 0, backgroundColor: "#000" },
+    playerStageLandscape: {
+      flex: 1,
+      width: "100%",
+      backgroundColor: "#000",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    videoFrame: { overflow: "hidden", backgroundColor: "#000" },
+    videoFrameFill: { ...StyleSheet.absoluteFill },
+    tapCatch: { ...StyleSheet.absoluteFill, zIndex: 4 },
+    landscapeOverlay: { ...StyleSheet.absoluteFill, zIndex: 6, elevation: 8 },
+    pauseSlot: {
+      ...StyleSheet.absoluteFill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pauseBtn: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
     playerWrapPip: { flex: 1, borderBottomWidth: 0 },
-    playerWrapKeyboard: { borderBottomWidth: 0 },
     playerChrome: {
       position: "absolute",
       top: 0,
@@ -452,6 +567,7 @@ function createStyles(colors: ThemeColors) {
       aspectRatio: 16 / 9,
       backgroundColor: "#000",
       overflow: "hidden",
+      flexShrink: 0,
     },
     playerSurfaceLandscape: {
       flex: 1,
@@ -464,9 +580,6 @@ function createStyles(colors: ThemeColors) {
       aspectRatio: undefined,
       width: "100%",
       height: "100%",
-    },
-    playerSurfaceKeyboard: {
-      aspectRatio: 2.4,
     },
     firstPartyFill: { flex: 1, backgroundColor: "#000" },
     hero: { width: "100%", height: "100%", backgroundColor: "#111" },

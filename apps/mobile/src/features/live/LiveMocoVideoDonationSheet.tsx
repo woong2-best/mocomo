@@ -51,7 +51,6 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [step, setStep] = useState<1 | 2>(1);
   const [urlInput, setUrlInput] = useState("");
-  const [message, setMessage] = useState("");
   const [startSec, setStartSec] = useState("0");
   const [playSec, setPlaySec] = useState("10");
   const [noRefundAccepted, setNoRefundAccepted] = useState(false);
@@ -71,7 +70,6 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
     if (!visible) {
       setStep(1);
       setUrlInput("");
-      setMessage("");
       setStartSec("0");
       setPlaySec("10");
       setNoRefundAccepted(false);
@@ -147,7 +145,6 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
       const res = await postLiveMocoDonation(channelId, {
         type: "VIDEO",
         media_url: url,
-        message: message.trim() || undefined,
         play_sec: seconds,
         start_sec: start,
       });
@@ -198,15 +195,6 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
-            />
-            <Text style={styles.label}>{t("m.live.message_optional")}</Text>
-            <TextInput
-              style={[styles.input, styles.textarea]}
-              value={message}
-              onChangeText={(t) => setMessage(t.slice(0, 500))}
-              placeholder={t("m.live.shown_on_stream")}
-              placeholderTextColor={colors.textMuted}
-              multiline
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Pressable style={[styles.submit, styles.submitGreen, quoteLoading && styles.submitDisabled]} disabled={quoteLoading} onPress={() => void goNext()}>
@@ -333,7 +321,6 @@ function createStyles(colors: ThemeColors) {
       fontWeight: "600",
       backgroundColor: colors.muted,
     },
-    textarea: { minHeight: 72, textAlignVertical: "top" },
     videoTitle: { fontSize: 14, fontWeight: "800", color: colors.text, marginTop: 8 },
     thumb: { width: "100%", aspectRatio: 16 / 9, borderRadius: radii.md, marginTop: 8, backgroundColor: colors.muted },
     row2: { flexDirection: "row", gap: 10, marginTop: 8 },

@@ -22,6 +22,8 @@ import type { RootStackParamList } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
 import { liveUi } from "@/features/live/live-ui";
 
+const LIVE_HUB_DISPLAY_MAX = 8;
+
 export function LiveListScreen() {
   const { t, locale } = useI18n();
   const copy = useMemo(() => liveUi(t), [t]);
@@ -71,12 +73,14 @@ export function LiveListScreen() {
   const searchNorm = searchQ.trim().toLowerCase();
 
   const visibleItems = useMemo(() => {
-    if (!searchNorm) return sortedItems;
-    return sortedItems.filter((item) => {
-      const nick = item.host?.username?.toLowerCase() ?? "";
-      const title = item.title.toLowerCase();
-      return nick.includes(searchNorm) || title.includes(searchNorm);
-    });
+    const filtered = !searchNorm
+      ? sortedItems
+      : sortedItems.filter((item) => {
+          const nick = item.host?.username?.toLowerCase() ?? "";
+          const title = item.title.toLowerCase();
+          return nick.includes(searchNorm) || title.includes(searchNorm);
+        });
+    return filtered.slice(0, LIVE_HUB_DISPLAY_MAX);
   }, [sortedItems, searchNorm]);
 
   const hasHubPages = (query.data?.pages?.length ?? 0) > 0;
@@ -161,7 +165,8 @@ export function LiveListScreen() {
             }}
             onEndReachedThreshold={0.5}
             onEndReached={() => {
-              if (query.hasNextPage && !query.isFetchingNextPage && !searchNorm) {
+              if (searchNorm || sortedItems.length >= LIVE_HUB_DISPLAY_MAX) return;
+              if (query.hasNextPage && !query.isFetchingNextPage) {
                 void query.fetchNextPage();
               }
             }}

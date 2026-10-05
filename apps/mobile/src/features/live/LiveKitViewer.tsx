@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, View } from "r
 import {
   AudioSession,
   LiveKitRoom,
+  useRoomContext,
   VideoTrack,
   useTracks,
   isTrackReference,
@@ -97,15 +98,40 @@ function RoomTracks({
   );
 }
 
+function PlaybackHold({ paused }: { paused: boolean }) {
+  const room = useRoomContext();
+  useEffect(() => {
+    const apply = (enabled: boolean) => {
+      room.remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((publication) => {
+          const media = publication.track?.mediaStreamTrack;
+          if (media) media.enabled = enabled;
+        });
+      });
+    };
+    apply(!paused);
+    const onSubscribed = () => apply(!paused);
+    room.on("trackSubscribed", onSubscribed);
+    return () => {
+      room.off("trackSubscribed", onSubscribed);
+      if (paused) apply(true);
+    };
+  }, [paused, room]);
+  return null;
+}
+
 export function LiveKitViewer({
   creds,
   onDisconnected,
   enablePip = true,
+  paused = false,
 }: {
   creds: LiveToken;
   onDisconnected?: () => void;
   /** iOS LiveKit VideoTrack auto-PiP when backgrounding. */
   enablePip?: boolean;
+  /** Locally holds remote audio and video without leaving the room. */
+  paused?: boolean;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
@@ -145,7 +171,8 @@ export function LiveKitViewer({
         options={{ adaptiveStream: { pixelDensity: "screen" } }}
         onDisconnected={onDisconnected}
       >
-        <RoomTracks audioOnly={!!creds.audioOnly} enableIosPip={!!enablePip} />
+        <PlaybackHold paused={paused} />
+        <RoomTracks audioOnly={!!creds.audioOnly} enableIosPip={!!enablePip && !paused} />
       </LiveKitRoom>
     </View>
   );

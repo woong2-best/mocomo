@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
@@ -25,6 +25,10 @@ type Props = {
   showChrome?: boolean;
   /** Capture taps (e.g. open LiveDetail) instead of interacting with the embed. */
   onPress?: () => void;
+  /** Local pause. YouTube uses the iframe API; other embeds pause a <video> if present. */
+  paused?: boolean;
+  /** Skip the poster tap and load the embed immediately. */
+  startImmediately?: boolean;
 };
 
 /** YouTube Error 153 needs a real HTTPS Referer / baseUrl ??use site origin first. */
@@ -99,10 +103,20 @@ function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): 
   const apiJs = `
   var player = null;
   var done = false;
+  window.__mocomoPaused = false;
+  window.__mocomoSetPaused = function(paused) {
+    window.__mocomoPaused = !!paused;
+    if (!player) return;
+    try {
+      if (window.__mocomoPaused && player.pauseVideo) player.pauseVideo();
+      else if (!window.__mocomoPaused && player.playVideo) player.playVideo();
+    } catch (e) {}
+  };
   var attempts = 0;
   var MAX = 8;
   var BEHIND = 15;
   function snap(force) {
+    if (window.__mocomoPaused) return;
     if (done || !player || typeof player.seekTo !== "function") return;
     try {
       var data = player.getVideoData ? player.getVideoData() : {};
@@ -139,10 +153,20 @@ function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): 
       },
       events: {
         onReady: function(e) {
+          if (window.__mocomoPaused) {
+            try { e.target.pauseVideo(); } catch (x) {}
+            return;
+          }
           snap(true);
           try { e.target.playVideo(); } catch (x) {}
         },
         onStateChange: function(e) {
+          if (window.__mocomoPaused) {
+            if (e.data === 1 && player && player.pauseVideo) {
+              try { player.pauseVideo(); } catch (x) {}
+            }
+            return;
+          }
           if (e.data === 1 || e.data === 3) snap(false);
         }
       }
@@ -185,6 +209,11 @@ function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): 
  * External platform player only ??no chat/donation overlays on the video.
  * Mirrors web ExternalLivePlayer (iframe sibling panel pattern).
  */
+function playbackJs(paused: boolean): string {
+  const verb = paused ? "pause" : "play";
+  return `(function(){try{if(window.__mocomoSetPaused)window.__mocomoSetPaused(${paused ? "true" : "false"});var v=document.querySelector("video");if(v&&v.${verb})v.${verb}();}catch(e){}})();true;`;
+}
+
 export function ExternalLivePlayer({
   external,
   title,
@@ -192,13 +221,16 @@ export function ExternalLivePlayer({
   active = true,
   showChrome = false,
   onPress,
+  paused = false,
+  startImmediately = false,
 }: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [failed, setFailed] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(startImmediately);
+  const webRef = useRef<WebView>(null);
   const stillUrl = freshLiveStill(posterUrl) ?? youtubeStillFromEmbed(external.embedUrl);
   const origin = useMemo(() => embedRefererOrigin(), []);
   const rawEmbed = external.embedUrl;
@@ -209,6 +241,15 @@ export function ExternalLivePlayer({
       : withTwitchEmbedParams(rawEmbed)
     : null;
   const showEmbed = active && started && external.embedSupported && !!embedUrl && !failed;
+
+  useEffect(() => {
+    if (startImmediately) setStarted(true);
+  }, [startImmediately]);
+
+  useEffect(() => {
+    if (!showEmbed) return;
+    webRef.current?.injectJavaScript(playbackJs(paused));
+  }, [paused, showEmbed]);
 
   const source = useMemo(() => {
     if (!embedUrl) return undefined;
@@ -255,8 +296,12 @@ export function ExternalLivePlayer({
         ) : showEmbed && source ? (
           <View style={styles.webview} pointerEvents={onPress ? "none" : "auto"}>
             <WebView
+              ref={webRef}
               key={`${external.provider}-${embedUrl}`}
               source={source}
+              onLoadEnd={() => {
+                webRef.current?.injectJavaScript(playbackJs(paused));
+              }}
               style={styles.webview}
               allowsFullscreenVideo
               allowsInlineMediaPlayback
@@ -329,7 +374,7 @@ function createStyles(_colors: ThemeColors) {
       backgroundColor: "#000",
     },
     webview: { flex: 1, backgroundColor: "#000", opacity: 0.99 },
-    poster: { ...StyleSheet.absoluteFillObject, backgroundColor: "#000" },
+    poster: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
     fallback: {
       flex: 1,
       alignItems: "center",

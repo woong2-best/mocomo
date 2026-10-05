@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
 import { formatMocoDisplay } from "@/lib/gems/display";
 import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
@@ -57,7 +56,6 @@ export function MocoVideoDonationDialog({
   const setOpen = controlled ? (onOpenChangeControlled ?? (() => {})) : setOpenUncontrolled;
   const [step, setStep] = useState<1 | 2>(1);
   const [urlInput, setUrlInput] = useState("");
-  const [message, setMessage] = useState("");
   const [startSec, setStartSec] = useState(0);
   const [playSec, setPlaySec] = useState(10);
   const [noRefundAccepted, setNoRefundAccepted] = useState(false);
@@ -70,7 +68,6 @@ export function MocoVideoDonationDialog({
   const resetForm = useCallback(() => {
     setStep(1);
     setUrlInput("");
-    setMessage("");
     setStartSec(0);
     setPlaySec(10);
     setNoRefundAccepted(false);
@@ -162,7 +159,6 @@ export function MocoVideoDonationDialog({
           streamer_id: streamerId,
           type: "VIDEO",
           media_url: url,
-          message: message.trim() || undefined,
           play_sec: playSec,
           start_sec: startSec,
         }),
@@ -223,17 +219,6 @@ export function MocoVideoDonationDialog({
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=…"
-                  className="border-2 border-[#1B3A6B]"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>{t("live.donation.video.messageOptional")}</Label>
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={t("live.donation.video.messagePlaceholder")}
-                  maxLength={500}
-                  rows={2}
                   className="border-2 border-[#1B3A6B]"
                 />
               </div>

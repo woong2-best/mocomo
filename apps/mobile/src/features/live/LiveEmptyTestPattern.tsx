@@ -1,12 +1,9 @@
 import { memo } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
-import { Image } from "expo-image";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useI18n } from "@/i18n/I18nProvider";
 import { liveUi } from "@/features/live/live-ui";
 
-const OFF_AIR_TV = require("../../../assets/live/off-air-tv.png");
-
-/** Off-air hero. The TV artwork is shown unchanged inside the 16:9 stage. */
+/** Off-air hero — simple gray copy instead of TV artwork. */
 function LiveEmptyTestPatternInner() {
   const { t } = useI18n();
   const copy = liveUi(t);
@@ -15,13 +12,7 @@ function LiveEmptyTestPatternInner() {
 
   return (
     <View style={[styles.stage, { width, height }]}>
-      <Image
-        source={OFF_AIR_TV}
-        style={styles.photo}
-        contentFit="contain"
-        contentPosition="center"
-        accessibilityLabel={copy.noStreamsEmpty}
-      />
+      <Text style={styles.message}>{copy.noLiveNow}</Text>
     </View>
   );
 }
@@ -33,9 +24,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 24,
   },
-  photo: {
-    width: "100%",
-    height: "100%",
+  message: {
+    color: "#9CA3AF",
+    fontSize: 15,
+    fontWeight: "600",
+    textAlign: "center",
+    lineHeight: 22,
   },
 });
