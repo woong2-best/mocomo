@@ -346,9 +346,10 @@ export function ExternalLivePlayer({
             title={title}
             src={playerSrc ?? embedUrl ?? undefined}
             className="pointer-events-none absolute inset-0 h-full w-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-            allowFullScreen
+            style={{ pointerEvents: "none" }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             tabIndex={-1}
+            inert
             referrerPolicy="strict-origin-when-cross-origin"
             onLoad={() => {
               if (provider !== "YOUTUBE") return;
@@ -363,19 +364,31 @@ export function ExternalLivePlayer({
           />
         ) : null}
         {canPlay && playbackStarted ? (
-          <div className="absolute inset-0 z-30">
-            <button
-              type="button"
-              className="absolute inset-0 cursor-default border-0 bg-transparent p-0"
-              aria-label={chromeOpen ? t("live.embed.hideControls") : t("live.embed.showControls")}
-              onClick={() => setChromeOpen((open) => !open)}
-            />
+          <div
+            className="absolute inset-0 z-30 touch-none bg-transparent"
+            role="button"
+            tabIndex={0}
+            aria-label={chromeOpen ? t("live.embed.hideControls") : t("live.embed.showControls")}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if ((event.target as HTMLElement).closest("[data-embed-chrome]")) return;
+              setChromeOpen((open) => !open);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setChromeOpen((open) => !open);
+              }
+            }}
+          >
             {chromeOpen ? (
-              <div className="pointer-events-none absolute inset-0">
-                <div className="pointer-events-none absolute inset-0 bg-black/25" />
+              <div className="pointer-events-none absolute inset-0" data-embed-chrome>
                 <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-2 sm:p-3">
                   <button
                     type="button"
+                    data-embed-chrome
+                    onPointerDown={(event) => event.stopPropagation()}
                     onClick={leavePlayer}
                     className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
                     aria-label={t("common.back")}
@@ -387,6 +400,8 @@ export function ExternalLivePlayer({
                       <Link
                         href={`/u/${profileSlug}`}
                         prefetch
+                        data-embed-chrome
+                        onPointerDown={(event) => event.stopPropagation()}
                         className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#6D6E70] text-white"
                         aria-label={t("settings.profile")}
                       >
@@ -397,6 +412,8 @@ export function ExternalLivePlayer({
                       href={watchUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      data-embed-chrome
+                      onPointerDown={(event) => event.stopPropagation()}
                       title={t("live.s1gvpdd4")}
                       className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
                     >
@@ -404,6 +421,8 @@ export function ExternalLivePlayer({
                     </a>
                     <button
                       type="button"
+                      data-embed-chrome
+                      onPointerDown={(event) => event.stopPropagation()}
                       onClick={() => void toggleFullscreen()}
                       className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
                       aria-label={immersive ? t("reels.s9nk1fb") : t("live.sqkc2hc")}
@@ -414,6 +433,8 @@ export function ExternalLivePlayer({
                 </div>
                 <button
                   type="button"
+                  data-embed-chrome
+                  onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => setPaused((value) => !value)}
                   className="pointer-events-auto absolute left-1/2 top-1/2 inline-flex h-[68px] w-[68px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white"
                   aria-label={paused ? t("media.sz0s1") : t("media.spzasrv")}

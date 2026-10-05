@@ -93,6 +93,17 @@ function withTwitchEmbedParams(embedUrl: string): string {
   }
 }
 
+const TOUCH_SHIELD_CSS = `#mocomo-shield{position:absolute;inset:0;z-index:2147483647;background:transparent;touch-action:none}`;
+const TOUCH_SHIELD_JS = `(function(){
+  var s=document.getElementById("mocomo-shield");
+  if(!s) return;
+  function stop(e){ e.preventDefault(); e.stopPropagation(); }
+  ["touchstart","touchmove","touchend","touchcancel","pointerdown","pointerup","mousedown","mouseup","click","dblclick","contextmenu"].forEach(function(t){
+    s.addEventListener(t, stop, {capture:true, passive:false});
+    document.addEventListener(t, stop, {capture:true, passive:false});
+  });
+})();`;
+
 function youtubeVideoIdFromEmbed(url: string): string | null {
   try {
     const parts = new URL(url).pathname.split("/").filter(Boolean);
@@ -105,9 +116,7 @@ function youtubeVideoIdFromEmbed(url: string): string | null {
 }
 
 function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): string {
-  const safeTitle = title.replace(/[<>&"']/g, "");
   const videoId = youtubeVideoIdFromEmbed(embedUrl);
-  const src = embedUrl.replace(/"/g, "&quot;");
   const apiJs = `
   var player = null;
   var done = false;
@@ -195,15 +204,7 @@ function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): 
   `;
 
   if (!videoId) {
-    return `<!DOCTYPE html><html><head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<style>
-  html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
-  iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-</style></head><body>
-<iframe title="${safeTitle}" src="${src}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
-</body></html>`;
+    return blockedIframeHtml(embedUrl, title);
   }
 
   return `<!DOCTYPE html><html><head>
@@ -212,12 +213,34 @@ function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): 
 <style>
   html,body,#player{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
   #player,#player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  iframe,#player iframe{pointer-events:none !important}
   .veil-br{position:absolute;right:0;bottom:0;width:96px;height:36px;background:linear-gradient(270deg,rgba(0,0,0,.55),transparent);pointer-events:none;z-index:2}
+  ${TOUCH_SHIELD_CSS}
 </style></head><body>
 <div id="player"></div>
 <div class="veil-br"></div>
+<div id="mocomo-shield"></div>
+<script>${TOUCH_SHIELD_JS}</script>
 <script>${apiJs}</script>
 <script src="https://www.youtube.com/iframe_api"></script>
+</body></html>`;
+}
+
+/** Full-page iframe plus an inner shield so the platform player never sees a tap. */
+function blockedIframeHtml(embedUrl: string, title: string): string {
+  const safeTitle = title.replace(/[<>&"']/g, "");
+  const src = embedUrl.replace(/"/g, "&quot;");
+  return `<!DOCTYPE html><html><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden;touch-action:none}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none !important}
+  ${TOUCH_SHIELD_CSS}
+</style></head><body>
+<iframe title="${safeTitle}" src="${src}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" tabindex="-1"></iframe>
+<div id="mocomo-shield"></div>
+<script>${TOUCH_SHIELD_JS}</script>
 </body></html>`;
 }
 
@@ -290,18 +313,11 @@ export function ExternalLivePlayer({
 
   const source = useMemo(() => {
     if (!embedUrl) return undefined;
-    if (youtube) {
-      return {
-        html: youtubeEmbedHtml(embedUrl, title, origin),
-        baseUrl: origin.endsWith("/") ? origin : `${origin}/`,
-      };
-    }
     return {
-      uri: embedUrl,
-      headers: {
-        Referer: origin,
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-      },
+      html: youtube
+        ? youtubeEmbedHtml(embedUrl, title, origin)
+        : blockedIframeHtml(embedUrl, title),
+      baseUrl: origin.endsWith("/") ? origin : `${origin}/`,
     };
   }, [embedUrl, origin, title, youtube]);
 
@@ -331,10 +347,11 @@ export function ExternalLivePlayer({
             )}
           </Pressable>
         ) : showEmbed && source ? (
-          <View style={styles.webview} pointerEvents="box-none">
+          <View style={styles.webview}>
             <View
               style={StyleSheet.absoluteFill}
-              pointerEvents={onPress || onSurfacePress ? "none" : "auto"}
+              pointerEvents="none"
+              collapsable={false}
             >
               <WebView
                 ref={webRef}
@@ -344,7 +361,10 @@ export function ExternalLivePlayer({
                   webRef.current?.injectJavaScript(playbackJs(paused));
                 }}
                 style={styles.webview}
-                allowsFullscreenVideo
+                pointerEvents="none"
+                scrollEnabled={false}
+                nestedScrollEnabled={false}
+                allowsFullscreenVideo={false}
                 allowsInlineMediaPlayback
                 mediaPlaybackRequiresUserAction={false}
                 javaScriptEnabled
@@ -361,14 +381,16 @@ export function ExternalLivePlayer({
                 }
               />
             </View>
-            {onSurfacePress ? (
-              <Pressable
-                style={[StyleSheet.absoluteFill, styles.surfaceHit]}
-                onPress={onSurfacePress}
-                accessibilityRole="button"
-                accessibilityLabel={title}
-              />
-            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={title}
+              collapsable={false}
+              style={styles.touchShield}
+              onPress={() => {
+                if (onSurfacePress) onSurfacePress();
+                else if (onPress) onPress();
+              }}
+            />
             {controls ? (
               <View pointerEvents="box-none" style={styles.controlsLayer}>
                 {controls}
@@ -429,8 +451,13 @@ function createStyles(_colors: ThemeColors) {
       backgroundColor: "#000",
     },
     webview: { flex: 1, backgroundColor: "#000", opacity: 0.99 },
-    surfaceHit: { zIndex: 2, elevation: 6 },
-    controlsLayer: { ...StyleSheet.absoluteFill, zIndex: 3, elevation: 8 },
+    touchShield: {
+      ...StyleSheet.absoluteFill,
+      zIndex: 20,
+      elevation: 20,
+      backgroundColor: "transparent",
+    },
+    controlsLayer: { ...StyleSheet.absoluteFill, zIndex: 30, elevation: 24 },
     poster: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
     fallback: {
       flex: 1,

@@ -424,7 +424,6 @@ export function LiveDetailScreen() {
                 controls={
                   embedChrome ? (
                     <>
-                      <View pointerEvents="none" style={styles.embedScrim} />
                       <View
                         style={[
                           styles.playerChrome,
@@ -628,7 +627,6 @@ function createStyles(colors: ThemeColors) {
     videoFrame: { overflow: "hidden", backgroundColor: "#000" },
     videoFrameFill: { ...StyleSheet.absoluteFill },
     tapCatch: { ...StyleSheet.absoluteFill, zIndex: 4 },
-    embedScrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.28)" },
     landscapeOverlay: { ...StyleSheet.absoluteFill, zIndex: 6, elevation: 8 },
     pauseSlot: {
       ...StyleSheet.absoluteFill,
