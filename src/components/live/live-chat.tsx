@@ -105,7 +105,13 @@ function LiveChatInner({
   className?: string;
   hideDonationControls?: boolean;
 }) {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
+  const [sessionReady, setSessionReady] = useState(false);
+  useEffect(() => {
+    setSessionReady(true);
+  }, []);
+  const showComposer = sessionReady && sessionStatus !== "loading" && !!session?.user;
+  const showSignIn = sessionReady && sessionStatus !== "loading" && !session?.user;
   const username = session?.user?.username ?? session?.user?.name ?? "me";
   const {
     messages,
@@ -385,7 +391,7 @@ function LiveChatInner({
         })}
         <div ref={bottomRef} />
       </div>
-      {session?.user ? (
+      {showComposer ? (
         <div className="shrink-0 space-y-2 border-t border-border/60 p-2.5">
           {hideDonationControls ? null : (
             <VideoDonationRoomControls channelId={channelId} isHost={isHost} />
@@ -426,10 +432,12 @@ function LiveChatInner({
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
-      ) : (
+      ) : showSignIn ? (
         <p className="shrink-0 p-3 text-center text-xs text-muted-foreground">
           {t("live.s1vpyvyp")}
         </p>
+      ) : (
+        <div className="h-[53px] shrink-0 border-t border-border/60" />
       )}
     </div>
   );

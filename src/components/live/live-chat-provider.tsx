@@ -54,7 +54,8 @@ export function LiveChatProvider({
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [historyError, setHistoryError] = useState("");
   const [chatOverlayEnabled, setChatOverlayEnabledState] = useState(chatOverlayInitial);
-  const lastSyncRef = useRef<string>(new Date(0).toISOString());
+  const lastSyncRef = useRef<string>("");
+  const initialOkRef = useRef(false);
 
   const mergeMessages = useCallback((incoming: LiveChatMessage[]) => {
     if (incoming.length === 0) return;
@@ -119,25 +120,42 @@ export function LiveChatProvider({
 
   useEffect(() => {
     let cancelled = false;
+    let attempt = 0;
     setHistoryError("");
-    lastSyncRef.current = new Date(0).toISOString();
-    fetch(`/api/live/${channelId}/chat?initial=1`, { credentials: "include", cache: "no-store" })
-      .then(async (res) => {
+    lastSyncRef.current = "";
+    initialOkRef.current = false;
+
+    async function loadInitial() {
+      try {
+        const res = await fetch(`/api/live/${channelId}/chat?initial=1`, {
+          credentials: "include",
+          cache: "no-store",
+        });
         if (cancelled) return;
-        const body = await res.json();
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 403 && attempt < 4) {
+          attempt += 1;
+          window.setTimeout(() => {
+            if (!cancelled) void loadInitial();
+          }, 400 * attempt);
+          return;
+        }
         if (!res.ok || !body.ok) {
           setHistoryError(t("live.s9lciv9"));
           return;
         }
         const list = ensureArray<LiveChatMessage>(body.messages);
         setMessages(list.slice(-MAX_MESSAGES));
-        if (list.length > 0) {
-          lastSyncRef.current = new Date(list[list.length - 1].at).toISOString();
-        }
-      })
-      .catch(() => {
+        lastSyncRef.current =
+          list.length > 0 ? new Date(list[list.length - 1]!.at).toISOString() : new Date().toISOString();
+        initialOkRef.current = true;
+        setHistoryError("");
+      } catch {
         if (!cancelled) setHistoryError(t("live.sp4bxvm"));
-      });
+      }
+    }
+
+    void loadInitial();
     return () => {
       cancelled = true;
     };
@@ -148,6 +166,7 @@ export function LiveChatProvider({
   }, [socket, appendMessage, onViewerCount, removeMessage]);
 
   const poll = useCallback(async () => {
+    if (!initialOkRef.current || !lastSyncRef.current) return;
     try {
       const res = await fetch(
         `/api/live/${channelId}/chat?since=${encodeURIComponent(lastSyncRef.current)}`,

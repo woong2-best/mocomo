@@ -11,6 +11,7 @@ import { LiveChat } from "@/components/live/live-chat";
 import { LiveBrowserStudio } from "@/components/live/live-browser-studio";
 import { LiveHostDirectorPanel } from "@/components/live/live-host-director-panel";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
+import { LiveClientMount } from "@/components/live/live-client-mount";
 import { useLiveCollabState } from "@/hooks/use-live-collab-state";
 import { liveCategoryLabel } from "@/lib/live-categories";
 import { Button } from "@/components/ui/button";
@@ -292,6 +293,7 @@ function LiveHostThreeColumn({
           )}
         >
           <LiveStudioErrorBoundary channelId={channelId} inline>
+            <LiveClientMount>
             <LiveHostDirectorPanel
               channelId={channelId}
               viewerCount={viewerCount}
@@ -303,6 +305,7 @@ function LiveHostThreeColumn({
               isNsfw={isNsfw}
               onPinnedChange={setPinnedMessage}
             />
+            </LiveClientMount>
           </LiveStudioErrorBoundary>
         </aside>
         <aside
@@ -312,6 +315,7 @@ function LiveHostThreeColumn({
           )}
         >
           <LiveStudioErrorBoundary channelId={channelId} inline>
+            <LiveClientMount>
             <LiveChat
               channelId={channelId}
               viewerCount={viewerCount}
@@ -325,6 +329,7 @@ function LiveHostThreeColumn({
               hideDonationControls
               className="h-full min-h-0"
             />
+            </LiveClientMount>
           </LiveStudioErrorBoundary>
         </aside>
       </div>

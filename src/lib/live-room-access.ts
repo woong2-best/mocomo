@@ -64,25 +64,27 @@ export async function resolveLiveChannelAccess(
   if (!channel) return { allowed: false, reason: "NOT_FOUND" };
 
   const isHost = channel.createdBy === userId;
+  const liveStatus = channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED");
+
+  if (isHost) {
+    if (liveStatus === "ENDED") {
+      return { allowed: false, reason: "ENDED" };
+    }
+    return {
+      allowed: true,
+      isHost: true,
+      hostUserId: channel.createdBy,
+      canPublish: true,
+    };
+  }
+
   const active = isBroadcastActive({
     isLive: channel.isLive,
-    liveStatus: channel.liveStatus ?? (channel.isLive ? "LIVE" : "ENDED"),
+    liveStatus,
   });
 
   if (!active) {
-    const hostStudio =
-      isHost &&
-      channel.liveStatus !== "ENDED" &&
-      (channel.liveStatus === "LIVE" || channel.liveStatus === "SCHEDULED");
-    if (hostStudio) {
-      return {
-        allowed: true,
-        isHost: true,
-        hostUserId: channel.createdBy,
-        canPublish: true,
-      };
-    }
-    return { allowed: false, reason: isHost ? "ENDED" : "NOT_LIVE" };
+    return { allowed: false, reason: "NOT_LIVE" };
   }
 
   const linked = channel.linkedChatRoom ?? null;
@@ -98,16 +100,12 @@ export async function resolveLiveChannelAccess(
       if (!chatMember) return { allowed: false, reason: "NOT_MEMBER" };
       return {
         allowed: true,
-        isHost: true,
+        isHost: false,
         hostUserId: channel.createdBy,
       };
     } catch (e) {
       console.warn("[resolveLiveChannelAccess] chat member check failed", e);
     }
-  }
-
-  if (isHost) {
-    return { allowed: true, isHost: true, hostUserId: channel.createdBy, canPublish: true };
   }
 
   const member = await db.voiceMember.findUnique({

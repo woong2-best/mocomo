@@ -67,27 +67,32 @@ function DirectorSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <details
-      open={open}
-      onToggle={(e) => setOpen(e.currentTarget.open)}
-      className="group rounded-xl border border-border/70 bg-card/80"
-    >
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+    <section className="rounded-xl border border-border/70 bg-card/80">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
         <Icon className="h-3.5 w-3.5 shrink-0 text-folk-cobalt" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold tracking-wide text-foreground">{title}</p>
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs font-semibold tracking-wide text-foreground">{title}</span>
           {hint ? (
-            <p className="text-[10px] leading-snug text-muted-foreground">{hint}</p>
+            <span className="block text-[10px] leading-snug text-muted-foreground">{hint}</span>
           ) : null}
-        </div>
-        <span className="text-[10px] text-muted-foreground transition-transform group-open:rotate-180">
+        </span>
+        <span
+          className={cn(
+            "text-[10px] text-muted-foreground transition-transform",
+            open && "rotate-180"
+          )}
+        >
           ▾
         </span>
-      </summary>
+      </button>
       {open ? (
         <div className="space-y-2 border-t border-border/60 px-3 py-3">{children}</div>
       ) : null}
-    </details>
+    </section>
   );
 }
 

@@ -13,6 +13,7 @@ import { LiveSupportProvider } from "@/components/live/live-support-provider";
 import { LiveDonationBar } from "@/components/live/live-donation-bar";
 import { LiveHostDirectorPanel } from "@/components/live/live-host-director-panel";
 import { LiveStudioErrorBoundary } from "@/components/live/live-studio-error-boundary";
+import { LiveClientMount } from "@/components/live/live-client-mount";
 import { ensureArray } from "@/lib/ensure-array";
 import { cn } from "@/lib/utils";
 import type { LiveExternalProvider } from "@/lib/live-external/types";
@@ -222,6 +223,7 @@ export function ExternalLiveRoom({
                 )}
               >
                 <LiveStudioErrorBoundary channelId={channelId} inline>
+                  <LiveClientMount>
                   <LiveHostDirectorPanel
                     channelId={channelId}
                     viewerCount={viewerCount}
@@ -229,6 +231,7 @@ export function ExternalLiveRoom({
                     tipTotalKrw={tipTotalKrw}
                     onPinnedChange={setHostPin}
                   />
+                  </LiveClientMount>
                 </LiveStudioErrorBoundary>
               </aside>
               <aside
@@ -238,7 +241,7 @@ export function ExternalLiveRoom({
                 )}
               >
                 <LiveStudioErrorBoundary channelId={channelId} inline>
-                  {chat}
+                  <LiveClientMount>{chat}</LiveClientMount>
                 </LiveStudioErrorBoundary>
               </aside>
             </div>
