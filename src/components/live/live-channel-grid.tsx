@@ -10,6 +10,7 @@ import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
 import { LiveStillPoster } from "@/components/live/live-still-poster";
+import { LiveThumbnailLiveBadge } from "@/components/live/live-thumbnail-live-badge";
 import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import type { LiveStreamCategory, SupportTierLevel } from "@prisma/client";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -32,10 +33,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
         />
         {isLiveAdultChannel(ch) ? <LiveAdultWatermark /> : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
-        <span className="live-badge absolute top-2.5 left-2.5 !bg-emerald-600">
-          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-          LIVE
-        </span>
+        <LiveThumbnailLiveBadge className="absolute top-2.5 left-2.5" />
         <div className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white tabular-nums">
           <Eye className="h-3 w-3" />
           {ch.viewerCount}

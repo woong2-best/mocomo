@@ -19,6 +19,7 @@ import type { LiveHubChannel, LiveHubHost } from "@/lib/live-hub-data";
 import { wrapIndex } from "@/lib/live-bead-slots";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
+import { LiveThumbnailLiveBadge } from "@/components/live/live-thumbnail-live-badge";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 
@@ -402,10 +403,7 @@ function LiveHeroCard({ channel, host }: { channel: LiveHubChannel; host?: LiveH
         <LiveStillPoster src={channel.thumbnailUrl} />
         {isLiveAdultChannel(channel) ? <LiveAdultWatermark /> : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/15" />
-        <span className="live-badge absolute top-2.5 left-2.5 !bg-emerald-600">
-          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-          LIVE
-        </span>
+        <LiveThumbnailLiveBadge className="absolute top-2.5 left-2.5" />
         <div className="absolute bottom-2.5 left-2.5 right-2.5 space-y-0.5">
           {host ? (
             <p className="text-xs font-bold text-white truncate sm:text-sm">@{host.username}</p>
