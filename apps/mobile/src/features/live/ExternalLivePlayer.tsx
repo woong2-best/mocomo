@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
@@ -29,6 +29,14 @@ type Props = {
   paused?: boolean;
   /** Skip the poster tap and load the embed immediately. */
   startImmediately?: boolean;
+  /**
+   * Transparent hit target over the embed. The WebView does not receive touches.
+   * Controls, when set, sit above that target.
+   */
+  onSurfacePress?: () => void;
+  controls?: ReactNode;
+  /** Embed cannot play (unsupported, missing URL, or load error). */
+  onPlaybackFailed?: () => void;
 };
 
 /** YouTube Error 153 needs a real HTTPS Referer / baseUrl ??use site origin first. */
@@ -109,7 +117,15 @@ function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): 
     if (!player) return;
     try {
       if (window.__mocomoPaused && player.pauseVideo) player.pauseVideo();
-      else if (!window.__mocomoPaused && player.playVideo) player.playVideo();
+      else if (!window.__mocomoPaused) {
+        var data = player.getVideoData ? player.getVideoData() : {};
+        if (!data || data.isLive !== false) {
+          done = false;
+          attempts = 0;
+          if (player.seekTo) player.seekTo(1e10, true);
+        }
+        if (player.playVideo) player.playVideo();
+      }
     } catch (e) {}
   };
   var attempts = 0;
@@ -210,8 +226,11 @@ function youtubeEmbedHtml(embedUrl: string, title: string, pageOrigin: string): 
  * Mirrors web ExternalLivePlayer (iframe sibling panel pattern).
  */
 function playbackJs(paused: boolean): string {
-  const verb = paused ? "pause" : "play";
-  return `(function(){try{if(window.__mocomoSetPaused)window.__mocomoSetPaused(${paused ? "true" : "false"});var v=document.querySelector("video");if(v&&v.${verb})v.${verb}();}catch(e){}})();true;`;
+  if (paused) {
+    return `(function(){try{if(window.__mocomoSetPaused)window.__mocomoSetPaused(true);var v=document.querySelector("video");if(v&&v.pause)v.pause();}catch(e){}})();true;`;
+  }
+  // YouTube seeks to the live head inside __mocomoSetPaused. Other players reload instead.
+  return `(function(){try{if(window.__mocomoSetPaused)window.__mocomoSetPaused(false);}catch(e){}})();true;`;
 }
 
 export function ExternalLivePlayer({
@@ -223,6 +242,9 @@ export function ExternalLivePlayer({
   onPress,
   paused = false,
   startImmediately = false,
+  onSurfacePress,
+  controls,
+  onPlaybackFailed,
 }: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => liveUi(t), [t]);
@@ -230,6 +252,8 @@ export function ExternalLivePlayer({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [failed, setFailed] = useState(false);
   const [started, setStarted] = useState(startImmediately);
+  const [liveJoin, setLiveJoin] = useState(0);
+  const wasPausedRef = useRef(paused);
   const webRef = useRef<WebView>(null);
   const stillUrl = freshLiveStill(posterUrl) ?? youtubeStillFromEmbed(external.embedUrl);
   const origin = useMemo(() => embedRefererOrigin(), []);
@@ -245,6 +269,19 @@ export function ExternalLivePlayer({
   useEffect(() => {
     if (startImmediately) setStarted(true);
   }, [startImmediately]);
+
+  useEffect(() => {
+    if (!active || !onPlaybackFailed) return;
+    if (failed || !external.embedSupported || !external.embedUrl) onPlaybackFailed();
+  }, [active, external.embedSupported, external.embedUrl, failed, onPlaybackFailed]);
+
+  useEffect(() => {
+    if (wasPausedRef.current && !paused && !youtube) {
+      // Twitch/CHZZK keep the paused timestamp if the same page just calls play().
+      setLiveJoin((n) => n + 1);
+    }
+    wasPausedRef.current = paused;
+  }, [paused, youtube]);
 
   useEffect(() => {
     if (!showEmbed) return;
@@ -294,31 +331,49 @@ export function ExternalLivePlayer({
             )}
           </Pressable>
         ) : showEmbed && source ? (
-          <View style={styles.webview} pointerEvents={onPress ? "none" : "auto"}>
-            <WebView
-              ref={webRef}
-              key={`${external.provider}-${embedUrl}`}
-              source={source}
-              onLoadEnd={() => {
-                webRef.current?.injectJavaScript(playbackJs(paused));
-              }}
-              style={styles.webview}
-              allowsFullscreenVideo
-              allowsInlineMediaPlayback
-              mediaPlaybackRequiresUserAction={false}
-              javaScriptEnabled
-              domStorageEnabled
-              setSupportMultipleWindows={false}
-              originWhitelist={["*"]}
-              mixedContentMode="always"
-              onHttpError={() => setFailed(true)}
-              onError={() => setFailed(true)}
-              userAgent={
-                Platform.OS === "ios"
-                  ? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-                  : "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-              }
-            />
+          <View style={styles.webview} pointerEvents="box-none">
+            <View
+              style={StyleSheet.absoluteFill}
+              pointerEvents={onPress || onSurfacePress ? "none" : "auto"}
+            >
+              <WebView
+                ref={webRef}
+                key={`${external.provider}-${embedUrl}-${liveJoin}`}
+                source={source}
+                onLoadEnd={() => {
+                  webRef.current?.injectJavaScript(playbackJs(paused));
+                }}
+                style={styles.webview}
+                allowsFullscreenVideo
+                allowsInlineMediaPlayback
+                mediaPlaybackRequiresUserAction={false}
+                javaScriptEnabled
+                domStorageEnabled
+                setSupportMultipleWindows={false}
+                originWhitelist={["*"]}
+                mixedContentMode="always"
+                onHttpError={() => setFailed(true)}
+                onError={() => setFailed(true)}
+                userAgent={
+                  Platform.OS === "ios"
+                    ? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                    : "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                }
+              />
+            </View>
+            {onSurfacePress ? (
+              <Pressable
+                style={[StyleSheet.absoluteFill, styles.surfaceHit]}
+                onPress={onSurfacePress}
+                accessibilityRole="button"
+                accessibilityLabel={title}
+              />
+            ) : null}
+            {controls ? (
+              <View pointerEvents="box-none" style={styles.controlsLayer}>
+                {controls}
+              </View>
+            ) : null}
           </View>
         ) : (
           <View style={styles.fallback}>
@@ -374,6 +429,8 @@ function createStyles(_colors: ThemeColors) {
       backgroundColor: "#000",
     },
     webview: { flex: 1, backgroundColor: "#000", opacity: 0.99 },
+    surfaceHit: { zIndex: 2, elevation: 6 },
+    controlsLayer: { ...StyleSheet.absoluteFill, zIndex: 3, elevation: 8 },
     poster: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
     fallback: {
       flex: 1,

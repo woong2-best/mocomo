@@ -119,6 +119,11 @@ export function withYoutubeLiveEmbedParams(embedUrl: string, origin?: string | n
     u.searchParams.set("autoplay", "1");
     u.searchParams.set("playsinline", "1");
     u.searchParams.set("enablejsapi", "1");
+    u.searchParams.set("controls", "0");
+    u.searchParams.set("fs", "0");
+    u.searchParams.set("disablekb", "1");
+    u.searchParams.set("iv_load_policy", "3");
+    u.searchParams.set("cc_load_policy", "0");
     if (origin) u.searchParams.set("origin", origin);
     return u.toString();
   } catch {

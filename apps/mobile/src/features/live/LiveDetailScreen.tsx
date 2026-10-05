@@ -53,6 +53,8 @@ export function LiveDetailScreen() {
   const [viewerCount, setViewerCount] = useState(0);
   const [chatOpen, setChatOpen] = useState(true);
   const [landscapeChrome, setLandscapeChrome] = useState(false);
+  const [embedChrome, setEmbedChrome] = useState(false);
+  const [embedBlocked, setEmbedBlocked] = useState(false);
   const [paused, setPaused] = useState(false);
   const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
   const wasLandscape = useRef(false);
@@ -67,6 +69,12 @@ export function LiveDetailScreen() {
   const item = query.data?.item;
 
   const onViewerCount = useCallback((n: number) => setViewerCount(n), []);
+  const markEmbedBlocked = useCallback(() => setEmbedBlocked(true), []);
+
+  useEffect(() => {
+    setEmbedBlocked(false);
+    setEmbedChrome(false);
+  }, [route.params.id]);
 
   useLayoutEffect(() => {
     // Portrait + both landscapes. Never upside-down (360° invert).
@@ -79,7 +87,7 @@ export function LiveDetailScreen() {
   const enterLandscape = useCallback(() => {
     setChatOpen(false);
     setLandscapeChrome(false);
-    setPaused(false);
+    setEmbedChrome(false);
     forcedLandscape.current = true;
     navigation.setOptions({ orientation: "landscape" });
   }, [navigation]);
@@ -105,20 +113,28 @@ export function LiveDetailScreen() {
     if (landscape && !wasLandscape.current) {
       setChatOpen(false);
       setLandscapeChrome(false);
+      setEmbedChrome(false);
     }
     if (!landscape) {
-      setPaused(false);
+      if (!item?.isExternal) setPaused(false);
       setLandscapeChrome(false);
+      setEmbedChrome(false);
       setStageSize({ w: 0, h: 0 });
     }
     wasLandscape.current = landscape;
-  }, [landscape]);
+  }, [landscape, item?.isExternal]);
 
   useEffect(() => {
     if (!landscape || !landscapeChrome) return;
     const id = setTimeout(() => setLandscapeChrome(false), 4000);
     return () => clearTimeout(id);
   }, [landscape, landscapeChrome, paused, chatOpen]);
+
+  useEffect(() => {
+    if (!embedChrome || paused) return;
+    const id = setTimeout(() => setEmbedChrome(false), 4000);
+    return () => clearTimeout(id);
+  }, [embedChrome, paused]);
 
   const startFirstParty = async () => {
     if (item && !item.isHost && isLiveAdultItem(item)) {
@@ -210,6 +226,8 @@ export function LiveDetailScreen() {
     landscape &&
     !inPip &&
     ((!!item.isExternal && !!item.external && !adultBlocked) || (watchingFirstParty && !!creds));
+  const embedControls =
+    !!item.isExternal && !!item.external && !adultBlocked && !inPip && !embedBlocked;
   const fittedFrame = (() => {
     const w = stageSize.w;
     const h = stageSize.h;
@@ -233,7 +251,7 @@ export function LiveDetailScreen() {
           landscape && !inPip ? styles.playerWrapLandscape : null,
         ]}
       >
-        {!inPip && !landscape ? (
+        {!inPip && !landscape && !embedControls ? (
           <View style={[styles.playerChrome, styles.portraitChrome]} pointerEvents="box-none">
             <Pressable
               onPress={() => navigation.goBack()}
@@ -280,7 +298,7 @@ export function LiveDetailScreen() {
           </View>
         ) : null}
 
-        {!inPip && landscape && landscapeChrome && landscapePlayer ? (
+        {!inPip && landscape && landscapeChrome && landscapePlayer && !item.isExternal ? (
           <View style={styles.landscapeOverlay} pointerEvents="box-none">
             <View
               style={[
@@ -400,7 +418,91 @@ export function LiveDetailScreen() {
                 active
                 showChrome={false}
                 paused={paused}
-                startImmediately={landscape}
+                startImmediately
+                onSurfacePress={() => setEmbedChrome((open) => !open)}
+                onPlaybackFailed={markEmbedBlocked}
+                controls={
+                  embedChrome ? (
+                    <>
+                      <View pointerEvents="none" style={styles.embedScrim} />
+                      <View
+                        style={[
+                          styles.playerChrome,
+                          {
+                            paddingTop: landscape ? 8 : 6,
+                            paddingLeft: Math.max(insets.left, 8),
+                            paddingRight: Math.max(insets.right, 8),
+                          },
+                        ]}
+                        pointerEvents="box-none"
+                      >
+                        <Pressable
+                          onPress={() => (landscape ? exitLandscape() : navigation.goBack())}
+                          hitSlop={12}
+                          style={styles.chromeBtn}
+                          accessibilityRole="button"
+                          accessibilityLabel={landscape ? copy.exitLandscape : copy.back}
+                        >
+                          <Ionicons name="chevron-back" size={22} color="#fff" />
+                        </Pressable>
+                        <View style={styles.chromeRight} pointerEvents="box-none">
+                          <Pressable
+                            onPressIn={() =>
+                              prefetchUserProfile({
+                                username: item.host.username,
+                                name: item.host.name,
+                                image: item.host.image,
+                              })
+                            }
+                            onPress={() =>
+                              openUserProfile({
+                                username: item.host.username,
+                                name: item.host.name,
+                                image: item.host.image,
+                              })
+                            }
+                            hitSlop={8}
+                            style={styles.profileBtn}
+                            accessibilityRole="button"
+                            accessibilityLabel={copy.profile}
+                          >
+                            <Ionicons name="person" size={18} color="#f3f4f6" />
+                          </Pressable>
+                          {landscape ? (
+                            <Pressable
+                              onPress={() => setChatOpen((v) => !v)}
+                              hitSlop={8}
+                              style={[styles.chromeBtn, chatOpen && styles.chromeBtnOn]}
+                              accessibilityRole="button"
+                              accessibilityLabel={chatOpen ? copy.hideChat : copy.showChat}
+                            >
+                              <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
+                            </Pressable>
+                          ) : null}
+                          <Pressable
+                            onPress={() => (landscape ? exitLandscape() : enterLandscape())}
+                            hitSlop={8}
+                            style={styles.chromeBtn}
+                            accessibilityRole="button"
+                            accessibilityLabel={landscape ? copy.exitLandscape : copy.expandVideo}
+                          >
+                            <Ionicons name={landscape ? "contract" : "expand"} size={18} color="#fff" />
+                          </Pressable>
+                        </View>
+                      </View>
+                      <View style={styles.pauseSlot} pointerEvents="box-none">
+                        <Pressable
+                          style={styles.pauseBtn}
+                          onPress={() => setPaused((v) => !v)}
+                          accessibilityRole="button"
+                          accessibilityLabel={paused ? copy.play : copy.pause}
+                        >
+                          <Ionicons name={paused ? "play" : "pause"} size={34} color="#fff" />
+                        </Pressable>
+                      </View>
+                    </>
+                  ) : null
+                }
               />
             )
           ) : watchingFirstParty && creds ? (
@@ -451,7 +553,7 @@ export function LiveDetailScreen() {
             </View>
           )}
           </View>
-          {landscapePlayer ? (
+          {landscapePlayer && !item.isExternal ? (
             <Pressable style={styles.tapCatch} onPress={() => setLandscapeChrome((open) => !open)} />
           ) : null}
         </View>
@@ -526,6 +628,7 @@ function createStyles(colors: ThemeColors) {
     videoFrame: { overflow: "hidden", backgroundColor: "#000" },
     videoFrameFill: { ...StyleSheet.absoluteFill },
     tapCatch: { ...StyleSheet.absoluteFill, zIndex: 4 },
+    embedScrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.28)" },
     landscapeOverlay: { ...StyleSheet.absoluteFill, zIndex: 6, elevation: 8 },
     pauseSlot: {
       ...StyleSheet.absoluteFill,

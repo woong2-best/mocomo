@@ -9,7 +9,9 @@ import { useLocale } from "@/components/providers/locale-provider";
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, Link2, Maximize2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, ExternalLink, Maximize2, Minimize2, Pause, Play, User } from "lucide-react";
 import { YoutubeEmbedGuide } from "@/components/live/youtube-embed-guide";
 import { LiveStillPoster } from "@/components/live/live-still-poster";
 import { withYoutubeLiveEmbedParams } from "@/lib/live-external/parse";
@@ -102,11 +104,13 @@ export function ExternalLivePlayer({
   title,
   embedSupported,
   isHost = false,
+  hostUsername,
   posterUrl,
   externalId,
   onPlatformEnded,
 }: Props) {
   const { t } = useLocale();
+  const router = useRouter();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -114,15 +118,24 @@ export function ExternalLivePlayer({
   const endedRef = useRef(false);
   const liveSeekDoneRef = useRef(false);
   const liveSeekAttemptsRef = useRef(0);
+  const pausedRef = useRef(false);
   const [pageOrigin, setPageOrigin] = useState("");
   const [playbackStarted, setPlaybackStarted] = useState(false);
+  const [chromeOpen, setChromeOpen] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const stillUrl = resolvePlayerStillThumb({
     posterUrl,
     provider,
     embedUrl,
     externalId,
   });
-  const showIframe = embedSupported && !!embedUrl && playbackStarted;
+  const canPlay = embedSupported && !!embedUrl;
+  const holdFrame = paused && provider !== "YOUTUBE" && playbackStarted && canPlay;
+  const showIframe = canPlay && playbackStarted && !holdFrame;
+  const immersive = isFullscreen || expanded;
+  pausedRef.current = paused;
   const playerSrc = useMemo(() => {
     if (!embedUrl) return null;
     if (provider !== "YOUTUBE") return embedUrl;
@@ -136,6 +149,7 @@ export function ExternalLivePlayer({
   }, [onPlatformEnded]);
 
   const snapToLiveEdge = useCallback((origin: string, force = false) => {
+    if (pausedRef.current) return;
     if (liveSeekDoneRef.current) return;
     if (!force && liveSeekAttemptsRef.current >= YT_LIVE_SEEK_MAX) {
       liveSeekDoneRef.current = true;
@@ -155,6 +169,9 @@ export function ExternalLivePlayer({
     sawLiveRef.current = false;
     endedRef.current = false;
     setPlaybackStarted(false);
+    setChromeOpen(false);
+    setPaused(false);
+    setExpanded(false);
   }, [embedUrl]);
 
   useEffect(() => {
@@ -171,6 +188,12 @@ export function ExternalLivePlayer({
       }
 
       if (data.event === "onStateChange") {
+        if (pausedRef.current) {
+          if (data.info === 1) {
+            postYoutubeCommand(iframeRef.current, "pauseVideo", [], event.origin);
+          }
+          return;
+        }
         // 1 = playing — join should land on the live head, not DVR resume.
         if (data.info === 1) snapToLiveEdge(event.origin);
         if (data.info === 0 && sawLiveRef.current) signalEnded();
@@ -215,27 +238,98 @@ export function ExternalLivePlayer({
     return () => timers.forEach((id) => window.clearTimeout(id));
   }, [playerSrc, provider, showIframe, snapToLiveEdge]);
 
+  const pauseSyncedRef = useRef(false);
+  useEffect(() => {
+    if (provider !== "YOUTUBE" || !showIframe) {
+      pauseSyncedRef.current = false;
+      return;
+    }
+    const origin = youtubeFrameOrigin(playerSrc);
+    if (!pauseSyncedRef.current) {
+      pauseSyncedRef.current = true;
+      if (paused) postYoutubeCommand(iframeRef.current, "pauseVideo", [], origin);
+      return;
+    }
+    if (paused) {
+      postYoutubeCommand(iframeRef.current, "pauseVideo", [], origin);
+      return;
+    }
+    // Resume joins the live head. Playing from the paused timestamp would stay in DVR.
+    liveSeekDoneRef.current = false;
+    liveSeekAttemptsRef.current = 0;
+    seekYoutubeLiveHead(iframeRef.current, origin);
+    postYoutubeCommand(iframeRef.current, "playVideo", [], origin);
+  }, [paused, playerSrc, provider, showIframe]);
+
+  useEffect(() => {
+    if (!chromeOpen || paused) return;
+    const id = window.setTimeout(() => setChromeOpen(false), 4000);
+    return () => window.clearTimeout(id);
+  }, [chromeOpen, paused]);
+
+  useEffect(() => {
+    function sync() {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    }
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+
   const toggleFullscreen = useCallback(async () => {
     const el = containerRef.current;
     if (!el) return;
-    try {
-      if (document.fullscreenElement) {
+    if (document.fullscreenElement) {
+      try {
         await document.exitFullscreen();
-      } else {
-        await el.requestFullscreen();
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* browser may block */
+      setExpanded(false);
+      return;
     }
-  }, []);
+    if (expanded) {
+      setExpanded(false);
+      return;
+    }
+    try {
+      await el.requestFullscreen();
+    } catch {
+      setExpanded(true);
+    }
+  }, [expanded]);
+
+  const leavePlayer = useCallback(() => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined);
+      return;
+    }
+    if (expanded) {
+      setExpanded(false);
+      return;
+    }
+    if (window.history.length > 1) router.back();
+    else router.push("/live");
+  }, [expanded, router]);
+
+  const profileSlug = hostUsername?.trim() || "";
 
   return (
     <div
       ref={containerRef}
-      className="external-live-player relative w-full overflow-hidden rounded-xl bg-black ring-1 ring-border/40"
+      className={
+        immersive
+          ? "external-live-player fixed inset-0 z-[260] h-[100dvh] w-screen overflow-hidden bg-black"
+          : "external-live-player relative w-full overflow-hidden rounded-xl bg-black ring-1 ring-border/40"
+      }
     >
-      <div className="relative aspect-video w-full min-h-[220px] bg-black">
-        {!playbackStarted && embedSupported && embedUrl ? (
+      <div
+        className={
+          immersive
+            ? "relative h-full min-h-full w-full bg-black"
+            : "relative aspect-video w-full min-h-[220px] bg-black"
+        }
+      >
+        {!playbackStarted && canPlay ? (
           <button
             type="button"
             onClick={() => setPlaybackStarted(true)}
@@ -245,46 +339,92 @@ export function ExternalLivePlayer({
             <LiveStillPoster src={stillUrl} />
           </button>
         ) : null}
+        {holdFrame ? <LiveStillPoster src={stillUrl} /> : null}
         {showIframe ? (
-          <>
-            <iframe
-              ref={iframeRef}
-              title={title}
-              src={playerSrc ?? embedUrl}
-              className="absolute inset-0 h-full w-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-              onLoad={() => {
-                if (provider !== "YOUTUBE") return;
-                const frameOrigin = youtubeFrameOrigin(playerSrc);
-                handshakeYoutube(iframeRef.current, frameOrigin);
-                snapToLiveEdge(frameOrigin, true);
-              }}
+          <iframe
+            ref={iframeRef}
+            title={title}
+            src={playerSrc ?? embedUrl ?? undefined}
+            className="pointer-events-none absolute inset-0 h-full w-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+            allowFullScreen
+            tabIndex={-1}
+            referrerPolicy="strict-origin-when-cross-origin"
+            onLoad={() => {
+              if (provider !== "YOUTUBE") return;
+              const frameOrigin = youtubeFrameOrigin(playerSrc);
+              handshakeYoutube(iframeRef.current, frameOrigin);
+              if (pausedRef.current) {
+                postYoutubeCommand(iframeRef.current, "pauseVideo", [], frameOrigin);
+                return;
+              }
+              snapToLiveEdge(frameOrigin, true);
+            }}
+          />
+        ) : null}
+        {canPlay && playbackStarted ? (
+          <div className="absolute inset-0 z-30">
+            <button
+              type="button"
+              className="absolute inset-0 cursor-default border-0 bg-transparent p-0"
+              aria-label={chromeOpen ? t("live.embed.hideControls") : t("live.embed.showControls")}
+              onClick={() => setChromeOpen((open) => !open)}
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-end p-2 sm:p-3">
-              <div className="pointer-events-auto flex items-center gap-1.5">
-                <a
-                  href={watchUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={t("live.s1gvpdd4")}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
-                >
-                  <Link2 className="h-4 w-4" />
-                </a>
+            {chromeOpen ? (
+              <div className="pointer-events-none absolute inset-0">
+                <div className="pointer-events-none absolute inset-0 bg-black/25" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-2 sm:p-3">
+                  <button
+                    type="button"
+                    onClick={leavePlayer}
+                    className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
+                    aria-label={t("common.back")}
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <div className="pointer-events-none flex items-center gap-2">
+                    {profileSlug ? (
+                      <Link
+                        href={`/u/${profileSlug}`}
+                        prefetch
+                        className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#6D6E70] text-white"
+                        aria-label={t("settings.profile")}
+                      >
+                        <User className="h-5 w-5" />
+                      </Link>
+                    ) : null}
+                    <a
+                      href={watchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={t("live.s1gvpdd4")}
+                      className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => void toggleFullscreen()}
+                      className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
+                      aria-label={immersive ? t("reels.s9nk1fb") : t("live.sqkc2hc")}
+                    >
+                      {immersive ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  title={t("live.sqkc2hc")}
-                  onClick={() => void toggleFullscreen()}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
+                  onClick={() => setPaused((value) => !value)}
+                  className="pointer-events-auto absolute left-1/2 top-1/2 inline-flex h-[68px] w-[68px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white"
+                  aria-label={paused ? t("media.sz0s1") : t("media.spzasrv")}
                 >
-                  <Maximize2 className="h-4 w-4" />
+                  {paused ? <Play className="h-8 w-8 fill-white" /> : <Pause className="h-8 w-8 fill-white" />}
                 </button>
               </div>
-            </div>
-          </>
-        ) : !playbackStarted && embedSupported && embedUrl ? null : (
+            ) : null}
+          </div>
+        ) : null}
+        {!canPlay ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
             {provider === "YOUTUBE" && isHost ? (
               <YoutubeEmbedGuide variant="player" watchUrl={watchUrl} />
@@ -309,7 +449,7 @@ export function ExternalLivePlayer({
               </>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

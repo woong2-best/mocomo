@@ -1258,6 +1258,8 @@
   "live.sx17k": "Mission",
   "live.s1gvpdd4": "Open original",
   "live.sqkc2hc": "Full screen",
+  "live.embed.showControls": "Show player controls",
+  "live.embed.hideControls": "Hide player controls",
   "live.s13otgp5": "CHZZK embeds aren't supported here.",
   "live.twitch": "Couldn't load the Twitch embed.",
   "live.s54i56q": "For this platform, watch on the original page instead of the embed.",
