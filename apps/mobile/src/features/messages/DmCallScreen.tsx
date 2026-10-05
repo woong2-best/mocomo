@@ -247,9 +247,11 @@ export function DmCallScreen() {
         <View style={styles.room}>
           <View style={styles.audioStage}>
             <Text style={styles.stageHint}>
-              {session.peer.state === "connected"
-                ? t("m.messages.on_voice_call")
-                : t("m.messages.connecting_voice")}
+              {session.peer.state === "failed"
+                ? (session.peer.failure ?? t("m.messages.call_failed"))
+                : session.peer.state === "connected"
+                  ? t("m.messages.on_voice_call")
+                  : t("m.messages.connecting_voice")}
             </Text>
             <Pressable
               style={styles.micBtn}

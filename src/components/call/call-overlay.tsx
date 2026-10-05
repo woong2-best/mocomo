@@ -217,10 +217,6 @@ export function CallOverlay({
     (callState.phase === "active" || callState.phase === "outgoing") && isVideo
   );
 
-  const micReady = !!mic?.ok;
-  const camReady = !isVideo || !!camera?.ok;
-  const mediaReady = micReady && camReady;
-
   if (callState.phase === "active" && peerCallSlot && minimized) {
     const name = callState.peer.username || t("call.s10ugv");
     return (
@@ -306,7 +302,6 @@ export function CallOverlay({
               variant="accept"
               label={t("call.swy9h")}
               icon={isVideo ? Video : PhoneIncoming}
-              disabled={!mediaReady || micChecking || cameraChecking}
               onClick={onAccept}
               large
             />

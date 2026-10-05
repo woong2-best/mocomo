@@ -15,12 +15,11 @@ export async function probeMicrophonePermission(): Promise<PermissionState | "un
   }
 }
 
-/** 이미 허용된 경우 getUserMedia 생략 — 통화 시작 속도 */
-export async function quickMicrophoneCheck(): Promise<MicCheckResult> {
-  const perm = await probeMicrophonePermission();
-  if (perm === "granted") {
-    return { ok: true, status: "granted", deviceLabel: "Microphone ready" };
-  }
+/**
+ * Ask for the mic in the same turn as the tap.
+ * Awaiting the Permissions API first drops the user gesture, and mobile browsers then reject the prompt.
+ */
+export function quickMicrophoneCheck(): Promise<MicCheckResult> {
   return ensureMicrophoneAccess();
 }
 

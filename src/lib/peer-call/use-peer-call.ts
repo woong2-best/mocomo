@@ -9,8 +9,6 @@ import {
   type VoiceSignalSession,
   type VoiceWireSignal,
 } from "@/lib/peer-call/supabase-signal";
-import { enhanceCallMicrophone } from "@/lib/peer-call/voice-process";
-
 export type PeerCallState = "idle" | "connecting" | "connected" | "failed" | "closed";
 
 const CALL_AUDIO: MediaTrackConstraints = {
@@ -102,7 +100,6 @@ export function usePeerCall({
   const creatingPcRef = useRef<Promise<RTCPeerConnection> | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const rawMicRef = useRef<MediaStream | null>(null);
-  const voiceStopRef = useRef<(() => void) | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const epochRef = useRef(0);
   const appliedSignalsRef = useRef(new Set<string>());
@@ -169,8 +166,6 @@ export function usePeerCall({
       pc.onconnectionstatechange = null;
       pc.close();
     }
-    voiceStopRef.current?.();
-    voiceStopRef.current = null;
     for (const track of localStreamRef.current?.getTracks() ?? []) {
       track.stop();
     }
@@ -198,13 +193,10 @@ export function usePeerCall({
     });
     holdMic(stream);
     rawMicRef.current = stream;
-    const enhanced = await enhanceCallMicrophone(stream);
-    voiceStopRef.current = enhanced.stop;
-    const local = enhanced.stream;
-    localStreamRef.current = local;
-    setLocalStream(local);
-    setCameraEnabled(wantsVideo && local.getVideoTracks().some((t) => t.enabled));
-    return local;
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    setCameraEnabled(wantsVideo && stream.getVideoTracks().some((t) => t.enabled));
+    return stream;
   }, []);
 
   const flushIce = useCallback(async (pc: RTCPeerConnection) => {
@@ -531,11 +523,13 @@ export function usePeerCall({
     })();
 
     const retry = isCaller
-      ? setTimeout(() => {
+      ? setInterval(() => {
           if (answeredRef.current || !live()) return;
           const local = pcRef.current?.localDescription;
           if (local?.type === "offer" && local.sdp) {
             emitSignal({ type: "offer", sdp: local });
+          } else {
+            void maybeOffer();
           }
         }, 2000)
       : null;
@@ -545,7 +539,7 @@ export function usePeerCall({
       epochRef.current += 1;
       enqueueSignalRef.current = () => undefined;
       if (offerTimer) clearTimeout(offerTimer);
-      if (retry) clearTimeout(retry);
+      if (retry) clearInterval(retry);
       sessionSendRef.current = () => undefined;
       session?.close();
       cleanup();

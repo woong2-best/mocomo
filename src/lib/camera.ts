@@ -15,12 +15,8 @@ export async function probeCameraPermission(): Promise<PermissionState | "unknow
   }
 }
 
-/** 이미 허용된 경우 getUserMedia 생략 */
-export async function quickCameraCheck(): Promise<CameraCheckResult> {
-  const perm = await probeCameraPermission();
-  if (perm === "granted") {
-    return { ok: true, status: "granted", deviceLabel: "Camera ready" };
-  }
+/** Ask for the camera in the same turn as the tap. */
+export function quickCameraCheck(): Promise<CameraCheckResult> {
   return ensureCameraAccess();
 }
 

@@ -16,25 +16,46 @@ async function loadWebrtc() {
 async function startCallAudio() {
   await ensureLiveKitGlobals();
   const { AudioSession, AndroidAudioTypePresets } = await import("@livekit/react-native");
+  await AudioSession.startAudioSession().catch(() => undefined);
   await AudioSession.configureAudio({
     android: {
       preferredOutputList: ["speaker", "bluetooth", "headset", "earpiece"],
       audioTypeOptions: AndroidAudioTypePresets.communication,
     },
     ios: { defaultOutput: "speaker" },
-  });
+  }).catch(() => undefined);
   await AudioSession.setAppleAudioConfiguration({
     audioCategory: "playAndRecord",
     audioCategoryOptions: ["allowBluetooth", "defaultToSpeaker"],
     audioMode: "voiceChat",
-  });
-  await AudioSession.setDefaultRemoteAudioTrackVolume(1);
-  await AudioSession.startAudioSession();
+  }).catch(() => undefined);
+  await AudioSession.setDefaultRemoteAudioTrackVolume(1).catch(() => undefined);
   const outputs = await AudioSession.getAudioOutputs().catch(() => [] as string[]);
   const speaker = outputs.find((id) => id === "speaker" || id === "force_speaker");
   if (speaker) {
     await AudioSession.selectAudioOutput(speaker).catch(() => undefined);
   }
+}
+
+function signalKey(payload: VoiceWireSignal): string {
+  if (payload.type === "offer" || payload.type === "answer") {
+    return `${payload.type}:${payload.sdp?.sdp ?? ""}`;
+  }
+  if (payload.type === "ice") {
+    const candidate = payload.candidate;
+    return `ice:${candidate?.candidate ?? ""}:${candidate?.sdpMid ?? ""}:${candidate?.sdpMLineIndex ?? ""}`;
+  }
+  return payload.type;
+}
+
+function isBenignSignalingError(error: unknown): boolean {
+  const name = error instanceof Error ? error.name : "";
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return (
+    name === "InvalidStateError" ||
+    name === "InvalidAccessError" ||
+    /wrong state|InvalidState|stable|have-local-offer|have-remote-offer/i.test(message)
+  );
 }
 
 async function stopCallAudio() {
@@ -78,6 +99,8 @@ export function useMobilePeerCall({
   const makingOfferRef = useRef(false);
   const politeRef = useRef(!isCaller);
   const pendingIceRef = useRef<IceInit[]>([]);
+  const appliedSignalsRef = useRef(new Set<string>());
+  const answeredRef = useRef(false);
   const sessionSendRef = useRef<(signal: VoiceWireSignal) => void>(() => undefined);
   const onFailedRef = useRef(onFailed);
   const onConnectionLostRef = useRef(onConnectionLost);
@@ -88,6 +111,7 @@ export function useMobilePeerCall({
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [state, setState] = useState<MobilePeerCallState>("idle");
+  const [failure, setFailure] = useState<string | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
 
   useEffect(() => {
@@ -208,25 +232,43 @@ export function useMobilePeerCall({
   const handleRemoteSignal = useCallback(
     async (payload: VoiceWireSignal) => {
       if (payload.type === "hello" || payload.type === "ready") return;
+      const key = signalKey(payload);
+      if (payload.type !== "hangup" && appliedSignalsRef.current.has(key)) return;
+
       const pc = pcRef.current ?? (await createPeerConnection());
       const polite = politeRef.current;
       const rtc = await loadWebrtc();
 
       if (payload.type === "hangup") {
+        appliedSignalsRef.current.add(key);
         onRemoteHangupRef.current?.();
         cleanup();
         return;
       }
 
       if (payload.type === "offer") {
+        const sdp = payload.sdp.sdp ?? "";
+        if (!sdp) return;
+        if (answeredRef.current && pc.signalingState === "stable") return;
+        const remoteSdp = (pc as { currentRemoteDescription?: { sdp?: string } | null })
+          .currentRemoteDescription?.sdp;
+        if (remoteSdp === sdp) {
+          appliedSignalsRef.current.add(key);
+          return;
+        }
         const offerCollision = makingOfferRef.current || pc.signalingState !== "stable";
         if (!polite && offerCollision) return;
-        await pc.setRemoteDescription(
-          new rtc.RTCSessionDescription({ type: "offer", sdp: payload.sdp.sdp ?? "" })
-        );
+        try {
+          await pc.setRemoteDescription(new rtc.RTCSessionDescription({ type: "offer", sdp }));
+        } catch (error) {
+          if (isBenignSignalingError(error)) return;
+          throw error;
+        }
+        appliedSignalsRef.current.add(key);
         await flushIce(pc);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        answeredRef.current = true;
         sessionSendRef.current({
           type: "answer",
           sdp: { type: answer.type, sdp: answer.sdp },
@@ -236,9 +278,16 @@ export function useMobilePeerCall({
       }
 
       if (payload.type === "answer" && pc.signalingState === "have-local-offer") {
-        await pc.setRemoteDescription(
-          new rtc.RTCSessionDescription({ type: "answer", sdp: payload.sdp.sdp ?? "" })
-        );
+        const sdp = payload.sdp.sdp ?? "";
+        if (!sdp) return;
+        try {
+          await pc.setRemoteDescription(new rtc.RTCSessionDescription({ type: "answer", sdp }));
+        } catch (error) {
+          if (isBenignSignalingError(error)) return;
+          throw error;
+        }
+        appliedSignalsRef.current.add(key);
+        answeredRef.current = true;
         await flushIce(pc);
         return;
       }
@@ -250,8 +299,9 @@ export function useMobilePeerCall({
         }
         try {
           await pc.addIceCandidate(new rtc.RTCIceCandidate(payload.candidate));
-        } catch {
-          /* ignore */
+          appliedSignalsRef.current.add(key);
+        } catch (error) {
+          if (isBenignSignalingError(error)) return;
         }
       }
     },
@@ -268,12 +318,16 @@ export function useMobilePeerCall({
 
     let cancelled = false;
     let session: VoiceSignalSession | null = null;
-    let offerTimer: ReturnType<typeof setTimeout> | null = null;
+    let offerTimer: ReturnType<typeof setInterval> | null = null;
     const offered = { current: false };
+    appliedSignalsRef.current = new Set();
+    answeredRef.current = false;
+    pendingIceRef.current = [];
 
     const fail = (message: string) => {
       if (cancelled) return;
       setState("failed");
+      setFailure(message);
       onFailedRef.current?.(message);
     };
 
@@ -309,7 +363,8 @@ export function useMobilePeerCall({
     void (async () => {
       try {
         setState("connecting");
-        await startCallAudio();
+        setFailure(null);
+        await startCallAudio().catch(() => undefined);
         const rtcConfiguration = await fetchMobileWebRtcIceConfiguration();
         if (cancelled) return;
         await createPeerConnectionRef.current(rtcConfiguration);
@@ -328,7 +383,10 @@ export function useMobilePeerCall({
               void maybeOffer();
               return;
             }
-            void handleRemoteSignalRef.current(signal).catch(() => fail(translate("m.lib.signal_handling_failed")));
+            void handleRemoteSignalRef.current(signal).catch((error: unknown) => {
+              if (isBenignSignalingError(error)) return;
+              fail(translate("m.lib.signal_handling_failed"));
+            });
           },
         });
 
@@ -345,9 +403,10 @@ export function useMobilePeerCall({
         session.send({ type: "hello" });
         if (!isCaller) session.send({ type: "ready" });
         if (isCaller) {
-          offerTimer = setTimeout(() => {
+          offerTimer = setInterval(() => {
+            if (answeredRef.current || cancelled) return;
             void maybeOffer();
-          }, 1500);
+          }, 2000);
         }
       } catch (e) {
         fail(e instanceof Error ? e.message : translate("m.lib.media_connection_failed"));
@@ -356,7 +415,7 @@ export function useMobilePeerCall({
 
     return () => {
       cancelled = true;
-      if (offerTimer) clearTimeout(offerTimer);
+      if (offerTimer) clearInterval(offerTimer);
       sessionSendRef.current = () => undefined;
       session?.close();
       cleanup();
@@ -376,5 +435,5 @@ export function useMobilePeerCall({
     cleanup();
   }, [cleanup]);
 
-  return { localStream, remoteStream, state, micEnabled, setMic, hangup };
+  return { localStream, remoteStream, state, failure, micEnabled, setMic, hangup };
 }

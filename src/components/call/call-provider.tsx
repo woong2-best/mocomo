@@ -457,35 +457,27 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     (async () => {
       const perm = await probeMicrophonePermission();
       if (cancelled) return;
-      if (perm === "granted") {
-        const result = await ensureMicrophoneAccess();
-        if (!cancelled) setMic(result);
-      } else {
+      if (perm === "denied") {
         setMic({
           ok: false,
-          status: perm === "denied" ? "denied" : "unknown",
-          message:
-            perm === "denied"
-              ? t("call.sqnjif7")
-              : undefined,
+          status: "denied",
+          message: t("call.sqnjif7"),
         });
+      } else if (perm === "granted") {
+        setMic({ ok: true, status: "granted" });
       }
 
       if (needsVideo) {
         const camPerm = await probeCameraPermission();
         if (cancelled) return;
-        if (camPerm === "granted") {
-          const camResult = await ensureCameraAccess();
-          if (!cancelled) setCamera(camResult);
-        } else {
+        if (camPerm === "denied") {
           setCamera({
             ok: false,
-            status: camPerm === "denied" ? "denied" : "unknown",
-            message:
-              camPerm === "denied"
-                ? t("call.s1g8931j")
-                : undefined,
+            status: "denied",
+            message: t("call.s1g8931j"),
           });
+        } else if (camPerm === "granted") {
+          setCamera({ ok: true, status: "granted" });
         }
       }
     })();
