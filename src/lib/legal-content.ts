@@ -3,6 +3,10 @@ import {
   COMMUNITY_QNA_TOS_BLOCKS,
   COMMUNITY_QNA_TOS_BLOCKS_KO,
 } from "@/lib/legal/community-qna-tos-section";
+import {
+  MOCO_TRANSFER_TOS_BLOCKS,
+  MOCO_TRANSFER_TOS_BLOCKS_KO,
+} from "@/lib/legal/moco-transfer-tos-section";
 
 export { SELLER_TERMS };
 
@@ -256,7 +260,7 @@ export const COMMUNITY_POLICY: LegalDocument = {
 export const TERMS_OF_SERVICE: LegalDocument = {
   slug: "terms",
   title: "MoCoMo 이용약관",
-  updatedAt: "2026년 10월 4일",
+  updatedAt: "2026년 10월 6일",
   intro:
     '본 약관은 미합중국 와이오밍 주에 설립된 MoCoMo LLC(이하 "회사" 또는 "MoCoMo")가 제공하는 웹사이트(mocomo.net), 모바일 애플리케이션 및 관련 서비스의 이용 조건을 규정합니다.',
   blocks: [
@@ -730,7 +734,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "② 이용자는 구매 MOCO를 회사의 사전 승낙 없이 타인에게 양도, 매매, 증여, 담보 제공할 수 없으며, 현금 환불·인출·환전을 요구할 수 없습니다. 크리에이터의 정산 MOCO는 성과 스코어이며, 월말 Reward(크리에이터 활동 성과 보수) 지급은 별도 크리에이터 약관에 따릅니다.",
+      text: "② 이용자는 구매 MOCO를 회사의 사전 승낙 없이 타인에게 양도, 매매, 증여, 담보 제공할 수 없으며, 현금 환불·인출·환전을 요구할 수 없습니다. 다만, 제22조(MOCO Transfers)에 따른 ATM 전송은 회사가 제공하는 후원(Support) 기능으로서 허용됩니다. 크리에이터의 정산 MOCO는 성과 스코어이며, 월말 Reward(크리에이터 활동 성과 보수) 지급은 별도 크리에이터 약관에 따릅니다.",
     },
     {
       type: "p",
@@ -1180,6 +1184,15 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       text: `운영 주체: ${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_JURISDICTION})`,
     },
     { type: "p", text: `고객문의: ${LEGAL_CONTACT_EMAIL}` },
+    { type: "hr" },
+    {
+      type: "h2",
+      text: "제22조 (MOCO 전송 / MOCO Transfers — Section 22)",
+    },
+    ...MOCO_TRANSFER_TOS_BLOCKS_KO,
+    { type: "hr" },
+    { type: "h3", text: "Section 22 — English (Governing Text for MOCO Transfers)" },
+    ...MOCO_TRANSFER_TOS_BLOCKS,
   ],
 };
 
@@ -1553,6 +1566,23 @@ export const COMMUNITY_QNA_TERMS: LegalDocument = {
     { type: "hr" },
     { type: "h2", text: "Section 13. User-Generated Content and Q&A Features" },
     ...COMMUNITY_QNA_TOS_BLOCKS,
+  ],
+};
+
+export const MOCO_TRANSFER_TERMS: LegalDocument = {
+  slug: "moco-transfers",
+  title: "MOCO Transfers (Section 22)",
+  updatedAt: "2026년 10월 6일",
+  intro: `This policy excerpts Article 22 of the MoCoMo Terms of Service regarding ATM / MOCO Transfers. ${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_JURISDICTION}). By clicking "Send" to complete a Transfer, you agree to these terms in addition to the full Terms of Service at /legal/terms.`,
+  blocks: [
+    {
+      type: "p",
+      text: "Korean summary is included in the main Terms of Service (제22조). The English text below is the governing language for Transfers to the extent permitted by applicable law.",
+    },
+    ...MOCO_TRANSFER_TOS_BLOCKS_KO,
+    { type: "hr" },
+    { type: "h2", text: "MOCO Transfers (Section 22)" },
+    ...MOCO_TRANSFER_TOS_BLOCKS,
   ],
 };
 
@@ -2309,6 +2339,7 @@ export const LEGAL_PAGES = [
   { href: "/legal/policy", label: "운영원칙 및 이용정책", doc: COMMUNITY_POLICY },
   { href: "/legal/culture-wiki", label: "컬쳐 위키 이용 약관", doc: CULTURE_WIKI_TERMS },
   { href: "/legal/community-qna-terms", label: "Q&A 이용 약관 (Section 13)", doc: COMMUNITY_QNA_TERMS },
+  { href: "/legal/moco-transfers", label: "MOCO 전송 약관 (Section 22)", doc: MOCO_TRANSFER_TERMS },
   { href: "/legal/terms", label: "이용약관", doc: TERMS_OF_SERVICE },
   { href: "/legal/creator-terms", label: "크리에이터 약관", doc: CREATOR_TERMS },
   { href: "/legal/qna", label: "MOCO 정산 QnA", doc: CREATOR_SETTLEMENT_QNA },

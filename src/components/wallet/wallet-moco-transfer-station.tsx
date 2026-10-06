@@ -444,9 +444,21 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
                 {error}
               </p>
             ) : (
-              <p className="text-[11px] leading-relaxed text-slate-500">
-                {t("wallet.100_moco_100_moco")}
-              </p>
+              <>
+                <p className="text-[11px] leading-relaxed text-slate-500">
+                  {t("wallet.100_moco_100_moco")}
+                </p>
+                <p className="text-[11px] leading-relaxed text-slate-500">
+                  <Link
+                    href="/legal/moco-transfers"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-slate-400 underline underline-offset-2 hover:text-slate-200"
+                  >
+                    {t("wallet.atmTransferTermsNotice")}
+                  </Link>
+                </p>
+              </>
             )}
           </div>
         </div>
