@@ -15,6 +15,10 @@ export type SpendGemsInput = {
 };
 
 export async function spendGemsOnGift(input: SpendGemsInput) {
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(input.fanId);
+  if (ageBlock) return { error: ageBlock.error, code: ageBlock.code };
+
   if (input.fanId === input.creatorId) {
     return { error: "You cannot tip yourself." as const };
   }

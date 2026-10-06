@@ -7,6 +7,7 @@ import {
   canViewNsfwContent,
   nsfwViewerSelect,
 } from "@/lib/nsfw-viewer-access";
+import { evaluateMoneyAge, toPublicMoneyAge } from "@/lib/money-age-policy";
 
 /** Global age gate status — birthDate-based, no PortOne. */
 export async function GET(req: NextRequest) {
@@ -36,5 +37,6 @@ export async function GET(req: NextRequest) {
     adultVerifiedAt: null,
     hasBirthDate: !!user?.birthDate,
     canAccessPaidAdult: canAccessPaid,
+    moneyAge: toPublicMoneyAge(evaluateMoneyAge(user?.birthDate ?? null)),
   });
 }

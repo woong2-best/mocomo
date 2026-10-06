@@ -27,6 +27,7 @@ import { isValidUsedRegion } from "@/lib/used-regions-global";
 import { setPostsLockedForUser } from "@/lib/posts-lock-settings";
 import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 import { isPublicHttpUrl } from "@/lib/displayable-image-url";
+import { evaluateMoneyAge, toPublicMoneyAge } from "@/lib/money-age-policy";
 
 const meSelect = {
   id: true,
@@ -41,6 +42,7 @@ const meSelect = {
   watermarkInsertEnabled: true,
   watermarkPlacement: true,
   createdAt: true,
+  birthDate: true,
   isBanned: true,
   accountStatus: true,
   deletedAt: true,
@@ -143,6 +145,7 @@ export async function GET(req: NextRequest) {
             ? user.watermarkPlacement
             : null,
       },
+      moneyAge: toPublicMoneyAge(evaluateMoneyAge(user.birthDate)),
     },
   });
 }

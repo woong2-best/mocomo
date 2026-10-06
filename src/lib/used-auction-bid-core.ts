@@ -46,6 +46,10 @@ export async function executeUsedAuctionBid(
     return { error: "Agree to payment obligations and usage limits before bidding." };
   }
 
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(input.userId);
+  if (ageBlock) return { error: ageBlock.error };
+
   const bidAmount = Math.floor(input.bidAmount);
   if (!Number.isFinite(bidAmount) || bidAmount <= 0) {
     return { error: "Enter a valid bid amount." };

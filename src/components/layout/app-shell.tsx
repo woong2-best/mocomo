@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { SuspendedAccountBanner } from "@/components/account/suspended-account-banner";
+import { MoneyAgeBanner } from "@/components/account/money-age-banner";
 import { FolkArtStage } from "@/components/brand/folk-decor";
 import {
   isEventsMapImmersivePath,
@@ -121,6 +122,7 @@ function AppShellInner({
       <>
         <Header />
         <SuspendedAccountBanner />
+        <MoneyAgeBanner />
         <div className="flex h-app overflow-hidden">
           <Sidebar />
           <main
@@ -142,6 +144,7 @@ function AppShellInner({
     <>
       <Header />
       <SuspendedAccountBanner />
+      <MoneyAgeBanner />
       <div className="flex h-app overflow-hidden">
         {!isCommunityServerRoute && <Sidebar />}
         <main

@@ -72,6 +72,10 @@ export async function spendMocoOnLetterDonation(input: {
   moco: number;
   message: string;
 }) {
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(input.fanId);
+  if (ageBlock) return { error: ageBlock.error, code: ageBlock.code };
+
   if (input.fanId === input.creatorId) {
     return { error: "You cannot send a letter to yourself." as const };
   }

@@ -158,6 +158,7 @@ export function ProfileSettingsForm({
       setMsg(errorText(result.error));
     } else {
       await sessionState?.update?.();
+      window.dispatchEvent(new Event("mocomo-money-age-refresh"));
       router.refresh();
       setMsg(t("profile.s12la3bm"));
     }

@@ -12,6 +12,8 @@ import { MocoTipButton } from "@/components/live/moco-tip-button";
 import { MocoDonationDialog } from "@/components/live/moco-donation-dialog";
 import { MocoVideoDonationDialog } from "@/components/live/moco-video-donation-dialog";
 import { cn } from "@/lib/utils";
+import { useMoneyAgeGate } from "@/hooks/use-money-age";
+import { pushErrorToast } from "@/lib/published-toast-store";
 
 type Props = {
   channelId: string;
@@ -37,6 +39,7 @@ export function LiveMocoDonationComposerButton({
   const [menuOpen, setMenuOpen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
   const [sfxOpen, setSfxOpen] = useState(false);
+  const moneyAge = useMoneyAgeGate();
 
   const pickVideo = () => {
     setMenuOpen(false);
@@ -50,7 +53,17 @@ export function LiveMocoDonationComposerButton({
 
   return (
     <>
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+      <DropdownMenu
+        open={menuOpen}
+        onOpenChange={(next) => {
+          if (next && moneyAge.blocked) {
+            pushErrorToast({ message: moneyAge.message ?? t("moneyAge.blockedMissing") });
+            void moneyAge.ensureMoneyAge();
+            return;
+          }
+          setMenuOpen(next);
+        }}
+      >
         <DropdownMenuTrigger asChild>
           <MocoTipButton
             className={className}

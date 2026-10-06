@@ -264,6 +264,10 @@ export async function buyNowUsedAuction(listingId: string, termsAccepted?: boole
     return { error: "actions.s1abxyv8" };
   }
 
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(user.id);
+  if (ageBlock) return { error: ageBlock.error };
+
   try {
     await finalizeExpiredAuctionIfNeeded(listingId);
     const listing = await db.usedListing.findUnique({ where: { id: listingId } });

@@ -209,6 +209,10 @@ export async function payCheckoutWithSavedMethod(
     return { error: "Payments aren't configured." };
   }
 
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(userId);
+  if (ageBlock) return ageBlock;
+
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
     userId,
     paymentIntentId: orderId,

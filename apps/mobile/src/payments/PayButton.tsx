@@ -7,6 +7,7 @@ import { PaymentCheckoutSheet } from "@/payments/PaymentCheckoutSheet";
 import { paymentTypeLabel } from "@/payments/stripe-checkout";
 import { ADULT_MONETIZATION_BANNED_SHORT } from "@/lib/stripe-payment-notice";
 import { useAdultVerificationGate } from "@/hooks/useAdultVerificationGate";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 import { paymentTypeRequiresAdultVerification } from "@/lib/adult-verification-messages";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -70,6 +71,7 @@ export function PayButton({
     metadata.isNsfw === true;
   const [open, setOpen] = useState(false);
   const adultGate = useAdultVerificationGate("DM_PAID");
+  const moneyAge = useMoneyAgeGate();
   const checkoutBody = useMemo(
     () => normalizeCheckoutBody(type, amount, orderName, metadata),
     [amount, metadata, orderName, type]
@@ -92,6 +94,7 @@ export function PayButton({
       showIslandError(t("m.payments.payment_blocked"), ADULT_MONETIZATION_BANNED_SHORT);
       return;
     }
+    if (!(await moneyAge.ensureMoneyAge())) return;
     if (paymentTypeRequiresAdultVerification(type)) {
       const ok = await adultGate.ensureAdult();
       if (!ok) return;
@@ -104,7 +107,7 @@ export function PayButton({
       <FolkButton
         label={label}
         onPress={() => void openCheckout()}
-        disabled={disabled || isAdult || adultGate.busy}
+        disabled={disabled || isAdult || moneyAge.blocked || adultGate.busy}
         variant={variant}
       />
       <PaymentCheckoutSheet

@@ -43,6 +43,7 @@ import {
   PURCHASE_CHARGEBACK_TERMS_VERSION,
 } from "@/lib/purchase-chargeback-terms";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 
 const RETURN_PREFIX = Linking.createURL("payment/success");
 
@@ -60,6 +61,7 @@ function formatAmount(_type: CheckoutBody["type"], amount: number) {
 export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Props) {
   const { t, locale } = useI18n();
   const { colors } = useTheme();
+  const moneyAge = useMoneyAgeGate();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -108,6 +110,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
   }, [visible, checkoutKey, body, isRecurringSubscription, t]);
 
   async function startRecurringSubscription() {
+    if (!(await moneyAge.ensureMoneyAge())) return;
     if (!purchaseTermsAccepted) {
       setError(t("m.payments.accept_the_terms_before_paying"));
       return;
@@ -148,6 +151,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
   }
 
   async function paySelected() {
+    if (!(await moneyAge.ensureMoneyAge())) return;
     if (!orderId || !selectedId) {
       setError(t("m.payments.select_a_card"));
       return;
@@ -181,6 +185,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
   }
 
   async function payWithNewCard() {
+    if (!(await moneyAge.ensureMoneyAge())) return;
     if (!purchaseTermsAccepted) {
       setError(t("m.payments.accept_the_terms_before_paying"));
       return;

@@ -6,6 +6,12 @@ export type AdultVerificationStatus = {
   adultVerifiedAt: string | null;
   hasBirthDate: boolean;
   canAccessPaidAdult: boolean;
+  moneyAge?: {
+    allowed: boolean;
+    reason: "missing" | "underage" | null;
+    hasBirthDate: boolean;
+    minAge: number;
+  };
 };
 
 export async function fetchAdultVerificationStatus() {

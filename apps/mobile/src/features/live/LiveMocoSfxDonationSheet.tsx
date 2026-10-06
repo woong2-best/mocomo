@@ -22,6 +22,7 @@ import { mocoPurchaseTermsCopy } from "@/lib/gems/constants";
 import { parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco-amount";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -43,6 +44,7 @@ function apiErrorMessage(e: unknown, fallback: string) {
 export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSuccess }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
+  const moneyAge = useMoneyAgeGate();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [sfxKey, setSfxKey] = useState(DONATION_SFX_CATALOG[0]?.id ?? "default");
   const [mocoAmount, setMocoAmount] = useState(String(MOCO_DONATION_MIN_SFX));
@@ -66,6 +68,7 @@ export function LiveMocoSfxDonationSheet({ visible, onClose, channelId, onSucces
   }, [visible]);
 
   async function submit() {
+    if (!(await moneyAge.ensureMoneyAge())) return;
     if (!termsAccepted) {
       setError(t("m.live.accept_the_terms_before_tipping"));
       return;

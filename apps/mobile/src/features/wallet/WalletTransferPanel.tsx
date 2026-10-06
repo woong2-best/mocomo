@@ -23,6 +23,9 @@ import { ATM_LETTER_MESSAGE_MAX } from "@/lib/chat-atm-letter";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useI18n } from "@/i18n/I18nProvider";
 import { spacing } from "@/theme/tokens";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
+import { FolkButton } from "@/ui/FolkButton";
+import { navigateFromPush } from "@/navigation/navigationRef";
 
 const EARTH_BG = require("../../../assets/live/moco-support-earth.png");
 const LOGO = require("../../../assets/icon.png");
@@ -145,6 +148,7 @@ function AtmActionKey({
 export function WalletTransferPanel() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const moneyAge = useMoneyAgeGate();
   const queryClient = useQueryClient();
   const [username, setUsername] = useState("");
   const [amount, setAmount] = useState("");
@@ -219,6 +223,10 @@ export function WalletTransferPanel() {
 
   function send() {
     if (pending || overlay) return;
+    if (moneyAge.blocked) {
+      void moneyAge.ensureMoneyAge();
+      return;
+    }
     if (!username.trim() || parsed == null || parsed < 0.1) {
       const msg = t("m.wallet.enter_a_username_and_at_least");
       setError(msg);
@@ -236,6 +244,21 @@ export function WalletTransferPanel() {
     setError("");
     setStatusLine(t("m.common.sending"));
     mutation.mutate();
+  }
+
+  if (moneyAge.blocked) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.intro}>{t("m.money_age.title")}</Text>
+        <Text style={styles.intro}>{moneyAge.message}</Text>
+        {moneyAge.reason !== "underage" ? (
+          <FolkButton
+            label={t("m.money_age.add_birth_date")}
+            onPress={() => navigateFromPush("ProfileEdit")}
+          />
+        ) : null}
+      </View>
+    );
   }
 
   return (

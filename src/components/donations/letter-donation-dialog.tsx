@@ -25,6 +25,7 @@ import {
   LETTER_DONATION_MIN_KRW,
 } from "@/lib/chat-letter-donation";
 import { formatUsd } from "@/lib/money";
+import { useMoneyAgeGate } from "@/hooks/use-money-age";
 
 const PRESETS = [5_000, 10_000, 30_000, 50_000, 100_000, 300_000];
 
@@ -63,6 +64,7 @@ export function LetterDonationDialog({
   currentTotal?: number;
 }) {
   const [open, setOpen] = useState(false);
+  const moneyAge = useMoneyAgeGate();
   const [amount, setAmount] = useState(10_000);
   const [custom, setCustom] = useState("");
   const [message, setMessage] = useState("");
@@ -82,6 +84,21 @@ export function LetterDonationDialog({
   ]
     .filter(Boolean)
     .join(" ");
+
+  if (moneyAge.blocked) {
+    return (
+      <Button
+        disabled
+        variant={triggerVariant}
+        size={triggerSize}
+        className={`${triggerClass} opacity-60`}
+        title={moneyAge.message ?? t("moneyAge.blockedMissing")}
+      >
+        <Mail className="h-4 w-4" />
+        {triggerLabel}
+      </Button>
+    );
+  }
 
   if (!paymentsEnabled) {
     return (

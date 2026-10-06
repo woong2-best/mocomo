@@ -17,6 +17,7 @@ import { fetchGemsWallet } from "@/api/gems";
 import { mocoPurchaseTermsCopy } from "@/lib/gems/constants";
 import { KeyboardSheet } from "@/ui/KeyboardSheet";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
@@ -48,6 +49,7 @@ function apiErrorMessage(e: unknown, fallback: string) {
 export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSuccess }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
+  const moneyAge = useMoneyAgeGate();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [step, setStep] = useState<1 | 2>(1);
   const [urlInput, setUrlInput] = useState("");
@@ -127,6 +129,7 @@ export function LiveMocoVideoDonationSheet({ visible, onClose, channelId, onSucc
   }
 
   async function submit() {
+    if (!(await moneyAge.ensureMoneyAge())) return;
     if (!termsAccepted || !noRefundAccepted) {
       setError(t("m.live.accept_the_terms_before_tipping"));
       return;

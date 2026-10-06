@@ -53,12 +53,20 @@ export async function getMarketplaceCheckoutEligibility(input: {
   }
 
   let userCountry: string | null = null;
+  let moneyAgeBlocked = false;
+  let moneyAgeMessage: string | undefined;
   if (input.userId) {
     const user = await db.user.findUnique({
       where: { id: input.userId },
-      select: { countryCode: true },
+      select: { countryCode: true, birthDate: true },
     });
     userCountry = user?.countryCode ?? null;
+    const { moneyAgeBlockFromRecord } = await import("@/lib/money-age-gate");
+    const ageBlock = moneyAgeBlockFromRecord(user?.birthDate ?? null);
+    if (ageBlock) {
+      moneyAgeBlocked = true;
+      moneyAgeMessage = ageBlock.error;
+    }
   }
 
   const routing = resolveCheckoutRouting({
@@ -71,12 +79,15 @@ export async function getMarketplaceCheckoutEligibility(input: {
   });
 
   const locale = input.locale ?? "ko";
-  const blocked = routing.mode === "BLOCKED";
+  const blocked = routing.mode === "BLOCKED" || moneyAgeBlocked;
 
   let sellerReady = !blocked;
   let sellerReadyMessage: string | undefined;
 
-  if (!blocked) {
+  if (moneyAgeBlocked) {
+    sellerReady = false;
+    sellerReadyMessage = moneyAgeMessage;
+  } else if (!blocked) {
     const connectOk =
       !!listing.seller.stripeConnectAccountId &&
       listing.sellerProfile?.stripeConnectOnboardingStatus === "COMPLETE" &&
@@ -88,7 +99,9 @@ export async function getMarketplaceCheckoutEligibility(input: {
   }
 
   const primaryButtonLabel = blocked
-    ? translate(locale, "market.regionBlocked")
+    ? moneyAgeBlocked
+      ? translate(locale, "moneyAge.unavailable")
+      : translate(locale, "market.regionBlocked")
     : translate(locale, "market.buyNow");
 
   const { isPaymentsConfigured } = await import("@/lib/payments");
@@ -101,7 +114,7 @@ export async function getMarketplaceCheckoutEligibility(input: {
     sellerReady,
     sellerReadyMessage,
     primaryButtonLabel,
-    disclaimer: routing.disclaimer,
+    disclaimer: moneyAgeMessage ?? routing.disclaimer,
     blocked,
   };
 }

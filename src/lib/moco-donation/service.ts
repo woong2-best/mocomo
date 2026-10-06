@@ -41,6 +41,12 @@ export async function createMocoDonation(
 > {
   const type = input.type;
 
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(input.userId);
+  if (ageBlock) {
+    return { success: false, error: ageBlock.error, code: ageBlock.code };
+  }
+
   if (type === "TTS") {
     return {
       success: false,

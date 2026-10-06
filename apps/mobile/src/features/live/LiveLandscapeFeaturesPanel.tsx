@@ -11,6 +11,7 @@ import { LiveMocoSfxDonationSheet } from "@/features/live/LiveMocoSfxDonationShe
 import { LiveMocoVideoDonationSheet } from "@/features/live/LiveMocoVideoDonationSheet";
 import { liveUi } from "@/features/live/live-ui";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
 
@@ -46,6 +47,7 @@ export function LiveLandscapeFeaturesPanel({
   const [mocoSfxOpen, setMocoSfxOpen] = useState(false);
   const [cheerOpen, setCheerOpen] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
+  const moneyAge = useMoneyAgeGate();
 
   const followMut = useMutation({
     mutationFn: () => toggleFollowUser(hostUserId),
@@ -101,11 +103,29 @@ export function LiveLandscapeFeaturesPanel({
 
         {canDonate ? (
           <View style={styles.actions}>
-            <Pressable style={styles.actionBtn} onPress={() => setMocoMenuOpen(true)}>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => {
+                if (moneyAge.blocked) {
+                  void moneyAge.ensureMoneyAge();
+                  return;
+                }
+                setMocoMenuOpen(true);
+              }}
+            >
               <Ionicons name="gift" size={16} color="#F5C518" />
               <Text style={styles.actionText}>{copy.mocoDonation}</Text>
             </Pressable>
-            <Pressable style={styles.actionBtn} onPress={() => setMocoVideoOpen(true)}>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => {
+                if (moneyAge.blocked) {
+                  void moneyAge.ensureMoneyAge();
+                  return;
+                }
+                setMocoVideoOpen(true);
+              }}
+            >
               <Ionicons name="logo-youtube" size={16} color="#86efac" />
               <Text style={styles.actionText}>{copy.videoDonation}</Text>
             </Pressable>

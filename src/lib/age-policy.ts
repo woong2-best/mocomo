@@ -1,7 +1,7 @@
 import type { BirthDateSource } from "@prisma/client";
 import { ageFromBirthDate as computeAge } from "@/lib/adult-verification/is-verified";
 
-export type AgePolicyPurpose = "adult" | "discovery" | "used_market";
+export type AgePolicyPurpose = "adult" | "discovery" | "used_market" | "money";
 
 export type UserAgeRecord = {
   birthDate: Date | null;
@@ -12,15 +12,16 @@ export type UserAgeRecord = {
 
 /** 국가별 최소 연령 — 향후 법률·정책 변경 시 이 테이블만 수정 */
 const MIN_AGE_BY_COUNTRY: Record<string, Partial<Record<AgePolicyPurpose, number>>> = {
-  KR: { adult: 19, discovery: 18, used_market: 19 },
-  US: { adult: 18, discovery: 18, used_market: 18 },
-  JP: { adult: 18, discovery: 18, used_market: 18 },
+  KR: { adult: 19, discovery: 18, used_market: 19, money: 18 },
+  US: { adult: 18, discovery: 18, used_market: 18, money: 18 },
+  JP: { adult: 18, discovery: 18, used_market: 18, money: 18 },
 };
 
 const DEFAULT_MIN_AGE: Record<AgePolicyPurpose, number> = {
   adult: 18,
   discovery: 18,
   used_market: 18,
+  money: 18,
 };
 
 export function resolveMinAge(countryCode: string, purpose: AgePolicyPurpose): number {

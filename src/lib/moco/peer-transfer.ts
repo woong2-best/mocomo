@@ -59,6 +59,10 @@ export async function transferPurchasedMocoToUser(input: {
   amount: number;
   message?: string | null;
 }) {
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(input.senderId);
+  if (ageBlock) return { error: ageBlock.error, code: ageBlock.code };
+
   const amount = parseSpendableMoco(input.amount);
   if (amount == null) {
     return { error: "Send at least 0.1 MOCO, in steps of 0.1." as const };

@@ -235,6 +235,10 @@ export async function prepareUsedAuctionBidHold(input: {
     }
   | { error: string; mode?: BidHoldMode }
 > {
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(input.userId);
+  if (ageBlock) return { error: ageBlock.error };
+
   const bidAmount = Math.floor(input.bidAmount);
   const listing = await db.usedListing.findUnique({
     where: { id: input.listingId },

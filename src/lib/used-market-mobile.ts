@@ -985,6 +985,10 @@ export async function createMobileUsedTradeRequest(
   const accessErr = assertUsedMarketAccess(user);
   if (accessErr) return { error: accessErr };
 
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(userId);
+  if (ageBlock) return { error: ageBlock.error };
+
   const meetAt = new Date(meetAtIso);
   if (Number.isNaN(meetAt.getTime()) || meetAt.getTime() < Date.now() - 60_000) {
     return { error: "Choose a meetup date and time." as const };

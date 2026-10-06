@@ -39,6 +39,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
 import { liveUi } from "@/features/live/live-ui";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 
 type Props = {
   channelId: string;
@@ -77,6 +78,7 @@ export function LiveChatPanel({
   const copy = useMemo(() => liveUi(t), [t]);
   const { colors } = useTheme();
   const { user } = useAuth();
+  const moneyAge = useMoneyAgeGate();
   const insets = useSafeAreaInsets();
   const { keyboardLift } = useKeyboardLift();
   const keyboardOpen = keyboardLift > 80;
@@ -341,8 +343,12 @@ export function LiveChatPanel({
   }, [messages]);
 
   const openMoco = useCallback(() => {
+    if (moneyAge.blocked) {
+      void moneyAge.ensureMoneyAge();
+      return;
+    }
     setMocoMenuOpen(true);
-  }, []);
+  }, [moneyAge]);
 
   const mocoSheetOpen = mocoMenuOpen || mocoVideoOpen || mocoSfxOpen;
 

@@ -25,6 +25,8 @@ import {
 } from "@/lib/moco/decimal-amount";
 import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
 import { cn } from "@/lib/utils";
+import { useMoneyAgeGate } from "@/hooks/use-money-age";
+import Link from "next/link";
 
 type Props = {
   purchasedMoco: number;
@@ -117,6 +119,7 @@ function AtmActionKey({
 
 export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props) {
   const router = useRouter();
+  const moneyAge = useMoneyAgeGate();
   const [balance, setBalance] = useState(purchasedMoco);
   const [username, setUsername] = useState("");
   const [recipientLabel, setRecipientLabel] = useState("");
@@ -229,6 +232,25 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
   useEffect(() => {
     setBalance(purchasedMoco);
   }, [purchasedMoco]);
+
+  if (moneyAge.blocked) {
+    return (
+      <div className="space-y-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+        <p className="text-sm font-bold text-amber-100">{t("moneyAge.bannerMissingTitle")}</p>
+        <p className="text-sm leading-relaxed text-amber-50/90">
+          {moneyAge.message ?? t("moneyAge.blockedMissing")}
+        </p>
+        {moneyAge.reason !== "underage" ? (
+          <Link
+            href="/settings/profile"
+            className="inline-flex rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-950"
+          >
+            {t("moneyAge.addBirthDate")}
+          </Link>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

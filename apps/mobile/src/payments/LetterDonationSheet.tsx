@@ -18,6 +18,7 @@ import {
   LETTER_DONATION_MIN_MOCO,
 } from "@/lib/chat-letter-donation";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 import { formatMocoCount, parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco-amount";
 
 const PRESETS = [1, 2, 5, 10, 20];
@@ -47,6 +48,7 @@ export function LetterDonationSheet({
 }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
+  const moneyAge = useMoneyAgeGate();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [amount, setAmount] = useState(2);
   const [custom, setCustom] = useState("");
@@ -68,6 +70,7 @@ export function LetterDonationSheet({
   }, [visible]);
 
   async function submit() {
+    if (!(await moneyAge.ensureMoneyAge())) return;
     if (!roomId) {
       setError(t("m.payments.letters_can_only_be_sent_from"));
       return;

@@ -32,11 +32,15 @@ import {
   DEFAULT_VIDEO_DONATION_SETTINGS,
   normalizeYoutubeUrl,
 } from "@/lib/video-donation";
+import { assertMoneyAgeAllowed } from "@/lib/money-age-gate";
 
 export async function validatePaymentInput(
   userId: string,
   input: { type: PaymentIntentType; amount: number; metadata: Record<string, unknown> }
 ): Promise<{ error: string } | null> {
+  const ageBlock = await assertMoneyAgeAllowed(userId);
+  if (ageBlock) return { error: ageBlock.error };
+
   const payloadBlock = validatePaymentPayloadCountries(input.metadata);
   if (payloadBlock) return payloadBlock;
 

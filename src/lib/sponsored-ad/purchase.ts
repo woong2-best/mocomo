@@ -85,6 +85,10 @@ export type PurchaseSponsoredAdResult =
 export async function purchaseSponsoredAd(
   input: PurchaseSponsoredAdInput
 ): Promise<PurchaseSponsoredAdResult> {
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(input.userId);
+  if (ageBlock) return { ok: false, error: ageBlock.error };
+
   let mocoPaid: number;
   try {
     mocoPaid = calcSponsoredAdMoco(input.days);

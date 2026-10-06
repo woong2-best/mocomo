@@ -100,6 +100,10 @@ async function initMarketplacePurchase(
   buyer: { id: string; countryCode?: string | null },
   input: MarketplaceCheckoutInput
 ): Promise<{ error: string } | MarketplaceInitResult> {
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(buyer.id);
+  if (ageBlock) return { error: ageBlock.error };
+
   const quantity = Math.max(1, Math.floor(input.quantity ?? 1));
 
   const hdrs = await headers();

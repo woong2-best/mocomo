@@ -24,4 +24,10 @@ export type MobileAuthUser = {
     watermarkInsertEnabled?: boolean;
     watermarkPlacement?: "corner" | "diagonal" | null;
   };
+  moneyAge?: {
+    allowed: boolean;
+    reason: "missing" | "underage" | null;
+    hasBirthDate: boolean;
+    minAge: number;
+  };
 };

@@ -33,6 +33,10 @@ export async function payCheckoutWithMoco(
     return { error: "MOCO instant checkout isn't available in the mobile app." };
   }
 
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(userId);
+  if (ageBlock) return ageBlock;
+
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
     userId,
     paymentIntentId: orderId,

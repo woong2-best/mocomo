@@ -76,6 +76,10 @@ export async function payCheckoutWithGemsFromOrder(
     return { error: "Invalid payment request." as const };
   }
 
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(userId);
+  if (ageBlock) return { error: ageBlock.error };
+
   const consentBlock = await assertAndRecordPurchaseTermsConsent({
     userId,
     paymentIntentId: orderId,

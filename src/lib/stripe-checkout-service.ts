@@ -49,6 +49,10 @@ export async function createStripeCheckoutForUser(input: {
     };
   }
 
+  const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+  const ageBlock = await assertMoneyAgeAllowed(input.userId);
+  if (ageBlock) return ageBlock;
+
   const ofacBlock = await assertOfacPaymentRequestAllowed(input.userId, input.metadata);
   if (ofacBlock) return ofacBlock;
 
