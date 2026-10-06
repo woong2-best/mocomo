@@ -54,8 +54,9 @@ import { isSignupHumanVerifyRequired } from "@/lib/turnstile-signup";
 import { RESERVED_USERNAMES } from "@/lib/username-policy";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
 import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countries";
-import { parseBirthDateInput } from "@/lib/birth-date";
+import { parseBirthDateInput, toStoredBirthDate } from "@/lib/birth-date";
 import { birthDateCollectionMeta } from "@/lib/age-policy";
+import { recordBirthDateChange } from "@/lib/birth-date-change-log";
 import { z } from "zod";
 
 const birthDateSignupFields = {
@@ -548,39 +549,69 @@ export async function registerUser(
 
     const isResume = !!userByEmail && !isEmailVerified(userByEmail);
 
+    const storedBirth = toStoredBirthDate(birthDate);
+    const collected = birthDateCollectionMeta("SIGNUP");
     if (isResume && userByEmail) {
-      await dedupeUnverifiedEmailAccounts(email, userByEmail.id);
-      const updated = await db.user.update({
-        where: { id: userByEmail.id },
-        data: {
-          email,
-          username,
-          passwordHash,
-          name: name || username,
-          emailVerified: null,
-          locale,
-          countryCode: countryCode.toUpperCase(),
-          timeZone,
-          birthDate,
-          ...birthDateCollectionMeta("SIGNUP"),
-        },
+      const resumeUserId = userByEmail.id;
+      await dedupeUnverifiedEmailAccounts(email, resumeUserId);
+      const prior = await db.user.findUnique({
+        where: { id: resumeUserId },
+        select: { birthDate: true, birthDateCollectedAt: true },
+      });
+      const updated = await db.$transaction(async (tx) => {
+        const row = await tx.user.update({
+          where: { id: resumeUserId },
+          data: {
+            email,
+            username,
+            passwordHash,
+            name: name || username,
+            emailVerified: null,
+            locale,
+            countryCode: countryCode.toUpperCase(),
+            timeZone,
+            birthDate: storedBirth,
+            birthDateSource: "SIGNUP",
+            ...(prior?.birthDateCollectedAt
+              ? {}
+              : { birthDateCollectedAt: collected.birthDateCollectedAt }),
+          },
+        });
+        await recordBirthDateChange(tx, {
+          userId: row.id,
+          previousValue: prior?.birthDate ?? null,
+          newValue: storedBirth,
+          source: "SIGNUP",
+          createdAt: collected.birthDateCollectedAt,
+        });
+        return row;
       });
       userId = updated.id;
     } else {
-      const user = await db.user.create({
-        data: {
-          email,
-          username,
-          passwordHash,
-          name: name || username,
-          role: "USER",
-          emailVerified: null,
-          locale,
-          countryCode: countryCode.toUpperCase(),
-          timeZone,
-          birthDate,
-          ...birthDateCollectionMeta("SIGNUP"),
-        },
+      const user = await db.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            email,
+            username,
+            passwordHash,
+            name: name || username,
+            role: "USER",
+            emailVerified: null,
+            locale,
+            countryCode: countryCode.toUpperCase(),
+            timeZone,
+            birthDate: storedBirth,
+            ...collected,
+          },
+        });
+        await recordBirthDateChange(tx, {
+          userId: created.id,
+          previousValue: null,
+          newValue: storedBirth,
+          source: "SIGNUP",
+          createdAt: collected.birthDateCollectedAt,
+        });
+        return created;
       });
       userId = user.id;
     }

@@ -20,6 +20,7 @@ import {
   Lock,
   History,
   Search,
+  CalendarDays,
   Globe,
   Fingerprint,
   MapPin,
@@ -37,6 +38,7 @@ export type AdminNavItem = {
 export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard" },
   { href: "/admin/users", label: "Members", icon: Users, permission: "users" },
+  { href: "/admin/birth-dates", label: "생년월일 이력", icon: CalendarDays, permission: "users" },
   { href: "/admin/creators", label: "Creators", icon: Drama, permission: "creators" },
   { href: "/admin/settlements", label: "Settlements", icon: CreditCard, permission: "settlements" },
   { href: "/admin/products", label: "Products", icon: ShoppingBag, permission: "products" },

@@ -82,6 +82,7 @@ export function hasAdminPermission(role: string, permission: AdminPermission): b
 export function pathPermission(pathname: string): AdminPermission | null {
   if (pathname === "/admin" || pathname === "/admin/") return "dashboard";
   if (pathname.startsWith("/admin/users")) return "users";
+  if (pathname.startsWith("/admin/birth-dates")) return "users";
   if (pathname.startsWith("/admin/creators")) return "creators";
   if (pathname.startsWith("/admin/settlements") || pathname.startsWith("/admin/finance")) {
     return "settlements";

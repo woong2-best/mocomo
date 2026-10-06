@@ -3,8 +3,9 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { ACCOUNT_SUSPENDED_SIGNUP_MESSAGE } from "@/lib/account-status";
 import { findRestrictedIdentityUser } from "@/lib/ban-evasion";
-import { parseBirthDateInput } from "@/lib/birth-date";
+import { parseBirthDateInput, toStoredBirthDate } from "@/lib/birth-date";
 import { birthDateCollectionMeta } from "@/lib/age-policy";
+import { recordBirthDateChange } from "@/lib/birth-date-change-log";
 import { isOAuthEncryptionConfigured } from "@/lib/encryption";
 import {
   FORBIDDEN_ADMIN_SEQUENCE_MESSAGE,
@@ -153,22 +154,34 @@ export async function createOAuthUserWithConsent(opts: {
     : undefined;
 
   const signupIp = opts.signupIp?.trim() || null;
-  const user = (await db.user.create({
-    data: {
-      email: opts.profile.email,
-      emailVerified: opts.profile.email ? new Date() : null,
-      name: displayName,
-      image: opts.profile.image,
-      username,
-      ...(passwordHash ? { passwordHash } : {}),
-      birthDate: opts.birthDate,
-      ...birthDateCollectionMeta("OAUTH_COMPLETE"),
-      signupIp,
-      signupIpAt: signupIp ? new Date() : null,
-      profile: { create: {} },
-      otakuProfile: { create: {} },
-    },
-    select: CREATED_USER_SELECT,
+  const storedBirth = toStoredBirthDate(opts.birthDate);
+  const collected = birthDateCollectionMeta("OAUTH_COMPLETE");
+  const user = (await db.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        email: opts.profile.email,
+        emailVerified: opts.profile.email ? new Date() : null,
+        name: displayName,
+        image: opts.profile.image,
+        username,
+        ...(passwordHash ? { passwordHash } : {}),
+        birthDate: storedBirth,
+        ...collected,
+        signupIp,
+        signupIpAt: signupIp ? new Date() : null,
+        profile: { create: {} },
+        otakuProfile: { create: {} },
+      },
+      select: CREATED_USER_SELECT,
+    });
+    await recordBirthDateChange(tx, {
+      userId: created.id,
+      previousValue: null,
+      newValue: storedBirth,
+      source: "OAUTH_COMPLETE",
+      createdAt: collected.birthDateCollectedAt,
+    });
+    return created;
   })) as CreatedOAuthUser;
 
   if (signupIp) {
@@ -185,12 +198,24 @@ export async function createOAuthUserWithConsent(opts: {
 }
 
 export async function applyBirthDateIfMissing(userId: string, birthDate: Date): Promise<void> {
-  await db.user.updateMany({
-    where: { id: userId, birthDate: null },
-    data: {
-      birthDate,
-      ...birthDateCollectionMeta("OAUTH_COMPLETE"),
-    },
+  const storedBirth = toStoredBirthDate(birthDate);
+  const collected = birthDateCollectionMeta("OAUTH_COMPLETE");
+  await db.$transaction(async (tx) => {
+    const updated = await tx.user.updateMany({
+      where: { id: userId, birthDate: null },
+      data: {
+        birthDate: storedBirth,
+        ...collected,
+      },
+    });
+    if (updated.count === 0) return;
+    await recordBirthDateChange(tx, {
+      userId,
+      previousValue: null,
+      newValue: storedBirth,
+      source: "OAUTH_COMPLETE",
+      createdAt: collected.birthDateCollectedAt,
+    });
   });
 }
 

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { adminLoadUserDetail } from "@/actions/admin-cms";
 import { AdminUserActions } from "@/components/admin/cms/admin-user-actions";
 import { DashboardCard } from "@/components/admin/shell/stat-card";
+import { formatBirthDateLabel } from "@/lib/birth-date";
+import { birthDateSourceLabel, formatDisputeTimestamp } from "@/lib/admin/services/birth-date-history";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,7 @@ export default async function AdminUserDetailPage({
     return <p className="text-sm text-destructive">{errorText(res.error)}</p>;
   }
 
-  const { user, tipsSent, tipsReceived, payments, reportsAbout, postsCount, ordersBought, ordersSold } =
+  const { user, tipsSent, tipsReceived, payments, mocoTransfers, reportsAbout, postsCount, ordersBought, ordersSold } =
     res.data;
 
   return (
@@ -47,6 +49,32 @@ export default async function AdminUserDetailPage({
       </div>
 
       <AdminUserActions userId={user.id} username={user.username} />
+
+      <DashboardCard
+        title="생년월일"
+        action={
+          <Link href={`/admin/birth-dates?user=${user.id}`} className="text-sm text-primary hover:underline">
+            변경 이력 · CSV
+          </Link>
+        }
+      >
+        <dl className="grid gap-3 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-xs text-muted-foreground">현재 생년월일</dt>
+            <dd className="mt-1 font-medium tabular-nums">{formatBirthDateLabel(user.birthDate)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">최초 입력 시각</dt>
+            <dd className="mt-1 font-medium">
+              {user.birthDateCollectedAt ? formatDisputeTimestamp(user.birthDateCollectedAt) : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">출처</dt>
+            <dd className="mt-1 font-medium">{birthDateSourceLabel(user.birthDateSource)}</dd>
+          </div>
+        </dl>
+      </DashboardCard>
 
       <DashboardCard title={t("settings.profile")}>
         <p className="text-sm whitespace-pre-wrap">{user.profile?.bio || t("app.admin.sjfjqg2")}</p>
@@ -79,34 +107,69 @@ export default async function AdminUserDetailPage({
         </ul>
       </DashboardCard>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div id="transfers" className="scroll-mt-24 space-y-3">
+        <h2 className="text-sm font-semibold">전송 내역</h2>
+        <div className="grid gap-4 lg:grid-cols-2">
         <DashboardCard title={t("app.admin.s1et8j54")}>
           <ul className="space-y-1 text-xs">
-            {tipsSent.map((t) => (
-              <li key={t.id}>
-                → @{t.receiver.username} ₩{t.amount.toLocaleString()}
-              </li>
-            ))}
+            {tipsSent.length === 0 ? (
+              <li className="text-muted-foreground">보낸 후원이 없습니다.</li>
+            ) : (
+              tipsSent.map((tip) => (
+                <li key={tip.id}>
+                  → @{tip.receiver.username} ₩{tip.amount.toLocaleString()}
+                </li>
+              ))
+            )}
           </ul>
         </DashboardCard>
         <DashboardCard title={t("app.admin.s1ec86pz")}>
           <ul className="space-y-1 text-xs">
-            {tipsReceived.map((t) => (
-              <li key={t.id}>
-                ← @{t.sender.username} ₩{t.amount.toLocaleString()}
-              </li>
-            ))}
+            {tipsReceived.length === 0 ? (
+              <li className="text-muted-foreground">받은 후원이 없습니다.</li>
+            ) : (
+              tipsReceived.map((tip) => (
+                <li key={tip.id}>
+                  ← @{tip.sender.username} ₩{tip.amount.toLocaleString()}
+                </li>
+              ))
+            )}
           </ul>
         </DashboardCard>
+          <DashboardCard title="MOCO 전송">
+            <ul className="space-y-1 text-xs">
+              {mocoTransfers.length === 0 ? (
+                <li className="text-muted-foreground">전송 기록이 없습니다.</li>
+              ) : (
+                mocoTransfers.map((row) => (
+                  <li key={row.id}>
+                    {row.type} {row.amount}
+                    {row.amountTenths ? `.${Math.abs(row.amountTenths)}` : ""} MOCO · {row.reason} ·{" "}
+                    {row.createdAt.toISOString().slice(0, 16)}
+                  </li>
+                ))
+              )}
+            </ul>
+          </DashboardCard>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div id="payments" className="scroll-mt-24">
         <DashboardCard title={t("app.admin.sugz0")}>
           <ul className="space-y-1 text-xs">
-            {payments.map((p) => (
-              <li key={p.id}>
-                {p.type} ₩{p.amount.toLocaleString()} · {p.paidAt?.toISOString().slice(0, 10)}
-              </li>
-            ))}
+            {payments.length === 0 ? (
+              <li className="text-muted-foreground">결제 기록이 없습니다.</li>
+            ) : (
+              payments.map((p) => (
+                <li key={p.id}>
+                  {p.type} ₩{p.amount.toLocaleString()} · {p.paidAt?.toISOString().slice(0, 10)}
+                </li>
+              ))
+            )}
           </ul>
         </DashboardCard>
+        </div>
         <DashboardCard title={t("app.admin.s2g5ky9")}>
           <ul className="space-y-1 text-xs">
             {reportsAbout.map((r) => (

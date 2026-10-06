@@ -321,6 +321,8 @@ model User {
   accounts      Account[]
   sessions      Session[]
   usernameChangeLogs UsernameChangeLog[]
+  birthDateChangeLogs BirthDateChangeLog[] @relation("BirthDateChangeSubject")
+  birthDateChangesActed BirthDateChangeLog[] @relation("BirthDateChangeActor")
   calendarMemos CalendarMemo[]
   adminMemosAbout AdminUserMemo[] @relation("AdminMemoSubject")
   adminMemosWritten AdminUserMemo[] @relation("AdminMemoAuthor")
@@ -677,6 +679,22 @@ model UsernameChangeLog {
   createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+/** 분쟁 대응 — 생년월일 최초 입력과 이후 변경. 이전 값 null 은 최초 입력 */
+model BirthDateChangeLog {
+  id            String          @id @default(cuid())
+  userId        String
+  previousValue DateTime?       @db.Date
+  newValue      DateTime?       @db.Date
+  source        BirthDateSource
+  actorId       String?
+  createdAt     DateTime        @default(now())
+
+  user  User  @relation("BirthDateChangeSubject", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("BirthDateChangeActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
 }

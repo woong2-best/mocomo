@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { displayableImageUrl, isPublicHttpUrl } from "@/lib/displayable-image-url";
-import { splitStoredBirthDate } from "@/lib/birth-date";
-import { birthDateCollectionMeta } from "@/lib/age-policy";
+import { birthDateKey, splitStoredBirthDate, toStoredBirthDate } from "@/lib/birth-date";
+import { recordBirthDateChange } from "@/lib/birth-date-change-log";
 import { validateUsernameAndName } from "@/lib/forbidden-admin-sequence";
 import { parseBirthDateInput } from "@/lib/used-youth-protection";
 import type { Prisma } from "@prisma/client";
@@ -122,7 +122,13 @@ export async function applyProfileUpdateForUser(
 ): Promise<{ success: true } | { error: string }> {
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true, image: true },
+    select: {
+      id: true,
+      username: true,
+      image: true,
+      birthDate: true,
+      birthDateCollectedAt: true,
+    },
   });
   if (!user) return { error: "User not found." };
 
@@ -234,9 +240,12 @@ export async function applyProfileUpdateForUser(
     userUpdate.image = null;
   }
 
+  let birthChange: { previous: Date | null; next: Date | null; createdAt?: Date } | null = null;
   if (clearBirthDate) {
-    userUpdate.birthDate = null;
-    userUpdate.birthDateCollectedAt = null;
+    if (user.birthDate) {
+      userUpdate.birthDate = null;
+      birthChange = { previous: user.birthDate, next: null };
+    }
   } else if (
     birthYear !== undefined &&
     birthMonth !== undefined &&
@@ -244,8 +253,18 @@ export async function applyProfileUpdateForUser(
   ) {
     const birth = parseBirthDateInput(birthYear, birthMonth, birthDay);
     if (!birth) return { error: "Enter a valid birth date." };
-    userUpdate.birthDate = birth;
-    Object.assign(userUpdate, birthDateCollectionMeta("PROFILE_EDIT"));
+    const stored = toStoredBirthDate(birth);
+    if (birthDateKey(user.birthDate) !== birthDateKey(stored)) {
+      userUpdate.birthDate = stored;
+      userUpdate.birthDateSource = "PROFILE_EDIT";
+      if (!user.birthDateCollectedAt) {
+        const createdAt = new Date();
+        userUpdate.birthDateCollectedAt = createdAt;
+        birthChange = { previous: user.birthDate, next: stored, createdAt };
+      } else {
+        birthChange = { previous: user.birthDate, next: stored };
+      }
+    }
   }
 
   await db.$transaction(async (tx) => {
@@ -274,6 +293,16 @@ export async function applyProfileUpdateForUser(
           oldUsername: currentUsername,
           newUsername: nextUsername,
         },
+      });
+    }
+
+    if (birthChange) {
+      await recordBirthDateChange(tx, {
+        userId: user.id,
+        previousValue: birthChange.previous,
+        newValue: birthChange.next,
+        source: "PROFILE_EDIT",
+        createdAt: birthChange.createdAt,
       });
     }
   });

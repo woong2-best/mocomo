@@ -32,6 +32,11 @@ import {
   updateSiteSettings,
   type SiteSettingsShape,
 } from "@/lib/admin/services/settings";
+import {
+  buildBirthDateHistoryCsv,
+  getBirthDateAdminRecord,
+  searchBirthDateUsers,
+} from "@/lib/admin/services/birth-date-history";
 
 function errMsg(e: unknown) {
   if (e instanceof AdminAccessError) {
@@ -167,6 +172,52 @@ export async function adminExportUsersCsvAction(query: UserListQuery) {
     await requireAdminPermission("users", { action: "EXPORT_USER_DATA" });
     const csv = await exportUsersCsv(query);
     return { ok: true as const, csv };
+  } catch (e) {
+    return { ok: false as const, error: errMsg(e) };
+  }
+}
+
+export async function adminLoadBirthDateHistory(input: { q?: string; userId?: string }) {
+  try {
+    const q = input.q?.trim() ?? "";
+    const userId = input.userId?.trim() || undefined;
+    await requireAdminPermission(
+      "users",
+      q || userId
+        ? {
+            action: "VIEW_USER_PII",
+            targetType: userId ? "user" : "birth_date_history",
+            targetId: userId,
+            metadata: { scope: "birth_date_history", q: q || null },
+          }
+        : undefined
+    );
+    const [matches, record] = await Promise.all([
+      q ? searchBirthDateUsers(q) : Promise.resolve([]),
+      userId ? getBirthDateAdminRecord(userId) : Promise.resolve(null),
+    ]);
+    return { ok: true as const, data: { matches, record } };
+  } catch (e) {
+    return { ok: false as const, error: errMsg(e) };
+  }
+}
+
+export async function adminExportBirthDateHistoryCsvAction(userId: string) {
+  try {
+    await requireAdminPermission("users", {
+      action: "EXPORT_USER_DATA",
+      targetType: "user",
+      targetId: userId,
+      metadata: { scope: "birth_date_history", format: "csv" },
+    });
+    const record = await getBirthDateAdminRecord(userId);
+    if (!record) return { ok: false as const, error: "actions.svypth4" };
+    const safeName = record.user.username.replace(/[^a-zA-Z0-9_-]/g, "") || "user";
+    return {
+      ok: true as const,
+      csv: buildBirthDateHistoryCsv(record),
+      filename: `birth-date-${safeName}.csv`,
+    };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };
   }

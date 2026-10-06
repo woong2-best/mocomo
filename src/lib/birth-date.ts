@@ -9,6 +9,38 @@ export function sanitizeBirthDigitInput(value: string, maxLength: number): strin
   return value.replace(/\D/g, "").slice(0, maxLength);
 }
 
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function isUtcMidnight(value: Date): boolean {
+  return (
+    value.getUTCHours() === 0 &&
+    value.getUTCMinutes() === 0 &&
+    value.getUTCSeconds() === 0 &&
+    value.getUTCMilliseconds() === 0
+  );
+}
+
+/** Calendar day key. UTC-midnight values use UTC parts; form input uses the local calendar day. */
+export function birthDateKey(value: Date | null | undefined): string | null {
+  if (!value || Number.isNaN(value.getTime())) return null;
+  if (isUtcMidnight(value)) {
+    return `${value.getUTCFullYear()}-${pad2(value.getUTCMonth() + 1)}-${pad2(value.getUTCDate())}`;
+  }
+  return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`;
+}
+
+/** Persist a calendar date as UTC midnight so @db.Date matches the day the user entered. */
+export function toStoredBirthDate(value: Date): Date {
+  if (isUtcMidnight(value)) return value;
+  return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()));
+}
+
+export function formatBirthDateLabel(value: Date | null | undefined): string {
+  return birthDateKey(value) ?? "—";
+}
+
 export function splitStoredBirthDate(birth: Date | null | undefined): {
   year: string;
   month: string;

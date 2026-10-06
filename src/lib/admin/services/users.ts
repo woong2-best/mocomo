@@ -107,7 +107,7 @@ export async function getAdminUserDetail(userId: string) {
   });
   if (!user) return null;
 
-  const [tipsSent, tipsReceived, payments, reportsAbout, postsCount, ordersBought, ordersSold] =
+  const [tipsSent, tipsReceived, payments, mocoTransfers, reportsAbout, postsCount, ordersBought, ordersSold] =
     await Promise.all([
       db.tip.findMany({
         where: { senderId: userId },
@@ -126,6 +126,19 @@ export async function getAdminUserDetail(userId: string) {
         orderBy: { paidAt: "desc" },
         take: 20,
       }),
+      db.mocoTransactionHistory.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+        select: {
+          id: true,
+          amount: true,
+          amountTenths: true,
+          type: true,
+          reason: true,
+          createdAt: true,
+        },
+      }),
       db.report.findMany({
         where: { reportedUserId: userId },
         orderBy: { createdAt: "desc" },
@@ -142,6 +155,7 @@ export async function getAdminUserDetail(userId: string) {
     tipsSent,
     tipsReceived,
     payments,
+    mocoTransfers,
     reportsAbout,
     postsCount,
     ordersBought,
