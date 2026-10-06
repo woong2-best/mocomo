@@ -4,6 +4,7 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
 import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
@@ -35,6 +36,8 @@ type Props = {
   settlement: SettlementStatus;
   receivedTips: TipHistory["receivedTips"];
   callbackUrl?: string | null;
+  /** Deep link to return after skipping reward payout registration (Earnings tab only). */
+  postSetupReturnUrl?: string | null;
 };
 
 export function RevenueSettlementPanel({
@@ -42,6 +45,7 @@ export function RevenueSettlementPanel({
   earnings: initialEarnings,
   settlement,
   receivedTips,
+  postSetupReturnUrl,
 }: Props) {
   const [earnings, setEarnings] = useState(initialEarnings);
   const [year, setYear] = useState(initialEarnings.year);
@@ -142,6 +146,16 @@ export function RevenueSettlementPanel({
       </div>
 
       <CreatorRewardTierTable earnedMoco={earned} />
+
+      {postSetupReturnUrl && !settlement.payoutsEnabled ? (
+        <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm space-y-1">
+          <p className="font-bold text-foreground">{t("wallet.hub.rewardRegistrationTitle")}</p>
+          <p className="text-muted-foreground leading-relaxed">{t("wallet.hub.rewardRegistrationDesc")}</p>
+          <Link href={postSetupReturnUrl} className="text-primary font-semibold text-xs underline">
+            {t("wallet.hub.rewardLater")}
+          </Link>
+        </div>
+      ) : null}
 
       <SettlementRegistrationPanel
         registered={settlement.registered}

@@ -6,7 +6,6 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { confirmPaymentMethodSetup } from "@/actions/payment-methods";
 import { WalletStripeTopup } from "@/components/wallet/wallet-stripe-topup";
@@ -135,16 +134,6 @@ export function WalletHub({
 
   return (
     <div className="mx-auto max-w-lg space-y-5 overflow-x-visible pb-8 px-0.5">
-      {safeCallbackUrl && !settlement.payoutsEnabled ? (
-        <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm space-y-1">
-          <p className="font-bold text-foreground">{t("wallet.hub.rewardRegistrationTitle")}</p>
-          <p className="text-muted-foreground leading-relaxed">{t("wallet.hub.rewardRegistrationDesc")}</p>
-          <Link href={safeCallbackUrl} className="text-primary font-semibold text-xs underline">
-            {t("wallet.hub.rewardLater")}
-          </Link>
-        </div>
-      ) : null}
-
       <div className="flex flex-wrap items-end gap-x-6 gap-y-1 px-1">
         {tabs.map((row) => (
           <button
@@ -182,6 +171,7 @@ export function WalletHub({
           settlement={settlement}
           receivedTips={tipHistory.receivedTips}
           callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
+          postSetupReturnUrl={safeCallbackUrl}
         />
       )}
 
