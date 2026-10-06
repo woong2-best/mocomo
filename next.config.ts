@@ -42,6 +42,7 @@ const nextConfig: NextConfig = {
     "@mediapipe/tasks-vision",
     "@pixiv/three-vrm",
     "three",
+    "textarea-caret",
   ],
   serverExternalPackages: [
     "@huggingface/transformers",
