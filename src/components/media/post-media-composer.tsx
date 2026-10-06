@@ -14,6 +14,7 @@ import {
 } from "react";
 import {
   Camera,
+  DollarSign,
   Film,
   ImagePlus,
   Loader2,
@@ -620,11 +621,13 @@ export const PostMediaComposer = forwardRef<
       {enablePaidAttach && (canAddImage || canAddVideo) && (
         <button
           type="button"
-          className="h-9 px-2.5 rounded-full text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-40"
+          className={iconBtnClass}
           disabled={disabled || uploading}
           onClick={() => setAttachOpen(true)}
+          aria-label={t("compose.attach.title")}
+          title={t("compose.attach.title")}
         >
-          {t("compose.attach")}
+          <DollarSign className="h-[18px] w-[18px]" strokeWidth={2.25} />
         </button>
       )}
     </>
@@ -761,16 +764,16 @@ export const PostMediaComposer = forwardRef<
           </div>
         )}
         {enablePaidAttach && (canAddImage || canAddVideo) && (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-xl"
+            className={iconBtnClass}
             disabled={disabled || uploading}
             onClick={() => setAttachOpen(true)}
+            aria-label={t("compose.attach.title")}
+            title={t("compose.attach.title")}
           >
-            {t("compose.attach")}
-          </Button>
+            <DollarSign className="h-[18px] w-[18px]" strokeWidth={2.25} />
+          </button>
         )}
       </div>
       )}

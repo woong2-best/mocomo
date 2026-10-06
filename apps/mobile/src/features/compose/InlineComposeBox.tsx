@@ -536,7 +536,8 @@ export function InlineComposeBox({
         <View style={styles.toolbarLeading}>
           <ToolIcon name="image-outline" onPress={() => void pickGallery()} disabled={busy} color={colors.terracotta} />
           {!isQuoteCompose ? (
-            <Pressable
+            <ToolIcon
+              name="logo-usd"
               onPress={() => {
                 if (isNsfw) {
                   showIslandError(t("m.common.error"), t("m.compose.attach_nsfw"));
@@ -546,13 +547,9 @@ export function InlineComposeBox({
                 setAttachOpen(true);
               }}
               disabled={busy}
-              hitSlop={8}
-              style={{ opacity: busy ? 0.45 : 1 }}
-              accessibilityRole="button"
-              accessibilityLabel={t("m.compose.attach")}
-            >
-              <Text style={styles.attachBtnText}>{t("m.compose.attach")}</Text>
-            </Pressable>
+              color={colors.terracotta}
+              accessibilityLabel={t("m.compose.attach_title")}
+            />
           ) : null}
           {!isQuoteCompose ? (
             <>
@@ -658,14 +655,23 @@ function ToolIcon({
   onPress,
   disabled,
   color,
+  accessibilityLabel,
 }: {
   name: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   disabled?: boolean;
   color: string;
+  accessibilityLabel?: string;
 }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} hitSlop={8} style={{ opacity: disabled ? 0.45 : 1 }}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={8}
+      style={{ opacity: disabled ? 0.45 : 1 }}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
       <Ionicons name={name} size={22} color={color} />
     </Pressable>
   );
@@ -1084,7 +1090,6 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 2,
     },
     priceBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
-    attachBtnText: { color: colors.brand, fontSize: 14, fontWeight: "800" },
     mediaRemove: {
       position: "absolute",
       top: 4,
