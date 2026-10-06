@@ -24,8 +24,6 @@ import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useI18n } from "@/i18n/I18nProvider";
 import { spacing } from "@/theme/tokens";
 import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
-import { FolkButton } from "@/ui/FolkButton";
-import { navigateFromPush } from "@/navigation/navigationRef";
 
 const EARTH_BG = require("../../../assets/live/moco-support-earth.png");
 const LOGO = require("../../../assets/icon.png");
@@ -244,21 +242,6 @@ export function WalletTransferPanel() {
     setError("");
     setStatusLine(t("m.common.sending"));
     mutation.mutate();
-  }
-
-  if (moneyAge.blocked) {
-    return (
-      <View style={styles.wrap}>
-        <Text style={styles.intro}>{t("m.money_age.title")}</Text>
-        <Text style={styles.intro}>{moneyAge.message}</Text>
-        {moneyAge.reason !== "underage" ? (
-          <FolkButton
-            label={t("m.money_age.add_birth_date")}
-            onPress={() => navigateFromPush("ProfileEdit")}
-          />
-        ) : null}
-      </View>
-    );
   }
 
   return (

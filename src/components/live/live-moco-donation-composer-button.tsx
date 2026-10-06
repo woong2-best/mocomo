@@ -13,7 +13,6 @@ import { MocoDonationDialog } from "@/components/live/moco-donation-dialog";
 import { MocoVideoDonationDialog } from "@/components/live/moco-video-donation-dialog";
 import { cn } from "@/lib/utils";
 import { useMoneyAgeGate } from "@/hooks/use-money-age";
-import { pushErrorToast } from "@/lib/published-toast-store";
 
 type Props = {
   channelId: string;
@@ -56,12 +55,13 @@ export function LiveMocoDonationComposerButton({
       <DropdownMenu
         open={menuOpen}
         onOpenChange={(next) => {
-          if (next && moneyAge.blocked) {
-            pushErrorToast({ message: moneyAge.message ?? t("moneyAge.blockedMissing") });
-            void moneyAge.ensureMoneyAge();
+          if (!next) {
+            setMenuOpen(false);
             return;
           }
-          setMenuOpen(next);
+          void (async () => {
+            if (await moneyAge.ensureMoneyAge()) setMenuOpen(true);
+          })();
         }}
       >
         <DropdownMenuTrigger asChild>

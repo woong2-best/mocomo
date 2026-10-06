@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 
 type Props = {
   enabled: boolean;
@@ -14,6 +15,7 @@ type Props = {
 export function SensitiveContentGate({ enabled, children, style }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
+  const { ensureNsfwView } = useMoneyAgeGate();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [revealed, setRevealed] = useState(false);
 
@@ -34,7 +36,11 @@ export function SensitiveContentGate({ enabled, children, style }: Props) {
           <View style={styles.actions}>
             <Pressable
               style={styles.viewBtn}
-              onPress={() => setRevealed(true)}
+              onPress={() => {
+                void (async () => {
+                  if (await ensureNsfwView()) setRevealed(true);
+                })();
+              }}
               accessibilityRole="button"
               accessibilityLabel={t("m.ui.view_sensitive_content")}
             >

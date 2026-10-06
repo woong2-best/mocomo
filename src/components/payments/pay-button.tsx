@@ -50,7 +50,7 @@ export function PayButton({
   const moneyAge = useMoneyAgeGate();
 
   const isAdult = isAdultContent(contentRating);
-  const blocked = isAdult || moneyAge.blocked;
+  const blocked = isAdult;
 
   async function openCheckout() {
     if (status === "loading") return;
@@ -88,13 +88,7 @@ export function PayButton({
         type="button"
         className={className}
         disabled={disabled || blocked}
-        title={
-          isAdult
-            ? ADULT_MONETIZATION_BANNED_SHORT
-            : moneyAge.blocked
-              ? (moneyAge.message ?? undefined)
-              : undefined
-        }
+        title={isAdult ? ADULT_MONETIZATION_BANNED_SHORT : undefined}
         onClick={openCheckout}
       >
         {children}

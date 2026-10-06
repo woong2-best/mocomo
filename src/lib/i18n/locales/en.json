@@ -9269,5 +9269,6 @@
   "moneyAge.addBirthDate": "Add date of birth",
   "moneyAge.blockedMissing": "Add your date of birth on your profile before using payments, tips, or transfers.",
   "moneyAge.blockedUnderage": "Payments, tips, and transfers are only available to users 18 or older.",
-  "moneyAge.unavailable": "Unavailable"
+  "moneyAge.unavailable": "Unavailable",
+  "moneyAge.dateOfBirthLink": "Date of birth"
 }

@@ -178,6 +178,13 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
 
   function send() {
     if (pending || atmOverlay) return;
+    void (async () => {
+      if (!(await moneyAge.ensureMoneyAge())) return;
+      sendAfterAgeCheck();
+    })();
+  }
+
+  function sendAfterAgeCheck() {
     if (!username.trim() || parsed == null || parsed < 0.1) {
       const msg = t("wallet.1_moco");
       setError(msg);
@@ -232,25 +239,6 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
   useEffect(() => {
     setBalance(purchasedMoco);
   }, [purchasedMoco]);
-
-  if (moneyAge.blocked) {
-    return (
-      <div className="space-y-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
-        <p className="text-sm font-bold text-amber-100">{t("moneyAge.bannerMissingTitle")}</p>
-        <p className="text-sm leading-relaxed text-amber-50/90">
-          {moneyAge.message ?? t("moneyAge.blockedMissing")}
-        </p>
-        {moneyAge.reason !== "underage" ? (
-          <Link
-            href="/settings/profile"
-            className="inline-flex rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-950"
-          >
-            {t("moneyAge.addBirthDate")}
-          </Link>
-        ) : null}
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-3">

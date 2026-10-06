@@ -85,21 +85,6 @@ export function LetterDonationDialog({
     .filter(Boolean)
     .join(" ");
 
-  if (moneyAge.blocked) {
-    return (
-      <Button
-        disabled
-        variant={triggerVariant}
-        size={triggerSize}
-        className={`${triggerClass} opacity-60`}
-        title={moneyAge.message ?? t("moneyAge.blockedMissing")}
-      >
-        <Mail className="h-4 w-4" />
-        {triggerLabel}
-      </Button>
-    );
-  }
-
   if (!paymentsEnabled) {
     return (
       <Button
@@ -116,7 +101,18 @@ export function LetterDonationDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          setOpen(false);
+          return;
+        }
+        void (async () => {
+          if (await moneyAge.ensureMoneyAge()) setOpen(true);
+        })();
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant={triggerVariant} size={triggerSize} className={triggerClass}>
           {iconOnly && triggerIcon ? (

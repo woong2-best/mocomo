@@ -107,7 +107,7 @@ export function PayButton({
       <FolkButton
         label={label}
         onPress={() => void openCheckout()}
-        disabled={disabled || isAdult || moneyAge.blocked || adultGate.busy}
+        disabled={disabled || isAdult || adultGate.busy}
         variant={variant}
       />
       <PaymentCheckoutSheet

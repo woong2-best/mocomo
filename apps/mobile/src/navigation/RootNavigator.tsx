@@ -29,7 +29,6 @@ function UsedTabScreen() {
 }
 
 import { useI18n } from "@/i18n/I18nProvider";
-import { MoneyAgeBanner } from "@/features/account/MoneyAgeBanner";
 
 function SignedInCallListener() {
   const { IncomingCallListener } = require("@/features/messages/IncomingCallListener") as {
@@ -107,7 +106,6 @@ export function RootNavigator() {
       <PushNotificationHandler />
       {status === "signedIn" ? <SignedInCallListener /> : null}
       <View style={{ flex: 1 }}>
-      {status === "signedIn" ? <MoneyAgeBanner /> : null}
       <Stack.Navigator
         key={status === "signedIn" ? "member" : "guest"}
         screenOptions={{

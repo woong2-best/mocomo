@@ -13,10 +13,12 @@ import { PublishedToastProvider } from "@/components/providers/published-toast-p
 import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-provider";
 import { LegalComplianceProvider } from "@/components/providers/legal-compliance-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
+import { MoneyAgePromptProvider } from "@/components/account/money-age-prompt";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
+      <MoneyAgePromptProvider>
       <LocaleProvider>
         <LocaleSessionSync />
         <TopProgressProvider>
@@ -39,6 +41,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           </ClientTranslationProvider>
         </TopProgressProvider>
       </LocaleProvider>
+      </MoneyAgePromptProvider>
     </SessionProvider>
   );
 }

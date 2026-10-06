@@ -129,7 +129,16 @@ export function LiveLandscapeFeaturesPanel({
               <Ionicons name="logo-youtube" size={16} color="#86efac" />
               <Text style={styles.actionText}>{copy.videoDonation}</Text>
             </Pressable>
-            <Pressable style={styles.actionBtn} onPress={() => setMocoSfxOpen(true)}>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => {
+                if (moneyAge.blocked) {
+                  void moneyAge.ensureMoneyAge();
+                  return;
+                }
+                setMocoSfxOpen(true);
+              }}
+            >
               <Ionicons name="musical-notes" size={16} color="#fb923c" />
               <Text style={styles.actionText}>{copy.sfxDonation}</Text>
             </Pressable>

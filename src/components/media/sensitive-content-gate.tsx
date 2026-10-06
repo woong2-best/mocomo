@@ -9,6 +9,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { shouldGateSensitiveContent } from "@/lib/sensitive-content";
+import { useMoneyAgePrompt } from "@/hooks/use-money-age";
 
 type Props = {
   isNsfw?: boolean;
@@ -26,6 +27,7 @@ export function SensitiveContentGate({
   className,
 }: Props) {
   const { t } = useLocale();
+  const { ensureNsfwView } = useMoneyAgePrompt();
   const [revealed, setRevealed] = useState(false);
   const gated = shouldGateSensitiveContent(isNsfw, isOwner, viewerShowNsfw);
 
@@ -59,7 +61,9 @@ export function SensitiveContentGate({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setRevealed(true);
+                void (async () => {
+                  if (await ensureNsfwView()) setRevealed(true);
+                })();
               }}
             >
               {t("sensitiveContent.view")}
