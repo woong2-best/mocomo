@@ -315,7 +315,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
                     if (error) setError("");
                   }}
                   onBlur={lookup}
-                  className="w-full rounded-md border-2 border-[#1B3A6B] bg-white px-3 py-2 font-mono text-sm font-bold outline-none focus:border-[#E85D04]"
+                  className="w-full rounded-md border-2 border-[#1B3A6B] bg-white px-3 py-2 font-mono text-sm font-bold text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-[#E85D04]"
                 />
               </label>
               {recipientLabel ? <p className="text-xs font-semibold text-[#1B3A6B]">{recipientLabel}</p> : null}
@@ -335,7 +335,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
                     setLetter(e.target.value.slice(0, ATM_LETTER_MESSAGE_MAX));
                     if (error) setError("");
                   }}
-                  className="w-full resize-none rounded-md border-2 border-[#1B3A6B] bg-white px-3 py-2 text-sm leading-relaxed outline-none focus:border-[#E85D04]"
+                  className="w-full resize-none rounded-md border-2 border-[#1B3A6B] bg-white px-3 py-2 text-sm leading-relaxed text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-[#E85D04]"
                 />
                 <span className="block text-right text-[10px] tabular-nums text-neutral-500">
                   {letter.length}/{ATM_LETTER_MESSAGE_MAX}
