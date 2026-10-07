@@ -28,6 +28,6 @@ export type MobileAuthUser = {
     allowed: boolean;
     reason: "missing" | "underage" | null;
     hasBirthDate: boolean;
-    minAge: number;
+    minAge?: number;
   };
 };

@@ -15,7 +15,6 @@ export type PublicMoneyAge = {
   allowed: boolean;
   reason: MoneyAgeReason | null;
   hasBirthDate: boolean;
-  minAge: number;
 };
 
 type MoneyAgePromptApi = {

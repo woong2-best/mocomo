@@ -8,6 +8,8 @@ import { AdminUserActions } from "@/components/admin/cms/admin-user-actions";
 import { DashboardCard } from "@/components/admin/shell/stat-card";
 import { formatBirthDateLabel } from "@/lib/birth-date";
 import { birthDateSourceLabel, formatDisputeTimestamp } from "@/lib/admin/services/birth-date-history";
+import { getAdminActor } from "@/lib/admin/access";
+import { hasAdminPermission } from "@/lib/admin/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,8 @@ export default async function AdminUserDetailPage({
 
   const { user, tipsSent, tipsReceived, payments, mocoTransfers, reportsAbout, postsCount, ordersBought, ordersSold } =
     res.data;
+  const actor = await getAdminActor().catch(() => null);
+  const canViewBirthDate = actor ? hasAdminPermission(actor.role, "users.birthDate") : false;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -50,6 +54,7 @@ export default async function AdminUserDetailPage({
 
       <AdminUserActions userId={user.id} username={user.username} />
 
+      {canViewBirthDate ? (
       <DashboardCard
         title="생년월일"
         action={
@@ -75,6 +80,7 @@ export default async function AdminUserDetailPage({
           </div>
         </dl>
       </DashboardCard>
+      ) : null}
 
       <DashboardCard title={t("settings.profile")}>
         <p className="text-sm whitespace-pre-wrap">{user.profile?.bio || t("app.admin.sjfjqg2")}</p>

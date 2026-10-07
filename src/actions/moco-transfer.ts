@@ -29,7 +29,12 @@ export async function lookupMocoRecipient(username: string) {
   };
 }
 
-export async function transferMocoToUser(username: string, amount: number, message?: string) {
+export async function transferMocoToUser(
+  username: string,
+  amount: number,
+  message?: string,
+  transferTermsAccepted?: boolean
+) {
   const user = await requireAuthForAction();
   const limited = await limitTransfer(user.id);
   if (limited) return limited;
@@ -40,6 +45,7 @@ export async function transferMocoToUser(username: string, amount: number, messa
     recipientUsername: username,
     amount,
     message,
+    transferTermsAccepted,
   });
   if ("error" in result) {
     return { error: result.error, ...("code" in result ? { code: result.code } : {}) };

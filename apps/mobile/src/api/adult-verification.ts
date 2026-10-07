@@ -10,7 +10,7 @@ export type AdultVerificationStatus = {
     allowed: boolean;
     reason: "missing" | "underage" | null;
     hasBirthDate: boolean;
-    minAge: number;
+    minAge?: number;
   };
 };
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { adminLoadBirthDateHistory } from "@/actions/admin-cms";
 import { AdminBirthDateExport } from "@/components/admin/cms/admin-birth-date-export";
+import { AdminBirthDateChangeForm } from "@/components/admin/cms/admin-birth-date-change-form";
 import { DashboardCard } from "@/components/admin/shell/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,10 +112,11 @@ export default async function AdminBirthDatesPage({
                 회원 상세
               </Link>
             </div>
+            <AdminBirthDateChangeForm userId={record.user.id} />
           </DashboardCard>
 
-          <DashboardCard title="변경 이력" description="이전 값, 새 값, 시각. 이전 값이 비어 있으면 최초 입력입니다.">
-            {record.logs.length === 0 ? (
+          <DashboardCard title="변경 이력" description="이전 값, 새 값, 시각, 처리자, 사유, IP. 이전 값이 비어 있으면 최초 입력입니다.">
+            {record.history.length === 0 ? (
               <p className="text-sm text-muted-foreground">기록된 변경이 없습니다.</p>
             ) : (
               <div className="overflow-x-auto">
@@ -124,20 +126,20 @@ export default async function AdminBirthDatesPage({
                       <th className="px-2 py-2 font-medium">시각</th>
                       <th className="px-2 py-2 font-medium">이전 값</th>
                       <th className="px-2 py-2 font-medium">새 값</th>
-                      <th className="px-2 py-2 font-medium">출처</th>
                       <th className="px-2 py-2 font-medium">처리자</th>
+                      <th className="px-2 py-2 font-medium">사유</th>
+                      <th className="px-2 py-2 font-medium">IP</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...record.logs].reverse().map((row) => (
-                      <tr key={row.id} className="border-t border-border/50">
-                        <td className="px-2 py-2 whitespace-nowrap">{formatDisputeTimestamp(row.createdAt)}</td>
-                        <td className="px-2 py-2 tabular-nums">{formatBirthDateLabel(row.previousValue)}</td>
+                    {[...record.history].reverse().map((row) => (
+                      <tr key={String(row.id)} className="border-t border-border/50">
+                        <td className="px-2 py-2 whitespace-nowrap">{formatDisputeTimestamp(row.changedAt)}</td>
+                        <td className="px-2 py-2 tabular-nums">{formatBirthDateLabel(row.oldValue)}</td>
                         <td className="px-2 py-2 tabular-nums">{formatBirthDateLabel(row.newValue)}</td>
-                        <td className="px-2 py-2">{birthDateSourceLabel(row.source)}</td>
-                        <td className="px-2 py-2 text-muted-foreground">
-                          {row.actor?.username ? `@${row.actor.username}` : "본인"}
-                        </td>
+                        <td className="px-2 py-2 text-muted-foreground">{row.changedBy}</td>
+                        <td className="px-2 py-2">{row.reason ?? "—"}</td>
+                        <td className="px-2 py-2 font-mono text-xs">{row.ipAddress ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>

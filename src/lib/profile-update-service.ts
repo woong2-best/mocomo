@@ -243,8 +243,7 @@ export async function applyProfileUpdateForUser(
   let birthChange: { previous: Date | null; next: Date | null; createdAt?: Date } | null = null;
   if (clearBirthDate) {
     if (user.birthDate) {
-      userUpdate.birthDate = null;
-      birthChange = { previous: user.birthDate, next: null };
+      return { error: "Date of birth cannot be changed." };
     }
   } else if (
     birthYear !== undefined &&
@@ -254,16 +253,19 @@ export async function applyProfileUpdateForUser(
     const birth = parseBirthDateInput(birthYear, birthMonth, birthDay);
     if (!birth) return { error: "Enter a valid birth date." };
     const stored = toStoredBirthDate(birth);
-    if (birthDateKey(user.birthDate) !== birthDateKey(stored)) {
+    if (user.birthDate) {
+      if (birthDateKey(user.birthDate) !== birthDateKey(stored)) {
+        return { error: "Date of birth cannot be changed." };
+      }
+    } else {
+      const { assertSignupAgeAllowed } = await import("@/lib/signup-age-block");
+      const ageBlock = await assertSignupAgeAllowed(stored);
+      if (ageBlock) return ageBlock;
       userUpdate.birthDate = stored;
       userUpdate.birthDateSource = "PROFILE_EDIT";
-      if (!user.birthDateCollectedAt) {
-        const createdAt = new Date();
-        userUpdate.birthDateCollectedAt = createdAt;
-        birthChange = { previous: user.birthDate, next: stored, createdAt };
-      } else {
-        birthChange = { previous: user.birthDate, next: stored };
-      }
+      const createdAt = new Date();
+      userUpdate.birthDateCollectedAt = createdAt;
+      birthChange = { previous: null, next: stored, createdAt };
     }
   }
 

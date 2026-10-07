@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
 
   const ledger = quoteMocoTopupLedger(quote.moco);
 
+  const { recordTermsConsent } = await import("@/lib/terms-consent-log");
+  const { MOCO_PURCHASE_TERMS_VERSION } = await import("@/lib/legal/terms-versions");
+  const { MOCO_PURCHASE_CHECKOUT_ACK } = await import("@/lib/legal/moco-purchase-consent");
+  await recordTermsConsent({
+    userId: session.user.id,
+    termsVersion: MOCO_PURCHASE_TERMS_VERSION,
+    actionType: "CHECKOUT",
+    acknowledgementText: MOCO_PURCHASE_CHECKOUT_ACK,
+  }).catch(() => null);
+
   const checkout = await createStripeCheckoutForUser({
     userId: session.user.id,
     email: session.user.email,
@@ -54,7 +64,8 @@ export async function POST(req: NextRequest) {
   });
 
   if ("error" in checkout && checkout.error) {
-    return NextResponse.json({ error: errorText(checkout.error) }, { status: 422 });
+    const status = "status" in checkout && checkout.status === 403 ? 403 : 422;
+    return NextResponse.json({ error: errorText(checkout.error) }, { status });
   }
 
   return NextResponse.json({

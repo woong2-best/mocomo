@@ -11,13 +11,13 @@ import { Loader2 } from "lucide-react";
 import { createGemTopupCheckout } from "@/actions/gems";
 import {
   MOCO_PURCHASE_PG_FEE_NOTE,
-  MOCO_PURCHASE_TERMS_COPY,
   parseMocoTopupCount,
   quoteGemTopup,
   sanitizeMocoTopupInput,
 } from "@/lib/gems/constants";
 import { formatMocoDisplay } from "@/lib/gems/display";
 import { useLocale } from "@/components/providers/locale-provider";
+import { MocoPurchaseTermsCheckbox } from "@/components/wallet/moco-purchase-terms-checkbox";
 
 type Props = {
   purchasedMoco: number;
@@ -123,15 +123,12 @@ export function WalletStripeTopup({ purchasedMoco, minTopupMoco, lowBalanceNotic
         </p>
       )}
 
-      <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-        <input
-          type="checkbox"
-          checked={termsAccepted}
-          onChange={(e) => setTermsAccepted(e.target.checked)}
-          className="mt-0.5 shrink-0"
-        />
-        <span>{MOCO_PURCHASE_TERMS_COPY}</span>
-      </label>
+      <MocoPurchaseTermsCheckbox
+        checked={termsAccepted}
+        onCheckedChange={setTermsAccepted}
+        disabled={pending}
+        showSupportEmail
+      />
       <p className="text-[11px] leading-relaxed text-muted-foreground">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
       <p className="text-[11px]">
         <a href="/contribution-tower" className="font-bold text-[#1B3A6B] underline dark:text-primary">

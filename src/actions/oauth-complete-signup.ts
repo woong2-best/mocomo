@@ -35,8 +35,17 @@ export async function completeWebOAuthSignup(input: {
     return { error: "actions.spgny2l" };
   }
 
+  const { assertSignupAgeAllowed, isSignupAgeBlocked, SIGNUP_AGE_BLOCKED_MESSAGE } = await import(
+    "@/lib/signup-age-block"
+  );
+  if (await isSignupAgeBlocked()) {
+    return { error: SIGNUP_AGE_BLOCKED_MESSAGE };
+  }
+
   const parsed = parseOAuthSignupCompletion(input);
   if (!parsed.ok) return { error: parsed.error };
+  const ageBlock = await assertSignupAgeAllowed(parsed.birthDate);
+  if (ageBlock) return ageBlock;
 
   const dest = input.dest?.trim();
   const safeDest = dest && dest.startsWith("/") && !dest.startsWith("//") ? dest : "/";

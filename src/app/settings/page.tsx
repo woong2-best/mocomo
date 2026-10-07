@@ -190,6 +190,9 @@ export default async function SettingsPage() {
           <Link href="/legal/payment" className="block text-primary hover:underline">
             {t("settings.legalPayment")}
           </Link>
+          <Link href="/legal/purchase" className="block text-primary hover:underline">
+            {t("settings.legalPurchase")}
+          </Link>
           <Link href="/legal/moco-transfers" className="block text-primary hover:underline">
             {t("settings.legalAtmTransfers")}
           </Link>

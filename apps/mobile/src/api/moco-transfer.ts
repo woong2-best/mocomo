@@ -10,10 +10,20 @@ export type MocoTransferResult = {
   recipientSettlementAfter: number;
 };
 
-export async function transferMoco(username: string, amount: number, message?: string) {
+export async function transferMoco(
+  username: string,
+  amount: number,
+  message?: string,
+  transferTermsAccepted?: boolean
+) {
   return apiRequest<MocoTransferResult>(MobileApi.walletTransfer, {
     method: "POST",
-    body: { username, amount, message: message?.trim() || undefined },
+    body: {
+      username,
+      amount,
+      message: message?.trim() || undefined,
+      transferTermsAccepted: true,
+    },
     auth: true,
   });
 }

@@ -49,6 +49,10 @@ export async function createStripeCheckoutForUser(input: {
     };
   }
 
+  if (input.type === "GEM_TOPUP" && input.platform === "mobile") {
+    return { error: "MOCO can be purchased only on the website.", status: 403 as const };
+  }
+
   const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
   const ageBlock = await assertMoneyAgeAllowed(input.userId);
   if (ageBlock) return ageBlock;

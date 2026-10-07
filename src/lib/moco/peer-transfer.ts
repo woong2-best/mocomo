@@ -58,7 +58,11 @@ export async function transferPurchasedMocoToUser(input: {
   recipientUsername: string;
   amount: number;
   message?: string | null;
+  transferTermsAccepted?: boolean;
 }) {
+  if (!input.transferTermsAccepted) {
+    return { error: "Agree to the transfer terms before sending.", code: "TRANSFER_TERMS_REQUIRED" as const };
+  }
   const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
   const ageBlock = await assertMoneyAgeAllowed(input.senderId);
   if (ageBlock) return { error: ageBlock.error, code: ageBlock.code };
@@ -129,6 +133,20 @@ export async function transferPurchasedMocoToUser(input: {
         letterErr instanceof Error ? letterErr.name : "error"
       );
     }
+    const { recordTermsConsent } = await import("@/lib/terms-consent-log");
+    const { TERMS_OF_SERVICE_VERSION } = await import("@/lib/legal/terms-versions");
+    const { MOCO_TRANSFER_CONFIRM_BODY, MOCO_TRANSFER_CONFIRM_CHECKBOX } = await import(
+      "@/lib/legal/moco-transfer-consent"
+    );
+    await recordTermsConsent({
+      userId: input.senderId,
+      termsVersion: TERMS_OF_SERVICE_VERSION,
+      actionType: "TRANSFER",
+      acknowledgementText: `${MOCO_TRANSFER_CONFIRM_BODY}\n[ ] ${MOCO_TRANSFER_CONFIRM_CHECKBOX}`,
+    }).catch((err) => {
+      console.error("[terms-consent-log] transfer", err instanceof Error ? err.name : "error");
+    });
+
     return {
       success: true as const,
       amount: input.amount,

@@ -24,6 +24,7 @@ export const PUBLIC_SITEMAP_PATHS = [
   "/legal/culture-wiki",
   "/legal/terms",
   "/legal/moco-transfers",
+  "/legal/purchase",
   "/legal/creator-terms",
   "/legal/seller-terms",
   "/legal/sponsored-content",

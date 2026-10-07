@@ -5,6 +5,7 @@ export type AdminPermission =
   | "dashboard"
   | "users"
   | "users.write"
+  | "users.birthDate"
   | "creators"
   | "settlements"
   | "products"
@@ -22,6 +23,7 @@ export const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
   "dashboard",
   "users",
   "users.write",
+  "users.birthDate",
   "creators",
   "settlements",
   "products",
@@ -61,6 +63,7 @@ const ROLE_PERMISSIONS: Record<string, AdminPermission[]> = {
     "live",
     "audit",
   ],
+  // users.birthDate is granted only to OWNER / SUPER_ADMIN / ADMIN via ALL_ADMIN_PERMISSIONS filter below.
   MODERATOR: ["dashboard", "reports", "communities", "live"],
   SETTLEMENT_MANAGER: ["dashboard", "settlements", "statistics", "audit"],
   CUSTOMER_SUPPORT: ["dashboard", "users", "reports", "audit"],
@@ -82,7 +85,7 @@ export function hasAdminPermission(role: string, permission: AdminPermission): b
 export function pathPermission(pathname: string): AdminPermission | null {
   if (pathname === "/admin" || pathname === "/admin/") return "dashboard";
   if (pathname.startsWith("/admin/users")) return "users";
-  if (pathname.startsWith("/admin/birth-dates")) return "users";
+  if (pathname.startsWith("/admin/birth-dates")) return "users.birthDate";
   if (pathname.startsWith("/admin/creators")) return "creators";
   if (pathname.startsWith("/admin/settlements") || pathname.startsWith("/admin/finance")) {
     return "settlements";

@@ -10,6 +10,7 @@ import type { MessageKey } from "@/lib/i18n/messages";
 
 const links: { href: string; labelKey: MessageKey }[] = [
   { href: "/legal/terms", labelKey: "legal.terms" },
+  { href: "/legal/purchase", labelKey: "legal.mocoPurchaseTerms" },
   { href: "/legal/aup", labelKey: "legal.aup" },
   { href: "/legal/creator-terms", labelKey: "legal.creatorTerms" },
   { href: "/legal/qna", labelKey: "legal.qna" },

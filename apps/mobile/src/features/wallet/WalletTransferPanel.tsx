@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   ImageBackground,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -156,6 +157,8 @@ export function WalletTransferPanel() {
     t("m.wallet.enter_recipient_username_and_moco_amount")
   );
   const [overlay, setOverlay] = useState<Overlay>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAccepted, setConfirmAccepted] = useState(false);
 
   const gems = useQuery({
     queryKey: ["mobile-gems-wallet"],
@@ -172,7 +175,7 @@ export function WalletTransferPanel() {
       : "0";
 
   const mutation = useMutation({
-    mutationFn: () => transferMoco(username.trim(), parsed ?? 0, letter),
+    mutationFn: () => transferMoco(username.trim(), parsed ?? 0, letter, true),
     onSuccess: async (res) => {
       setAmount("");
       setLetter("");
@@ -240,6 +243,13 @@ export function WalletTransferPanel() {
       return;
     }
     setError("");
+    setConfirmAccepted(false);
+    setConfirmOpen(true);
+  }
+
+  function confirmSend() {
+    if (!confirmAccepted) return;
+    setConfirmOpen(false);
     setStatusLine(t("m.common.sending"));
     mutation.mutate();
   }
@@ -418,11 +428,70 @@ export function WalletTransferPanel() {
           )}
         </View>
       </LinearGradient>
+      <Modal visible={confirmOpen} transparent animationType="fade" onRequestClose={() => setConfirmOpen(false)}>
+        <View style={styles.confirmBackdrop}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmBody}>
+              Before you send: Transfers are final and cannot be refunded, reversed, or recalled (Section X.3). Messages must not contain profanity, harassment, hate speech, discrimination, sexual or obscene content, threats, defamation, or any unlawful content (Section X.4). By clicking Send, you confirm that you have read and agree to these Terms, including Section X (Section X.7).
+            </Text>
+            <Pressable style={styles.confirmCheckRow} onPress={() => setConfirmAccepted((v) => !v)}>
+              <View style={[styles.confirmBox, confirmAccepted && styles.confirmBoxOn]} />
+              <Text style={styles.confirmCheckLabel}>I understand and agree.</Text>
+            </Pressable>
+            <View style={styles.confirmActions}>
+              <Pressable onPress={() => setConfirmOpen(false)} style={styles.confirmCancel}>
+                <Text style={styles.confirmCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmSend}
+                disabled={!confirmAccepted || pending}
+                style={[styles.confirmSend, (!confirmAccepted || pending) && { opacity: 0.45 }]}
+              >
+                <Text style={styles.confirmSendText}>Send</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  confirmBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  confirmCard: {
+    backgroundColor: "#111827",
+    borderRadius: 16,
+    padding: 20,
+    gap: 14,
+  },
+  confirmBody: { color: "#e2e8f0", fontSize: 13, lineHeight: 20 },
+  confirmCheckRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  confirmBox: {
+    width: 18,
+    height: 18,
+    borderWidth: 1,
+    borderColor: "#94a3b8",
+    borderRadius: 4,
+    marginTop: 2,
+  },
+  confirmBoxOn: { backgroundColor: "#6366f1", borderColor: "#6366f1" },
+  confirmCheckLabel: { color: "#e2e8f0", fontSize: 14, flex: 1 },
+  confirmActions: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
+  confirmCancel: { paddingHorizontal: 14, paddingVertical: 8 },
+  confirmCancelText: { color: "#94a3b8", fontWeight: "700" },
+  confirmSend: {
+    backgroundColor: "#6366f1",
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  confirmSendText: { color: "#fff", fontWeight: "800" },
   wrap: {
     padding: spacing.md,
     gap: spacing.sm,

@@ -59,6 +59,18 @@ export async function createGemTopupCheckout(moco: number, purchaseTermsAccepted
   const quote = quoteGemTopup(moco);
   if (!quote.ok) return { error: quote.error };
 
+  const { recordTermsConsent } = await import("@/lib/terms-consent-log");
+  const { MOCO_PURCHASE_TERMS_VERSION } = await import("@/lib/legal/terms-versions");
+  const { MOCO_PURCHASE_CHECKOUT_ACK } = await import("@/lib/legal/moco-purchase-consent");
+  await recordTermsConsent({
+    userId: user.id,
+    termsVersion: MOCO_PURCHASE_TERMS_VERSION,
+    actionType: "CHECKOUT",
+    acknowledgementText: MOCO_PURCHASE_CHECKOUT_ACK,
+  }).catch((err) => {
+    console.error("[terms-consent-log] checkout", err instanceof Error ? err.name : "error");
+  });
+
   return createStripeCheckoutForUser({
     userId: user.id,
     email: user.email,
@@ -89,6 +101,18 @@ export async function payGemTopupWithSavedCard(
 
   const quote = quoteGemTopup(moco);
   if (!quote.ok) return { error: quote.error };
+
+  const { recordTermsConsent } = await import("@/lib/terms-consent-log");
+  const { MOCO_PURCHASE_TERMS_VERSION } = await import("@/lib/legal/terms-versions");
+  const { MOCO_PURCHASE_CHECKOUT_ACK } = await import("@/lib/legal/moco-purchase-consent");
+  await recordTermsConsent({
+    userId: user.id,
+    termsVersion: MOCO_PURCHASE_TERMS_VERSION,
+    actionType: "CHECKOUT",
+    acknowledgementText: MOCO_PURCHASE_CHECKOUT_ACK,
+  }).catch((err) => {
+    console.error("[terms-consent-log] checkout", err instanceof Error ? err.name : "error");
+  });
 
   const prepared = await prepareCheckoutPaymentIntent({
     userId: user.id,

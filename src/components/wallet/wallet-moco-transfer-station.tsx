@@ -24,6 +24,7 @@ import {
   parseSpendableMoco,
 } from "@/lib/moco/decimal-amount";
 import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
+import { MocoTransferConfirmModal } from "@/components/wallet/moco-transfer-confirm-modal";
 import { cn } from "@/lib/utils";
 import { useMoneyAgeGate } from "@/hooks/use-money-age";
 import Link from "next/link";
@@ -129,6 +130,8 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
   const [error, setError] = useState("");
   const [statusLine, setStatusLine] = useState(t("wallet.transferStatusEnterRecipient"));
   const [atmOverlay, setAtmOverlay] = useState<AtmOverlay>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAccepted, setConfirmAccepted] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const parsed = parseSpendableMoco(amount);
@@ -206,9 +209,16 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
       return;
     }
     setError("");
+    setConfirmAccepted(false);
+    setConfirmOpen(true);
+  }
+
+  function confirmSend() {
+    if (!confirmAccepted || parsed == null) return;
+    setConfirmOpen(false);
     setStatusLine(t("wallet.s58so4x"));
     startTransition(async () => {
-      const res = await transferMocoToUser(username, parsed, letter);
+      const res = await transferMocoToUser(username, parsed, letter, true);
       if ("error" in res && res.error) {
         if ("code" in res && res.code === STRIPE_ACCOUNT_NOT_READY) {
           pushErrorToast({ message: CREATOR_PAYOUT_BLOCKED_TOAST_KO });
@@ -451,6 +461,14 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
           </div>
         </div>
       </div>
+      <MocoTransferConfirmModal
+        open={confirmOpen}
+        pending={pending}
+        accepted={confirmAccepted}
+        onAcceptedChange={setConfirmAccepted}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={confirmSend}
+      />
     </div>
   );
 }

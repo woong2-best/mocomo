@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { signupRoleEntryPath } from "@/lib/signup-role-onboarding";
 import { CompleteBirthDateForm } from "./complete-birth-date-form";
+import { SignupAgeBlockNotice } from "@/components/auth/signup-age-block-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -33,5 +34,9 @@ export default async function CompleteBirthDatePage({
     redirect(signupRoleEntryPath(dest));
   }
 
-  return <CompleteBirthDateForm dest={dest} />;
+  return (
+    <SignupAgeBlockNotice>
+      <CompleteBirthDateForm dest={dest} />
+    </SignupAgeBlockNotice>
+  );
 }

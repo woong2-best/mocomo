@@ -30,12 +30,10 @@ import {
   requiresPaidContentUsageNotice,
 } from "@/lib/paid-content-usage-notice";
 import { openSubscriptionCheckout } from "@/api/subscriptions";
-import { openGemTopupCheckout } from "@/payments/gem-topup";
 import {
   RECURRING_DONATION_CHECKBOX_LABEL_KO,
   RECURRING_DONATION_CHECKOUT_NOTICE_KO,
 } from "@/lib/recurring-donation-terms";
-import { gemPurchaseTermsCopy } from "@/lib/gems/constants";
 import {
   PURCHASE_CHARGEBACK_TERMS_BULLETS,
   PURCHASE_CHARGEBACK_TERMS_CHECKBOX_LABEL,
@@ -194,12 +192,7 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
     setError("");
     try {
       if (isGemTopup) {
-        const gems = Number(body.metadata.gemAmount ?? 0);
-        if (!gems) throw new Error(t("m.payments.moco_package_info_is_missing"));
-        const res = await openGemTopupCheckout(gems, locale);
-        if ("error" in res) throw new Error(res.error);
-        onClose();
-        return;
+        throw new Error("MOCO can be purchased only on the website.");
       }
       const { checkoutUrl } = await startCheckoutRedirect(body);
       const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, RETURN_PREFIX, {
@@ -281,13 +274,18 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
             </View>
           ) : null}
 
+          {isGemTopup ? (
+            <View style={[styles.termsNotice, { borderColor: `${colors.terracotta}66` }]}>
+              <Text style={[styles.termsTitle, { color: colors.text }]}>
+                MOCO can be purchased only on the website.
+              </Text>
+              <Text style={[styles.termsBullet, { color: colors.textMuted }]}>
+                In-app purchases are not offered. Use mocomo.net to buy MOCO.
+              </Text>
+            </View>
+          ) : (
           <View style={[styles.termsNotice, { borderColor: `${colors.terracotta}66` }]}>
-            {isGemTopup ? (
-              <>
-                <Text style={[styles.termsTitle, { color: colors.text }]}>{t("m.payments.moco_top_up_terms")}</Text>
-                <Text style={[styles.termsBullet, { color: colors.textMuted }]}>{gemPurchaseTermsCopy()}</Text>
-              </>
-            ) : (
+            {(
               <>
                 <Text style={[styles.termsTitle, { color: colors.text }]}>
                   {PURCHASE_CHARGEBACK_TERMS_TITLE}{" "}
@@ -318,8 +316,11 @@ export function PaymentCheckoutSheet({ visible, body, onClose, onSuccess }: Prop
               </Text>
             </Pressable>
           </View>
+          )}
 
-          {isRecurringSubscription ? (
+          {isGemTopup ? (
+            <FolkButton label={t("toast.cancel")} variant="ghost" onPress={onClose} />
+          ) : isRecurringSubscription ? (
             <>
               {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
               <View style={styles.actions}>

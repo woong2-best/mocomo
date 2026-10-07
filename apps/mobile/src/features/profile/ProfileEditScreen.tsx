@@ -92,6 +92,7 @@ export function ProfileEditScreen() {
   const [usernameChangesRemaining, setUsernameChangesRemaining] = useState(2);
   const [initialUsername, setInitialUsername] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [birthLocked, setBirthLocked] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "banner" | "video" | null>(null);
 
   const keyboardInset = useKeyboardBottomInset();
@@ -126,6 +127,7 @@ export function ProfileEditScreen() {
     setBirthYear(s?.birthYear ?? "");
     setBirthMonth(s?.birthMonth ?? "");
     setBirthDay(s?.birthDay ?? "");
+    setBirthLocked(!!(s?.birthYear && s?.birthMonth && s?.birthDay));
     setShowBirthdayOnProfile(s?.showBirthdayOnProfile ?? false);
     setShowNsfw(s?.showNsfw ?? false);
     setUsernameChangesRemaining(s?.usernameChangesRemaining ?? 2);
@@ -486,6 +488,11 @@ export function ProfileEditScreen() {
             />
 
             <Text style={styles.label}>{t("m.profile.birthday")}</Text>
+            {birthLocked ? (
+              <Text style={{ color: colors.textMuted, fontSize: 12, marginBottom: 8 }}>
+                Date of birth is on file and cannot be changed.
+              </Text>
+            ) : null}
             <View style={styles.birthRow}>
               <TextInput
                 ref={birthYearRef}
@@ -495,6 +502,7 @@ export function ProfileEditScreen() {
                 keyboardType="number-pad"
                 placeholder={t("m.common.year")}
                 placeholderTextColor={colors.textMuted}
+                editable={!birthLocked}
                 onFocus={() => onInputFocus(birthYearRef.current)}
               />
               <TextInput
@@ -505,6 +513,7 @@ export function ProfileEditScreen() {
                 keyboardType="number-pad"
                 placeholder={t("m.common.month")}
                 placeholderTextColor={colors.textMuted}
+                editable={!birthLocked}
                 onFocus={() => onInputFocus(birthMonthRef.current)}
               />
               <TextInput
@@ -515,6 +524,7 @@ export function ProfileEditScreen() {
                 keyboardType="number-pad"
                 placeholder={t("m.common.day")}
                 placeholderTextColor={colors.textMuted}
+                editable={!birthLocked}
                 onFocus={() => onInputFocus(birthDayRef.current)}
               />
             </View>

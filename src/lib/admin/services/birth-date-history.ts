@@ -1,6 +1,8 @@
 import type { BirthDateSource } from "@prisma/client";
 import { db } from "@/lib/db";
 import { formatBirthDateLabel } from "@/lib/birth-date";
+import { getRequestIp } from "@/lib/request-ip";
+import { headers } from "next/headers";
 
 const MATCH_LIMIT = 20;
 const LOG_LIMIT = 1000;
@@ -54,6 +56,25 @@ export async function searchBirthDateUsers(q: string) {
   });
 }
 
+export async function logBirthDateAdminView(userId: string, viewerId: string) {
+  let userAgent: string | null = null;
+  try {
+    const h = await headers();
+    userAgent = h.get("user-agent")?.slice(0, 500) ?? null;
+  } catch {
+    userAgent = null;
+  }
+  const ip = await getRequestIp().catch(() => "");
+  await db.birthDateViewLog.create({
+    data: {
+      userId,
+      viewerId,
+      ipAddress: ip || null,
+      userAgent,
+    },
+  });
+}
+
 export async function getBirthDateAdminRecord(userId: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -83,11 +104,17 @@ export async function getBirthDateAdminRecord(userId: string) {
   });
   if (!user) return null;
 
+  const history = await db.birthdateHistory.findMany({
+    where: { userId },
+    orderBy: { changedAt: "asc" },
+  });
+  const firstFromHistory = history[0]?.changedAt ?? null;
   const firstFromLog = user.birthDateChangeLogs.find((row) => row.newValue)?.createdAt ?? null;
   return {
     user,
     logs: user.birthDateChangeLogs,
-    firstCollectedAt: firstFromLog ?? user.birthDateCollectedAt,
+    history,
+    firstCollectedAt: firstFromHistory ?? firstFromLog ?? user.birthDateCollectedAt,
   };
 }
 
@@ -113,6 +140,9 @@ export function buildBirthDateHistoryCsv(record: BirthDateAdminRecord): string {
     "source",
     "actorId",
     "actorUsername",
+    "changedBy",
+    "reason",
+    "ipAddress",
   ];
   const current = formatBirthDateLabel(record.user.birthDate);
   const firstUtc = record.firstCollectedAt?.toISOString() ?? "";
@@ -120,18 +150,21 @@ export function buildBirthDateHistoryCsv(record: BirthDateAdminRecord): string {
   const base = [record.user.id, record.user.username, record.user.email ?? "", current, firstUtc, firstKst];
 
   const rows =
-    record.logs.length > 0
-      ? record.logs.map((row) => [
+    record.history.length > 0
+      ? record.history.map((row) => [
           ...base,
-          row.createdAt.toISOString(),
-          formatDisputeTimestamp(row.createdAt),
-          formatBirthDateLabel(row.previousValue),
+          row.changedAt.toISOString(),
+          formatDisputeTimestamp(row.changedAt),
+          formatBirthDateLabel(row.oldValue),
           formatBirthDateLabel(row.newValue),
-          row.source,
-          row.actorId ?? "",
-          row.actor?.username ?? "",
+          "",
+          "",
+          "",
+          row.changedBy,
+          row.reason ?? "",
+          row.ipAddress ?? "",
         ])
-      : [[...base, "", "", "", "", "", "", ""]];
+      : [[...base, "", "", "", "", "", "", "", "", "", ""]];
 
   const lines = [header, ...rows].map((cols) => cols.map((col) => csvCell(String(col))).join(","));
   return `\uFEFF${lines.join("\r\n")}`;

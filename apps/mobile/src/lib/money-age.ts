@@ -6,7 +6,7 @@ export type PublicMoneyAge = {
   allowed: boolean;
   reason: MoneyAgeReason | null;
   hasBirthDate: boolean;
-  minAge: number;
+  minAge?: number;
 };
 
 export function moneyAgeFromUser(user: MobileAuthUser | null | undefined): PublicMoneyAge | null {

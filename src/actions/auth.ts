@@ -458,9 +458,17 @@ export async function registerUser(
   } = parsed.data;
   const email = rawEmail.trim().toLowerCase();
   const timeZone = normalizeTimeZone(rawTimeZone);
+  const { assertSignupAgeAllowed, isSignupAgeBlocked, SIGNUP_AGE_BLOCKED_MESSAGE } = await import(
+    "@/lib/signup-age-block"
+  );
+  if (await isSignupAgeBlocked()) {
+    return { error: SIGNUP_AGE_BLOCKED_MESSAGE };
+  }
   const birthParsed = parseSignupBirthDate({ birthYear, birthMonth, birthDay });
   if ("error" in birthParsed) return { error: birthParsed.error };
   const birthDate = birthParsed.birthDate;
+  const ageBlock = await assertSignupAgeAllowed(birthDate);
+  if (ageBlock) return ageBlock;
 
   const countryBlock = assertCountrySelectable(countryCode);
   if (countryBlock) return { error: countryBlock.error };

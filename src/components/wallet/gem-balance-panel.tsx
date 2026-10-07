@@ -16,13 +16,13 @@ import { payGemTopupWithSavedCard } from "@/actions/gems";
 import { confirmCheckoutPayment } from "@/actions/checkout-payment";
 import {
   MOCO_PURCHASE_PG_FEE_NOTE,
-  MOCO_PURCHASE_TERMS_COPY,
   MOCO_TOPUP_INPUT_MAX_DIGITS,
   parseMocoTopupCount,
   quoteGemTopup,
   sanitizeMocoTopupInput,
 } from "@/lib/gems/constants";
 import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
+import { MocoPurchaseTermsCheckbox } from "@/components/wallet/moco-purchase-terms-checkbox";
 import { formatMocoDisplay } from "@/lib/gems/display";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
@@ -525,21 +525,18 @@ export function GemBalancePanel({
         </div>
 
         <div className="space-y-3 px-4 pb-4">
-          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-700/60 bg-slate-900/50 px-3 py-2.5">
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={(e) => {
-                setTermsAccepted(e.target.checked);
-                if (e.target.checked && error === termsErrorMsg) {
-                  setError("");
-                  setStatusLine(t("wallet.topup.confirmAmount"));
-                }
-              }}
-              className="mt-0.5 accent-emerald-500"
-            />
-            <span className="text-[11px] leading-relaxed text-slate-400">{MOCO_PURCHASE_TERMS_COPY}</span>
-          </label>
+          <MocoPurchaseTermsCheckbox
+            checked={termsAccepted}
+            onCheckedChange={(checked) => {
+              setTermsAccepted(checked);
+              if (checked && error === termsErrorMsg) {
+                setError("");
+                setStatusLine(t("wallet.topup.confirmAmount"));
+              }
+            }}
+            disabled={pending}
+            showSupportEmail
+          />
           <p className="text-[10px] leading-relaxed text-slate-500">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
           <a
             href="/contribution-tower"

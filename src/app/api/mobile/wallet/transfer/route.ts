@@ -16,6 +16,7 @@ const bodySchema = z.object({
     .max(MAX_PEER_TRANSFER_MOCO)
     .refine((value) => parseSpendableMoco(value) != null),
   message: z.string().max(ATM_LETTER_MESSAGE_MAX).optional(),
+  transferTermsAccepted: z.literal(true),
 });
 
 /** 보유(결제) MOCO → 상대 정산 MOCO. 상대 보유 잔액에는 넣지 않는다. */
@@ -61,12 +62,14 @@ export async function POST(req: NextRequest) {
     recipientUsername: parsed.data.username,
     amount: parseSpendableMoco(parsed.data.amount) ?? parsed.data.amount,
     message: parsed.data.message,
+    transferTermsAccepted: parsed.data.transferTermsAccepted,
   });
   if ("error" in result) {
     if ("code" in result && result.code === "STRIPE_ACCOUNT_NOT_READY") {
       return NextResponse.json(stripeAccountNotReadyPayload(), { status: 422 });
     }
-    return NextResponse.json({ error: errorText(result.error) }, { status: 400 });
+    const status = "status" in result && result.status === 403 ? 403 : 400;
+    return NextResponse.json({ error: errorText(result.error) }, { status });
   }
   return NextResponse.json(result);
 }

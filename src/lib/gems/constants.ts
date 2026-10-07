@@ -1,4 +1,5 @@
 import { quoteMocoTopupLedger } from "@/lib/moco/stripe-pass-through";
+import { MOCO_PURCHASE_CHECKOUT_ACK } from "@/lib/legal/moco-purchase-consent";
 
 /** 구매 MOCO 1개 = $5 USD (Auction·결제와 동일) */
 export const MOCO_USD_VALUE = 5;
@@ -155,8 +156,7 @@ export const findMocoTopupPackage = findGemTopupPackage;
 export const GEM_TOPUP_PACKAGES = [] as const;
 
 /** Legal copy — MOCO 충전 결제 직전 필수 체크 (Stripe dispute evidence) */
-export const MOCO_PURCHASE_TERMS_COPY =
-  "Done.";
+export const MOCO_PURCHASE_TERMS_COPY = MOCO_PURCHASE_CHECKOUT_ACK;
 
 /** MOCO 충전 UI — PG 수수료 안내 (체크박스와 분리) */
 export const MOCO_PURCHASE_PG_FEE_NOTE =

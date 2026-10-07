@@ -38,7 +38,7 @@ import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-
 import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 import { PurchaseChargebackTermsNotice } from "@/components/payments/purchase-chargeback-terms-notice";
-import { MOCO_PURCHASE_TERMS_COPY } from "@/lib/gems/constants";
+import { MocoPurchaseTermsCheckbox } from "@/components/wallet/moco-purchase-terms-checkbox";
 import { RecurringDonationTermsNotice } from "@/components/payments/recurring-donation-terms-notice";
 
 type Props = {
@@ -254,15 +254,11 @@ export function PaymentCheckoutSheet({
               />
             </>
           ) : isGemTopup ? (
-            <label className="flex items-start gap-2 cursor-pointer rounded-xl border border-border/60 px-4 py-3">
-              <input
-                type="checkbox"
-                checked={purchaseTermsAccepted}
-                onChange={(e) => setPurchaseTermsAccepted(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span className="text-[11px] text-muted-foreground leading-relaxed">{MOCO_PURCHASE_TERMS_COPY}</span>
-            </label>
+            <MocoPurchaseTermsCheckbox
+              checked={purchaseTermsAccepted}
+              onCheckedChange={setPurchaseTermsAccepted}
+              showSupportEmail
+            />
           ) : (
             <PurchaseChargebackTermsNotice
               checked={purchaseTermsAccepted}

@@ -4,9 +4,8 @@ import { ageFromBirthDate } from "@/lib/adult-verification/is-verified";
 export const MONEY_MIN_AGE = 18;
 
 export const MONEY_AGE_BIRTH_DATE_REQUIRED =
-  "Add your date of birth on your profile before using payments, tips, or transfers.";
-export const MONEY_AGE_UNDERAGE =
-  "Payments, tips, and transfers are only available to users 18 or older.";
+  "Add your date of birth on your profile before using this feature.";
+export const MONEY_AGE_UNDERAGE = "This feature is not available for this account.";
 
 export const MONEY_AGE_CODE_MISSING = "MONEY_AGE_BIRTH_DATE_REQUIRED";
 export const MONEY_AGE_CODE_UNDERAGE = "MONEY_AGE_UNDERAGE";
@@ -55,6 +54,5 @@ export function toPublicMoneyAge(status: MoneyAgeStatus) {
     allowed: status.allowed,
     reason: status.reason,
     hasBirthDate: status.hasBirthDate,
-    minAge: MONEY_MIN_AGE,
   };
 }

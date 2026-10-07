@@ -111,7 +111,9 @@ export function LegalDocumentView({
       <header className="mb-8">
         <h1 className="text-2xl font-bold">{document.title}</h1>
         <p className="text-sm text-muted-foreground mt-2">
-          {t("legal.lastUpdated", { date: document.updatedAt })}
+          {document.version
+            ? t("legal.versionAndEffective", { version: document.version, date: document.updatedAt })
+            : t("legal.lastUpdated", { date: document.updatedAt })}
         </p>
         {document.intro && (
           <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{document.intro}</p>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { readWebOAuthPendingSignup } from "@/lib/web-oauth-pending-signup";
 import { CompleteOAuthSignupForm } from "./complete-oauth-signup-form";
+import { SignupAgeBlockNotice } from "@/components/auth/signup-age-block-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +23,15 @@ export default async function CompleteOAuthSignupPage({
 
   const sp = await searchParams;
   return (
-    <CompleteOAuthSignupForm
-      dest={safeDest(sp.dest)}
-      account={{
-        email: ticket.profile.email,
-        name: ticket.profile.name,
-        image: ticket.profile.image,
-      }}
-    />
+    <SignupAgeBlockNotice>
+      <CompleteOAuthSignupForm
+        dest={safeDest(sp.dest)}
+        account={{
+          email: ticket.profile.email,
+          name: ticket.profile.name,
+          image: ticket.profile.image,
+        }}
+      />
+    </SignupAgeBlockNotice>
   );
 }

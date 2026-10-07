@@ -4,21 +4,13 @@ import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { db } from "@/lib/db";
-import { createStripeCheckoutForUser } from "@/lib/stripe-checkout-service";
 import {
   GEM_PURCHASE_TERMS_COPY,
   MIN_MOCO_TOPUP_COUNT,
-  quoteGemTopup,
 } from "@/lib/gems/constants";
-import { gemTopupStripeMetadata } from "@/lib/gems/topup-metadata";
 import { getUserGemBalance } from "@/lib/gems/balance";
 import { getMocoBalanceSnapshot } from "@/lib/auction-deposit/service";
 import { processRefundRequest } from "@/lib/gems/refund";
-import {
-  payCheckoutWithSavedMethod,
-  prepareCheckoutPaymentIntent,
-} from "@/lib/stripe-pay-intent-service";
-import { stripePaymentAuthenticateUrl } from "@/lib/stripe-payment-return-url";
 import { joinMoco } from "@/lib/moco/decimal-amount";
 
 /** GET — gem balance + packages (balance = web/mobile 동일 availableMoco) */
@@ -118,72 +110,11 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
 
-  if (data.action === "topupSavedCard") {
-    const quote = quoteGemTopup(data.moco);
-    if (!quote.ok) {
-      return NextResponse.json({ error: errorText(quote.error) }, { status: 422 });
-    }
-    const dbUser = await db.user.findUnique({
-      where: { id: auth.user.id },
-      select: { email: true },
-    });
-    const prepared = await prepareCheckoutPaymentIntent({
-      userId: auth.user.id,
-      email: dbUser?.email,
-      type: "GEM_TOPUP",
-      amount: quote.usdCents,
-      orderName: quote.orderName,
-      metadata: gemTopupStripeMetadata(quote),
-    });
-    if ("error" in prepared && prepared.error) {
-      return NextResponse.json({ error: errorText(prepared.error) }, { status: 422 });
-    }
-    if (!("orderId" in prepared) || !prepared.orderId) {
-      return NextResponse.json({ error: "Couldn't prepare payment." }, { status: 422 });
-    }
-    const result = await payCheckoutWithSavedMethod(
-      auth.user.id,
-      prepared.orderId,
-      data.paymentMethodId,
-      { purchaseTermsAccepted: true, platform: "mobile" }
+  if (data.action === "topup" || data.action === "topupSavedCard") {
+    return NextResponse.json(
+      { error: "MOCO can be purchased only on the website." },
+      { status: 403 }
     );
-    if ("error" in result && result.error) {
-      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
-    }
-    if ("requiresAction" in result && result.requiresAction && result.clientSecret) {
-      const authenticateUrl = stripePaymentAuthenticateUrl(
-        result.orderId,
-        result.clientSecret,
-        "mocomo://payment/success"
-      );
-      return NextResponse.json({ requiresAction: true, authenticateUrl, orderId: result.orderId });
-    }
-    return NextResponse.json(result);
-  }
-
-  if (data.action === "topup") {
-    const quote = quoteGemTopup(data.moco);
-    if (!quote.ok) {
-      return NextResponse.json({ error: errorText(quote.error) }, { status: 422 });
-    }
-    const dbUser = await db.user.findUnique({
-      where: { id: auth.user.id },
-      select: { email: true },
-    });
-    const result = await createStripeCheckoutForUser({
-      userId: auth.user.id,
-      email: dbUser?.email,
-      type: "GEM_TOPUP",
-      amount: quote.usdCents,
-      orderName: quote.orderName,
-      metadata: gemTopupStripeMetadata(quote),
-      platform: "mobile",
-      purchaseTermsAccepted: true,
-    });
-    if ("error" in result && result.error) {
-      return NextResponse.json({ error: errorText(result.error) }, { status: 422 });
-    }
-    return NextResponse.json(result);
   }
 
   if (data.action === "pay") {

@@ -3,10 +3,14 @@ import {
   COMMUNITY_QNA_TOS_BLOCKS,
   COMMUNITY_QNA_TOS_BLOCKS_KO,
 } from "@/lib/legal/community-qna-tos-section";
+import { MOCO_TRANSFER_TOS_BLOCKS } from "@/lib/legal/moco-transfer-tos-section";
+import { MOCO_PURCHASE_TERMS_BLOCKS } from "@/lib/legal/moco-purchase-terms";
 import {
-  MOCO_TRANSFER_TOS_BLOCKS,
-  MOCO_TRANSFER_TOS_BLOCKS_KO,
-} from "@/lib/legal/moco-transfer-tos-section";
+  MOCO_PURCHASE_TERMS_EFFECTIVE_DATE,
+  MOCO_PURCHASE_TERMS_VERSION,
+  TERMS_OF_SERVICE_EFFECTIVE_DATE,
+  TERMS_OF_SERVICE_VERSION,
+} from "@/lib/legal/terms-versions";
 
 export { SELLER_TERMS };
 
@@ -35,6 +39,7 @@ export type LegalDocument = {
   slug: string;
   title: string;
   updatedAt: string;
+  version?: string;
   intro?: string;
   blocks: LegalBlock[];
 };
@@ -260,7 +265,8 @@ export const COMMUNITY_POLICY: LegalDocument = {
 export const TERMS_OF_SERVICE: LegalDocument = {
   slug: "terms",
   title: "MoCoMo 이용약관",
-  updatedAt: "2026년 10월 6일",
+  updatedAt: TERMS_OF_SERVICE_EFFECTIVE_DATE,
+  version: TERMS_OF_SERVICE_VERSION,
   intro:
     '본 약관은 미합중국 와이오밍 주에 설립된 MoCoMo LLC(이하 "회사" 또는 "MoCoMo")가 제공하는 웹사이트(mocomo.net), 모바일 애플리케이션 및 관련 서비스의 이용 조건을 규정합니다.',
   blocks: [
@@ -596,7 +602,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "② 가품(라이선스 미인증/복제품) 판매 규칙: 라이선스가 없는 가품, 리캐스트, 개조품의 경우 제목 및 본문에 '가품' 또는 '라이선스 없음'을 명시해야 합니다. 정품으로 속여 판매하거나 명시 없이 판매할 경우 전자상거래법 및 형법상 사기죄에 따라 즉시 영구 이용정지 및 법적 조치가 취해질 수 있습니다.",
+      text: "② 가품(라이선스 미인증/복제품) 판매 규칙: 라이선스가 없는 가품, 리캐스트, 개조품의 경우 제목 및 본문에 '가품' 또는 '라이선스 없음'을 명시해야 합니다. 정품으로 속여 판매하거나 명시 없이 판매할 경우 관련 법령 및 형법상 사기죄에 따라 즉시 영구 이용정지 및 법적 조치가 취해질 수 있습니다.",
     },
     {
       type: "p",
@@ -631,7 +637,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "③ 전자상거래법 등 관련 법령에 따라 분쟁 해결 및 소비자 보호를 위해 필요한 경우, 회사는 판매자의 신원정보(성명, 전화번호 등)를 법령이 정한 절차에 따라 구매자 또는 관련 기관에 제공할 수 있습니다.",
+      text: "③ 관련 법령에 따라 분쟁 해결 및 소비자 보호를 위해 필요한 경우, 회사는 판매자의 신원정보(성명, 전화번호 등)를 법령이 정한 절차에 따라 구매자 또는 관련 기관에 제공할 수 있습니다.",
     },
     { type: "h3", text: "7. (Auction 거래 관리 수칙)" },
     {
@@ -684,7 +690,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     { type: "h3", text: "(판매자의 의무 및 준수사항)" },
     {
       type: "p",
-      text: "① 판매자 및 크리에이터는 관련 법령(전자상거래법, 표시·광고의 공정화에 관한 법률, 저작권법 등)을 준수해야 하며, 상품의 상세 정보, 하자, 배송 및 환불 조건을 사실대로 명시해야 합니다.",
+      text: "① 판매자 및 크리에이터는 관련 법령(표시·광고의 공정화에 관한 법률, 저작권법 등)을 준수해야 하며, 상품의 상세 정보, 하자, 배송 및 환불 조건을 사실대로 명시해야 합니다.",
     },
     {
       type: "p",
@@ -734,7 +740,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "② 이용자는 구매 MOCO를 회사의 사전 승낙 없이 타인에게 양도, 매매, 증여, 담보 제공할 수 없으며, 현금 환불·인출·환전을 요구할 수 없습니다. 다만, 제22조(MOCO Transfers)에 따른 ATM 전송은 회사가 제공하는 후원(Support) 기능으로서 허용됩니다. 크리에이터의 정산 MOCO는 성과 스코어이며, 월말 Reward(크리에이터 활동 성과 보수) 지급은 별도 크리에이터 약관에 따릅니다.",
+      text: "② 이용자는 구매 MOCO를 회사의 사전 승낙 없이 타인에게 양도, 매매, 증여, 담보 제공할 수 없으며, 현금 환불·인출·환전을 요구할 수 없습니다. 다만, Section X (MOCO Transfers)에 따른 ATM 전송은 회사가 제공하는 후원(Support) 기능으로서 허용됩니다. 크리에이터의 정산 MOCO는 성과 스코어이며, 월말 Reward(크리에이터 활동 성과 보수) 지급은 별도 크리에이터 약관에 따릅니다.",
     },
     {
       type: "p",
@@ -826,7 +832,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "② 단, 「전자상거래 등에서의 소비자보호에 관한 법률」 등 관련 법령에 따라 다음 각 호의 어느 하나에 해당하는 경우 청약철회가 제한(환불 불가)됩니다.",
+      text: "② 단, 관련 법령에 따라 다음 각 호의 어느 하나에 해당하는 경우 청약철회가 제한(환불 불가)됩니다.",
     },
     {
       type: "ul",
@@ -1131,7 +1137,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "(개인정보 및 데이터 보관) 이용자가 탈퇴하는 경우 개인정보는 즉시 파기되는 것을 원칙으로 합니다. 다만, 전자상거래법, 통신비밀보호법 등 관계 법령의 규정 또는 회사 내부 정책(부정 이용 기록 보관 및 법적 분쟁 대비)에 따라 보존할 필요가 있는 경우, 회사는 일정 기간 동안 법령이 정한 바에 따라 해당 정보를 안전하게 보관합니다.",
+      text: "(개인정보 및 데이터 보관) 이용자가 탈퇴하는 경우 개인정보는 즉시 파기되는 것을 원칙으로 합니다. 다만, 통신비밀보호법 등 관계 법령의 규정 또는 회사 내부 정책(부정 이용 기록 보관 및 법적 분쟁 대비)에 따라 보존할 필요가 있는 경우, 회사는 일정 기간 동안 법령이 정한 바에 따라 해당 정보를 안전하게 보관합니다. Date of birth history is retained after account deletion for dispute and legal purposes.",
     },
     {
       type: "p",
@@ -1185,14 +1191,14 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     { type: "p", text: `고객문의: ${LEGAL_CONTACT_EMAIL}` },
     { type: "hr" },
-    {
-      type: "h2",
-      text: "제22조 (MOCO 전송 / MOCO Transfers — Section 22)",
-    },
-    ...MOCO_TRANSFER_TOS_BLOCKS_KO,
-    { type: "hr" },
-    { type: "h3", text: "Section 22 — English (Governing Text for MOCO Transfers)" },
+    { type: "h2", text: "Section X: MOCO Transfers" },
     ...MOCO_TRANSFER_TOS_BLOCKS,
+    { type: "hr" },
+    { type: "h2", text: "MOCO Purchase Terms" },
+    {
+      type: "p",
+      text: "Purchases of MOCO are also governed by the separate MOCO Purchase Terms at /legal/purchase.",
+    },
   ],
 };
 
@@ -1454,7 +1460,7 @@ export const PAYMENT_REFUND_POLICY: LegalDocument = {
     },
     {
       type: "p",
-      text: "② 본 상품은 결제 완료와 동시에 사이트 시스템 내 데이터베이스에 반영되어 서비스의 제공이 전 세계 유저를 대상으로 즉시 개시 및 완료됩니다. MoCoMo 모바일 앱에는 MOCO 인앱결제(IAP)가 없으므로 App Store·Google Play를 통한 MOCO 환불 경로도 존재하지 않습니다. 따라서 대한민국 전자상거래법 제17조 제2항 제5호 및 글로벌 결제 대행사(Stripe 등)의 이용 약관에 의거하여, 결제 완료 후에는 미사용 잔액을 포함하여 회원의 가상재화 사용 여부·단순 변심·고객센터 요청 등 어떠한 사유로도 청약철회(환불)가 불가능합니다.",
+      text: "② 본 상품은 결제 완료와 동시에 사이트 시스템 내 데이터베이스에 반영되어 서비스의 제공이 전 세계 유저를 대상으로 즉시 개시 및 완료됩니다. MoCoMo 모바일 앱에는 MOCO 인앱결제(IAP)가 없으므로 App Store·Google Play를 통한 MOCO 환불 경로도 존재하지 않습니다. 결제 완료 후에는 미사용 잔액을 포함하여 회원의 가상재화 사용 여부·단순 변심·고객센터 요청 등 어떠한 사유로도 청약철회(환불)가 불가능합니다. See the MOCO Purchase Terms at /legal/purchase.",
     },
     {
       type: "p",
@@ -1571,19 +1577,22 @@ export const COMMUNITY_QNA_TERMS: LegalDocument = {
 
 export const MOCO_TRANSFER_TERMS: LegalDocument = {
   slug: "moco-transfers",
-  title: "MOCO Transfers (Section 22)",
-  updatedAt: "2026년 10월 6일",
-  intro: `This policy excerpts Article 22 of the MoCoMo Terms of Service regarding ATM / MOCO Transfers. ${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_JURISDICTION}). By clicking "Send" to complete a Transfer, you agree to these terms in addition to the full Terms of Service at /legal/terms.`,
+  title: "MOCO Transfers (Section X)",
+  updatedAt: TERMS_OF_SERVICE_EFFECTIVE_DATE,
+  version: TERMS_OF_SERVICE_VERSION,
+  intro: `This page excerpts Section X of the MoCoMo Terms of Service regarding ATM / MOCO Transfers. ${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_JURISDICTION}). By clicking "Send" to complete a Transfer, you agree to these terms in addition to the full Terms of Service at /legal/terms.`,
   blocks: [
-    {
-      type: "p",
-      text: "Korean summary is included in the main Terms of Service (제22조). The English text below is the governing language for Transfers to the extent permitted by applicable law.",
-    },
-    ...MOCO_TRANSFER_TOS_BLOCKS_KO,
-    { type: "hr" },
-    { type: "h2", text: "MOCO Transfers (Section 22)" },
+    { type: "h2", text: "Section X: MOCO Transfers" },
     ...MOCO_TRANSFER_TOS_BLOCKS,
   ],
+};
+
+export const MOCO_PURCHASE_TERMS: LegalDocument = {
+  slug: "purchase",
+  title: "MOCO Purchase Terms",
+  updatedAt: MOCO_PURCHASE_TERMS_EFFECTIVE_DATE,
+  version: MOCO_PURCHASE_TERMS_VERSION,
+  blocks: MOCO_PURCHASE_TERMS_BLOCKS,
 };
 
 export const CULTURE_WIKI_TERMS: LegalDocument = {
@@ -1777,7 +1786,7 @@ export const PRIVACY_POLICY: LegalDocument = {
     { type: "h2", text: "3. 개인정보 보관" },
     {
       type: "p",
-      text: "MoCoMo는 법령 또는 서비스 운Video 필요한 기간 동안 정보를 보관할 수 있습니다. 계정 삭제 후에도 분쟁 방지·법적 의무 이행을 위해 일부 기록이 일정 기간 보관될 수 있으며, 자세한 내용은 계정 및 데이터 삭제 안내를 참고하세요.",
+      text: "MoCoMo는 법령 또는 서비스 운Video 필요한 기간 동안 정보를 보관할 수 있습니다. 계정 삭제 후에도 분쟁 방지·법적 의무 이행을 위해 일부 기록이 일정 기간 보관될 수 있으며, 자세한 내용은 계정 및 데이터 삭제 안내를 참고하세요. Date of birth history is retained after account deletion for dispute and legal purposes.",
     },
     { type: "hr" },
     { type: "h2", text: "4. 개인정보 제공·처리 위탁" },
@@ -2339,7 +2348,8 @@ export const LEGAL_PAGES = [
   { href: "/legal/policy", label: "운영원칙 및 이용정책", doc: COMMUNITY_POLICY },
   { href: "/legal/culture-wiki", label: "컬쳐 위키 이용 약관", doc: CULTURE_WIKI_TERMS },
   { href: "/legal/community-qna-terms", label: "Q&A 이용 약관 (Section 13)", doc: COMMUNITY_QNA_TERMS },
-  { href: "/legal/moco-transfers", label: "MOCO 전송 약관 (Section 22)", doc: MOCO_TRANSFER_TERMS },
+  { href: "/legal/moco-transfers", label: "MOCO Transfers (Section X)", doc: MOCO_TRANSFER_TERMS },
+  { href: "/legal/purchase", label: "MOCO Purchase Terms", doc: MOCO_PURCHASE_TERMS },
   { href: "/legal/terms", label: "이용약관", doc: TERMS_OF_SERVICE },
   { href: "/legal/creator-terms", label: "크리에이터 약관", doc: CREATOR_TERMS },
   { href: "/legal/qna", label: "MOCO 정산 QnA", doc: CREATOR_SETTLEMENT_QNA },

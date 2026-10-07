@@ -284,7 +284,9 @@ export function ProfileSettingsForm({
               <div>
                 <label className="text-sm font-medium">{t("profile.sxwe7")}</label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {t("profile.sda4pyn")}
+                  {initial.birthYear && initial.birthMonth && initial.birthDay
+                    ? t("profile.birthDateLocked")
+                    : t("profile.sda4pyn")}
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-x-2 gap-y-2 pt-1">
@@ -297,8 +299,9 @@ export function ProfileSettingsForm({
                     pattern="[0-9]*"
                     autoComplete="bday-year"
                     defaultValue={initial.birthYear}
-                    placeholder="1998"
+                    placeholder="YYYY"
                     maxLength={4}
+                    readOnly={!!(initial.birthYear && initial.birthMonth && initial.birthDay)}
                     onInput={(e) => clampBirthDigits(e, 4)}
                     className="mt-1 rounded-xl"
                   />
@@ -312,8 +315,9 @@ export function ProfileSettingsForm({
                     pattern="[0-9]*"
                     autoComplete="bday-month"
                     defaultValue={initial.birthMonth}
-                    placeholder="3"
+                    placeholder="MM"
                     maxLength={2}
+                    readOnly={!!(initial.birthYear && initial.birthMonth && initial.birthDay)}
                     onInput={(e) => clampBirthDigits(e, 2)}
                     className="mt-1 rounded-xl"
                   />
@@ -327,8 +331,9 @@ export function ProfileSettingsForm({
                     pattern="[0-9]*"
                     autoComplete="bday-day"
                     defaultValue={initial.birthDay}
-                    placeholder="15"
+                    placeholder="DD"
                     maxLength={2}
+                    readOnly={!!(initial.birthYear && initial.birthMonth && initial.birthDay)}
                     onInput={(e) => clampBirthDigits(e, 2)}
                     className="mt-1 rounded-xl"
                   />

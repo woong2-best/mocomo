@@ -77,12 +77,7 @@ function AgeBlockedBody({
     );
   }
   if (kind === "money-underage") {
-    return (
-      <>
-        Payments, tips, and transfers are only available to users 18 or older.{" "}
-        <DateOfBirthLink onNavigate={onNavigate} />
-      </>
-    );
+    return <>This feature is not available for this account.</>;
   }
   return (
     <>

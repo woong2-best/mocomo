@@ -181,8 +181,8 @@ export async function adminLoadBirthDateHistory(input: { q?: string; userId?: st
   try {
     const q = input.q?.trim() ?? "";
     const userId = input.userId?.trim() || undefined;
-    await requireAdminPermission(
-      "users",
+    const actor = await requireAdminPermission(
+      "users.birthDate",
       q || userId
         ? {
             action: "VIEW_USER_PII",
@@ -196,6 +196,10 @@ export async function adminLoadBirthDateHistory(input: { q?: string; userId?: st
       q ? searchBirthDateUsers(q) : Promise.resolve([]),
       userId ? getBirthDateAdminRecord(userId) : Promise.resolve(null),
     ]);
+    if (userId && record) {
+      const { logBirthDateAdminView } = await import("@/lib/admin/services/birth-date-history");
+      await logBirthDateAdminView(userId, actor.id);
+    }
     return { ok: true as const, data: { matches, record } };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };
@@ -204,7 +208,7 @@ export async function adminLoadBirthDateHistory(input: { q?: string; userId?: st
 
 export async function adminExportBirthDateHistoryCsvAction(userId: string) {
   try {
-    await requireAdminPermission("users", {
+    await requireAdminPermission("users.birthDate", {
       action: "EXPORT_USER_DATA",
       targetType: "user",
       targetId: userId,
@@ -218,6 +222,51 @@ export async function adminExportBirthDateHistoryCsvAction(userId: string) {
       csv: buildBirthDateHistoryCsv(record),
       filename: `birth-date-${safeName}.csv`,
     };
+  } catch (e) {
+    return { ok: false as const, error: errMsg(e) };
+  }
+}
+
+export async function adminChangeBirthDateAction(input: {
+  userId: string;
+  birthYear: number;
+  birthMonth: number;
+  birthDay: number;
+  reason: string;
+}) {
+  try {
+    const actor = await requireAdminStepUp("users.birthDate");
+    const reason = input.reason.trim();
+    if (!reason) return { ok: false as const, error: "A reason is required." };
+    const { parseBirthDateInput, toStoredBirthDate } = await import("@/lib/birth-date");
+    const birth = parseBirthDateInput(input.birthYear, input.birthMonth, input.birthDay);
+    if (!birth) return { ok: false as const, error: "Enter a valid birth date." };
+    const stored = toStoredBirthDate(birth);
+    const { db } = await import("@/lib/db");
+    const { recordBirthDateChange } = await import("@/lib/birth-date-change-log");
+    const prior = await db.user.findUnique({
+      where: { id: input.userId },
+      select: { birthDate: true },
+    });
+    if (!prior) return { ok: false as const, error: "actions.svypth4" };
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: input.userId },
+        data: { birthDate: stored, birthDateSource: "ADMIN" },
+      });
+      await recordBirthDateChange(tx, {
+        userId: input.userId,
+        previousValue: prior.birthDate,
+        newValue: stored,
+        source: "ADMIN",
+        actorId: actor.id,
+        changedBy: actor.id,
+        reason,
+      });
+    });
+    revalidatePath("/admin/birth-dates");
+    revalidatePath(`/admin/users/${input.userId}`);
+    return { ok: true as const };
   } catch (e) {
     return { ok: false as const, error: errMsg(e) };
   }

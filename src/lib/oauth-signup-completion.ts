@@ -153,6 +153,12 @@ export async function createOAuthUserWithConsent(opts: {
     ? await bcrypt.hash(password, OAUTH_SIGNUP_BCRYPT_ROUNDS)
     : undefined;
 
+  const { assertSignupAgeAllowed } = await import("@/lib/signup-age-block");
+  const ageBlock = await assertSignupAgeAllowed(opts.birthDate);
+  if (ageBlock) {
+    throw new Error(ageBlock.error);
+  }
+
   const signupIp = opts.signupIp?.trim() || null;
   const storedBirth = toStoredBirthDate(opts.birthDate);
   const collected = birthDateCollectionMeta("OAUTH_COMPLETE");
@@ -198,6 +204,11 @@ export async function createOAuthUserWithConsent(opts: {
 }
 
 export async function applyBirthDateIfMissing(userId: string, birthDate: Date): Promise<void> {
+  const { assertSignupAgeAllowed } = await import("@/lib/signup-age-block");
+  const ageBlock = await assertSignupAgeAllowed(birthDate);
+  if (ageBlock) {
+    throw new Error(ageBlock.error);
+  }
   const storedBirth = toStoredBirthDate(birthDate);
   const collected = birthDateCollectionMeta("OAUTH_COMPLETE");
   await db.$transaction(async (tx) => {

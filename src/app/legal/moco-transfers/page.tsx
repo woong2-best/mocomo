@@ -3,7 +3,7 @@ import { LegalDocumentView } from "@/components/legal/legal-document";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "MOCO Transfers (Section 22) — MoCoMo",
+    title: "MOCO Transfers (Section X) — MoCoMo",
   description:
     "MoCoMo ATM Transfer terms: voluntary support, non-refundable transfers, prohibited content, age eligibility, and enforcement.",
 };
