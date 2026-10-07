@@ -29,8 +29,8 @@ const EVENT_GOVERNING_LAW_PARAGRAPH =
 
 export type LegalBlock =
   | { type: "p"; text: string }
-  | { type: "h2"; text: string }
-  | { type: "h3"; text: string }
+  | { type: "h2"; text: string; id?: string }
+  | { type: "h3"; text: string; id?: string }
   | { type: "ul"; items: string[] }
   | { type: "table"; headers: string[]; rows: string[][] }
   | { type: "hr" };
@@ -1191,7 +1191,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     { type: "p", text: `고객문의: ${LEGAL_CONTACT_EMAIL}` },
     { type: "hr" },
-    { type: "h2", text: "Section X: MOCO Transfers" },
+    { type: "h2", text: "Section X: MOCO Transfers", id: "section-x" },
     ...MOCO_TRANSFER_TOS_BLOCKS,
     { type: "hr" },
     { type: "h2", text: "MOCO Purchase Terms" },
@@ -1582,7 +1582,7 @@ export const MOCO_TRANSFER_TERMS: LegalDocument = {
   version: TERMS_OF_SERVICE_VERSION,
   intro: `This page excerpts Section X of the MoCoMo Terms of Service regarding ATM / MOCO Transfers. ${LEGAL_ENTITY_NAME} (${LEGAL_ENTITY_JURISDICTION}). By clicking "Send" to complete a Transfer, you agree to these terms in addition to the full Terms of Service at /legal/terms.`,
   blocks: [
-    { type: "h2", text: "Section X: MOCO Transfers" },
+    { type: "h2", text: "Section X: MOCO Transfers", id: "section-x" },
     ...MOCO_TRANSFER_TOS_BLOCKS,
   ],
 };
@@ -1592,7 +1592,14 @@ export const MOCO_PURCHASE_TERMS: LegalDocument = {
   title: "MOCO Purchase Terms",
   updatedAt: MOCO_PURCHASE_TERMS_EFFECTIVE_DATE,
   version: MOCO_PURCHASE_TERMS_VERSION,
-  blocks: MOCO_PURCHASE_TERMS_BLOCKS,
+  intro:
+    "Section X (MOCO Transfers) of the Terms of Service is displayed below these Purchase Terms.",
+  blocks: [
+    ...MOCO_PURCHASE_TERMS_BLOCKS,
+    { type: "hr" },
+    { type: "h2", text: "Section X: MOCO Transfers", id: "section-x" },
+    ...MOCO_TRANSFER_TOS_BLOCKS,
+  ],
 };
 
 export const CULTURE_WIKI_TERMS: LegalDocument = {

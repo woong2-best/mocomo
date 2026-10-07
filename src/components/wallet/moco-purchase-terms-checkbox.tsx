@@ -2,7 +2,6 @@
 
 import {
   MOCO_PURCHASE_CHECKOUT_ACK,
-  MOCO_PURCHASE_SUPPORT_EMAIL,
   MOCO_PURCHASE_TERMS_HREF,
   MOCO_PURCHASE_TERMS_LINK_LABEL,
 } from "@/lib/legal/moco-purchase-consent";
@@ -12,7 +11,6 @@ type Props = {
   onCheckedChange: (checked: boolean) => void;
   disabled?: boolean;
   className?: string;
-  showSupportEmail?: boolean;
 };
 
 function CheckoutAckLabel() {
@@ -43,7 +41,6 @@ export function MocoPurchaseTermsCheckbox({
   onCheckedChange,
   disabled,
   className,
-  showSupportEmail = false,
 }: Props) {
   return (
     <div className={className}>
@@ -57,14 +54,6 @@ export function MocoPurchaseTermsCheckbox({
         />
         <CheckoutAckLabel />
       </label>
-      {showSupportEmail ? (
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Questions:{" "}
-          <a href={`mailto:${MOCO_PURCHASE_SUPPORT_EMAIL}`} className="font-semibold text-primary underline">
-            {MOCO_PURCHASE_SUPPORT_EMAIL}
-          </a>
-        </p>
-      ) : null}
     </div>
   );
 }

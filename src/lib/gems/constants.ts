@@ -160,7 +160,7 @@ export const MOCO_PURCHASE_TERMS_COPY = MOCO_PURCHASE_CHECKOUT_ACK;
 
 /** MOCO 충전 UI — PG 수수료 안내 (체크박스와 분리) */
 export const MOCO_PURCHASE_PG_FEE_NOTE =
-  "MOCO 충전 시 액면가($5/MOCO)에 더해 Stripe 결제 대행(PG) 실비가 청구될 수 있습니다. 후원 광석 등급은 구매가 아닌 타 사용자에게 후원한 누적 MOCO 기준이며, Reward 정산 등급과는 별개입니다.";
+  "When you purchase MOCO, Stripe payment-processing (PG) fees may be charged in addition to the face value ($5 per MOCO). Support gem tiers are based on cumulative MOCO sent to other users as support, not on purchases, and are separate from Reward settlement tiers.";
 
 /** @deprecated MOCO_PURCHASE_TERMS_COPY */
 export const GEM_PURCHASE_TERMS_COPY = MOCO_PURCHASE_TERMS_COPY;

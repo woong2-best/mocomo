@@ -32,6 +32,10 @@ export const MOCO_PURCHASE_TERMS_BLOCKS: LegalBlock[] = [
     type: "p",
     text: "Prices are displayed in U.S. dollars at checkout. Payments are processed by Stripe and are subject to Stripe's terms. Prices may exclude applicable taxes, which will be added at checkout where required. We may correct obvious pricing errors and cancel and refund affected orders.",
   },
+  {
+    type: "p",
+    text: "When you purchase MOCO, Stripe payment-processing (PG) fees may be charged in addition to the face value ($5 per MOCO). Support gem tiers are based on cumulative MOCO sent to other users as support, not on purchases, and are separate from Reward settlement tiers.",
+  },
   { type: "h2", text: "P.7 Immediate Delivery and Acknowledgment" },
   {
     type: "p",

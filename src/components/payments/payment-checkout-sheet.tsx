@@ -257,7 +257,6 @@ export function PaymentCheckoutSheet({
             <MocoPurchaseTermsCheckbox
               checked={purchaseTermsAccepted}
               onCheckedChange={setPurchaseTermsAccepted}
-              showSupportEmail
             />
           ) : (
             <PurchaseChargebackTermsNotice

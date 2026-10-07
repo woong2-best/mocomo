@@ -4,37 +4,70 @@ import Link from "next/link";
 import type { LegalDocument } from "@/lib/legal-content";
 import { LEGAL_CONTACT_EMAIL, LEGAL_PAGES } from "@/lib/legal-content";
 import { createTranslator } from "@/lib/i18n/messages";
+import { MOCO_TRANSFERS_TERMS_PATH } from "@/lib/legal/terms-versions";
 
 const t = createTranslator("en");
+
+function linkSectionX(text: string) {
+  const parts = text.split(/(Section X)/g);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) =>
+    part === "Section X" ? (
+      <Link key={i} href={MOCO_TRANSFERS_TERMS_PATH} className="font-semibold text-primary underline">
+        {part}
+      </Link>
+    ) : (
+      part
+    )
+  );
+}
+
+function renderRichText(text: string) {
+  const withSection = linkSectionX(text);
+  if (!text.includes(LEGAL_CONTACT_EMAIL)) return withSection;
+  if (typeof withSection === "string") {
+    const [before, after] = withSection.split(LEGAL_CONTACT_EMAIL);
+    return (
+      <>
+        {before}
+        <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="text-primary hover:underline">
+          {LEGAL_CONTACT_EMAIL}
+        </a>
+        {after}
+      </>
+    );
+  }
+  return withSection;
+}
 
 function renderBlock(block: LegalDocument["blocks"][number], key: number) {
   switch (block.type) {
     case "h2":
       return (
-        <h2 key={key} className="text-lg font-bold mt-8 mb-3">
-          {block.text}
+        <h2
+          key={key}
+          id={block.id}
+          className="scroll-mt-24 text-lg font-bold mt-8 mb-3"
+        >
+          {block.id === "section-x" ? (
+            <Link href={MOCO_TRANSFERS_TERMS_PATH} className="text-primary underline">
+              {block.text}
+            </Link>
+          ) : (
+            block.text
+          )}
         </h2>
       );
     case "h3":
       return (
-        <h3 key={key} className="text-base font-semibold mt-4 mb-2">
+        <h3 key={key} id={block.id} className="scroll-mt-24 text-base font-semibold mt-4 mb-2">
           {block.text}
         </h3>
       );
     case "p":
       return (
         <p key={key} className="text-sm text-muted-foreground leading-relaxed mb-3">
-          {block.text.includes("@") ? (
-            <>
-              {block.text.split(LEGAL_CONTACT_EMAIL)[0]}
-              <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="text-primary hover:underline">
-                {LEGAL_CONTACT_EMAIL}
-              </a>
-              {block.text.split(LEGAL_CONTACT_EMAIL)[1]}
-            </>
-          ) : (
-            block.text
-          )}
+          {renderRichText(block.text)}
         </p>
       );
     case "ul":
@@ -116,7 +149,9 @@ export function LegalDocumentView({
             : t("legal.lastUpdated", { date: document.updatedAt })}
         </p>
         {document.intro && (
-          <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{document.intro}</p>
+          <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
+            {renderRichText(document.intro)}
+          </p>
         )}
       </header>
 

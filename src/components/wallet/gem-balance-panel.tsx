@@ -535,7 +535,6 @@ export function GemBalancePanel({
               }
             }}
             disabled={pending}
-            showSupportEmail
           />
           <p className="text-[10px] leading-relaxed text-slate-500">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
           <a

@@ -127,7 +127,6 @@ export function WalletStripeTopup({ purchasedMoco, minTopupMoco, lowBalanceNotic
         checked={termsAccepted}
         onCheckedChange={setTermsAccepted}
         disabled={pending}
-        showSupportEmail
       />
       <p className="text-[11px] leading-relaxed text-muted-foreground">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
       <p className="text-[11px]">
