@@ -6,17 +6,24 @@ import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getMocoBalanceSnapshot } from "@/lib/auction-deposit/service";
+import { mocoCovers } from "@/lib/moco/decimal-amount";
 import {
+  adBoostPurchaseReason,
   adPurchaseReason,
   burnPurchasedMocoWithHistory,
 } from "@/lib/moco/transaction-history";
+import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 import {
   calcSponsoredAdExpiresAt,
   calcSponsoredAdMoco,
+  campaignPaidMoco,
+  isComplimentaryCampaign,
   SPONSORED_AD_MAX_DAYS,
   SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS,
   SPONSORED_AD_STATUS_ACTIVE,
   SPONSORED_AD_TARGET_EVENT,
+  SPONSORED_AD_TARGET_POST,
+  splitSponsoredAdMoco,
   type SponsoredAdTargetType,
 } from "@/lib/sponsored-ad/constants";
 
@@ -37,6 +44,26 @@ async function validateTarget(
     }
     if (event.registrationFeePaid) {
       return { ok: false, error: "This event is already registered with an active ad." };
+    }
+    return { ok: true };
+  }
+  if (targetType === SPONSORED_AD_TARGET_POST) {
+    const post = await tx.post.findUnique({
+      where: { id: targetId },
+      select: {
+        authorId: true,
+        visibility: true,
+        media: { select: { type: true, url: true }, orderBy: { order: "asc" } },
+      },
+    });
+    if (!post || post.authorId !== userId) {
+      return { ok: false, error: "Post not found." };
+    }
+    if (post.visibility !== "PUBLIC") {
+      return { ok: false, error: "Only public posts can be boosted." };
+    }
+    if (!isBoostableImageMedia(post.media)) {
+      return { ok: false, error: "Only photo posts can be boosted." };
     }
     return { ok: true };
   }
@@ -82,6 +109,12 @@ export type PurchaseSponsoredAdResult =
     }
   | { ok: false; error: string };
 
+function purchaseReason(targetType: SponsoredAdTargetType, days: number): string {
+  return targetType === SPONSORED_AD_TARGET_POST
+    ? adBoostPurchaseReason(days)
+    : adPurchaseReason(days);
+}
+
 export async function purchaseSponsoredAd(
   input: PurchaseSponsoredAdInput
 ): Promise<PurchaseSponsoredAdResult> {
@@ -96,19 +129,22 @@ export async function purchaseSponsoredAd(
     return { ok: false, error: `광고 기간은 1~${SPONSORED_AD_MAX_DAYS}일까지 선택할 수 있습니다.` };
   }
 
+  const paidParts = splitSponsoredAdMoco(mocoPaid);
+
   const balance = await getMocoBalanceSnapshot(input.userId);
-  if (balance.availableMocoBalance < mocoPaid) {
+  if (!mocoCovers(balance.availableMocoBalance, mocoPaid)) {
     return { ok: false, error: INSUFFICIENT_MOCO };
   }
 
+  const now = new Date();
   const activeCampaign = await db.sponsoredAdCampaign.findFirst({
     where: {
       targetType: input.targetType,
       targetId: input.targetId,
       status: SPONSORED_AD_STATUS_ACTIVE,
-      expiresAt: { gt: new Date() },
+      expiresAt: { gt: now },
     },
-    select: { id: true },
+    select: { id: true, mocoPaid: true, mocoPaidTenths: true },
   });
   if (activeCampaign) {
     return { ok: false, error: "An active sponsored ad already exists." };
@@ -128,7 +164,8 @@ export async function purchaseSponsoredAd(
           targetType: input.targetType,
           targetId: input.targetId,
           days: input.days,
-          mocoPaid,
+          mocoPaid: paidParts.whole,
+          mocoPaidTenths: paidParts.tenths,
           startsAt,
           expiresAt,
           status: SPONSORED_AD_STATUS_ACTIVE,
@@ -139,7 +176,7 @@ export async function purchaseSponsoredAd(
         userId: input.userId,
         amountMoco: mocoPaid,
         type: "AD_PURCHASE",
-        reason: adPurchaseReason(input.days),
+        reason: purchaseReason(input.targetType, input.days),
         referenceId: campaign.id,
         metadata: {
           targetType: input.targetType,
@@ -162,6 +199,9 @@ export async function purchaseSponsoredAd(
 
     revalidatePath("/events");
     revalidatePath("/");
+    if (input.targetType === SPONSORED_AD_TARGET_POST) {
+      revalidatePath(`/post/${input.targetId}`);
+    }
     return result;
   } catch (e) {
     if (e instanceof Error && e.message === "INSUFFICIENT_MOCO") {
@@ -192,7 +232,7 @@ export async function activateSponsoredAdComplimentary(
       targetType: input.targetType,
       targetId: input.targetId,
       status: SPONSORED_AD_STATUS_ACTIVE,
-      OR: [{ expiresAt: { gt: now } }, { mocoPaid: 0 }],
+      OR: [{ expiresAt: { gt: now } }, { mocoPaid: 0, mocoPaidTenths: 0 }],
     },
     select: { id: true },
   });
@@ -212,6 +252,7 @@ export async function activateSponsoredAdComplimentary(
           targetId: input.targetId,
           days: input.days,
           mocoPaid: 0,
+          mocoPaidTenths: 0,
           startsAt: input.startsAt,
           expiresAt: input.expiresAt,
           status: SPONSORED_AD_STATUS_ACTIVE,
@@ -238,6 +279,17 @@ export async function activateSponsoredAdComplimentary(
   }
 }
 
+const campaignSelect = {
+  id: true,
+  days: true,
+  mocoPaid: true,
+  mocoPaidTenths: true,
+  startsAt: true,
+  expiresAt: true,
+  status: true,
+  createdAt: true,
+} as const;
+
 export async function getSponsoredAdStatus(
   targetType: SponsoredAdTargetType,
   targetId: string
@@ -245,24 +297,27 @@ export async function getSponsoredAdStatus(
   const campaign = await db.sponsoredAdCampaign.findFirst({
     where: { targetType, targetId },
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      days: true,
-      mocoPaid: true,
-      startsAt: true,
-      expiresAt: true,
-      status: true,
-      createdAt: true,
-    },
+    select: campaignSelect,
   });
 
   if (!campaign) return { active: false as const, campaign: null };
 
   const now = new Date();
-  // 운영자 면제(mocoPaid=0): 만료일 무시 — 삭제 전까지 활성
+  const complimentary = isComplimentaryCampaign(campaign);
   const active =
     campaign.status === SPONSORED_AD_STATUS_ACTIVE &&
-    (campaign.mocoPaid === 0 || campaign.expiresAt > now);
+    (complimentary || campaign.expiresAt > now);
 
-  return { active, campaign };
+  return {
+    active,
+    campaign: {
+      id: campaign.id,
+      days: campaign.days,
+      mocoPaid: campaignPaidMoco(campaign),
+      startsAt: campaign.startsAt,
+      expiresAt: campaign.expiresAt,
+      status: campaign.status,
+      createdAt: campaign.createdAt,
+    },
+  };
 }

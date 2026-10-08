@@ -19,8 +19,6 @@ type SidebarAd = {
 
 const PLACEHOLDER_AD = "/ads/your-ad-here.jpg";
 
-const AD_SLOT_CLASS = "block h-full w-full";
-
 export function SponsoredSidebarCard({
   sidebarAds: _sidebarAds,
   initialSponsorEvent = null,
@@ -54,17 +52,31 @@ export function SponsoredSidebarCard({
   }, []);
 
   const hasSponsorEvent = event != null;
+  const isPost = event?.kind === "post" || Boolean(event?.postId);
+  const cta = event?.ctaLabel?.trim() || (isPost ? t("post.boost.viewPost") : t("sidebar.sponsored"));
+  const author = event?.authorName?.trim();
+  const excerpt = event?.excerpt?.trim() || event?.title?.trim();
 
   return (
-    <div className="h-full w-full overflow-hidden">
+    <div className="relative h-full w-full overflow-hidden" style={{ aspectRatio: "4 / 5" }}>
       {hasSponsorEvent ? (
         <SponsorAdClickLink
           linkUrl={event.linkUrl}
-          className="group relative block h-full w-full hover:opacity-95 transition-opacity"
+          className="group relative block h-full w-full"
           aria-label={event.title || t("sidebar.sponsored")}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={event.imageUrl} alt="" className={AD_SLOT_CLASS} draggable={false} />
+          <SponsorBlurCard imageUrl={event.imageUrl} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-3 pb-3 pt-10">
+            {author ? (
+              <p className="truncate text-[11px] font-semibold text-white/90">{author}</p>
+            ) : null}
+            {excerpt ? (
+              <p className="mt-0.5 truncate text-[12px] leading-snug text-white/80">{excerpt}</p>
+            ) : null}
+            <span className="mt-2 inline-flex rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-folk-cobalt shadow-sm">
+              {cta}
+            </span>
+          </div>
         </SponsorAdClickLink>
       ) : (
         <Link
@@ -73,9 +85,32 @@ export function SponsoredSidebarCard({
           aria-label="Your Ad Here"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={PLACEHOLDER_AD} alt="Your Ad Here" className={AD_SLOT_CLASS} draggable={false} />
+          <img src={PLACEHOLDER_AD} alt="Your Ad Here" className="h-full w-full object-cover" draggable={false} />
         </Link>
       )}
+    </div>
+  );
+}
+
+function SponsorBlurCard({ imageUrl }: { imageUrl: string }) {
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-black">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imageUrl}
+        alt=""
+        className="absolute inset-0 h-full w-full scale-110 object-cover"
+        style={{ filter: "blur(20px)" }}
+        draggable={false}
+      />
+      <div className="absolute inset-0 bg-black/30" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imageUrl}
+        alt=""
+        className="relative h-full w-full object-contain"
+        draggable={false}
+      />
     </div>
   );
 }

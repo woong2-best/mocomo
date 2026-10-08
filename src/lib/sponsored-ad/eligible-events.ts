@@ -20,7 +20,7 @@ export async function listEligibleSponsorEvents() {
         targetType: SPONSORED_AD_TARGET_EVENT,
         status: SPONSORED_AD_STATUS_ACTIVE,
         /** 유료: 만료 전 / 운영자 면제(mocoPaid=0): 삭제 전까지 */
-        OR: [{ expiresAt: { gte: now } }, { mocoPaid: 0 }],
+        OR: [{ expiresAt: { gte: now } }, { mocoPaid: 0, mocoPaidTenths: 0 }],
       },
       select: { targetId: true },
       take: 60,

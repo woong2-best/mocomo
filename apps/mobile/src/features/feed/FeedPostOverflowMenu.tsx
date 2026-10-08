@@ -17,6 +17,9 @@ import {
   togglePostProfileFeature,
 } from "@/api/social";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
+import { PostBoostSheet } from "@/features/feed/PostBoostSheet";
+import { PostCancelBoostSheet } from "@/features/feed/PostCancelBoostSheet";
+import { fetchPostBoostStatus } from "@/api/post-boost";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
@@ -45,6 +48,7 @@ type Props = {
   onMuted?: (muted: boolean) => void;
   onBlocked?: () => void;
   onDeleted?: () => void;
+  canBoost?: boolean;
 };
 
 const MENU_WIDTH = 248;
@@ -64,6 +68,7 @@ export function FeedPostOverflowMenu({
   onMuted,
   onBlocked,
   onDeleted,
+  canBoost = false,
 }: Props) {
   const { colors } = useTheme();
   const { t } = useI18n();
@@ -74,10 +79,28 @@ export function FeedPostOverflowMenu({
   const [busy, setBusy] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [confirm, setConfirm] = useState<"block" | null>(null);
+  const [boostActive, setBoostActive] = useState(false);
+  const [boostOpen, setBoostOpen] = useState(false);
+  const [cancelBoostOpen, setCancelBoostOpen] = useState(false);
 
   useEffect(() => {
     if (visible) setFeatured(featuredOnProfile);
   }, [featuredOnProfile, visible]);
+
+  useEffect(() => {
+    if (!visible || !isOwner || !canBoost) return;
+    let cancelled = false;
+    void fetchPostBoostStatus(postId)
+      .then((s) => {
+        if (!cancelled) setBoostActive(!!s.active);
+      })
+      .catch(() => {
+        /* keep last known */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, isOwner, canBoost, postId]);
 
   const closeAll = useCallback(() => {
     setReportOpen(false);
@@ -201,6 +224,29 @@ export function FeedPostOverflowMenu({
                 </>
               ) : isOwner ? (
                 <>
+                  {canBoost ? (
+                    <>
+                      <Pressable
+                        style={styles.row}
+                        onPress={() => {
+                          onClose();
+                          if (boostActive) setCancelBoostOpen(true);
+                          else setBoostOpen(true);
+                        }}
+                        disabled={!!busy}
+                      >
+                        <Ionicons
+                          name={boostActive ? "stop-circle-outline" : "rocket-outline"}
+                          size={18}
+                          color={colors.text}
+                        />
+                        <Text style={styles.rowText}>
+                          {boostActive ? t("m.boost.menu_stop") : t("m.boost.menu_start")}
+                        </Text>
+                      </Pressable>
+                      <View style={styles.sep} />
+                    </>
+                  ) : null}
                   <Pressable style={styles.row} onPress={runDelete} disabled={!!busy}>
                     <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
                     <Text style={[styles.rowText, styles.dangerText]}>{t("post.menu.delete")}</Text>
@@ -279,6 +325,22 @@ export function FeedPostOverflowMenu({
         authorUsername={authorUsername}
         mode="report"
       />
+      {canBoost ? (
+        <>
+          <PostBoostSheet
+            visible={boostOpen}
+            postId={postId}
+            onClose={() => setBoostOpen(false)}
+            onSuccess={() => setBoostActive(true)}
+          />
+          <PostCancelBoostSheet
+            visible={cancelBoostOpen}
+            postId={postId}
+            onClose={() => setCancelBoostOpen(false)}
+            onSuccess={() => setBoostActive(false)}
+          />
+        </>
+      ) : null}
     </>
   );
 }

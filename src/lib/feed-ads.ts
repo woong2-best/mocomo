@@ -1,11 +1,11 @@
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import type { FeedAdData } from "@/lib/default-ads";
-import { listEligibleSponsorEvents } from "@/lib/sponsored-ad/eligible-events";
+import { listEligibleSponsorCreatives } from "@/lib/sponsored-ad/eligible-creatives";
 
-/** AdSlot 피드 광고 + 결제 완료 이벤트를 트위터/X 스타일 인피드 광고 풀로 합침 */
+/** Boosted photo posts + event creatives + AdSlot 인피드 풀 */
 export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
-  const [slots, events] = await Promise.all([
+  const [slots, creatives] = await Promise.all([
     db.adSlot.findMany({
       where: { active: true, isFeedAd: true },
       take: 10,
@@ -19,20 +19,21 @@ export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
         adCategory: true,
       },
     }),
-    listEligibleSponsorEvents(),
+    listEligibleSponsorCreatives(),
   ]);
 
-  const eventAds: FeedAdData[] = events
-    .filter((e): e is typeof e & { imageUrl: string } => !!e.imageUrl?.trim())
-    .map((e) => ({
-      id: `event-${e.id}`,
-      title: e.linkUrl?.trim() ? adTitleFromLink(e.linkUrl) : e.title,
-      imageUrl: e.imageUrl,
-      linkUrl: e.linkUrl?.trim() || "/events",
-      sponsorName: e.createdBy?.name || e.createdBy?.username || "MoCoMo",
-      ctaLabel: "Go to",
-      adCategory: "Ad",
-    }));
+  const creativeAds: FeedAdData[] = creatives.map((c) => ({
+    id: c.id,
+    title: c.title,
+    imageUrl: c.imageUrl,
+    linkUrl: c.linkUrl,
+    sponsorName: c.authorName ?? "MoCoMo",
+    ctaLabel: c.ctaLabel ?? (c.kind === "post" ? "View post" : "Go to"),
+    adCategory: c.kind === "post" ? "Boost" : "Ad",
+    excerpt: c.excerpt ?? null,
+    kind: c.kind,
+    postId: c.postId ?? null,
+  }));
 
   const slotAds: FeedAdData[] = slots.map((s) => ({
     id: s.id,
@@ -44,20 +45,11 @@ export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
     adCategory: s.adCategory ?? "Ad",
   }));
 
-  return [...eventAds, ...slotAds];
-}
-
-function adTitleFromLink(linkUrl: string): string {
-  try {
-    const href = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
-    return new URL(href).hostname.replace(/^www\./, "");
-  } catch {
-    return "Ad";
-  }
+  return [...creativeAds, ...slotAds];
 }
 
 export const getCachedFeedAdPool = unstable_cache(
   async () => fetchFeedAdPool(),
-  ["feed-ad-pool-v2"],
+  ["feed-ad-pool-v3"],
   { revalidate: 60 }
 );

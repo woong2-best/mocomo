@@ -19,6 +19,16 @@ function isPlayableVideo(m: FeedMedia): boolean {
   return Boolean(m.url?.trim());
 }
 
+function isPlayableImage(m: FeedMedia): boolean {
+  if (m.type !== "IMAGE") return false;
+  if (m.locked) return true;
+  return Boolean(m.url?.trim());
+}
+
+function isPlayableVisual(m: FeedMedia): boolean {
+  return isPlayableVideo(m) || isPlayableImage(m);
+}
+
 function resolveHlsUrl(m: FeedMedia): string | null {
   const stored = m.hlsUrl?.trim() || null;
   if (stored && stored.includes(".m3u8")) return stored;
@@ -47,11 +57,12 @@ export function postVideoToReelItem(
   video: FeedMedia,
   paymentsEnabled?: boolean
 ): ReelItem | null {
-  if (!isPlayableVideo(video)) return null;
+  if (!isPlayableVisual(video)) return null;
   const id = mediaKey(post.id, video);
   return {
     id: `${post.id}:${id}`,
     postId: post.id,
+    mediaType: video.type === "IMAGE" ? "IMAGE" : "VIDEO",
     title: post.title ?? null,
     content: post.content,
     createdAt: post.createdAt,
@@ -131,5 +142,5 @@ export function firstVisualMedia(post: FeedPost): FeedMedia | null {
 }
 
 export function postHasPlayableVideo(post: FeedPost): boolean {
-  return (post.media ?? []).some(isPlayableVideo);
+  return (post.media ?? []).some(isPlayableVisual);
 }

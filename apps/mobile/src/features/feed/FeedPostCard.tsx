@@ -584,6 +584,10 @@ function FeedPostCardInner({
           onFeaturedChange={onProfilePinChange}
           onBlocked={() => onBlockedAuthor?.(post.author.id)}
           onDeleted={handleDeleted}
+          canBoost={
+            isSelf &&
+            (post.media ?? []).some((m) => m.type === "IMAGE" && Boolean(m.url?.trim()))
+          }
         />
       ) : null}
     </View>

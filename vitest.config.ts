@@ -10,6 +10,7 @@ export default defineConfig({
       "src/lib/settlement-moco/__tests__/**/*.test.ts",
       "src/lib/__tests__/api-idempotency.test.ts",
       "src/lib/__tests__/error-text.test.ts",
+      "src/lib/sponsored-ad/__tests__/refund.test.ts",
       "src/lib/wiki/__tests__/editorUtils.test.ts",
     ],
   },

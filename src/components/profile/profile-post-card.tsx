@@ -13,6 +13,7 @@ import { PostEngagementBar } from "@/components/post/post-engagement-bar";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { RepostBanner } from "@/components/post/repost-banner";
 import { QuotedPostCard } from "@/components/post/quoted-post-card";
+import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 
 export function ProfilePostCard({
   post,
@@ -139,6 +140,7 @@ export function ProfilePostCard({
               authorUsername={post.author.username}
               qna={Boolean(post.community?.slug)}
               size="md"
+              canBoost={canOwnMenu && isBoostableImageMedia(post.media)}
             />
           </div>
         </div>

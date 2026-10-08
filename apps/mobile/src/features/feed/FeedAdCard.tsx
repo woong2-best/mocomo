@@ -6,29 +6,37 @@ import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "@/navigation/types";
+import type { FeedAd as ApiFeedAd } from "@/api/feed";
 
-export type FeedAd = {
-  id: string;
-  title: string;
-  imageUrl: string;
-  linkUrl: string;
-  sponsorName?: string | null;
-  ctaLabel?: string | null;
-  adCategory?: string | null;
-};
+export type FeedAd = ApiFeedAd;
 
 function sponsorHandle(name: string | null | undefined): string {
   const base = (name || "MoCoMo").replace(/\s+/g, "").slice(0, 15);
   return `@${base.toLowerCase()}`;
 }
 
+function postIdFromAd(ad: FeedAd): string | null {
+  if (ad.postId?.trim()) return ad.postId.trim();
+  const match = ad.linkUrl.match(/^\/post\/([^/?#]+)/);
+  return match?.[1] ?? null;
+}
+
 function FeedAdCardInner({ ad }: { ad: FeedAd }) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const sponsor = ad.sponsorName?.trim() || "MoCoMo";
 
   const onPress = () => {
+    const postId = postIdFromAd(ad);
+    if (postId) {
+      navigation.navigate("PostDetail", { id: postId });
+      return;
+    }
     const url = ad.linkUrl.startsWith("http")
       ? ad.linkUrl
       : `https://mocomo.net${ad.linkUrl.startsWith("/") ? ad.linkUrl : `/${ad.linkUrl}`}`;

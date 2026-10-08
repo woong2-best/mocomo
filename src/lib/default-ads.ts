@@ -15,6 +15,9 @@ export type FeedAdData = {
   sponsorName?: string | null;
   ctaLabel?: string | null;
   adCategory?: string | null;
+  excerpt?: string | null;
+  kind?: string | null;
+  postId?: string | null;
 };
 
 /** 오른쪽 패널 Sponsored — 폴백 데모 광고 없음 (유료 스폰서만 본문 표시) */

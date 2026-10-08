@@ -5,7 +5,13 @@
 import type { MocoTransactionType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { InsufficientGemsBalanceError, consumeGemPurchaseTenths } from "@/lib/gems/fifo";
-import { joinMoco, joinSignedMoco, mocoToTenths, splitSignedTenths } from "@/lib/moco/decimal-amount";
+import {
+  formatMocoCount,
+  joinMoco,
+  joinSignedMoco,
+  mocoToTenths,
+  splitSignedTenths,
+} from "@/lib/moco/decimal-amount";
 
 type Tx = Prisma.TransactionClient;
 
@@ -134,8 +140,63 @@ export async function burnLockedMocoWithHistory(
   return { recorded: true };
 }
 
+/** purchasedMoco(mocoPoints)에 환급 + 원장 기록 (멱등, 양수) */
+export async function creditPurchasedMocoWithHistory(
+  tx: Tx,
+  input: RecordMocoBurnInput
+): Promise<{ recorded: boolean }> {
+  const needTenths = mocoToTenths(input.amountMoco);
+  if (needTenths == null) throw new Error("INVALID_MOCO_AMOUNT");
+  if (needTenths <= 0) return { recorded: false };
+
+  const existing = await tx.mocoTransactionHistory.findUnique({
+    where: {
+      type_referenceId: { type: input.type, referenceId: input.referenceId },
+    },
+  });
+  if (existing) return { recorded: false };
+
+  const wallet =
+    (await tx.platformWallet.findUnique({ where: { userId: input.userId } })) ??
+    (await tx.platformWallet.create({ data: { userId: input.userId } }));
+
+  const pointsAvailable = wallet.mocoPoints * 10 + wallet.mocoPointsTenths;
+  const next = pointsAvailable + needTenths;
+
+  await tx.platformWallet.update({
+    where: { id: wallet.id },
+    data: {
+      mocoPoints: Math.floor(next / 10),
+      mocoPointsTenths: next % 10,
+    },
+  });
+
+  const signed = splitSignedTenths(needTenths);
+  await tx.mocoTransactionHistory.create({
+    data: {
+      userId: input.userId,
+      amount: signed.whole,
+      amountTenths: signed.tenths,
+      type: input.type,
+      reason: input.reason,
+      referenceId: input.referenceId,
+      metadata: input.metadata as Prisma.InputJsonValue | undefined,
+    },
+  });
+
+  return { recorded: true };
+}
+
 export function adPurchaseReason(days: number): string {
   return `MoCoMo 광고 ${days}일 차감`;
+}
+
+export function adBoostPurchaseReason(days: number): string {
+  return `게시물 ${days}일 스폰서 홍보`;
+}
+
+export function adBoostRefundReason(refundMoco: number): string {
+  return `광고 조기 중단 (${formatMocoCount(refundMoco)} MOCO 환급)`;
 }
 
 export const AUCTION_PENALTY_REASON = "Auction win non-payment penalty deduction";

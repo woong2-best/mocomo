@@ -14,10 +14,13 @@ import {
   MoreHorizontal,
   Pin,
   PinOff,
+  Rocket,
   Trash2,
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { PostBoostDialog } from "@/components/post/post-boost-dialog";
+import { PostCancelBoostDialog } from "@/components/post/post-cancel-boost-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +54,8 @@ type Props = {
   anonymous?: boolean;
   /** QnA/community posts: hide pin-on-profile & Quiet for other users' posts */
   qna?: boolean;
+  /** Owner photo posts can be boosted */
+  canBoost?: boolean;
   size?: "sm" | "md";
   className?: string;
 };
@@ -63,6 +68,7 @@ export function PostOwnerMenu({
   authorUsername,
   anonymous = false,
   qna = false,
+  canBoost = false,
   size = "sm",
   className,
 }: Props) {
@@ -78,9 +84,28 @@ export function PostOwnerMenu({
   useEffect(() => {
     setPinned(isPinned);
   }, [isPinned]);
+
+  useEffect(() => {
+    if (!open || !isOwner || !canBoost) return;
+    let cancelled = false;
+    void fetch(`/api/ads/boost?postId=${encodeURIComponent(postId)}`, { credentials: "same-origin" })
+      .then(async (res) => {
+        const body = await res.json();
+        if (!cancelled && res.ok) setBoostActive(!!body.active);
+      })
+      .catch(() => {
+        /* keep last known */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isOwner, canBoost, postId]);
   const [busy, setBusy] = useState<"pin" | "delete" | "block" | "feature" | "mute" | null>(null);
   const [error, setError] = useState("");
   const [reportOnlyOpen, setReportOnlyOpen] = useState(false);
+  const [boostActive, setBoostActive] = useState(false);
+  const [boostDialogOpen, setBoostDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const loggedIn = !!session?.data?.user;
   const canShowOtherMenu = !isOwner && loggedIn && !!authorId && !!authorUsername;
@@ -229,6 +254,23 @@ export function PostOwnerMenu({
         <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
           {isOwner && (
             <>
+              {canBoost ? (
+                <>
+                  <DropdownMenuItem
+                    disabled={busy !== null}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setOpen(false);
+                      if (boostActive) setCancelDialogOpen(true);
+                      else setBoostDialogOpen(true);
+                    }}
+                  >
+                    <Rocket className="h-4 w-4" />
+                    {boostActive ? t("post.menu.cancelBoost") : t("post.menu.boost")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
               <DropdownMenuItem
                 disabled={busy !== null}
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -366,6 +408,23 @@ export function PostOwnerMenu({
             targetId={postId}
             postId={postId}
             reportedUserId={authorId}
+          />
+        </>
+      ) : null}
+
+      {isOwner && canBoost ? (
+        <>
+          <PostBoostDialog
+            open={boostDialogOpen}
+            onOpenChange={setBoostDialogOpen}
+            postId={postId}
+            onBoosted={() => setBoostActive(true)}
+          />
+          <PostCancelBoostDialog
+            open={cancelDialogOpen}
+            onOpenChange={setCancelDialogOpen}
+            postId={postId}
+            onCancelled={() => setBoostActive(false)}
           />
         </>
       ) : null}

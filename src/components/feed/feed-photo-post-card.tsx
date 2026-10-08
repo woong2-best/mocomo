@@ -124,6 +124,7 @@ export function FeedPhotoPostCard({
           authorUsername={post.author.username}
           qna={qna}
           size="md"
+          canBoost={isOwner}
         />
       </header>
 

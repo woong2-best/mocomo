@@ -7,6 +7,9 @@ import type { FeedAd } from "@/api/feed";
 import { API_BASE_URL } from "@/config/env";
 import { useI18n } from "@/i18n/I18nProvider";
 import { reelsUi } from "@/features/reels/reels-ui";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "@/navigation/types";
 
 type Props = {
   ad: FeedAd;
@@ -27,7 +30,14 @@ function ReelSponsoredSlideInner({ ad, width, height }: Props) {
   const cta = ad.ctaLabel?.trim() || copy.ctaJoin;
   const imageUri = resolveAdUrl(ad.imageUrl);
 
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   const onPress = () => {
+    const postId = ad.postId?.trim() || ad.linkUrl.match(/^\/post\/([^/?#]+)/)?.[1];
+    if (postId) {
+      navigation.navigate("PostDetail", { id: postId });
+      return;
+    }
     void Linking.openURL(resolveAdUrl(ad.linkUrl));
   };
 

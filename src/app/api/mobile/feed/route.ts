@@ -13,6 +13,8 @@ import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { hydrateViewerPollVotes } from "@/lib/post-poll";
 import { withRepostActivities } from "@/lib/repost-timeline";
 import { applyViewerBlockPolicyToPosts } from "@/lib/user-block";
+import { fetchFeedAdPool } from "@/lib/feed-ads";
+import { mixFeedWithAds } from "@/lib/feed-mixer";
 
 export async function GET(req: NextRequest) {
   try {
@@ -68,8 +70,11 @@ export async function GET(req: NextRequest) {
     const postIds = visible.map((p) => p.id);
     const authorIds = [...new Set(visible.map((p) => p.author.id))];
 
-    // Mobile: no in-feed ads — Instagram-style placement is Reels-only.
     const blockPolicyPosts = await applyViewerBlockPolicyToPosts(viewerId, visible);
+    const postOffset = Math.max(
+      0,
+      Number.parseInt(req.nextUrl.searchParams.get("postOffset") || "0", 10) || 0
+    );
 
     const [gated, subscriptions, engagement, viewerPin] = await Promise.all([
       attachWebPaidMediaPlayback(blockPolicyPosts, viewerId),
@@ -80,7 +85,7 @@ export async function GET(req: NextRequest) {
       viewerId
         ? db.user.findUnique({
             where: { id: viewerId },
-            select: { profileMainPostId: true },
+            select: { profileMainPostId: true, premiumTier: true },
           })
         : Promise.resolve(null),
     ]);
@@ -103,9 +108,18 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    const items =
+      viewerPin?.premiumTier === "PREMIUM"
+        ? serialized.map((data) => ({ type: "post" as const, data }))
+        : mixFeedWithAds(serialized, await fetchFeedAdPool(), {
+            postOffset,
+            postsPerBlock: 6,
+            minPostsBeforeFirstAd: 4,
+          });
+
     return NextResponse.json(
       {
-        items: serialized.map((data) => ({ type: "post" as const, data })),
+        items,
         nextCursor: posts.length === limit ? posts[posts.length - 1]?.id ?? null : null,
         mode: effectiveMode,
         likedIds: engagement.likedIds,

@@ -50,7 +50,7 @@ function reelAsFeedPost(reel: ReelItem, starred: boolean): FeedPost {
     id: reel.postId,
     title: reel.title,
     content: reel.content,
-    postType: "VIDEO",
+    postType: reel.mediaType === "IMAGE" ? "PHOTO" : "VIDEO",
     createdAt: reel.createdAt,
     isNsfw: reel.isNsfw,
     viewCount: reel.viewCount,
@@ -64,7 +64,7 @@ function reelAsFeedPost(reel: ReelItem, starred: boolean): FeedPost {
       {
         id: reel.media.id,
         url: reel.media.url,
-        type: "VIDEO",
+        type: reel.mediaType === "IMAGE" ? "IMAGE" : "VIDEO",
         posterUrl: reel.media.posterUrl,
         hlsUrl: reel.media.hlsUrl,
         width: reel.media.width,
@@ -195,6 +195,41 @@ function VideoCell({
   const isPaid = isPaidPlaybackPath(src) || (item.media.priceKrw ?? 0) > 0;
   const mediaId = item.media.id?.trim() || null;
   const locked = Boolean(item.media.locked);
+  const isImage = item.mediaType === "IMAGE";
+
+  if (isImage) {
+    const imageUri = item.media.url?.trim() || item.media.posterUrl?.trim() || "";
+    if (locked && item.monetization) {
+      return (
+        <View style={StyleSheet.absoluteFill}>
+          <LockedMediaTile
+            media={{
+              id: mediaId ?? undefined,
+              url: item.media.url,
+              type: "IMAGE",
+              priceKrw: item.media.priceKrw,
+              locked: true,
+              lockReason: item.media.lockReason,
+              instantPurchasePriceKrw: item.media.instantPurchasePriceKrw,
+            }}
+            monetization={item.monetization}
+          />
+        </View>
+      );
+    }
+    return (
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: "#000" }]}>
+        {imageUri ? (
+          <Image
+            source={cachedImageSource(imageUri)}
+            style={StyleSheet.absoluteFill}
+            contentFit="contain"
+            cachePolicy={IMAGE_CACHE_POLICY}
+          />
+        ) : null}
+      </View>
+    );
+  }
 
   if (locked && item.monetization) {
     return (
@@ -532,7 +567,7 @@ function FeedVideoPostSlideInner({
                   fastForward={isPlaying && fastForward}
                 />
               </SensitiveContentGate>
-              {isCurrent && !chromeHidden ? (
+              {isCurrent && !chromeHidden && item.mediaType !== "IMAGE" ? (
                 <>
                   <Pressable
                     style={styles.tapZone}

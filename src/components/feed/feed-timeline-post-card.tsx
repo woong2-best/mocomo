@@ -26,6 +26,7 @@ import { RepostBanner } from "@/components/post/repost-banner";
 import { QuotedPostCard } from "@/components/post/quoted-post-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
+import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 
 export function FeedTimelinePostCard({
   post,
@@ -187,6 +188,7 @@ export function FeedTimelinePostCard({
               authorUsername={post.isAnonymous ? undefined : post.author.username}
               anonymous={!!post.isAnonymous}
               qna={qna}
+              canBoost={isOwner && isBoostableImageMedia(post.media)}
             />
           </div>
         </div>

@@ -16,6 +16,7 @@ import { QuotePostPreviewCard } from "@/components/post/quote-post-preview-card"
 import { BlockedQuotedPostCard } from "@/components/post/blocked-quoted-post-card";
 import { readQuotedPost } from "@/lib/quoted-post";
 import { createTranslator } from "@/lib/i18n/messages";
+import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 
 const t = createTranslator("en");
 
@@ -93,6 +94,7 @@ export function PostDetailCard({
               anonymous={!!post.isAnonymous}
               qna={Boolean(post.community)}
               size="md"
+              canBoost={isOwner && isBoostableImageMedia(post.media)}
             />
           </div>
         </div>

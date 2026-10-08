@@ -3233,6 +3233,7 @@ enum AuctionDepositRole {
 
 enum MocoTransactionType {
   AD_PURCHASE
+  AD_REFUND
   AUCTION_PENALTY
   CHECKOUT_BURN
   /** 결제로 충전한 보유 MOCO를 다른 사용자 정산으로 전달. 수령자 보유 잔액에는 넣지 않음 */
@@ -3260,7 +3261,7 @@ model MocoTransactionHistory {
   @@index([type, createdAt])
 }
 
-/** 시간 기반 스폰서드 광고 — 24시간(1일)당 1 MOCO, purchasedMoco 즉시 차감 */
+/** 시간 기반 스폰서드 광고 — 24시간(1일)당 0.5 MOCO, purchasedMoco 즉시 차감 */
 model SponsoredAdCampaign {
   id         String   @id @default(cuid())
   userId     String
@@ -3269,6 +3270,8 @@ model SponsoredAdCampaign {
   targetId   String
   days       Int
   mocoPaid   Int
+  /** 0–9, extra 0.1 MOCO on mocoPaid (0.5/day → 1일 = 0 + 5) */
+  mocoPaidTenths Int @default(0)
   startsAt   DateTime @default(now())
   expiresAt  DateTime
   status     String   @default("ACTIVE") @db.VarChar(16)

@@ -8,8 +8,15 @@ import {
   SPONSORED_AD_MOCO_PER_DAY,
   SPONSORED_AD_MAX_DAYS,
   SPONSORED_AD_TARGET_EVENT,
+  SPONSORED_AD_TARGET_POST,
   type SponsoredAdTargetType,
 } from "@/lib/sponsored-ad";
+import { mocoCovers } from "@/lib/moco/decimal-amount";
+
+const ALLOWED_TARGETS = new Set<SponsoredAdTargetType>([
+  SPONSORED_AD_TARGET_EVENT,
+  SPONSORED_AD_TARGET_POST,
+]);
 
 /** GET — 모바일 스폰서드 광고 상태 + purchasedMoco 잔액 */
 export async function GET(req: NextRequest) {
@@ -19,8 +26,11 @@ export async function GET(req: NextRequest) {
   const auth = await requireMobileApiUser(req);
   if ("error" in auth) return auth.error;
 
-  const targetType = (req.nextUrl.searchParams.get("targetType")?.trim() ??
+  const targetTypeRaw = (req.nextUrl.searchParams.get("targetType")?.trim() ??
     SPONSORED_AD_TARGET_EVENT) as SponsoredAdTargetType;
+  const targetType = ALLOWED_TARGETS.has(targetTypeRaw)
+    ? targetTypeRaw
+    : SPONSORED_AD_TARGET_EVENT;
   const targetId = req.nextUrl.searchParams.get("targetId")?.trim();
   const daysParam = req.nextUrl.searchParams.get("days");
   const days = daysParam ? Number.parseInt(daysParam, 10) : null;
@@ -44,7 +54,7 @@ export async function GET(req: NextRequest) {
     maxDays: SPONSORED_AD_MAX_DAYS,
     purchasedMocoBalance: balance.availableMocoBalance,
     quoteMoco,
-    canAfford: quoteMoco != null ? balance.availableMocoBalance >= quoteMoco : null,
+    canAfford: quoteMoco != null ? mocoCovers(balance.availableMocoBalance, quoteMoco) : null,
     ...status,
     campaign: status.campaign
       ? {

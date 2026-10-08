@@ -1,28 +1,26 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { listEligibleSponsorEventsForMobile } from "@/lib/sponsored-ad/eligible-events";
+import { listSponsorSpotPool } from "@/lib/sponsor-spot-server";
 import {
   pickSponsorEvent,
   SPONSOR_ROTATION_COOKIE,
-  type SponsorEventCandidate,
 } from "@/lib/sponsor-event-rotation";
 
 export async function GET() {
   try {
-    const rows = await listEligibleSponsorEventsForMobile();
-    const pool: SponsorEventCandidate[] = rows
-      .filter((e): e is typeof e & { imageUrl: string } => !!e.imageUrl?.trim())
-      .filter((e) => !!e.linkUrl?.trim())
-      .map((e) => ({
+    const pool = await listSponsorSpotPool();
+    const cookieStore = await cookies();
+    const raw = cookieStore.get(SPONSOR_ROTATION_COOKIE)?.value;
+    const { event: picked, state } = pickSponsorEvent(
+      pool.map((e) => ({
         id: e.id,
         title: e.title,
         imageUrl: e.imageUrl,
-        linkUrl: e.linkUrl.trim(),
-      }));
-
-    const cookieStore = await cookies();
-    const raw = cookieStore.get(SPONSOR_ROTATION_COOKIE)?.value;
-    const { event, state } = pickSponsorEvent(pool, raw);
+        linkUrl: e.linkUrl,
+      })),
+      raw
+    );
+    const event = picked ? (pool.find((row) => row.id === picked.id) ?? picked) : null;
 
     const res = NextResponse.json({ ok: true, event });
     res.cookies.set(SPONSOR_ROTATION_COOKIE, JSON.stringify(state), {

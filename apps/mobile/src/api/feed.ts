@@ -97,6 +97,9 @@ export type FeedAd = {
   sponsorName?: string | null;
   ctaLabel?: string | null;
   adCategory?: string | null;
+  excerpt?: string | null;
+  kind?: string | null;
+  postId?: string | null;
 };
 
 export type FeedItem =

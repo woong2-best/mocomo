@@ -125,6 +125,8 @@ export const MobileApi = {
   settlementRegister: "/api/mobile/settlement/register",
   sponsoredAdPurchase: "/api/mobile/sponsored-ad/purchase",
   sponsoredAdStatus: "/api/mobile/sponsored-ad/status",
+  adsBoost: "/api/mobile/ads/boost",
+  adsCancel: "/api/mobile/ads/cancel",
   supportTiers: "/api/mobile/support/tiers",
   walletMocoHistory: "/api/mobile/wallet/moco-history",
   contactSettings: "/api/mobile/me/contact-settings",

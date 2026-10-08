@@ -17,6 +17,7 @@ export type ReelItem = {
     name: string | null;
     image: string | null;
   };
+  mediaType?: "IMAGE" | "VIDEO";
   media: {
     id: string;
     url: string;
