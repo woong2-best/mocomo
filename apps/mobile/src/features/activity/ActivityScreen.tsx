@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,13 +10,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   fetchNotifications,
   markNotificationsRead,
   type NotificationItem,
 } from "@/api/notifications";
+import { clearNotificationBadges } from "@/push/clear-notification-badge";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
@@ -62,6 +63,15 @@ export function ActivityScreen() {
   });
 
   const unread = query.data?.unread ?? 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      void clearNotificationBadges();
+      queryClient.setQueryData(QUERY_KEY, (prev: typeof query.data) =>
+        prev ? { ...prev, unread: 0 } : prev
+      );
+    }, [queryClient])
+  );
 
   return (
     <Screen>

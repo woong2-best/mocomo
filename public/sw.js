@@ -47,6 +47,9 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  if (self.navigator && "clearAppBadge" in self.navigator) {
+    event.waitUntil(self.navigator.clearAppBadge().catch(() => undefined));
+  }
   const data = event.notification.data || {};
   const callId = data.callId;
   const action = event.action;

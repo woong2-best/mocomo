@@ -26,6 +26,7 @@ export function useNotificationUnread() {
   useEffect(() => {
     if (pathname === "/notifications") {
       setUnread(0);
+      dispatchNotificationsRead();
     }
   }, [pathname]);
 

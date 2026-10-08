@@ -13,6 +13,7 @@ import { HeaderSearch } from "@/components/search/header-search";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
+import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
 
 function SearchPill() {
   return (
@@ -50,6 +51,7 @@ export function MobileHubHeader({ className }: { className?: string }) {
         {authenticated ? (
           <Link
             href="/notifications"
+            onClick={() => dispatchNotificationsRead()}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted/60"
             aria-label={t("nav.notifications")}
           >
