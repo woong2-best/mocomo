@@ -34,6 +34,11 @@ export function MessagesDrawer({ visible, onClose }: Props) {
 
   const [presented, setPresented] = useState(false);
   const slideX = useRef(new Animated.Value(360)).current;
+  const presentedRef = useRef(false);
+  const visibleRef = useRef(visible);
+  const panelWidthRef = useRef(panelWidth);
+  visibleRef.current = visible;
+  panelWidthRef.current = panelWidth;
 
   const backdropOpacity = slideX.interpolate({
     inputRange: [0, panelWidth],
@@ -41,40 +46,67 @@ export function MessagesDrawer({ visible, onClose }: Props) {
     extrapolate: "clamp",
   });
 
+  const hideDrawer = () => {
+    if (visibleRef.current) return;
+    presentedRef.current = false;
+    setPresented(false);
+  };
+
   useEffect(() => {
+    let anim: Animated.CompositeAnimation | null = null;
+    let failsafe: ReturnType<typeof setTimeout> | null = null;
+
     if (visible) {
+      presentedRef.current = true;
       setPresented(true);
-      slideX.setValue(panelWidth);
-      Animated.timing(slideX, {
+      slideX.setValue(panelWidthRef.current);
+      anim = Animated.timing(slideX, {
         toValue: 0,
         duration: OPEN_MS,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-      }).start();
-      return;
+      });
+      anim.start();
+      return () => {
+        anim?.stop();
+      };
     }
 
-    if (!presented) return;
+    if (!presentedRef.current) return;
 
-    Animated.timing(slideX, {
-      toValue: panelWidth,
+    anim = Animated.timing(slideX, {
+      toValue: panelWidthRef.current,
       duration: CLOSE_MS,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) setPresented(false);
     });
-  }, [panelWidth, presented, slideX, visible]);
+    anim.start(() => {
+      hideDrawer();
+    });
+    failsafe = setTimeout(hideDrawer, CLOSE_MS + 80);
+
+    return () => {
+      anim?.stop();
+      if (failsafe) clearTimeout(failsafe);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slideX, visible]);
+
+  if (!presented) return null;
 
   return (
     <Modal
-      visible={presented}
+      visible
       animationType="none"
       transparent
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={styles.root} collapsable={false}>
+      <View
+        style={styles.root}
+        collapsable={false}
+        pointerEvents={visible ? "auto" : "none"}
+      >
         <Animated.View
           style={[styles.scrimWrap, { opacity: backdropOpacity }]}
           pointerEvents="none"

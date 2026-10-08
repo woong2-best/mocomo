@@ -31,6 +31,7 @@ import {
   dmRoomQueryKey,
 } from "@/api/dm-bootstrap-cache";
 import { dmRoomIsUnread } from "@/features/messages/useHasUnreadDms";
+import { useChatPresenceMap } from "@/lib/use-chat-presence";
 import { getChatReplyPreview } from "@/features/messages/chat-display";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -108,6 +109,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
   const [sendQ, setSendQ] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const onlineIds = useChatPresenceMap();
 
   const query = useQuery({
     queryKey: ["mobile-dm-inbox"],
@@ -179,6 +181,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
   const renderItem = useCallback(
     ({ item }: { item: DmInboxRoom }) => {
       const unread = dmRoomIsUnread(item);
+      const online = !!item.otherUserId && onlineIds.has(item.otherUserId);
       return (
         <Pressable
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -196,7 +199,10 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
             });
           }}
         >
-          <FolkAvatar uri={item.displayImage} name={item.displayName} size={56} />
+          <View style={styles.avatarWrap}>
+            <FolkAvatar uri={item.displayImage} name={item.displayName} size={56} />
+            {online ? <View style={styles.onlineDot} /> : null}
+          </View>
           <View style={styles.meta}>
             <View style={styles.nameLine}>
               <View style={styles.nameCluster}>
@@ -214,7 +220,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
         </Pressable>
       );
     },
-    [locale, navigation, onRequestClose, prefetchRoom, styles, t]
+    [locale, navigation, onRequestClose, onlineIds, prefetchRoom, styles, t]
   );
 
   const renderPickerItem = useCallback(
@@ -443,6 +449,18 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
       borderTopColor: colors.hairline,
     },
     pickerDismissText: { fontWeight: "700", color: colors.brand, fontSize: 13 },
+    avatarWrap: { position: "relative" },
+    onlineDot: {
+      position: "absolute",
+      right: 1,
+      bottom: 1,
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: "#22C55E",
+      borderWidth: 2,
+      borderColor: drawerBg,
+    },
     row: {
       flexDirection: "row",
       alignItems: "center",

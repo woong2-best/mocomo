@@ -18,7 +18,9 @@ import type { SavedMobileAccountPublic } from "@/auth/account-store";
 import {
   GoogleNativeCancelledError,
   GoogleNativeUnavailableError,
+  isGoogleDeveloperError,
 } from "@/auth/google-native";
+import { dismissAuthOverlays } from "@/auth/oauth";
 import type { MobileAuthUser } from "@/auth/types";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -88,6 +90,7 @@ export function AccountsBottomSheet({
     prepareAddAccountSession,
     signInWithCredentials,
     signInWithGoogleNative,
+    openWebAuth,
   } = useAuth();
   const insets = useSafeAreaInsets();
   const keyboardHeight = useKeyboardBottomInset();
@@ -126,6 +129,13 @@ export function AccountsBottomSheet({
     [busy, onClose, switchAccount, user?.id]
   );
 
+  const finishAdded = useCallback(async () => {
+    dismissAuthOverlays();
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await refreshSavedAccounts();
+    onClose();
+  }, [onClose, refreshSavedAccounts]);
+
   const handleGoogle = useCallback(async () => {
     if (busy) return;
     Keyboard.dismiss();
@@ -133,11 +143,30 @@ export function AccountsBottomSheet({
     setError("");
     try {
       await prepareAddAccountSession();
-      const result = await signInWithGoogleNative({
-        flow: "signin",
-        forcePicker: true,
+      try {
+        const result = await signInWithGoogleNative({
+          flow: "signin",
+          forcePicker: true,
+        });
+        if (result.status === "needsSignup") {
+          onClose();
+          onUnregisteredAccount?.();
+          return;
+        }
+        await finishAdded();
+        return;
+      } catch (e) {
+        if (e instanceof GoogleNativeCancelledError) return;
+        if (!(e instanceof GoogleNativeUnavailableError || isGoogleDeveloperError(e))) {
+          throw e;
+        }
+      }
+      dismissAuthOverlays();
+      const web = await openWebAuth("signin", {
+        provider: "gmail",
+        addAccount: true,
       });
-      if (result.status === "needsSignup") {
+      if (web.status === "needsSignup") {
         onClose();
         onUnregisteredAccount?.();
         return;
@@ -152,8 +181,10 @@ export function AccountsBottomSheet({
     }
   }, [
     busy,
+    finishAdded,
     onClose,
     onUnregisteredAccount,
+    openWebAuth,
     prepareAddAccountSession,
     refreshSavedAccounts,
     signInWithGoogleNative,

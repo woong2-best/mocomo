@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -33,9 +32,11 @@ import {
 import { useI18n } from "@/i18n/I18nProvider";
 import { animeUi } from "@/features/anime/anime-ui";
 import { WikiContent } from "@/features/anime/WikiContent";
+import { WikiInfoboxField } from "@/features/anime/WikiInfoboxField";
 import { extractYoutubeId } from "@/features/anime/wiki-youtube";
 import { characterNames } from "@/features/anime/wiki-article";
 import { cultureWikiEnglishOnlyViolation } from "@/lib/culture-wiki-english-only";
+import { useKeyboardLift } from "@/lib/use-keyboard-inset";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
@@ -82,6 +83,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
+  const { keyboardLift } = useKeyboardLift();
   const queryClient = useQueryClient();
 
   const initialGenre: MobileAnimeGenreId =
@@ -229,15 +231,20 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
         onLeftPress={() => navigation.goBack()}
         leftLabel={copy.back}
       />
-      <KeyboardAvoidingView
+      <ScrollView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={insets.top + 48}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingBottom:
+              insets.bottom + 24 + (Platform.OS === "android" ? keyboardLift : 0),
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        automaticallyAdjustsScrollIndicatorInsets={Platform.OS === "ios"}
       >
-        <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24 }]}
-          keyboardShouldPersistTaps="handled"
-        >
           <Text style={styles.lead}>{copy.formIntro}</Text>
           <Text style={styles.englishOnlyNotice}>{copy.englishOnlyNotice}</Text>
 
@@ -339,15 +346,11 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             placeholderTextColor={colors.textMuted}
           />
 
-          <Label text={copy.infoboxLabel} colors={colors} />
-          <TextInput
-            style={[styles.input, styles.textArea]}
+          <WikiInfoboxField
+            label={copy.infoboxLabel}
             value={infobox}
-            onChangeText={setInfobox}
+            onChange={setInfobox}
             placeholder={copy.infoboxPh}
-            placeholderTextColor={colors.textMuted}
-            multiline
-            textAlignVertical="top"
           />
 
           <Label text={copy.synopsisLabel} colors={colors} />
@@ -379,7 +382,12 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             placeholder={copy.synopsisPh}
             placeholderTextColor={colors.textMuted}
             multiline
+            scrollEnabled
+            nestedScrollEnabled
             textAlignVertical="top"
+            autoCorrect={false}
+            spellCheck={false}
+            blurOnSubmit={false}
           />
           {synopsis.trim() ? (
             <View style={styles.preview}>
@@ -396,7 +404,12 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             placeholder={copy.worldPh}
             placeholderTextColor={colors.textMuted}
             multiline
+            scrollEnabled
+            nestedScrollEnabled
             textAlignVertical="top"
+            autoCorrect={false}
+            spellCheck={false}
+            blurOnSubmit={false}
           />
 
           <Label text={copy.castLabel} colors={colors} />
@@ -407,7 +420,12 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             placeholder={copy.castPh}
             placeholderTextColor={colors.textMuted}
             multiline
+            scrollEnabled
+            nestedScrollEnabled
             textAlignVertical="top"
+            autoCorrect={false}
+            spellCheck={false}
+            blurOnSubmit={false}
           />
 
           <Label text={copy.tagsLabel} colors={colors} />
@@ -442,8 +460,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             onPress={onSubmit}
             disabled={busy}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </Screen>
   );
 }
@@ -486,10 +503,12 @@ function createStyles(colors: ThemeColors) {
     },
     textArea: {
       minHeight: 120,
+      maxHeight: 200,
       paddingTop: 10,
     },
     textAreaSm: {
       minHeight: 88,
+      maxHeight: 140,
       paddingTop: 10,
     },
     genreScroll: {

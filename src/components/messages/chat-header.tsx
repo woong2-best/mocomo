@@ -8,7 +8,7 @@ import { DmCallButtons } from "@/components/call/dm-call-buttons";
 import type { ChatMemberPreview } from "@/components/messages/add-chat-member-dialog";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { PresenceAvatar } from "@/components/user/presence-avatar";
-import { useChatSocket } from "@/components/messages/chat-socket-context";
+import { useAppSocket } from "@/components/providers/app-socket-provider";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 import { PeerLocalClock, PeerMemberClocks } from "@/components/messages/peer-local-clock";
@@ -54,8 +54,9 @@ export function ChatHeader({
   const { t } = useLocale();
   const { isNativeApp } = useClientPlatform();
   const profileHref = profileUsername ? `/u/${profileUsername}` : undefined;
-  const { isUserOnline, socketReady, realtimeOff } = useChatSocket();
+  const { isUserOnline, socketReady, realtimeOff } = useAppSocket();
   const otherOnline = otherUserId ? isUserOnline(otherUserId) : false;
+  const showPeerPresence = !!otherUserId && roomType !== "GROUP";
   const clockMembers = members
     .filter((m) => m.id !== viewerUserId)
     .map((m) => ({
@@ -66,7 +67,7 @@ export function ChatHeader({
   const presenceLabel =
     roomType === "GROUP"
       ? t("messages.memberCount", { count: String(memberCount ?? members.length) })
-      : roomType === "DM" && otherUserId
+      : showPeerPresence
         ? !socketReady && !realtimeOff
           ? t("live.external.connecting")
           : otherOnline

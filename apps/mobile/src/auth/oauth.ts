@@ -9,6 +9,20 @@ import { translate } from "@/i18n/runtime";
 
 WebBrowser.maybeCompleteAuthSession();
 
+/** Close a leftover ASWebAuthenticationSession / in-app browser (iOS). */
+export function dismissAuthOverlays() {
+  try {
+    WebBrowser.dismissAuthSession();
+  } catch {
+    /* nothing presented */
+  }
+  try {
+    WebBrowser.dismissBrowser();
+  } catch {
+    /* nothing presented */
+  }
+}
+
 const WEB = API_BASE_URL.replace(/\/$/, "");
 
 /** Must match server `MOBILE_OAUTH_REDIRECT`. */

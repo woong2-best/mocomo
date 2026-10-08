@@ -139,11 +139,14 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   const [followListTab, setFollowListTab] = useState<FollowListTab | null>(null);
 
   const [presented, setPresented] = useState(false);
-  /** Slide finished and the panel transform has been removed. */
-  const [panelResting, setPanelResting] = useState(false);
   /** Globe mounts after the slide, so it is not created on the home screen. */
   const [drawerSettled, setDrawerSettled] = useState(false);
   const slideX = useRef(new Animated.Value(-360)).current;
+  const presentedRef = useRef(false);
+  const visibleRef = useRef(visible);
+  const panelWidthRef = useRef(panelWidth);
+  visibleRef.current = visible;
+  panelWidthRef.current = panelWidth;
 
   /**
    * Scrim/blur opacity is derived from the same slideX progress — one native
@@ -157,12 +160,22 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
   const closeAccountSheet = () => setAccountSheetOpen(false);
 
+  const hideDrawerChrome = () => {
+    if (visibleRef.current) return;
+    presentedRef.current = false;
+    setPresented(false);
+    setDrawerSettled(false);
+    setAccountSheetOpen(false);
+    setFollowListTab(null);
+  };
+
   useEffect(() => {
     if (visible) {
       warmDrawerBundles();
     } else {
-      // Drawer closing → always tear down account overlay (prevents sticky cards)
       setAccountSheetOpen(false);
+      setFollowListTab(null);
+      setDrawerSettled(false);
     }
   }, [visible]);
 
@@ -179,48 +192,56 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   }, []);
 
   useEffect(() => {
+    let anim: Animated.CompositeAnimation | null = null;
+    let failsafe: ReturnType<typeof setTimeout> | null = null;
+
     if (visible) {
+      presentedRef.current = true;
       setPresented(true);
-      setPanelResting(false);
       setDrawerSettled(false);
-      slideX.setValue(-panelWidth);
-      const open = Animated.timing(slideX, {
+      slideX.setValue(-panelWidthRef.current);
+      anim = Animated.timing(slideX, {
         toValue: 0,
         duration: OPEN_MS,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       });
-      open.start(({ finished }) => {
-        if (finished) setPanelResting(true);
-      });
-      return () => open.stop();
-    }
-
-    if (!presented) return;
-    setAccountSheetOpen(false);
-    slideX.setValue(0);
-    const timer = setTimeout(() => {
-      Animated.timing(slideX, {
-        toValue: -panelWidth,
-        duration: CLOSE_MS,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) {
-          setPresented(false);
-          setPanelResting(false);
-          setDrawerSettled(false);
+      anim.start(({ finished }) => {
+        if (finished && visibleRef.current) {
+          setDrawerSettled(true);
         }
       });
-    }, 32);
-    return () => clearTimeout(timer);
-  }, [panelWidth, presented, slideX, visible]);
+      return () => {
+        anim?.stop();
+      };
+    }
 
-  useEffect(() => {
-    if (!panelResting) return;
-    const timer = setTimeout(() => setDrawerSettled(true), 48);
-    return () => clearTimeout(timer);
-  }, [panelResting]);
+    if (!presentedRef.current) return;
+
+    // Drop native globe/video immediately so iOS cannot leave a ghost hit layer.
+    setDrawerSettled(false);
+    setAccountSheetOpen(false);
+    setFollowListTab(null);
+
+    anim = Animated.timing(slideX, {
+      toValue: -panelWidthRef.current,
+      duration: CLOSE_MS,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    });
+    anim.start(() => {
+      hideDrawerChrome();
+    });
+    failsafe = setTimeout(hideDrawerChrome, CLOSE_MS + 80);
+
+    return () => {
+      anim?.stop();
+      if (failsafe) clearTimeout(failsafe);
+    };
+    // `presented` must stay out of deps — toggling it used to cancel the close
+    // animation and leave a transparent Modal eating every tap on iOS.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slideX, visible]);
 
   const prefetch = (route: DrawerRoute) => {
     prefetchDrawerRoute(queryClient, route);
@@ -241,16 +262,22 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   const rowIcon = colors.text;
   const rowChevron = colors.textMuted;
 
+  if (!presented) return null;
+
   return (
     <>
     <Modal
-      visible={presented}
+      visible
       animationType="none"
       transparent
       onRequestClose={handleDrawerClose}
       statusBarTranslucent
     >
-      <View style={styles.root} collapsable={false}>
+      <View
+        style={styles.root}
+        collapsable={false}
+        pointerEvents={visible ? "auto" : "none"}
+      >
         {/*
           Fixed-intensity BlurView + dim; opacity driven by slideX on the
           native driver so blur never recomputes intensity mid-frame.
@@ -285,9 +312,8 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
               width: panelWidth,
               paddingTop: insets.top + 10,
               paddingBottom: 0,
-              elevation: panelResting ? 0 : 8,
+              transform: [{ translateX: slideX }],
             },
-            panelResting ? null : { transform: [{ translateX: slideX }] },
           ]}
         >
           <View style={styles.panelBody}>
@@ -296,6 +322,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                 bannerUrl={user?.bannerUrl}
                 bannerVideoUrl={user?.bannerVideoUrl}
                 active={visible && !accountSheetOpen}
+                style={{ pointerEvents: "none" }}
               />
               <View style={styles.profileBannerOverlay} pointerEvents="none" />
               <View style={styles.profileActions} pointerEvents="box-none">
@@ -352,10 +379,11 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                   </Pressable>
                 </View>
               </View>
-              <View style={styles.stats}>
+              <View style={styles.stats} pointerEvents="box-none">
                 <Pressable
                   onPress={() => {
                     void Haptics.selectionAsync();
+                    setAccountSheetOpen(false);
                     if (user?.username) setFollowListTab("following");
                   }}
                   hitSlop={4}
@@ -370,6 +398,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                 <Pressable
                   onPress={() => {
                     void Haptics.selectionAsync();
+                    setAccountSheetOpen(false);
                     if (user?.username) setFollowListTab("followers");
                   }}
                   hitSlop={4}
@@ -417,18 +446,17 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
           accessibilityRole="button"
           accessibilityLabel={t("m.nav.close_menu")}
         />
+        {user?.username ? (
+          <ProfileFollowListSheet
+            embedInParent
+            visible={followListTab !== null}
+            tab={followListTab ?? "followers"}
+            username={user.username}
+            onClose={() => setFollowListTab(null)}
+          />
+        ) : null}
       </View>
     </Modal>
-
-    {/* Own top-level Modal — must not inherit drawer panel layout/scroll coords */}
-    {user?.username ? (
-      <ProfileFollowListSheet
-        visible={followListTab !== null}
-        tab={followListTab ?? "followers"}
-        username={user.username}
-        onClose={() => setFollowListTab(null)}
-      />
-    ) : null}
 
     <AccountsBottomSheet
       visible={accountSheetOpen}
@@ -535,6 +563,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       position: "relative",
       justifyContent: "center",
       zIndex: 1,
+      pointerEvents: "box-none",
     },
     profileRow: {
       flexDirection: "row",
@@ -543,7 +572,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       paddingHorizontal: spacing.md,
     },
     profileTapArea: {
-      flex: 1,
+      flexShrink: 1,
       flexDirection: "row",
       alignItems: "center",
       gap: 12,
@@ -576,7 +605,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       gap: spacing.md,
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.md,
-      zIndex: 1,
+      zIndex: 4,
     },
     stat: { color: profileStatOnBanner, fontSize: 13, fontWeight: "600" },
     statNum: { fontWeight: "800", color: profileOnBanner },

@@ -13,7 +13,8 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "@/auth/AuthContext";
-import type { MobileAuthProvider } from "@/auth/oauth";
+import { goToSignedInHome } from "@/navigation/navigationRef";
+import { dismissAuthOverlays, type MobileAuthProvider } from "@/auth/oauth";
 import {
   GoogleNativeCancelledError,
   GoogleNativeUnavailableError,
@@ -150,9 +151,10 @@ export function LoginScreen({ navigation, route }: Props) {
 
   const finishAddAccountIfNeeded = useCallback(async () => {
     if (!addAccountMode) return;
+    dismissAuthOverlays();
     await refreshSavedAccounts();
-    if (navigation.canGoBack()) navigation.goBack();
-  }, [addAccountMode, navigation, refreshSavedAccounts]);
+    goToSignedInHome();
+  }, [addAccountMode, refreshSavedAccounts]);
 
   useEffect(() => {
     if (!addAccountMode || status !== "signedIn" || !user?.id) return;
@@ -192,6 +194,7 @@ export function LoginScreen({ navigation, route }: Props) {
         } catch (e) {
           if (e instanceof GoogleNativeCancelledError) return;
           if (e instanceof GoogleNativeUnavailableError || isGoogleDeveloperError(e)) {
+            dismissAuthOverlays();
             const web = await openWebAuth("signin", {
               provider: "gmail",
               addAccount: addAccountMode,

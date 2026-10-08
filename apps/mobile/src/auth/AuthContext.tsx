@@ -527,6 +527,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (userId: string) => {
       if (user?.id === userId) return;
       await unregisterPushSafe();
+      try {
+        const { disconnectInboxSocket } = await import("@/lib/inbox-socket");
+        disconnectInboxSocket();
+      } catch {
+        /* socket unused */
+      }
       const hit = await activateAccount(userId);
       if (!hit) return;
       queryClient.clear();
@@ -560,6 +566,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }).catch(() => undefined);
     } finally {
       await unregisterPushSafe();
+      try {
+        const { disconnectInboxSocket } = await import("@/lib/inbox-socket");
+        disconnectInboxSocket();
+      } catch {
+        /* socket unused */
+      }
       try {
         const { clearGoogleNativeSession } = await import("@/auth/google-native");
         await clearGoogleNativeSession();

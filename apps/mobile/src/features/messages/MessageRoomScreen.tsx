@@ -40,6 +40,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { useJoinPresenceRoom, usePeerOnline } from "@/lib/use-chat-presence";
 import { requestUsedTrade } from "@/api/marketplace";
 import { UsedTradeMeetCompletionCard } from "@/features/messages/UsedTradeMeetCompletionCard";
 import type { Locale } from "@/i18n";
@@ -132,6 +133,8 @@ export function MessageRoomScreen() {
   const peerId = room?.otherUserId ?? null;
   const peerUsername = room?.profileUsername ?? null;
   const isGroup = room?.type === "GROUP";
+  useJoinPresenceRoom(roomId);
+  const peerOnline = usePeerOnline(peerId);
   const memberCount = room?.memberCount ?? room?.members?.length ?? 0;
   const composerBottomPad = keyboardOpen ? 8 : Math.max(insets.bottom, 8);
   const canSendText = !!draft.trim() && !busy && !recording;
@@ -413,15 +416,23 @@ export function MessageRoomScreen() {
           onPressIn={isGroup ? undefined : prefetchPeerProfile}
           onPress={isGroup ? () => navigation.navigate("ChatSettings") : openPeerProfile}
         >
-          <FolkAvatar uri={peerImage} name={title} size={34} />
+          <View style={styles.avatarWrap}>
+            <FolkAvatar uri={peerImage} name={title} size={34} />
+            {peerOnline && !isGroup ? <View style={styles.onlineDot} /> : null}
+          </View>
           <View style={styles.headerTextCol}>
             <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
-            <Text style={styles.presence} numberOfLines={1}>
+            <Text
+              style={[styles.presence, peerOnline && !isGroup ? styles.presenceOnline : null]}
+              numberOfLines={1}
+            >
               {isGroup
                 ? t("m.messages.membercount_members", { memberCount: String(memberCount) })
-                : t("m.messages.offline")}
+                : peerOnline
+                  ? t("m.messages.online")
+                  : t("m.messages.offline")}
               {isGroup ? (
                 <>
                   {" · "}
@@ -779,6 +790,19 @@ function createThemedStyles(colors: ThemeColors) {
     headerTextCol: { flex: 1, minWidth: 0 },
     title: { fontSize: 16, fontWeight: "800", color: colors.text },
     presence: { fontSize: 12, color: colors.textMuted, marginTop: 1, fontWeight: "600" },
+    presenceOnline: { color: colors.brand },
+    avatarWrap: { position: "relative" },
+    onlineDot: {
+      position: "absolute",
+      right: -1,
+      bottom: -1,
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: "#22C55E",
+      borderWidth: 2,
+      borderColor: colors.background,
+    },
     headerActions: { flexDirection: "row", alignItems: "center", gap: 6 },
     callBtn: {
       width: 36,

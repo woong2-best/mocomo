@@ -46,7 +46,20 @@ export class GoogleNativeCancelledError extends Error {
 /** Play App Signing SHA-1 missing from Firebase — native SDK cannot authenticate. */
 export function isGoogleDeveloperError(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e ?? "");
-  return msg.includes("DEVELOPER_ERROR");
+  return (
+    msg.includes("DEVELOPER_ERROR") ||
+    msg.includes("Custom scheme URLs are not allowed") ||
+    msg.includes("WEB' client type") ||
+    msg.includes("WEB client type")
+  );
+}
+
+/** iOS GIDSignIn needs a real iOS OAuth client — never the Web client id. */
+function usableIosClientId(ios?: string | null, web?: string | null): string | undefined {
+  const id = ios?.trim() || "";
+  if (!id) return undefined;
+  if (web && id === web.trim()) return undefined;
+  return id;
 }
 
 function googleNativeFailureMessage(e: unknown): string {
@@ -75,9 +88,11 @@ type RNGoogleSigninNative = {
 
 function googleClientOptions(config: GoogleConfig): GoogleClientOptions | null {
   if (!config.webClientId) return null;
+  const iosClientId = usableIosClientId(config.iosClientId, config.webClientId);
+  if (Platform.OS === "ios" && !iosClientId) return null;
   return {
     webClientId: config.webClientId,
-    ...(config.iosClientId ? { iosClientId: config.iosClientId } : {}),
+    ...(iosClientId ? { iosClientId } : {}),
     scopes: ["profile", "email"],
     offlineAccess: false,
   };

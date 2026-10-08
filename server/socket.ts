@@ -73,6 +73,31 @@ async function emitRoomPresenceSnapshot(socket: AuthedSocket, roomId: string) {
   socket.emit("room_presence", { onlineUserIds });
 }
 
+/** Who among this user's chat partners is already connected — sent on login. */
+async function emitPartnerPresenceSnapshot(socket: AuthedSocket, userId: string) {
+  try {
+    const memberships = await prisma.chatMember.findMany({
+      where: { userId },
+      select: { roomId: true },
+    });
+    const roomIds = memberships.map((m) => m.roomId);
+    if (!roomIds.length) {
+      socket.emit("presence_snapshot", { onlineUserIds: [] });
+      return;
+    }
+    const partners = await prisma.chatMember.findMany({
+      where: { roomId: { in: roomIds }, userId: { not: userId } },
+      select: { userId: true },
+    });
+    const onlineUserIds = [...new Set(partners.map((p) => p.userId))].filter((id) =>
+      isUserOnline(id)
+    );
+    socket.emit("presence_snapshot", { onlineUserIds });
+  } catch {
+    socket.emit("presence_snapshot", { onlineUserIds: [] });
+  }
+}
+
 function resolveUserId(socket: AuthedSocket): string | null {
   const token = socket.handshake.auth.token as string | undefined;
   const fromToken = verifySocketAuthToken(token);
@@ -406,6 +431,7 @@ io.on("connection", (socket: AuthedSocket) => {
   if (!cameOnline.wasOnline && cameOnline.isOnline) {
     void broadcastPresenceToMemberRooms(userId, true);
   }
+  void emitPartnerPresenceSnapshot(socket, userId);
 
   socket.on("join_room", async (roomId: string) => {
     if (!roomId || roomId.length > 64) return;

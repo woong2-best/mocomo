@@ -37,13 +37,24 @@ type Props = {
   onClose: () => void;
   username: string;
   tab: FollowListTab;
+  /**
+   * Render as an overlay inside an already-open Modal.
+   * iOS cannot reliably stack a second RN Modal on the drawer.
+   */
+  embedInParent?: boolean;
 };
 
 function tabTitle(tab: FollowListTab, t: TFn): string {
   return tab === "followers" ? t("m.common.followers") : t("m.common.following");
 }
 
-export function ProfileFollowListSheet({ visible, onClose, username, tab }: Props) {
+export function ProfileFollowListSheet({
+  visible,
+  onClose,
+  username,
+  tab,
+  embedInParent = false,
+}: Props) {
   const { t } = useI18n();
   const { colors, mode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -181,8 +192,9 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
       </Text>
     ) : null;
 
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+  if (embedInParent && !visible) return null;
+
+  const sheet = (
       <View style={styles.root}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button">
           <BlurView
@@ -238,12 +250,33 @@ export function ProfileFollowListSheet({ visible, onClose, username, tab }: Prop
           )}
         </View>
       </View>
+  );
+
+  if (embedInParent) {
+    return <View style={styles.embed}>{sheet}</View>;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      {sheet}
     </Modal>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    embed: {
+      ...StyleSheet.absoluteFill,
+      zIndex: 50,
+      elevation: 50,
+    },
     root: {
       flex: 1,
       justifyContent: "center",

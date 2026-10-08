@@ -53,6 +53,7 @@ function BannerVideo({ uri, active }: { uri: string; active: boolean }) {
       contentFit="cover"
       nativeControls={false}
       allowsPictureInPicture={false}
+      pointerEvents="none"
     />
   );
 }
@@ -69,7 +70,7 @@ export function ProfileBannerMedia({
   const imageSrc = bannerImageUrl(bannerUrl, bannerVideoUrl);
 
   return (
-    <View style={[StyleSheet.absoluteFill, style]}>
+    <View style={[StyleSheet.absoluteFill, style]} pointerEvents="none">
       {videoSrc && active ? (
         <BannerVideo uri={videoSrc} active={active} />
       ) : imageSrc ? (

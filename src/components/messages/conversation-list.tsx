@@ -12,6 +12,7 @@ import type { SupportTierLevel } from "@prisma/client";
 import { getConversationMeta, formatChatListTime } from "@/lib/chat-display";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
+import { useAppSocket } from "@/components/providers/app-socket-provider";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -51,6 +52,7 @@ export function ConversationList({
   const { locale, t } = useLocale();
   const pathname = usePathname() ?? "";
   const { isNativeApp } = useClientPlatform();
+  const { isUserOnline } = useAppSocket();
   const activeFromPath = pathname.match(/^\/messages\/([^/]+)$/)?.[1];
   const resolvedActiveRoomId =
     activeRoomId ??
@@ -96,6 +98,7 @@ export function ConversationList({
             {rooms.map((room) => {
               const meta = getConversationMeta(room, currentUserId, locale);
               const active = resolvedActiveRoomId === room.id;
+              const online = meta.otherUserId ? isUserOnline(meta.otherUserId) : false;
               return (
                 <li key={room.id}>
                   <Link
@@ -105,12 +108,20 @@ export function ConversationList({
                       active ? "bg-accent/70" : "hover:bg-muted/60"
                     )}
                   >
-                    <Avatar className="h-12 w-12 shrink-0 ring-1 ring-border/40">
-                      <AvatarImage src={meta.displayImage ?? undefined} />
-                      <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-violet-500/30 to-pink-500/30">
-                        {meta.displayName[0]?.toUpperCase() ?? "?"}
-                      </AvatarFallback>
-                    </Avatar>
+                    <span className="relative shrink-0">
+                      <Avatar className="h-12 w-12 ring-1 ring-border/40">
+                        <AvatarImage src={meta.displayImage ?? undefined} />
+                        <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-violet-500/30 to-pink-500/30">
+                          {meta.displayName[0]?.toUpperCase() ?? "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      {online ? (
+                        <span
+                          className="absolute right-0 bottom-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-background"
+                          aria-label={t("ui.online")}
+                        />
+                      ) : null}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
                         <DisplayNameWithSupportTier

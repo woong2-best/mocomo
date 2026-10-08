@@ -2,15 +2,18 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
 import type { Socket } from "socket.io-client";
 import { useSession } from "next-auth/react";
+import type { PresenceChangePayload, RoomPresencePayload } from "@/lib/chat-presence";
 import { needsImmediateRealtime } from "@/lib/hub-fast-path";
 import { resolveSocketUrl } from "@/lib/socket-url";
 import {
@@ -26,6 +29,8 @@ type AppSocketContextValue = {
   socketReady: boolean;
   realtimeOff: boolean;
   connectionFailed: boolean;
+  onlineUserIds: ReadonlySet<string>;
+  isUserOnline: (userId: string) => boolean;
 };
 
 const AppSocketContext = createContext<AppSocketContextValue>({
@@ -33,6 +38,8 @@ const AppSocketContext = createContext<AppSocketContextValue>({
   socketReady: false,
   realtimeOff: true,
   connectionFailed: false,
+  onlineUserIds: new Set(),
+  isUserOnline: () => false,
 });
 
 /** 허브 화면: cold-start wake는 백그라운드, 소켓 연결은 즉시 (통화 수신 보장) */
@@ -50,10 +57,38 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "";
   const immediateRealtime = needsImmediateRealtime(pathname);
   const userId = session?.user?.id;
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [socketReady, setSocketReady] = useState(false);
   const [realtimeOff, setRealtimeOff] = useState(() => !resolveSocketUrl());
   const [connectionFailed, setConnectionFailed] = useState(false);
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(() => new Set());
+
+  const applyPresenceChange = useCallback((userId: string, online: boolean) => {
+    setOnlineUserIds((prev) => {
+      const has = prev.has(userId);
+      if (online === has) return prev;
+      const next = new Set(prev);
+      if (online) next.add(userId);
+      else next.delete(userId);
+      return next;
+    });
+  }, []);
+
+  const mergeOnlineIds = useCallback((ids: string[]) => {
+    if (!ids.length) return;
+    setOnlineUserIds((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (!id || next.has(id)) continue;
+        next.add(id);
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, []);
 
   useEffect(() => {
     const socketUrl = resolveSocketUrl();
@@ -62,6 +97,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
       setConnectionFailed(false);
       setSocketReady(false);
       setSocket(null);
+      setOnlineUserIds(new Set());
       return;
     }
 
@@ -78,7 +114,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
       void import("socket.io-client").then(async ({ io }) => {
       if (disposed) return;
 
-      await prepareSocketServer(socketUrl, immediateRealtime);
+      await prepareSocketServer(socketUrl, needsImmediateRealtime(pathnameRef.current));
       if (disposed) return;
 
       const { fetchSocketAuthToken } = await import("@/lib/socket-client");
@@ -116,6 +152,19 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
         void refreshAuth();
       }, 4 * 60 * 1000);
 
+      const onPresenceChange = (payload: PresenceChangePayload) => {
+        if (!payload?.userId) return;
+        applyPresenceChange(payload.userId, !!payload.online);
+      };
+      const onPresenceSnapshot = (payload: RoomPresencePayload) => {
+        if (!Array.isArray(payload?.onlineUserIds)) return;
+        mergeOnlineIds(payload.onlineUserIds.filter(Boolean));
+      };
+
+      activeSocket.on("presence_change", onPresenceChange);
+      activeSocket.on("presence_snapshot", onPresenceSnapshot);
+      activeSocket.on("room_presence", onPresenceSnapshot);
+
       activeSocket.on("connect", () => {
         if (disposed) return;
         if (connectTimeout) window.clearTimeout(connectTimeout);
@@ -127,6 +176,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
 
       activeSocket.on("disconnect", () => {
         setSocketReady(false);
+        setOnlineUserIds(new Set());
       });
 
       activeSocket.on("connect_error", () => {
@@ -159,13 +209,28 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
       if (connectTimeout) window.clearTimeout(connectTimeout);
       setSocketReady(false);
       setSocket(null);
+      setOnlineUserIds(new Set());
       activeSocket?.disconnect();
     };
-  }, [userId, status, immediateRealtime]);
+    // Do not depend on pathname / immediateRealtime — reconnecting on every
+    // hub↔chat navigation marked the user offline and wiped presence.
+  }, [userId, status, applyPresenceChange, mergeOnlineIds]);
+
+  const isUserOnline = useCallback(
+    (id: string) => onlineUserIds.has(id),
+    [onlineUserIds]
+  );
 
   const value = useMemo(
-    () => ({ socket, socketReady, realtimeOff, connectionFailed }),
-    [socket, socketReady, realtimeOff, connectionFailed]
+    () => ({
+      socket,
+      socketReady,
+      realtimeOff,
+      connectionFailed,
+      onlineUserIds,
+      isUserOnline,
+    }),
+    [socket, socketReady, realtimeOff, connectionFailed, onlineUserIds, isUserOnline]
   );
 
   return <AppSocketContext.Provider value={value}>{children}</AppSocketContext.Provider>;

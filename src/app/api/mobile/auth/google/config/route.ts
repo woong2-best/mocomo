@@ -14,7 +14,14 @@ export async function GET(req: NextRequest) {
 
   const webClientId = googleWebClientId();
   const androidClientId = googleAndroidClientId();
-  const iosClientId = process.env.GOOGLE_IOS_CLIENT_ID?.trim() || null;
+  const rawIos =
+    process.env.GOOGLE_IOS_CLIENT_ID?.trim() ||
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ||
+    null;
+  // A Web client id used as iosClientId makes GIDSignIn open
+  // `com.googleusercontent.apps.*` — Google then shows
+  // "Custom scheme URLs are not allowed for 'WEB' client type".
+  const iosClientId = rawIos && rawIos !== webClientId ? rawIos : null;
 
   return NextResponse.json(
     {

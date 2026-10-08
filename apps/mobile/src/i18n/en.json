@@ -1867,6 +1867,7 @@
   "m.messages.not_completed": "Not completed",
   "m.messages.now": "Now",
   "m.messages.offline": "Offline",
+  "m.messages.online": "Online",
   "m.messages.on_call": "On call",
   "m.messages.on_voice_call": "On voice call",
   "m.messages.on_video_call": "On video call",
