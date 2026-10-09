@@ -27,7 +27,7 @@ import {
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { clampFeedMediaAspect, feedMediaFrameHeightCss } from "@/lib/format-feed";
+import { feedMediaFrameStyle, isPortraitPhoto } from "@/lib/format-feed";
 const SLIDE_WIDTH_RATIO = 0.88;
 const EDGE_PAD_RATIO = 0.06;
 
@@ -169,7 +169,10 @@ function CarouselTile({
       <PaidFeedMediaSurface
         type={media.type}
         src={media.url}
-        className="h-full w-full object-cover"
+        className={cn(
+          "h-full w-full",
+          isPortraitPhoto(media) ? "object-contain" : "object-cover"
+        )}
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
         locked={locked}
@@ -409,7 +412,6 @@ export function FeedPostMediaCarousel({
 
   if (!multi) {
     const m = items[0]!;
-    const aspect = clampFeedMediaAspect(m.width, m.height, m.type);
     return (
       <div
         className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
@@ -418,8 +420,8 @@ export function FeedPostMediaCarousel({
       >
         <div className="w-full [container-type:inline-size]">
           <div
-            className="overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
-            style={{ width: "100%", height: feedMediaFrameHeightCss(aspect) }}
+            className="mx-auto overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
+            style={feedMediaFrameStyle(m)}
           >
             {renderTile(m, 0, true)}
           </div>
@@ -464,7 +466,6 @@ export function FeedPostMediaCarousel({
           aria-label={t("feed.svtcyuc")}
         >
           {items.map((m, i) => {
-            const aspect = clampFeedMediaAspect(m.width, m.height, m.type);
             return (
               <div
                 key={m.id ?? `${postId}:${i}`}
@@ -475,8 +476,8 @@ export function FeedPostMediaCarousel({
               >
                 <div className="w-full [container-type:inline-size]">
                   <div
-                    className="overflow-hidden rounded-2xl"
-                    style={{ width: "100%", height: feedMediaFrameHeightCss(aspect) }}
+                    className="mx-auto overflow-hidden rounded-2xl"
+                    style={feedMediaFrameStyle(m)}
                   >
                     {renderTile(m, i, i === activeIndex)}
                   </div>

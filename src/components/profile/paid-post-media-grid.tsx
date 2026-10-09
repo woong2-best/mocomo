@@ -13,7 +13,7 @@ import {
 } from "@/lib/post-media-client-cache";
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { clampFeedMediaAspect, feedMediaFrameHeightCss } from "@/lib/format-feed";
+import { feedMediaFrameStyle, isPortraitPhoto } from "@/lib/format-feed";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -107,15 +107,7 @@ export function PaidPostMediaGrid({
   const preview = media.slice(0, FEED_GRID_MAX);
   const count = preview.length;
   const overflow = Math.max(0, total - FEED_GRID_MAX);
-  const singleAspectStyle =
-    count === 1
-      ? {
-          width: "100%" as const,
-          height: feedMediaFrameHeightCss(
-            clampFeedMediaAspect(preview[0]!.width, preview[0]!.height, preview[0]!.type)
-          ),
-        }
-      : undefined;
+  const singleAspectStyle = count === 1 ? feedMediaFrameStyle(preview[0]!) : undefined;
 
   function warmFullMedia() {
     if (!needsFullFetch) return;
@@ -182,7 +174,7 @@ export function PaidPostMediaGrid({
       <div
         className={cn(
           "overflow-hidden rounded-2xl border border-border/50 max-w-full bg-border/60",
-          count === 1 ? undefined : "aspect-[1.7/1]",
+          count === 1 ? "mx-auto" : "aspect-[1.7/1]",
           opening && "opacity-80"
         )}
         style={singleAspectStyle}
@@ -263,6 +255,7 @@ export function PaidPostMediaGrid({
                   isNsfw={isNsfw}
                   isOwner={isOwner}
                   viewerShowNsfw={viewerShowNsfw}
+                  contain={count === 1 && isPortraitPhoto(m)}
                   onOpenFull={() => void openAt(i, false)}
                   onPurchaseSuccess={(id) => markPurchased(id)}
                 />
@@ -291,6 +284,7 @@ function PaidPostMediaTile({
   paymentsEnabled,
   subscribed,
   postInstantPurchasePriceKrw,
+  contain = false,
   onOpenFull,
   onPurchaseSuccess,
   isNsfw = false,
@@ -306,6 +300,7 @@ function PaidPostMediaTile({
   paymentsEnabled: boolean;
   subscribed?: boolean;
   postInstantPurchasePriceKrw?: number;
+  contain?: boolean;
   onOpenFull?: () => void;
   onPurchaseSuccess?: (mediaId?: string) => void | Promise<void>;
   isNsfw?: boolean;
@@ -325,7 +320,7 @@ function PaidPostMediaTile({
       <PaidFeedMediaSurface
         type={media.type}
         src={media.url}
-        className="h-full w-full object-cover"
+        className={cn("h-full w-full", contain ? "object-contain" : "object-cover")}
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
         locked={locked}

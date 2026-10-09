@@ -54,6 +54,38 @@ export function feedMediaFrameHeightCss(aspect: number): string {
   return `min(calc(100cqi / ${aspect}), ${FEED_MEDIA_MAX_HEIGHT_CSS})`;
 }
 
+/** Portrait photos keep their own ratio and shrink. Landscape photos and all videos stay full column width. */
+export function isPortraitPhoto(media: {
+  width?: number | null;
+  height?: number | null;
+  type?: string;
+}): boolean {
+  return (
+    media.type !== "VIDEO" &&
+    !!media.width &&
+    !!media.height &&
+    media.width > 0 &&
+    media.height > media.width
+  );
+}
+
+export function feedMediaFrameStyle(media: {
+  width?: number | null;
+  height?: number | null;
+  type?: string;
+}): { width: string; height: string } {
+  if (isPortraitPhoto(media) && media.width && media.height) {
+    const aspect = media.width / media.height;
+    const maxH = `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`;
+    return {
+      width: `min(100%, calc(${maxH} * ${aspect}))`,
+      height: `min(${maxH}, calc(100cqi / ${aspect}))`,
+    };
+  }
+  const aspect = clampFeedMediaAspect(media.width, media.height, media.type);
+  return { width: "100%", height: feedMediaFrameHeightCss(aspect) };
+}
+
 /** Single-tile feed/detail/carousel aspect ratio (clamped width/height or sensible default). */
 export function postMediaAspectRatio(media: {
   width?: number | null;

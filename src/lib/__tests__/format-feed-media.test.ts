@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   clampFeedMediaAspect,
   feedMediaFrameHeightCss,
+  feedMediaFrameStyle,
   postMediaAspectRatio,
 } from "@/lib/format-feed";
 
@@ -32,4 +33,22 @@ test("postMediaAspectRatio returns the clamped numeric CSS value", () => {
 
 test("feedMediaFrameHeightCss binds to container width then 510px / 56vh", () => {
   assert.equal(feedMediaFrameHeightCss(0.75), "min(calc(100cqi / 0.75), 510px, 56vh)");
+});
+
+test("portrait photos shrink to their own ratio instead of filling the column", () => {
+  const frame = feedMediaFrameStyle({ type: "IMAGE", width: 1080, height: 1920 });
+  assert.equal(frame.width, "min(100%, calc(min(510px, 56vh) * 0.5625))");
+  assert.equal(frame.height, "min(min(510px, 56vh), calc(100cqi / 0.5625))");
+});
+
+test("landscape photos stay full column width", () => {
+  const frame = feedMediaFrameStyle({ type: "IMAGE", width: 1920, height: 1080 });
+  assert.equal(frame.width, "100%");
+  assert.equal(frame.height, feedMediaFrameHeightCss(1920 / 1080));
+});
+
+test("portrait videos stay on the full-width clamp", () => {
+  const frame = feedMediaFrameStyle({ type: "VIDEO", width: 1080, height: 1920 });
+  assert.equal(frame.width, "100%");
+  assert.equal(frame.height, feedMediaFrameHeightCss(3 / 4));
 });
