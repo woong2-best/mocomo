@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
-  Linking,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +15,8 @@ import { localeForCountry } from "@/i18n/locale-from-country";
 import { patchMe } from "@/api/discovery";
 import { ApiError } from "@/api/client";
 import { LocaleRegionCrtCard } from "@/features/settings/LocaleRegionCrtCard";
+import { BlockedUsersCard } from "@/features/settings/BlockedUsersCard";
+import { settingCountryLabel } from "@/lib/setting-countries";
 import { detectDeviceTimeZone } from "@/lib/device-timezone";
 import { FeedDisplaySettingsCard } from "@/features/settings/FeedDisplaySettingsCard";
 import { PostsLockSettingsCard } from "@/features/settings/PostsLockSettingsCard";
@@ -26,9 +26,9 @@ import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
 import { Screen } from "@/ui/Screen";
-import { showIslandError, showIslandToast } from "@/ui/IslandToast";
+import { showIslandError } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { TFn } from "@/i18n/types";
 
 export function SettingsScreen() {
@@ -42,25 +42,28 @@ export function SettingsScreen() {
     user?.locale ?? localeForCountry(user?.countryCode ?? "US")
   );
   const [countryCode, setCountryCode] = useState(user?.countryCode ?? "US");
-  const [localeBusy, setLocaleBusy] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const persistSeq = useRef(0);
 
   useEffect(() => {
     setLocale(user?.locale ?? localeForCountry(user?.countryCode ?? "US"));
     setCountryCode(user?.countryCode ?? "US");
   }, [user?.locale, user?.countryCode]);
 
-  async function saveLocale() {
-    setLocaleBusy(true);
+  async function persistLocale(nextLocale: string, nextCountry: string) {
+    const seq = ++persistSeq.current;
     try {
-      await patchMe({ locale, countryCode, timeZone: detectDeviceTimeZone() });
-      await applyUiLocale(normalizeMobileLocale(locale) as Locale);
-      await refreshMe();
-      showIslandToast(t("settings.saved"), t("m.settings.region_and_language_updated"));
+      await applyUiLocale(normalizeMobileLocale(nextLocale) as Locale);
+      await patchMe({
+        locale: nextLocale,
+        countryCode: nextCountry,
+        timeZone: detectDeviceTimeZone(),
+      });
+      if (seq === persistSeq.current) await refreshMe();
     } catch (e) {
-      showIslandError(t("m.common.error"), errorMessage(e, t));
-    } finally {
-      setLocaleBusy(false);
+      if (seq === persistSeq.current) {
+        showIslandError(t("m.common.error"), errorMessage(e, t));
+      }
     }
   }
 
@@ -79,13 +82,16 @@ export function SettingsScreen() {
           <LocaleRegionCrtCard
             locale={locale}
             countryCode={countryCode}
-            onLocaleChange={setLocale}
+            onLocaleChange={(code) => {
+              setLocale(code);
+              void persistLocale(code, countryCode);
+            }}
             onCountryChange={(code) => {
               setCountryCode(code);
-              setLocale(localeForCountry(code));
+              const next = localeForCountry(code);
+              setLocale(next);
+              void persistLocale(next, code);
             }}
-            saving={localeBusy}
-            onSave={() => void saveLocale()}
           />
 
           <FeedDisplaySettingsCard />
@@ -98,7 +104,7 @@ export function SettingsScreen() {
             <Text style={styles.cardTitle}>{t("m.settings.account")}</Text>
             <Text style={styles.metaLine}>
               {t("m.settings.username")}{user?.username}
-              {user?.countryCode ? ` · ${user.countryCode}` : ""}
+              {user?.countryCode ? ` · ${settingCountryLabel(user.countryCode, locale)}` : ""}
             </Text>
             <Text style={styles.metaMuted}>{t("m.settings.display_name")} {user?.name || "—"}</Text>
             {logoutConfirm ? (
@@ -128,16 +134,7 @@ export function SettingsScreen() {
             hasPassword={Boolean(user?.hasPassword)}
           />
 
-          <FolkCard style={{ borderColor: "rgba(196, 92, 62, 0.35)" }}>
-            <Text style={[styles.cardTitle, { color: colors.terracotta }]}>Discover</Text>
-            <Text style={styles.cardDesc}>{t("m.settings.set_up_interest_based_recommendations_on")}</Text>
-            <Pressable
-              style={[styles.fillBtn, { backgroundColor: colors.terracotta }]}
-              onPress={() => void Linking.openURL("https://mocomo.net/discover")}
-            >
-              <Text style={styles.fillBtnText}>{t("m.settings.open_discover")}</Text>
-            </Pressable>
-          </FolkCard>
+          <BlockedUsersCard />
 
           <FolkButton
             label={t("m.settings.terms_and_policies")}
@@ -164,13 +161,5 @@ function createThemedStyles(colors: ThemeColors) {
     cardDesc: { color: colors.textMuted, fontSize: 13, marginBottom: 12, lineHeight: 18 },
     metaLine: { fontWeight: "700", color: colors.text, marginBottom: 4 },
     metaMuted: { color: colors.textMuted, marginBottom: 14 },
-    fillBtn: {
-      borderRadius: radii.md,
-      paddingVertical: 12,
-      alignItems: "center",
-      marginTop: 4,
-    },
-    fillBtnText: { color: "#fff", fontWeight: "800" },
-    rowGap: { gap: 8, marginTop: 4 },
   });
 }

@@ -81,9 +81,6 @@ export function PrivacyListsCard() {
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">{t("settings.blockedMutedDesc")}</p>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setKind("blocked")}>
-              {t("settings.blocked")}
-            </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => setKind("muted")}>
               {t("settings.muted")}
             </Button>

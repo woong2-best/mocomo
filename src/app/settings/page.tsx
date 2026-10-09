@@ -13,6 +13,7 @@ import { WatermarkSettingsForm } from "@/components/settings/watermark-settings-
 import { isWatermarkPlacement } from "@/lib/media-watermark";
 import { FollowRequestsPanel } from "@/components/settings/follow-requests-panel";
 import { PrivacyListsCard } from "@/components/settings/privacy-lists-card";
+import { SettingsBlockedUsersCard } from "@/components/settings/settings-blocked-users-card";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AccountDeletionForm } from "@/components/settings/account-deletion-form";
 import { SettingsPageChrome } from "@/components/settings/settings-page-chrome";
@@ -140,28 +141,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-folk-terracotta/25 bg-folk-terracotta/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {t("settings.discoverTitle")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">{t("settings.discoverDesc")}</p>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/discover">
-              <Button size="sm" className="rounded-xl bg-folk-terracotta text-white hover:bg-folk-terracotta/90">
-                {t("settings.discoverStart")}
-              </Button>
-            </Link>
-            <Link href="/discover/settings">
-              <Button variant="outline" size="sm">
-                {t("settings.discoverSettings")}
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      <SettingsBlockedUsersCard />
 
       <Card>
         <CardHeader>

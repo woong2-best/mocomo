@@ -10,8 +10,6 @@ type Props = {
   countryCode: string;
   onLocaleChange: (locale: string) => void;
   onCountryChange: (code: string) => void;
-  onSave: () => void;
-  saving?: boolean;
 };
 
 export function LocaleRegionCrtCard({
@@ -19,8 +17,6 @@ export function LocaleRegionCrtCard({
   countryCode,
   onLocaleChange,
   onCountryChange,
-  onSave,
-  saving,
 }: Props) {
   const [langQuery, setLangQuery] = useState("");
   const [countryQuery, setCountryQuery] = useState("");
@@ -61,9 +57,6 @@ export function LocaleRegionCrtCard({
                   {active ? ">> " : "   "}
                   {mobileLocaleLabel(code as Locale, locale)}
                 </PhosphorText>
-                <PhosphorText faint style={styles.code}>
-                  {code}
-                </PhosphorText>
               </Pressable>
             );
           })}
@@ -88,9 +81,6 @@ export function LocaleRegionCrtCard({
                   {active ? ">> " : "   "}
                   {settingCountryLabel(code, locale)}
                 </PhosphorText>
-                <PhosphorText faint style={styles.code}>
-                  {code}
-                </PhosphorText>
               </Pressable>
             );
           })}
@@ -103,10 +93,6 @@ export function LocaleRegionCrtCard({
         <PhosphorText dim style={styles.note}>
           Uses this smartphone clock. Not user-selectable.
         </PhosphorText>
-
-        <Pressable onPress={onSave} disabled={saving} style={styles.write}>
-          <PhosphorText glow>{saving ? "writing…" : "write"}</PhosphorText>
-        </Pressable>
       </View>
     </CrtFrame>
   );
@@ -132,14 +118,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 5,
   },
-  code: { fontSize: 11 },
   note: { fontSize: 11 },
-  write: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: PHOSPHOR,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginTop: 8,
-  },
 });

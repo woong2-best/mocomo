@@ -92,10 +92,34 @@ export async function deleteOwnPost(postId: string) {
   });
 }
 
+export type BlockedUserRow = {
+  id: string;
+  username: string;
+  name: string | null;
+  image: string | null;
+  blockedAt: string;
+};
+
+export async function fetchBlockedUsers() {
+  const res = await apiRequest<{ users: BlockedUserRow[] }>(MobileApi.userBlock, {
+    method: "GET",
+    auth: true,
+  });
+  return Array.isArray(res.users) ? res.users : [];
+}
+
 export async function blockUser(userId: string) {
   return apiRequest<{ ok: boolean; blocked: boolean }>(MobileApi.userBlock, {
     method: "POST",
     body: { userId },
+  });
+}
+
+export async function unblockUser(userId: string) {
+  return apiRequest<{ ok: boolean; blocked: boolean }>(MobileApi.userBlock, {
+    method: "DELETE",
+    body: { userId },
+    auth: true,
   });
 }
 
