@@ -220,12 +220,12 @@ export function FeedVideoPlayer({
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(() =>
-    typeof window === "undefined" ? mutedProp : readMutedPreference(mutedProp)
-  );
-  const [volume, setVolume] = useState(() =>
-    typeof window === "undefined" ? DEFAULT_VOLUME : readVolumePreference()
-  );
+  const [isMuted, setIsMuted] = useState(mutedProp);
+  const [volume, setVolume] = useState(DEFAULT_VOLUME);
+  useEffect(() => {
+    setIsMuted(readMutedPreference(mutedProp));
+    setVolume(readVolumePreference());
+  }, [mutedProp]);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [scrubPct, setScrubPct] = useState<number | null>(null);
