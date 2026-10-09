@@ -21,7 +21,13 @@ const reelsMediaSelect = {
   order: true,
 } as const;
 
-function pickPrimaryVideo(
+function isUnpaidReelMedia(m: { type: string; priceKrw: number; url?: string }) {
+  if ((m.priceKrw ?? 0) > 0) return false;
+  if (!m.url?.trim()) return false;
+  return m.type === "VIDEO" || m.type === "IMAGE";
+}
+
+function pickPrimaryReelMedia(
   media: {
     id: string;
     url: string;
@@ -35,15 +41,15 @@ function pickPrimaryVideo(
     order: number;
   }[]
 ) {
-  const videos = media
-    .filter((m) => m.type === "VIDEO" && (m.priceKrw ?? 0) <= 0)
-    .sort((a, b) => a.order - b.order);
-  if (videos.length === 0) return null;
+  const items = media.filter(isUnpaidReelMedia).sort((a, b) => a.order - b.order);
+  if (items.length === 0) return null;
 
-  const vertical = videos.find(
-    (m) => m.width != null && m.height != null && m.height >= m.width
-  );
-  return vertical ?? videos[0] ?? null;
+  const videos = items.filter((m) => m.type === "VIDEO");
+  const images = items.filter((m) => m.type === "IMAGE");
+  const vertical = (list: typeof items) =>
+    list.find((m) => m.width != null && m.height != null && m.height >= m.width);
+
+  return vertical(videos) ?? videos[0] ?? vertical(images) ?? images[0] ?? null;
 }
 
 function mapReelRow(post: {
@@ -73,14 +79,15 @@ function mapReelRow(post: {
   }[];
   _count: { likes: number; comments: number };
 }): ReelItem | null {
-  const video = pickPrimaryVideo(post.media);
-  if (!video) return null;
+  const media = pickPrimaryReelMedia(post.media);
+  if (!media) return null;
 
-  const storedHls = video.hlsUrl?.trim() || null;
-  const hlsUrl = storedHls && isHlsUrl(storedHls) ? storedHls : isHlsUrl(video.url) ? video.url : null;
+  const storedHls = media.hlsUrl?.trim() || null;
+  const hlsUrl = storedHls && isHlsUrl(storedHls) ? storedHls : isHlsUrl(media.url) ? media.url : null;
+  const mediaType = media.type === "IMAGE" ? "IMAGE" : "VIDEO";
 
   return {
-    id: `${post.id}:${video.id}`,
+    id: `${post.id}:${media.id}`,
     postId: post.id,
     title: post.title,
     content: post.content,
@@ -93,15 +100,16 @@ function mapReelRow(post: {
       name: post.author.name,
       image: post.author.image,
     },
+    mediaType,
     media: {
-      id: video.id,
-      url: video.url,
-      hlsUrl,
-      posterUrl: video.posterUrl?.trim() || null,
-      width: video.width,
-      height: video.height,
-      duration: video.duration,
-      priceKrw: video.priceKrw ?? 0,
+      id: media.id,
+      url: media.url,
+      hlsUrl: mediaType === "IMAGE" ? null : hlsUrl,
+      posterUrl: media.posterUrl?.trim() || (mediaType === "IMAGE" ? media.url : null),
+      width: media.width,
+      height: media.height,
+      duration: mediaType === "IMAGE" ? null : media.duration,
+      priceKrw: media.priceKrw ?? 0,
     },
     likeCount: post._count.likes,
     commentCount: post._count.comments,
@@ -111,7 +119,7 @@ function mapReelRow(post: {
 }
 
 /**
- * Cursor is the last scanned post id. Over-fetch until we fill `limit` VIDEO items.
+ * Cursor is the last scanned post id. Over-fetch until we fill `limit` reel items.
  * Sparse corpus: when the table is exhausted, wrap from the newest posts so
  * infinite scroll never ends (looping).
  */
@@ -137,7 +145,7 @@ export async function fetchReelsPage(
           ...platformPostWhere,
           isNsfw: false,
           ...(excludeAuthors.length ? { authorId: { notIn: excludeAuthors } } : {}),
-          media: { some: { type: "VIDEO", priceKrw: 0 } },
+          media: { some: { type: { in: ["VIDEO", "IMAGE"] }, priceKrw: 0 } },
         },
         select: {
           id: true,
@@ -208,7 +216,7 @@ export function getCachedReelsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchReelsPage(cursor, limit),
-    ["reels-page-v4-infinite-loop", cacheKey, String(limit)],
+    ["reels-page-v5-photos", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

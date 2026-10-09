@@ -315,7 +315,7 @@ export function FeedPostMediaCarousel({
 
     const tapped = items[index];
     if (
-      tapped?.type === "VIDEO" &&
+      (tapped?.type === "VIDEO" || tapped?.type === "IMAGE") &&
       feedVideoViewer &&
       feedVideoViewer.openVideoViewer({
         postId,

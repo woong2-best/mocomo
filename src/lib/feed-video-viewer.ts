@@ -13,7 +13,7 @@ export type FeedVideoOpenTarget = {
   mediaIndex?: number;
 };
 
-/** One feed post that has one or more playable videos. */
+/** One feed post that has one or more playable photos or videos. */
 export type FeedVideoGroup = {
   postId: string;
   videos: ReelItem[];
@@ -26,8 +26,8 @@ export type FeedVideoOpenPosition = {
 
 type FeedMedia = NonNullable<GridPost["media"]>[number];
 
-function isPlayableFeedVideo(m: FeedMedia): boolean {
-  if (m.type !== "VIDEO") return false;
+function isPlayableFeedReel(m: FeedMedia): boolean {
+  if (m.type !== "VIDEO" && m.type !== "IMAGE") return false;
   if (m.locked) return false;
   if (!m.url?.trim()) return false;
   return true;
@@ -50,9 +50,10 @@ export function postVideoToReelItem(
   liked: boolean,
   starred: boolean
 ): ReelItem | null {
-  if (!isPlayableFeedVideo(video)) return null;
+  if (!isPlayableFeedReel(video)) return null;
 
   const mediaId = mediaKey(post.id, video);
+  const mediaType = video.type === "IMAGE" ? "IMAGE" : "VIDEO";
 
   return {
     id: `${post.id}:${mediaId}`,
@@ -71,14 +72,15 @@ export function postVideoToReelItem(
       name: post.author.name ?? null,
       image: post.author.image,
     },
+    mediaType,
     media: {
       id: mediaId,
       url: video.url,
-      hlsUrl: resolveHlsUrl(video),
-      posterUrl: video.posterUrl?.trim() || null,
+      hlsUrl: mediaType === "IMAGE" ? null : resolveHlsUrl(video),
+      posterUrl: video.posterUrl?.trim() || (mediaType === "IMAGE" ? video.url : null),
       width: video.width ?? null,
       height: video.height ?? null,
-      duration: video.duration ?? null,
+      duration: mediaType === "IMAGE" ? null : (video.duration ?? null),
       priceKrw: video.priceKrw ?? 0,
     },
     likeCount: post._count?.likes ?? 0,
@@ -90,7 +92,7 @@ export function postVideoToReelItem(
 }
 
 /**
- * Group playable videos by post (timeline order).
+ * Group playable photos and videos by post (timeline order).
  * Vertical nav = between groups; horizontal nav = within a group.
  */
 export function buildFeedVideoGroups(

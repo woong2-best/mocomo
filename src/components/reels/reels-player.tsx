@@ -44,6 +44,7 @@ type Props = {
   src: string;
   hlsUrl?: string | null;
   poster?: string | null;
+  kind?: "IMAGE" | "VIDEO";
   mediaId: string;
   /** Distance from active slide (0 = active). */
   distance: number;
@@ -74,7 +75,90 @@ export type ReelsPlayerHandle = {
   enterFullscreen: () => Promise<boolean>;
 };
 
-export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPlayer( {
+const ReelsStillImage = forwardRef<ReelsPlayerHandle, Props>(function ReelsStillImage(
+  {
+    src,
+    poster,
+    className,
+    onDoubleTapLike,
+    onLongPressMenu,
+    onContextMenu,
+  },
+  ref
+) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastTapRef = useRef(0);
+  const longPressTimer = useRef<number | null>(null);
+  const longPressFired = useRef(false);
+  const stillSrc = src.trim() || poster?.trim() || "";
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      enterFullscreen: async () => enterVideoFullscreen(containerRef.current, null),
+    }),
+    []
+  );
+
+  const clearLongPress = () => {
+    if (longPressTimer.current != null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const onPointerDown = (e: ReactPointerEvent) => {
+    if (e.button !== 0) return;
+    longPressFired.current = false;
+    clearLongPress();
+    const { clientX, clientY } = e;
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true;
+      onLongPressMenu?.(clientX, clientY);
+    }, LONG_PRESS_MS);
+  };
+
+  const onPointerUp = () => {
+    clearLongPress();
+    if (longPressFired.current) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+      lastTapRef.current = 0;
+      onDoubleTapLike?.();
+      return;
+    }
+    lastTapRef.current = now;
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn("relative h-full w-full bg-black", className)}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerCancel={clearLongPress}
+      onPointerLeave={clearLongPress}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu?.(e.clientX, e.clientY);
+      }}
+    >
+      {stillSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={stillSrc}
+          alt=""
+          className="absolute inset-0 h-full w-full object-contain bg-black"
+          draggable={false}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-black" />
+      )}
+    </div>
+  );
+});
+
+const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVideoPlayer( {
   src,
   hlsUrl,
   poster,
@@ -532,6 +616,16 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
       </button>
     </div>
   );
+});
+
+ReelsVideoPlayer.displayName = "ReelsVideoPlayer";
+ReelsStillImage.displayName = "ReelsStillImage";
+
+export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPlayer(props, ref) {
+  if (props.kind === "IMAGE") {
+    return <ReelsStillImage {...props} ref={ref} />;
+  }
+  return <ReelsVideoPlayer {...props} ref={ref} />;
 });
 
 ReelsPlayer.displayName = "ReelsPlayer";

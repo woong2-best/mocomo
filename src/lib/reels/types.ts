@@ -5,9 +5,11 @@ export type ReelAuthor = {
   image: string | null;
 };
 
+export type ReelMediaKind = "IMAGE" | "VIDEO";
+
 export type ReelMedia = {
   id: string;
-  /** Progressive MP4/WebM CDN URL (required). */
+  /** Progressive MP4/WebM CDN URL, or a still image URL. */
   url: string;
   /**
    * Optional HLS/DASH manifest for ABR.
@@ -31,6 +33,7 @@ export type ReelItem = {
   isNsfw: boolean;
   viewCount: number;
   author: ReelAuthor;
+  mediaType?: ReelMediaKind;
   media: ReelMedia;
   likeCount: number;
   commentCount: number;
@@ -45,3 +48,7 @@ export type ReelsPageResponse = {
   nextCursor: string | null;
   error?: string;
 };
+
+export function isReelStill(reel: Pick<ReelItem, "mediaType">): boolean {
+  return reel.mediaType === "IMAGE";
+}

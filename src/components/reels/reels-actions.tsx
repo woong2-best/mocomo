@@ -20,7 +20,7 @@ import { ContentReportRailButton } from "@/components/report/content-report-flow
 import { cn, formatNumber } from "@/lib/utils";
 import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
 import { MotionPop } from "@/components/motion/motion-primitives";
-import type { ReelItem } from "@/lib/reels/types";
+import { isReelStill, type ReelItem } from "@/lib/reels/types";
 
 type Props = {
   reel: ReelItem;
@@ -63,6 +63,7 @@ export function ReelsActions({
   const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
   const displayCommentCount = commentCount ?? reel.commentCount;
+  const still = isReelStill(reel);
 
   function requireLogin() {
     if (status === "loading") return false;
@@ -163,19 +164,21 @@ export function ReelsActions({
         <ShareGlobeIcon className="h-7 w-7 drop-shadow-md" />
       </button>
 
-      <button
-        type="button"
-        className="mt-1 flex flex-col items-center gap-0.5 min-h-11 min-w-11"
-        aria-pressed={!muted}
-        aria-label={muted ? "Unmute" : "Mute"}
-        onClick={onToggleMute}
-      >
-        {muted ? (
-          <VolumeX className="h-7 w-7 drop-shadow-md" />
-        ) : (
-          <Volume2 className="h-7 w-7 drop-shadow-md" />
-        )}
-      </button>
+      {still ? null : (
+        <button
+          type="button"
+          className="mt-1 flex flex-col items-center gap-0.5 min-h-11 min-w-11"
+          aria-pressed={!muted}
+          aria-label={muted ? "Unmute" : "Mute"}
+          onClick={onToggleMute}
+        >
+          {muted ? (
+            <VolumeX className="h-7 w-7 drop-shadow-md" />
+          ) : (
+            <Volume2 className="h-7 w-7 drop-shadow-md" />
+          )}
+        </button>
+      )}
 
       <ContentReportRailButton
         targetType="POST"
