@@ -451,7 +451,7 @@ export function FeedPostMediaCarousel({
       >
         <div className="w-full [container-type:inline-size]">
           <div
-            className="mx-auto overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
+            className="mr-auto overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
             style={feedMediaFrameStyle(withIntrinsic(m))}
             onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
             onLoadCapture={(event) => rememberIntrinsic(m, event)}
@@ -509,7 +509,7 @@ export function FeedPostMediaCarousel({
               >
                 <div className="w-full [container-type:inline-size]">
                   <div
-                    className="mx-auto overflow-hidden rounded-2xl"
+                    className="mr-auto overflow-hidden rounded-2xl"
                     style={feedMediaFrameStyle(withIntrinsic(m))}
                     onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
                     onLoadCapture={(event) => rememberIntrinsic(m, event)}

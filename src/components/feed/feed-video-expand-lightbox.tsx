@@ -129,7 +129,7 @@ export function FeedVideoExpandLightbox({
         )}
 
         <div
-          className="flex h-full w-full items-center justify-center px-12 pb-16 pt-14 md:px-16"
+          className="flex h-full min-h-0 w-full items-center justify-center px-4 pb-6 pt-14 md:px-8"
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
           onPointerCancel={() => {
@@ -141,10 +141,9 @@ export function FeedVideoExpandLightbox({
               type="VIDEO"
               src={current.media.url}
               objectFit="contain"
-              className="max-h-[calc(100dvh-6rem)] w-full max-w-5xl object-contain"
+              className="h-full max-h-[calc(100dvh-6.5rem)] w-full max-w-5xl object-contain"
               mediaId={current.media.id}
               mediaPriceKrw={current.media.priceKrw}
-              // Start muted so mobile autoplay is allowed; user can unmute in chrome.
               muted
               controls
               autoPlayOnView

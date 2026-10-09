@@ -174,7 +174,7 @@ export function PaidPostMediaGrid({
       <div
         className={cn(
           "overflow-hidden rounded-2xl border border-border/50 max-w-full bg-border/60",
-          count === 1 ? "mx-auto" : "aspect-[1.7/1]",
+          count === 1 ? "mr-auto" : "aspect-[1.7/1]",
           opening && "opacity-80"
         )}
         style={singleAspectStyle}
