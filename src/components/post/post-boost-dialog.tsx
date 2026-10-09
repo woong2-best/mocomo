@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { BoostDayDial } from "@/components/post/boost-day-dial";
+import { BoostDayStepper } from "@/components/post/boost-day-stepper";
 import { useLocale } from "@/components/providers/locale-provider";
 import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
 import { errorText } from "@/lib/i18n/error-text";
@@ -26,6 +26,10 @@ type BoostStatus = {
   active: boolean;
   maxDays?: number;
 };
+
+function boostCost(days: number) {
+  return days < 1 ? 0 : calcSponsoredAdMoco(days);
+}
 
 export function PostBoostDialog({
   open,
@@ -67,13 +71,13 @@ export function PostBoostDialog({
   }, [open, postId, t]);
 
   const maxDays = status?.maxDays ?? SPONSORED_AD_MAX_DAYS;
-  const cost = calcSponsoredAdMoco(days);
+  const cost = boostCost(days);
   const balance = status?.purchasedMoco ?? 0;
   const canAfford = mocoCovers(balance, cost);
   const dayLabel = days === 1 ? "post.boost.days" : "post.boost.daysPlural";
 
   async function submit() {
-    if (busy || !agreed || !canAfford) return;
+    if (busy || !agreed || !canAfford || days < 1) return;
     setBusy(true);
     setError("");
     try {
@@ -101,10 +105,12 @@ export function PostBoostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("post.boost.title")}</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+      <DialogContent className="w-[min(calc(100vw-1.5rem),28rem)] max-w-md overflow-x-hidden">
+        <DialogHeader className="min-w-0 space-y-2 text-left">
+          <DialogTitle className="pr-8 text-left text-balance break-words">
+            {t("post.boost.title")}
+          </DialogTitle>
+          <DialogDescription className="text-left text-pretty text-sm leading-relaxed break-words text-muted-foreground">
             {t("post.boost.intro")}
           </DialogDescription>
         </DialogHeader>
@@ -112,25 +118,26 @@ export function PostBoostDialog({
         {loading ? (
           <p className="text-sm text-muted-foreground">{t("post.loadingComments")}</p>
         ) : (
-          <div className="space-y-4">
-            <BoostDayDial
-              key={`${open}:${postId}`}
+          <div className="min-w-0 space-y-4">
+            <BoostDayStepper
               value={days}
               onChange={setDays}
               maxDays={maxDays}
               label={t("post.boost.duration")}
-              alignKey={`${open}:${postId}`}
+              addLabel={t("post.boost.addDay")}
+              removeLabel={t("post.boost.removeDay")}
             />
-            <p className="text-center text-sm font-semibold text-folk-cobalt">
+            <p className="text-sm font-semibold leading-relaxed break-words text-folk-cobalt">
               {t(dayLabel, { days, moco: formatMocoCount(cost) })}
             </p>
 
-            <p className="text-sm font-medium">
+            <p className="text-sm font-medium leading-relaxed break-words">
               {t("post.boost.balance", { balance: formatMocoCount(balance) })}
             </p>
             {!canAfford ? (
-              <p className="text-sm text-destructive">
-                {t("post.boost.insufficient")}{" "}
+              <p className="text-sm leading-relaxed break-words text-destructive">
+                {t("post.boost.insufficient")}
+                <br />
                 <Link href="/wallet" className="font-semibold underline">
                   {t("post.boost.charge")}
                 </Link>
@@ -144,7 +151,7 @@ export function PostBoostDialog({
                 onChange={(e) => setAgreed(e.target.checked)}
                 className="mt-0.5 shrink-0 cursor-pointer"
               />
-              <span>
+              <span className="min-w-0 break-words">
                 {t("post.boost.termsBefore")}
                 <Link
                   href="/legal/sponsored-content"
@@ -158,11 +165,11 @@ export function PostBoostDialog({
               </span>
             </div>
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="text-sm leading-relaxed break-words text-destructive">{error}</p> : null}
 
             <button
               type="button"
-              disabled={busy || !agreed || !canAfford || status?.boostable === false}
+              disabled={busy || !agreed || !canAfford || days < 1 || status?.boostable === false}
               onClick={() => void submit()}
               className="inline-flex w-full items-center justify-center rounded-full bg-folk-cobalt px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             >

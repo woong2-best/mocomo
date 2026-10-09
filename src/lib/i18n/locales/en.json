@@ -642,6 +642,8 @@
   "post.boost.termsLink": "sponsored post terms",
   "post.boost.termsAfter": ", including the daily MOCO charge and prorated refund if I stop early.",
   "post.boost.duration": "Days",
+  "post.boost.addDay": "Add 1 day",
+  "post.boost.removeDay": "Remove 1 day",
   "post.boost.days": "{days} day ({moco} MOCO)",
   "post.boost.daysPlural": "{days} days ({moco} MOCO)",
   "post.boost.balance": "Purchased MOCO: {balance}",
