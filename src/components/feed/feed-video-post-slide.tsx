@@ -16,7 +16,7 @@ import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engag
 import { userDisplayName } from "@/lib/user-public-select";
 import type { ReelItem } from "@/lib/reels/types";
 import type { FeedVideoGroup } from "@/lib/feed-video-viewer";
-import { ReelsPlayer } from "@/components/reels/reels-player";
+import { ReelsPlayer, type ReelsPlayerHandle } from "@/components/reels/reels-player";
 import { ReelsActions } from "@/components/reels/reels-actions";
 import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
 import { cn } from "@/lib/utils";
@@ -37,7 +37,6 @@ type Props = {
   onEnded?: () => void;
   authCallbackPath?: string;
   onBackgroundClick?: () => void;
-  onExpand: (videoIndex: number) => void;
   onActiveVideoChange?: (videoIndex: number) => void;
   forcedVideoIndex?: number | null;
   horizontalNavEnabled?: boolean;
@@ -58,7 +57,6 @@ export function FeedVideoPostSlide({
   onEnded,
   authCallbackPath,
   onBackgroundClick,
-  onExpand,
   onActiveVideoChange,
   forcedVideoIndex = null,
   horizontalNavEnabled = true,
@@ -66,6 +64,7 @@ export function FeedVideoPostSlide({
   commentCountOverride,
 }: Props) {
   const hScrollerRef = useRef<HTMLDivElement>(null);
+  const playerRefs = useRef<Array<ReelsPlayerHandle | null>>([]);
   const [videoIndex, setVideoIndex] = useState(() =>
     Math.max(0, Math.min(initialVideoIndex, group.videos.length - 1))
   );
@@ -319,6 +318,9 @@ export function FeedVideoPostSlide({
                 }}
               >
                 <ReelsPlayer
+                  ref={(el) => {
+                    playerRefs.current[vi] = el;
+                  }}
                   src={reel.media.url}
                   hlsUrl={reel.media.hlsUrl}
                   poster={reel.media.posterUrl}
@@ -382,7 +384,9 @@ export function FeedVideoPostSlide({
             muted={muted}
             onToggleMute={() => onMutedChange(!muted)}
             onShare={() => onShare(activeReel)}
-            onToggleExpand={() => onExpand(videoIndex)}
+            onToggleExpand={() => {
+              void playerRefs.current[videoIndex]?.enterFullscreen();
+            }}
             onComment={
               onComment
                 ? () =>

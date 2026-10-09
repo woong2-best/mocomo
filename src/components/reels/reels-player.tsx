@@ -1,13 +1,16 @@
 "use client";
 
 import {
+  forwardRef,
   useCallback,
   useEffect,
   useId,
+  useImperativeHandle,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { enterVideoFullscreen } from "@/lib/video-playback/fullscreen";
 import type HlsType from "hls.js";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -63,7 +66,11 @@ type Props = {
 const LONG_PRESS_MS = 480;
 const DOUBLE_TAP_MS = 280;
 
-export function ReelsPlayer({
+export type ReelsPlayerHandle = {
+  enterFullscreen: () => Promise<boolean>;
+};
+
+export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPlayer( {
   src,
   hlsUrl,
   poster,
@@ -80,7 +87,7 @@ export function ReelsPlayer({
   className,
   mediaPriceKrw,
   postInstantPurchasePriceKrw,
-}: Props) {
+}: Props, ref) {
   const reactId = useId();
   const playerId = `reel-${mediaId}-${reactId}`;
   const paidView = shouldProtectPaidMediaView({
@@ -96,6 +103,9 @@ export function ReelsPlayer({
   const [forensicCanvasFailed, setForensicCanvasFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  useImperativeHandle(ref, () => ({
+    enterFullscreen: () => enterVideoFullscreen(containerRef.current, videoRef.current),
+  }));
   const hlsRef = useRef<HlsType | null>(null);
   const [progress, setProgress] = useState(0);
   const [buffered, setBuffered] = useState(0);
@@ -479,7 +489,9 @@ export function ReelsPlayer({
       </button>
     </div>
   );
-}
+});
+
+ReelsPlayer.displayName = "ReelsPlayer";
 
 /** Sync initial mute from preference (client-only). */
 export function useReelsMutedState() {

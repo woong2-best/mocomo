@@ -90,16 +90,10 @@ function MediaOpenWrapper({
         if (locked) return;
         const sale = (media.priceKrw ?? media.instantPurchasePriceKrw ?? 0) > 0;
         if (sale) return;
-        if (media.type !== "VIDEO" || !feedVideoViewer) return;
+        // Let the inline player handle play / fullscreen. Opening the viewer
+        // here steals the play tap and leaves the video paused.
+        if (media.type === "VIDEO") return;
         if (shouldBlockFeedVideoImmersive(e)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const opened = feedVideoViewer.openVideoViewer({
-          postId,
-          mediaId: media.id,
-          mediaIndex: index,
-        });
-        if (!opened) onOpenAt(index, locked);
       }}
       onClick={(e) => {
         const sale = (media.priceKrw ?? media.instantPurchasePriceKrw ?? 0) > 0;

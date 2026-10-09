@@ -211,16 +211,8 @@ export function PaidPostMediaGrid({
                   if (locked) return;
                   const sale = (m.priceKrw ?? m.instantPurchasePriceKrw ?? 0) > 0;
                   if (sale) return;
-                  if (m.type !== "VIDEO" || !feedVideoViewer) return;
+                  if (m.type === "VIDEO") return;
                   if (shouldBlockFeedVideoImmersive(e)) return;
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const opened = feedVideoViewer.openVideoViewer({
-                    postId,
-                    mediaId: m.id,
-                    mediaIndex: i,
-                  });
-                  if (!opened) void openAt(i, locked);
                 }}
                 onClick={(e) => {
                   const sale = (m.priceKrw ?? m.instantPurchasePriceKrw ?? 0) > 0;
