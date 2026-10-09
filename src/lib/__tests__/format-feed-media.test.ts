@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   clampFeedMediaAspect,
+  feedCarouselMediaStyle,
   feedMediaFrameHeightCss,
   feedMediaFrameStyle,
+  feedMediaNativeAspect,
   postMediaAspectRatio,
 } from "@/lib/format-feed";
 
@@ -58,4 +60,17 @@ test("landscape videos stay full column width", () => {
   const frame = feedMediaFrameStyle({ type: "VIDEO", width: 1920, height: 1080 });
   assert.equal(frame.width, "100%");
   assert.equal(frame.aspectRatio, String(1920 / 1080));
+});
+
+test("feedMediaNativeAspect keeps 9:16 instead of clamping to 3:4", () => {
+  assert.equal(feedMediaNativeAspect(1080, 1920), 1080 / 1920);
+});
+
+test("carousel tiles share max height and take width from the real ratio", () => {
+  const portrait = feedCarouselMediaStyle({ type: "IMAGE", width: 1080, height: 1920 });
+  const landscape = feedCarouselMediaStyle({ type: "VIDEO", width: 1920, height: 1080 });
+  assert.equal(portrait.height, landscape.height);
+  assert.equal(portrait.height, "min(510px, 56vh)");
+  assert.equal(portrait.width, `min(calc(510px * ${1080 / 1920}), calc(56vh * ${1080 / 1920}))`);
+  assert.equal(landscape.width, `min(calc(510px * ${1920 / 1080}), calc(56vh * ${1920 / 1080}))`);
 });

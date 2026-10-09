@@ -86,6 +86,34 @@ export function feedMediaFrameStyle(media: {
   };
 }
 
+/** True width/height for mixed carousels. Missing size falls back like the single-tile frame. */
+export function feedMediaNativeAspect(
+  width?: number | null,
+  height?: number | null,
+  type?: string
+): number {
+  if (width && height && width > 0 && height > 0) {
+    return width / height;
+  }
+  return type === "VIDEO" ? 16 / 9 : 16 / 10;
+}
+
+/**
+ * Shared-height strip: every tile is the Twitter max height; width follows the real ratio.
+ * 16:9 stays wide, 9:16 stays narrow, so mixed posts line up instead of leaving 88% gaps.
+ */
+export function feedCarouselMediaStyle(media: {
+  width?: number | null;
+  height?: number | null;
+  type?: string;
+}): { width: string; height: string } {
+  const aspect = feedMediaNativeAspect(media.width, media.height, media.type);
+  return {
+    height: `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`,
+    width: `min(calc(510px * ${aspect}), calc(56vh * ${aspect}))`,
+  };
+}
+
 /** Single-tile feed/detail/carousel aspect ratio (clamped width/height or sensible default). */
 export function postMediaAspectRatio(media: {
   width?: number | null;
