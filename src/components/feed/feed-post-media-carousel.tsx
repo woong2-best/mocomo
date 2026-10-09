@@ -11,6 +11,7 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type SyntheticEvent,
 } from "react";
 import { cn } from "@/lib/utils";
 import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
@@ -27,7 +28,7 @@ import {
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { feedMediaFrameStyle, isPortraitPhoto } from "@/lib/format-feed";
+import { feedMediaFrameStyle, isPortraitMedia } from "@/lib/format-feed";
 const SLIDE_WIDTH_RATIO = 0.88;
 const EDGE_PAD_RATIO = 0.06;
 
@@ -171,7 +172,7 @@ function CarouselTile({
         src={media.url}
         className={cn(
           "h-full w-full",
-          isPortraitPhoto(media) ? "object-contain" : "object-cover"
+          isPortraitMedia(media) ? "object-contain" : "object-cover"
         )}
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
@@ -238,6 +239,7 @@ export function FeedPostMediaCarousel({
   const [activeIndex, setActiveIndex] = useState(0);
   const [localMedia, setLocalMedia] = useState(media);
   const [opening, setOpening] = useState(false);
+  const [intrinsic, setIntrinsic] = useState<Record<string, { width: number; height: number }>>({});
   const feedVideoViewer = useFeedVideoViewerOptional();
   const photoLightbox = useFeedPhotoLightboxOptional();
 
@@ -375,6 +377,35 @@ export function FeedPostMediaCarousel({
     return () => root.removeEventListener("scroll", syncFromScroll);
   }, [multi, syncFromScroll]);
 
+  const withIntrinsic = useCallback(
+    (m: ProfilePostMediaItem): ProfilePostMediaItem => {
+      const hit = m.id ? intrinsic[m.id] : undefined;
+      return hit ? { ...m, width: hit.width, height: hit.height } : m;
+    },
+    [intrinsic]
+  );
+
+  const rememberIntrinsic = useCallback((m: ProfilePostMediaItem, event: SyntheticEvent) => {
+    const el = event.target;
+    let width = 0;
+    let height = 0;
+    if (m.type === "VIDEO" && el instanceof HTMLVideoElement) {
+      width = el.videoWidth;
+      height = el.videoHeight;
+    } else if (m.type === "IMAGE" && el instanceof HTMLImageElement) {
+      width = el.naturalWidth;
+      height = el.naturalHeight;
+    } else {
+      return;
+    }
+    if (!m.id || width <= 0 || height <= width) return;
+    setIntrinsic((prev) => {
+      const cur = prev[m.id!];
+      if (cur?.width === width && cur.height === height) return prev;
+      return { ...prev, [m.id!]: { width, height } };
+    });
+  }, []);
+
   if (items.length === 0) return null;
 
   const renderTile = (m: ProfilePostMediaItem, i: number, active: boolean) => {
@@ -421,9 +452,11 @@ export function FeedPostMediaCarousel({
         <div className="w-full [container-type:inline-size]">
           <div
             className="mx-auto overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
-            style={feedMediaFrameStyle(m)}
+            style={feedMediaFrameStyle(withIntrinsic(m))}
+            onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
+            onLoadCapture={(event) => rememberIntrinsic(m, event)}
           >
-            {renderTile(m, 0, true)}
+            {renderTile(withIntrinsic(m), 0, true)}
           </div>
         </div>
       </div>
@@ -477,9 +510,11 @@ export function FeedPostMediaCarousel({
                 <div className="w-full [container-type:inline-size]">
                   <div
                     className="mx-auto overflow-hidden rounded-2xl"
-                    style={feedMediaFrameStyle(m)}
+                    style={feedMediaFrameStyle(withIntrinsic(m))}
+                    onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
+                    onLoadCapture={(event) => rememberIntrinsic(m, event)}
                   >
-                    {renderTile(m, i, i === activeIndex)}
+                    {renderTile(withIntrinsic(m), i, i === activeIndex)}
                   </div>
                 </div>
               </div>

@@ -47,8 +47,14 @@ test("landscape photos stay full column width", () => {
   assert.equal(frame.height, feedMediaFrameHeightCss(1920 / 1080));
 });
 
-test("portrait videos stay on the full-width clamp", () => {
+test("portrait videos shrink to their own ratio", () => {
   const frame = feedMediaFrameStyle({ type: "VIDEO", width: 1080, height: 1920 });
+  assert.equal(frame.width, "min(100%, calc(min(510px, 56vh) * 0.5625))");
+  assert.equal(frame.height, "min(min(510px, 56vh), calc(100cqi / 0.5625))");
+});
+
+test("landscape videos stay full column width", () => {
+  const frame = feedMediaFrameStyle({ type: "VIDEO", width: 1920, height: 1080 });
   assert.equal(frame.width, "100%");
-  assert.equal(frame.height, feedMediaFrameHeightCss(3 / 4));
+  assert.equal(frame.height, feedMediaFrameHeightCss(1920 / 1080));
 });

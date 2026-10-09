@@ -13,7 +13,7 @@ import {
 } from "@/lib/post-media-client-cache";
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { feedMediaFrameStyle, isPortraitPhoto } from "@/lib/format-feed";
+import { feedMediaFrameStyle, isPortraitMedia } from "@/lib/format-feed";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -255,7 +255,7 @@ export function PaidPostMediaGrid({
                   isNsfw={isNsfw}
                   isOwner={isOwner}
                   viewerShowNsfw={viewerShowNsfw}
-                  contain={count === 1 && isPortraitPhoto(m)}
+                  contain={count === 1 && isPortraitMedia(m)}
                   onOpenFull={() => void openAt(i, false)}
                   onPurchaseSuccess={(id) => markPurchased(id)}
                 />
