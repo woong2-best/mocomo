@@ -114,6 +114,7 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
   const [inView, setInView] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const lastTapRef = useRef(0);
+  const ignoreTapUntilRef = useRef(0);
   const longPressTimer = useRef<number | null>(null);
   const longPressFired = useRef(false);
   const attachedSrcRef = useRef<string | null>(null);
@@ -294,13 +295,18 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
     // Settled active slide always owns playback — do not require inView
     // (orientation change briefly collapses intersection ratios).
     if (isActive && distance === 0) {
-      void tryPlay();
-      return;
+      // Opening tap from the feed also lands here and would pause. Play anyway.
+      ignoreTapUntilRef.current = Date.now() + 500;
+      void tryPlay("user");
+      const retry = window.setTimeout(() => {
+        if (videoRef.current?.paused) void tryPlay("user");
+      }, 200);
+      return () => window.clearTimeout(retry);
     }
     if (distance > 0 || !inView) {
       pauseSelf();
     } else if (inView && distance === 0) {
-      void tryPlay();
+      void tryPlay("user");
     }
   }, [distance, inView, isActive, pauseSelf, tryPlay]);
 
@@ -408,6 +414,10 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
     lastTapRef.current = now;
     const video = videoRef.current;
     if (!video) return;
+    if (Date.now() < ignoreTapUntilRef.current) {
+      void tryPlay("user");
+      return;
+    }
     if (video.paused) void tryPlay("user");
     else pauseSelf();
   };
