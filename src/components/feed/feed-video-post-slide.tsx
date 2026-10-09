@@ -249,7 +249,7 @@ export function FeedVideoPostSlide({
     <section
       data-reel-index={index}
       data-reel-id={group.postId}
-      className="relative flex h-[100dvh] w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden bg-black"
+      className="relative flex h-[100dvh] w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none bg-black"
       aria-label={`Videos by ${userDisplayName(activeReel.author)}`}
       onClick={
         onBackgroundClick

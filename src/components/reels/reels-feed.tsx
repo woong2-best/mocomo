@@ -311,7 +311,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
     <div className="relative flex h-[100dvh] w-full overflow-hidden bg-black">
       <div
         className={cn(
-          "relative min-h-0 min-w-0 flex-1 transition-[max-width] duration-300 ease-out",
+          "relative min-h-0 min-w-0 flex-1 select-none transition-[max-width] duration-300 ease-out",
           commentsPanel && "lg:max-w-[calc(100%-24rem)]"
         )}
       >

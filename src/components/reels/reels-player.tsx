@@ -133,11 +133,12 @@ const ReelsStillImage = forwardRef<ReelsPlayerHandle, Props>(function ReelsStill
   return (
     <div
       ref={containerRef}
-      className={cn("relative h-full w-full bg-black", className)}
+      className={cn("relative h-full w-full select-none bg-black", className)}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerCancel={clearLongPress}
       onPointerLeave={clearLongPress}
+      onDoubleClick={(e) => e.preventDefault()}
       onContextMenu={(e) => {
         e.preventDefault();
         onContextMenu?.(e.clientX, e.clientY);
@@ -148,7 +149,7 @@ const ReelsStillImage = forwardRef<ReelsPlayerHandle, Props>(function ReelsStill
         <img
           src={stillSrc}
           alt=""
-          className="absolute inset-0 h-full w-full object-contain bg-black"
+          className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain bg-black"
           draggable={false}
         />
       ) : (

@@ -235,7 +235,7 @@ export function ReelsSlide({
       data-reel-id={reel.id}
       data-cinema={cinema ? "1" : "0"}
       className={cn(
-        "relative h-[100dvh] w-full shrink-0 snap-start snap-always bg-black",
+        "relative h-[100dvh] w-full shrink-0 snap-start snap-always select-none bg-black",
         isViewer && !cinema && "flex items-center justify-center",
         cinema && "z-[60]"
       )}
