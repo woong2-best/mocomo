@@ -155,7 +155,7 @@ export function PostMediaLightbox({
         <X className="h-5 w-5" />
       </button>
 
-      <div className="relative flex min-w-0 flex-1 items-center justify-center">
+      <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
         {showNav && (
           <button
             type="button"
@@ -168,7 +168,7 @@ export function PostMediaLightbox({
         )}
 
         <div
-          className="flex h-full w-full items-center justify-center px-12 pb-24 pt-16 sm:pb-16 md:px-16"
+          className="flex h-full min-h-0 w-full min-w-0 items-center justify-center px-12 pb-24 pt-16 sm:pb-16 md:px-16"
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
           onPointerCancel={() => {
@@ -181,8 +181,8 @@ export function PostMediaLightbox({
               src={current.url}
               objectFit="contain"
               className={cn(
-                "h-[calc(100dvh-8rem)] w-full max-h-[calc(100dvh-8rem)] max-w-full object-contain",
-                current.type === "VIDEO" ? "w-full" : "select-none"
+                "h-full w-full object-contain",
+                current.type === "VIDEO" ? "" : "select-none"
               )}
               mediaPriceKrw={current.priceKrw}
               postInstantPurchasePriceKrw={
@@ -271,6 +271,33 @@ export function PostMediaLightbox({
   );
 }
 
+function LightboxStill({ media }: { media: PostMediaLightboxItem }) {
+  if (media.type === "VIDEO") {
+    return (
+      <video
+        src={media.url}
+        muted
+        playsInline
+        preload="metadata"
+        controls={false}
+        disablePictureInPicture
+        tabIndex={-1}
+        aria-hidden
+        className="pointer-events-none h-full w-full object-cover [&::-webkit-media-controls]:hidden"
+        onLoadedMetadata={(e) => {
+          const el = e.currentTarget;
+          if (el.currentTime === 0) el.currentTime = 0.05;
+        }}
+      />
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={media.url} alt="" className="h-full w-full object-cover" draggable={false} />
+  );
+}
+
 function ThumbButton({
   media,
   index,
@@ -306,27 +333,7 @@ function ThumbButton({
           active && "ring-2 ring-white"
         )}
       >
-        {media.type === "VIDEO" ? (
-          <ProtectedPaidMedia
-            type="VIDEO"
-            src={media.url}
-            className="h-full w-full object-cover"
-            locked={media.locked}
-            muted
-            controls={false}
-            preload="none"
-            autoPlayOnView={false}
-            mediaId={media.id}
-          />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={media.url}
-            alt=""
-            className="h-full w-full object-cover"
-            draggable={false}
-          />
-        )}
+        <LightboxStill media={media} />
       </div>
       <span className="text-[11px] tabular-nums text-white/80">{index + 1}</span>
     </button>
