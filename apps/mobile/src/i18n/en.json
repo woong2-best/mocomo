@@ -1165,7 +1165,7 @@
   "m.boost.cancel_busy": "Stopping…",
   "m.boost.cancel_success": "Promotion stopped.",
   "m.boost.cancel_failed": "Couldn't stop the promotion.",
-  "m.boost.menu_start": "Boost with MOCO",
+  "m.boost.menu_start": "Boost with Ad",
   "m.boost.menu_stop": "Stop ad (refund)",
   "m.feed.anonymous": "Anonymous",
   "m.feed.block_and_submit": "Block and submit",

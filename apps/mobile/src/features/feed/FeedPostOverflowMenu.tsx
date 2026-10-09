@@ -224,8 +224,36 @@ export function FeedPostOverflowMenu({
                 </>
               ) : isOwner ? (
                 <>
+                  {!hideProfilePin ? (
+                    <>
+                      <Pressable style={styles.row} onPress={() => void onFeature()} disabled={!!busy}>
+                        <Ionicons name={featured ? "pin-outline" : "pin"} size={18} color={colors.text} />
+                        <Text style={styles.rowText}>
+                          {featured
+                            ? ownerPinLabels
+                              ? t("m.feed.unpin_from_profile")
+                              : t("m.feed.remove_from_profile_main")
+                            : ownerPinLabels
+                              ? t("m.feed.pin_to_profile")
+                              : t("m.feed.pin_to_my_profile_main")}
+                        </Text>
+                        {busy === "feature" ? (
+                          <ActivityIndicator size="small" color={colors.cobalt} />
+                        ) : null}
+                      </Pressable>
+                      <View style={styles.sep} />
+                    </>
+                  ) : null}
+                  <Pressable style={styles.row} onPress={runDelete} disabled={!!busy}>
+                    <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
+                    <Text style={[styles.rowText, styles.dangerText]}>{t("post.menu.delete")}</Text>
+                    {busy === "delete" ? (
+                      <ActivityIndicator size="small" color={colors.terracotta} />
+                    ) : null}
+                  </Pressable>
                   {canBoost ? (
                     <>
+                      <View style={styles.sep} />
                       <Pressable
                         style={styles.row}
                         onPress={() => {
@@ -243,34 +271,6 @@ export function FeedPostOverflowMenu({
                         <Text style={styles.rowText}>
                           {boostActive ? t("m.boost.menu_stop") : t("m.boost.menu_start")}
                         </Text>
-                      </Pressable>
-                      <View style={styles.sep} />
-                    </>
-                  ) : null}
-                  <Pressable style={styles.row} onPress={runDelete} disabled={!!busy}>
-                    <Ionicons name="trash-outline" size={18} color={colors.terracotta} />
-                    <Text style={[styles.rowText, styles.dangerText]}>{t("post.menu.delete")}</Text>
-                    {busy === "delete" ? (
-                      <ActivityIndicator size="small" color={colors.terracotta} />
-                    ) : null}
-                  </Pressable>
-                  {!hideProfilePin ? (
-                    <>
-                      <View style={styles.sep} />
-                      <Pressable style={styles.row} onPress={() => void onFeature()} disabled={!!busy}>
-                        <Ionicons name={featured ? "pin-outline" : "pin"} size={18} color={colors.text} />
-                        <Text style={styles.rowText}>
-                          {featured
-                            ? ownerPinLabels
-                              ? t("m.feed.unpin_from_profile")
-                              : t("m.feed.remove_from_profile_main")
-                            : ownerPinLabels
-                              ? t("m.feed.pin_to_profile")
-                              : t("m.feed.pin_to_my_profile_main")}
-                        </Text>
-                        {busy === "feature" ? (
-                          <ActivityIndicator size="small" color={colors.cobalt} />
-                        ) : null}
                       </Pressable>
                     </>
                   ) : null}

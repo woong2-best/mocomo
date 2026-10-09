@@ -254,37 +254,8 @@ export function PostOwnerMenu({
         <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
           {isOwner && (
             <>
-              {canBoost ? (
-                <>
-                  <DropdownMenuItem
-                    disabled={busy !== null}
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setOpen(false);
-                      if (boostActive) setCancelDialogOpen(true);
-                      else setBoostDialogOpen(true);
-                    }}
-                  >
-                    <Rocket className="h-4 w-4" />
-                    {boostActive ? t("post.menu.cancelBoost") : t("post.menu.boost")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
-              ) : null}
-              <DropdownMenuItem
-                disabled={busy !== null}
-                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                onSelect={(e) => {
-                  e.preventDefault();
-                  void handleDelete();
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-                {t("post.menu.delete")}
-              </DropdownMenuItem>
               {!anonymous ? (
                 <>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     disabled={busy !== null}
                     onSelect={(e) => {
@@ -303,6 +274,35 @@ export function PostOwnerMenu({
                         {t("post.menu.pinToProfile")}
                       </>
                     )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
+              <DropdownMenuItem
+                disabled={busy !== null}
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  void handleDelete();
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                {t("post.menu.delete")}
+              </DropdownMenuItem>
+              {canBoost ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    disabled={busy !== null}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setOpen(false);
+                      if (boostActive) setCancelDialogOpen(true);
+                      else setBoostDialogOpen(true);
+                    }}
+                  >
+                    <Rocket className="h-4 w-4" />
+                    {boostActive ? t("post.menu.cancelBoost") : t("post.menu.boost")}
                   </DropdownMenuItem>
                 </>
               ) : null}
