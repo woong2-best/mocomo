@@ -74,8 +74,8 @@ type Props = {
   /** Double-tap / heart overlay like. */
   onDoubleTapLike?: () => void;
   /**
-   * Single tap opens immersive viewer (feed). When set, play/pause is not
-   * toggled on single tap — parent owns navigation into fullscreen.
+   * Legacy: tap used to open the immersive viewer. Surface tap now always
+   * plays in place; keep the prop so callers do not break.
    */
   onOpenImmersive?: () => void;
   /** Poster / thumbnail for lazy paint. */
@@ -175,7 +175,6 @@ export function FeedVideoPlayer({
   mediaId,
   autoPlayOnView = true,
   onDoubleTapLike,
-  onOpenImmersive,
   poster,
   forensicRenderConfig,
   forensicSessionFailed = false,
@@ -1018,26 +1017,10 @@ export function FeedVideoPlayer({
     }
     lastTapRef.current = now;
 
-    // Feed immersive viewer: single tap opens viewer while playing; paused tap resumes.
-    if (onOpenImmersive) {
-      if (isFeedVideoControlZone(e.clientY, containerRef.current)) return;
-      const v = videoRef.current;
-      if (v?.paused) {
-        userPausedRef.current = false;
-        void playExclusive("user");
-        return;
-      }
-      onOpenImmersive();
-      return;
-    }
-
-    // pointerup toggles play/pause on the video surface.
-    if (!started) {
-      userPausedRef.current = false;
-      void playExclusive("user");
-    } else {
-      togglePlay();
-    }
+    // Picture tap is play — never pause, never open a paused viewer.
+    if (isFeedVideoControlZone(e.clientY, containerRef.current)) return;
+    userPausedRef.current = false;
+    void playExclusive("user");
   };
 
   const onVideoPointerCancel = () => {
@@ -1060,22 +1043,8 @@ export function FeedVideoPlayer({
     if (e.button !== 0 && e.pointerType === "mouse") return;
     stopFeedNavigation(e);
     focusPlayer();
-    if (onOpenImmersive) {
-      const v = videoRef.current;
-      if (v?.paused) {
-        userPausedRef.current = false;
-        void playExclusive("user");
-        return;
-      }
-      onOpenImmersive();
-      return;
-    }
-    if (!started) {
-      userPausedRef.current = false;
-      void playExclusive("user");
-    } else {
-      togglePlay();
-    }
+    userPausedRef.current = false;
+    void playExclusive("user");
   };
 
   // Pinch zoom (mobile)

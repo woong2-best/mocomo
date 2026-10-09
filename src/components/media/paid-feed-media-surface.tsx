@@ -153,7 +153,6 @@ export function PaidFeedMediaSurface({
         poster={poster}
         autoPlayOnView
         keepMediaLoaded={!feedPreview}
-        onOpenImmersive={isVideo ? onOpenFull : undefined}
       />
     );
   }
