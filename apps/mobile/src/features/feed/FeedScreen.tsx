@@ -26,8 +26,13 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { fetchFeedPage, type FeedItem, type FeedPost } from "@/api/feed";
+import { type FeedItem, type FeedPost } from "@/api/feed";
 import { saveFeedBootstrap } from "@/api/feed-bootstrap-cache";
+import {
+  fetchMobileFeedInfinitePage,
+  MOBILE_FEED_QUERY_KEY,
+  MOBILE_FEED_STALE_MS,
+} from "@/features/feed/mobile-feed-query";
 import { fetchWeeklyHighlights, type HighlightItem } from "@/api/highlights";
 import { searchAll, type SearchResult } from "@/api/social";
 import { prefetchPostComments } from "@/api/post-comments-query";
@@ -36,11 +41,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import { FeedAdCard } from "@/features/feed/FeedAdCard";
-import {
-  addFeedPostOffset,
-  getFeedPostOffset,
-  resetFeedPostOffset,
-} from "@/features/feed/feed-post-offset";
+import { resetFeedPostOffset } from "@/features/feed/feed-post-offset";
 import { warmDrawerBundles, warmTabBundles } from "@/navigation/tab-warmup";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { PerformanceBudgets } from "@/perf/budgets";
@@ -170,19 +171,12 @@ export function FeedScreen() {
   const feedListRef = useRef<ElementRef<typeof FlashList<FeedItem>>>(null);
 
   const query = useInfiniteQuery({
-    queryKey: ["mobile-feed"],
-    queryFn: ({ pageParam }) => {
-      const offset = getFeedPostOffset();
-      return fetchFeedPage(pageParam ?? null, 20, offset).then((page) => {
-        const addedPosts = page.items.filter((i) => i.type === "post").length;
-        addFeedPostOffset(addedPosts);
-        return page;
-      });
-    },
+    queryKey: MOBILE_FEED_QUERY_KEY,
+    queryFn: fetchMobileFeedInfinitePage,
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
-    staleTime: 90_000,
-    refetchOnMount: false,
+    staleTime: MOBILE_FEED_STALE_MS,
+    refetchOnMount: "always",
   });
 
   const feedItems = useMemo(() => {
@@ -237,7 +231,7 @@ export function FeedScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     resetFeedPostOffset();
-    await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+    await queryClient.invalidateQueries({ queryKey: MOBILE_FEED_QUERY_KEY });
     setRefreshing(false);
   }, [queryClient]);
 
@@ -251,7 +245,7 @@ export function FeedScreen() {
     resetFeedPostOffset();
     feedListRef.current?.scrollToOffset({ offset: 0, animated: false });
     hideScrollTop();
-    await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
+    await queryClient.resetQueries({ queryKey: MOBILE_FEED_QUERY_KEY });
   }, [hideScrollTop, queryClient]);
 
   const onFeedScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -304,6 +298,16 @@ export function FeedScreen() {
   /** Leaving Home (e.g. Reels) must kill inline preview — freezeOnBlur won't pause native players. */
   useFocusEffect(
     useCallback(() => {
+      const cached = queryClient.getQueryData<{ pages?: { items?: FeedItem[] }[] }>(
+        MOBILE_FEED_QUERY_KEY
+      );
+      const first = cached?.pages?.[0];
+      const hasPosts = first?.items?.some(
+        (item) => item.type === "post" && !!item.data?.id && !!item.data?.author?.id
+      );
+      if (!hasPosts) {
+        void queryClient.refetchQueries({ queryKey: MOBILE_FEED_QUERY_KEY });
+      }
       // Let feed paint/scroll settle before starting expo-video decode.
       const task = InteractionManager.runAfterInteractions(() => {
         setPreviewArmed(true);
@@ -313,7 +317,7 @@ export function FeedScreen() {
         setPreviewArmed(false);
         setActivePreviewId(null);
       };
-    }, [])
+    }, [queryClient])
   );
 
   const onViewableItemsChanged = useRef(
@@ -354,13 +358,13 @@ export function FeedScreen() {
   const paymentsEnabled = query.data?.pages[0]?.paymentsEnabled ?? false;
 
   const onPurchaseSuccess = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+    void queryClient.invalidateQueries({ queryKey: MOBILE_FEED_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: ["mobile-post"] });
   }, [queryClient]);
 
   const onBlockedAuthor = useCallback(
     (_authorId: string) => {
-      void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+      void queryClient.invalidateQueries({ queryKey: MOBILE_FEED_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: ["mobile-post"] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
     },
@@ -537,6 +541,8 @@ export function FeedScreen() {
       <View style={styles.feedWrap}>
         <FlashList
           ref={feedListRef}
+          style={styles.feedList}
+          key={feedItems.length > 0 ? "feed-data" : "feed-empty"}
           data={feedItems}
           renderItem={renderItem}
           keyExtractor={(item) =>
@@ -796,6 +802,9 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       justifyContent: "center",
     },
     feedWrap: {
+      flex: 1,
+    },
+    feedList: {
       flex: 1,
     },
     scrollTopWrap: {

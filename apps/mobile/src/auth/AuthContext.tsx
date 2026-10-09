@@ -21,7 +21,11 @@ import {
   clearWalletBootstrap,
   loadWalletBootstrap,
 } from "@/api/wallet-bootstrap-cache";
-import { fetchFeedPage, type FeedPage } from "@/api/feed";
+import type { FeedPage } from "@/api/feed";
+import {
+  fetchMobileFeedInfinitePage,
+  MOBILE_FEED_QUERY_KEY,
+} from "@/features/feed/mobile-feed-query";
 import { MobileApi } from "@/api/paths";
 import { scheduleTabWarmup, resetTabWarmup } from "@/navigation/tab-warmup";
 import {
@@ -141,11 +145,11 @@ const AuthContext = createContext<AuthState | null>(null);
 
 function prefetchHomeFeed(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.prefetchInfiniteQuery({
-    queryKey: ["mobile-feed"],
-    queryFn: ({ pageParam }) => fetchFeedPage(pageParam ?? null, 10),
+    queryKey: MOBILE_FEED_QUERY_KEY,
+    queryFn: fetchMobileFeedInfinitePage,
     initialPageParam: null as string | null,
     getNextPageParam: (last: FeedPage) => last.nextCursor,
-    staleTime: 90_000,
+    staleTime: 0,
   });
 }
 
@@ -253,7 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await hydrateStarHubQuery(queryClient, cachedUser?.id ?? null);
       if (cancelled) return;
       if (cachedFeed) {
-        queryClient.setQueryData(["mobile-feed"], cachedFeed);
+        queryClient.setQueryData(MOBILE_FEED_QUERY_KEY, cachedFeed);
       }
       if (cachedInbox) {
         queryClient.setQueryData(["mobile-dm-inbox"], cachedInbox);

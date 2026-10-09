@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
 import { createAppQueryClient } from "@/api/query-client";
 import { AuthProvider } from "@/auth/AuthContext";
+import { AccountLocaleSync } from "@/i18n/AccountLocaleSync";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { ClientTranslationProvider } from "@/providers/ClientTranslationProvider";
 import { RootNavigator } from "@/navigation/RootNavigator";
@@ -39,6 +40,7 @@ export default function App() {
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
               <I18nProvider>
+                <AccountLocaleSync />
                 <ClientTranslationProvider>
                   <View style={styles.appShell}>
                     <ScreenErrorBoundary label="App">

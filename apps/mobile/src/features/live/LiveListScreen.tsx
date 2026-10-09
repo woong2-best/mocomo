@@ -136,8 +136,10 @@ export function LiveListScreen() {
 
         {query.isError && !hasHubPages ? (
           <View style={[styles.fill, { paddingTop: insets.top }]}>
-            <LiveEmptyTestPattern />
-            <LiveSlantTabs active={category} onSelect={selectCategory} />
+            <View style={styles.blackStage}>
+              <LiveEmptyTestPattern />
+              <LiveSlantTabs active={category} onSelect={selectCategory} />
+            </View>
             <View style={styles.center}>
               <Text style={styles.error}>{copy.loadHubError}</Text>
               <FolkButton label={copy.retry} onPress={() => void query.refetch()} />
@@ -149,7 +151,7 @@ export function LiveListScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             ListHeaderComponent={
-              <View style={{ paddingTop: insets.top }}>
+              <View style={{ paddingTop: insets.top, backgroundColor: "#000" }}>
                 {hero ? (
                   <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} />
                 ) : showPattern ? (
@@ -160,8 +162,10 @@ export function LiveListScreen() {
                 <LiveSlantTabs active={category} onSelect={selectCategory} />
               </View>
             }
+            style={{ backgroundColor: colors.background }}
             contentContainerStyle={{
               paddingBottom: insets.bottom + 28,
+              backgroundColor: colors.background,
             }}
             onEndReachedThreshold={0.5}
             onEndReached={() => {
@@ -179,7 +183,7 @@ export function LiveListScreen() {
             }
             ListFooterComponent={
               query.isFetchingNextPage ? (
-                <ActivityIndicator style={{ marginVertical: 16 }} color="#FFFFFF" />
+                <ActivityIndicator style={{ marginVertical: 16 }} color={colors.terracotta} />
               ) : null
             }
           />
@@ -191,8 +195,9 @@ export function LiveListScreen() {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: "#000" },
+    root: { flex: 1, backgroundColor: colors.background },
     fill: { flex: 1 },
+    blackStage: { backgroundColor: "#000" },
     chrome: {
       position: "absolute",
       top: 0,
@@ -214,7 +219,7 @@ function createStyles(colors: ThemeColors) {
     center: { padding: spacing.lg, alignItems: "center" },
     error: { color: colors.danger, fontWeight: "600", marginBottom: 12 },
     empty: {
-      color: "rgba(255,255,255,0.62)",
+      color: colors.textMuted,
       textAlign: "center",
       marginTop: 36,
       fontSize: 14,

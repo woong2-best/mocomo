@@ -32,7 +32,7 @@ import {
 } from "@/api/post-comments-query";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
-import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { useKeyboardLift } from "@/lib/use-keyboard-inset";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { FolkButton } from "@/ui/FolkButton";
@@ -48,7 +48,7 @@ export function PostDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  const keyboardInset = useKeyboardBottomInset();
+  const { keyboardLift } = useKeyboardLift();
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile } = useUserProfileNav();
@@ -124,8 +124,8 @@ export function PostDetailScreen() {
   const isQnaPost = Boolean(post?.community?.slug);
   const headerTitle = isQnaPost ? "QnA" : t("m.common.post");
   const composerBottomPad =
-    keyboardInset > 0 ? spacing.sm : Math.max(spacing.md, insets.bottom);
-  const androidKeyboardLift = Platform.OS === "android" ? keyboardInset : 0;
+    keyboardLift > 0 ? spacing.sm : Math.max(spacing.md, insets.bottom);
+  const androidKeyboardLift = Platform.OS === "android" ? keyboardLift : 0;
 
   function submitComment() {
     const content = draft.trim();

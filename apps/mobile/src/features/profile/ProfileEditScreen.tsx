@@ -20,7 +20,8 @@ import { fetchProfileEditState, patchProfile } from "@/api/profile";
 import { ApiError } from "@/api/client";
 import { uploadLocalFile } from "@/api/upload-file";
 import { useAuth } from "@/auth/AuthContext";
-import { probeVideo } from "@/lib/apply-video-watermark";
+import { tryProbeVideo } from "@/lib/apply-video-watermark";
+import { ensureLocalFileUri } from "@/lib/local-file-uri";
 import { transcodeBannerVideoToH264 } from "@/lib/transcode-banner-video";
 import {
   isRemoteMediaUrl,
@@ -303,16 +304,31 @@ export function ProfileEditScreen() {
     setUploading("video");
     try {
       const asset = picked.assets[0];
-      const probe = await probeVideo(asset.uri);
-      if (probe.durationSec > 10.5) {
+      const localUri = await ensureLocalFileUri(
+        asset.uri,
+        asset.fileName || `banner-${Date.now()}.mp4`
+      );
+      const probe = await tryProbeVideo(localUri);
+      const durationSec = probe?.durationSec ?? asset.duration ?? 0;
+      if (durationSec > 10.5) {
         showIslandError(t("m.profile.video_length"), t("m.profile.banner_video_must_be_10_seconds"));
         return;
       }
-      const converted = await transcodeBannerVideoToH264(asset.uri);
+      let uploadUri = localUri;
+      let filename = `profile-banner-${Date.now()}.mp4`;
+      let contentType = asset.mimeType || "video/mp4";
+      try {
+        const converted = await transcodeBannerVideoToH264(localUri);
+        uploadUri = converted.uri;
+        filename = converted.filename;
+        contentType = converted.mime;
+      } catch {
+        // Play Android builds ship without FFmpeg — upload the original clip.
+      }
       const url = await uploadLocalFile({
-        uri: converted.uri,
-        filename: converted.filename,
-        contentType: converted.mime,
+        uri: uploadUri,
+        filename,
+        contentType,
         category: "video",
       });
       setBannerVideoUrl(url);

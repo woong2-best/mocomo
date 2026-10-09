@@ -8,6 +8,7 @@ import { formatViewerCount, formatViewerCountCompact } from "@/features/live/liv
 import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWatermark";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { freshLiveStill } from "@/features/live/live-still";
+import { useTheme } from "@/theme/ThemeContext";
 
 type RowProps = {
   item: LiveListItem;
@@ -15,6 +16,7 @@ type RowProps = {
 };
 
 function LiveBrowseRowInner({ item, onPress }: RowProps) {
+  const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const thumbW = Math.round(Math.min(width * 0.42, 188));
   const decode = feedMediaDecodeWidth(thumbW);
@@ -43,13 +45,13 @@ function LiveBrowseRowInner({ item, onPress }: RowProps) {
         </View>
       </View>
       <View style={styles.meta}>
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
           {item.title}
         </Text>
-        <Text style={styles.host} numberOfLines={1}>
+        <Text style={[styles.host, { color: colors.textSecondary }]} numberOfLines={1}>
           {item.host?.username ?? "live"}
         </Text>
-        <Text style={styles.sub} numberOfLines={1}>
+        <Text style={[styles.sub, { color: colors.textMuted }]} numberOfLines={1}>
           {formatViewerCount(item.viewerCount)}
         </Text>
       </View>
@@ -106,12 +108,12 @@ function LiveBrowseHeroInner({ item, onPress }: HeroProps) {
 export const LiveBrowseHero = memo(LiveBrowseHeroInner);
 
 const styles = StyleSheet.create({
-  row: {
+    row: {
     flexDirection: "row",
     gap: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#000",
+    backgroundColor: "transparent",
   },
   thumbWrap: {
     aspectRatio: 16 / 9,

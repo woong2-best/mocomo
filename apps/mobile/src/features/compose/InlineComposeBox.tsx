@@ -25,6 +25,11 @@ import {
   type PollDraft,
 } from "@/features/compose/compose-types";
 import { publishComposePost } from "@/features/compose/publish-post";
+import {
+  isSettlementAccountRequiredError,
+  showPayoutAccountRequiredWarning,
+  warnIfPayoutAccountMissing,
+} from "@/features/compose/payout-account-warning";
 import { resetFeedPostOffset } from "@/features/feed/feed-post-offset";
 import type {
   TextOverlayCaptureJob,
@@ -38,6 +43,7 @@ import {
   optionsFromWatermarkSettings,
   type WatermarkOptions,
 } from "@/lib/media-watermark";
+import { ensureLocalFileUri } from "@/lib/local-file-uri";
 import { prepareImageForUpload } from "@/lib/prepare-image-upload";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import type { MenuAnchor } from "@/features/feed/FeedPostOverflowMenu";
@@ -48,7 +54,7 @@ import { FolkAvatar } from "@/ui/FolkAvatar";
 import { NsfwToggleButton } from "@/ui/NsfwToggleButton";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
-import { showIslandError, showIslandToast } from "@/ui/IslandToast"
+import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -280,6 +286,9 @@ export function InlineComposeBox({
       setAttachPicked([]);
       setAttachOpen(false);
       focusInput();
+      if (priceKrw > 0) {
+        void warnIfPayoutAccountMissing();
+      }
     },
     [attachPicked, focusInput]
   );
@@ -319,11 +328,23 @@ export function InlineComposeBox({
           continue;
         }
         if (item.type === "VIDEO") {
+          const localUri = await ensureLocalFileUri(item.uri, item.filename);
+          const localItem = { ...item, uri: localUri };
+          const { tryProbeVideo, processVideoForUpload } = await import(
+            "@/lib/apply-video-watermark"
+          );
+          const probe = await tryProbeVideo(localUri);
+          if (!probe) {
+            out.push({
+              ...localItem,
+              duration:
+                localItem.duration != null ? Math.round(localItem.duration) : undefined,
+            });
+            continue;
+          }
           let overlayUri: string | null = null;
           let textOverlayUri: string | null = null;
           const mod = await ensureWatermarkModule();
-          const { probeVideo, processVideoForUpload } = await import("@/lib/apply-video-watermark");
-          const probe = await probeVideo(item.uri);
           if (watermarkCreditLabel && hasActiveWatermark(watermarkOptions)) {
             overlayUri = await mod.queueWatermarkOverlay(
               setOverlayJob,
@@ -341,15 +362,24 @@ export function InlineComposeBox({
               item.videoEdit.textOverlays
             );
           }
-          out.push(
-            await processVideoForUpload(
-              item,
-              watermarkCreditLabel,
-              watermarkOptions,
-              overlayUri,
-              textOverlayUri
-            )
-          );
+          try {
+            out.push(
+              await processVideoForUpload(
+                localItem,
+                watermarkCreditLabel,
+                watermarkOptions,
+                overlayUri,
+                textOverlayUri
+              )
+            );
+          } catch {
+            out.push({
+              ...localItem,
+              width: probe.width,
+              height: probe.height,
+              duration: Math.round(probe.durationSec),
+            });
+          }
           continue;
         }
         out.push(item);
@@ -386,6 +416,10 @@ export function InlineComposeBox({
         showIslandToast("Posted", res.warning);
       }
     } catch (e) {
+      if (isSettlementAccountRequiredError(e)) {
+        showPayoutAccountRequiredWarning();
+        return;
+      }
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
           ? String((e.body as { error: string }).error)

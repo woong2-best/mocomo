@@ -1,5 +1,6 @@
 /**
- * Mobile i18n — English source in `en.json`, on-device ML Kit for other device languages.
+ * Mobile i18n — English source in `en.json`, on-device ML Kit for the
+ * user's chosen language (account / settings). Device language is fallback only.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -132,8 +133,9 @@ export async function setMobileLocale(locale: Locale) {
   await AsyncStorage.setItem(LOCALE_STORAGE, locale);
 }
 
-export async function getStoredMobileLocale(): Promise<Locale> {
+export async function getStoredMobileLocale(): Promise<Locale | null> {
   const stored = await AsyncStorage.getItem(LOCALE_STORAGE);
+  if (!stored?.trim()) return null;
   return normalizeMobileLocale(stored);
 }
 

@@ -80,7 +80,7 @@ const COUNTRY_GLOBE_CENTER: Record<string, { lat: number; lng: number }> = {
  * Pitched just enough that the globe's crown is the curved limb.
  * Top padding drops that limb onto the top edge of the map, under the menu.
  * minZoom locks this view so pinch cannot shrink the earth.
- * One pinch-out from a zoomed-in pin flies straight back here.
+ * Each pinch-out steps the camera out; repeated pinches reach this view.
  */
 const GLOBE_ZOOM = 4.12;
 const GLOBE_PITCH = 40;
@@ -238,6 +238,7 @@ if (!maplibregl) {
   let lastEmptyTap = 0;
   let popup = null;
   let openPinId = null;
+  let outStreak = 0;
   let allPins = [];
   const pinIndex = new Map();
   let visibleKey = "";
@@ -392,6 +393,7 @@ if (!maplibregl) {
       });
     });
     openPinId = pin.id;
+    outStreak = 0;
     map.flyTo({
       center: [pin.lng, pin.lat],
       zoom: ${PIN_FOCUS_ZOOM},
@@ -461,7 +463,7 @@ if (!maplibregl) {
     post({ type: "ready" });
   });
   let lastZoom = ${GLOBE_ZOOM};
-  let returningHome = false;
+  let steppingOut = false;
   let pinchDist = 0;
   let pinchZoom = ${GLOBE_ZOOM};
   let fingers = 0;
@@ -473,39 +475,42 @@ if (!maplibregl) {
     map.touchZoomRotate.enable();
     map.touchZoomRotate.disableRotation();
   };
-  const flyHome = () => {
-    if (returningHome || map.getZoom() <= ${GLOBE_ZOOM} + 0.2) return;
-    returningHome = true;
-    if (popup) popup.remove();
-    popup = null;
-    openPinId = null;
-    pinchZoom = ${GLOBE_ZOOM};
+  const stepZoomOut = () => {
+    if (steppingOut) return;
+    const z = map.getZoom();
+    if (z <= ${GLOBE_ZOOM} + 0.08) return;
+    const steps = [1.8, 2.4, 3.0, 3.6];
+    const step = steps[Math.min(outStreak, steps.length - 1)];
+    outStreak += 1;
+    const next = Math.max(${GLOBE_ZOOM}, z - step);
+    steppingOut = true;
     pinchDist = 0;
     try { map.touchZoomRotate.disable(); } catch (e) {}
     try { map.stop(); } catch (e) {}
-    returningHome = true;
+    const range = ${PIN_FOCUS_ZOOM} - ${GLOBE_ZOOM};
+    const t = Math.min(1, Math.max(0, (${PIN_FOCUS_ZOOM} - next) / range));
+    const nearHome = next <= ${GLOBE_ZOOM} + 0.25;
     map.setProjection({ type: "globe" });
     map.easeTo({
-      center: [${safeLng}, ${safeLat}],
-      zoom: ${GLOBE_ZOOM},
-      pitch: ${GLOBE_PITCH},
+      zoom: next,
+      pitch: ${GLOBE_PITCH} * t,
       bearing: 0,
-      padding: homePadding(),
-      duration: 380,
+      padding: nearHome ? homePadding() : { top: 0, bottom: 0, left: 0, right: 0 },
+      duration: 240,
       essential: true
     });
     const done = () => {
-      if (!returningHome) return;
-      returningHome = false;
+      if (!steppingOut) return;
+      steppingOut = false;
       lastZoom = map.getZoom();
       map.setProjection({ type: "globe" });
       if (fingers === 0) enableTouchZoom();
     };
     map.once("moveend", done);
-    setTimeout(done, 700);
+    setTimeout(done, 420);
   };
   const restoreGlobe = () => {
-    if (returningHome) return;
+    if (steppingOut) return;
     const z = map.getZoom();
     const zoomingOut = z < lastZoom - 0.01;
     lastZoom = z;
@@ -532,34 +537,31 @@ if (!maplibregl) {
     if (event.touches.length >= 2) {
       pinchDist = touchDist(event.touches);
       pinchZoom = map.getZoom();
+      if (pinchZoom > lastZoom + 0.2) outStreak = 0;
     }
   }, { capture: true, passive: true });
   gestureEl.addEventListener("touchmove", (event) => {
-    if (returningHome) {
+    if (steppingOut) {
       event.preventDefault();
       event.stopPropagation();
       return;
     }
     if (event.touches.length < 2 || pinchDist <= 0) return;
     const dist = touchDist(event.touches);
-    if (pinchZoom > ${GLOBE_ZOOM} + 0.35 && dist < pinchDist * 0.96) {
+    if (pinchZoom > ${GLOBE_ZOOM} + 0.12 && dist < pinchDist * 0.96) {
       event.preventDefault();
       event.stopPropagation();
       pinchDist = 0;
-      flyHome();
+      stepZoomOut();
     }
   }, { capture: true, passive: false });
   const onTouchEnd = (event) => {
     fingers = event.touches.length;
     if (event.touches.length < 2) pinchDist = 0;
-    if (fingers === 0 && !returningHome) enableTouchZoom();
+    if (fingers === 0 && !steppingOut) enableTouchZoom();
   };
   gestureEl.addEventListener("touchend", onTouchEnd, { capture: true, passive: true });
   gestureEl.addEventListener("touchcancel", onTouchEnd, { capture: true, passive: true });
-  map.on("zoom", () => {
-    if (returningHome || fingers < 2 || pinchZoom <= ${GLOBE_ZOOM} + 0.35) return;
-    if (map.getZoom() < pinchZoom - 0.03) requestAnimationFrame(() => flyHome());
-  });
   map.on("zoomend", restoreGlobe);
   map.on("moveend", restoreGlobe);
   map.on("move", scheduleCull);
@@ -600,7 +602,7 @@ export function DrawerMapLibreGlobe({
   width,
   height,
   center,
-  locale = "ko",
+  locale = "en",
   onOpen,
   onOpenPressIn,
 }: Props) {

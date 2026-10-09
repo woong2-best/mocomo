@@ -1,6 +1,10 @@
+import { KEEP_ENGLISH_TOKENS_RE } from "@/i18n/keep-english";
+
 /** Protect placeholders, brand, and common non-translatable tokens during UI ML Kit passes. */
-const UI_PRESERVE_RE =
-  /(\{[a-zA-Z0-9_]+\}|MoCoMo|MOCO|\$[\d,.]+|€[\d,.]+|£[\d,.]+|¥[\d,.]+|₩[\d,.]+|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4})/g;
+const UI_PRESERVE_RE = new RegExp(
+  `(${KEEP_ENGLISH_TOKENS_RE.source}|\\{[a-zA-Z0-9_]+\\}|MoCoMo|MOCO|\\$[\\d,.]+|€[\\d,.]+|£[\\d,.]+|¥[\\d,.]+|₩[\\d,.]+|\\d{1,2}[\\/.-]\\d{1,2}[\\/.-]\\d{2,4})`,
+  "g"
+);
 
 export type UiSegment =
   | { kind: "text"; value: string }

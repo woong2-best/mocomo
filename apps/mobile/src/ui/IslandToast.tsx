@@ -17,11 +17,22 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type IslandKind = "success" | "error" | "info";
+type IslandKind = "success" | "error" | "info" | "warning";
 
 type IslandAction = {
   label: string;
   onPress: () => void;
+};
+
+type IslandToastOpts = {
+  kind?: IslandKind;
+  durationMs?: number;
+  action?: IslandAction;
+  /** Keep the ··· affordance and run `action` when it is pressed. */
+  actionAsEllipsis?: boolean;
+  hideIcon?: boolean;
+  hideMark?: boolean;
+  hideTitle?: boolean;
 };
 
 type IslandPayload = {
@@ -31,6 +42,10 @@ type IslandPayload = {
   kind: IslandKind;
   durationMs: number;
   action?: IslandAction;
+  actionAsEllipsis?: boolean;
+  hideIcon?: boolean;
+  hideMark?: boolean;
+  hideTitle?: boolean;
 };
 
 type Listener = (payload: IslandPayload | null) => void;
@@ -59,7 +74,7 @@ function emit(payload: IslandPayload | null) {
 export function showIslandToast(
   title: string,
   message?: string,
-  opts?: { kind?: IslandKind; durationMs?: number }
+  opts?: IslandToastOpts
 ) {
   emit({
     id: nextId++,
@@ -67,6 +82,33 @@ export function showIslandToast(
     message,
     kind: opts?.kind ?? "success",
     durationMs: opts?.durationMs ?? 2800,
+    action: opts?.action,
+    actionAsEllipsis: opts?.actionAsEllipsis,
+    hideIcon: opts?.hideIcon,
+    hideMark: opts?.hideMark,
+    hideTitle: opts?.hideTitle,
+  });
+}
+
+/** Persistent warning pill — message only, optional ··· action. */
+export function showIslandWarning(
+  message: string,
+  opts?: {
+    action?: IslandAction;
+    durationMs?: number;
+  }
+) {
+  emit({
+    id: nextId++,
+    title: "",
+    message,
+    kind: "warning",
+    durationMs: opts?.durationMs ?? 0,
+    action: opts?.action,
+    actionAsEllipsis: !!opts?.action,
+    hideIcon: true,
+    hideMark: true,
+    hideTitle: true,
   });
 }
 
@@ -88,7 +130,7 @@ export function showIslandPrompt(
   title: string,
   message: string | undefined,
   action: IslandAction,
-  opts?: { kind?: IslandKind; durationMs?: number }
+  opts?: IslandToastOpts
 ) {
   const kind = opts?.kind ?? "info";
   const durationMs =
@@ -100,6 +142,10 @@ export function showIslandPrompt(
     kind,
     durationMs,
     action,
+    actionAsEllipsis: opts?.actionAsEllipsis,
+    hideIcon: opts?.hideIcon,
+    hideMark: opts?.hideMark,
+    hideTitle: opts?.hideTitle,
   });
 }
 
@@ -216,6 +262,7 @@ function IslandToastPresenter() {
   const armHide = useCallback(
     (ms: number) => {
       clearHideTimer();
+      if (ms <= 0) return;
       hideTimer.current = setTimeout(() => {
         progress.value = withTiming(0, { duration: 240, easing: Easing.in(Easing.cubic) }, (done) => {
           if (done) runOnJS(finishHide)();
@@ -255,6 +302,13 @@ function IslandToastPresenter() {
 
   const resumeHide = useCallback(() => {
     if (swipeDismissing.current || visibleId.current == null) return;
+    if (durationRef.current <= 0) {
+      setTimeout(() => {
+        draggedRef.current = false;
+        dragged.value = 0;
+      }, 80);
+      return;
+    }
     const ms = Math.min(Math.max(durationRef.current, 1800), 4000);
     armHide(ms);
     setTimeout(() => {
@@ -478,6 +532,9 @@ function IslandToastPresenter() {
     if (kind === "error") {
       return { icon: "alert-circle" as const, iconColor: "#FF8A80" };
     }
+    if (kind === "warning") {
+      return { icon: "warning" as const, iconColor: "#FFD54F" };
+    }
     if (kind === "info") {
       return { icon: "information-circle" as const, iconColor: "#FFFFFF" };
     }
@@ -486,8 +543,15 @@ function IslandToastPresenter() {
 
   if (!mounted || !toast) return null;
 
-  const a11y = toast.message ? `${toast.title}. ${toast.message}` : toast.title;
+  const a11y = toast.hideTitle || !toast.title
+    ? toast.message || toast.title
+    : toast.message
+      ? `${toast.title}. ${toast.message}`
+      : toast.title;
   const topInset = toastTopInset(insets.top);
+  const showTitle = !toast.hideTitle && !!toast.title;
+  const ellipsisAction = !!(toast.action && toast.actionAsEllipsis);
+  const chipAction = !!(toast.action && !toast.actionAsEllipsis);
 
   const pill = (
     <View pointerEvents="box-none" style={[styles.host, { paddingTop: topInset }]}>
@@ -501,18 +565,27 @@ function IslandToastPresenter() {
                 accessibilityRole="button"
                 accessibilityLabel={a11y}
               >
-                <View style={styles.iconDisk}>
-                  <Ionicons name={chrome.icon} size={18} color={chrome.iconColor} />
-                </View>
-                <View style={styles.mark}>
-                  <Text style={styles.markText}>M</Text>
-                </View>
+                {toast.hideIcon ? null : (
+                  <View style={styles.iconDisk}>
+                    <Ionicons name={chrome.icon} size={18} color={chrome.iconColor} />
+                  </View>
+                )}
+                {toast.hideMark ? null : (
+                  <View style={styles.mark}>
+                    <Text style={styles.markText}>M</Text>
+                  </View>
+                )}
                 <View style={styles.textCol}>
-                  <Text style={styles.title} numberOfLines={1}>
-                    {toast.title}
-                  </Text>
+                  {showTitle ? (
+                    <Text style={styles.title} numberOfLines={1}>
+                      {toast.title}
+                    </Text>
+                  ) : null}
                   {toast.message ? (
-                    <Text style={styles.message} numberOfLines={toast.kind === "error" ? 3 : 2}>
+                    <Text
+                      style={[styles.message, !showTitle && styles.messageSolo]}
+                      numberOfLines={toast.kind === "error" || toast.kind === "warning" ? 3 : 2}
+                    >
                       {toast.message}
                     </Text>
                   ) : null}
@@ -522,16 +595,28 @@ function IslandToastPresenter() {
                 ) : null}
               </View>
             </GestureDetector>
-            {toast.action ? (
+            {ellipsisAction ? (
+              <GestureDetector gesture={actionTap}>
+                <View
+                  collapsable={false}
+                  style={styles.ellipsisHit}
+                  accessibilityRole="button"
+                  accessibilityLabel={toast.action?.label}
+                >
+                  <Ionicons name="ellipsis-horizontal" size={18} color="rgba(255,255,255,0.85)" />
+                </View>
+              </GestureDetector>
+            ) : null}
+            {chipAction ? (
               <GestureDetector gesture={actionTap}>
                 <View
                   collapsable={false}
                   style={styles.actionChip}
                   accessibilityRole="button"
-                  accessibilityLabel={toast.action.label}
+                  accessibilityLabel={toast.action?.label}
                 >
                   <Text style={styles.actionText} numberOfLines={1}>
-                    {toast.action.label}
+                    {toast.action?.label}
                   </Text>
                 </View>
               </GestureDetector>
@@ -622,6 +707,18 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.72)",
     fontSize: 12,
     fontWeight: "600",
+  },
+  messageSolo: {
+    marginTop: 0,
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  ellipsisHit: {
+    minWidth: 36,
+    minHeight: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
   actionChip: {
     maxWidth: 96,

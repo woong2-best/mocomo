@@ -15,6 +15,7 @@ import type { RootStackParamList } from "@/navigation/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
+import { useKeyboardLift } from "@/lib/use-keyboard-inset";
 import { useTheme } from "@/theme/ThemeContext";
 import { IslandToastScreenSlot, showIslandToast } from "@/ui/IslandToast";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -26,6 +27,7 @@ export function ComposeScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  const { keyboardLift } = useKeyboardLift();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, "ComposeModal">>();
   const initialContent = route.params?.initialContent;
@@ -39,9 +41,15 @@ export function ComposeScreen() {
   return (
     <View style={styles.flex}>
     <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top + spacing.sm }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : insets.top}
+      style={[
+        styles.root,
+        {
+          paddingTop: insets.top + spacing.sm,
+          paddingBottom: Platform.OS === "android" ? keyboardLift : 0,
+        },
+      ]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={0}
     >
       <View style={styles.titleRow}>
         {navigation.canGoBack() ? (

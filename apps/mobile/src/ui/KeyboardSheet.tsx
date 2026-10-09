@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { useKeyboardLift } from "@/lib/use-keyboard-inset";
 import { spacing } from "@/theme/tokens";
 
 type Props = {
@@ -27,7 +27,7 @@ export function KeyboardSheet({
   stopPropagation = true,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const keyboardHeight = useKeyboardBottomInset();
+  const { keyboardHeight, keyboardLift } = useKeyboardLift();
 
   const sheet = (
     <View
@@ -35,7 +35,7 @@ export function KeyboardSheet({
         styles.sheet,
         {
           maxHeight,
-          marginBottom: keyboardHeight,
+          marginBottom: keyboardLift,
           paddingBottom:
             keyboardHeight > 0
               ? spacing.md

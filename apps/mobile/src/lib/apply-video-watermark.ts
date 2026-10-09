@@ -1,10 +1,28 @@
 import * as FileSystem from "expo-file-system/legacy";
-async function loadFfmpeg() {
-  try {
-    return await import("ffmpeg-kit-react-native");
-  } catch {
+
+type FfmpegKitModule = typeof import("ffmpeg-kit-react-native");
+
+let ffmpegPromise: Promise<FfmpegKitModule | null> | null = null;
+
+async function loadFfmpegOrNull(): Promise<FfmpegKitModule | null> {
+  if (!ffmpegPromise) {
+    ffmpegPromise = import("ffmpeg-kit-react-native")
+      .then((mod) => (mod?.FFmpegKit && mod?.FFprobeKit ? mod : null))
+      .catch(() => null);
+  }
+  return ffmpegPromise;
+}
+
+async function loadFfmpeg(): Promise<FfmpegKitModule> {
+  const mod = await loadFfmpegOrNull();
+  if (!mod) {
     throw new Error(translate("m.lib.video_conversion_is_not_available_on"));
   }
+  return mod;
+}
+
+export async function isFfmpegAvailable(): Promise<boolean> {
+  return (await loadFfmpegOrNull()) != null;
 }
 import type { LocalMediaDraft, VideoEditDraft } from "@/features/compose/compose-types";
 import { DEFAULT_VIDEO_EDIT } from "@/features/compose/compose-types";
@@ -41,6 +59,15 @@ export async function probeVideo(uri: string): Promise<VideoProbe> {
     height,
     durationSec: Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 60,
   };
+}
+
+/** Android Play builds exclude FFmpeg — compose still uploads the original file. */
+export async function tryProbeVideo(uri: string): Promise<VideoProbe | null> {
+  try {
+    return await probeVideo(uri);
+  } catch {
+    return null;
+  }
 }
 
 function transformChain(edit: VideoEditDraft): string {
@@ -90,7 +117,7 @@ export async function processVideoForUpload(
     hasTextOverlay ||
     hasExternalAudio;
 
-  if (!needsReencode) {
+  if (!needsReencode || !(await isFfmpegAvailable())) {
     return {
       ...item,
       width: probe.width,

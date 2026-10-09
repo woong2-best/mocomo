@@ -14,6 +14,13 @@ type Stored = {
   data: InfiniteData<FeedPage, string | null>;
 };
 
+function hasVisiblePosts(data: InfiniteData<FeedPage, string | null> | undefined): boolean {
+  const items = data?.pages?.[0]?.items ?? [];
+  return items.some(
+    (item) => item.type === "post" && !!item.data?.id && !!item.data?.author?.id
+  );
+}
+
 export async function loadFeedBootstrap(): Promise<InfiniteData<FeedPage, string | null> | null> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
@@ -21,6 +28,7 @@ export async function loadFeedBootstrap(): Promise<InfiniteData<FeedPage, string
     const parsed = JSON.parse(raw) as Stored;
     if (!parsed?.data?.pages?.length) return null;
     if (Date.now() - parsed.savedAt > MAX_AGE_MS) return null;
+    if (!hasVisiblePosts(parsed.data)) return null;
     return parsed.data;
   } catch {
     return null;
@@ -35,6 +43,7 @@ export async function saveFeedBootstrap(
       pages: data.pages.slice(0, 1),
       pageParams: (data.pageParams.slice(0, 1) as (string | null)[]) ?? [null],
     };
+    if (!hasVisiblePosts(slim)) return;
     const payload: Stored = { savedAt: Date.now(), data: slim };
     await AsyncStorage.setItem(KEY, JSON.stringify(payload));
   } catch {

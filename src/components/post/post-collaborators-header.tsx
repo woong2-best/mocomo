@@ -4,6 +4,8 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import Link from "next/link";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
@@ -42,6 +44,112 @@ type Props = {
   qna?: boolean;
 };
 
+const ROSTER_GAP = 8;
+const ROSTER_MARGIN = 8;
+
+/**
+ * Collaborator list floats beside the "name and … others" label.
+ * Portaled to document.body so short cards with overflow:hidden cannot clip it.
+ */
+function CollabRosterFlyout({
+  open,
+  anchorRef,
+  users,
+  onEnter,
+  onLeave,
+}: {
+  open: boolean;
+  anchorRef: React.RefObject<HTMLElement | null>;
+  users: CollabHeaderUser[];
+  onEnter: () => void;
+  onLeave: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; side: "left" | "right" } | null>(null);
+  const rosterKey = users.map((u) => u.id).join("\0");
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+
+    const update = () => {
+      const anchor = anchorRef.current;
+      const panel = panelRef.current;
+      if (!anchor || !panel) return;
+      const rect = anchor.getBoundingClientRect();
+      const width = panel.offsetWidth;
+      const height = panel.offsetHeight;
+      let left = rect.right + ROSTER_GAP;
+      let side: "left" | "right" = "right";
+      if (left + width > window.innerWidth - ROSTER_MARGIN) {
+        side = "left";
+        left = rect.left - ROSTER_GAP - width;
+      }
+      left = Math.max(ROSTER_MARGIN, Math.min(left, window.innerWidth - width - ROSTER_MARGIN));
+      let top = rect.top + (rect.height - height) / 2;
+      top = Math.max(ROSTER_MARGIN, Math.min(top, window.innerHeight - height - ROSTER_MARGIN));
+      setPos((prev) =>
+        prev && prev.top === top && prev.left === left && prev.side === side ? prev : { top, left, side }
+      );
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, anchorRef, rosterKey]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  const side = pos?.side ?? "right";
+
+  return createPortal(
+    <div
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      className="fixed z-[260]"
+      style={{
+        top: pos?.top ?? 0,
+        left: pos ? (side === "right" ? pos.left - ROSTER_GAP : pos.left) : 0,
+        paddingLeft: side === "right" ? ROSTER_GAP : 0,
+        paddingRight: side === "left" ? ROSTER_GAP : 0,
+        visibility: pos ? "visible" : "hidden",
+      }}
+    >
+      <div
+        ref={panelRef}
+        className="max-h-[min(70vh,360px)] min-w-[200px] max-w-[280px] overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-xl"
+      >
+        <ul className="space-y-1">
+          {users.map((u) => (
+            <li key={u.id}>
+              <Link
+                href={`/u/${u.username}`}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted"
+              >
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={u.image ?? undefined} alt="" />
+                  <AvatarFallback className="text-[9px]">
+                    {userDisplayName(u)[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate font-medium">{userDisplayName(u)}</span>
+                <span className="truncate text-xs text-muted-foreground">@{u.username}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /**
  * Instagram-style collab header: stacked avatars + "A님과 B님".
  * Site theme (light/dark) via existing tokens — not IG black chrome.
@@ -57,6 +165,39 @@ export function PostCollaboratorsHeader({
   qna = false,
 }: Props) {
   const { t } = useLocale();
+  const namesRef = useRef<HTMLDivElement>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [rosterOpen, setRosterOpen] = useState(false);
+
+  const showRoster = () => {
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current);
+      hideTimer.current = null;
+    }
+    setRosterOpen(true);
+  };
+
+  const hideRoster = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setRosterOpen(false), 160);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!rosterOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      setRosterOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [rosterOpen]);
 
   if (qna) {
     return (
@@ -85,10 +226,15 @@ export function PostCollaboratorsHeader({
     : [author];
   const firstOther = others[0];
   const extraCount = Math.max(0, others.length - 1);
+  const roster = hasCollab ? [author, ...others] : [];
 
   return (
-    <div className={cn("flex items-start gap-2.5 min-w-0", className)}>
-      <div className="relative flex shrink-0 group">
+    <div
+      className={cn("flex items-start gap-2.5 min-w-0", className)}
+      onMouseEnter={hasCollab ? showRoster : undefined}
+      onMouseLeave={hasCollab ? hideRoster : undefined}
+    >
+      <div className="relative flex shrink-0">
         {stackUsers.map((u, i) => {
           const avatar = (
             <Avatar
@@ -124,46 +270,19 @@ export function PostCollaboratorsHeader({
                 i > 0 && "-ml-2.5"
               )}
               style={{ zIndex: stackUsers.length - i }}
-              title={userDisplayName(u)}
+              title={hasCollab ? undefined : userDisplayName(u)}
             >
               {avatar}
             </Link>
           );
         })}
-
-        {hasCollab && (
-          <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 hidden min-w-[200px] rounded-xl border border-border bg-card p-2 shadow-xl group-hover:block">
-            <ul className="space-y-1">
-              {[author, ...others].map((u) => (
-                <li key={u.id}>
-                  <Link
-                    href={`/u/${u.username}`}
-                    className="pointer-events-auto flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted"
-                  >
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={u.image ?? undefined} alt="" />
-                      <AvatarFallback className="text-[9px]">
-                        {userDisplayName(u)[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate font-medium">
-                      {userDisplayName(u)}
-                    </span>
-                    <span className="text-xs text-muted-foreground truncate">
-                      @{u.username}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
 
       <div className="min-w-0 flex-1">
         {hasCollab && firstOther ? (
           <div className="min-w-0 leading-snug">
-            <p className="text-[15px] font-semibold truncate">
+            <div ref={namesRef} className="inline-block max-w-full min-w-0 align-top">
+              <p className="text-[15px] font-semibold truncate">
               <Link
                 href={`/u/${author.username}`}
                 className="hover:underline"
@@ -187,7 +306,8 @@ export function PostCollaboratorsHeader({
                       name: userDisplayName(firstOther),
                     })}
               </Link>
-            </p>
+              </p>
+            </div>
             {trailing ? (
               <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
                 {trailing}
@@ -213,6 +333,15 @@ export function PostCollaboratorsHeader({
           </div>
         )}
       </div>
+      {hasCollab ? (
+        <CollabRosterFlyout
+          open={rosterOpen}
+          anchorRef={namesRef}
+          users={roster}
+          onEnter={showRoster}
+          onLeave={hideRoster}
+        />
+      ) : null}
     </div>
   );
 }

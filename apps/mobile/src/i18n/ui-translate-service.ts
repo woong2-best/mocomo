@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n";
+import { KEEP_ENGLISH_UI_KEYS } from "@/i18n/keep-english";
 import { englishText } from "@/i18n/messages";
 import { mergeUiKeyTable, uiMessagesAppVersion } from "@/i18n/ui-key-cache";
 import {
@@ -12,6 +13,7 @@ const SKIP_KEY_PREFIXES = ["legal.", "wiki.", "brand."];
 
 export function uiKeyNeedsMlKit(key: string, targetLocale: Locale): boolean {
   if (targetLocale === "en") return false;
+  if (KEEP_ENGLISH_UI_KEYS.has(key)) return false;
   if (SKIP_KEY_PREFIXES.some((p) => key.startsWith(p))) return false;
   return Boolean(localeToMlKit(targetLocale));
 }
