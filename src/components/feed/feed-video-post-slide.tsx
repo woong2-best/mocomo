@@ -20,6 +20,7 @@ import { ReelsPlayer, type ReelsPlayerHandle } from "@/components/reels/reels-pl
 import { ReelsActions } from "@/components/reels/reels-actions";
 import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
 import { cn } from "@/lib/utils";
+import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
 /** Desktop phone-frame width (px) — keep in sync with lg:w-[420px] */
 const DESKTOP_CARD_PX = 420;
@@ -94,14 +95,12 @@ export function FeedVideoPostSlide({
   }
 
   const scrollToIndex = useCallback((idx: number, behavior: ScrollBehavior) => {
-    const el = hScrollerRef.current?.querySelector<HTMLElement>(
-      `[data-feed-video-h="${idx}"]`
+    scrollPortToSelector(
+      hScrollerRef.current,
+      `[data-feed-video-h="${idx}"]`,
+      "x",
+      behavior
     );
-    el?.scrollIntoView({
-      behavior,
-      inline: "center",
-      block: "nearest",
-    });
   }, []);
 
   useEffect(() => {
@@ -267,7 +266,7 @@ export function FeedVideoPostSlide({
           ref={hScrollerRef}
           className={cn(
             "flex h-full w-full overflow-x-auto overflow-y-hidden overscroll-x-contain",
-            "snap-x snap-mandatory",
+            "snap-x snap-mandatory [overflow-anchor:none]",
             "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
             // Desktop multi: peek neighbors with centered snap
             multiVideo

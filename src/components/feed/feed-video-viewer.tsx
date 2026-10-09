@@ -34,6 +34,7 @@ import { FeedVideoPostSlide } from "@/components/feed/feed-video-post-slide";
 import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
 import { useLocale } from "@/components/providers/locale-provider";
 import { copyShareUrl, postUrl } from "@/lib/post-share";
+import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
 type Props = {
   groups: FeedVideoGroup[];
@@ -141,13 +142,12 @@ export function FeedVideoViewer({
     const idx = Math.max(0, Math.min(startGroupIndex, groups.length - 1));
     setActiveIndex(idx);
     requestAnimationFrame(() => {
-      const el = scrollerRef.current?.querySelector<HTMLElement>(
-        `[data-reel-index="${idx}"]`
+      scrollPortToSelector(
+        scrollerRef.current,
+        `[data-reel-index="${idx}"]`,
+        "y",
+        "auto"
       );
-      el?.scrollIntoView({
-        behavior: "instant" as ScrollBehavior,
-        block: "start",
-      });
     });
   }, [startGroupIndex, groups.length]);
 
@@ -207,13 +207,12 @@ export function FeedVideoViewer({
     const resnap = () => {
       if (timer != null) window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        const el = root.querySelector<HTMLElement>(
-          `[data-reel-index="${activeIndex}"]`
+        scrollPortToSelector(
+          root,
+          `[data-reel-index="${activeIndex}"]`,
+          "y",
+          "auto"
         );
-        el?.scrollIntoView({
-          behavior: "instant" as ScrollBehavior,
-          block: "start",
-        });
       }, 120);
     };
     window.addEventListener("orientationchange", resnap);
@@ -229,10 +228,12 @@ export function FeedVideoViewer({
   const goTo = useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(groups.length - 1, index));
-      const el = scrollerRef.current?.querySelector<HTMLElement>(
-        `[data-reel-index="${clamped}"]`
+      scrollPortToSelector(
+        scrollerRef.current,
+        `[data-reel-index="${clamped}"]`,
+        "y",
+        "smooth"
       );
-      el?.scrollIntoView({ behavior: "smooth", block: "start" });
       setActiveIndex(clamped);
     },
     [groups.length]
@@ -383,12 +384,11 @@ export function FeedVideoViewer({
         ref={scrollerRef}
         className={cn(
           "h-[100dvh] w-full overflow-y-auto overflow-x-hidden overscroll-y-contain",
-          "snap-y snap-mandatory scroll-smooth",
+          "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
         role="feed"
         aria-label={t("feed.s47jhsw")}
-        tabIndex={0}
       >
         {groups.map((group, index) => (
           <FeedVideoPostSlide

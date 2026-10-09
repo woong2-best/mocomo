@@ -1236,6 +1236,10 @@ export function FeedVideoPlayer({
       role="group"
       aria-label={t("media.s6pkl8j")}
       onClick={stopFeedNavigation}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).closest("[data-video-controls]")) return;
+        e.preventDefault();
+      }}
       onPointerDown={(e) => {
         stopFeedNavigation(e);
         focusPlayer();
@@ -1250,6 +1254,7 @@ export function FeedVideoPlayer({
     >
       <video
         ref={videoRef}
+        tabIndex={-1}
         data-src={playbackSrc}
         poster={poster}
         className={cn(

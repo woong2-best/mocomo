@@ -134,6 +134,10 @@ const ReelsStillImage = forwardRef<ReelsPlayerHandle, Props>(function ReelsStill
     <div
       ref={containerRef}
       className={cn("relative h-full w-full select-none bg-black", className)}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).closest("[data-reels-progress]")) return;
+        e.preventDefault();
+      }}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerCancel={clearLongPress}
@@ -513,6 +517,10 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
     <div
       ref={containerRef}
       className={cn("relative h-full w-full bg-black", className)}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).closest("[data-reels-progress]")) return;
+        e.preventDefault();
+      }}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
@@ -526,6 +534,7 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
         <video
           ref={videoRef}
           className="absolute inset-0 h-full w-full object-contain bg-black"
+          tabIndex={-1}
           playsInline
           muted={muted}
           poster={poster ?? undefined}
