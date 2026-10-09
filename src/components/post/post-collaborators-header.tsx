@@ -112,6 +112,7 @@ function CollabRosterFlyout({
     <div
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
+      data-collab-roster=""
       className="fixed z-[260]"
       style={{
         top: pos?.top ?? 0,
@@ -230,9 +231,21 @@ export function PostCollaboratorsHeader({
 
   return (
     <div
+      data-collab-header={hasCollab ? "" : undefined}
       className={cn("flex items-start gap-2.5 min-w-0", className)}
       onMouseEnter={hasCollab ? showRoster : undefined}
       onMouseLeave={hasCollab ? hideRoster : undefined}
+      onFocus={hasCollab ? showRoster : undefined}
+      onBlur={
+        hasCollab
+          ? (e) => {
+              const next = e.relatedTarget;
+              const roster = document.querySelector("[data-collab-roster]");
+              if (next instanceof Node && (e.currentTarget.contains(next) || roster?.contains(next))) return;
+              hideRoster();
+            }
+          : undefined
+      }
     >
       <div className="relative flex shrink-0">
         {stackUsers.map((u, i) => {
