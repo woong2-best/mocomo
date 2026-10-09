@@ -27,7 +27,7 @@ import {
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { postMediaAspectRatio } from "@/lib/format-feed";
+import { clampFeedMediaAspect, feedMediaFrameHeightCss } from "@/lib/format-feed";
 const SLIDE_WIDTH_RATIO = 0.88;
 const EDGE_PAD_RATIO = 0.06;
 
@@ -409,18 +409,20 @@ export function FeedPostMediaCarousel({
 
   if (!multi) {
     const m = items[0]!;
-    const aspect = postMediaAspectRatio(m);
+    const aspect = clampFeedMediaAspect(m.width, m.height, m.type);
     return (
       <div
         className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
         onPointerEnter={warmFullMedia}
         onFocusCapture={warmFullMedia}
       >
-        <div
-          className="overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
-          style={{ aspectRatio: aspect, maxHeight: 510 }}
-        >
-          {renderTile(m, 0, true)}
+        <div className="w-full [container-type:inline-size]">
+          <div
+            className="overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
+            style={{ width: "100%", height: feedMediaFrameHeightCss(aspect) }}
+          >
+            {renderTile(m, 0, true)}
+          </div>
         </div>
       </div>
     );
@@ -462,20 +464,23 @@ export function FeedPostMediaCarousel({
           aria-label={t("feed.svtcyuc")}
         >
           {items.map((m, i) => {
-            const aspect = postMediaAspectRatio(m);
+            const aspect = clampFeedMediaAspect(m.width, m.height, m.type);
             return (
               <div
                 key={m.id ?? `${postId}:${i}`}
                 data-feed-carousel-slide={i}
                 role="listitem"
                 className="snap-center shrink-0"
-                style={{
-                  width: `${SLIDE_WIDTH_RATIO * 100}%`,
-                  aspectRatio: aspect,
-                  maxHeight: 510,
-                }}
+                style={{ width: `${SLIDE_WIDTH_RATIO * 100}%` }}
               >
-                {renderTile(m, i, i === activeIndex)}
+                <div className="w-full [container-type:inline-size]">
+                  <div
+                    className="overflow-hidden rounded-2xl"
+                    style={{ width: "100%", height: feedMediaFrameHeightCss(aspect) }}
+                  >
+                    {renderTile(m, i, i === activeIndex)}
+                  </div>
+                </div>
               </div>
             );
           })}

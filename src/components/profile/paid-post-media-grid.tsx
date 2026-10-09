@@ -13,7 +13,7 @@ import {
 } from "@/lib/post-media-client-cache";
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { postMediaAspectRatio } from "@/lib/format-feed";
+import { clampFeedMediaAspect, feedMediaFrameHeightCss } from "@/lib/format-feed";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -108,7 +108,14 @@ export function PaidPostMediaGrid({
   const count = preview.length;
   const overflow = Math.max(0, total - FEED_GRID_MAX);
   const singleAspectStyle =
-    count === 1 ? { aspectRatio: postMediaAspectRatio(preview[0]!), maxHeight: 510 } : undefined;
+    count === 1
+      ? {
+          width: "100%" as const,
+          height: feedMediaFrameHeightCss(
+            clampFeedMediaAspect(preview[0]!.width, preview[0]!.height, preview[0]!.type)
+          ),
+        }
+      : undefined;
 
   function warmFullMedia() {
     if (!needsFullFetch) return;
@@ -168,15 +175,17 @@ export function PaidPostMediaGrid({
   return (
     <>
       <div
+        className={cn("mt-3 max-w-full", count === 1 && "[container-type:inline-size]", className)}
+        onPointerEnter={warmFullMedia}
+        onFocusCapture={warmFullMedia}
+      >
+      <div
         className={cn(
-          "mt-3 overflow-hidden rounded-2xl border border-border/50 max-w-full bg-border/60",
-          count === 1 ? "max-h-[510px]" : "aspect-[1.7/1]",
-          className,
+          "overflow-hidden rounded-2xl border border-border/50 max-w-full bg-border/60",
+          count === 1 ? undefined : "aspect-[1.7/1]",
           opening && "opacity-80"
         )}
         style={singleAspectStyle}
-        onPointerEnter={warmFullMedia}
-        onFocusCapture={warmFullMedia}
       >
         <div
           className={cn(
@@ -200,7 +209,7 @@ export function PaidPostMediaGrid({
                 tabIndex={!locked ? 0 : undefined}
                 className={cn(
                   "relative min-h-0 overflow-hidden bg-muted/30 text-left",
-                  count === 1 ? "h-full max-h-[510px]" : "h-full min-h-[120px]",
+                  count === 1 ? "h-full" : "h-full min-h-[120px]",
                   spanClass,
                   !locked && "cursor-pointer"
                 )}
@@ -251,7 +260,6 @@ export function PaidPostMediaGrid({
                   paymentsEnabled={paymentsEnabled}
                   subscribed={subscribed}
                   postInstantPurchasePriceKrw={postInstantPurchasePriceKrw}
-                  single={count === 1}
                   isNsfw={isNsfw}
                   isOwner={isOwner}
                   viewerShowNsfw={viewerShowNsfw}
@@ -268,6 +276,7 @@ export function PaidPostMediaGrid({
           })}
         </div>
       </div>
+      </div>
     </>
   );
 }
@@ -282,7 +291,6 @@ function PaidPostMediaTile({
   paymentsEnabled,
   subscribed,
   postInstantPurchasePriceKrw,
-  single,
   onOpenFull,
   onPurchaseSuccess,
   isNsfw = false,
@@ -298,7 +306,6 @@ function PaidPostMediaTile({
   paymentsEnabled: boolean;
   subscribed?: boolean;
   postInstantPurchasePriceKrw?: number;
-  single?: boolean;
   onOpenFull?: () => void;
   onPurchaseSuccess?: (mediaId?: string) => void | Promise<void>;
   isNsfw?: boolean;
@@ -312,16 +319,13 @@ function PaidPostMediaTile({
       isNsfw={isNsfw}
       isOwner={isOwner}
       viewerShowNsfw={viewerShowNsfw}
-      className={cn("relative h-full w-full overflow-hidden", single && "max-h-[510px]")}
+      className="relative h-full w-full overflow-hidden"
     >
-      <div className={cn("relative h-full w-full overflow-hidden", single && "max-h-[510px]")}>
+      <div className="relative h-full w-full overflow-hidden">
       <PaidFeedMediaSurface
         type={media.type}
         src={media.url}
-        className={cn(
-          "h-full w-full",
-          single ? "object-contain" : "object-cover"
-        )}
+        className="h-full w-full object-cover"
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
         locked={locked}

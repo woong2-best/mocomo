@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,11 +10,14 @@ import type { PaidMediaMonetization } from "@/components/media/paid-media-types"
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
 import { resolveVideoPoster } from "@/lib/video-poster";
 import { cachedImageSource, IMAGE_CACHE_POLICY } from "@/perf/image";
+import { PerformanceBudgets } from "@/perf/budgets";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
   isPooledVideoSupported,
   MocomoPooledVideoView,
 } from "@/native/MocomoNativeFeed";
+import { feedMediaFrameHeight } from "@/features/feed/feedMediaAspect";
+import { spacing } from "@/theme/tokens";
 
 /** Feed-wide mute preference (Twitter-style). */
 let feedPreviewMuted = true;
@@ -77,8 +80,16 @@ function FeedInlineVideoPreviewInner({
   monetization,
 }: Props) {
   const { t } = useI18n();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const poster = useMemo(() => resolveVideoPoster(media), [media]);
   const src = useMemo(() => resolveVideoSrc(media), [media]);
+  const frameStyle = useMemo(() => {
+    if (embedded) return null;
+    const layoutWidth = Math.min(windowWidth - spacing.md * 2, PerformanceBudgets.feedMediaLayoutMax);
+    return {
+      height: feedMediaFrameHeight(layoutWidth, windowHeight, media.width, media.height, media.type),
+    };
+  }, [embedded, media.height, media.type, media.width, windowHeight, windowWidth]);
   const isPaid =
     isPaidPlaybackPath(src) || isPaidPlaybackPath(media.url) || (media.priceKrw ?? 0) > 0;
   const durationLabel = formatDuration(media.duration);
@@ -87,17 +98,8 @@ function FeedInlineVideoPreviewInner({
   const [hasFirstFrame, setHasFirstFrame] = useState(false);
 
   if (media.locked && monetization) {
-    const aspect =
-      media.width && media.height && media.width > 0 && media.height > 0
-        ? media.width / media.height
-        : 16 / 10;
     return (
-      <View
-        style={[
-          styles.wrap,
-          embedded ? styles.wrapEmbedded : { aspectRatio: Math.min(Math.max(aspect, 0.56), 1.9) },
-        ]}
-      >
+      <View style={[styles.wrap, embedded ? styles.wrapEmbedded : frameStyle]}>
         <LockedMediaTile media={media} monetization={monetization} />
       </View>
     );
@@ -169,18 +171,8 @@ function FeedInlineVideoPreviewInner({
     onPress();
   };
 
-  const aspect =
-    media.width && media.height && media.width > 0 && media.height > 0
-      ? media.width / media.height
-      : 16 / 10;
-
   return (
-    <View
-      style={[
-        styles.wrap,
-        embedded ? styles.wrapEmbedded : { aspectRatio: Math.min(Math.max(aspect, 0.56), 1.9) },
-      ]}
-    >
+    <View style={[styles.wrap, embedded ? styles.wrapEmbedded : frameStyle]}>
       {poster ? (
         <Image
           source={cachedImageSource(poster)}

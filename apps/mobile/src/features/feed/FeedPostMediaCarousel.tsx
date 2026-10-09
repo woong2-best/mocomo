@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type ViewToken,
@@ -20,6 +21,7 @@ import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/p
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import { feedMediaFrameHeight } from "@/features/feed/feedMediaAspect";
 
 const ITEM_GAP = 8;
 const EDGE_PEEK = 14;
@@ -69,6 +71,7 @@ function FeedPostMediaCarouselInner({
 }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const monetization = useMemo(
     () => buildMonetization(post, paymentsEnabled, onPurchaseSuccess),
@@ -168,10 +171,15 @@ function FeedPostMediaCarouselInner({
     </Pressable>
   );
 
-  const renderMediaCell = (item: VisualItem, active: boolean, aspect: number) => {
+  const frameSize = (item: VisualItem, width: number) => ({
+    width,
+    height: feedMediaFrameHeight(width, windowHeight, item.width, item.height, item.type),
+  });
+
+  const renderMediaCell = (item: VisualItem, active: boolean) => {
     if (item.locked && item.type === "VIDEO") {
       return (
-        <View style={[styles.lockedCell, { aspectRatio: aspect }]}>
+        <View style={styles.lockedCell}>
           <LockedMediaTile media={item} monetization={monetization} />
         </View>
       );
@@ -194,14 +202,11 @@ function FeedPostMediaCarouselInner({
 
   if (items.length === 1) {
     const item = items[0]!;
-    const aspect =
-      item.width && item.height && item.width > 0 && item.height > 0
-        ? Math.min(Math.max(item.width / item.height, 0.56), 1.9)
-        : 16 / 10;
+    const size = frameSize(item, layoutWidth);
 
     if (item.locked && item.type === "VIDEO") {
       return wrapGate(
-        <View style={[styles.singleMedia, styles.lockedCell, { width: layoutWidth, aspectRatio: aspect }]}>
+        <View style={[styles.singleMedia, styles.lockedCell, size]}>
           <LockedMediaTile media={item} monetization={monetization} />
         </View>
       );
@@ -209,12 +214,15 @@ function FeedPostMediaCarouselInner({
 
     if (item.type === "VIDEO" && !item.locked) {
       return wrapGate(
-        <LazyFeedVideoPreview
-          media={item}
-          active={previewActive}
-          monetization={monetization}
-          onPress={() => openVideo(item)}
-        />
+        <View style={[styles.singleMedia, size]}>
+          <LazyFeedVideoPreview
+            media={item}
+            active={previewActive}
+            embedded
+            monetization={monetization}
+            onPress={() => openVideo(item)}
+          />
+        </View>
       );
     }
 
@@ -222,7 +230,7 @@ function FeedPostMediaCarouselInner({
       return (
         <>
           {wrapGate(
-            <View style={[styles.singleMedia, { width: layoutWidth, aspectRatio: aspect }]}>
+            <View style={[styles.singleMedia, size]}>
               {renderImageCell(item)}
             </View>
           )}
@@ -240,7 +248,7 @@ function FeedPostMediaCarouselInner({
       <>
         {wrapGate(
           <Pressable
-            style={[styles.singleMedia, { width: layoutWidth, aspectRatio: aspect }]}
+            style={[styles.singleMedia, size]}
             onPress={() => openImage(item)}
             accessibilityRole="button"
             accessibilityLabel={t("m.common.view_photo_full_screen")}
@@ -298,15 +306,12 @@ function FeedPostMediaCarouselInner({
         })}
         renderItem={({ item, index }) => {
           const isActiveSlide = previewActive && index === activeIndex;
-          const aspect =
-            item.width && item.height && item.width > 0 && item.height > 0
-              ? Math.min(Math.max(item.width / item.height, 0.56), 1.9)
-              : 16 / 10;
+          const size = frameSize(item, slideWidth);
 
           return (
             <View style={[styles.slide, { width: slideWidth, marginRight: ITEM_GAP }]}>
-              <View style={[styles.slideInner, { aspectRatio: aspect }]}>
-                {renderMediaCell(item, isActiveSlide, aspect)}
+              <View style={[styles.slideInner, size]}>
+                {renderMediaCell(item, isActiveSlide)}
               </View>
             </View>
           );
@@ -373,6 +378,9 @@ function createStyles(colors: ThemeColors) {
       overflow: "hidden",
       backgroundColor: colors.muted,
       position: "relative",
+      flex: 1,
+      width: "100%",
+      height: "100%",
     },
   });
 }

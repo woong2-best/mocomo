@@ -69,7 +69,10 @@ function LazyFeedVideoPreviewInner(props: Props) {
   }
 
   return (
-    <Pressable onPress={props.onPress} style={[styles.wrap, { width: mediaLayout }]}>
+    <Pressable
+      onPress={props.onPress}
+      style={props.embedded ? styles.wrapEmbedded : [styles.wrap, { width: mediaLayout }]}
+    >
       {poster ? (
         <Image
           source={cachedImageSource(poster, decode)}
@@ -104,6 +107,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     aspectRatio: 16 / 10,
     alignSelf: "stretch",
+    overflow: "hidden",
+  },
+  wrapEmbedded: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    borderRadius: 0,
+    backgroundColor: "#1a1a1a",
     overflow: "hidden",
   },
   fallback: { backgroundColor: "#222" },
