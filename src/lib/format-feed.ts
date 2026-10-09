@@ -67,17 +67,23 @@ export function feedMediaFrameStyle(media: {
   width?: number | null;
   height?: number | null;
   type?: string;
-}): { width: string; height: string } {
+}): { width: string; height?: string; maxHeight?: string; maxWidth?: string; aspectRatio?: string } {
   if (isPortraitMedia(media) && media.width && media.height) {
     const aspect = media.width / media.height;
     const maxH = `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`;
     return {
       width: `min(100%, calc(${maxH} * ${aspect}))`,
-      height: `min(${maxH}, calc(100cqi / ${aspect}))`,
+      height: maxH,
+      maxWidth: "100%",
     };
   }
   const aspect = clampFeedMediaAspect(media.width, media.height, media.type);
-  return { width: "100%", height: feedMediaFrameHeightCss(aspect) };
+  return {
+    width: "100%",
+    height: "auto",
+    aspectRatio: String(aspect),
+    maxHeight: `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`,
+  };
 }
 
 /** Single-tile feed/detail/carousel aspect ratio (clamped width/height or sensible default). */

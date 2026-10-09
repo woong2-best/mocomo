@@ -167,7 +167,7 @@ export function PaidPostMediaGrid({
   return (
     <>
       <div
-        className={cn("mt-3 max-w-full", count === 1 && "[container-type:inline-size]", className)}
+        className={cn("mt-3 max-w-full", className)}
         onPointerEnter={warmFullMedia}
         onFocusCapture={warmFullMedia}
       >
@@ -197,8 +197,8 @@ export function PaidPostMediaGrid({
             return (
               <div
                 key={key}
-                role={!locked ? "button" : undefined}
-                tabIndex={!locked ? 0 : undefined}
+                role={!locked && m.type !== "VIDEO" ? "button" : undefined}
+                tabIndex={!locked && m.type !== "VIDEO" ? 0 : undefined}
                 className={cn(
                   "relative min-h-0 overflow-hidden bg-muted/30 text-left",
                   count === 1 ? "h-full" : "h-full min-h-[120px]",

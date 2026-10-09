@@ -83,8 +83,8 @@ function MediaOpenWrapper({
 }) {
   return (
     <div
-      role={!locked ? "button" : undefined}
-      tabIndex={!locked ? 0 : undefined}
+      role={!locked && media.type !== "VIDEO" ? "button" : undefined}
+      tabIndex={!locked && media.type !== "VIDEO" ? 0 : undefined}
       className={cn("h-full w-full", !locked && "cursor-pointer")}
       onClickCapture={(e) => {
         if (locked) return;
@@ -443,15 +443,13 @@ export function FeedPostMediaCarousel({
         onPointerEnter={warmFullMedia}
         onFocusCapture={warmFullMedia}
       >
-        <div className="w-full [container-type:inline-size]">
-          <div
-            className="mr-auto overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
-            style={feedMediaFrameStyle(withIntrinsic(m))}
-            onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
-            onLoadCapture={(event) => rememberIntrinsic(m, event)}
-          >
-            {renderTile(withIntrinsic(m), 0, true)}
-          </div>
+        <div
+          className="mr-auto overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
+          style={feedMediaFrameStyle(withIntrinsic(m))}
+          onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
+          onLoadCapture={(event) => rememberIntrinsic(m, event)}
+        >
+          {renderTile(withIntrinsic(m), 0, true)}
         </div>
       </div>
     );
@@ -501,15 +499,13 @@ export function FeedPostMediaCarousel({
                 className="snap-center shrink-0"
                 style={{ width: `${SLIDE_WIDTH_RATIO * 100}%` }}
               >
-                <div className="w-full [container-type:inline-size]">
-                  <div
-                    className="mr-auto overflow-hidden rounded-2xl"
-                    style={feedMediaFrameStyle(withIntrinsic(m))}
-                    onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
-                    onLoadCapture={(event) => rememberIntrinsic(m, event)}
-                  >
-                    {renderTile(withIntrinsic(m), i, i === activeIndex)}
-                  </div>
+                <div
+                  className="mr-auto overflow-hidden rounded-2xl"
+                  style={feedMediaFrameStyle(withIntrinsic(m))}
+                  onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
+                  onLoadCapture={(event) => rememberIntrinsic(m, event)}
+                >
+                  {renderTile(withIntrinsic(m), i, i === activeIndex)}
                 </div>
               </div>
             );
