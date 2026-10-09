@@ -86,6 +86,31 @@ export function feedMediaFrameStyle(media: {
   };
 }
 
+/**
+ * Profile / My Page single tile: keep the real ratio, but never stretch across a wide column.
+ * Landscape stays compact on the left, same visual weight as a portrait feed tile.
+ */
+export function feedMediaCompactFrameStyle(media: {
+  width?: number | null;
+  height?: number | null;
+  type?: string;
+}): { width: string; height?: string; maxHeight?: string; maxWidth?: string; aspectRatio?: string } {
+  const aspect =
+    media.width && media.height && media.width > 0 && media.height > 0
+      ? media.width / media.height
+      : media.type === "VIDEO"
+        ? 16 / 9
+        : 1;
+  const maxH = `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`;
+  return {
+    width: `min(100%, min(510px, calc(${maxH} * ${aspect})))`,
+    height: "auto",
+    aspectRatio: String(aspect),
+    maxHeight: maxH,
+    maxWidth: "100%",
+  };
+}
+
 /** True width/height for mixed carousels. Missing size falls back like the single-tile frame. */
 export function feedMediaNativeAspect(
   width?: number | null,

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   clampFeedMediaAspect,
   feedCarouselMediaStyle,
+  feedMediaCompactFrameStyle,
   feedMediaFrameHeightCss,
   feedMediaFrameStyle,
   feedMediaNativeAspect,
@@ -64,6 +65,19 @@ test("landscape videos stay full column width", () => {
 
 test("feedMediaNativeAspect keeps 9:16 instead of clamping to 3:4", () => {
   assert.equal(feedMediaNativeAspect(1080, 1920), 1080 / 1920);
+});
+
+test("compact singles cap landscape width instead of filling the column", () => {
+  const frame = feedMediaCompactFrameStyle({ type: "IMAGE", width: 1920, height: 1080 });
+  assert.equal(frame.width, `min(100%, min(510px, calc(min(510px, 56vh) * ${1920 / 1080})))`);
+  assert.equal(frame.aspectRatio, String(1920 / 1080));
+  assert.equal(frame.maxWidth, "100%");
+});
+
+test("compact singles keep portrait photos narrow", () => {
+  const frame = feedMediaCompactFrameStyle({ type: "IMAGE", width: 1080, height: 1920 });
+  assert.equal(frame.width, `min(100%, min(510px, calc(min(510px, 56vh) * ${1080 / 1920})))`);
+  assert.equal(frame.aspectRatio, String(1080 / 1920));
 });
 
 test("carousel tiles share max height and take width from the real ratio", () => {

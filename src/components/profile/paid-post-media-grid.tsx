@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 import { cn } from "@/lib/utils";
 import { PaidFeedMediaSurface } from "@/components/media/paid-feed-media-surface";
 import { SensitiveContentGate } from "@/components/media/sensitive-content-gate";
@@ -13,7 +13,7 @@ import {
 } from "@/lib/post-media-client-cache";
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { feedMediaFrameStyle, isPortraitMedia } from "@/lib/format-feed";
+import { feedMediaCompactFrameStyle } from "@/lib/format-feed";
 
 export type ProfilePostMediaItem = {
   id?: string;
@@ -70,6 +70,7 @@ export function PaidPostMediaGrid({
 }) {
   const [opening, setOpening] = useState(false);
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(() => new Set());
+  const [intrinsic, setIntrinsic] = useState<Record<string, { width: number; height: number }>>({});
   const feedVideoViewer = useFeedVideoViewerOptional();
   const photoLightbox = useFeedPhotoLightboxOptional();
 
@@ -102,12 +103,42 @@ export function PaidPostMediaGrid({
     }
   }, [needsFullFetch, media, postId]);
 
+  const withIntrinsic = useCallback(
+    (m: ProfilePostMediaItem): ProfilePostMediaItem => {
+      const hit = m.id ? intrinsic[m.id] : undefined;
+      return hit ? { ...m, width: hit.width, height: hit.height } : m;
+    },
+    [intrinsic]
+  );
+
+  const rememberIntrinsic = useCallback((m: ProfilePostMediaItem, event: SyntheticEvent) => {
+    const el = event.target;
+    let width = 0;
+    let height = 0;
+    if (m.type === "VIDEO" && el instanceof HTMLVideoElement) {
+      width = el.videoWidth;
+      height = el.videoHeight;
+    } else if (m.type === "IMAGE" && el instanceof HTMLImageElement) {
+      width = el.naturalWidth;
+      height = el.naturalHeight;
+    } else {
+      return;
+    }
+    if (!m.id || width <= 0 || height <= 0) return;
+    setIntrinsic((prev) => {
+      const cur = prev[m.id!];
+      if (cur?.width === width && cur.height === height) return prev;
+      return { ...prev, [m.id!]: { width, height } };
+    });
+  }, []);
+
   if (media.length === 0) return null;
 
   const preview = media.slice(0, FEED_GRID_MAX);
   const count = preview.length;
   const overflow = Math.max(0, total - FEED_GRID_MAX);
-  const singleAspectStyle = count === 1 ? feedMediaFrameStyle(preview[0]!) : undefined;
+  const singleFrame = count === 1 ? withIntrinsic(preview[0]!) : null;
+  const singleAspectStyle = singleFrame ? feedMediaCompactFrameStyle(singleFrame) : undefined;
 
   function warmFullMedia() {
     if (!needsFullFetch) return;
@@ -178,6 +209,12 @@ export function PaidPostMediaGrid({
           opening && "opacity-80"
         )}
         style={singleAspectStyle}
+        onLoadedMetadataCapture={
+          singleFrame ? (event) => rememberIntrinsic(singleFrame, event) : undefined
+        }
+        onLoadCapture={
+          singleFrame ? (event) => rememberIntrinsic(singleFrame, event) : undefined
+        }
       >
         <div
           className={cn(
@@ -247,7 +284,7 @@ export function PaidPostMediaGrid({
                   isNsfw={isNsfw}
                   isOwner={isOwner}
                   viewerShowNsfw={viewerShowNsfw}
-                  contain={count === 1 && isPortraitMedia(m)}
+                  contain={count === 1}
                   onOpenFull={() => void openAt(i, false)}
                   onPurchaseSuccess={(id) => markPurchased(id)}
                 />
