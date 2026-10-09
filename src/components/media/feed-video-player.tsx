@@ -1516,7 +1516,6 @@ export function FeedVideoPlayer({
                     className="absolute bottom-full right-0 mb-2 w-24 overflow-hidden rounded-lg bg-black/90 py-1 text-xs shadow-lg ring-1 ring-white/10"
                     onClick={stopFeedNavigation}
                   >
-                    <p className="px-3 py-1 text-[10px] text-white/50">{t("media.snq38h2")}</p>
                     {SPEED_OPTIONS.map((rate) => (
                       <button
                         key={rate}
@@ -1530,7 +1529,7 @@ export function FeedVideoPlayer({
                           rate === speed ? "font-bold text-white" : "text-white/80"
                         )}
                       >
-                        {rate === 1 ? t("media.s1uyfln6") : `${rate}x`}
+                        {rate}x
                       </button>
                     ))}
                   </div>
