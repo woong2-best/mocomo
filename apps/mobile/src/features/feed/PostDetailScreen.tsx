@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -58,6 +58,13 @@ export function PostDetailScreen() {
   const [menuComment, setMenuComment] = useState<CommentItem | null>(null);
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
   const postId = route.params.id;
+
+  const onPressVideo = useCallback(
+    (id: string, mediaId?: string, mediaIndex?: number) => {
+      navigation.navigate("Reels", { postId: id, mediaId, mediaIndex });
+    },
+    [navigation]
+  );
 
   const postQuery = useQuery({
     queryKey: ["mobile-post", postId],
@@ -206,6 +213,7 @@ export function PostDetailScreen() {
                     void postQuery.refetch();
                   }}
                   onPressAuthor={(author: UserProfileSeed) => openUserProfile(author)}
+                  onPressVideo={onPressVideo}
                 />
                 <Text style={styles.section}>{isQnaPost ? "A" : t("m.feed.comments")}</Text>
               </View>

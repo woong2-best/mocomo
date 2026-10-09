@@ -293,8 +293,6 @@ export function ReelsScreen() {
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={28} color="#fff" />
           </Pressable>
-          <Text style={styles.title}>{copy.title}</Text>
-          <View style={styles.backBtn} />
         </View>
       ) : null}
 
@@ -428,7 +426,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   backBtn: { width: 44, height: 40, alignItems: "center", justifyContent: "center" },
-  title: { color: "#fff", fontSize: 17, fontWeight: "800" },
   navArrows: {
     position: "absolute",
     right: 10,

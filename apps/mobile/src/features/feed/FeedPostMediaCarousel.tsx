@@ -3,7 +3,6 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
   type NativeScrollEvent,
@@ -12,7 +11,6 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import type { FeedMedia, FeedPost } from "@/api/feed";
-import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
 import { LazyFeedVideoPreview } from "@/features/feed/LazyFeedVideoPreview";
 import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
@@ -79,7 +77,6 @@ function FeedPostMediaCarouselInner({
   );
   const listRef = useRef<FlatList<VisualItem>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const items = useMemo(
     () =>
@@ -92,17 +89,6 @@ function FeedPostMediaCarouselInner({
   const slideWidth = Math.max(120, layoutWidth - EDGE_PEEK * 2);
   const snapInterval = slideWidth + ITEM_GAP;
   const decode = feedMediaDecodeWidth(slideWidth);
-
-  const images = useMemo(
-    () =>
-      items
-        .filter((m) => m.type === "IMAGE")
-        .map((m) => ({
-          id: m.id?.trim() || `${post.id}:img:${m.index}`,
-          url: m.url.trim(),
-        })),
-    [items, post.id]
-  );
 
   const onScrollEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -123,24 +109,11 @@ function FeedPostMediaCarouselInner({
     minimumViewTime: 80,
   }).current;
 
-  const openVideo = useCallback(
+  const openMedia = useCallback(
     (item: VisualItem) => {
       onPressVideo?.(post.id, item.id, item.index);
     },
     [onPressVideo, post.id]
-  );
-
-  const openImage = useCallback(
-    (item: VisualItem) => {
-      const start = images.findIndex(
-        (img) => img.url === item.url.trim() || img.id === item.id
-      );
-      if (start >= 0) {
-        setActiveIndex(item.index);
-        setLightboxOpen(true);
-      }
-    },
-    [images]
   );
 
   if (items.length === 0) return null;
@@ -156,7 +129,7 @@ function FeedPostMediaCarouselInner({
   const renderImageCell = (item: VisualItem) => (
     <Pressable
       style={StyleSheet.absoluteFill}
-      onPress={() => openImage(item)}
+      onPress={() => openMedia(item)}
       accessibilityRole="button"
       accessibilityLabel={t("m.common.view_photo_full_screen")}
     >
@@ -192,7 +165,7 @@ function FeedPostMediaCarouselInner({
           active={active}
           embedded={items.length > 1}
           monetization={monetization}
-          onPress={() => openVideo(item)}
+          onPress={() => openMedia(item)}
         />
       );
     }
@@ -220,56 +193,36 @@ function FeedPostMediaCarouselInner({
             active={previewActive}
             embedded
             monetization={monetization}
-            onPress={() => openVideo(item)}
+            onPress={() => openMedia(item)}
           />
         </View>
       );
     }
 
     if (item.locked) {
-      return (
-        <>
-          {wrapGate(
-            <View style={[styles.singleMedia, size]}>
-              {renderImageCell(item)}
-            </View>
-          )}
-          <FeedImageLightbox
-            visible={lightboxOpen}
-            images={images}
-            initialIndex={0}
-            onClose={() => setLightboxOpen(false)}
-          />
-        </>
+      return wrapGate(
+        <View style={[styles.singleMedia, size]}>
+          {renderImageCell(item)}
+        </View>
       );
     }
 
-    return (
-      <>
-        {wrapGate(
-          <Pressable
-            style={[styles.singleMedia, size]}
-            onPress={() => openImage(item)}
-            accessibilityRole="button"
-            accessibilityLabel={t("m.common.view_photo_full_screen")}
-          >
-            <Image
-              source={cachedImageSource(item.url, decode)}
-              style={StyleSheet.absoluteFill}
-              contentFit="cover"
-              cachePolicy={IMAGE_CACHE_POLICY}
-              recyclingKey={item.url}
-              transition={0}
-            />
-          </Pressable>
-        )}
-        <FeedImageLightbox
-          visible={lightboxOpen}
-          images={images}
-          initialIndex={0}
-          onClose={() => setLightboxOpen(false)}
+    return wrapGate(
+      <Pressable
+        style={[styles.singleMedia, size]}
+        onPress={() => openMedia(item)}
+        accessibilityRole="button"
+        accessibilityLabel={t("m.common.view_photo_full_screen")}
+      >
+        <Image
+          source={cachedImageSource(item.url, decode)}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          cachePolicy={IMAGE_CACHE_POLICY}
+          recyclingKey={item.url}
+          transition={0}
         />
-      </>
+      </Pressable>
     );
   }
 
@@ -316,19 +269,6 @@ function FeedPostMediaCarouselInner({
             </View>
           );
         }}
-      />
-
-      <FeedImageLightbox
-        visible={lightboxOpen}
-        images={images}
-        initialIndex={Math.max(
-          0,
-          images.findIndex((img) => {
-            const current = items[activeIndex];
-            return current?.type === "IMAGE" && img.url === current.url.trim();
-          })
-        )}
-        onClose={() => setLightboxOpen(false)}
       />
     </View>,
     styles.wrap
