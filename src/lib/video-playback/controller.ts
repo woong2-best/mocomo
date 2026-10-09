@@ -83,6 +83,21 @@ class VideoPlaybackController {
       return true;
     }
 
+    // Desktop can keep two feed tiles above the autoplay threshold. Autoplay
+    // must not ping-pong; a tap / hover / expand may still take over.
+    // Immersive reels may still take the lock from an inline feed player.
+    const reelTakesFeed =
+      id.startsWith("reel-") && (this.activeId?.startsWith("fv-") ?? false);
+    if ((reason === "autoplay" || reason === "visibility") && !reelTakesFeed) {
+      if (this.activeId && this.activeId !== id) {
+        const active = this.players.get(this.activeId);
+        const activeVideo = active?.getVideo();
+        if (activeVideo && !activeVideo.paused && !activeVideo.ended) {
+          return false;
+        }
+      }
+    }
+
     for (const [otherId, other] of this.players) {
       if (otherId === id) continue;
       const ov = other.getVideo();

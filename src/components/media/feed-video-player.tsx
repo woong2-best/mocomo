@@ -55,6 +55,7 @@ import {
   bindVideoFullscreenEvents,
   withVideoCacheBust,
 } from "@/lib/video-playback";
+import { isFeedVideoViewerOpen } from "@/lib/feed-video-viewer";
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -360,6 +361,13 @@ export function FeedVideoPlayer({
         if (!okAttach) return false;
       }
 
+      if (
+        (reason === "autoplay" || reason === "visibility") &&
+        isFeedVideoViewerOpen()
+      ) {
+        return false;
+      }
+
       // Already playing this element — skip re-entry (prevents stutter).
       if (!v.paused && !v.ended && ctrl.getActiveId() === playerId) {
         autoPlayingRef.current = reason === "autoplay" || reason === "visibility";
@@ -451,7 +459,8 @@ export function FeedVideoPlayer({
       inViewRef.current &&
       !userPausedRef.current &&
       autoPlayOnView &&
-      !document.hidden
+      !document.hidden &&
+      !isFeedVideoViewerOpen()
     ) {
       const t = window.setTimeout(() => {
         void playExclusive("autoplay");
@@ -696,7 +705,8 @@ export function FeedVideoPlayer({
           shouldAutoplayOnNetwork(quality) &&
           !userPausedRef.current &&
           !scrubbingRef.current &&
-          !document.hidden;
+          !document.hidden &&
+          !isFeedVideoViewerOpen();
 
         // Hysteresis: only pause after dropping below AUTOPAUSE_THRESHOLD.
         const shouldPause = ratio < AUTOPAUSE_THRESHOLD;
@@ -1205,7 +1215,14 @@ export function FeedVideoPlayer({
   const videoStyle: CSSProperties = {
     transform: zoom > 1 ? `scale(${zoom})` : undefined,
     transition: pinchRef.current ? undefined : "transform 200ms ease",
-    opacity: forensicRequired && markedOutputReady ? 0 : undefined,
+    opacity:
+      forensicRequired &&
+      markedOutputReady &&
+      !isFullscreen &&
+      typeof document !== "undefined" &&
+      document.fullscreenElement !== videoRef.current
+        ? 0
+        : undefined,
   };
 
   return (

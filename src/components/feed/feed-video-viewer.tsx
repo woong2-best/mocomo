@@ -28,6 +28,7 @@ import { getVideoPlaybackController } from "@/lib/video-playback";
 import {
   FEED_VIDEO_VIEWER_HISTORY_KEY,
   lockMainScroll,
+  markFeedVideoViewerOpen,
 } from "@/lib/feed-video-viewer";
 import { FeedVideoPostSlide } from "@/components/feed/feed-video-post-slide";
 import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
@@ -119,9 +120,19 @@ export function FeedVideoViewer({
     };
   }, [onClose]);
 
+  const viewerLockRef = useRef(false);
+  if (!viewerLockRef.current) {
+    viewerLockRef.current = true;
+    markFeedVideoViewerOpen(true);
+    getVideoPlaybackController()?.pauseAll();
+  }
+
   useEffect(() => {
     const unlock = lockMainScroll();
-    return unlock;
+    return () => {
+      markFeedVideoViewerOpen(false);
+      unlock();
+    };
   }, []);
 
   useEffect(() => {

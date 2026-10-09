@@ -179,3 +179,14 @@ export function lockMainScroll(): () => void {
     document.body.style.overflow = prevBody;
   };
 }
+
+let feedVideoViewerOpenCount = 0;
+
+/** True while the desktop/mobile immersive viewer overlay is mounted. */
+export function isFeedVideoViewerOpen(): boolean {
+  return feedVideoViewerOpenCount > 0;
+}
+
+export function markFeedVideoViewerOpen(open: boolean): void {
+  feedVideoViewerOpenCount = Math.max(0, feedVideoViewerOpenCount + (open ? 1 : -1));
+}

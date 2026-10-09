@@ -10,7 +10,11 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { enterVideoFullscreen } from "@/lib/video-playback/fullscreen";
+import {
+  bindVideoFullscreenEvents,
+  enterVideoFullscreen,
+  isVideoFullscreen,
+} from "@/lib/video-playback/fullscreen";
 import type HlsType from "hls.js";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -103,14 +107,12 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
   const [forensicCanvasFailed, setForensicCanvasFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  useImperativeHandle(ref, () => ({
-    enterFullscreen: () => enterVideoFullscreen(containerRef.current, videoRef.current),
-  }));
   const hlsRef = useRef<HlsType | null>(null);
   const [progress, setProgress] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [buffering, setBuffering] = useState(false);
   const [inView, setInView] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const lastTapRef = useRef(0);
   const longPressTimer = useRef<number | null>(null);
   const longPressFired = useRef(false);
@@ -218,13 +220,34 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
     video.preload = reelPreloadForDistance(distance);
   }, [distance, shouldMountMedia]);
 
-  const tryPlay = useCallback(async () => {
+  const tryPlay = useCallback(async (reason: "autoplay" | "user" = "autoplay") => {
     const video = videoRef.current;
     const ctrl = getVideoPlaybackController();
     if (!video || !ctrl) return;
-    if (!shouldAutoplayOnNetwork(getNetworkQuality())) return;
-    await ctrl.requestPlay(playerId, "autoplay");
+    if (reason === "autoplay" && !shouldAutoplayOnNetwork(getNetworkQuality())) return;
+    await ctrl.requestPlay(playerId, reason);
   }, [playerId]);
+
+  useImperativeHandle(ref, () => ({
+    enterFullscreen: async () => {
+      const ok = await enterVideoFullscreen(containerRef.current, videoRef.current);
+      void tryPlay("user");
+      return ok;
+    },
+  }), [tryPlay]);
+
+  useEffect(() => {
+    const syncFs = () => {
+      setIsFullscreen(isVideoFullscreen(containerRef.current, videoRef.current));
+    };
+    document.addEventListener("fullscreenchange", syncFs);
+    const unbind = bindVideoFullscreenEvents(videoRef.current, syncFs);
+    syncFs();
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFs);
+      unbind();
+    };
+  }, [shouldMountMedia]);
 
   const pauseSelf = useCallback(() => {
     getVideoPlaybackController()?.pause(playerId);
@@ -248,6 +271,10 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
     const io = new IntersectionObserver(
       ([entry]) => {
         if (!entry) return;
+        if (isVideoFullscreen(containerRef.current, videoRef.current)) {
+          setInView(true);
+          return;
+        }
         const ratio = entry.intersectionRatio;
         if (ratio >= REELS_AUTOPLAY_THRESHOLD) {
           setInView(true);
@@ -381,7 +408,7 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
     lastTapRef.current = now;
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) void tryPlay();
+    if (video.paused) void tryPlay("user");
     else pauseSelf();
   };
 
@@ -412,7 +439,13 @@ export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPl
           // decode / render only when near
           style={{
             contentVisibility: distance > 1 ? "auto" : "visible",
-            opacity: forensicRequired ? 0 : undefined,
+            opacity:
+              forensicRequired &&
+              !isFullscreen &&
+              typeof document !== "undefined" &&
+              document.fullscreenElement !== videoRef.current
+                ? 0
+                : undefined,
           }}
           aria-label="Short video"
         />
