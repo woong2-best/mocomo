@@ -14,6 +14,8 @@ Using CLI prod without pushing the same commit (or pushing without waiting for t
 
 ## Required workflow (default)
 
+The agent runs this **automatically** when work is done (`auto-commit-deploy.mdc`) — not only when the user says “배포해”.
+
 1. Finish the feature on **`main`** (or merge to `main`).
 2. **Commit** everything that should be live (never rely on dirty working tree for “배포 완료”).
 3. **`git push origin main`**.

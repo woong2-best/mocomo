@@ -1,0 +1,40 @@
+---
+description: Commit and deploy completed work without waiting for an explicit user ask
+alwaysApply: true
+---
+
+# Auto commit & deploy (MoCoMo)
+
+**Default for Operations (행복한):** when a task is done and the change should be live, the agent **commits, pushes `main`, and confirms Vercel** — without waiting for "커밋해", "배포해", or similar.
+
+This **overrides** generic "only commit when the user asks" **for this repository**.
+
+## Web (always use Git as source of truth)
+
+Follow `web-vercel-deploy.mdc`:
+
+1. Stage and **commit** every intentional source change that belongs in prod (clear message, why-focused).
+2. **`git push origin main`**.
+3. Confirm the **Git-connected Vercel** production deployment for that commit is **Ready** (e.g. `npx vercel ls`, `npx vercel inspect`). Same commit SHA on GitHub and Vercel.
+4. Only then report **배포 완료** to the user.
+
+Do **not** treat `vercel --prod` alone as deploy unless the same commit is already on `main` and Git deploy is confirmed.
+
+## Do not commit
+
+- Secrets: `.env`, `*.pem`, keystores, service account JSON, tokens.
+- Local/scratch: `.build-tmp/`, `.gradle-home/`, `.tmp-build/`, `.tmp-card-compare/`, `supabase/.temp/`, large demo `page@*.webm`, `_rc1-backup/` / `_rc1-out/`.
+- One-off handoff folders (e.g. `handoff-*`) unless the task is to merge them into real app paths in the same session.
+
+## Mobile
+
+- **Play AAB** only when the task is an Android store release (`mobile-aab-release.mdc`), not on every web-only fix.
+
+## Exceptions
+
+- User explicitly says **do not push**, **local only**, or **no deploy**.
+- Pre-commit hook failed: fix the issue, **new commit** (no `--no-verify` unless user requests).
+
+## End of session checklist
+
+Before marking work complete, if anything under `src/`, `apps/mobile/`, `prisma/`, or shared config was changed for prod: **no dirty intentional tree left uncommitted/unpushed**.
