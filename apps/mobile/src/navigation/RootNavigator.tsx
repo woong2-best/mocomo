@@ -370,6 +370,12 @@ export function RootNavigator() {
               getComponent={() => require("@/features/anime/AnimeListScreen").AnimeListScreen}
             />
             <Stack.Screen
+              name="CosplayProfiles"
+              getComponent={() =>
+                require("@/features/anime/CosplayProfilesScreen").CosplayProfilesScreen
+              }
+            />
+            <Stack.Screen
               name="AnimeDetail"
               getComponent={() => require("@/features/anime/AnimeDetailScreen").AnimeDetailScreen}
             />

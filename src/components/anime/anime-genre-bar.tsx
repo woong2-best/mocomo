@@ -21,7 +21,7 @@ type Props = {
 export function AnimeGenreBar({ active, showCosplay = true, cosplayActive = false }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t, locale } = useLocale();
+  const { locale } = useLocale();
   const genres = getLocalizedAnimeGenres(locale);
 
   function navigate(genre: AnimeGenre | null) {
@@ -36,10 +36,23 @@ export function AnimeGenreBar({ active, showCosplay = true, cosplayActive = fals
     <div className="overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
       <div className="flex flex-wrap gap-2">
         <GenrePill
-          label={t("anime.genreAll")}
+          label="ALL"
           active={!active && !cosplayActive}
           onClick={() => navigate(null)}
         />
+        {showCosplay ? (
+          <Link
+            href="/cosplay/profiles"
+            className={cn(
+              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              cosplayActive
+                ? "border-pink-600 bg-pink-600 text-white"
+                : "border-pink-600/50 bg-pink-600/15 text-foreground hover:bg-pink-600/25"
+            )}
+          >
+            Cos
+          </Link>
+        ) : null}
         {genres.map((g) => (
           <GenrePill
             key={g.id}
@@ -48,19 +61,6 @@ export function AnimeGenreBar({ active, showCosplay = true, cosplayActive = fals
             onClick={() => navigate(g.id)}
           />
         ))}
-        {showCosplay ? (
-          <Link
-            href="/cosplay/profiles"
-            className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-              cosplayActive
-                ? "border-red-600 bg-red-600 text-white"
-                : "border-border/70 bg-muted/40 text-foreground hover:bg-muted/70"
-            )}
-          >
-            {t("anime.cosplayerHubTitle")}
-          </Link>
-        ) : null}
       </div>
     </div>
   );

@@ -104,6 +104,7 @@ export type RootStackParamList = {
   Activity: undefined;
   StarList: undefined;
   AnimeList: undefined;
+  CosplayProfiles: undefined;
   AnimeCreate: { genre?: string } | undefined;
   AnimeEdit: { slug: string };
   AnimeHistory: { slug: string };
