@@ -2,6 +2,7 @@ import { translate } from "@/i18n/runtime";
 
 /** Mobile-local genre pills — mirrors web ANIME_GENRES labels. */
 export const MOBILE_ANIME_GENRES = [
+  { id: "COSPLAY", labelKey: "m.anime.cosplay" },
   { id: "ACTION", labelKey: "m.anime.action" },
   { id: "ROMANCE", labelKey: "m.anime.romance" },
   { id: "COMEDY", labelKey: "m.anime.comedy" },

@@ -14,7 +14,6 @@ export const PUBLIC_SITEMAP_PATHS = [
   "/rankings",
   "/discover",
   "/cosplay",
-  "/cosplay/profiles",
   "/works",
   "/flowers",
   "/money",

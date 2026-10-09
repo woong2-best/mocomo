@@ -1,9 +1,5 @@
 "use client";
 
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { AnimeGenre } from "@prisma/client";
 import { genreToParam } from "@/lib/anime-genres";
@@ -13,12 +9,9 @@ import { useLocale } from "@/components/providers/locale-provider";
 
 type Props = {
   active: AnimeGenre | null;
-  /** Special pill that navigates off-hub (cosplay). */
-  showCosplay?: boolean;
-  cosplayActive?: boolean;
 };
 
-export function AnimeGenreBar({ active, showCosplay = true, cosplayActive = false }: Props) {
+export function AnimeGenreBar({ active }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { locale } = useLocale();
@@ -37,27 +30,14 @@ export function AnimeGenreBar({ active, showCosplay = true, cosplayActive = fals
       <div className="flex flex-wrap gap-2">
         <GenrePill
           label="ALL"
-          active={!active && !cosplayActive}
+          active={!active}
           onClick={() => navigate(null)}
         />
-        {showCosplay ? (
-          <Link
-            href="/cosplay/profiles"
-            className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-              cosplayActive
-                ? "border-pink-600 bg-pink-600 text-white"
-                : "border-pink-600/50 bg-pink-600/15 text-foreground hover:bg-pink-600/25"
-            )}
-          >
-            Cos
-          </Link>
-        ) : null}
         {genres.map((g) => (
           <GenrePill
             key={g.id}
             label={g.label}
-            active={!cosplayActive && active === g.id}
+            active={active === g.id}
             onClick={() => navigate(g.id)}
           />
         ))}

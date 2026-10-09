@@ -6,6 +6,7 @@ export const ANIME_GENRES: {
   emoji: string;
   description: string;
 }[] = [
+  { id: "COSPLAY", label: "Cosplay", emoji: "📷", description: "Costume play, characters, and conventions" },
   { id: "ACTION", label: "Action", emoji: "⚔️", description: "High-energy battles and spectacle" },
   { id: "ROMANCE", label: "Romance", emoji: "💕", description: "Stories about love and relationships" },
   { id: "COMEDY", label: "Comedy", emoji: "😂", description: "Laughs and lighthearted fun" },

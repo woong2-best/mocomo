@@ -97,7 +97,7 @@ function titleForPath(
   if (pathname.match(/^\/anime\/[^/]+\/edit$/)) return t("ui.edit_article");
   if (pathname === "/anime/new") return t("anime.addNew");
   if (pathname.startsWith("/anime/")) return t("nav.anime");
-  if (pathname === "/cosplay/profiles") return t("anime.cosplayerHubTitle");
+  if (pathname === "/cosplay/profiles") return t("nav.anime");
   if (pathname === "/cosplay/board/new") return t("nav.compose");
   if (pathname === "/market/adult-verify") return t("ui.adult_verification");
   if (pathname === "/market/verify") return t("ui.identity_verification");

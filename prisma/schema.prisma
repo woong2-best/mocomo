@@ -3669,6 +3669,7 @@ enum AnimeGenre {
   SUPERNATURAL
   DRAMA
   ADVENTURE
+  COSPLAY
   OTHER
 }
 
