@@ -10,8 +10,10 @@ import Link from "next/link";
 import type { LiveStreamCategory } from "@prisma/client";
 import {
   Ban,
+  Eye,
   Loader2,
   Pin,
+  Send,
   Radio,
   Search,
   Shield,
@@ -20,8 +22,8 @@ import {
   Users,
   Video,
 } from "lucide-react";
-import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { BroadcastRoleBadge } from "@/components/live/broadcast-role-badge";
+import { LiveRoomPageShell } from "@/components/live/live-room-page-shell";
 import { ObsChatUrlCopy } from "@/components/live/obs-chat-url-copy";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -131,6 +133,7 @@ export function LiveStudioPanel({
   const [actionError, setActionError] = useState("");
   const [actionMsg, setActionMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<"director" | "chat">("director");
 
   const reloadLists = useCallback(async () => {
     setListsLoading(true);
@@ -239,38 +242,17 @@ export function LiveStudioPanel({
     void reloadLists();
   }
 
-  return (
-    <div className="live-page-shell w-full max-w-none space-y-4 sm:space-y-5 pb-nav lg:pb-6 min-h-[calc(100dvh-var(--header-h))]">
-      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-5">
-        <header className="live-hero flex flex-wrap items-center gap-3 sm:gap-4">
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border-2 border-folk-terracotta/30 bg-folk-terracotta/15 text-folk-terracotta shrink-0">
-            <Radio className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="folk-tag mb-1.5 w-fit">{t("live.studio.tag")}</p>
-            <h1 className="text-xl sm:text-2xl font-display font-bold text-folk-cobalt folk-chunky-text">
-              {t("live.studio.title")}
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t("live.studio.desc")}</p>
-            <Link
-              href="/live"
-              className="mt-2 inline-flex text-xs font-semibold text-muted-foreground hover:text-folk-cobalt transition-colors"
-            >
-              {t("live.studio.backToLive")}
-            </Link>
-          </div>
-          {(firstPartyOn || externalOn) && (
-            <Button asChild className="rounded-xl gap-2 shrink-0">
-              <Link href={goLiveHref}>
-                <Video className="h-4 w-4" />
-                {t("live.studio.goLive")}
-              </Link>
-            </Button>
-          )}
-        </header>
-
-        <FolkBrushDivider className="opacity-50" />
-
+  const directorPanel = (
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-background/95">
+          <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-folk-cobalt/5 px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-xs font-bold tracking-wide text-folk-cobalt">
+                {t("live.director.title")}
+              </p>
+              <p className="text-[10px] text-muted-foreground">{t("live.director.subtitle")}</p>
+            </div>
+          </header>
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-2.5">
         <ObsChatUrlCopy variant="full" initialUrls={overlayUrls} />
 
         {actionError ? (
@@ -284,7 +266,7 @@ export function LiveStudioPanel({
           </p>
         ) : null}
 
-        <section className="folk-card p-4 sm:p-5 space-y-4">
+        <section className="rounded-xl border border-border/70 bg-card/80 p-3 sm:p-4 space-y-4">
           <div className="flex items-center gap-2">
             <Type className="h-4 w-4 text-folk-terracotta" />
             <h2 className="font-display font-bold text-folk-cobalt">{t("live.studio.basicSettings")}</h2>
@@ -397,8 +379,7 @@ export function LiveStudioPanel({
           ) : null}
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <section className="folk-card p-4 sm:p-5 space-y-4">
+        <section className="rounded-xl border border-border/70 bg-card/80 p-3 sm:p-4 space-y-4">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-folk-cobalt" />
               <h2 className="font-display font-bold text-folk-cobalt">{t("live.studio.staffTitle")}</h2>
@@ -492,7 +473,7 @@ export function LiveStudioPanel({
             )}
           </section>
 
-          <section className="folk-card p-4 sm:p-5 space-y-4">
+        <section className="rounded-xl border border-border/70 bg-card/80 p-3 sm:p-4 space-y-4">
             <div className="flex items-center gap-2">
               <Ban className="h-4 w-4 text-folk-terracotta" />
               <h2 className="font-display font-bold text-folk-cobalt">{t("live.studio.bansTitle")}</h2>
@@ -590,9 +571,122 @@ export function LiveStudioPanel({
                 ))}
               </div>
             )}
-          </section>
+        </section>
+          </div>
+        </div>
+  );
+
+  const chatOfflinePanel = (
+    <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background">
+      <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-muted/30 px-3 py-2.5">
+        <span className="text-sm font-semibold">{t("live.chat.title")}</span>
+        <span className="flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
+          <Users className="h-3.5 w-3.5" />
+          0
+        </span>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 text-center">
+        <p className="text-xs text-muted-foreground">{t("live.studio.chatOffline")}</p>
+      </div>
+      <div className="shrink-0 border-t border-border/60 p-2.5">
+        <div className="flex gap-2">
+          <Input
+            disabled
+            placeholder={t("live.sdp6wzr")}
+            className="h-9 flex-1 rounded-lg text-sm"
+          />
+          <Button
+            size="sm"
+            disabled
+            className="h-9 shrink-0 rounded-lg bg-folk-terracotta px-3 hover:bg-folk-terracotta/90"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <LiveRoomPageShell isHost>
+      <div className="flex w-full flex-col lg:h-[calc(100dvh-4.75rem)]">
+        <header className="sticky top-0 z-20 flex shrink-0 flex-wrap items-center gap-2 border-b border-border/60 bg-background/95 py-2 backdrop-blur-sm sm:gap-3">
+          <span className="flex items-center gap-1 rounded-md bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-200">
+            <Radio className="h-3 w-3" />
+            {t("live.studio.offline")}
+          </span>
+          <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium">
+            {broadcastCategoryLabel(locale, category)}
+          </span>
+          <h1 className="min-w-0 flex-1 truncate text-base font-bold sm:text-lg">
+            {t("live.studio.title")}
+          </h1>
+          <span className="flex items-center gap-1 text-sm tabular-nums text-muted-foreground">
+            <Eye className="h-4 w-4" />
+            0
+          </span>
+          {(firstPartyOn || externalOn) && (
+            <Button asChild size="sm" className="gap-1 rounded-xl">
+              <Link href={goLiveHref}>
+                <Video className="h-4 w-4" />
+                {t("live.studio.goLive")}
+              </Link>
+            </Button>
+          )}
+        </header>
+
+        <div className="mt-2 flex shrink-0 gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 lg:hidden">
+          <button
+            type="button"
+            className={cn(
+              "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold",
+              tab === "director" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+            )}
+            onClick={() => setTab("director")}
+          >
+            {t("live.director.tabDirector")}
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold",
+              tab === "chat" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+            )}
+            onClick={() => setTab("chat")}
+          >
+            {t("live.director.tabChat")}
+          </button>
+        </div>
+
+        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 items-stretch gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.95fr)_minmax(300px,0.9fr)]">
+          <section className="min-w-0">
+            <div className="relative aspect-video w-full min-h-[220px] overflow-hidden rounded-xl bg-black ring-1 ring-border/40 lg:aspect-auto lg:h-full lg:min-h-0">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
+                <Radio className="h-10 w-10 text-white/25" />
+                <p className="text-sm font-semibold text-white/50">{t("live.studio.offline")}</p>
+                <p className="text-xs text-white/35">{t("live.studio.previewHint")}</p>
+              </div>
+            </div>
+          </section>
+
+          <aside
+            className={cn(
+              "min-h-[360px] lg:h-full lg:min-h-0",
+              tab === "director" ? "block" : "hidden lg:block",
+            )}
+          >
+            {directorPanel}
+          </aside>
+          <aside
+            className={cn(
+              "h-[min(70vh,560px)] lg:h-full",
+              tab === "chat" ? "block" : "hidden lg:block",
+            )}
+          >
+            {chatOfflinePanel}
+          </aside>
+        </div>
+      </div>
+    </LiveRoomPageShell>
   );
 }
