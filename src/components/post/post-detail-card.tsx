@@ -8,7 +8,6 @@ import type { PostDetailOk } from "@/lib/post-queries";
 import { PostPollCard } from "@/components/post/post-poll-card";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
-import { PostCollabManageDialog } from "@/components/post/post-collab-manage-dialog";
 import { PostCollabActions } from "@/components/post/post-collab-actions";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { PostDetailMedia } from "@/components/post/post-detail-media";
@@ -84,7 +83,6 @@ export function PostDetailCard({
             />
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {isOwner && !post.isAnonymous && <PostCollabManageDialog postId={post.id} />}
             <PostOwnerMenu
               postId={post.id}
               isPinned={post.isPinned}
