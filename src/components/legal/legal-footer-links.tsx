@@ -27,7 +27,7 @@ export function LegalFooterLinks({ className = "" }: { className?: string }) {
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4">
         <Link
           href="/contribution-tower"
           className="shrink-0 justify-self-start font-bold text-[#1B3A6B] hover:underline dark:text-[#F5F0E6]"
@@ -44,12 +44,6 @@ export function LegalFooterLinks({ className = "" }: { className?: string }) {
             </span>
           ))}
         </nav>
-        <Link
-          href="/events/new"
-          className="shrink-0 justify-self-end font-serif text-lg font-bold tracking-wide text-[#e8cb8c] hover:text-[#f6e2b4]"
-        >
-          Ad
-        </Link>
       </div>
       <LegalEntityFooterNotice />
     </div>
