@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LocaleSettingsForm } from "@/components/settings/locale-settings-form";
+import { PostTranslateSettingsForm } from "@/components/settings/post-translate-settings-form";
 import { PostsLockSettingsForm } from "@/components/settings/posts-lock-settings-form";
 import { WatermarkSettingsForm } from "@/components/settings/watermark-settings-form";
 import { isWatermarkPlacement } from "@/lib/media-watermark";
@@ -34,6 +35,7 @@ export default async function SettingsPage() {
         passwordHash: true,
         premiumTier: true,
         locale: true,
+        postTranslateInto: true,
         countryCode: true,
         timeZone: true,
         postsLocked: true,
@@ -55,6 +57,15 @@ export default async function SettingsPage() {
         initialCountryCode={user?.countryCode ?? "US"}
         initialTimeZone={user?.timeZone ?? "UTC"}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.translatePostsTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PostTranslateSettingsForm initialValue={user?.postTranslateInto ?? null} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

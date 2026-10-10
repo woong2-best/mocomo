@@ -238,6 +238,8 @@ model User {
   /** earned MOCO 잔액 기준 정산 등급 — 월간 정산·후원 수령 시 실시간 갱신 */
   earnedMocoTier       SupportTierLevel @default(SEED)
   locale        String    @default("ko")
+  /** Post UGC translation target. null = unset (browser default). "off" = don't translate. */
+  postTranslateInto String?
   countryCode   String    @default("KR")
   /** 중고거래 서비스 지역 (동네) — countryCode와 함께 로컬 이웃 매칭 */
   usedServiceRegion String?

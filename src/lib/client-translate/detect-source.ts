@@ -7,6 +7,11 @@ import {
   nllbToLocale,
   type NllbCode,
 } from "@/lib/client-translate/nllb-codes";
+import {
+  POST_TRANSLATE_OFF,
+  resolveOpusModel,
+  type PostTranslateInto,
+} from "@/lib/client-translate/opus-mt-pairs";
 import { isTextWorthTranslating } from "@/lib/translate-text-filter";
 
 function stripNoise(text: string): string {
@@ -52,8 +57,19 @@ export function detectSourceLocale(text: string): Locale | null {
   return nllbToLocale(nllb);
 }
 
-export function needsClientTranslation(text: string, viewerLocale: Locale): boolean {
-  const source = detectSourceNllb(text);
-  const target = localeToNllb(viewerLocale);
-  return Boolean(source && source !== target);
+export function detectSourceOpusLang(text: string): string | null {
+  const nllb = detectSourceNllb(text);
+  if (!nllb) return null;
+  const locale = nllbToLocale(nllb);
+  if (!locale) return null;
+  if (locale === "zh-TW") return "zh";
+  if (locale === "pt-BR") return "pt";
+  return locale;
+}
+
+export function needsClientTranslation(text: string, target: PostTranslateInto): boolean {
+  if (target === POST_TRANSLATE_OFF) return false;
+  const source = detectSourceOpusLang(text);
+  if (!source || source === target) return false;
+  return Boolean(resolveOpusModel(source, target));
 }

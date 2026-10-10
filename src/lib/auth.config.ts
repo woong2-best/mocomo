@@ -65,6 +65,8 @@ export const authConfig = {
         session.user.role = token.role as string;
         session.user.premiumTier = token.premiumTier as string;
         session.user.locale = token.locale as string;
+        session.user.postTranslateInto =
+          typeof token.postTranslateInto === "string" ? token.postTranslateInto : null;
         session.user.countryCode = token.countryCode as string;
         session.user.timeZone = token.timeZone as string;
         session.user.isBanned = Boolean(token.isBanned);

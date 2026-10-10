@@ -392,6 +392,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email?: string | null;
             premiumTier?: string;
             locale?: string;
+            postTranslateInto?: string | null;
             countryCode?: string;
             timeZone?: string;
             supportTierSent?: string;
@@ -439,6 +440,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             passwordHash: true,
             premiumTier: true,
             locale: true,
+            postTranslateInto: true,
             countryCode: true,
             timeZone: true,
             supportTierSent: true,
@@ -454,6 +456,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.role = effectiveRole(dbUser);
           token.premiumTier = dbUser.premiumTier;
           token.locale = dbUser.locale;
+          token.postTranslateInto = dbUser.postTranslateInto;
           token.countryCode = dbUser.countryCode;
           token.timeZone = dbUser.timeZone;
           token.supportTierSent = dbUser.supportTierSent;

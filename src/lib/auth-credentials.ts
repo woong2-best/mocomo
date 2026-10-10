@@ -23,6 +23,7 @@ export const CREDENTIALS_JWT_USER_SELECT = {
   role: true,
   premiumTier: true,
   locale: true,
+  postTranslateInto: true,
   countryCode: true,
   timeZone: true,
   supportTierSent: true,
@@ -45,6 +46,7 @@ export type CredentialsJwtUser = Pick<
   | "role"
   | "premiumTier"
   | "locale"
+  | "postTranslateInto"
   | "countryCode"
   | "timeZone"
   | "supportTierSent"
@@ -65,6 +67,7 @@ export function toCredentialsAuthUser(user: CredentialsJwtUser) {
     role,
     premiumTier: user.premiumTier,
     locale: user.locale,
+    postTranslateInto: user.postTranslateInto,
     countryCode: user.countryCode,
     timeZone: user.timeZone,
     supportTierSent: user.supportTierSent,
@@ -92,6 +95,7 @@ export function hydrateTokenFromCredentialsUser(
     email?: string | null;
     premiumTier?: string;
     locale?: string;
+    postTranslateInto?: string | null;
     countryCode?: string;
     timeZone?: string;
     supportTierSent?: string;
@@ -108,6 +112,7 @@ export function hydrateTokenFromCredentialsUser(
   token.role = user.role;
   token.premiumTier = user.premiumTier;
   token.locale = user.locale;
+  token.postTranslateInto = user.postTranslateInto;
   token.countryCode = user.countryCode;
   token.timeZone = user.timeZone;
   token.supportTierSent = user.supportTierSent;

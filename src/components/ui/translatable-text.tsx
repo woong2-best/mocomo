@@ -8,6 +8,7 @@ import { Languages } from "lucide-react";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { LinkPreviewCard } from "@/components/ui/link-preview-card";
 import { useLocale } from "@/components/providers/locale-provider";
+import { usePostTranslate } from "@/components/providers/post-translate-provider";
 import { useAutoClientTranslation } from "@/hooks/use-auto-client-translate";
 import { needsClientTranslation } from "@/lib/client-translate/detect-source";
 import { extractFirstHttpUrl, isUrlOnlyContent } from "@/lib/link-preview-shared";
@@ -29,7 +30,11 @@ export function TranslatableText({
   showLinkPreview?: boolean;
 }) {
   const { locale, t } = useLocale();
-  const showTranslate = useMemo(() => needsClientTranslation(text, locale), [text, locale]);
+  const { preference } = usePostTranslate();
+  const showTranslate = useMemo(
+    () => needsClientTranslation(text, preference),
+    [text, preference]
+  );
   const hasPreviewUrl = useMemo(
     () => showLinkPreview && Boolean(extractFirstHttpUrl(text)),
     [showLinkPreview, text]
@@ -45,7 +50,7 @@ export function TranslatableText({
     failed,
     showOriginal,
     setShowOriginal,
-  } = useAutoClientTranslation(text, locale);
+  } = useAutoClientTranslation(text, preference);
 
   const [previewReady, setPreviewReady] = useState(false);
 

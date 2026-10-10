@@ -1,7 +1,10 @@
-import type { Locale } from "@/lib/i18n/config";
 import { getCachedTranslation, setCachedTranslation } from "@/lib/client-translate/cache";
-import { detectSourceNllb } from "@/lib/client-translate/detect-source";
-import { localeToNllb, nllbToLocale, type NllbCode } from "@/lib/client-translate/nllb-codes";
+import { detectSourceNllb, detectSourceOpusLang } from "@/lib/client-translate/detect-source";
+import { type NllbCode } from "@/lib/client-translate/nllb-codes";
+import {
+  POST_TRANSLATE_OFF,
+  resolveOpusModel,
+} from "@/lib/client-translate/opus-mt-pairs";
 import {
   joinTranslatedSegments,
   splitTranslatableSegments,
@@ -13,16 +16,6 @@ import { isTextWorthTranslating } from "@/lib/translate-text-filter";
 export const CLIENT_TRANSLATE_MODEL = "Helsinki-NLP/Opus-MT";
 export const MAX_TRANSLATE_CHARS = 2000;
 const CHUNK_CHARS = 380;
-
-const OPUS_MUL_EN = "Xenova/opus-mt-mul-en";
-
-/** Direct Opus-MT pair models hosted as Xenova ONNX. */
-const OPUS_PAIR_MODELS: Record<string, string> = {
-  "ko:en": "Xenova/opus-mt-ko-en",
-  "ja:en": "Xenova/opus-mt-ja-en",
-  "zh:en": "Xenova/opus-mt-zh-en",
-  "zh-TW:en": "Xenova/opus-mt-zh-en",
-};
 
 type TranslationPipeline = (text: string) => Promise<{ translation_text: string }[]>;
 
@@ -45,16 +38,6 @@ export function subscribeTranslationLoad(cb: ProgressCallback): () => void {
 
 export function getTranslationLoadState(): { status: typeof loadStatus; progress: number } {
   return { status: loadStatus, progress: loadProgress };
-}
-
-function resolveOpusModel(sourceLocale: Locale | null, targetLocale: Locale): string | null {
-  if (sourceLocale && sourceLocale === targetLocale) return null;
-  if (sourceLocale) {
-    const pair = OPUS_PAIR_MODELS[`${sourceLocale}:${targetLocale}`];
-    if (pair) return pair;
-  }
-  if (targetLocale === "en") return OPUS_MUL_EN;
-  return null;
 }
 
 async function createPipeline(modelId: string): Promise<TranslationPipeline> {
@@ -186,24 +169,24 @@ async function translatePlainText(
 
 export type ClientTranslateResult = {
   translated: string;
-  sourceLang: Locale | null;
+  sourceLang: string | null;
   sourceNllb: NllbCode;
 };
 
 export async function translateTextClientSide(
   text: string,
-  targetLocale: Locale
+  targetLang: string
 ): Promise<ClientTranslateResult | null> {
   const trimmed = text.trim();
   if (!trimmed || !isTextWorthTranslating(trimmed)) return null;
+  if (!targetLang || targetLang === POST_TRANSLATE_OFF) return null;
 
   const slice = trimmed.length > MAX_TRANSLATE_CHARS ? trimmed.slice(0, MAX_TRANSLATE_CHARS) : trimmed;
   const sourceNllb = detectSourceNllb(slice);
-  const targetNllb = localeToNllb(targetLocale);
-  if (!sourceNllb || sourceNllb === targetNllb) return null;
+  const sourceLang = detectSourceOpusLang(slice);
+  if (!sourceNllb || !sourceLang || sourceLang === targetLang) return null;
 
-  const sourceLang = nllbToLocale(sourceNllb);
-  const modelId = resolveOpusModel(sourceLang, targetLocale);
+  const modelId = resolveOpusModel(sourceLang, targetLang);
   if (!modelId) return null;
 
   return enqueueTranslation(async () => {
@@ -227,7 +210,7 @@ export async function translateTextClientSide(
         translator,
         segment.value,
         sourceNllb,
-        targetNllb
+        targetLang
       );
       translatedParts.set(textIndex, translated);
       textIndex += 1;

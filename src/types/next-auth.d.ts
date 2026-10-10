@@ -8,6 +8,7 @@ declare module "next-auth" {
     role?: string;
     premiumTier?: string;
     locale?: string;
+    postTranslateInto?: string | null;
     countryCode?: string;
     timeZone?: string;
     supportTierSent?: SupportTierLevel;
@@ -24,6 +25,7 @@ declare module "next-auth" {
       role?: string;
       premiumTier?: string;
       locale?: string;
+      postTranslateInto?: string | null;
       countryCode?: string;
       timeZone?: string;
       isBanned?: boolean;
@@ -47,6 +49,7 @@ declare module "next-auth/jwt" {
     role?: string;
     premiumTier?: string;
     locale?: string;
+    postTranslateInto?: string | null;
     countryCode?: string;
     timeZone?: string;
     isBanned?: boolean;

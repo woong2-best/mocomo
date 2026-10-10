@@ -8,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Locale } from "@/lib/i18n/config";
 import type { ClientTranslateResult } from "@/lib/client-translate/engine";
 
 type LoadState = {
@@ -19,7 +18,7 @@ type LoadState = {
 type ClientTranslationContextValue = {
   loadState: LoadState;
   warmUp: () => void;
-  translate: (text: string, targetLocale: Locale) => Promise<ClientTranslateResult | null>;
+  translate: (text: string, targetLang: string) => Promise<ClientTranslateResult | null>;
 };
 
 const ClientTranslationContext = createContext<ClientTranslationContextValue | null>(null);
@@ -47,7 +46,7 @@ export function ClientTranslationProvider({ children }: { children: ReactNode })
       });
   }, []);
 
-  const translate = useCallback(async (text: string, targetLocale: Locale) => {
+  const translate = useCallback(async (text: string, targetLang: string) => {
     const engine = await import("@/lib/client-translate/engine");
     const unsub = engine.subscribeTranslationLoad((event) => {
       setLoadState({
@@ -56,7 +55,7 @@ export function ClientTranslationProvider({ children }: { children: ReactNode })
       });
     });
     try {
-      return await engine.translateTextClientSide(text, targetLocale);
+      return await engine.translateTextClientSide(text, targetLang);
     } finally {
       unsub();
     }

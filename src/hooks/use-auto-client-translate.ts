@@ -1,21 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Locale } from "@/lib/i18n/config";
 import { needsClientTranslation } from "@/lib/client-translate/detect-source";
 import { useClientTranslationOptional } from "@/components/providers/client-translation-provider";
+import type { PostTranslateInto } from "@/lib/client-translate/opus-mt-pairs";
 
-export function useAutoClientTranslation(text: string, locale: Locale) {
+export function useAutoClientTranslation(text: string, target: PostTranslateInto) {
   const clientTranslation = useClientTranslationOptional();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
   const [translated, setTranslated] = useState<string | null>(null);
-  const [sourceLang, setSourceLang] = useState<Locale | null>(null);
+  const [sourceLang, setSourceLang] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
 
-  const shouldTranslate = needsClientTranslation(text, locale);
+  const shouldTranslate = needsClientTranslation(text, target);
 
   useEffect(() => {
     if (!shouldTranslate) return;
@@ -45,11 +45,10 @@ export function useAutoClientTranslation(text: string, locale: Locale) {
     setFailed(false);
 
     void clientTranslation
-      .translate(text, locale)
+      .translate(text, target)
       .then((result) => {
         if (cancelled) return;
         if (!result?.translated) {
-          setFailed(true);
           return;
         }
         setTranslated(result.translated);
@@ -70,7 +69,7 @@ export function useAutoClientTranslation(text: string, locale: Locale) {
     visible,
     clientTranslation,
     text,
-    locale,
+    target,
     translated,
     loading,
     failed,
@@ -83,7 +82,7 @@ export function useAutoClientTranslation(text: string, locale: Locale) {
     setFailed(false);
     setShowOriginal(false);
     setVisible(false);
-  }, [text, locale]);
+  }, [text, target]);
 
   const displayText =
     shouldTranslate && translated && !showOriginal ? translated : text;

@@ -58,11 +58,11 @@ export function needsTranslation(text: string, userLocale: Locale): boolean {
   return Boolean(detected && detected !== userLocale);
 }
 
-export function sourceLanguageLabel(source: Locale, uiLocale: Locale): string {
+export function sourceLanguageLabel(source: string, uiLocale: Locale): string {
   const table = SOURCE_LANGUAGE_LABELS[uiLocale] ?? SOURCE_LANGUAGE_LABELS.en;
   return (
-    table?.[source] ??
-    SOURCE_LANGUAGE_LABELS.en?.[source] ??
+    table?.[source as Locale] ??
+    SOURCE_LANGUAGE_LABELS.en?.[source as Locale] ??
     displayLanguageName(source, uiLocale)
   );
 }
