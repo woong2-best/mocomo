@@ -6,7 +6,6 @@ const t = createTranslator("en");
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import type { SupportTierLevel } from "@prisma/client";
 import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,23 +15,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, ChevronDown, MessageSquare, Users } from "lucide-react";
-import { OreIcon } from "@/components/support/ore-icon";
-import { getTierInfo } from "@/lib/tiers";
+import { Settings, LogOut, ChevronDown, Users } from "lucide-react";
 import { AccountSwitcherDialog } from "@/components/auth/account-switcher-dialog";
 import { useLocale } from "@/components/providers/locale-provider";
 
-
-export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTierLevel }) {
+export function ProfileMenu() {
   const { data: session } = useSession();
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const tierInfo = getTierInfo(displayTier);
 
   if (!session?.user) return null;
 
-  const username = session.user.username || session.user.id;
-  const displayName = session.user.name || username;
+  const displayName = session.user.name || session.user.username || session.user.id;
 
   const handleSignOut = () => {
     const userId = session.user.id;
@@ -67,29 +61,9 @@ export function ProfileMenu({ displayTier = "SEED" }: { displayTier?: SupportTie
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/messages">
-              <MessageSquare className="h-4 w-4 shrink-0" />
-              {t("nav.messages")}
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={`/u/${username}`}>
-              <User className="h-4 w-4 shrink-0" />
-              {t("common.myProfile")}
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
             <Link href="/settings">
               <Settings className="h-4 w-4 shrink-0" />
               {t("nav.settings")}
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link
-              href="/support"
-              aria-label={t("profile.tierAria", { tier: tierInfo.label })}
-            >
-              <OreIcon tier={displayTier} size={16} />
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

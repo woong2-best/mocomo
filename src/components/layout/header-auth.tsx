@@ -4,13 +4,9 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import Link from "next/link";
-import type { SupportTierLevel } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { NotificationBellLink } from "@/components/notifications/notification-bell-link";
-import { OreIcon } from "@/components/support/ore-icon";
-import { resolveProfileDisplayTier } from "@/lib/settlement-moco/balance";
-import { getTierInfo, SUPPORT_TIERS_PAGE_PATH } from "@/lib/tiers";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useAuthReady } from "@/hooks/use-auth-ready";
 
@@ -44,29 +40,10 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
   }
 
   if (authenticated && session?.user) {
-    const displayTier = resolveProfileDisplayTier(
-      (session.user.supportTierSent ?? "SEED") as SupportTierLevel,
-      (session.user.earnedMocoTier ?? "SEED") as SupportTierLevel
-    );
-    const tierInfo = getTierInfo(displayTier);
-
     return (
       <>
         <NotificationBellLink />
-        {!compact && (
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            className="rounded-xl hidden sm:inline-flex"
-            aria-label={t("support.s1kqb204", { v0: tierInfo.labelKo, v1: tierInfo.label })}
-          >
-            <Link href={SUPPORT_TIERS_PAGE_PATH}>
-              <OreIcon tier={displayTier} size={20} />
-            </Link>
-          </Button>
-        )}
-        <ProfileMenu displayTier={displayTier} />
+        <ProfileMenu />
       </>
     );
   }
