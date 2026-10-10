@@ -374,10 +374,6 @@ export function FeedVideoViewer({
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <p className="pointer-events-none font-display text-sm font-bold tracking-wide text-white/90 drop-shadow">
-          Reels
-        </p>
-        <span className="w-10" aria-hidden />
       </header>
 
       <div
