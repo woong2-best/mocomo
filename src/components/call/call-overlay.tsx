@@ -184,7 +184,6 @@ export function CallOverlay({
   cameraChecking,
   onMicCheck,
   onCameraCheck,
-  peerCallSlot,
   onAccept,
   onDecline,
   onCancel,
@@ -200,7 +199,6 @@ export function CallOverlay({
   cameraChecking: boolean;
   onMicCheck: () => void;
   onCameraCheck?: () => void;
-  peerCallSlot?: React.ReactNode;
   onAccept: () => void;
   onDecline: () => void;
   onCancel: () => void;
@@ -217,48 +215,35 @@ export function CallOverlay({
     (callState.phase === "active" || callState.phase === "outgoing") && isVideo
   );
 
-  if (callState.phase === "active" && peerCallSlot && minimized) {
+  // Media stays in CallProvider's stable host. This chrome must not remount WebRTC.
+  if (callState.phase === "active" && minimized) {
     const name = callState.peer.username || t("call.s10ugv");
     return (
-      <>
-        <div className="pointer-events-none fixed bottom-0 left-0 h-px w-px overflow-hidden [&_*]:pointer-events-none" aria-hidden>
-          {peerCallSlot}
-        </div>
-        <div className="fixed inset-x-3 bottom-24 z-[220] flex items-center gap-3 rounded-full bg-zinc-900/95 px-3 py-2 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
-          <button
-            type="button"
-            onClick={onExpand}
-            className="flex min-w-0 flex-1 items-center gap-3 text-left"
-            aria-label={t("call.sv97sbf")}
-          >
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" />
-            <span className="truncate text-sm font-semibold">{name}</span>
-            <span className="shrink-0 text-xs text-white/60">{t("call.srbmgkw")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={onHangup}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500"
-            aria-label={t("call.s1to4lew")}
-          >
-            <PhoneOff className="h-5 w-5" />
-          </button>
-        </div>
-      </>
+      <div className="fixed inset-x-3 bottom-24 z-[220] flex items-center gap-3 rounded-full bg-zinc-900/95 px-3 py-2 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={onExpand}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          aria-label={t("call.sv97sbf")}
+        >
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400" />
+          <span className="truncate text-sm font-semibold">{name}</span>
+          <span className="shrink-0 text-xs text-white/60">{t("call.srbmgkw")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={onHangup}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500"
+          aria-label={t("call.s1to4lew")}
+        >
+          <PhoneOff className="h-5 w-5" />
+        </button>
+      </div>
     );
   }
 
-  if (callState.phase === "active" && peerCallSlot) {
-    return (
-      <div className="fixed inset-0 z-[200] bg-black">
-        <div className="h-full w-full">{peerCallSlot}</div>
-        {error && (
-          <p className="absolute inset-x-4 top-safe mt-14 z-30 rounded-xl bg-red-500/20 px-3 py-2 text-center text-xs text-red-200">
-            {error}
-          </p>
-        )}
-      </div>
-    );
+  if (callState.phase === "active") {
+    return null;
   }
 
   const peer = callState.phase === "preparing" ? callState.peer : callState.peer;

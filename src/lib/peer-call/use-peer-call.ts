@@ -122,6 +122,7 @@ export function usePeerCall({
   const socketRef = useRef(socket);
   const answeredRef = useRef(false);
   const natFailedRef = useRef(false);
+  const tearingDownRef = useRef(false);
   const initialSignalsRef = useRef(initialSignals);
   initialSignalsRef.current = initialSignals;
 
@@ -158,6 +159,7 @@ export function usePeerCall({
   }, []);
 
   const cleanup = useCallback(() => {
+    tearingDownRef.current = true;
     const pc = pcRef.current;
     pcRef.current = null;
     creatingPcRef.current = null;
@@ -266,7 +268,7 @@ export function usePeerCall({
       };
 
       const failNatBlocked = () => {
-        if (natFailedRef.current || pcRef.current !== pc) return;
+        if (tearingDownRef.current || natFailedRef.current || pcRef.current !== pc) return;
         natFailedRef.current = true;
         for (const track of localStreamRef.current?.getTracks() ?? []) {
           track.stop();
@@ -422,6 +424,7 @@ export function usePeerCall({
     const epoch = ++epochRef.current;
     answeredRef.current = false;
     natFailedRef.current = false;
+    tearingDownRef.current = false;
     makingOfferRef.current = false;
     appliedSignalsRef.current = new Set();
     pendingIceRef.current = [];

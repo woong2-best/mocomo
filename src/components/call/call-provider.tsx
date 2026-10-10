@@ -7,6 +7,7 @@ const t = createTranslator("en");
 import { errorText } from "@/lib/i18n/error-text";
 import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { Socket } from "socket.io-client";
 import { acceptCall, declineCall, endCall, initiateCall } from "@/actions/call";
@@ -92,6 +93,7 @@ function syncPollIntervalMs(phase: ActiveCallState["phase"], hidden: boolean) {
 
 function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const userId = session?.user?.id;
   const [callState, setCallState] = useState<ActiveCallState>({ phase: "idle" });
   const [error, setError] = useState("");
@@ -643,6 +645,15 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
     }
   }, [callState.phase === "incoming" ? callState.call.id : null]);
 
+  const prevPathnameRef = useRef(pathname);
+  useEffect(() => {
+    if (prevPathnameRef.current === pathname) return;
+    prevPathnameRef.current = pathname;
+    if (callStateRef.current.phase === "active") {
+      setCallMinimized(true);
+    }
+  }, [pathname]);
+
   const value = useMemo(() => ({ startCall }), [startCall]);
   const busy = callState.phase !== "idle";
   const connectPeer = isCallPhase(callState) && callState.phase === "active";
@@ -663,6 +674,48 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       <CallBusyContext.Provider value={busy}>
         {children}
         <CallNatBlockedDialog open={natBlockedOpen} onClose={() => setNatBlockedOpen(false)} />
+        {connectPeer && isCallPhase(callState) && userId ? (
+          <div
+            className={
+              callMinimized
+                ? "pointer-events-none fixed bottom-0 left-0 z-[200] h-px w-px overflow-hidden [&_*]:pointer-events-none"
+                : "fixed inset-0 z-[200] bg-black"
+            }
+            aria-hidden={callMinimized || undefined}
+          >
+            <div className={callMinimized ? undefined : "h-full w-full"}>
+              <PeerCallRoom
+                key={callState.call.id}
+                callId={callState.call.id}
+                signalingRoomId={callState.call.signalingRoomId}
+                userId={userId}
+                peerUserId={callState.peer.id}
+                isCaller={callState.call.caller.id === userId}
+                video={activeVideo || isVideoCall(callState.call)}
+                enabled={connectPeer}
+                socket={socket}
+                initialSignals={earlySignalsRef.current.filter((s) => s.callId === callState.call.id)}
+                peer={callState.peer}
+                selfPeer={selfPeer}
+                phase="active"
+                onHangup={() => {
+                  hangup(callState.call.id);
+                }}
+                onRemoteHangup={() => endFromRemote(callState.call.id, "ended")}
+                onMinimize={() => setCallMinimized(true)}
+                onCallFailed={() => {
+                  setNatBlockedOpen(true);
+                  hangup(callState.call.id);
+                }}
+              />
+            </div>
+            {!callMinimized && error ? (
+              <p className="absolute inset-x-4 top-safe z-30 mt-14 rounded-xl bg-red-500/20 px-3 py-2 text-center text-xs text-red-200">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {busy && (
           <CallOverlay
             callState={callState}
@@ -685,34 +738,6 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
             }}
             minimized={callState.phase === "active" && callMinimized}
             onExpand={() => setCallMinimized(false)}
-            peerCallSlot={
-              connectPeer && isCallPhase(callState) && userId ? (
-                <PeerCallRoom
-                  key={callState.call.id}
-                  callId={callState.call.id}
-                  signalingRoomId={callState.call.signalingRoomId}
-                  userId={userId}
-                  peerUserId={callState.peer.id}
-                  isCaller={callState.call.caller.id === userId}
-                  video={activeVideo || isVideoCall(callState.call)}
-                  enabled={connectPeer}
-                  socket={socket}
-                  initialSignals={earlySignalsRef.current.filter((s) => s.callId === callState.call.id)}
-                  peer={callState.peer}
-                  selfPeer={selfPeer}
-                  phase="active"
-                  onHangup={() => {
-                    hangup(callState.call.id);
-                  }}
-                  onRemoteHangup={() => endFromRemote(callState.call.id, "ended")}
-                  onMinimize={() => setCallMinimized(true)}
-                  onCallFailed={() => {
-                    setNatBlockedOpen(true);
-                    hangup(callState.call.id);
-                  }}
-                />
-              ) : undefined
-            }
           />
         )}
       </CallBusyContext.Provider>
