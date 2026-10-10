@@ -12,6 +12,7 @@ export type SponsorCreative = {
   imageUrl: string;
   linkUrl: string;
   authorName?: string;
+  authorUsername?: string;
   authorImage?: string | null;
   excerpt?: string;
   ctaLabel?: string;
@@ -74,6 +75,7 @@ export async function listEligibleBoostedPosts(): Promise<SponsorCreative[]> {
       imageUrl,
       linkUrl: `/post/${p.id}`,
       authorName,
+      authorUsername: p.author.username,
       authorImage: p.author.image,
       excerpt,
       ctaLabel: "View post",
@@ -100,6 +102,7 @@ export async function listEligibleSponsorCreatives(): Promise<SponsorCreative[]>
         imageUrl: e.imageUrl,
         linkUrl: link,
         authorName: e.createdBy?.name || e.createdBy?.username || "MoCoMo",
+        authorUsername: e.createdBy?.username,
         authorImage: e.createdBy?.image,
         excerpt: e.title,
         ctaLabel: "Go to",

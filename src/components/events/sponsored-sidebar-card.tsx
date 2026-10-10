@@ -54,31 +54,44 @@ export function SponsoredSidebarCard({
 
   const hasSponsorEvent = event != null;
   const author = event?.authorName?.trim();
-  const authorInitial = (author || "?").slice(0, 1).toUpperCase();
+  const authorUsername = event?.authorUsername?.trim();
+  const authorInitial = (author || authorUsername || "?").slice(0, 1).toUpperCase();
+  const profileHref = authorUsername ? `/u/${authorUsername}` : null;
 
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ aspectRatio: "4 / 5" }}>
       {hasSponsorEvent ? (
-        <SponsorAdClickLink
-          linkUrl={event.linkUrl}
-          className="group relative block h-full w-full"
-          aria-label={event.title || t("sidebar.sponsored")}
-        >
-          <SponsorBlurCard imageUrl={event.imageUrl} />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent px-2.5 pb-2.5 pt-10">
-            <div className="flex items-center gap-1.5">
-              <Avatar className="h-6 w-6 ring-1 ring-white/85 ring-offset-0">
-                <AvatarImage src={event.authorImage} alt={author || t("sidebar.sponsored")} />
-                <AvatarFallback className="text-[9px]">{authorInitial}</AvatarFallback>
-              </Avatar>
-              {author ? (
-                <p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">
-                  {author}
-                </p>
-              ) : null}
-            </div>
+        <>
+          <SponsorAdClickLink
+            linkUrl={event.linkUrl}
+            className="group relative block h-full w-full"
+            aria-label={event.title || t("sidebar.sponsored")}
+          >
+            <SponsorBlurCard imageUrl={event.imageUrl} />
+          </SponsorAdClickLink>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/70 via-black/20 to-transparent px-2.5 pb-2.5 pt-10">
+            {profileHref ? (
+              <Link
+                href={profileHref}
+                className="pointer-events-auto inline-flex max-w-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                aria-label={author || authorUsername}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <AdAuthorCredit
+                  image={event.authorImage}
+                  name={author}
+                  initial={authorInitial}
+                />
+              </Link>
+            ) : (
+              <AdAuthorCredit
+                image={event.authorImage}
+                name={author}
+                initial={authorInitial}
+              />
+            )}
           </div>
-        </SponsorAdClickLink>
+        </>
       ) : (
         <Link
           href="/events/new"
@@ -90,6 +103,28 @@ export function SponsoredSidebarCard({
         </Link>
       )}
     </div>
+  );
+}
+
+function AdAuthorCredit({
+  image,
+  name,
+  initial,
+}: {
+  image?: string | null;
+  name?: string;
+  initial: string;
+}) {
+  return (
+    <span className="flex max-w-full items-center gap-1.5">
+      <Avatar className="h-6 w-6 ring-1 ring-white/85 ring-offset-0">
+        <AvatarImage src={image} alt={name || ""} />
+        <AvatarFallback className="text-[9px]">{initial}</AvatarFallback>
+      </Avatar>
+      {name ? (
+        <span className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">{name}</span>
+      ) : null}
+    </span>
   );
 }
 
