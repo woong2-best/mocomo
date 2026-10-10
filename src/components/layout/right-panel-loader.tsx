@@ -22,10 +22,7 @@ export function RightPanelLoader() {
   const [data, setData] = useState<SidebarPanelData | null>(null);
 
   useEffect(() => {
-    if (!showDefault) {
-      setData(null);
-      return;
-    }
+    if (!showDefault) return;
     let cancelled = false;
     const ac = new AbortController();
 
@@ -50,7 +47,7 @@ export function RightPanelLoader() {
       cancelled = true;
       ac.abort();
     };
-  }, [showDefault, pathname]);
+  }, [showDefault]);
 
   if (!show) return null;
   if (isProfilePath(pathname)) return <ProfileRightPanel />;

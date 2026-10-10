@@ -5,7 +5,6 @@ const t = createTranslator("en");
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useLocale } from "@/components/providers/locale-provider";
 import { localizeSidebarAdTitle } from "@/lib/sidebar-ad-i18n";
 import { sanitizeAdLink, isExternalUrl } from "@/lib/safe-link";
@@ -22,14 +21,12 @@ type FallbackAd = {
 };
 
 export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] }) {
-  const pathname = usePathname();
   const { t } = useLocale();
   const [event, setEvent] = useState<SponsorEvent | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setLoaded(false);
 
     (async () => {
       try {
@@ -41,7 +38,6 @@ export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] })
         }
       } catch {
         if (!cancelled) {
-          setEvent(null);
           setLoaded(true);
         }
       }
@@ -50,9 +46,9 @@ export function SponsorEventSpot({ fallbackAds }: { fallbackAds: FallbackAd[] })
     return () => {
       cancelled = true;
     };
-  }, [pathname]);
+  }, []);
 
-  if (!loaded) return null;
+  if (!loaded && !event) return null;
 
   if (event) {
     return (

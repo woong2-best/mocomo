@@ -34,7 +34,6 @@ export function RightPanelHydrated({
 
   useEffect(() => {
     if (!showDefault) {
-      setData(null);
       skippedInitialSidebarFetch.current = false;
       return;
     }

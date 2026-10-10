@@ -18,7 +18,8 @@ type SidebarAd = {
   ctaLabel: string | null;
 };
 
-const PLACEHOLDER_AD = "/ads/your-ad-here.jpg";
+/** Survive layout remounts so navigation does not rotate/reload the creative. */
+let sessionSponsorEvent: SponsorSpotEvent | null = null;
 
 export function SponsoredSidebarCard({
   sidebarAds: _sidebarAds,
@@ -28,29 +29,36 @@ export function SponsoredSidebarCard({
   initialSponsorEvent?: SponsorSpotEvent | null;
 }) {
   const { t } = useLocale();
-  const [event, setEvent] = useState<SponsorSpotEvent | null>(initialSponsorEvent);
+  const [event, setEvent] = useState<SponsorSpotEvent | null>(
+    () => initialSponsorEvent ?? sessionSponsorEvent
+  );
 
   useEffect(() => {
+    if (!initialSponsorEvent) return;
+    sessionSponsorEvent = initialSponsorEvent;
     setEvent(initialSponsorEvent);
   }, [initialSponsorEvent]);
 
   useEffect(() => {
+    if (sessionSponsorEvent || initialSponsorEvent) return;
+
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/events/sponsor-spot", { credentials: "same-origin" });
         const body = await res.json();
         if (!cancelled && body.event) {
+          sessionSponsorEvent = body.event;
           setEvent(body.event);
         }
       } catch {
-        /* keep SSR / empty slot */
+        /* keep empty slot */
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialSponsorEvent]);
 
   const hasSponsorEvent = event != null;
   const author = event?.authorName?.trim();
@@ -59,12 +67,12 @@ export function SponsoredSidebarCard({
   const profileHref = authorUsername ? `/u/${authorUsername}` : null;
 
   return (
-    <div className="relative h-full w-full overflow-hidden" style={{ aspectRatio: "4 / 5" }}>
+    <div className="relative h-full w-full overflow-hidden bg-muted/40">
       {hasSponsorEvent ? (
         <>
           <SponsorAdClickLink
             linkUrl={event.linkUrl}
-            className="group relative block h-full w-full"
+            className="group absolute inset-0 block"
             aria-label={event.title || t("sidebar.sponsored")}
           >
             <SponsorBlurCard imageUrl={event.imageUrl} />
@@ -95,11 +103,13 @@ export function SponsoredSidebarCard({
       ) : (
         <Link
           href="/events/new"
-          className="block h-full w-full transition-opacity hover:opacity-95"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-muted/50 text-center transition-opacity hover:opacity-95"
           aria-label="Your Ad Here"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={PLACEHOLDER_AD} alt="Your Ad Here" className="h-full w-full object-cover" draggable={false} />
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {t("sidebar.sponsored")}
+          </span>
+          <span className="text-xs text-muted-foreground/80">Your Ad Here</span>
         </Link>
       )}
     </div>
@@ -144,7 +154,7 @@ function SponsorBlurCard({ imageUrl }: { imageUrl: string }) {
       <img
         src={imageUrl}
         alt=""
-        className="relative h-full w-full object-contain"
+        className="absolute inset-0 h-full w-full object-cover"
         draggable={false}
       />
     </div>

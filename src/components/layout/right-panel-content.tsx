@@ -34,9 +34,7 @@ export type SidebarPanelData = {
 export function RightPanelSkeleton() {
   return (
     <aside className="right-panel-rail">
-      <div className="right-panel-ad">
-        <img src="/ads/your-ad-here.jpg" alt="Your Ad Here" />
-      </div>
+      <div className="right-panel-ad bg-muted/40" aria-hidden />
       <div className="right-panel-map bg-muted/30" />
     </aside>
   );
