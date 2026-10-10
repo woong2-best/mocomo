@@ -50,6 +50,7 @@ export function TranslatableText({
     failed,
     showOriginal,
     setShowOriginal,
+    requestTranslation,
   } = useAutoClientTranslation(text, preference);
 
   const [previewReady, setPreviewReady] = useState(false);
@@ -130,9 +131,24 @@ export function TranslatableText({
             </button>
           ) : loading ? (
             <span className="text-muted-foreground">{t("translate.loading")}</span>
-          ) : failed ? (
-            <span className="text-xs text-destructive">{t("translate.failed")}</span>
-          ) : null}
+          ) : (
+            <>
+              {failed ? (
+                <span className="text-xs text-destructive">{t("translate.failed")}</span>
+              ) : null}
+              <button
+                type="button"
+                className="text-primary hover:underline disabled:opacity-50"
+                disabled={loading}
+                onClick={(e) => {
+                  if (stopPropagation) e.stopPropagation();
+                  requestTranslation();
+                }}
+              >
+                {t("translate.viewTranslation")}
+              </button>
+            </>
+          )}
         </div>
       )}
       {body}

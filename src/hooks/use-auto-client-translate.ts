@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { needsClientTranslation } from "@/lib/client-translate/detect-source";
 import { useClientTranslationOptional } from "@/components/providers/client-translation-provider";
 import type { PostTranslateInto } from "@/lib/client-translate/opus-mt-pairs";
@@ -8,7 +8,7 @@ import type { PostTranslateInto } from "@/lib/client-translate/opus-mt-pairs";
 export function useAutoClientTranslation(text: string, target: PostTranslateInto) {
   const clientTranslation = useClientTranslationOptional();
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [requested, setRequested] = useState(false);
   const [translated, setTranslated] = useState<string | null>(null);
   const [sourceLang, setSourceLang] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -17,28 +17,14 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
 
   const shouldTranslate = needsClientTranslation(text, target);
 
-  useEffect(() => {
+  const requestTranslation = useCallback(() => {
     if (!shouldTranslate) return;
-    const node = rootRef.current;
-    if (!node) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "120px 0px", threshold: 0.01 }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [shouldTranslate, text]);
+    setFailed(false);
+    setRequested(true);
+  }, [shouldTranslate]);
 
   useEffect(() => {
-    if (!shouldTranslate || !visible || !clientTranslation) return;
-    if (translated || loading || failed) return;
+    if (!shouldTranslate || !requested || !clientTranslation || translated) return;
 
     let cancelled = false;
     setLoading(true);
@@ -49,13 +35,18 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
       .then((result) => {
         if (cancelled) return;
         if (!result?.translated) {
+          setFailed(true);
+          setRequested(false);
           return;
         }
         setTranslated(result.translated);
         setSourceLang(result.sourceLang);
+        setShowOriginal(false);
       })
       .catch(() => {
-        if (!cancelled) setFailed(true);
+        if (cancelled) return;
+        setFailed(true);
+        setRequested(false);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -64,16 +55,7 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
     return () => {
       cancelled = true;
     };
-  }, [
-    shouldTranslate,
-    visible,
-    clientTranslation,
-    text,
-    target,
-    translated,
-    loading,
-    failed,
-  ]);
+  }, [shouldTranslate, requested, clientTranslation, text, target, translated]);
 
   useEffect(() => {
     setTranslated(null);
@@ -81,7 +63,7 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
     setLoading(false);
     setFailed(false);
     setShowOriginal(false);
-    setVisible(false);
+    setRequested(false);
   }, [text, target]);
 
   const displayText =
@@ -97,5 +79,6 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
     failed,
     showOriginal,
     setShowOriginal,
+    requestTranslation,
   };
 }
