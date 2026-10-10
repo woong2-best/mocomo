@@ -9,7 +9,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
   type SyntheticEvent,
 } from "react";
@@ -28,9 +27,7 @@ import {
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { feedMediaFrameStyle, isPortraitMedia } from "@/lib/format-feed";
-const SLIDE_WIDTH_RATIO = 0.88;
-const EDGE_PAD_RATIO = 0.06;
+import { feedCarouselMediaStyle, feedMediaFrameStyle } from "@/lib/format-feed";
 
 type Props = {
   media: ProfilePostMediaItem[];
@@ -83,23 +80,17 @@ function MediaOpenWrapper({
 }) {
   return (
     <div
-      role={!locked ? "button" : undefined}
-      tabIndex={!locked ? 0 : undefined}
+      role={!locked && media.type !== "VIDEO" ? "button" : undefined}
+      tabIndex={!locked && media.type !== "VIDEO" ? 0 : undefined}
       className={cn("h-full w-full", !locked && "cursor-pointer")}
       onClickCapture={(e) => {
         if (locked) return;
         const sale = (media.priceKrw ?? media.instantPurchasePriceKrw ?? 0) > 0;
         if (sale) return;
-        if (media.type !== "VIDEO" || !feedVideoViewer) return;
+        // Let the inline player handle play / fullscreen. Opening the viewer
+        // here steals the play tap and leaves the video paused.
+        if (media.type === "VIDEO") return;
         if (shouldBlockFeedVideoImmersive(e)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const opened = feedVideoViewer.openVideoViewer({
-          postId,
-          mediaId: media.id,
-          mediaIndex: index,
-        });
-        if (!opened) onOpenAt(index, locked);
       }}
       onClick={(e) => {
         const sale = (media.priceKrw ?? media.instantPurchasePriceKrw ?? 0) > 0;
@@ -170,10 +161,7 @@ function CarouselTile({
       <PaidFeedMediaSurface
         type={media.type}
         src={media.url}
-        className={cn(
-          "h-full w-full",
-          isPortraitMedia(media) ? "object-contain" : "object-cover"
-        )}
+        className="h-full w-full object-contain"
         mediaPriceKrw={media.priceKrw}
         postInstantPurchasePriceKrw={postInstantPurchasePriceKrw ?? media.instantPurchasePriceKrw}
         locked={locked}
@@ -321,7 +309,7 @@ export function FeedPostMediaCarousel({
 
     const tapped = items[index];
     if (
-      tapped?.type === "VIDEO" &&
+      (tapped?.type === "VIDEO" || tapped?.type === "IMAGE") &&
       feedVideoViewer &&
       feedVideoViewer.openVideoViewer({
         postId,
@@ -398,7 +386,7 @@ export function FeedPostMediaCarousel({
     } else {
       return;
     }
-    if (!m.id || width <= 0 || height <= width) return;
+    if (!m.id || width <= 0 || height <= 0) return;
     setIntrinsic((prev) => {
       const cur = prev[m.id!];
       if (cur?.width === width && cur.height === height) return prev;
@@ -449,24 +437,17 @@ export function FeedPostMediaCarousel({
         onPointerEnter={warmFullMedia}
         onFocusCapture={warmFullMedia}
       >
-        <div className="w-full [container-type:inline-size]">
-          <div
-            className="mr-auto overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
-            style={feedMediaFrameStyle(withIntrinsic(m))}
-            onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
-            onLoadCapture={(event) => rememberIntrinsic(m, event)}
-          >
-            {renderTile(withIntrinsic(m), 0, true)}
-          </div>
+        <div
+          className="mr-auto overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
+          style={feedMediaFrameStyle(withIntrinsic(m))}
+          onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
+          onLoadCapture={(event) => rememberIntrinsic(m, event)}
+        >
+          {renderTile(withIntrinsic(m), 0, true)}
         </div>
       </div>
     );
   }
-
-  const padStyle = {
-    paddingLeft: `max(${EDGE_PAD_RATIO * 100}%, 0.75rem)`,
-    paddingRight: `max(${EDGE_PAD_RATIO * 100}%, 0.75rem)`,
-  } satisfies CSSProperties;
 
   return (
     <div
@@ -491,10 +472,9 @@ export function FeedPostMediaCarousel({
         <div
           ref={scrollerRef}
           className={cn(
-            "flex w-full snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain",
+            "flex w-full snap-x snap-mandatory items-stretch gap-2 overflow-x-auto overscroll-x-contain",
             "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           )}
-          style={padStyle}
           role="list"
           aria-label={t("feed.svtcyuc")}
         >
@@ -504,19 +484,12 @@ export function FeedPostMediaCarousel({
                 key={m.id ?? `${postId}:${i}`}
                 data-feed-carousel-slide={i}
                 role="listitem"
-                className="snap-center shrink-0"
-                style={{ width: `${SLIDE_WIDTH_RATIO * 100}%` }}
+                className="shrink-0 snap-start overflow-hidden rounded-2xl"
+                style={feedCarouselMediaStyle(withIntrinsic(m))}
+                onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
+                onLoadCapture={(event) => rememberIntrinsic(m, event)}
               >
-                <div className="w-full [container-type:inline-size]">
-                  <div
-                    className="mr-auto overflow-hidden rounded-2xl"
-                    style={feedMediaFrameStyle(withIntrinsic(m))}
-                    onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
-                    onLoadCapture={(event) => rememberIntrinsic(m, event)}
-                  >
-                    {renderTile(withIntrinsic(m), i, i === activeIndex)}
-                  </div>
-                </div>
+                {renderTile(withIntrinsic(m), i, i === activeIndex)}
               </div>
             );
           })}

@@ -28,12 +28,13 @@ import { getVideoPlaybackController } from "@/lib/video-playback";
 import {
   FEED_VIDEO_VIEWER_HISTORY_KEY,
   lockMainScroll,
+  markFeedVideoViewerOpen,
 } from "@/lib/feed-video-viewer";
 import { FeedVideoPostSlide } from "@/components/feed/feed-video-post-slide";
-import { FeedVideoExpandLightbox } from "@/components/feed/feed-video-expand-lightbox";
 import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
 import { useLocale } from "@/components/providers/locale-provider";
 import { copyShareUrl, postUrl } from "@/lib/post-share";
+import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
 type Props = {
   groups: FeedVideoGroup[];
@@ -66,17 +67,10 @@ export function FeedVideoViewer({
     y: number;
     index: number;
   }>({ open: false, x: 0, y: 0, index: 0 });
-  const [expand, setExpand] = useState<{
-    groupIndex: number;
-    videoIndex: number;
-  } | null>(null);
   const [commentsPanel, setCommentsPanel] = useState<{
     postId: string;
     count: number;
   } | null>(null);
-  const [forcedVideoByGroup, setForcedVideoByGroup] = useState<
-    Record<number, number>
-  >({});
   const [, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname() ?? "/";
@@ -127,9 +121,19 @@ export function FeedVideoViewer({
     };
   }, [onClose]);
 
+  const viewerLockRef = useRef(false);
+  if (!viewerLockRef.current) {
+    viewerLockRef.current = true;
+    markFeedVideoViewerOpen(true);
+    getVideoPlaybackController()?.pauseAll();
+  }
+
   useEffect(() => {
     const unlock = lockMainScroll();
-    return unlock;
+    return () => {
+      markFeedVideoViewerOpen(false);
+      unlock();
+    };
   }, []);
 
   useEffect(() => {
@@ -138,13 +142,12 @@ export function FeedVideoViewer({
     const idx = Math.max(0, Math.min(startGroupIndex, groups.length - 1));
     setActiveIndex(idx);
     requestAnimationFrame(() => {
-      const el = scrollerRef.current?.querySelector<HTMLElement>(
-        `[data-reel-index="${idx}"]`
+      scrollPortToSelector(
+        scrollerRef.current,
+        `[data-reel-index="${idx}"]`,
+        "y",
+        "auto"
       );
-      el?.scrollIntoView({
-        behavior: "instant" as ScrollBehavior,
-        block: "start",
-      });
     });
   }, [startGroupIndex, groups.length]);
 
@@ -204,13 +207,12 @@ export function FeedVideoViewer({
     const resnap = () => {
       if (timer != null) window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        const el = root.querySelector<HTMLElement>(
-          `[data-reel-index="${activeIndex}"]`
+        scrollPortToSelector(
+          root,
+          `[data-reel-index="${activeIndex}"]`,
+          "y",
+          "auto"
         );
-        el?.scrollIntoView({
-          behavior: "instant" as ScrollBehavior,
-          block: "start",
-        });
       }, 120);
     };
     window.addEventListener("orientationchange", resnap);
@@ -226,10 +228,12 @@ export function FeedVideoViewer({
   const goTo = useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(groups.length - 1, index));
-      const el = scrollerRef.current?.querySelector<HTMLElement>(
-        `[data-reel-index="${clamped}"]`
+      scrollPortToSelector(
+        scrollerRef.current,
+        `[data-reel-index="${clamped}"]`,
+        "y",
+        "smooth"
       );
-      el?.scrollIntoView({ behavior: "smooth", block: "start" });
       setActiveIndex(clamped);
     },
     [groups.length]
@@ -245,7 +249,7 @@ export function FeedVideoViewer({
 
   useEffect(() => {
     const root = scrollerRef.current;
-    if (!root || expand || commentsPanel) return;
+    if (!root || commentsPanel) return;
 
     let wheelLock = false;
     const onWheelThrottled = (e: WheelEvent) => {
@@ -267,10 +271,10 @@ export function FeedVideoViewer({
 
     root.addEventListener("wheel", onWheelThrottled, { passive: false });
     return () => root.removeEventListener("wheel", onWheelThrottled);
-  }, [activeIndex, commentsPanel, expand, goTo]);
+  }, [activeIndex, commentsPanel, goTo]);
 
   useEffect(() => {
-    if (expand || commentsPanel) return;
+    if (commentsPanel) return;
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (
@@ -297,7 +301,7 @@ export function FeedVideoViewer({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeIndex, close, commentsPanel, expand, goTo, muted, setMuted]);
+  }, [activeIndex, close, commentsPanel, goTo, muted, setMuted]);
 
   const openMenu = useCallback((index: number, x: number, y: number) => {
     setMenu({ open: true, x, y, index });
@@ -343,9 +347,6 @@ export function FeedVideoViewer({
     menuGroup?.videos[0];
   const canPrev = activeIndex > 0;
   const canNext = activeIndex < groups.length - 1;
-  const expandGroup =
-    expand != null ? groups[expand.groupIndex] ?? null : null;
-
   return createPortal(
     <div
       role="dialog"
@@ -355,14 +356,14 @@ export function FeedVideoViewer({
     >
       <div
         className={cn(
-          "relative min-h-0 min-w-0 flex-1 transition-[max-width] duration-300 ease-out",
+          "relative min-h-0 min-w-0 flex-1 select-none transition-[max-width] duration-300 ease-out",
           commentsPanel && "lg:max-w-[calc(100%-24rem)]"
         )}
       >
       <header
         className={cn(
           "pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]",
-          expand && "hidden"
+          commentsPanel && "hidden"
         )}
       >
         <button
@@ -374,7 +375,7 @@ export function FeedVideoViewer({
           <ArrowLeft className="h-5 w-5" />
         </button>
         <p className="pointer-events-none font-display text-sm font-bold tracking-wide text-white/90 drop-shadow">
-          {t("live.modeVideo")}
+          Reels
         </p>
         <span className="w-10" aria-hidden />
       </header>
@@ -383,12 +384,11 @@ export function FeedVideoViewer({
         ref={scrollerRef}
         className={cn(
           "h-[100dvh] w-full overflow-y-auto overflow-x-hidden overscroll-y-contain",
-          "snap-y snap-mandatory scroll-smooth",
+          "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
         role="feed"
         aria-label={t("feed.s47jhsw")}
-        tabIndex={0}
       >
         {groups.map((group, index) => (
           <FeedVideoPostSlide
@@ -409,12 +409,10 @@ export function FeedVideoViewer({
             onEnded={index === activeIndex ? goNext : undefined}
             authCallbackPath={pathname}
             onBackgroundClick={close}
-            onExpand={(videoIndex) => setExpand({ groupIndex: index, videoIndex })}
             onActiveVideoChange={(videoIndex) => {
               videoIndexByGroupRef.current[index] = videoIndex;
             }}
-            forcedVideoIndex={forcedVideoByGroup[index] ?? null}
-            horizontalNavEnabled={!expand && !commentsPanel}
+            horizontalNavEnabled={!commentsPanel}
             onComment={(postId, count) =>
               setCommentsPanel({ postId, count })
             }
@@ -437,7 +435,7 @@ export function FeedVideoViewer({
           "pointer-events-none absolute z-40 flex flex-col gap-2",
           "right-3 top-[max(4.5rem,env(safe-area-inset-top))]",
           "lg:right-10 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
-          (expand || commentsPanel) && "hidden"
+          commentsPanel && "hidden"
         )}
       >
         <button
@@ -479,24 +477,6 @@ export function FeedVideoViewer({
         />
       )}
 
-      {expand && expandGroup && (
-        <FeedVideoExpandLightbox
-          open
-          videos={expandGroup.videos}
-          initialIndex={expand.videoIndex}
-          onClose={() => {
-            const gi = expand.groupIndex;
-            const vi = expand.videoIndex;
-            videoIndexByGroupRef.current[gi] = vi;
-            setForcedVideoByGroup((prev) => ({ ...prev, [gi]: vi }));
-            setExpand(null);
-          }}
-          onIndexChange={(videoIndex) => {
-            videoIndexByGroupRef.current[expand.groupIndex] = videoIndex;
-            setExpand({ groupIndex: expand.groupIndex, videoIndex });
-          }}
-        />
-      )}
       </div>
 
       <ReelsCommentsPanel

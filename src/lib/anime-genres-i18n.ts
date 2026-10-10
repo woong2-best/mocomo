@@ -6,6 +6,7 @@ type GenreText = { label: string; description: string };
 
 const GENRE_TEXT: Partial<Record<Locale, Record<AnimeGenre, GenreText>>> = {
   en: {
+    COSPLAY: { label: "Cosplay", description: "Costume play, characters, and conventions" },
     ACTION: { label: "Action", description: "High-energy battles and spectacle" },
     ROMANCE: { label: "Romance", description: "Love and relationships" },
     COMEDY: { label: "Comedy", description: "Laughs and lighthearted fun" },

@@ -87,6 +87,21 @@ function ReelPlayer({
   const isPaid = isPaidPlaybackPath(src) || (item.media.priceKrw ?? 0) > 0;
   const mediaId = item.media.id?.trim() || null;
   const locked = Boolean(item.media.locked);
+  const isImage = item.mediaType === "IMAGE";
+
+  if (isImage) {
+    const uri = src || posterUrl;
+    if (!uri) return <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111" }]} />;
+    return (
+      <Image
+        source={{ uri }}
+        style={StyleSheet.absoluteFill}
+        contentFit="contain"
+        cachePolicy={IMAGE_CACHE_POLICY}
+        transition={0}
+      />
+    );
+  }
 
   if (locked && item.monetization) {
     return (

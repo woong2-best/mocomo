@@ -39,9 +39,13 @@ export function ReelsProgressBar({
   return (
     <div
       ref={trackRef}
+      data-reels-progress
       role="slider"
       tabIndex={0}
       aria-label={label}
+      onMouseDown={(e) => {
+        e.currentTarget.focus({ preventScroll: true });
+      }}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(progress * 100)}

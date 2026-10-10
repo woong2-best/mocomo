@@ -57,16 +57,16 @@ function HomeFeedSkeleton() {
 export function HomeFeedCached() {
   const { session, authenticated, pending } = useAuthReady();
   const viewerId = homeFeedViewerKey(session?.user?.id);
-  const [bootCache] = useState(() => {
-    if (typeof window === "undefined") return null;
-    const fromSession = readHomeFeedCache(viewerId);
-    if (fromSession) return fromSession;
-    return readHomeFeedCache("guest");
-  });
+  const [bootCache, setBootCache] = useState<ReturnType<typeof readHomeFeedCache>>(null);
+
+  useEffect(() => {
+    const cached = readHomeFeedCache(viewerId) ?? readHomeFeedCache("guest");
+    if (cached) setBootCache(cached);
+  }, [viewerId]);
 
   const cachedForViewer = useMemo(() => {
     if (bootCache && bootCache.userId === viewerId) return bootCache;
-    return readHomeFeedCache(viewerId);
+    return null;
   }, [bootCache, viewerId]);
 
   const query = useQuery({

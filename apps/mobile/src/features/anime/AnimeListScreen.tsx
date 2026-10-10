@@ -46,8 +46,6 @@ const WIKI = {
   categoryActiveBorder: "#A52828",
   addBtn: "#2E7D32",
   addBtnBorder: "#1B5E20",
-  cosBtn: "#9D2A6C",
-  cosBtnBorder: "#7A1F54",
   text: "#F5F0E8",
   textMuted: "#A89888",
 } as const;
@@ -149,20 +147,6 @@ export function AnimeListScreen() {
             accessibilityLabel={t("m.anime.add_title")}
           >
             <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              if (!user) {
-                navigation.navigate("Login", { intent: "signin" });
-                return;
-              }
-              navigation.navigate("CosplayProfiles");
-            }}
-            style={({ pressed }) => [styles.cosPlaque, pressed && { opacity: 0.88 }]}
-            accessibilityRole="button"
-            accessibilityLabel="Cos"
-          >
-            <Text style={styles.cosPlaqueLabel}>Cos</Text>
           </Pressable>
           {MOBILE_ANIME_GENRES.map((g) => (
             <CategoryPlaque
@@ -403,23 +387,6 @@ const styles = StyleSheet.create({
     minWidth: 36,
     minHeight: 34,
     flexShrink: 0,
-  },
-  cosPlaque: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 4,
-    borderWidth: 1,
-    backgroundColor: WIKI.cosBtn,
-    borderColor: WIKI.cosBtnBorder,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 34,
-    flexShrink: 0,
-  },
-  cosPlaqueLabel: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "800",
   },
   categoryIdle: {
     backgroundColor: WIKI.categoryIdle,

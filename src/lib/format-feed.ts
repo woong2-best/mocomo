@@ -67,17 +67,76 @@ export function feedMediaFrameStyle(media: {
   width?: number | null;
   height?: number | null;
   type?: string;
-}): { width: string; height: string } {
+}): { width: string; height?: string; maxHeight?: string; maxWidth?: string; aspectRatio?: string } {
   if (isPortraitMedia(media) && media.width && media.height) {
     const aspect = media.width / media.height;
     const maxH = `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`;
     return {
       width: `min(100%, calc(${maxH} * ${aspect}))`,
-      height: `min(${maxH}, calc(100cqi / ${aspect}))`,
+      height: maxH,
+      maxWidth: "100%",
     };
   }
   const aspect = clampFeedMediaAspect(media.width, media.height, media.type);
-  return { width: "100%", height: feedMediaFrameHeightCss(aspect) };
+  return {
+    width: "100%",
+    height: "auto",
+    aspectRatio: String(aspect),
+    maxHeight: `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`,
+  };
+}
+
+/**
+ * Profile / My Page single tile: keep the real ratio, but never stretch across a wide column.
+ * Landscape stays compact on the left, same visual weight as a portrait feed tile.
+ */
+export function feedMediaCompactFrameStyle(media: {
+  width?: number | null;
+  height?: number | null;
+  type?: string;
+}): { width: string; height?: string; maxHeight?: string; maxWidth?: string; aspectRatio?: string } {
+  const aspect =
+    media.width && media.height && media.width > 0 && media.height > 0
+      ? media.width / media.height
+      : media.type === "VIDEO"
+        ? 16 / 9
+        : 1;
+  const maxH = `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`;
+  return {
+    width: `min(100%, min(510px, calc(${maxH} * ${aspect})))`,
+    height: "auto",
+    aspectRatio: String(aspect),
+    maxHeight: maxH,
+    maxWidth: "100%",
+  };
+}
+
+/** True width/height for mixed carousels. Missing size falls back like the single-tile frame. */
+export function feedMediaNativeAspect(
+  width?: number | null,
+  height?: number | null,
+  type?: string
+): number {
+  if (width && height && width > 0 && height > 0) {
+    return width / height;
+  }
+  return type === "VIDEO" ? 16 / 9 : 16 / 10;
+}
+
+/**
+ * Shared-height strip: every tile is the Twitter max height; width follows the real ratio.
+ * 16:9 stays wide, 9:16 stays narrow, so mixed posts line up instead of leaving 88% gaps.
+ */
+export function feedCarouselMediaStyle(media: {
+  width?: number | null;
+  height?: number | null;
+  type?: string;
+}): { width: string; height: string } {
+  const aspect = feedMediaNativeAspect(media.width, media.height, media.type);
+  return {
+    height: `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`,
+    width: `min(calc(510px * ${aspect}), calc(56vh * ${aspect}))`,
+  };
 }
 
 /** Single-tile feed/detail/carousel aspect ratio (clamped width/height or sensible default). */

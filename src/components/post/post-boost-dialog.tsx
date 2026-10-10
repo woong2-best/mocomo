@@ -10,21 +10,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BoostDayStepper } from "@/components/post/boost-day-stepper";
 import { useLocale } from "@/components/providers/locale-provider";
 import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
 import { errorText } from "@/lib/i18n/error-text";
 import { formatMocoCount, mocoCovers } from "@/lib/moco/decimal-amount";
-import { SPONSORED_AD_DURATION_PRESETS } from "@/lib/sponsored-ad/constants";
-import { cn } from "@/lib/utils";
-
-type Preset = { days: number; moco: number };
+import {
+  calcSponsoredAdMoco,
+  SPONSORED_AD_MAX_DAYS,
+} from "@/lib/sponsored-ad/constants";
 
 type BoostStatus = {
   boostable: boolean;
   purchasedMoco: number;
   active: boolean;
-  presets?: Preset[];
+  maxDays?: number;
 };
+
+function boostCost(days: number) {
+  return days < 1 ? 0 : calcSponsoredAdMoco(days);
+}
 
 export function PostBoostDialog({
   open,
@@ -40,7 +45,7 @@ export function PostBoostDialog({
   const { t } = useLocale();
   const router = useRouter();
   const toast = usePublishedToastOptional();
-  const [days, setDays] = useState<(typeof SPONSORED_AD_DURATION_PRESETS)[number]>(1);
+  const [days, setDays] = useState(1);
   const [agreed, setAgreed] = useState(false);
   const [status, setStatus] = useState<BoostStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,13 +70,14 @@ export function PostBoostDialog({
       .finally(() => setLoading(false));
   }, [open, postId, t]);
 
-  const presets = status?.presets ?? SPONSORED_AD_DURATION_PRESETS.map((d) => ({ days: d, moco: d * 0.5 }));
-  const selected = presets.find((p) => p.days === days) ?? presets[0]!;
+  const maxDays = status?.maxDays ?? SPONSORED_AD_MAX_DAYS;
+  const cost = boostCost(days);
   const balance = status?.purchasedMoco ?? 0;
-  const canAfford = mocoCovers(balance, selected.moco);
+  const canAfford = mocoCovers(balance, cost);
+  const dayLabel = days === 1 ? "post.boost.days" : "post.boost.daysPlural";
 
   async function submit() {
-    if (busy || !agreed || !canAfford) return;
+    if (busy || !agreed || !canAfford || days < 1) return;
     setBusy(true);
     setError("");
     try {
@@ -99,10 +105,12 @@ export function PostBoostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("post.boost.title")}</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+      <DialogContent className="w-[min(calc(100vw-1.5rem),28rem)] max-w-md overflow-x-hidden">
+        <DialogHeader className="min-w-0 space-y-2 text-left">
+          <DialogTitle className="pr-8 text-left text-balance break-words">
+            {t("post.boost.title")}
+          </DialogTitle>
+          <DialogDescription className="text-left text-pretty text-sm leading-relaxed break-words text-muted-foreground">
             {t("post.boost.intro")}
           </DialogDescription>
         </DialogHeader>
@@ -110,56 +118,58 @@ export function PostBoostDialog({
         {loading ? (
           <p className="text-sm text-muted-foreground">{t("post.loadingComments")}</p>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
-              {presets.map((preset) => {
-                const selectedTile = preset.days === days;
-                const labelKey = preset.days === 1 ? "post.boost.days" : "post.boost.daysPlural";
-                return (
-                  <button
-                    key={preset.days}
-                    type="button"
-                    onClick={() => setDays(preset.days as (typeof SPONSORED_AD_DURATION_PRESETS)[number])}
-                    className={cn(
-                      "rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-colors",
-                      selectedTile
-                        ? "border-folk-cobalt bg-folk-cobalt/10 text-folk-cobalt"
-                        : "border-border bg-card text-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    {t(labelKey, { days: preset.days, moco: formatMocoCount(preset.moco) })}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="min-w-0 space-y-4">
+            <BoostDayStepper
+              value={days}
+              onChange={setDays}
+              maxDays={maxDays}
+              label={t("post.boost.duration")}
+              addLabel={t("post.boost.addDay")}
+              removeLabel={t("post.boost.removeDay")}
+            />
+            <p className="text-sm font-semibold leading-relaxed break-words text-folk-cobalt">
+              {t(dayLabel, { days, moco: formatMocoCount(cost) })}
+            </p>
 
-            <p className="text-sm font-medium">
+            <p className="text-sm font-medium leading-relaxed break-words">
               {t("post.boost.balance", { balance: formatMocoCount(balance) })}
             </p>
             {!canAfford ? (
-              <p className="text-sm text-destructive">
-                {t("post.boost.insufficient")}{" "}
+              <p className="text-sm leading-relaxed break-words text-destructive">
+                {t("post.boost.insufficient")}
+                <br />
                 <Link href="/wallet" className="font-semibold underline">
                   {t("post.boost.charge")}
                 </Link>
               </p>
             ) : null}
 
-            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+            <div className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
               <input
                 type="checkbox"
                 checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 shrink-0"
+                className="mt-0.5 shrink-0 cursor-pointer"
               />
-              <span>{t("post.boost.terms")}</span>
-            </label>
+              <span className="min-w-0 break-words">
+                {t("post.boost.termsBefore")}
+                <Link
+                  href="/legal/sponsored-content"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-folk-terracotta underline underline-offset-2 hover:text-folk-terracotta/80"
+                >
+                  {t("post.boost.termsLink")}
+                </Link>
+                {t("post.boost.termsAfter")}
+              </span>
+            </div>
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="text-sm leading-relaxed break-words text-destructive">{error}</p> : null}
 
             <button
               type="button"
-              disabled={busy || !agreed || !canAfford || status?.boostable === false}
+              disabled={busy || !agreed || !canAfford || days < 1 || status?.boostable === false}
               onClick={() => void submit()}
               className="inline-flex w-full items-center justify-center rounded-full bg-folk-cobalt px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             >

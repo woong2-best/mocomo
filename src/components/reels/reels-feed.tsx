@@ -31,6 +31,7 @@ import { getVideoPlaybackController } from "@/lib/video-playback";
 import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
 import { useLocale } from "@/components/providers/locale-provider";
 import { absoluteUrl, copyShareUrl } from "@/lib/post-share";
+import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
 type Props = {
   initialItems: ReelItem[];
@@ -53,6 +54,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   const [loadingMore, setLoadingMore] = useState(false);
   const fetchingRef = useRef(false);
   const autoLoadBlockedRef = useRef(false);
+  const jumpedToStartRef = useRef(false);
 
   useEffect(() => {
     setItems(filterDismissed(initialItems));
@@ -115,17 +117,20 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
     if (postId) prefetchPostComments(postId);
   }, [activeIndex, items]);
 
-  // Jump to deep-linked post once
+  // Jump to deep-linked post once — never again when loadMore appends items
   useEffect(() => {
-    if (!startPostId || items.length === 0) return;
+    if (jumpedToStartRef.current || !startPostId || items.length === 0) return;
     const idx = items.findIndex((i) => i.postId === startPostId);
     if (idx < 0) return;
+    jumpedToStartRef.current = true;
     setActiveIndex(idx);
     requestAnimationFrame(() => {
-      const el = scrollerRef.current?.querySelector<HTMLElement>(
-        `[data-reel-index="${idx}"]`
+      scrollPortToSelector(
+        scrollerRef.current,
+        `[data-reel-index="${idx}"]`,
+        "y",
+        "auto"
       );
-      el?.scrollIntoView({ behavior: "instant" as ScrollBehavior, block: "start" });
     });
   }, [startPostId, items]);
 
@@ -174,13 +179,12 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
     const resnap = () => {
       if (timer != null) window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        const el = root.querySelector<HTMLElement>(
-          `[data-reel-index="${activeIndex}"]`
+        scrollPortToSelector(
+          root,
+          `[data-reel-index="${activeIndex}"]`,
+          "y",
+          "auto"
         );
-        el?.scrollIntoView({
-          behavior: "instant" as ScrollBehavior,
-          block: "start",
-        });
       }, 120);
     };
     window.addEventListener("orientationchange", resnap);
@@ -196,10 +200,12 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   const goTo = useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(items.length - 1, index));
-      const el = scrollerRef.current?.querySelector<HTMLElement>(
-        `[data-reel-index="${clamped}"]`
+      scrollPortToSelector(
+        scrollerRef.current,
+        `[data-reel-index="${clamped}"]`,
+        "y",
+        "smooth"
       );
-      el?.scrollIntoView({ behavior: "smooth", block: "start" });
       setActiveIndex(clamped);
     },
     [items.length]
@@ -235,7 +241,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
       if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) {
         return;
       }
-      if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
+      if (e.key === "ArrowDown" || e.key === "PageDown") {
         e.preventDefault();
         goTo(activeIndex + 1);
       } else if (e.key === "ArrowUp" || e.key === "PageUp") {
@@ -311,7 +317,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
     <div className="relative flex h-[100dvh] w-full overflow-hidden bg-black">
       <div
         className={cn(
-          "relative min-h-0 min-w-0 flex-1 transition-[max-width] duration-300 ease-out",
+          "relative min-h-0 min-w-0 flex-1 select-none transition-[max-width] duration-300 ease-out",
           commentsPanel && "lg:max-w-[calc(100%-24rem)]"
         )}
       >
@@ -333,12 +339,11 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         ref={scrollerRef}
         className={cn(
           "h-[100dvh] w-full overflow-y-auto overflow-x-hidden overscroll-y-contain",
-          "snap-y snap-mandatory scroll-smooth",
+          "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
         role="feed"
         aria-label="Short video feed"
-        tabIndex={0}
       >
         {items.map((reel, index) => (
           <ReelsSlide

@@ -170,6 +170,7 @@ export function ReelsSlide({
       src={reel.media.url}
       hlsUrl={reel.media.hlsUrl}
       poster={reel.media.posterUrl}
+      kind={reel.mediaType === "IMAGE" ? "IMAGE" : "VIDEO"}
       mediaId={reel.media.id}
       mediaPriceKrw={reel.media.priceKrw}
       distance={distance}
@@ -234,7 +235,7 @@ export function ReelsSlide({
       data-reel-id={reel.id}
       data-cinema={cinema ? "1" : "0"}
       className={cn(
-        "relative h-[100dvh] w-full shrink-0 snap-start snap-always bg-black",
+        "relative h-[100dvh] w-full shrink-0 snap-start snap-always select-none bg-black",
         isViewer && !cinema && "flex items-center justify-center",
         cinema && "z-[60]"
       )}

@@ -25,8 +25,10 @@ export function isVideoFullscreen(
   video: HTMLVideoElement | null
 ): boolean {
   if (typeof document === "undefined") return false;
+  if (video && document.fullscreenElement === video) return true;
   if (container && document.fullscreenElement === container) return true;
   const doc = document as WebkitDocument;
+  if (video && doc.webkitFullscreenElement === video) return true;
   if (container && doc.webkitFullscreenElement === container) return true;
   const v = video as WebkitVideo | null;
   if (v?.webkitDisplayingFullscreen) return true;
@@ -39,6 +41,31 @@ export async function enterVideoFullscreen(
 ): Promise<boolean> {
   if (!container && !video) return false;
 
+  // Native video fullscreen paints the picture. Container fullscreen often
+  // stays black when the <video> is absolutely positioned or opacity:0.
+  if (video) {
+    video.style.opacity = "1";
+    video.style.visibility = "visible";
+  }
+  if (video?.requestFullscreen) {
+    try {
+      await video.requestFullscreen();
+      return true;
+    } catch {
+      /* try webkit / container */
+    }
+  }
+
+  const v = video as WebkitVideo | null;
+  if (v?.webkitEnterFullscreen) {
+    try {
+      v.webkitEnterFullscreen();
+      return true;
+    } catch {
+      /* fall through */
+    }
+  }
+
   try {
     if (container?.requestFullscreen) {
       await container.requestFullscreen();
@@ -50,17 +77,7 @@ export async function enterVideoFullscreen(
       return true;
     }
   } catch {
-    /* fall through to iOS video fullscreen */
-  }
-
-  const v = video as WebkitVideo | null;
-  if (v?.webkitEnterFullscreen) {
-    try {
-      v.webkitEnterFullscreen();
-      return true;
-    } catch {
-      return false;
-    }
+    /* ignore */
   }
   return false;
 }

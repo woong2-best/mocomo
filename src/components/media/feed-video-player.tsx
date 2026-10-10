@@ -55,6 +55,7 @@ import {
   bindVideoFullscreenEvents,
   withVideoCacheBust,
 } from "@/lib/video-playback";
+import { isFeedVideoViewerOpen } from "@/lib/feed-video-viewer";
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -219,12 +220,12 @@ export function FeedVideoPlayer({
   const [volumeOpen, setVolumeOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(() =>
-    typeof window === "undefined" ? mutedProp : readMutedPreference(mutedProp)
-  );
-  const [volume, setVolume] = useState(() =>
-    typeof window === "undefined" ? DEFAULT_VOLUME : readVolumePreference()
-  );
+  const [isMuted, setIsMuted] = useState(mutedProp);
+  const [volume, setVolume] = useState(DEFAULT_VOLUME);
+  useEffect(() => {
+    setIsMuted(readMutedPreference(mutedProp));
+    setVolume(readVolumePreference());
+  }, [mutedProp]);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [scrubPct, setScrubPct] = useState<number | null>(null);
@@ -360,6 +361,13 @@ export function FeedVideoPlayer({
         if (!okAttach) return false;
       }
 
+      if (
+        (reason === "autoplay" || reason === "visibility") &&
+        isFeedVideoViewerOpen()
+      ) {
+        return false;
+      }
+
       // Already playing this element — skip re-entry (prevents stutter).
       if (!v.paused && !v.ended && ctrl.getActiveId() === playerId) {
         autoPlayingRef.current = reason === "autoplay" || reason === "visibility";
@@ -451,7 +459,8 @@ export function FeedVideoPlayer({
       inViewRef.current &&
       !userPausedRef.current &&
       autoPlayOnView &&
-      !document.hidden
+      !document.hidden &&
+      !isFeedVideoViewerOpen()
     ) {
       const t = window.setTimeout(() => {
         void playExclusive("autoplay");
@@ -696,7 +705,8 @@ export function FeedVideoPlayer({
           shouldAutoplayOnNetwork(quality) &&
           !userPausedRef.current &&
           !scrubbingRef.current &&
-          !document.hidden;
+          !document.hidden &&
+          !isFeedVideoViewerOpen();
 
         // Hysteresis: only pause after dropping below AUTOPAUSE_THRESHOLD.
         const shouldPause = ratio < AUTOPAUSE_THRESHOLD;
@@ -1008,7 +1018,7 @@ export function FeedVideoPlayer({
     }
     lastTapRef.current = now;
 
-    // Feed immersive viewer: single tap opens viewer while playing; paused tap resumes.
+    // Feed immersive viewer: paused tap plays in place; playing tap opens reels.
     if (onOpenImmersive) {
       if (isFeedVideoControlZone(e.clientY, containerRef.current)) return;
       const v = videoRef.current;
@@ -1021,7 +1031,6 @@ export function FeedVideoPlayer({
       return;
     }
 
-    // pointerup toggles play/pause on the video surface.
     if (!started) {
       userPausedRef.current = false;
       void playExclusive("user");
@@ -1205,7 +1214,14 @@ export function FeedVideoPlayer({
   const videoStyle: CSSProperties = {
     transform: zoom > 1 ? `scale(${zoom})` : undefined,
     transition: pinchRef.current ? undefined : "transform 200ms ease",
-    opacity: forensicRequired && markedOutputReady ? 0 : undefined,
+    opacity:
+      forensicRequired &&
+      markedOutputReady &&
+      !isFullscreen &&
+      typeof document !== "undefined" &&
+      document.fullscreenElement !== videoRef.current
+        ? 0
+        : undefined,
   };
 
   return (
@@ -1220,6 +1236,10 @@ export function FeedVideoPlayer({
       role="group"
       aria-label={t("media.s6pkl8j")}
       onClick={stopFeedNavigation}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).closest("[data-video-controls]")) return;
+        e.preventDefault();
+      }}
       onPointerDown={(e) => {
         stopFeedNavigation(e);
         focusPlayer();
@@ -1234,6 +1254,7 @@ export function FeedVideoPlayer({
     >
       <video
         ref={videoRef}
+        tabIndex={-1}
         data-src={playbackSrc}
         poster={poster}
         className={cn(
@@ -1500,7 +1521,6 @@ export function FeedVideoPlayer({
                     className="absolute bottom-full right-0 mb-2 w-24 overflow-hidden rounded-lg bg-black/90 py-1 text-xs shadow-lg ring-1 ring-white/10"
                     onClick={stopFeedNavigation}
                   >
-                    <p className="px-3 py-1 text-[10px] text-white/50">{t("media.snq38h2")}</p>
                     {SPEED_OPTIONS.map((rate) => (
                       <button
                         key={rate}
@@ -1514,7 +1534,7 @@ export function FeedVideoPlayer({
                           rate === speed ? "font-bold text-white" : "text-white/80"
                         )}
                       >
-                        {rate === 1 ? t("media.s1uyfln6") : `${rate}x`}
+                        {rate}x
                       </button>
                     ))}
                   </div>

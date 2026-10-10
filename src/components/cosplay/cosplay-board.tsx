@@ -8,7 +8,7 @@ const t = createTranslator("en");
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
-import { Camera, PenSquare, Users } from "lucide-react";
+import { Camera, PenSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   cosplayBoardListHref,
@@ -132,12 +132,6 @@ export function CosplayBoard({
           </div>
         </NativePageTitle>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" className="rounded-lg gap-1.5 text-xs" asChild>
-            <Link href="/cosplay/profiles">
-              <Users className="h-3.5 w-3.5" />
-              코스어 프로필
-            </Link>
-          </Button>
           <Button size="sm" className="rounded-lg gap-1.5 text-xs" asChild>
             <Link href={`/cosplay/board/new?mode=${mode}`}>
               <PenSquare className="h-3.5 w-3.5" />

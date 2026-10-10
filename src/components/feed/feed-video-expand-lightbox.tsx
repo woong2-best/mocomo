@@ -8,13 +8,29 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  type SyntheticEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import type { ReelItem } from "@/lib/reels/types";
+
+/** Largest box that keeps the real ratio inside the viewport. A full-width box crops portrait video. */
+function expandStageStyle(aspect: number): CSSProperties {
+  const safe = Number.isFinite(aspect) && aspect > 0.05 && aspect < 20 ? aspect : 9 / 16;
+  return {
+    aspectRatio: String(safe),
+    width: `min(calc(100vw - 1.5rem), calc((100dvh - 4.75rem) * ${safe}))`,
+    height: `min(calc(100dvh - 4.75rem), calc((100vw - 1.5rem) / ${safe}))`,
+  };
+}
+
+function storedAspect(media: ReelItem["media"]): number | null {
+  if (!media.width || !media.height || media.width <= 0 || media.height <= 0) return null;
+  return media.width / media.height;
+}
 
 type Props = {
   open: boolean;
@@ -40,11 +56,21 @@ export function FeedVideoExpandLightbox({
     Math.min(Math.max(0, initialIndex), Math.max(0, videos.length - 1))
   );
   const dragStartX = useRef<number | null>(null);
+  const [measuredAspect, setMeasuredAspect] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setIndex(Math.min(Math.max(0, initialIndex), Math.max(0, videos.length - 1)));
+    setMeasuredAspect(null);
   }, [open, initialIndex, videos.length]);
+
+  const onIntrinsic = useCallback((event: SyntheticEvent) => {
+    const el = event.target;
+    if (!(el instanceof HTMLVideoElement)) return;
+    if (el.videoWidth <= 0 || el.videoHeight <= 0) return;
+    const next = el.videoWidth / el.videoHeight;
+    setMeasuredAspect((prev) => (prev && Math.abs(prev - next) < 0.01 ? prev : next));
+  }, []);
 
   const goTo = useCallback(
     (next: number) => {
@@ -129,7 +155,7 @@ export function FeedVideoExpandLightbox({
         )}
 
         <div
-          className="flex h-full min-h-0 w-full items-center justify-center px-4 pb-6 pt-14 md:px-8"
+          className="flex h-full min-h-0 w-full items-center justify-center px-3 pb-4 pt-14"
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
           onPointerCancel={() => {
@@ -137,18 +163,24 @@ export function FeedVideoExpandLightbox({
           }}
         >
           {current ? (
-            <ProtectedPaidMedia
-              type="VIDEO"
-              src={current.media.url}
-              objectFit="contain"
-              className="h-full max-h-[calc(100dvh-6.5rem)] w-full max-w-5xl object-contain"
-              mediaId={current.media.id}
-              mediaPriceKrw={current.media.priceKrw}
-              muted
-              controls
-              autoPlayOnView
-              poster={current.media.posterUrl ?? undefined}
-            />
+            <div
+              className="relative bg-black"
+              style={expandStageStyle(measuredAspect ?? storedAspect(current.media) ?? 9 / 16)}
+              onLoadedMetadataCapture={onIntrinsic}
+            >
+              <ProtectedPaidMedia
+                type="VIDEO"
+                src={current.media.url}
+                objectFit="contain"
+                className="absolute inset-0 h-full w-full object-contain"
+                mediaId={current.media.id}
+                mediaPriceKrw={current.media.priceKrw}
+                muted
+                controls
+                autoPlayOnView
+                poster={current.media.posterUrl ?? undefined}
+              />
+            </div>
           ) : null}
         </div>
 

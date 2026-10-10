@@ -1,13 +1,20 @@
 "use client";
 
 import {
+  forwardRef,
   useCallback,
   useEffect,
   useId,
+  useImperativeHandle,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import {
+  bindVideoFullscreenEvents,
+  enterVideoFullscreen,
+  isVideoFullscreen,
+} from "@/lib/video-playback/fullscreen";
 import type HlsType from "hls.js";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,6 +44,7 @@ type Props = {
   src: string;
   hlsUrl?: string | null;
   poster?: string | null;
+  kind?: "IMAGE" | "VIDEO";
   mediaId: string;
   /** Distance from active slide (0 = active). */
   distance: number;
@@ -63,7 +71,99 @@ type Props = {
 const LONG_PRESS_MS = 480;
 const DOUBLE_TAP_MS = 280;
 
-export function ReelsPlayer({
+export type ReelsPlayerHandle = {
+  enterFullscreen: () => Promise<boolean>;
+};
+
+const ReelsStillImage = forwardRef<ReelsPlayerHandle, Props>(function ReelsStillImage(
+  {
+    src,
+    poster,
+    className,
+    onDoubleTapLike,
+    onLongPressMenu,
+    onContextMenu,
+  },
+  ref
+) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastTapRef = useRef(0);
+  const longPressTimer = useRef<number | null>(null);
+  const longPressFired = useRef(false);
+  const stillSrc = src.trim() || poster?.trim() || "";
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      enterFullscreen: async () => enterVideoFullscreen(containerRef.current, null),
+    }),
+    []
+  );
+
+  const clearLongPress = () => {
+    if (longPressTimer.current != null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const onPointerDown = (e: ReactPointerEvent) => {
+    if (e.button !== 0) return;
+    longPressFired.current = false;
+    clearLongPress();
+    const { clientX, clientY } = e;
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true;
+      onLongPressMenu?.(clientX, clientY);
+    }, LONG_PRESS_MS);
+  };
+
+  const onPointerUp = () => {
+    clearLongPress();
+    if (longPressFired.current) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+      lastTapRef.current = 0;
+      onDoubleTapLike?.();
+      return;
+    }
+    lastTapRef.current = now;
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn("relative h-full w-full select-none bg-black", className)}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).closest("[data-reels-progress]")) return;
+        e.preventDefault();
+      }}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerCancel={clearLongPress}
+      onPointerLeave={clearLongPress}
+      onDoubleClick={(e) => e.preventDefault()}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu?.(e.clientX, e.clientY);
+      }}
+    >
+      {stillSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={stillSrc}
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain bg-black"
+          draggable={false}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-black" />
+      )}
+    </div>
+  );
+});
+
+const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVideoPlayer( {
   src,
   hlsUrl,
   poster,
@@ -80,7 +180,7 @@ export function ReelsPlayer({
   className,
   mediaPriceKrw,
   postInstantPurchasePriceKrw,
-}: Props) {
+}: Props, ref) {
   const reactId = useId();
   const playerId = `reel-${mediaId}-${reactId}`;
   const paidView = shouldProtectPaidMediaView({
@@ -101,7 +201,9 @@ export function ReelsPlayer({
   const [buffered, setBuffered] = useState(0);
   const [buffering, setBuffering] = useState(false);
   const [inView, setInView] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const lastTapRef = useRef(0);
+  const ignoreTapUntilRef = useRef(0);
   const longPressTimer = useRef<number | null>(null);
   const longPressFired = useRef(false);
   const attachedSrcRef = useRef<string | null>(null);
@@ -208,13 +310,34 @@ export function ReelsPlayer({
     video.preload = reelPreloadForDistance(distance);
   }, [distance, shouldMountMedia]);
 
-  const tryPlay = useCallback(async () => {
+  const tryPlay = useCallback(async (reason: "autoplay" | "user" = "autoplay") => {
     const video = videoRef.current;
     const ctrl = getVideoPlaybackController();
     if (!video || !ctrl) return;
-    if (!shouldAutoplayOnNetwork(getNetworkQuality())) return;
-    await ctrl.requestPlay(playerId, "autoplay");
+    if (reason === "autoplay" && !shouldAutoplayOnNetwork(getNetworkQuality())) return;
+    await ctrl.requestPlay(playerId, reason);
   }, [playerId]);
+
+  useImperativeHandle(ref, () => ({
+    enterFullscreen: async () => {
+      const ok = await enterVideoFullscreen(containerRef.current, videoRef.current);
+      void tryPlay("user");
+      return ok;
+    },
+  }), [tryPlay]);
+
+  useEffect(() => {
+    const syncFs = () => {
+      setIsFullscreen(isVideoFullscreen(containerRef.current, videoRef.current));
+    };
+    document.addEventListener("fullscreenchange", syncFs);
+    const unbind = bindVideoFullscreenEvents(videoRef.current, syncFs);
+    syncFs();
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFs);
+      unbind();
+    };
+  }, [shouldMountMedia]);
 
   const pauseSelf = useCallback(() => {
     getVideoPlaybackController()?.pause(playerId);
@@ -238,6 +361,10 @@ export function ReelsPlayer({
     const io = new IntersectionObserver(
       ([entry]) => {
         if (!entry) return;
+        if (isVideoFullscreen(containerRef.current, videoRef.current)) {
+          setInView(true);
+          return;
+        }
         const ratio = entry.intersectionRatio;
         if (ratio >= REELS_AUTOPLAY_THRESHOLD) {
           setInView(true);
@@ -257,13 +384,18 @@ export function ReelsPlayer({
     // Settled active slide always owns playback — do not require inView
     // (orientation change briefly collapses intersection ratios).
     if (isActive && distance === 0) {
-      void tryPlay();
-      return;
+      // Opening tap from the feed also lands here and would pause. Play anyway.
+      ignoreTapUntilRef.current = Date.now() + 500;
+      void tryPlay("user");
+      const retry = window.setTimeout(() => {
+        if (videoRef.current?.paused) void tryPlay("user");
+      }, 200);
+      return () => window.clearTimeout(retry);
     }
     if (distance > 0 || !inView) {
       pauseSelf();
     } else if (inView && distance === 0) {
-      void tryPlay();
+      void tryPlay("user");
     }
   }, [distance, inView, isActive, pauseSelf, tryPlay]);
 
@@ -371,7 +503,11 @@ export function ReelsPlayer({
     lastTapRef.current = now;
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) void tryPlay();
+    if (Date.now() < ignoreTapUntilRef.current) {
+      void tryPlay("user");
+      return;
+    }
+    if (video.paused) void tryPlay("user");
     else pauseSelf();
   };
 
@@ -381,6 +517,10 @@ export function ReelsPlayer({
     <div
       ref={containerRef}
       className={cn("relative h-full w-full bg-black", className)}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).closest("[data-reels-progress]")) return;
+        e.preventDefault();
+      }}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
@@ -394,6 +534,7 @@ export function ReelsPlayer({
         <video
           ref={videoRef}
           className="absolute inset-0 h-full w-full object-contain bg-black"
+          tabIndex={-1}
           playsInline
           muted={muted}
           poster={poster ?? undefined}
@@ -402,7 +543,13 @@ export function ReelsPlayer({
           // decode / render only when near
           style={{
             contentVisibility: distance > 1 ? "auto" : "visible",
-            opacity: forensicRequired ? 0 : undefined,
+            opacity:
+              forensicRequired &&
+              !isFullscreen &&
+              typeof document !== "undefined" &&
+              document.fullscreenElement !== videoRef.current
+                ? 0
+                : undefined,
           }}
           aria-label="Short video"
         />
@@ -479,7 +626,19 @@ export function ReelsPlayer({
       </button>
     </div>
   );
-}
+});
+
+ReelsVideoPlayer.displayName = "ReelsVideoPlayer";
+ReelsStillImage.displayName = "ReelsStillImage";
+
+export const ReelsPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsPlayer(props, ref) {
+  if (props.kind === "IMAGE") {
+    return <ReelsStillImage {...props} ref={ref} />;
+  }
+  return <ReelsVideoPlayer {...props} ref={ref} />;
+});
+
+ReelsPlayer.displayName = "ReelsPlayer";
 
 /** Sync initial mute from preference (client-only). */
 export function useReelsMutedState() {

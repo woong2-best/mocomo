@@ -16,10 +16,11 @@ import { useOptimisticLike, useOptimisticStar } from "@/lib/use-optimistic-engag
 import { userDisplayName } from "@/lib/user-public-select";
 import type { ReelItem } from "@/lib/reels/types";
 import type { FeedVideoGroup } from "@/lib/feed-video-viewer";
-import { ReelsPlayer } from "@/components/reels/reels-player";
+import { ReelsPlayer, type ReelsPlayerHandle } from "@/components/reels/reels-player";
 import { ReelsActions } from "@/components/reels/reels-actions";
 import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
 import { cn } from "@/lib/utils";
+import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
 /** Desktop phone-frame width (px) — keep in sync with lg:w-[420px] */
 const DESKTOP_CARD_PX = 420;
@@ -37,7 +38,6 @@ type Props = {
   onEnded?: () => void;
   authCallbackPath?: string;
   onBackgroundClick?: () => void;
-  onExpand: (videoIndex: number) => void;
   onActiveVideoChange?: (videoIndex: number) => void;
   forcedVideoIndex?: number | null;
   horizontalNavEnabled?: boolean;
@@ -58,7 +58,6 @@ export function FeedVideoPostSlide({
   onEnded,
   authCallbackPath,
   onBackgroundClick,
-  onExpand,
   onActiveVideoChange,
   forcedVideoIndex = null,
   horizontalNavEnabled = true,
@@ -66,6 +65,7 @@ export function FeedVideoPostSlide({
   commentCountOverride,
 }: Props) {
   const hScrollerRef = useRef<HTMLDivElement>(null);
+  const playerRefs = useRef<Array<ReelsPlayerHandle | null>>([]);
   const [videoIndex, setVideoIndex] = useState(() =>
     Math.max(0, Math.min(initialVideoIndex, group.videos.length - 1))
   );
@@ -95,14 +95,12 @@ export function FeedVideoPostSlide({
   }
 
   const scrollToIndex = useCallback((idx: number, behavior: ScrollBehavior) => {
-    const el = hScrollerRef.current?.querySelector<HTMLElement>(
-      `[data-feed-video-h="${idx}"]`
+    scrollPortToSelector(
+      hScrollerRef.current,
+      `[data-feed-video-h="${idx}"]`,
+      "x",
+      behavior
     );
-    el?.scrollIntoView({
-      behavior,
-      inline: "center",
-      block: "nearest",
-    });
   }, []);
 
   useEffect(() => {
@@ -250,7 +248,7 @@ export function FeedVideoPostSlide({
     <section
       data-reel-index={index}
       data-reel-id={group.postId}
-      className="relative flex h-[100dvh] w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden bg-black"
+      className="relative flex h-[100dvh] w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none bg-black"
       aria-label={`Videos by ${userDisplayName(activeReel.author)}`}
       onClick={
         onBackgroundClick
@@ -268,7 +266,7 @@ export function FeedVideoPostSlide({
           ref={hScrollerRef}
           className={cn(
             "flex h-full w-full overflow-x-auto overflow-y-hidden overscroll-x-contain",
-            "snap-x snap-mandatory",
+            "snap-x snap-mandatory [overflow-anchor:none]",
             "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
             // Desktop multi: peek neighbors with centered snap
             multiVideo
@@ -319,9 +317,13 @@ export function FeedVideoPostSlide({
                 }}
               >
                 <ReelsPlayer
+                  ref={(el) => {
+                    playerRefs.current[vi] = el;
+                  }}
                   src={reel.media.url}
                   hlsUrl={reel.media.hlsUrl}
                   poster={reel.media.posterUrl}
+                  kind={reel.mediaType === "IMAGE" ? "IMAGE" : "VIDEO"}
                   mediaId={reel.media.id}
                   mediaPriceKrw={reel.media.priceKrw}
                   distance={d}
@@ -382,7 +384,9 @@ export function FeedVideoPostSlide({
             muted={muted}
             onToggleMute={() => onMutedChange(!muted)}
             onShare={() => onShare(activeReel)}
-            onToggleExpand={() => onExpand(videoIndex)}
+            onToggleExpand={() => {
+              void playerRefs.current[videoIndex]?.enterFullscreen();
+            }}
             onComment={
               onComment
                 ? () =>
