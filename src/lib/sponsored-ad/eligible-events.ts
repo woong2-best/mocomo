@@ -7,7 +7,7 @@ const eventSelect = {
   imageUrl: true,
   linkUrl: true,
   startsAt: true,
-  createdBy: { select: { name: true, username: true } },
+  createdBy: { select: { name: true, username: true, image: true } },
 } as const;
 
 /** MOCO 스폰서드 + Stripe 등록비 이벤트를 광고 풀에 합침 */

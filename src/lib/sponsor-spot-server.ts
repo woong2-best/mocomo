@@ -12,6 +12,7 @@ export type SponsorSpotEvent = {
   imageUrl: string;
   linkUrl: string;
   authorName?: string;
+  authorImage?: string | null;
   excerpt?: string;
   ctaLabel?: string;
   kind?: "post" | "event";
@@ -37,6 +38,7 @@ export async function listSponsorSpotPool(): Promise<SponsorSpotEvent[]> {
       imageUrl: e.imageUrl,
       linkUrl: e.linkUrl,
       authorName: e.authorName,
+      authorImage: e.authorImage,
       excerpt: e.excerpt,
       ctaLabel: e.ctaLabel,
       kind: e.kind,

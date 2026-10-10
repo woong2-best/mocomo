@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "@/components/providers/locale-provider";
 import { SponsorAdClickLink } from "@/components/events/sponsor-ad-click-link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { SponsorSpotEvent } from "@/lib/sponsor-spot-server";
 
 type SidebarAd = {
@@ -52,10 +53,8 @@ export function SponsoredSidebarCard({
   }, []);
 
   const hasSponsorEvent = event != null;
-  const isPost = event?.kind === "post" || Boolean(event?.postId);
-  const cta = event?.ctaLabel?.trim() || (isPost ? t("post.boost.viewPost") : t("sidebar.sponsored"));
   const author = event?.authorName?.trim();
-  const excerpt = event?.excerpt?.trim() || event?.title?.trim();
+  const authorInitial = (author || "?").slice(0, 1).toUpperCase();
 
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ aspectRatio: "4 / 5" }}>
@@ -66,16 +65,18 @@ export function SponsoredSidebarCard({
           aria-label={event.title || t("sidebar.sponsored")}
         >
           <SponsorBlurCard imageUrl={event.imageUrl} />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-3 pb-3 pt-10">
-            {author ? (
-              <p className="truncate text-[11px] font-semibold text-white/90">{author}</p>
-            ) : null}
-            {excerpt ? (
-              <p className="mt-0.5 truncate text-[12px] leading-snug text-white/80">{excerpt}</p>
-            ) : null}
-            <span className="mt-2 inline-flex rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-folk-cobalt shadow-sm">
-              {cta}
-            </span>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent px-2.5 pb-2.5 pt-10">
+            <div className="flex items-center gap-1.5">
+              <Avatar className="h-6 w-6 ring-1 ring-white/85 ring-offset-0">
+                <AvatarImage src={event.authorImage} alt={author || t("sidebar.sponsored")} />
+                <AvatarFallback className="text-[9px]">{authorInitial}</AvatarFallback>
+              </Avatar>
+              {author ? (
+                <p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">
+                  {author}
+                </p>
+              ) : null}
+            </div>
           </div>
         </SponsorAdClickLink>
       ) : (
