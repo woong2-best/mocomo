@@ -193,6 +193,7 @@ export function PeerCallRoom({
   }, [phase]);
 
   if (enabled && peerCall.state === "connecting") {
+    const localPreview = video && peerCall.localStream?.getVideoTracks().some((track) => track.enabled);
     return (
       <div className="relative flex h-full min-h-0 flex-col bg-gradient-to-b from-zinc-900 via-black to-zinc-950 text-white">
         <AudioAttach stream={peerCall.remoteStream} speakerOn={speakerOn} />
@@ -202,12 +203,21 @@ export function PeerCallRoom({
             {error}
           </p>
         ) : null}
-        <CallRingingStage
-          peer={peer}
-          isVideo={video}
-          phase="outgoing"
-          subtitle={video ? t("call.s121ftcl") : t("call.s1ygtvdm")}
-        />
+        {localPreview ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <VideoAttach stream={peerCall.localStream} className="h-full w-full object-cover" />
+            <p className="pointer-events-none absolute inset-x-0 top-16 z-10 text-center text-sm text-white/70">
+              {t("call.s121ftcl")}
+            </p>
+          </div>
+        ) : (
+          <CallRingingStage
+            peer={peer}
+            isVideo={video}
+            phase="outgoing"
+            subtitle={video ? t("call.s121ftcl") : t("call.s1ygtvdm")}
+          />
+        )}
         <div className="absolute inset-x-0 bottom-0 z-20 pb-safe pt-4">
           <PeerCallControlBar
             video={video}

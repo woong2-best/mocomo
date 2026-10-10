@@ -130,8 +130,9 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
         transports: ["websocket", "polling"],
         reconnection: true,
         reconnectionAttempts: Infinity,
-        reconnectionDelay: 600,
-        reconnectionDelayMax: 3000,
+        reconnectionDelay: 1200,
+        reconnectionDelayMax: 10000,
+        randomizationFactor: 0.4,
         timeout: SOCKET_IO_TIMEOUT_MS,
       });
 
@@ -179,11 +180,13 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
         setOnlineUserIds(new Set());
       });
 
-      activeSocket.on("connect_error", () => {
+      activeSocket.on("connect_error", (error: { message?: string }) => {
+        const rateLimited = /429|too many/i.test(String(error?.message ?? ""));
         void refreshAuth().then((ok) => {
-          if (ok && activeSocket && !activeSocket.connected) {
-            activeSocket.connect();
-          }
+          if (!ok || !activeSocket || activeSocket.connected) return;
+          window.setTimeout(() => {
+            if (!disposed && activeSocket && !activeSocket.connected) activeSocket.connect();
+          }, rateLimited ? 8000 : 1500);
         });
       });
 

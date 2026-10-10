@@ -7,6 +7,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import type { MocoDonationPayload } from "@/lib/moco-donation/types";
+import { resolveSocketUrl } from "@/lib/socket-url";
 
 function playSfx(src: string | null, onDone: () => void) {
   if (!src || typeof window === "undefined") {
@@ -252,7 +253,12 @@ export function MocoDonationAlertWidget({
       clearInterval(id);
     };
 
-    const socket = io({ path: "/socket.io", transports: ["websocket", "polling"] });
+    const socketUrl = resolveSocketUrl();
+    if (!socketUrl) return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+    const socket = io(socketUrl, { path: "/socket.io", transports: ["websocket", "polling"] });
     socketRef.current = socket;
     socket.emit("join_overlay", { channelId, token });
     socket.on("new_donation", (data: MocoDonationPayload) => {

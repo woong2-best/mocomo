@@ -64,6 +64,52 @@ function asSdp(
   return { type, sdp: typeof raw?.sdp === "string" ? raw.sdp : "" };
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("Media request timed out.")), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+function videoConstraintAttempts(): MediaStreamConstraints[] {
+  return [
+    { audio: CALL_AUDIO, video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } },
+    { audio: CALL_AUDIO, video: { facingMode: "user" } },
+    { audio: CALL_AUDIO, video: true },
+    { audio: CALL_AUDIO, video: false },
+  ];
+}
+
+async function postHttpSignal(callId: string, payload: CallSignalPayload) {
+  await fetch(`/api/calls/${encodeURIComponent(callId)}/signal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ payload }),
+  }).catch(() => undefined);
+}
+
+async function pullHttpSignals(callId: string, after: string) {
+  const res = await fetch(
+    `/api/calls/${encodeURIComponent(callId)}/signal?after=${encodeURIComponent(after)}`,
+    { cache: "no-store", credentials: "same-origin" }
+  );
+  if (!res.ok) return [] as { id: string; fromUserId: string; payload: CallSignalPayload }[];
+  const data = (await res.json()) as {
+    signals?: { id: string; fromUserId: string; payload: CallSignalPayload }[];
+  };
+  return Array.isArray(data.signals) ? data.signals : [];
+}
+
 type UsePeerCallOptions = {
   callId: string;
   signalingRoomId: string;
@@ -156,6 +202,7 @@ export function usePeerCall({
         payload: plain,
       });
     }
+    void postHttpSignal(callIdRef.current, plain);
   }, []);
 
   const cleanup = useCallback(() => {
@@ -190,12 +237,23 @@ export function usePeerCall({
   const ensureLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
     const wantsVideo = videoRef.current;
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: CALL_AUDIO,
-      video: wantsVideo
-        ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
-        : false,
-    });
+    const attempts = wantsVideo
+      ? videoConstraintAttempts()
+      : [{ audio: CALL_AUDIO, video: false } satisfies MediaStreamConstraints];
+
+    let stream: MediaStream | null = null;
+    let lastError: unknown;
+    for (const constraints of attempts) {
+      try {
+        stream = await withTimeout(navigator.mediaDevices.getUserMedia(constraints), 8000);
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (!stream) {
+      throw lastError instanceof Error ? lastError : new Error("Media connection failed.");
+    }
     holdMic(stream);
     rawMicRef.current = stream;
     localStreamRef.current = stream;
@@ -467,7 +525,10 @@ export function usePeerCall({
         const pc = await createPeerConnectionRef.current();
         if (!live()) return;
         makingOfferRef.current = true;
-        const offer = await pc.createOffer();
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: videoRef.current,
+        });
         if (!live()) return;
         await pc.setLocalDescription(offer);
         emitSignal({ type: "offer", sdp: offer });
@@ -485,6 +546,7 @@ export function usePeerCall({
         const rtcConfiguration = await fetchWebRtcIceConfiguration();
         if (!live()) return;
 
+        const mediaReady = createPeerConnectionRef.current(rtcConfiguration);
         session = await openVoiceSignalChannel({
           signalingRoomId,
           userId,
@@ -508,6 +570,8 @@ export function usePeerCall({
         }
         if (session) {
           sessionSendRef.current = session.send;
+          session.send({ type: "hello" });
+          if (!isCaller) session.send({ type: "ready" });
         } else if (!socketRef.current?.connected) {
           const sock = socketRef.current;
           if (sock) {
@@ -519,17 +583,10 @@ export function usePeerCall({
               });
             });
           }
-          if (!live()) return;
-          if (!socketRef.current?.connected) {
-            fail("Could not connect to the signaling server.");
-            return;
-          }
         }
 
-        await createPeerConnectionRef.current(rtcConfiguration);
+        await mediaReady;
         if (!live()) return;
-        session?.send({ type: "hello" });
-        if (session && !isCaller) session.send({ type: "ready" });
 
         if (isCaller) {
           offerTimer = setTimeout(() => {
@@ -558,12 +615,28 @@ export function usePeerCall({
         }, 2000)
       : null;
 
+    let afterSignal = "";
+    const pullHttp = async () => {
+      if (!live()) return;
+      const rows = await pullHttpSignals(callId, afterSignal);
+      for (const row of rows) {
+        afterSignal = row.id;
+        if (row.fromUserId !== peerUserIdRef.current) continue;
+        enqueueSignal(row.payload);
+      }
+    };
+    void pullHttp();
+    const httpPoll = setInterval(() => {
+      void pullHttp();
+    }, 700);
+
     return () => {
       cancelled = true;
       epochRef.current += 1;
       enqueueSignalRef.current = () => undefined;
       if (offerTimer) clearTimeout(offerTimer);
       if (retry) clearInterval(retry);
+      clearInterval(httpPoll);
       sessionSendRef.current = () => undefined;
       session?.close();
       cleanup();
