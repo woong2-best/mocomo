@@ -46,12 +46,13 @@ export type CredentialsJwtUser = Pick<
   | "role"
   | "premiumTier"
   | "locale"
-  | "postTranslateInto"
   | "countryCode"
   | "timeZone"
   | "supportTierSent"
   | "earnedMocoTier"
->;
+> & {
+  postTranslateInto?: string | null;
+};
 
 export function toCredentialsAuthUser(user: CredentialsJwtUser) {
   const role = effectiveRole(user);
@@ -67,7 +68,7 @@ export function toCredentialsAuthUser(user: CredentialsJwtUser) {
     role,
     premiumTier: user.premiumTier,
     locale: user.locale,
-    postTranslateInto: user.postTranslateInto,
+    postTranslateInto: user.postTranslateInto ?? null,
     countryCode: user.countryCode,
     timeZone: user.timeZone,
     supportTierSent: user.supportTierSent,
