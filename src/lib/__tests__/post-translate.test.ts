@@ -3,12 +3,19 @@ import assert from "node:assert/strict";
 import { needsClientTranslation } from "@/lib/client-translate/detect-source";
 import {
   defaultPostTranslateFromBrowser,
+  inferPostTranslateInto,
   resolveOpusModel,
 } from "@/lib/client-translate/opus-mt-pairs";
 
 test("browser Korean has no Opus-MT target so defaults to Don't translate", () => {
   assert.equal(defaultPostTranslateFromBrowser("ko-KR"), "off");
   assert.equal(defaultPostTranslateFromBrowser("ko"), "off");
+});
+
+test("US country infers English when the browser language has no target model", () => {
+  assert.equal(inferPostTranslateInto("ko-KR", "US"), "en");
+  assert.equal(inferPostTranslateInto("ko", "KR"), "off");
+  assert.equal(inferPostTranslateInto("ja-JP", "US"), "ja");
 });
 
 test("browser English and Japanese map to listed targets", () => {

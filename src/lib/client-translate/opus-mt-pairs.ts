@@ -141,3 +141,64 @@ export function defaultPostTranslateFromBrowser(language = ""): PostTranslateInt
   const mapped = primary === "zh" ? "zh" : primary;
   return isPostTranslateLang(mapped) ? mapped : POST_TRANSLATE_OFF;
 }
+
+/**
+ * Profile country → a listed target. Korea/countries without a target model
+ * are omitted so we can fall through (e.g. US + Korean browser → English).
+ */
+const COUNTRY_TO_POST_TRANSLATE: Record<string, PostTranslateLang> = {
+  US: "en",
+  GB: "en",
+  AU: "en",
+  NZ: "en",
+  IE: "en",
+  CA: "en",
+  SG: "en",
+  JP: "ja",
+  CN: "zh",
+  TW: "zh",
+  HK: "zh",
+  DE: "de",
+  AT: "de",
+  CH: "de",
+  FR: "fr",
+  BE: "fr",
+  ES: "es",
+  MX: "es",
+  AR: "es",
+  CL: "es",
+  CO: "es",
+  PE: "es",
+  IT: "it",
+  RU: "ru",
+  SA: "ar",
+  AE: "ar",
+  EG: "ar",
+  VN: "vi",
+  ID: "id",
+  IN: "hi",
+  NL: "nl",
+  UA: "uk",
+  TR: "tr",
+  SE: "sv",
+  DK: "da",
+  FI: "fi",
+  CZ: "cs",
+  HU: "hu",
+  RO: "ro",
+};
+
+export function defaultPostTranslateFromCountry(countryCode = ""): PostTranslateInto | null {
+  const mapped = COUNTRY_TO_POST_TRANSLATE[countryCode.trim().toUpperCase()];
+  return mapped ?? null;
+}
+
+/** Browser language if we can translate into it, otherwise country, otherwise off. */
+export function inferPostTranslateInto(
+  browserLanguage = "",
+  countryCode = ""
+): PostTranslateInto {
+  const fromBrowser = defaultPostTranslateFromBrowser(browserLanguage);
+  if (fromBrowser !== POST_TRANSLATE_OFF) return fromBrowser;
+  return defaultPostTranslateFromCountry(countryCode) ?? POST_TRANSLATE_OFF;
+}

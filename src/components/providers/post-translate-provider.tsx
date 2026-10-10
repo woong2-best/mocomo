@@ -9,8 +9,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useLocale } from "@/components/providers/locale-provider";
 import {
-  defaultPostTranslateFromBrowser,
+  hasExplicitLocalPostTranslate,
+  inferPostTranslateInto,
   POST_TRANSLATE_OFF,
   readLocalPostTranslateInto,
   resolveClientPostTranslateInto,
@@ -27,26 +29,37 @@ type PostTranslateContextValue = {
 const PostTranslateContext = createContext<PostTranslateContextValue | null>(null);
 
 export function PostTranslateProvider({ children }: { children: ReactNode }) {
+  const { countryCode } = useLocale();
   const [preference, setPreference] = useState<PostTranslateInto>(POST_TRANSLATE_OFF);
+  const [explicit, setExplicit] = useState(false);
 
   useEffect(() => {
-    const next = resolveClientPostTranslateInto(readLocalPostTranslateInto());
-    setPreference(next);
-    writeLocalPostTranslateInto(next);
-  }, []);
+    if (explicit) return;
+    if (hasExplicitLocalPostTranslate()) {
+      const stored = readLocalPostTranslateInto();
+      if (stored) {
+        setPreference(stored);
+        setExplicit(true);
+        return;
+      }
+    }
+    const browserLanguage = typeof navigator !== "undefined" ? navigator.language : "";
+    setPreference(inferPostTranslateInto(browserLanguage, countryCode));
+  }, [countryCode, explicit]);
 
   const hydrateFromSession = useCallback((value: string | null | undefined) => {
     if (value == null || value === "") return;
-    const next = resolveClientPostTranslateInto(value, "");
-    if (value && next) {
-      setPreference(next);
-      writeLocalPostTranslateInto(next);
-    }
+    const next = resolveClientPostTranslateInto(value, "", "");
+    if (!value) return;
+    setPreference(next);
+    setExplicit(true);
+    writeLocalPostTranslateInto(next, true);
   }, []);
 
   const setPreferenceLocal = useCallback((value: PostTranslateInto) => {
     setPreference(value);
-    writeLocalPostTranslateInto(value);
+    setExplicit(true);
+    writeLocalPostTranslateInto(value, true);
   }, []);
 
   const context = useMemo(
@@ -61,8 +74,9 @@ export function usePostTranslate(): PostTranslateContextValue {
   const ctx = useContext(PostTranslateContext);
   if (!ctx) {
     return {
-      preference: defaultPostTranslateFromBrowser(
-        typeof navigator !== "undefined" ? navigator.language : ""
+      preference: inferPostTranslateInto(
+        typeof navigator !== "undefined" ? navigator.language : "",
+        ""
       ),
       hydrateFromSession: () => undefined,
       setPreferenceLocal: () => undefined,

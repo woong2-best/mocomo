@@ -686,7 +686,7 @@
   "settings.translatePostsTitle": "Translate posts into",
   "settings.translatePostsDesc": "Only other people’s posts and comments. This does not change the site language.",
   "settings.translatePostsOff": "Don’t translate",
-  "settings.translatePostsHint": "A post is translated when its language is different from this choice, and only if a translation model exists for that pair.",
+  "settings.translatePostsHint": "A post is translated when its language is different from this choice, and only if a translation model exists for that pair. Until you pick one, we use your browser language, or your country (for example United States → English) if the browser language has no model.",
   "settings.saving": "Saving…",
   "legal.englishOnlyBanner": "Legal terms are provided in English only.",
   "settings.country": "Country",
