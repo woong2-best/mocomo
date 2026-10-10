@@ -51,20 +51,6 @@ export default async function SettingsPage() {
     <SettingsPageChrome>
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.ss8r7c")}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm">
-          <p className="text-muted-foreground mb-3">
-            {t("settings.on_off_2")}
-          </p>
-          <Link href="/settings/messages" className="text-primary hover:underline font-semibold">
-            {t("settings.s2wgdll")}
-          </Link>
-        </CardContent>
-      </Card>
-
       <LocaleSettingsForm
         initialCountryCode={user?.countryCode ?? "US"}
         initialTimeZone={user?.timeZone ?? "UTC"}
