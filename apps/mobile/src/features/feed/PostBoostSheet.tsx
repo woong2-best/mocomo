@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Linking,
   Pressable,
   StyleSheet,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -19,8 +22,7 @@ import { spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { RootStackParamList } from "@/navigation/types";
 
-const HOLD_DELAY_MS = 400;
-const HOLD_REPEAT_MS = 90;
+const DAY_ITEM = 56;
 const DEFAULT_MAX_DAYS = 100;
 const DEFAULT_MOCO_PER_DAY = 0.5;
 const TERMS_URL = `${API_BASE_URL.replace(/\/$/, "")}/legal/sponsored-content`;
@@ -45,6 +47,16 @@ export function PostBoostSheet({ visible, postId, onClose, onSuccess }: Props) {
   const [busy, setBusy] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
+  const openToken = visible ? postId : "";
+  const [openedFor, setOpenedFor] = useState(openToken);
+  if (openedFor !== openToken) {
+    setOpenedFor(openToken);
+    if (visible) {
+      setDays(1);
+      setAgreed(false);
+      setError("");
+    }
+  }
 
   useEffect(() => {
     if (!visible) return;
@@ -89,13 +101,13 @@ export function PostBoostSheet({ visible, postId, onClose, onSuccess }: Props) {
       <Text style={styles.sub}>{t("m.boost.intro")}</Text>
 
       <Text style={styles.durationLabel}>{t("m.boost.duration")}</Text>
-      <BoostDayStepper
+      <BoostDayDial
+        key={`${visible}:${postId}`}
         value={days}
         onChange={setDays}
         maxDays={maxDays}
         colors={colors}
-        addLabel={t("m.boost.add_day")}
-        removeLabel={t("m.boost.remove_day")}
+        alignKey={`${visible}:${postId}`}
       />
       <Text style={styles.cost}>
         {t(days === 1 ? "m.boost.days" : "m.boost.days_plural", {
@@ -150,108 +162,118 @@ export function PostBoostSheet({ visible, postId, onClose, onSuccess }: Props) {
   );
 }
 
-function BoostDayStepper({
+function BoostDayDial({
   value,
   onChange,
   maxDays,
   colors,
-  addLabel,
-  removeLabel,
+  alignKey,
 }: {
   value: number;
   onChange: (days: number) => void;
   maxDays: number;
   colors: ThemeColors;
-  addLabel: string;
-  removeLabel: string;
+  alignKey: string;
 }) {
+  const listRef = useRef<FlatList<number>>(null);
+  const [width, setWidth] = useState(0);
+  const days = useMemo(
+    () => Array.from({ length: Math.max(1, maxDays) }, (_, i) => i + 1),
+    [maxDays]
+  );
+  const pad = Math.max(0, (width - DAY_ITEM) / 2);
   const valueRef = useRef(value);
   valueRef.current = value;
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-  const timersRef = useRef<{ delay?: ReturnType<typeof setTimeout>; interval?: ReturnType<typeof setInterval> }>({});
 
-  const stop = useCallback(() => {
-    if (timersRef.current.delay) clearTimeout(timersRef.current.delay);
-    if (timersRef.current.interval) clearInterval(timersRef.current.interval);
-    timersRef.current = {};
-  }, []);
+  useEffect(() => {
+    if (!width) return;
+    listRef.current?.scrollToOffset({
+      offset: (valueRef.current - 1) * DAY_ITEM,
+      animated: false,
+    });
+  }, [alignKey, maxDays, width]);
 
-  const step = useCallback((dir: 1 | -1) => {
-    const next = Math.min(maxDays, Math.max(0, valueRef.current + dir));
-    if (next === valueRef.current) return;
-    onChangeRef.current(next);
-  }, [maxDays]);
+  function pickFromOffset(x: number) {
+    const next = Math.min(maxDays, Math.max(1, Math.round(x / DAY_ITEM) + 1));
+    if (next !== valueRef.current) onChange(next);
+  }
 
-  const start = useCallback(
-    (dir: 1 | -1) => {
-      stop();
-      step(dir);
-      timersRef.current.delay = setTimeout(() => {
-        timersRef.current.interval = setInterval(() => step(dir), HOLD_REPEAT_MS);
-      }, HOLD_DELAY_MS);
-    },
-    [step, stop]
-  );
-
-  useEffect(() => stop, [stop]);
+  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    pickFromOffset(e.nativeEvent.contentOffset.x);
+  }
 
   return (
-    <View style={[stepperStyles.row, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-      <Text style={[stepperStyles.value, { color: colors.cobalt }]}>{value}</Text>
-      <View style={stepperStyles.buttons}>
-        <Pressable
-          accessibilityLabel={removeLabel}
-          disabled={value <= 0}
-          onPressIn={() => start(-1)}
-          onPressOut={stop}
-          style={[
-            stepperStyles.btn,
-            { borderColor: colors.cobalt, opacity: value <= 0 ? 0.35 : 1 },
-          ]}
-        >
-          <Text style={[stepperStyles.btnText, { color: colors.cobalt }]}>−</Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel={addLabel}
-          disabled={value >= maxDays}
-          onPressIn={() => start(1)}
-          onPressOut={stop}
-          style={[
-            stepperStyles.btn,
-            { borderColor: colors.cobalt, opacity: value >= maxDays ? 0.35 : 1 },
-          ]}
-        >
-          <Text style={[stepperStyles.btnText, { color: colors.cobalt }]}>+</Text>
-        </Pressable>
-      </View>
+    <View style={dialStyles.wrap} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <View pointerEvents="none" style={[dialStyles.center, { borderColor: colors.cobalt }]} />
+      <FlatList
+        ref={listRef}
+        horizontal
+        data={days}
+        keyExtractor={(d) => String(d)}
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={DAY_ITEM}
+        decelerationRate="fast"
+        disableIntervalMomentum
+        contentContainerStyle={{ paddingHorizontal: pad }}
+        getItemLayout={(_, index) => ({
+          length: DAY_ITEM,
+          offset: DAY_ITEM * index,
+          index,
+        })}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={(e) => pickFromOffset(e.nativeEvent.contentOffset.x)}
+        renderItem={({ item }) => {
+          const active = item === value;
+          return (
+            <Pressable
+              style={dialStyles.item}
+              accessibilityRole="button"
+              accessibilityLabel={String(item)}
+              onPress={() => {
+                onChange(item);
+                listRef.current?.scrollToOffset({
+                  offset: (item - 1) * DAY_ITEM,
+                  animated: true,
+                });
+              }}
+            >
+              <Text
+                style={[
+                  dialStyles.num,
+                  { color: active ? colors.cobalt : colors.textMuted },
+                  active && dialStyles.numActive,
+                ]}
+              >
+                {item}
+              </Text>
+            </Pressable>
+          );
+        }}
+      />
     </View>
   );
 }
 
-const stepperStyles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
+const dialStyles = StyleSheet.create({
+  wrap: { height: 64, justifyContent: "center", marginBottom: 8 },
+  center: {
+    position: "absolute",
+    alignSelf: "center",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
+    backgroundColor: "rgba(30, 64, 175, 0.08)",
   },
-  value: { fontSize: 24, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  buttons: { flexDirection: "row", alignItems: "center", gap: 8 },
-  btn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
+  item: {
+    width: DAY_ITEM,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
   },
-  btnText: { fontSize: 22, fontWeight: "800", lineHeight: 24 },
+  num: { fontSize: 16, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  numActive: { fontSize: 22, fontWeight: "800" },
 });
 
 function createStyles(colors: ThemeColors) {
@@ -271,6 +293,7 @@ function createStyles(colors: ThemeColors) {
       fontWeight: "800",
       color: colors.cobalt,
       lineHeight: 20,
+      textAlign: "center",
       marginBottom: spacing.md,
     },
     balance: { fontSize: 14, fontWeight: "700", color: colors.text, marginBottom: 6 },
