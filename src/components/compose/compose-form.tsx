@@ -20,7 +20,6 @@ import { ContentVisibilitySelect } from "@/components/monetization/content-visib
 import { getBankVerificationStatus } from "@/actions/bank-verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CreatePostPollInput } from "@/lib/post-poll";
 import { validatePostPollInput } from "@/lib/post-poll";
 import { buildPostCreditLabel } from "@/lib/media-watermark";
@@ -355,110 +354,97 @@ export function ComposeForm({
   }
 
   if (variant === "inline") {
-    const user = session?.user;
-    const avatarLabel =
-      user?.name?.trim()?.[0] ?? user?.username?.trim()?.[0] ?? "?";
-
     return (
       <form onSubmit={handleSubmit} onPasteCapture={handleComposePaste} className="space-y-2">
-        <div className="flex gap-3 items-start">
-          <Avatar className="h-10 w-10 shrink-0 ring-1 ring-border/40">
-            <AvatarImage src={user?.image ?? undefined} alt="" />
-            <AvatarFallback className="text-sm font-semibold bg-folk-cobalt/10 text-folk-cobalt">
-              {avatarLabel.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+        <div className="min-w-0 space-y-3">
+          <ComposeRichTextarea
+            name="content"
+            value={content}
+            onChange={setContent}
+            placeholder={t("compose.placeholder")}
+            rows={3}
+            variant="inline"
+            disabled={submitBusy}
+          />
+          {quotedPostId ? <ComposeQuotedPostPreview postId={quotedPostId} /> : null}
 
-          <div className="flex-1 min-w-0 space-y-3">
-            <ComposeRichTextarea
-              name="content"
-              value={content}
-              onChange={setContent}
-              placeholder={t("compose.placeholder")}
-              rows={3}
-              variant="inline"
-              disabled={submitBusy}
+          <PostMediaComposer
+            ref={mediaComposerRef}
+            items={media}
+            onChange={setMedia}
+            maxImages={100}
+            maxVideos={10}
+            layout="toolbar"
+            allowVideoCapture={false}
+            enablePaidAttach={paidAttachEnabled}
+            watermarkCreditLabel={watermarkCreditLabel}
+            onUploadingChange={setMediaUploading}
+            toolbarFooterStart={
+              isQuoteCompose ? null : (
+                <>
+                  {!poll && (
+                    <ComposePollEditor
+                      value={poll}
+                      onChange={setPoll}
+                      disabled={submitBusy}
+                      compact
+                    />
+                  )}
+                  {!isAnonymous && (
+                    <ComposeCollaboratorPicker
+                      compact
+                      selected={collaborators}
+                      onChange={setCollaborators}
+                      disabled={submitBusy}
+                      labels={{
+                        add: t("compose.collabAdd"),
+                        search: t("compose.collabSearch"),
+                        following: t("compose.collabFollowing"),
+                        maxReached: t("compose.collabMax"),
+                      }}
+                    />
+                  )}
+                  {communityId ? (
+                    <QnaIdentityToggle
+                      anonymous={isAnonymous}
+                      onChange={setIsAnonymous}
+                      disabled={submitBusy}
+                    />
+                  ) : null}
+                  {nsfwToggle}
+                </>
+              )
+            }
+            toolbarFooter={
+              <Button
+                type="submit"
+                size="sm"
+                className="rounded-full px-5 font-semibold shrink-0"
+                disabled={submitBusy || !canSubmit}
+              >
+                {!mediaReady || mediaUploading
+                  ? t("compose.uploading")
+                  : loading
+                    ? t("compose.posting")
+                    : t("compose.post")}
+              </Button>
+            }
+          />
+
+          {poll && (
+            <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
+          )}
+
+          {!isAnonymous && (
+            <ComposeCollaboratorPicker
+              chipsOnly
+              selected={collaborators}
+              onChange={setCollaborators}
             />
-            {quotedPostId ? <ComposeQuotedPostPreview postId={quotedPostId} /> : null}
-
-            <PostMediaComposer
-              ref={mediaComposerRef}
-              items={media}
-              onChange={setMedia}
-              maxImages={100}
-              maxVideos={10}
-              layout="toolbar"
-              allowVideoCapture={false}
-              enablePaidAttach={paidAttachEnabled}
-              watermarkCreditLabel={watermarkCreditLabel}
-              onUploadingChange={setMediaUploading}
-              toolbarFooterStart={
-                isQuoteCompose ? null : (
-                  <>
-                    {!poll && (
-                      <ComposePollEditor
-                        value={poll}
-                        onChange={setPoll}
-                        disabled={submitBusy}
-                        compact
-                      />
-                    )}
-                    {!isAnonymous && (
-                      <ComposeCollaboratorPicker
-                        compact
-                        selected={collaborators}
-                        onChange={setCollaborators}
-                        disabled={submitBusy}
-                        labels={{
-                          add: t("compose.collabAdd"),
-                          search: t("compose.collabSearch"),
-                          following: t("compose.collabFollowing"),
-                          maxReached: t("compose.collabMax"),
-                        }}
-                      />
-                    )}
-                    {communityId ? (
-                      <QnaIdentityToggle
-                        anonymous={isAnonymous}
-                        onChange={setIsAnonymous}
-                        disabled={submitBusy}
-                      />
-                    ) : null}
-                    {nsfwToggle}
-                  </>
-                )
-              }
-              toolbarFooter={
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="rounded-full px-5 font-semibold shrink-0"
-                  disabled={submitBusy || !canSubmit}
-                >
-                  {!mediaReady || mediaUploading
-                    ? t("compose.uploading")
-                    : loading
-                      ? t("compose.posting")
-                      : t("compose.post")}
-                </Button>
-              }
-            />
-
-            {poll && (
-              <ComposePollEditor value={poll} onChange={setPoll} disabled={submitBusy} />
-            )}
-
-            {!isAnonymous && (
-              <ComposeCollaboratorPicker
-                chipsOnly
-                selected={collaborators}
-                onChange={setCollaborators}
-              />
-            )}
-          </div>
+          )}
         </div>
         <input type="hidden" name="contentRating" value={contentRating} />
-        {error && <p className="text-sm text-destructive pl-[52px]">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </form>
     );
   }
