@@ -31,8 +31,7 @@ export type FeedMediaFrame = {
 
 /**
  * One photo or video: portrait sits on the left at its own ratio (whole frame visible).
- * Landscape stays the full column width. Multi-photo grids should keep using
- * `feedMediaFrameHeight` on a full cell instead.
+ * Landscape stays the full column width. Several photos use `feedCarouselTileSize`.
  */
 export function feedMediaFrame(
   layoutWidth: number,
@@ -60,7 +59,35 @@ export function feedMediaFrame(
   };
 }
 
-/** Full-column cell height. Multi-photo carousels stay wide; portrait is cropped to 3:4. */
+/** True width/height. Missing size falls back like a single tile. */
+export function feedMediaNativeAspect(
+  width?: number | null,
+  height?: number | null,
+  type?: string
+): number {
+  if (width && height && width > 0 && height > 0) return width / height;
+  return type === "VIDEO" ? 16 / 9 : 16 / 10;
+}
+
+/**
+ * Mixed carousel: every tile shares the max height, and width follows 16:9 or portrait.
+ * Neighbors sit in the same row instead of each taking ~88% at its own height.
+ */
+export function feedCarouselTileSize(
+  windowHeight: number,
+  width?: number | null,
+  height?: number | null,
+  type?: string
+): { width: number; height: number } {
+  const frameHeight = feedMediaMaxHeight(windowHeight);
+  const aspect = feedMediaNativeAspect(width, height, type);
+  return {
+    height: frameHeight,
+    width: Math.max(72, Math.round(frameHeight * aspect)),
+  };
+}
+
+/** Full-column cell height. Portrait is cropped to 3:4. */
 export function feedMediaFrameHeight(
   layoutWidth: number,
   windowHeight: number,

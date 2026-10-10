@@ -20,14 +20,9 @@ import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/p
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
-import {
-  feedMediaFrame,
-  feedMediaFrameHeight,
-  isPortraitMedia,
-} from "@/features/feed/feedMediaAspect";
+import { feedCarouselTileSize, feedMediaFrame } from "@/features/feed/feedMediaAspect";
 
 const ITEM_GAP = 8;
-const EDGE_PEEK = 14;
 
 type VisualItem = FeedMedia & { index: number };
 
@@ -90,41 +85,76 @@ function FeedPostMediaCarouselInner({
         .filter(isVisualMedia),
     [post.media]
   );
-  const [measured, setMeasured] = useState<{ key: string; width: number; height: number } | null>(
-    null
+  const [measured, setMeasured] = useState<Record<string, { width: number; height: number }>>({});
+
+  const resolveMedia = useCallback(
+    (item: VisualItem): VisualItem => {
+      const key = item.id ?? item.url;
+      const hit = key ? measured[key] : undefined;
+      if (!hit || hit.width <= 0 || hit.height <= 0) return item;
+      return { ...item, width: hit.width, height: hit.height };
+    },
+    [measured]
   );
 
+  const multiLayout = useMemo(() => {
+    if (items.length < 2) return null;
+    const tiles = items.map((item) => {
+      const media = resolveMedia(item);
+      return feedCarouselTileSize(windowHeight, media.width, media.height, media.type);
+    });
+    const offsets: number[] = [];
+    tiles.forEach((tile, index) => {
+      const prev = index === 0 ? 0 : offsets[index - 1]! + tiles[index - 1]!.width + ITEM_GAP;
+      offsets.push(prev);
+    });
+    return { tiles, offsets };
+  }, [items, resolveMedia, windowHeight]);
+
   useEffect(() => {
-    if (items.length !== 1) return;
-    const item = items[0]!;
-    if (isPortraitMedia(item.width, item.height)) return;
-    const uri = item.type === "IMAGE" ? item.url?.trim() : item.posterUrl?.trim();
-    if (!uri) return;
     let cancelled = false;
-    RNImage.getSize(
-      uri,
-      (width, height) => {
-        if (cancelled || width <= 0 || height <= width) return;
-        setMeasured({ key: item.id ?? uri, width, height });
-      },
-      () => {}
-    );
+    for (const item of items) {
+      if (item.width && item.height && item.width > 0 && item.height > 0) continue;
+      const uri = item.type === "IMAGE" ? item.url?.trim() : item.posterUrl?.trim();
+      if (!uri) continue;
+      const key = item.id ?? uri;
+      RNImage.getSize(
+        uri,
+        (width, height) => {
+          if (cancelled || width <= 0 || height <= 0) return;
+          setMeasured((prev) =>
+            prev[key]?.width === width && prev[key]?.height === height
+              ? prev
+              : { ...prev, [key]: { width, height } }
+          );
+        },
+        () => {}
+      );
+    }
     return () => {
       cancelled = true;
     };
   }, [items]);
 
-  const slideWidth = Math.max(120, layoutWidth - EDGE_PEEK * 2);
-  const snapInterval = slideWidth + ITEM_GAP;
-  const decode = feedMediaDecodeWidth(slideWidth);
+  const decode = feedMediaDecodeWidth(layoutWidth);
 
   const onScrollEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsets = multiLayout?.offsets;
+      if (!offsets?.length) return;
       const x = e.nativeEvent.contentOffset.x;
-      const next = Math.round(x / Math.max(snapInterval, 1));
-      if (next >= 0 && next < items.length) setActiveIndex(next);
+      let best = 0;
+      let bestDist = Infinity;
+      offsets.forEach((offset, index) => {
+        const dist = Math.abs(offset - x);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = index;
+        }
+      });
+      setActiveIndex(best);
     },
-    [items.length, snapInterval]
+    [multiLayout]
   );
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -154,20 +184,15 @@ function FeedPostMediaCarouselInner({
     </SensitiveContentGate>
   );
 
-  const rememberPortrait = (item: VisualItem, width?: number, height?: number) => {
-    if (!width || !height || height <= width) return;
+  const rememberSize = (item: VisualItem, width?: number, height?: number) => {
+    if (!width || !height || width <= 0 || height <= 0) return;
     const key = item.id ?? item.url;
+    if (!key) return;
     setMeasured((prev) =>
-      prev?.key === key && prev.width === width && prev.height === height
+      prev[key]?.width === width && prev[key]?.height === height
         ? prev
-        : { key, width, height }
+        : { ...prev, [key]: { width, height } }
     );
-  };
-
-  const withMeasured = (item: VisualItem): VisualItem => {
-    const key = item.id ?? item.url;
-    if (!measured || measured.key !== key || measured.height <= measured.width) return item;
-    return { ...item, width: measured.width, height: measured.height };
   };
 
   const renderImageCell = (item: VisualItem, fit: "cover" | "contain" = "cover") => (
@@ -184,18 +209,10 @@ function FeedPostMediaCarouselInner({
         cachePolicy={IMAGE_CACHE_POLICY}
         recyclingKey={item.url}
         transition={0}
-        onLoad={(e) => {
-          if (items.length !== 1) return;
-          rememberPortrait(item, e.source?.width, e.source?.height);
-        }}
+        onLoad={(e) => rememberSize(item, e.source?.width, e.source?.height)}
       />
     </Pressable>
   );
-
-  const frameSize = (item: VisualItem, width: number) => ({
-    width,
-    height: feedMediaFrameHeight(width, windowHeight, item.width, item.height, item.type),
-  });
 
   const renderMediaCell = (item: VisualItem, active: boolean) => {
     if (item.locked && item.type === "VIDEO") {
@@ -212,17 +229,18 @@ function FeedPostMediaCarouselInner({
           media={item}
           active={active}
           embedded={items.length > 1}
+          contentFit={items.length > 1 ? "contain" : "cover"}
           monetization={monetization}
           onPress={() => openMedia(item)}
         />
       );
     }
 
-    return renderImageCell(item);
+    return renderImageCell(item, items.length > 1 ? "contain" : "cover");
   };
 
   if (items.length === 1) {
-    const item = withMeasured(items[0]!);
+    const item = resolveMedia(items[0]!);
     const box = feedMediaFrame(layoutWidth, windowHeight, item.width, item.height, item.type);
     const size = { width: box.width, height: box.height };
     const fit = box.contain ? "contain" : "cover";
@@ -272,7 +290,7 @@ function FeedPostMediaCarouselInner({
           cachePolicy={IMAGE_CACHE_POLICY}
           recyclingKey={item.url}
           transition={0}
-          onLoad={(e) => rememberPortrait(items[0]!, e.source?.width, e.source?.height)}
+          onLoad={(e) => rememberSize(items[0]!, e.source?.width, e.source?.height)}
         />
       </Pressable>
     );
@@ -296,28 +314,39 @@ function FeedPostMediaCarouselInner({
         keyboardShouldPersistTaps="handled"
         keyExtractor={(item) => item.id ?? `${post.id}:media:${item.index}`}
         showsHorizontalScrollIndicator={false}
+        style={{ height: multiLayout?.tiles[0]?.height ?? 0 }}
         decelerationRate="fast"
-        snapToInterval={snapInterval}
+        snapToOffsets={multiLayout?.offsets}
         snapToAlignment="start"
         disableIntervalMomentum
-        contentContainerStyle={{ paddingHorizontal: EDGE_PEEK }}
         onMomentumScrollEnd={onScrollEnd}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
-        getItemLayout={(_, index) => ({
-          length: snapInterval,
-          offset: EDGE_PEEK + snapInterval * index,
-          index,
-        })}
+        getItemLayout={(_, index) => {
+          const tile = multiLayout?.tiles[index];
+          const offset = multiLayout?.offsets[index] ?? 0;
+          const length = (tile?.width ?? 0) + (index < items.length - 1 ? ITEM_GAP : 0);
+          return { length, offset, index };
+        }}
         renderItem={({ item, index }) => {
           const isActiveSlide = previewActive && index === activeIndex;
-          const size = frameSize(item, slideWidth);
+          const media = resolveMedia(item);
+          const size =
+            multiLayout?.tiles[index] ??
+            feedCarouselTileSize(windowHeight, media.width, media.height, media.type);
 
           return (
-            <View style={[styles.slide, { width: slideWidth, marginRight: ITEM_GAP }]}>
-              <View style={[styles.slideInner, size]}>
-                {renderMediaCell(item, isActiveSlide)}
-              </View>
+            <View
+              style={[
+                styles.slideInner,
+                {
+                  width: size.width,
+                  height: size.height,
+                  marginRight: index < items.length - 1 ? ITEM_GAP : 0,
+                },
+              ]}
+            >
+              {renderMediaCell(media, isActiveSlide)}
             </View>
           );
         }}
@@ -353,7 +382,6 @@ function createStyles(colors: ThemeColors) {
       height: 7,
       borderRadius: 3.5,
     },
-    slide: {},
     slideInner: {
       borderRadius: 16,
       overflow: "hidden",
