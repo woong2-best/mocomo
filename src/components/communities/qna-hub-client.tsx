@@ -8,7 +8,7 @@ import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Plus, Search } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativePageTitle } from "@/components/layout/app-page-chrome";
 import {
@@ -61,7 +61,6 @@ export function QnaHubClient() {
   const sessionState = useSession();
   const sessionUserId = sessionState?.data?.user?.id;
 
-  const [qInput, setQInput] = useState(qFromUrl);
   const [items, setItems] = useState<FeedLayoutItem[]>([]);
   const [likedIds, setLikedIds] = useState(() => new Set<string>());
   const [starredIds, setStarredIds] = useState(() => new Set<string>());
@@ -75,23 +74,6 @@ export function QnaHubClient() {
   const loadingRef = useRef(false);
   const requestIdRef = useRef(0);
   const backfillRef = useRef(false);
-
-  useEffect(() => {
-    setQInput(qFromUrl);
-  }, [qFromUrl]);
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => {
-      const next = qInput.trim();
-      if (next === qFromUrl) return;
-      const sp = new URLSearchParams(searchParams.toString());
-      if (next) sp.set("q", next);
-      else sp.delete("q");
-      const qs = sp.toString();
-      router.replace(qs ? `/communities?${qs}` : "/communities", { scroll: false });
-    }, 320);
-    return () => window.clearTimeout(handle);
-  }, [qInput, qFromUrl, router, searchParams]);
 
   const setTab = useCallback(
     (next: QnaFeedTabId) => {
@@ -231,16 +213,6 @@ export function QnaHubClient() {
             {t("communities.qna_3")}
           </Button>
         </Link>
-      </div>
-
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={qInput}
-          onChange={(e) => setQInput(e.target.value)}
-          placeholder={t("communities.qna_6")}
-          className="h-11 w-full rounded-full border border-border bg-background pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-        />
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin">
