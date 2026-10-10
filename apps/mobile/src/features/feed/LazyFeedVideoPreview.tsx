@@ -15,6 +15,8 @@ type Props = {
   onPress: () => void;
   /** Inside horizontal carousel — fill parent cell, no outer margin. */
   embedded?: boolean;
+  /** Portrait single tiles use contain so the whole frame stays visible. */
+  contentFit?: "contain" | "cover";
   monetization?: import("@/components/media/paid-media-types").PaidMediaMonetization;
 };
 
@@ -77,7 +79,7 @@ function LazyFeedVideoPreviewInner(props: Props) {
         <Image
           source={cachedImageSource(poster, decode)}
           style={StyleSheet.absoluteFill}
-          contentFit="cover"
+          contentFit={props.contentFit ?? "cover"}
           cachePolicy={IMAGE_CACHE_POLICY}
           recyclingKey={poster}
           transition={0}

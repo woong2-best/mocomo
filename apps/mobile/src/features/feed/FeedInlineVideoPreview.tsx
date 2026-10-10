@@ -63,6 +63,8 @@ type Props = {
   videoCount?: number;
   onPress: () => void;
   embedded?: boolean;
+  /** Portrait single tiles use contain so the whole frame stays visible. */
+  contentFit?: "contain" | "cover";
   monetization?: PaidMediaMonetization;
 };
 
@@ -77,6 +79,7 @@ function FeedInlineVideoPreviewInner({
   videoCount = 1,
   onPress,
   embedded = false,
+  contentFit = "cover",
   monetization,
 }: Props) {
   const { t } = useI18n();
@@ -177,7 +180,7 @@ function FeedInlineVideoPreviewInner({
         <Image
           source={cachedImageSource(poster)}
           style={StyleSheet.absoluteFill}
-          contentFit="cover"
+          contentFit={contentFit}
           cachePolicy={IMAGE_CACHE_POLICY}
           recyclingKey={poster}
           transition={0}
@@ -192,7 +195,7 @@ function FeedInlineVideoPreviewInner({
           media={media}
           active={active}
           muted={muted}
-          contentFit="cover"
+          contentFit={contentFit}
           monetization={monetization}
         />
       ) : usePooledAndroid ? (
@@ -209,7 +212,7 @@ function FeedInlineVideoPreviewInner({
         <VideoView
           style={StyleSheet.absoluteFill}
           player={player}
-          contentFit="cover"
+          contentFit={contentFit}
           nativeControls={false}
           pointerEvents="none"
         />
@@ -220,7 +223,7 @@ function FeedInlineVideoPreviewInner({
         <Image
           source={cachedImageSource(poster)}
           style={[StyleSheet.absoluteFill, styles.posterCover]}
-          contentFit="cover"
+          contentFit={contentFit}
           cachePolicy={IMAGE_CACHE_POLICY}
           recyclingKey={`${poster}-cover`}
           transition={0}

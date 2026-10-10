@@ -1,6 +1,7 @@
-import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   FlatList,
+  Image as RNImage,
   Pressable,
   StyleSheet,
   View,
@@ -19,7 +20,11 @@ import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/p
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
-import { feedMediaFrameHeight } from "@/features/feed/feedMediaAspect";
+import {
+  feedMediaFrame,
+  feedMediaFrameHeight,
+  isPortraitMedia,
+} from "@/features/feed/feedMediaAspect";
 
 const ITEM_GAP = 8;
 const EDGE_PEEK = 14;
@@ -85,6 +90,29 @@ function FeedPostMediaCarouselInner({
         .filter(isVisualMedia),
     [post.media]
   );
+  const [measured, setMeasured] = useState<{ key: string; width: number; height: number } | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (items.length !== 1) return;
+    const item = items[0]!;
+    if (isPortraitMedia(item.width, item.height)) return;
+    const uri = item.type === "IMAGE" ? item.url?.trim() : item.posterUrl?.trim();
+    if (!uri) return;
+    let cancelled = false;
+    RNImage.getSize(
+      uri,
+      (width, height) => {
+        if (cancelled || width <= 0 || height <= width) return;
+        setMeasured({ key: item.id ?? uri, width, height });
+      },
+      () => {}
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
 
   const slideWidth = Math.max(120, layoutWidth - EDGE_PEEK * 2);
   const snapInterval = slideWidth + ITEM_GAP;
@@ -126,7 +154,23 @@ function FeedPostMediaCarouselInner({
     </SensitiveContentGate>
   );
 
-  const renderImageCell = (item: VisualItem) => (
+  const rememberPortrait = (item: VisualItem, width?: number, height?: number) => {
+    if (!width || !height || height <= width) return;
+    const key = item.id ?? item.url;
+    setMeasured((prev) =>
+      prev?.key === key && prev.width === width && prev.height === height
+        ? prev
+        : { key, width, height }
+    );
+  };
+
+  const withMeasured = (item: VisualItem): VisualItem => {
+    const key = item.id ?? item.url;
+    if (!measured || measured.key !== key || measured.height <= measured.width) return item;
+    return { ...item, width: measured.width, height: measured.height };
+  };
+
+  const renderImageCell = (item: VisualItem, fit: "cover" | "contain" = "cover") => (
     <Pressable
       style={StyleSheet.absoluteFill}
       onPress={() => openMedia(item)}
@@ -136,10 +180,14 @@ function FeedPostMediaCarouselInner({
       <Image
         source={cachedImageSource(item.url, decode)}
         style={StyleSheet.absoluteFill}
-        contentFit="cover"
+        contentFit={fit}
         cachePolicy={IMAGE_CACHE_POLICY}
         recyclingKey={item.url}
         transition={0}
+        onLoad={(e) => {
+          if (items.length !== 1) return;
+          rememberPortrait(item, e.source?.width, e.source?.height);
+        }}
       />
     </Pressable>
   );
@@ -174,8 +222,10 @@ function FeedPostMediaCarouselInner({
   };
 
   if (items.length === 1) {
-    const item = items[0]!;
-    const size = frameSize(item, layoutWidth);
+    const item = withMeasured(items[0]!);
+    const box = feedMediaFrame(layoutWidth, windowHeight, item.width, item.height, item.type);
+    const size = { width: box.width, height: box.height };
+    const fit = box.contain ? "contain" : "cover";
 
     if (item.locked && item.type === "VIDEO") {
       return wrapGate(
@@ -192,6 +242,7 @@ function FeedPostMediaCarouselInner({
             media={item}
             active={previewActive}
             embedded
+            contentFit={fit}
             monetization={monetization}
             onPress={() => openMedia(item)}
           />
@@ -202,7 +253,7 @@ function FeedPostMediaCarouselInner({
     if (item.locked) {
       return wrapGate(
         <View style={[styles.singleMedia, size]}>
-          {renderImageCell(item)}
+          {renderImageCell(item, fit)}
         </View>
       );
     }
@@ -215,12 +266,13 @@ function FeedPostMediaCarouselInner({
         accessibilityLabel={t("m.common.view_photo_full_screen")}
       >
         <Image
-          source={cachedImageSource(item.url, decode)}
+          source={cachedImageSource(item.url, box.width)}
           style={StyleSheet.absoluteFill}
-          contentFit="cover"
+          contentFit={fit}
           cachePolicy={IMAGE_CACHE_POLICY}
           recyclingKey={item.url}
           transition={0}
+          onLoad={(e) => rememberPortrait(items[0]!, e.source?.width, e.source?.height)}
         />
       </Pressable>
     );
@@ -308,6 +360,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.muted,
     },
     singleMedia: {
+      alignSelf: "flex-start",
       borderRadius: 16,
       overflow: "hidden",
       backgroundColor: colors.muted,
