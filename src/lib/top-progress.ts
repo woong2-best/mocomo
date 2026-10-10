@@ -113,6 +113,11 @@ class TopProgressController {
     return this.count > 0 || this.active || this.fading;
   }
 
+  /** True only while start() is still unmatched — not during fade/idle. */
+  hasOpenHold(): boolean {
+    return this.count > 0;
+  }
+
   private armSafetyOnce(): void {
     if (this.safetyTimer) return; // do not refresh
     this.safetyTimer = setTimeout(() => {
@@ -254,11 +259,16 @@ function resolveHeaders(input: RequestInfo | URL, init?: RequestInit): Headers {
   return headers;
 }
 
-function isNextNavigationFetch(input: RequestInfo | URL, init?: RequestInit): boolean {
+export function isNextNavigationFetch(input: RequestInfo | URL, init?: RequestInit): boolean {
   if (resolveMethod(input, init) !== "GET") return false;
   const headers = resolveHeaders(input, init);
   if (headers.get("Next-Router-Prefetch") === "1") return false;
-  return headers.get("RSC") === "1" || headers.has("Next-Router-State-Tree");
+  if (headers.get("Next-Router-Segment-Prefetch")) return false;
+  const isRsc = headers.get("RSC") === "1" || headers.has("Next-Router-State-Tree");
+  if (!isRsc) return false;
+  // Next 15 `router.prefetch()` for dynamic pages often omits Next-Router-Prefetch.
+  // Those look like navigations but fire on hover/touch/scroll — only follow a real hold.
+  return topProgress.hasOpenHold();
 }
 
 /**

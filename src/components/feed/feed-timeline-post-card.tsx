@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { PrefetchLink, useSpeculativePrefetch } from "@/components/ui/prefetch-link";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
+import { topProgress } from "@/lib/top-progress";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, Star } from "lucide-react";
 import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
@@ -50,7 +51,6 @@ export function FeedTimelinePostCard({
   const router = useRouter();
   const { locale } = useLocale();
   const postHref = `/post/${post.id}`;
-  const prefetchPost = useSpeculativePrefetch(postHref);
 
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
   const isOwner = session?.user?.id === post.author.id;
@@ -84,12 +84,7 @@ export function FeedTimelinePostCard({
   }
 
   return (
-    <article
-      className="w-full rounded-2xl border border-border bg-card overflow-hidden"
-      onMouseEnter={prefetchPost.onMouseEnter}
-      onMouseLeave={prefetchPost.onMouseLeave}
-      onTouchStart={prefetchPost.onTouchStart}
-    >
+    <article className="w-full rounded-2xl border border-border bg-card overflow-hidden">
       {post.repostBy ? (
         <div className="px-4 pt-3">
           <RepostBanner user={post.repostBy.user} />
@@ -137,6 +132,7 @@ export function FeedTimelinePostCard({
                   className="cursor-pointer"
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest("a, button, [role='link']")) return;
+                    topProgress.start();
                     router.push(`/post/${post.id}`);
                   }}
                 >

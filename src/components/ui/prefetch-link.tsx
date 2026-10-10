@@ -80,6 +80,7 @@ export function PrefetchLink({
   );
 }
 
+/** Hover/touch prefetch for a single control — do not bind to a whole feed card (scroll retriggers it). */
 export function useSpeculativePrefetch(href: string) {
   const router = useRouter();
   const timerRef = useRef(0);
