@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { shouldHideUsedSectionHeader } from "@/lib/mobile-shell";
 import { UsedSectionHeader } from "@/components/used/used-section-header";
@@ -15,7 +16,9 @@ export function UsedLayoutChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={cn("max-w-5xl mx-auto p-4 lg:pb-8 space-y-2.5 min-w-0", !isNativeApp && "pb-nav")}>
-      <UsedSectionHeader />
+      <Suspense fallback={null}>
+        <UsedSectionHeader />
+      </Suspense>
       {children}
     </div>
   );
