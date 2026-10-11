@@ -7,6 +7,9 @@ import type { PostTranslateInto } from "@/lib/client-translate/opus-mt-pairs";
 
 export function useAutoClientTranslation(text: string, target: PostTranslateInto) {
   const clientTranslation = useClientTranslationOptional();
+  const lookup = clientTranslation?.lookup;
+  const prefetch = clientTranslation?.prefetch;
+  const translate = clientTranslation?.translate;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
   const [requested, setRequested] = useState(false);
@@ -52,10 +55,10 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
   }, [shouldTranslate, text]);
 
   useEffect(() => {
-    if (!shouldTranslate || !clientTranslation) return;
+    if (!shouldTranslate || !lookup) return;
 
     let cancelled = false;
-    void clientTranslation.lookup(text, target).then((result) => {
+    void lookup(text, target).then((result) => {
       if (cancelled || !result?.translated) return;
       setTranslated(result.translated);
       setSourceLang(result.sourceLang);
@@ -66,22 +69,21 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
     return () => {
       cancelled = true;
     };
-  }, [shouldTranslate, clientTranslation, text, target]);
+  }, [shouldTranslate, lookup, text, target]);
 
   useEffect(() => {
-    if (!visible || !shouldTranslate || !clientTranslation || translated) return;
-    clientTranslation.prefetch(text, target);
-  }, [visible, shouldTranslate, clientTranslation, text, target, translated]);
+    if (!visible || !shouldTranslate || !prefetch || translated) return;
+    prefetch(text, target);
+  }, [visible, shouldTranslate, prefetch, text, target, translated]);
 
   useEffect(() => {
-    if (!shouldTranslate || !requested || !clientTranslation || translated) return;
+    if (!shouldTranslate || !requested || !translate || translated) return;
 
     let cancelled = false;
     setLoading(true);
     setFailed(false);
 
-    void clientTranslation
-      .translate(text, target, 2)
+    void translate(text, target, 2)
       .then((result) => {
         if (cancelled) return;
         if (!result?.translated) {
@@ -105,7 +107,7 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
     return () => {
       cancelled = true;
     };
-  }, [shouldTranslate, requested, clientTranslation, text, target, translated]);
+  }, [shouldTranslate, requested, translate, text, target, translated]);
 
   const displayText =
     shouldTranslate && translated && !showOriginal ? translated : text;

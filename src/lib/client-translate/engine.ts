@@ -42,10 +42,34 @@ const pipelinePromises = new Map<string, Promise<TranslationPipeline>>();
 const inflight = new Map<string, Promise<ClientTranslateResult | null>>();
 let loadProgress = 0;
 let loadStatus: "idle" | "loading" | "ready" | "error" = "idle";
+let lastNotifiedStatus = loadStatus;
+let lastNotifiedProgress = loadProgress;
 const progressListeners = new Set<ProgressCallback>();
 
 function notifyProgress(update: { status: string; progress?: number }): void {
+  const progress = update.progress ?? lastNotifiedProgress;
+  if (update.status === lastNotifiedStatus && progress === lastNotifiedProgress) return;
+  lastNotifiedStatus = update.status as typeof loadStatus;
+  lastNotifiedProgress = progress;
   for (const listener of progressListeners) listener(update);
+}
+
+function isBenignTokenizerWarning(args: unknown[]): boolean {
+  const text = args.filter((arg) => typeof arg === "string").join(" ");
+  return text.includes("MarianTokenizer") && text.includes("fast");
+}
+
+let tokenizerWarnPatched = false;
+
+/** Opus-MT always falls back to the JS tokenizer. The library warns on every load. */
+function silenceMarianTokenizerWarning(): void {
+  if (tokenizerWarnPatched || typeof console === "undefined") return;
+  tokenizerWarnPatched = true;
+  const original = console.warn.bind(console);
+  console.warn = (...args: unknown[]) => {
+    if (isBenignTokenizerWarning(args)) return;
+    original(...args);
+  };
 }
 
 export function subscribeTranslationLoad(cb: ProgressCallback): () => void {
@@ -87,13 +111,15 @@ async function createPipeline(modelId: string): Promise<TranslationPipeline> {
     device: "wasm" as const,
     dtype: "q8" as const,
     progress_callback: (event: { status?: string; progress?: number }) => {
-      if (typeof event.progress === "number") {
-        loadProgress = Math.round(event.progress);
-        notifyProgress({ status: "loading", progress: loadProgress });
-      }
+      if (typeof event.progress !== "number") return;
+      const next = Math.round(event.progress);
+      if (loadStatus === "loading" && loadProgress === next) return;
+      loadProgress = next;
+      notifyProgress({ status: "loading", progress: loadProgress });
     },
   };
 
+  silenceMarianTokenizerWarning();
   try {
     const translator = await pipeline("translation", modelId, loadOptions);
     loadStatus = "ready";
