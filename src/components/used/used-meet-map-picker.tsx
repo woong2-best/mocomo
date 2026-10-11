@@ -36,9 +36,6 @@ export function UsedMeetMapPicker({
 }: UsedMeetMapPickerProps) {
   return (
     <div className="space-y-2">
-      <p className="text-sm text-muted-foreground">
-        {t("used.sl3oqy5")}
-      </p>
       <MeetMapView
         mode="pick"
         country={country}

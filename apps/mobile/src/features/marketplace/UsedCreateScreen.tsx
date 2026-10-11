@@ -56,7 +56,6 @@ import {
   productTypeForSellKind,
   usedCurrencyLabel,
   USED_CURRENCY_META,
-  USED_SHIPPING_REGION,
 } from "@/features/marketplace/used-catalog";
 
 const MAX_LISTING_IMAGES = 10;
@@ -87,10 +86,12 @@ export function UsedCreateScreen() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("krw");
-  const [region, setRegion] = useState<string>(USED_SHIPPING_REGION);
-  const [regionText, setRegionText] = useState("");
-  const [sidoId, setSidoId] = useState<string>(KOREA_SIDO[0]?.id ?? "seoul");
-  const [sigungu, setSigungu] = useState<string>(KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? DEFAULT_SIGUNGU);
+  const [region, setRegion] = useState<string>(
+    formatUsedRegion(
+      KOREA_SIDO[0]?.short ?? DEFAULT_SIDO_SHORT,
+      KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? DEFAULT_SIGUNGU
+    )
+  );
   const [meetPlace, setMeetPlace] = useState("");
   const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
   const [countryCode, setCountryCode] = useState("KR");
@@ -166,11 +167,9 @@ export function UsedCreateScreen() {
         if (status.countryCode?.toUpperCase() === "KR") {
           const firstSido = KOREA_SIDO[0];
           const firstCity = KOREA_SIGUNGU_BY_SIDO[firstSido.id]?.[0] ?? DEFAULT_SIGUNGU;
-          setSidoId(firstSido.id);
-          setSigungu(firstCity);
           setRegion(formatUsedRegion(firstSido.short, firstCity));
         } else {
-          setRegion("Shipping");
+          setRegion("");
         }
       } catch {
         return;
@@ -274,17 +273,12 @@ export function UsedCreateScreen() {
         return;
       }
 
-      const submitRegion =
-        countryCode.toUpperCase() === "KR"
-          ? sidoId === "__shipping__"
-            ? USED_SHIPPING_REGION
-            : formatUsedRegion(
-                KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? DEFAULT_SIDO_SHORT,
-                sigungu
-              )
-          : region === "Shipping"
-            ? "Shipping"
-            : regionText.trim() || region;
+      if (!meetCoords || !region.trim()) {
+        showIslandError(t("m.marketplace.meetup_location"), t("m.events.tap_the_map_to_pick_a"));
+        setBusy(false);
+        return;
+      }
+      const submitRegion = region.trim();
 
       const payload = {
         title: title.trim(),
@@ -333,25 +327,20 @@ export function UsedCreateScreen() {
 
   const syncRegionFromMapLabel = useCallback(
     (label: string) => {
-      if (countryCode.toUpperCase() !== "KR") return;
-      const inferred = inferUsedRegionFromGeocodeLabel(label);
-      if (!inferred) return;
-      setSidoId(inferred.sidoId);
-      setSigungu(inferred.sigungu);
-      const short = KOREA_SIDO.find((s) => s.id === inferred.sidoId)?.short ?? "";
-      setRegion(formatUsedRegion(short, inferred.sigungu));
+      const trimmed = label.trim();
+      if (!trimmed) return;
+      if (countryCode.toUpperCase() === "KR") {
+        const inferred = inferUsedRegionFromGeocodeLabel(trimmed);
+        if (inferred) {
+          const short = KOREA_SIDO.find((s) => s.id === inferred.sidoId)?.short ?? "";
+          setRegion(formatUsedRegion(short, inferred.sigungu));
+          return;
+        }
+      }
+      setRegion(trimmed);
     },
     [countryCode]
   );
-
-  const locationLabel =
-    countryCode.toUpperCase() === "KR"
-      ? sidoId === "__shipping__"
-        ? t("m.marketplace.nationwide_shipping")
-        : `${KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? ""} ${sigungu}`.trim()
-      : region === "Shipping"
-        ? t("m.common.shipping")
-        : regionText.trim() || t("m.marketplace.enter_city");
 
   return (
     <Screen safeBottom>
@@ -536,107 +525,11 @@ export function UsedCreateScreen() {
             />
 
             <View style={styles.block}>
-              <Text style={styles.label}>{t("m.marketplace.trade_settings")}</Text>
-              <View style={styles.placeRow}>
-                <Text style={styles.placeTitle}>{t("m.marketplace.preferred_meetup")}</Text>
-                <Text style={styles.placeValue}>{locationLabel}</Text>
-              </View>
-              {countryCode.toUpperCase() === "KR" ? (
-                <>
-                  <View style={styles.checkWrap}>
-                    {KOREA_SIDO.map((s) => (
-                      <MarketCheckOption
-                        key={s.id}
-                        label={s.short}
-                        checked={sidoId === s.id}
-                        onPress={() => {
-                          setSidoId(s.id);
-                          const first = KOREA_SIGUNGU_BY_SIDO[s.id]?.[0] ?? "";
-                          setSigungu(first);
-                          setRegion(formatUsedRegion(s.short, first));
-                          setMeetCoords(null);
-                        }}
-                        ink={ink}
-                        paper={paper}
-                        line={line}
-                      />
-                    ))}
-                    <MarketCheckOption
-                      label={t("m.marketplace.nationwide_shipping")}
-                      checked={sidoId === "__shipping__"}
-                      onPress={() => {
-                        setSidoId("__shipping__");
-                        setRegion(USED_SHIPPING_REGION);
-                        setMeetCoords(null);
-                      }}
-                      ink={ink}
-                      paper={paper}
-                      line={line}
-                    />
-                  </View>
-                  {sidoId !== "__shipping__" ? (
-                    <View style={styles.checkWrap}>
-                      {(KOREA_SIGUNGU_BY_SIDO[sidoId] ?? []).map((unit) => (
-                        <MarketCheckOption
-                          key={unit}
-                          label={unit}
-                          checked={sigungu === unit}
-                          onPress={() => {
-                            setSigungu(unit);
-                            const short = KOREA_SIDO.find((s) => s.id === sidoId)?.short ?? "";
-                            setRegion(formatUsedRegion(short, unit));
-                            setMeetCoords(null);
-                          }}
-                          ink={ink}
-                          paper={paper}
-                          line={line}
-                        />
-                      ))}
-                    </View>
-                  ) : null}
-                </>
-              ) : (
-                <>
-                  <View style={styles.checkWrap}>
-                    <MarketCheckOption
-                      label={t("m.common.shipping")}
-                      checked={region === "Shipping"}
-                      onPress={() => {
-                        setRegion("Shipping");
-                        setMeetCoords(null);
-                      }}
-                      ink={ink}
-                      paper={paper}
-                      line={line}
-                    />
-                    <MarketCheckOption
-                      label={t("m.marketplace.local_meetup_city")}
-                      checked={region !== "Shipping"}
-                      onPress={() => {
-                        setRegion("");
-                        setMeetCoords(null);
-                      }}
-                      ink={ink}
-                      paper={paper}
-                      line={line}
-                    />
-                  </View>
-                  {region !== "Shipping" ? (
-                    <TextInput
-                      style={styles.input}
-                      value={regionText}
-                      onChangeText={setRegionText}
-                      placeholder={t("m.marketplace.e_g_tokyo_los_angeles")}
-                      placeholderTextColor={muted}
-                    />
-                  ) : null}
-                </>
-              )}
+              <Text style={styles.label}>{t("m.marketplace.local_meetup_city")}</Text>
               <MeetMap
                 mode="pick"
                 country={countryCode}
                 region={region}
-                district={countryCode.toUpperCase() === "KR" && sidoId !== "__shipping__" ? sigungu : undefined}
                 coords={meetCoords}
                 onCoordsChange={setMeetCoords}
                 onGeocodeLabel={syncRegionFromMapLabel}

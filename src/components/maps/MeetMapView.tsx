@@ -6,7 +6,7 @@ const t = createTranslator("en");
 
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, MapPin, Navigation } from "lucide-react";
+import { Loader2, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCurrentCoords, geolocationErrorMessage } from "@/lib/client-geolocation";
@@ -284,13 +284,6 @@ export function MeetMapView({
 
       {(resolveError || mapError) && (
         <p className="text-xs text-destructive">{resolveError || mapError}</p>
-      )}
-
-      {mode === "pick" && (
-        <p className="text-xs text-muted-foreground flex items-start gap-1">
-          <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          {t("maps.google_4")}
-        </p>
       )}
     </div>
   );

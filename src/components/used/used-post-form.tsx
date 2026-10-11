@@ -29,9 +29,7 @@ import {
   KOREA_SIGUNGU_BY_SIDO,
   inferUsedRegionFromGeocodeLabel,
   parseUsedRegion,
-  USED_SHIPPING_REGION,
 } from "@/lib/korea-regions";
-import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -132,18 +130,16 @@ export function UsedPostForm({
   const [animeSlug, setAnimeSlug] = useState<string | null>(null);
   const [sellKind, setSellKind] = useState("");
   const [conditionGrade, setConditionGrade] = useState("NEW");
-  const [sidoId, setSidoId] = useState(parsedDefault?.sidoId ?? KOREA_SIDO[0]?.id ?? "seoul");
-  const [sigungu, setSigungu] = useState(
-    parsedDefault?.sigungu ?? KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? t("used.su9n85")
-  );
   const [region, setRegion] = useState(
-    parsedDefault
-      ? defaultRegion ?? formatUsedRegion(KOREA_SIDO[0]?.short ?? t("lib.maps.sxxr0"), t("used.su9n85"))
+    parsedDefault && defaultRegion
+      ? defaultRegion
       : korea
-        ? formatUsedRegion(KOREA_SIDO[0]?.short ?? t("lib.maps.sxxr0"), KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? t("used.su9n85"))
-        : defaultUsedRegionForCountry(sellerCountry)
+        ? formatUsedRegion(
+            KOREA_SIDO[0]?.short ?? t("lib.maps.sxxr0"),
+            KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? t("used.su9n85")
+          )
+        : ""
   );
-  const [regionText, setRegionText] = useState("");
   const [meetPlace, setMeetPlace] = useState("");
   const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
   const [isNsfw, setIsNsfw] = useState(false);
@@ -160,29 +156,19 @@ export function UsedPostForm({
 
   const syncRegionFromMapLabel = useCallback(
     (label: string) => {
-      if (!korea) return;
-      const inferred = inferUsedRegionFromGeocodeLabel(label);
-      if (!inferred) return;
-      setSidoId(inferred.sidoId);
-      setSigungu(inferred.sigungu);
-      setRegion(formatUsedRegion(getSidoById(inferred.sidoId)?.short ?? "", inferred.sigungu));
+      const trimmed = label.trim();
+      if (!trimmed) return;
+      if (korea) {
+        const inferred = inferUsedRegionFromGeocodeLabel(trimmed);
+        if (inferred) {
+          setRegion(formatUsedRegion(getSidoById(inferred.sidoId)?.short ?? "", inferred.sigungu));
+          return;
+        }
+      }
+      setRegion(trimmed);
     },
     [korea]
   );
-
-  function setSido(nextId: string) {
-    if (nextId === "__shipping__") {
-      setSidoId("__shipping__");
-      setRegion(USED_SHIPPING_REGION);
-      setMeetCoords(null);
-      return;
-    }
-    const first = KOREA_SIGUNGU_BY_SIDO[nextId]?.[0] ?? "";
-    setSidoId(nextId);
-    setSigungu(first);
-    setRegion(formatUsedRegion(getSidoById(nextId)?.short ?? "", first));
-    setMeetCoords(null);
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -211,14 +197,12 @@ export function UsedPostForm({
       setError(t("ui.enter_a_price"));
       return;
     }
-    const submitRegion = korea
-      ? sidoId === "__shipping__"
-        ? USED_SHIPPING_REGION
-        : formatUsedRegion(getSidoById(sidoId)?.short ?? t("used.sxxr0"), sigungu)
-      : region === "Shipping"
-        ? "Shipping"
-        : regionText.trim() || region;
-    if (!submitRegion.trim()) {
+    if (!meetCoords) {
+      setError(t("ui.choose_a_trade_region"));
+      return;
+    }
+    const submitRegion = region.trim();
+    if (!submitRegion) {
       setError(t("ui.choose_a_trade_region"));
       return;
     }
@@ -394,71 +378,7 @@ export function UsedPostForm({
       </div>
 
       <div className="space-y-3">
-        <p className="text-[15px] font-bold">{t("ui.trade_settings")}</p>
-        {korea ? (
-          <>
-            <div className="grid grid-cols-4 gap-x-1">
-              {KOREA_SIDO.map((s) => (
-                <MarketCheckOption
-                  key={s.id}
-                  label={s.short}
-                  checked={sidoId === s.id}
-                  onPress={() => setSido(s.id)}
-                />
-              ))}
-              <MarketCheckOption
-                label={t("ui.nationwide_shipping")}
-                checked={sidoId === "__shipping__"}
-                onPress={() => setSido("__shipping__")}
-              />
-            </div>
-            {sidoId !== "__shipping__" ? (
-              <div className="grid grid-cols-4 gap-x-1">
-                {(KOREA_SIGUNGU_BY_SIDO[sidoId] ?? []).map((unit) => (
-                  <MarketCheckOption
-                    key={unit}
-                    label={unit}
-                    checked={sigungu === unit}
-                    onPress={() => {
-                      setSigungu(unit);
-                      setRegion(formatUsedRegion(getSidoById(sidoId)?.short ?? "", unit));
-                      setMeetCoords(null);
-                    }}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <div className="flex flex-wrap">
-              <MarketCheckOption
-                label={t("ui.shipping")}
-                checked={region === "Shipping"}
-                onPress={() => {
-                  setRegion("Shipping");
-                  setMeetCoords(null);
-                }}
-              />
-              <MarketCheckOption
-                label={t("ui.local_meetup_city")}
-                checked={region !== "Shipping"}
-                onPress={() => {
-                  setRegion("");
-                  setMeetCoords(null);
-                }}
-              />
-            </div>
-            {region !== "Shipping" ? (
-              <input
-                value={regionText}
-                onChange={(e) => setRegionText(e.target.value)}
-                placeholder={t("ui.e_g_tokyo_los_angeles")}
-                className="h-12 w-full rounded-xl border border-border bg-background px-3.5 text-[15px]"
-              />
-            ) : null}
-          </>
-        )}
+        <p className="text-[15px] font-bold">{t("ui.local_meetup_city")}</p>
         <UsedMeetMapPicker
           region={region}
           country={sellerCountry}
