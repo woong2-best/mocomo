@@ -1680,7 +1680,7 @@ export const CULTURE_WIKI_TERMS: LegalDocument = {
 export const COPYRIGHT_POLICY: LegalDocument = {
   slug: "copyright",
   title: "MoCoMo 저작권 정책",
-  updatedAt: "2026년 8월 7일",
+  updatedAt: "2026년 10월 11일",
   intro:
     "MoCoMo LLC는 타인의 지식재산권을 존중하며, 적용 가능한 미국 저작권법(DMCA 포함) 및 관련 절차에 따라 침해 신고를 처리합니다.",
   blocks: [
@@ -1723,6 +1723,16 @@ export const COPYRIGHT_POLICY: LegalDocument = {
     { type: "hr" },
     { type: "h2", text: "제6조 (준거법)" },
     { type: "p", text: GOVERNING_LAW_PARAGRAPH },
+    { type: "hr" },
+    { type: "h2", text: "제7조 (게시물 자동 번역)" },
+    {
+      type: "p",
+      text: "MoCoMo의 게시물 번역 기능은 아래 오픈소스 모델 및 도구를 사용합니다.",
+    },
+    {
+      type: "p",
+      text: "Post translation uses Opus-MT models by Helsinki-NLP (CC BY 4.0), converted to ONNX and quantized by Xenova via Transformers.js. Changes were made to the original models.",
+    },
   ],
 };
 
