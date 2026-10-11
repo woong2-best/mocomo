@@ -40,16 +40,18 @@ type ProgressCallback = (progress: { status: string; progress?: number }) => voi
 
 const pipelinePromises = new Map<string, Promise<TranslationPipeline>>();
 const inflight = new Map<string, Promise<ClientTranslateResult | null>>();
+type LoadStatus = "idle" | "loading" | "ready" | "error";
+
 let loadProgress = 0;
-let loadStatus: "idle" | "loading" | "ready" | "error" = "idle";
-let lastNotifiedStatus = loadStatus;
+let loadStatus: LoadStatus = "idle";
+let lastNotifiedStatus: LoadStatus = loadStatus;
 let lastNotifiedProgress = loadProgress;
 const progressListeners = new Set<ProgressCallback>();
 
 function notifyProgress(update: { status: string; progress?: number }): void {
   const progress = update.progress ?? lastNotifiedProgress;
   if (update.status === lastNotifiedStatus && progress === lastNotifiedProgress) return;
-  lastNotifiedStatus = update.status as typeof loadStatus;
+  lastNotifiedStatus = update.status as LoadStatus;
   lastNotifiedProgress = progress;
   for (const listener of progressListeners) listener(update);
 }
