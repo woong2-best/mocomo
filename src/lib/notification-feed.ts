@@ -5,14 +5,50 @@ import { notificationCategoryForType } from "@/lib/notification-display";
 
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
+function unreadWhere(
+  userId: string,
+  blocked: string[],
+  createdAfter?: Date | null
+) {
+  return {
+    userId,
+    read: false,
+    ...(createdAfter ? { createdAt: { gt: createdAfter } } : {}),
+    ...(blocked.length ? { OR: [{ actorId: null }, { actorId: { notIn: blocked } }] } : {}),
+  };
+}
+
 export async function getNotificationUnreadCount(userId: string): Promise<number> {
   const blocked = blockedIdList(await getBlockedUserIdSet(userId));
-  return db.notification.count({
-    where: {
-      userId,
-      read: false,
-      ...(blocked.length ? { OR: [{ actorId: null }, { actorId: { notIn: blocked } }] } : {}),
-    },
+  return db.notification.count({ where: unreadWhere(userId, blocked) });
+}
+
+export async function getNotificationCounts(
+  userId: string
+): Promise<{ unread: number; badge: number }> {
+  const [blocked, user] = await Promise.all([
+    getBlockedUserIdSet(userId).then(blockedIdList),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { notificationsLastSeenAt: true },
+    }),
+  ]);
+  const lastSeen = user?.notificationsLastSeenAt ?? null;
+  if (!lastSeen) {
+    const unread = await db.notification.count({ where: unreadWhere(userId, blocked) });
+    return { unread, badge: unread };
+  }
+  const [unread, badge] = await Promise.all([
+    db.notification.count({ where: unreadWhere(userId, blocked) }),
+    db.notification.count({ where: unreadWhere(userId, blocked, lastSeen) }),
+  ]);
+  return { unread, badge };
+}
+
+export async function markNotificationsSeenForUser(userId: string): Promise<void> {
+  await db.user.update({
+    where: { id: userId },
+    data: { notificationsLastSeenAt: new Date() },
   });
 }
 

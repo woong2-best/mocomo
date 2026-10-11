@@ -16,8 +16,9 @@ export function useNotificationUnread() {
     try {
       const res = await fetch("/api/notifications", { credentials: "include" });
       if (!res.ok) return;
-      const data = (await res.json()) as { unread?: number };
-      if (typeof data.unread === "number") setUnread(data.unread);
+      const data = (await res.json()) as { unread?: number; badge?: number };
+      const next = typeof data.badge === "number" ? data.badge : data.unread;
+      if (typeof next === "number") setUnread(next);
     } catch {
       /* ignore */
     }

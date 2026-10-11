@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/api-post-auth";
-import { getNotificationUnreadCount, listNotifications } from "@/lib/notification-feed";
+import { getNotificationCounts, listNotifications } from "@/lib/notification-feed";
 
 export async function GET(req: NextRequest) {
   const authResult = await requireApiUser();
@@ -8,13 +8,17 @@ export async function GET(req: NextRequest) {
 
   const categoryParam = req.nextUrl.searchParams.get("category");
 
-  const [notifications, unread] = await Promise.all([
+  const [notifications, counts] = await Promise.all([
     listNotifications(authResult.user.id, {
       category: categoryParam === "all" ? null : categoryParam,
       limit: 80,
     }),
-    getNotificationUnreadCount(authResult.user.id),
+    getNotificationCounts(authResult.user.id),
   ]);
 
-  return NextResponse.json({ notifications, unread });
+  return NextResponse.json({
+    notifications,
+    unread: counts.unread,
+    badge: counts.badge,
+  });
 }

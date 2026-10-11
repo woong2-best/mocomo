@@ -15,7 +15,11 @@ import {
   notificationIcon,
   type NotificationRow,
 } from "@/lib/notification-display";
-import { markAllNotificationsReadAction, markNotificationRead } from "@/actions/notifications";
+import {
+  markAllNotificationsReadAction,
+  markNotificationRead,
+  markNotificationsSeenAction,
+} from "@/actions/notifications";
 import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
 import { CollabInviteNotificationActions } from "@/components/notifications/collab-invite-notification-actions";
 
@@ -67,6 +71,10 @@ export function NotificationsFeedClient({
 
   useEffect(() => {
     dispatchNotificationsRead();
+    void markNotificationsSeenAction();
+    return () => {
+      void markNotificationsSeenAction();
+    };
   }, []);
 
   useEffect(() => {

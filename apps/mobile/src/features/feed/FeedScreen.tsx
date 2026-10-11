@@ -129,7 +129,7 @@ export function FeedScreen() {
     enabled: !!user,
     staleTime: 30_000,
   });
-  const alarmUnread = alarmQuery.data?.unread ?? 0;
+  const alarmUnread = alarmQuery.data?.badge ?? alarmQuery.data?.unread ?? 0;
   const queryClient = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();

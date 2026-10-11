@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       ? { OR: [{ actorId: null }, { actorId: { notIn: excludeActors } }] }
       : {}),
   };
-  const [rows, unreadRaw] = await Promise.all([
+  const [rows, unreadRaw, user] = await Promise.all([
     db.notification.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -26,11 +26,21 @@ export async function GET(req: NextRequest) {
       include: { actor: { select: { id: true, username: true, image: true } } },
     }),
     db.notification.count({ where: { ...where, read: false } }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { notificationsLastSeenAt: true },
+    }),
   ]);
   const visibleRows = filterOutBlockedUserIds(rows, blocked, (n) => n.actorId ?? "");
   const unread = blocked.size
     ? visibleRows.filter((n) => !n.read).length
     : unreadRaw;
+  const lastSeen = user?.notificationsLastSeenAt;
+  const badge = !lastSeen
+    ? unread
+    : await db.notification.count({
+        where: { ...where, read: false, createdAt: { gt: lastSeen } },
+      });
 
   return NextResponse.json({
     notifications: visibleRows.map((n) => ({
@@ -44,6 +54,7 @@ export async function GET(req: NextRequest) {
       actor: n.actor,
     })),
     unread,
+    badge,
   });
 }
 
@@ -54,10 +65,19 @@ export async function POST(req: NextRequest) {
   const authResult = await requireMobileApiUser(req);
   if ("error" in authResult) return authResult.error;
 
-  const body = (await req.json().catch(() => ({}))) as { id?: unknown; all?: unknown };
+  const body = (await req.json().catch(() => ({}))) as {
+    id?: unknown;
+    all?: unknown;
+    seen?: unknown;
+  };
   const where = appAlarmNotificationWhere(authResult.user.id);
 
-  if (body.all === true) {
+  if (body.seen === true) {
+    await db.user.update({
+      where: { id: authResult.user.id },
+      data: { notificationsLastSeenAt: new Date() },
+    });
+  } else if (body.all === true) {
     await db.notification.updateMany({
       where: { ...where, read: false },
       data: { read: true },
@@ -71,6 +91,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const unread = await db.notification.count({ where: { ...where, read: false } });
-  return NextResponse.json({ ok: true, unread });
+  const [unread, user] = await Promise.all([
+    db.notification.count({ where: { ...where, read: false } }),
+    db.user.findUnique({
+      where: { id: authResult.user.id },
+      select: { notificationsLastSeenAt: true },
+    }),
+  ]);
+  const lastSeen = user?.notificationsLastSeenAt;
+  const badge = lastSeen
+    ? await db.notification.count({
+        where: { ...where, read: false, createdAt: { gt: lastSeen } },
+      })
+    : unread;
+  return NextResponse.json({ ok: true, unread, badge });
 }

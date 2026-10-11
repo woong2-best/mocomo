@@ -315,6 +315,8 @@ model User {
   deletionReason      String?
   /** 최근 로그인 (세션/로그인 콜백에서 갱신) */
   lastLoginAt         DateTime?
+  /** 알림 페이지 방문 시각 — 헤더 뱃지는 이 이후 미확인만 표시. 개별 read와 별개 */
+  notificationsLastSeenAt DateTime?
   /** 관리자 계정 활성 여부 (스태프 역할일 때) */
   adminDisabledAt     DateTime?
   createdAt     DateTime  @default(now())

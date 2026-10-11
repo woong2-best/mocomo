@@ -67,8 +67,13 @@ export function ActivityScreen() {
   useFocusEffect(
     useCallback(() => {
       void clearNotificationBadges();
+      void markNotificationsRead({ seen: true }).then((res) => {
+        queryClient.setQueryData(QUERY_KEY, (prev: typeof query.data) =>
+          prev ? { ...prev, unread: res.unread, badge: res.badge ?? 0 } : prev
+        );
+      });
       queryClient.setQueryData(QUERY_KEY, (prev: typeof query.data) =>
-        prev ? { ...prev, unread: 0 } : prev
+        prev ? { ...prev, badge: 0 } : prev
       );
     }, [queryClient])
   );
