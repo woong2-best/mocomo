@@ -70,7 +70,6 @@ export type RootStackParamList = {
   AuctionCreate: undefined;
   UsedMy: undefined;
   AuctionMy: undefined;
-  UsedPhoneVerify: { next?: "UsedCreate" | "AuctionCreate" } | undefined;
   Market: undefined;
   StarMarketDetail: { id: string };
   SellerListings: undefined;

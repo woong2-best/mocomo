@@ -1,7 +1,6 @@
-import { assertUsedMarketCountryAllowed, isKoreaUsedMarketCountry } from "@/lib/used-regions-global";
+import { assertUsedMarketCountryAllowed } from "@/lib/used-regions-global";
 import { ERROR_CODES } from "@/lib/error-codes";
 import { translate } from "@/lib/i18n/messages";
-import { usedMarketVerificationRequiredMsg } from "@/lib/used-bank-auth";
 
 export const USED_MARKET_BAN_MESSAGE = translate("en", ERROR_CODES.usedMarketBanned);
 
@@ -28,15 +27,12 @@ export function assertUsedMarketNotBanned(user: UsedMarketUserSlice): string | n
   return null;
 }
 
-/** 직거래·Auction 공통 — KR 정산 계좌 불필요, 해외 휴대폰 인증, Auction 보증금은 MOCO 별도 */
+/** 직거래·Auction 공통 — 국가·밴·OFAC만 검사 (휴대폰 인증 없음) */
 function assertUsedListingActivityAccess(user: UsedMarketUserSlice): string | null {
   const banErr = assertUsedMarketNotBanned(user);
   if (banErr) return banErr;
   const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
   if (regionErr) return regionErr;
-  if (!isKoreaUsedMarketCountry(user.countryCode) && !user.phoneVerified) {
-    return usedMarketVerificationRequiredMsg(user.countryCode);
-  }
   return null;
 }
 

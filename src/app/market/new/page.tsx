@@ -5,8 +5,6 @@ import { ChevronLeft } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
 import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
 import { UsedPostForm } from "@/components/used/used-post-form";
-import { isUsedMarketEligible } from "@/lib/used-bank-auth";
-import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
 import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
@@ -29,10 +27,6 @@ export default async function UsedNewPage() {
         </Link>
       </AppPageChrome>
     );
-  }
-
-  if (!isUsedMarketEligible(user)) {
-    redirect(usedMarketVerifyPath("/market/new", user.countryCode));
   }
 
   return (

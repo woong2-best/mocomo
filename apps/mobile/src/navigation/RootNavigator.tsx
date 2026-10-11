@@ -146,12 +146,6 @@ export function RootNavigator() {
               getComponent={() => require("@/features/marketplace/UsedMyScreen").UsedMyScreen}
             />
             <Stack.Screen
-              name="UsedPhoneVerify"
-              getComponent={() =>
-                require("@/features/marketplace/UsedPhoneVerifyScreen").UsedPhoneVerifyScreen
-              }
-            />
-            <Stack.Screen
               name="MessageRoom"
               getComponent={() =>
                 require("@/features/messages/MessageRoomScreen").MessageRoomScreen

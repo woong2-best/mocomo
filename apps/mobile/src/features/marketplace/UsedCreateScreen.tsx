@@ -32,7 +32,6 @@ import { Screen } from "@/ui/Screen";
 import {
   showIslandError,
   showIslandInfo,
-  showIslandPrompt,
   showIslandSuccess,
 } from "@/ui/IslandToast";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -172,10 +171,6 @@ export function UsedCreateScreen() {
           setRegion(formatUsedRegion(firstSido.short, firstCity));
         } else {
           setRegion("Shipping");
-        }
-        if (!status.eligible && status.countryCode?.toUpperCase() !== "KR") {
-          navigation.replace("UsedPhoneVerify", { next: "UsedCreate" });
-          return;
         }
       } catch {
         return;
@@ -330,18 +325,7 @@ export function UsedCreateScreen() {
           : e instanceof Error
             ? e.message
             : t("m.marketplace.could_not_publish_listing");
-      if (
-        countryCode.toUpperCase() !== "KR" &&
-        (/phone/i.test(msg) || /verif/i.test(msg))
-      ) {
-        showIslandPrompt(t("m.marketplace.verification_required"), msg, {
-          label: t("m.marketplace.verify_phone"),
-          onPress: () =>
-            navigation.replace("UsedPhoneVerify", { next: "UsedCreate" }),
-        });
-      } else {
-        showIslandError(t("m.common.error"), msg);
-      }
+      showIslandError(t("m.common.error"), msg);
     } finally {
       setBusy(false);
     }

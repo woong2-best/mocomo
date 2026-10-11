@@ -1,7 +1,6 @@
 "use client";
 
 
-import { isPhoneVerificationError } from "@/lib/error-codes";
 import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -9,20 +8,13 @@ const t = createTranslator("en");
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startUsedTradeChat } from "@/actions/used-market";
-import { usedMarketVerifyPath } from "@/lib/used-market-verify-path";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/providers/locale-provider";
 
 
 
-export function UsedTradeChatButton({
-  listingId,
-  countryCode = "KR",
-}: {
-  listingId: string;
-  countryCode?: string;
-}) {
+export function UsedTradeChatButton({ listingId }: { listingId: string }) {
   const { locale , t } = useLocale();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -34,10 +26,6 @@ export function UsedTradeChatButton({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (isPhoneVerificationError(res.error)) {
-        router.push(usedMarketVerifyPath(`/market/${listingId}`, countryCode));
-        return;
-      }
       setError(errorText(res.error));
       return;
     }

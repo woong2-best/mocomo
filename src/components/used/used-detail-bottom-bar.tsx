@@ -1,7 +1,6 @@
 "use client";
 
 
-import { isPhoneVerificationError } from "@/lib/error-codes";
 import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -63,10 +62,6 @@ export function UsedDetailBottomBar({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (isPhoneVerificationError(res.error)) {
-        router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
-        return;
-      }
       if ("needsAdultVerify" in res && res.needsAdultVerify) {
         router.push(usedAdultVerifyUrl(listingId, restrictedKind));
         return;

@@ -2,7 +2,7 @@ import { isOfacSanctionedCountry } from "@/lib/compliance/ofac-sanctioned-countr
 import { ERROR_CODES } from "@/lib/error-codes";
 import { isKoreaUsedMarketCountry, normalizeUsedMarketCountry } from "@/lib/used-regions-global";
 
-/** Used marketplace eligibility: KR needs no extra step; everywhere else needs SMS phone verification. */
+/** Used marketplace eligibility — country allowed (OFAC excluded); no phone verification gate. */
 export function isUsedMarketEligible(user: {
   countryCode: string;
   stripeOnboardingCompleted?: boolean;
@@ -10,11 +10,7 @@ export function isUsedMarketEligible(user: {
   phoneVerified?: Date | null;
 }): boolean {
   const cc = normalizeUsedMarketCountry(user.countryCode);
-  if (isOfacSanctionedCountry(cc)) return false;
-  if (isKoreaUsedMarketCountry(cc)) {
-    return true;
-  }
-  return !!user.phoneVerified;
+  return !isOfacSanctionedCountry(cc);
 }
 
 /** Error code (en.json key) for "phone verification required". */
@@ -61,9 +57,8 @@ export function isBankVerifiedForUsed(user: {
   phoneVerified?: Date | null;
   countryCode?: string;
 }): boolean {
-  if (!user.countryCode) return !!user.phoneVerified;
   return isUsedMarketEligible({
-    countryCode: user.countryCode,
+    countryCode: user.countryCode ?? "KR",
     stripeOnboardingCompleted: user.stripeOnboardingCompleted,
     stripeConnectOnboardedAt: user.stripeConnectOnboardedAt,
     phoneVerified: user.phoneVerified,

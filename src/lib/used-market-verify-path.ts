@@ -1,5 +1,3 @@
-import { isUsedMarketEligible, usedMarketVerificationRequiredMsg } from "@/lib/used-bank-auth";
-import { isKoreaUsedMarketCountry } from "@/lib/used-regions-global";
 export type UsedMarketVerifyUser = {
   countryCode: string;
   stripeOnboardingCompleted?: boolean;
@@ -7,24 +5,15 @@ export type UsedMarketVerifyUser = {
   phoneVerified?: Date | null;
 };
 
-/** KR 직거래 — 별도 정산 연동 없음 · 해외 → phone OTP at /market/verify */
-export function usedMarketVerifyPath(callbackUrl?: string, countryCode?: string): string {
-  const next = callbackUrl?.startsWith("/") ? callbackUrl : "/market/new";
-  if (isKoreaUsedMarketCountry(countryCode)) {
-    return next;
-  }
-  const params = new URLSearchParams({ callbackUrl: next });
-  return `/market/verify?${params.toString()}`;
+/** @deprecated Phone verification removed — returns callback only. */
+export function usedMarketVerifyPath(callbackUrl?: string, _countryCode?: string): string {
+  return callbackUrl?.startsWith("/") ? callbackUrl : "/market/new";
 }
 
+/** @deprecated Phone verification removed — only checks user presence. */
 export function assertUsedMarketVerified(
-  user: UsedMarketVerifyUser | null | undefined,
-  locale: "ko" | "en" = "ko"
+  user: UsedMarketVerifyUser | null | undefined
 ): { error: string; redirectTo: string } | null {
   if (!user) return null;
-  if (isUsedMarketEligible(user)) return null;
-  return {
-    error: usedMarketVerificationRequiredMsg(user.countryCode),
-    redirectTo: usedMarketVerifyPath("/market/new", user.countryCode),
-  };
+  return null;
 }

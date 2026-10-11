@@ -1,7 +1,7 @@
 "use client";
 
 
-import { isPhoneVerificationError, isUsedMarketBannedError } from "@/lib/error-codes";
+import { isUsedMarketBannedError } from "@/lib/error-codes";
 import { errorText } from "@/lib/i18n/error-text";
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
@@ -93,10 +93,6 @@ export function UsedAuctionBidSheet({
         paymentIntentDbId,
       });
       if ("error" in res && res.error) {
-        if (isPhoneVerificationError(res.error)) {
-          router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
-          return;
-        }
         if (isUsedMarketBannedError(res.error)) {
           setError(errorText(res.error));
           return;
@@ -206,10 +202,6 @@ export function UsedAuctionBidSheet({
     const res = await buyNowUsedAuction(listingId, true);
     setBusy(false);
     if ("error" in res && res.error) {
-      if (isPhoneVerificationError(res.error)) {
-        router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
-        return;
-      }
       if (isUsedMarketBannedError(res.error)) {
         setError(errorText(res.error));
         return;

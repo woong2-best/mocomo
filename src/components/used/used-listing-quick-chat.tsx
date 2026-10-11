@@ -3,7 +3,6 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
-import { isPhoneVerificationError } from "@/lib/error-codes";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
@@ -34,10 +33,6 @@ export function UsedListingQuickChat({
     const res = await startUsedTradeChat(listingId);
     setLoading(false);
     if ("error" in res && res.error) {
-      if (isPhoneVerificationError(res.error)) {
-        router.push(`/market/verify?callbackUrl=${encodeURIComponent(`/market/${listingId}`)}`);
-        return;
-      }
       if ("needsAdultVerify" in res && res.needsAdultVerify) {
         router.push(usedAdultVerifyUrl(listingId, restrictedKind));
         return;
