@@ -6,10 +6,8 @@ const t = createTranslator("en");
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { LEGAL_DMCA_AGENT_EMAIL } from "@/lib/legal-content";
-import { useLocale } from "@/components/providers/locale-provider";
 
 export function CultureWikiEditNotice() {
-  const { t } = useLocale();
 
   return (
     <div className="rounded-xl border border-amber-200/80 bg-amber-50/80 dark:border-amber-900/50 dark:bg-amber-950/30 p-4 space-y-2">

@@ -1,9 +1,9 @@
-import { translate } from "@/i18n/runtime";
+import { englishText } from "@/i18n/messages";
 
 /** Namu-style infobox text parser — mirrors web `anime-wiki-infobox.ts`. */
 
 export function defaultWikiInfoboxSectionTitle(_locale?: string): string {
-  return translate("m.anime.work_info");
+  return englishText("m.anime.work_info");
 }
 
 export type WikiInfoboxRow = {

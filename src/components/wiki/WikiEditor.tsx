@@ -14,7 +14,9 @@ import { getCaretCoordinates } from "@/lib/wiki/caret";
 import { X } from "lucide-react";
 import { EditorToolbar } from "@/components/wiki/EditorToolbar";
 import { TitleSuggestPopover, type PopoverPlacement } from "@/components/wiki/TitleSuggestPopover";
-import { useLocale } from "@/components/providers/locale-provider";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
 import { extractYoutubeId } from "@/lib/anime-revision";
 import { DUMMY_WIKI_TITLES } from "@/lib/wiki/dummyTitles";
 import {
@@ -47,6 +49,9 @@ export type WikiEditorProps = {
   submitDisabled?: boolean;
   initialCoverUrl?: string;
   initialBannerUrl?: string;
+  /** `body` keeps image/video + [[title]] suggest; meta macros stay on the structured form. */
+  variant?: "document" | "body";
+  placeholder?: string;
 };
 
 type PopoverState = {
@@ -91,8 +96,10 @@ export function WikiEditor({
   submitDisabled,
   initialCoverUrl,
   initialBannerUrl,
+  variant = "document",
+  placeholder,
 }: WikiEditorProps) {
-  const { t } = useLocale();
+  const bodyOnly = variant === "body";
   const isControlled = value !== undefined;
   const [inner, setInner] = useState(defaultValue);
   const text = isControlled ? value : inner;
@@ -401,6 +408,7 @@ export function WikiEditor({
       )}
     >
       <EditorToolbar
+        variant={variant}
         onMacro={handleMacro}
         onPickImage={() => imageInputRef.current?.click()}
         onPickVideo={() => {
@@ -435,28 +443,32 @@ export function WikiEditor({
           e.target.value = "";
         }}
       />
-      <input
-        ref={coverInputRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void handleCoverOrBanner(file, "cover");
-          e.target.value = "";
-        }}
-      />
-      <input
-        ref={bannerInputRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void handleCoverOrBanner(file, "banner");
-          e.target.value = "";
-        }}
-      />
+      {bodyOnly ? null : (
+        <>
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleCoverOrBanner(file, "cover");
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleCoverOrBanner(file, "banner");
+              e.target.value = "";
+            }}
+          />
+        </>
+      )}
 
       {youtubeOpen ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-border/70 bg-muted/30 px-3 py-2">
@@ -466,6 +478,12 @@ export function WikiEditor({
             onChange={(e) => {
               setYoutubeUrl(e.target.value);
               setMediaError("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleYoutubeInsert();
+              }
             }}
             placeholder={t("anime.sr7fl2u")}
             className="h-8 max-w-md flex-1 rounded-xl border border-border bg-background px-3 text-sm"
@@ -481,7 +499,7 @@ export function WikiEditor({
         </div>
       ) : null}
 
-      {previews.length > 0 ? (
+      {!bodyOnly && previews.length > 0 ? (
         <div className="flex flex-wrap gap-3 border-b border-border/70 bg-muted/20 px-3 py-2">
           {previews.map((preview) => (
             <div key={preview.kind} className="relative">
@@ -523,7 +541,11 @@ export function WikiEditor({
         aria-autocomplete="list"
         aria-controls={visiblePopover ? listId : undefined}
         aria-expanded={Boolean(visiblePopover)}
-        className="min-h-[480px] w-full resize-y bg-background px-4 py-3 font-mono text-sm leading-relaxed text-foreground outline-none focus:ring-2 focus:ring-ring focus:ring-inset"
+        placeholder={placeholder}
+        className={cn(
+          "w-full resize-y bg-background px-4 py-3 font-mono text-sm leading-relaxed text-foreground outline-none focus:ring-2 focus:ring-ring focus:ring-inset",
+          bodyOnly ? "min-h-[220px]" : "min-h-[480px]"
+        )}
         onChange={(e) => {
           setText(e.target.value);
           if (!composingRef.current) scheduleEvaluate();

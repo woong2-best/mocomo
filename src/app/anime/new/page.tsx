@@ -27,7 +27,7 @@ export default async function AnimeNewPage({
       <Link href="/anime">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
-          애니 홈
+          {t("app.anime.spmf9u8")}
         </Button>
       </Link>
       <NativePageTitle>

@@ -152,33 +152,33 @@ export default async function AnimeDetailPage({
           {anime.isProtected && (
             <p className="inline-flex items-center gap-1 text-xs mt-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200">
               <Shield className="h-3 w-3" />
-              보호된 문서
+              {t("app.anime.s12vw0fg")}
             </p>
           )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <AnimeStarButton animeId={anime.id} initialStarred={starred} />
             <Link href={`/anime/${slug}/history`}>
               <Button size="sm" variant="outline" className="gap-1">
-                수정 기록
+                {t("ui.edit_history")}
               </Button>
             </Link>
             {canEdit ? (
               <Link href={`/anime/${slug}/edit`}>
                 <Button size="sm" variant="outline" className="gap-1">
                   <Pencil className="h-3.5 w-3.5" />
-                  편집
+                  {t("app.anime.s114bd")}
                 </Button>
               </Link>
             ) : isLoggedIn && anime.isProtected ? (
               <Button size="sm" variant="outline" className="gap-1" disabled title={t("app.anime.sbojt4x")}>
                 <Shield className="h-3.5 w-3.5" />
-                편집 제한
+                {t("app.anime.sxdh5z")}
               </Button>
             ) : (
               <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(`/anime/${slug}/edit`)}`}>
                 <Button size="sm" variant="outline" className="gap-1">
                   <Pencil className="h-3.5 w-3.5" />
-                  로그인하고 편집
+                  {t("app.anime.sv7rhp1")}
                 </Button>
               </Link>
             )}

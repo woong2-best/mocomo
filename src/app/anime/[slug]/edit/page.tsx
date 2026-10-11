@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, History } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
+import { createTranslator } from "@/lib/i18n/messages";
+
+const t = createTranslator("en");
 
 export default async function AnimeEditPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -38,13 +41,13 @@ export default async function AnimeEditPage({ params }: { params: Promise<{ slug
         <Link href={`/anime/${slug}`}>
           <Button variant="ghost" size="sm" className="gap-1">
             <ChevronLeft className="h-4 w-4" />
-            상세로
+            {t("wiki.form.backArticle")}
           </Button>
         </Link>
         <Link href={`/anime/${slug}/history`}>
           <Button variant="outline" size="sm" className="gap-1 rounded-lg">
             <History className="h-3.5 w-3.5" />
-            수정 기록
+            {t("ui.edit_history")}
           </Button>
         </Link>
       </div>

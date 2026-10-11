@@ -1,7 +1,12 @@
+import { englishText, interpolate } from "@/i18n/messages";
 import type { TFn } from "@/i18n/types";
 
-/** Culture wiki copy — use with `useI18n().t`. */
-export function animeUi(t: TFn) {
+/** Culture Wiki stays English — do not run form copy through ML Kit. */
+const en: TFn = (key, vars) => interpolate(englishText(key), vars);
+
+/** Culture wiki copy — English-only authoring UI. */
+export function animeUi(_t?: TFn) {
+  const t = en;
   return {
     back: t("m.common.back"),
     work: t("m.anime.work"),

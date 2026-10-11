@@ -9,7 +9,7 @@ import {
 import { localeToMlKit, MlLang } from "@/lib/translate/mlkit-locale";
 import { enqueueTranslation } from "@/lib/translate/queue";
 
-const SKIP_KEY_PREFIXES = ["legal.", "wiki.", "brand."];
+const SKIP_KEY_PREFIXES = ["legal.", "wiki.", "brand.", "m.anime."];
 
 export function uiKeyNeedsMlKit(key: string, targetLocale: Locale): boolean {
   if (targetLocale === "en") return false;

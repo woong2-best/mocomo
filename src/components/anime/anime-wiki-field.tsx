@@ -82,7 +82,7 @@ export function AnimeWikiField({
             <Button type="button" variant="outline" size="sm" className="h-8 gap-1 rounded-lg" asChild>
               <span>
                 {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-                사진 업로드
+                {t("anime.s1rw0t19")}
               </span>
             </Button>
           </label>

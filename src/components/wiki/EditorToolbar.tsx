@@ -1,10 +1,16 @@
 "use client";
 
 import { ImagePlus, Images, PanelsTopLeft, Video } from "lucide-react";
+import { createTranslator } from "@/lib/i18n/messages";
 import { WIKI_MACROS, type WikiMacro } from "@/lib/wiki/macros";
+
+const t = createTranslator("en");
 import { cn } from "@/lib/utils";
 
+export type WikiEditorToolbarVariant = "document" | "body";
+
 type EditorToolbarProps = {
+  variant?: WikiEditorToolbarVariant;
   onMacro: (macro: WikiMacro) => void;
   onPickImage: () => void;
   onPickVideo: () => void;
@@ -48,6 +54,7 @@ function PillButton({
 }
 
 export function EditorToolbar({
+  variant = "document",
   onMacro,
   onPickImage,
   onPickVideo,
@@ -56,33 +63,45 @@ export function EditorToolbar({
   imageBusy,
   videoBusy,
 }: EditorToolbarProps) {
+  const imageLabel = t("wiki.editor.image");
+  const videoLabel = t("wiki.editor.video");
+  const bodyOnly = variant === "body";
+
   return (
     <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-border/80 bg-muted/40 px-2 py-2 [scrollbar-width:thin]">
       <div className="flex items-center gap-1.5">
-        <PillButton label="Insert image" title="Image" onClick={onPickImage} disabled={imageBusy}>
+        <PillButton label={imageLabel} title={imageLabel} onClick={onPickImage} disabled={imageBusy}>
           <ImagePlus className="h-3.5 w-3.5" />
         </PillButton>
-        <PillButton label="Attach video" title="Video" onClick={onPickVideo} disabled={videoBusy}>
+        <PillButton label={videoLabel} title={videoLabel} onClick={onPickVideo} disabled={videoBusy}>
           <Video className="h-3.5 w-3.5" />
         </PillButton>
-        <PillButton label="Cover image" title="Cover image" onClick={onPickCover}>
-          <Images className="h-3.5 w-3.5" />
-        </PillButton>
-        <PillButton label="Banner image" title="Banner image" onClick={onPickBanner}>
-          <PanelsTopLeft className="h-3.5 w-3.5" />
-        </PillButton>
+        {bodyOnly ? null : (
+          <>
+            <PillButton label="Cover image" title="Cover image" onClick={onPickCover}>
+              <Images className="h-3.5 w-3.5" />
+            </PillButton>
+            <PillButton label="Banner image" title="Banner image" onClick={onPickBanner}>
+              <PanelsTopLeft className="h-3.5 w-3.5" />
+            </PillButton>
+          </>
+        )}
       </div>
-      <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
-      <div className="flex items-center gap-1.5">
-        {WIKI_MACROS.map((macro) => (
-          <PillButton
-            key={macro.id}
-            label={macro.label}
-            title={macro.label}
-            onClick={() => onMacro(macro)}
-          />
-        ))}
-      </div>
+      {bodyOnly ? null : (
+        <>
+          <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
+          <div className="flex items-center gap-1.5">
+            {WIKI_MACROS.map((macro) => (
+              <PillButton
+                key={macro.id}
+                label={macro.label}
+                title={macro.label}
+                onClick={() => onMacro(macro)}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

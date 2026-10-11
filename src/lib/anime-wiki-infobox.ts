@@ -38,7 +38,7 @@ export function parseWikiInfobox(source: string | null | undefined): WikiInfobox
     const rowMatch = trimmed.match(/^([^|]+)\|\s*(.*)$/);
     if (rowMatch) {
       if (!current) {
-        current = { title: "작품 정보", rows: [] };
+        current = { title: "Work info", rows: [] };
         sections.push(current);
       }
       const row = { label: rowMatch[1].trim(), value: rowMatch[2].trim() };
@@ -50,10 +50,10 @@ export function parseWikiInfobox(source: string | null | undefined): WikiInfobox
   return sections.filter((s) => s.rows.length > 0);
 }
 
-export const WIKI_INFOBOX_HELP = `=== 섹션 제목 ===
-라벨 | 값
-방송국 | 후지 TV — 금 24:55
-스트리밍 | LAFTEL · TVING`;
+export const WIKI_INFOBOX_HELP = `=== Work info ===
+Label | Value
+Network | Fuji TV — Fri 24:55
+Streaming | Crunchyroll · Netflix`;
 
 export const KABANERI_INFOBOX = `=== 작품 정보 ===
 장르 | 좀비 아포칼립스, 스팀펑크, 액션

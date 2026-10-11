@@ -1,3 +1,4 @@
+import { englishText } from "@/i18n/messages";
 import { translate } from "@/i18n/runtime";
 
 /** Mobile-local genre pills — mirrors web ANIME_GENRES labels. */
@@ -31,7 +32,7 @@ export function genreToApiParam(id: MobileAnimeGenreId): string {
 export function genreLabel(genre: string | null | undefined, _locale?: string): string {
   if (!genre) return "";
   const hit = MOBILE_ANIME_GENRES.find((g) => g.id === genre);
-  if (hit) return translate(hit.labelKey);
+  if (hit) return englishText(hit.labelKey);
   return genre;
 }
 
