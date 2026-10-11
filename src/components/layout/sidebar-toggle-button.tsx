@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
+import { notifyFeedLiveReload } from "@/lib/feed-live-sync";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ export function SidebarToggleButton() {
     if (!isHome) return;
     e.preventDefault();
     scrollMainToTop();
+    notifyFeedLiveReload({ reason: "manual" });
     router.refresh();
   }
 

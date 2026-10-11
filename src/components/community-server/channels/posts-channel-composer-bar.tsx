@@ -17,6 +17,7 @@ import { hasPermission } from "@/lib/community-server/permissions";
 import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { cn } from "@/lib/utils";
+import { notifyPostPublished } from "@/lib/feed-live-sync";
 
 const MAX_VOICE_SEC = 120;
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif";
@@ -81,6 +82,9 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
         return;
       }
       setDraft("");
+      if (result.postId) {
+        notifyPostPublished(result.postId, { communityId });
+      }
       router.refresh();
     } finally {
       sendLockRef.current = false;

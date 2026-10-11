@@ -44,6 +44,11 @@ import { ComposeRichTextarea } from "@/components/compose/compose-rich-textarea"
 import { QnaIdentityToggle } from "@/components/compose/qna-identity-toggle";
 import type { ContentRating } from "@prisma/client";
 import { ComposeQuotedPostPreview } from "@/components/compose/compose-quoted-post-preview";
+import { notifyPostPublished } from "@/lib/feed-live-sync";
+import {
+  FLASH_POST_STORAGE_KEY,
+  SCROLL_FEED_TOP_KEY,
+} from "@/lib/published-toast-types";
 
 function friendlyPostError(err: unknown, apiError?: string): string {
   if (apiError) return apiError;
@@ -328,6 +333,13 @@ export function ComposeForm({
       }
 
       if (result.postId) {
+        notifyPostPublished(result.postId, { communityId: communityId ?? null });
+        try {
+          sessionStorage.setItem(FLASH_POST_STORAGE_KEY, result.postId);
+          sessionStorage.setItem(SCROLL_FEED_TOP_KEY, "1");
+        } catch {
+          /* ignore */
+        }
         (publishedToast?.showPublishedToast ?? pushPublishedToast)({
           postId: result.postId,
           ...toastUser,

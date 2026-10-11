@@ -267,6 +267,9 @@ export async function createPostForUser(
 
     if (!isCommunityScopedPost({ communityId })) {
       void notifyNewPostMentions(post.id, user.id, data.title, content);
+      void db.feedRecommendation
+        .deleteMany({ where: { userId: user.id } })
+        .catch((e) => console.error("[createPost] feedRecommendation", e));
     }
     void notifyQuotedPosts({
       content,

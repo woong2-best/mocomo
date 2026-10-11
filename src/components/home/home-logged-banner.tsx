@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ComposeForm } from "@/components/compose/compose-form";
 import { FEED_INLINE_COMPOSE_ID } from "@/lib/compose-inline";
 import { safeRouterRefresh } from "@/lib/feed-overlay-guard";
+import { scrollMainToTop } from "@/lib/scroll-main";
 
 export function HomeLoggedBanner() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export function HomeLoggedBanner() {
         variant="inline"
         onPosted={() => {
           setFormKey((k) => k + 1);
+          scrollMainToTop();
           safeRouterRefresh(() => router.refresh());
         }}
       />

@@ -11,6 +11,7 @@ import type { ProfileMediaKind, ProfileSort, ProfileTab } from "@/lib/profile-qu
 import { appendProfileSortParam } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
 import { subscribePostDeleted } from "@/lib/post-deleted-sync";
+import { subscribeFeedLiveReload } from "@/lib/feed-live-sync";
 
 export type TimelineItem =
   | {
@@ -99,6 +100,39 @@ export function ProfileTimeline({
     loadingRef.current = false;
     autoLoadBlockedRef.current = false;
   }, [initialItems, initialCursor, initialLikedIds, initialStarredIds, initialRepostedIds, tab, sort, mediaKind]);
+
+  const reloadFirstPage = useCallback(async () => {
+    try {
+      const qs = timelineQuery(tab, sort, mediaKind);
+      const res = await fetch(`/api/profile/${username}/timeline?${qs}`);
+      const json = (await res.json()) as {
+        items?: TimelineItem[];
+        nextCursor?: string | null;
+        likedIds?: string[];
+        starredIds?: string[];
+        repostedIds?: string[];
+      };
+      if (!res.ok || !Array.isArray(json.items)) return;
+      setItems(json.items);
+      setCursor(json.nextCursor ?? null);
+      setDone(!json.nextCursor);
+      setLikedIds(new Set(json.likedIds ?? []));
+      setStarredIds(new Set(json.starredIds ?? []));
+      setRepostedIds(new Set(json.repostedIds ?? []));
+      setLoadError("");
+      loadingRef.current = false;
+      autoLoadBlockedRef.current = false;
+    } catch {
+      /* keep the current page */
+    }
+  }, [mediaKind, sort, tab, username]);
+
+  useEffect(() => {
+    if (!isSelf) return;
+    return subscribeFeedLiveReload(() => {
+      void reloadFirstPage();
+    });
+  }, [isSelf, reloadFirstPage]);
 
   useEffect(() => {
     return subscribePostDeleted((postId) => {

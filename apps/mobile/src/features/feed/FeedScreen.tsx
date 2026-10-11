@@ -245,7 +245,10 @@ export function FeedScreen() {
     resetFeedPostOffset();
     feedListRef.current?.scrollToOffset({ offset: 0, animated: false });
     hideScrollTop();
-    await queryClient.resetQueries({ queryKey: MOBILE_FEED_QUERY_KEY });
+    await Promise.all([
+      queryClient.resetQueries({ queryKey: MOBILE_FEED_QUERY_KEY }),
+      queryClient.resetQueries({ queryKey: ["mobile-qna-feed"] }),
+    ]);
   }, [hideScrollTop, queryClient]);
 
   const onFeedScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {

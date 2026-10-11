@@ -19,6 +19,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, Loader2 } from "lucide-react";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
 import { safeRouterRefresh } from "@/lib/feed-overlay-guard";
+import { scrollMainToTop } from "@/lib/scroll-main";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { cn } from "@/lib/utils";
 
@@ -131,6 +132,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const handlePosted = useCallback(
     (_postId: string) => {
       setOpen(false);
+      scrollMainToTop();
       window.setTimeout(() => {
         try {
           safeRouterRefresh(() => router.refresh());

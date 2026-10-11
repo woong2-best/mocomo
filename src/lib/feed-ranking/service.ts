@@ -14,6 +14,10 @@ import { platformPostWhere } from "@/lib/post-scope";
 import { nsfwPostWhere } from "@/lib/nsfw-viewer-access";
 import { getOrComputeFeedRanking } from "@/lib/feed-ranking/compute";
 import { blockedIdList, getBlockedUserIdSet } from "@/lib/user-block";
+import {
+  fetchViewerRecentPostIds,
+  mergeViewerRecentIds,
+} from "@/lib/feed-viewer-recent";
 
 export type FeedMode = "for_you" | "latest" | "following";
 
@@ -116,6 +120,18 @@ async function rankedPostIds(userId: string, cursor: string | null, limit: numbe
   return ranked.slice(startRank, startRank + limit).map((r) => r.postId);
 }
 
+async function withViewerRecentFirstPage(
+  userId: string,
+  ids: string[],
+  cursor: string | null,
+  limit: number
+): Promise<string[]> {
+  if (cursor) return ids;
+  const ownIds = await fetchViewerRecentPostIds(userId);
+  if (!ownIds.length) return ids;
+  return mergeViewerRecentIds(ownIds, ids, limit);
+}
+
 export async function fetchRankedWebFeedPage(
   userId: string,
   cursor: string | null,
@@ -126,7 +142,12 @@ export async function fetchRankedWebFeedPage(
   try {
     const rankedIds = await rankedPostIds(userId, cursor, limit);
     const baseIds = rankedIds ?? [];
-    const ids = await padPostIdsToPageSize(baseIds, limit, { canViewNsfw, excludeAuthorIds });
+    const ids = await withViewerRecentFirstPage(
+      userId,
+      await padPostIdsToPageSize(baseIds, limit, { canViewNsfw, excludeAuthorIds }),
+      cursor,
+      limit
+    );
     if (!ids.length) return fetchFeedPostsPage(cursor, limit, canViewNsfw, excludeAuthorIds);
     return fetchWebFeedPostsByIds(ids, canViewNsfw, excludeAuthorIds);
   } catch (e) {
@@ -145,7 +166,12 @@ export async function fetchRankedMobileFeedPage(
   try {
     const rankedIds = await rankedPostIds(userId, cursor, limit);
     const baseIds = rankedIds ?? [];
-    const ids = await padPostIdsToPageSize(baseIds, limit, { canViewNsfw, excludeAuthorIds });
+    const ids = await withViewerRecentFirstPage(
+      userId,
+      await padPostIdsToPageSize(baseIds, limit, { canViewNsfw, excludeAuthorIds }),
+      cursor,
+      limit
+    );
     if (!ids.length) return fetchMobileFeedPostsPage(cursor, limit, canViewNsfw, excludeAuthorIds);
     return fetchMobileFeedPostsByIds(ids, canViewNsfw, excludeAuthorIds);
   } catch (e) {
@@ -172,7 +198,12 @@ export async function fetchFollowingWebFeedPage(
     .filter((id) => !blocked.has(id));
   if (!authorIds.length) {
     // 팔로우 없으면 최신 피드로 순환 패딩
-    const ids = await padPostIdsToPageSize([], limit, { canViewNsfw, excludeAuthorIds });
+    const ids = await withViewerRecentFirstPage(
+      userId,
+      await padPostIdsToPageSize([], limit, { canViewNsfw, excludeAuthorIds }),
+      cursor,
+      limit
+    );
     return ids.length ? fetchWebFeedPostsByIds(ids, canViewNsfw, excludeAuthorIds) : [];
   }
 
@@ -189,15 +220,16 @@ export async function fetchFollowingWebFeedPage(
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
   const mapped = posts.map(mapFeedPost);
-  if (mapped.length >= limit) return mapped;
-
-  const paddedIds = await padPostIdsToPageSize(
-    mapped.map((p) => p.id),
-    limit,
-    { canViewNsfw, excludeAuthorIds }
-  );
-  if (paddedIds.length <= mapped.length) return mapped;
-  return fetchWebFeedPostsByIds(paddedIds, canViewNsfw, excludeAuthorIds);
+  let ids = mapped.map((p) => p.id);
+  if (ids.length < limit) {
+    ids = await padPostIdsToPageSize(ids, limit, { canViewNsfw, excludeAuthorIds });
+  }
+  ids = await withViewerRecentFirstPage(userId, ids, cursor, limit);
+  if (!ids.length) return mapped;
+  if (ids.length === mapped.length && ids.every((id, i) => id === mapped[i]?.id)) {
+    return mapped;
+  }
+  return fetchWebFeedPostsByIds(ids, canViewNsfw, excludeAuthorIds);
 }
 
 export async function fetchFollowingMobileFeedPage(
@@ -217,7 +249,12 @@ export async function fetchFollowingMobileFeedPage(
     .map((f) => f.followingId)
     .filter((id) => !blocked.has(id));
   if (!authorIds.length) {
-    const ids = await padPostIdsToPageSize([], limit, { canViewNsfw, excludeAuthorIds });
+    const ids = await withViewerRecentFirstPage(
+      userId,
+      await padPostIdsToPageSize([], limit, { canViewNsfw, excludeAuthorIds }),
+      cursor,
+      limit
+    );
     return ids.length ? fetchMobileFeedPostsByIds(ids, canViewNsfw, excludeAuthorIds) : [];
   }
 
@@ -234,15 +271,16 @@ export async function fetchFollowingMobileFeedPage(
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
   });
   const mapped = posts.map((p) => mapMobileFeedPost(p));
-  if (mapped.length >= limit) return mapped;
-
-  const paddedIds = await padPostIdsToPageSize(
-    mapped.map((p) => p.id),
-    limit,
-    { canViewNsfw, excludeAuthorIds }
-  );
-  if (paddedIds.length <= mapped.length) return mapped;
-  return fetchMobileFeedPostsByIds(paddedIds, canViewNsfw, excludeAuthorIds);
+  let ids = mapped.map((p) => p.id);
+  if (ids.length < limit) {
+    ids = await padPostIdsToPageSize(ids, limit, { canViewNsfw, excludeAuthorIds });
+  }
+  ids = await withViewerRecentFirstPage(userId, ids, cursor, limit);
+  if (!ids.length) return mapped;
+  if (ids.length === mapped.length && ids.every((id, i) => id === mapped[i]?.id)) {
+    return mapped;
+  }
+  return fetchMobileFeedPostsByIds(ids, canViewNsfw, excludeAuthorIds);
 }
 
 export async function resolveFeedPage(opts: {

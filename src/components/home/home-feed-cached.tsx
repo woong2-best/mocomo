@@ -6,7 +6,7 @@ const t = createTranslator("en");
 
 import { errorText } from "@/lib/i18n/error-text";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HomeFeedClient } from "@/components/home/home-feed-client";
 import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
 import { useAuthReady } from "@/hooks/use-auth-ready";
@@ -16,6 +16,8 @@ import {
   readHomeFeedCache,
   writeHomeFeedCache,
 } from "@/lib/feed-client-cache";
+import { subscribeFeedLiveReload } from "@/lib/feed-live-sync";
+import { scrollMainToTop } from "@/lib/scroll-main";
 
 type FeedPage = {
   items: FeedLayoutItem[];
@@ -55,9 +57,18 @@ function HomeFeedSkeleton() {
 }
 
 export function HomeFeedCached() {
+  const queryClient = useQueryClient();
   const { session, authenticated, pending } = useAuthReady();
   const viewerId = homeFeedViewerKey(session?.user?.id);
   const [bootCache, setBootCache] = useState<ReturnType<typeof readHomeFeedCache>>(null);
+
+  useEffect(() => {
+    return subscribeFeedLiveReload((detail) => {
+      if (detail.reason === "published") scrollMainToTop();
+      void queryClient.invalidateQueries({ queryKey: HOME_FEED_QUERY_KEY });
+      void queryClient.refetchQueries({ queryKey: HOME_FEED_QUERY_KEY });
+    });
+  }, [queryClient]);
 
   useEffect(() => {
     const cached = readHomeFeedCache(viewerId) ?? readHomeFeedCache("guest");

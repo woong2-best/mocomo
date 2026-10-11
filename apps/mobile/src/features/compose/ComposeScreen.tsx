@@ -80,7 +80,10 @@ export function ComposeScreen() {
         autoFocus={!!initialContent || !!quotedPostId}
         onPosted={async () => {
           resetFeedPostOffset();
-          await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
+          await Promise.all([
+            queryClient.resetQueries({ queryKey: ["mobile-feed"] }),
+            queryClient.resetQueries({ queryKey: ["mobile-qna-feed"] }),
+          ]);
           showIslandToast(t("toast.published"), t("m.compose.your_post_was_uploaded"));
           if (navigation.canGoBack()) navigation.goBack();
         }}

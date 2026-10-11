@@ -12,6 +12,7 @@ import {
 } from "@/components/feed/feed-dual-column-layout";
 import { Button } from "@/components/ui/button";
 import { subscribePostDeleted } from "@/lib/post-deleted-sync";
+import { subscribeFeedLiveReload } from "@/lib/feed-live-sync";
 import { Loader2 } from "lucide-react";
 import { FeedVideoViewerProvider } from "@/components/feed/feed-video-viewer-provider";
 
@@ -82,6 +83,38 @@ export function FeedInfinite({
     // feedSeed만 의존 — 배열 참조 변경으로 스크롤 리셋 방지
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedSeed]);
+
+  const reloadFirstPage = useCallback(async () => {
+    try {
+      const res = await fetch("/api/feed?limit=12", { credentials: "include" });
+      const json = (await res.json()) as {
+        items?: FeedItem[];
+        nextCursor?: string | null;
+        likedIds?: string[];
+        starredIds?: string[];
+        repostedIds?: string[];
+      };
+      if (!res.ok || !Array.isArray(json.items)) return;
+      setItems(json.items);
+      setCursor(json.nextCursor ?? null);
+      setDone(!json.nextCursor);
+      setLikedIds(new Set(json.likedIds ?? []));
+      setStarredIds(new Set(json.starredIds ?? []));
+      setRepostedIds(new Set(json.repostedIds ?? []));
+      postOffsetRef.current = json.items.filter((item) => item.type === "post").length;
+      setLoadError("");
+      loadingRef.current = false;
+      autoLoadBlockedRef.current = false;
+    } catch {
+      /* keep the current page */
+    }
+  }, []);
+
+  useEffect(() => {
+    return subscribeFeedLiveReload(() => {
+      void reloadFirstPage();
+    });
+  }, [reloadFirstPage]);
 
   useEffect(() => {
     return subscribePostDeleted((postId) => {

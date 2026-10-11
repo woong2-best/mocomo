@@ -409,7 +409,10 @@ export function InlineComposeBox({
         await onPosted(res.postId);
       } else {
         resetFeedPostOffset();
-        await queryClient.resetQueries({ queryKey: ["mobile-feed"] });
+        await Promise.all([
+          queryClient.resetQueries({ queryKey: ["mobile-feed"] }),
+          queryClient.resetQueries({ queryKey: ["mobile-qna-feed"] }),
+        ]);
       }
       await queryClient.invalidateQueries({ queryKey: ["mobile-user"] });
       if (res.warning) {

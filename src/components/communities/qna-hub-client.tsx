@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { useQnaNsfwGate } from "@/hooks/use-qna-nsfw-gate";
 import { QnaNsfwBlockedDialog } from "@/components/communities/qna-nsfw-blocked-dialog";
 import { backfillOwnedEmptyQnaPosts } from "@/actions/community-hub";
+import { subscribeFeedLiveReload } from "@/lib/feed-live-sync";
+import { scrollMainToTop } from "@/lib/scroll-main";
 
 type FeedPage = {
   items?: FeedLayoutItem[];
@@ -156,6 +158,13 @@ export function QnaHubClient() {
   useEffect(() => {
     void fetchPage(null, "replace");
   }, [qFromUrl, tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    return subscribeFeedLiveReload((detail) => {
+      if (detail.reason === "published") scrollMainToTop();
+      void fetchPage(null, "replace");
+    });
+  }, [fetchPage]);
 
   useEffect(() => {
     if (backfillRef.current || tab !== "ALL" || qFromUrl || !sessionUserId) return;

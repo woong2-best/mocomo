@@ -44,6 +44,7 @@ import {
 import { useLocale } from "@/components/providers/locale-provider";
 import { pushErrorToast } from "@/lib/published-toast-store";
 import { safeRouterRefresh } from "@/lib/feed-overlay-guard";
+import { notifyFeedLiveReload } from "@/lib/feed-live-sync";
 
 type ToastView = PublishedToastInput & {
   id: string;
@@ -157,6 +158,7 @@ export function PublishedToastPill({
 
     if (onFeed) {
       scrollMainToTop();
+      notifyFeedLiveReload({ reason: "published", postId: toast.postId });
       safeRouterRefresh(() => router.refresh());
       return;
     }

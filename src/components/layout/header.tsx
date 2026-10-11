@@ -15,6 +15,7 @@ import { MobileHubHeader } from "@/components/layout/mobile-hub-header";
 import { SidebarToggleButton } from "@/components/layout/sidebar-toggle-button";
 import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
+import { notifyFeedLiveReload } from "@/lib/feed-live-sync";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,7 @@ export function Header() {
     if (!isHome) return;
     e.preventDefault();
     scrollMainToTop();
+    notifyFeedLiveReload({ reason: "manual" });
     router.refresh();
   }
 
