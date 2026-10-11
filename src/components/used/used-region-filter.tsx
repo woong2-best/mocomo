@@ -1,41 +1,50 @@
 "use client";
 
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 import { useRouter, useSearchParams } from "next/navigation";
-import { KOREA_SIDO, USED_SHIPPING_REGION, formatUsedRegion, getSidoById, getSigunguList } from "@/lib/korea-regions";
+import { KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
 import { usedShippingRegionLabel } from "@/lib/used-regions-global";
 import { isKoreaUsedMarketCountry, isUsedShippingRegion } from "@/lib/used-regions-global";
-import { usedMarketPhoneCountryLabel } from "@/lib/used-phone-countries";
+import { listUsedCityOptions } from "@/lib/used-market-cities";
 import { useLocale } from "@/components/providers/locale-provider";
-import { Input } from "@/components/ui/input";
-import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
+import { cn } from "@/lib/utils";
 
 type UsedRegionFilterProps = {
   viewerCountryCode: string;
   viewerServiceRegion?: string | null;
   onNavigate?: (updates: Record<string, string | null>) => void;
   isPending?: boolean;
+  className?: string;
 };
-
-function countryLabel(code: string, locale: string): string {
-  const row = ALLOWED_COUNTRIES.find((c) => c.code === code);
-  if (!row) return code;
-  return row.nameEn;
-}
 
 export function UsedRegionFilter({
   viewerCountryCode,
-  viewerServiceRegion,
   onNavigate,
+  isPending,
+  className,
 }: UsedRegionFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const viewerCountry = viewerCountryCode.toUpperCase();
+  const korea = isKoreaUsedMarketCountry(viewerCountry);
   const currentRegion = searchParams.get("region") ?? "";
   const currentSido = searchParams.get("sido") ?? "";
+  const cities = listUsedCityOptions(viewerCountry);
+
+  const selected = (() => {
+    if (isUsedShippingRegion(currentRegion) || currentSido === "__shipping__") {
+      return "__shipping__";
+    }
+    if (korea) {
+      if (currentSido && currentSido !== "__shipping__") return currentSido;
+      return KOREA_SIDO.find((s) => currentRegion.startsWith(`${s.short} `) || currentRegion === s.short)
+        ?.id ?? "";
+    }
+    if (currentRegion && cities.some((c) => c.value.toLowerCase() === currentRegion.toLowerCase())) {
+      return cities.find((c) => c.value.toLowerCase() === currentRegion.toLowerCase())!.value;
+    }
+    return currentRegion && !isUsedShippingRegion(currentRegion) ? currentRegion : "";
+  })();
 
   function apply(updates: Record<string, string | null>) {
     const withCountry = { ...updates, country: viewerCountry };
@@ -51,99 +60,37 @@ export function UsedRegionFilter({
     router.replace(`/market?${params.toString()}`);
   }
 
-  if (!isKoreaUsedMarketCountry(viewerCountry)) {
-    return (
-      <div className="space-y-2">
-        <Input
-          className="h-9 rounded-lg text-xs"
-          placeholder={"City or area (optional)"}
-          defaultValue={isUsedShippingRegion(currentRegion) ? "" : currentRegion}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              const v = (e.target as HTMLInputElement).value.trim();
-              apply({ region: v || null, sido: null });
-            }
-          }}
-        />
-        <button
-          type="button"
-          className="text-[10px] text-muted-foreground underline"
-          onClick={() => apply({ region: "Shipping", sido: null })}
-        >
-          {"Shipping only"}
-        </button>
-        <p className="text-[10px] text-muted-foreground">
-          {usedMarketPhoneCountryLabel(viewerCountry, locale)}
-        </p>
-      </div>
-    );
-  }
-
-  const sidoId =
-    currentRegion === USED_SHIPPING_REGION
-      ? "__shipping__"
-      : currentSido ||
-        KOREA_SIDO.find((s) => currentRegion.startsWith(`${s.short} `))?.id ||
-        "";
-
-  const sido = getSidoById(sidoId);
-  const sigunguList = sidoId ? getSigunguList(sidoId) : [];
-
-  const sigunguValue = (() => {
-    if (sidoId === "__shipping__") return "";
-    if (!sidoId || !sido) return "";
-    if (currentSido === sidoId && !currentRegion) return "";
-    if (!currentRegion.startsWith(`${sido.short} `)) return "";
-    const unit = currentRegion.slice(`${sido.short} `.length);
-    return sigunguList.includes(unit) ? unit : "";
-  })();
+  const extraCurrent =
+    !korea &&
+    selected &&
+    selected !== "__shipping__" &&
+    !cities.some((c) => c.value === selected);
 
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        <select
-          className="h-9 rounded-lg border border-border bg-background text-xs px-2"
-          value={sidoId || ""}
-          onChange={(e) => {
-            const id = e.target.value;
-            if (!id) apply({ region: null, sido: null });
-            else if (id === "__shipping__") apply({ region: USED_SHIPPING_REGION, sido: null });
-            else apply({ sido: id, region: null });
-          }}
-        >
-          <option value="">{t("used.s1q03uuf")}</option>
-          {KOREA_SIDO.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.short}
-            </option>
-          ))}
-          <option value="__shipping__">{usedShippingRegionLabel(locale)}</option>
-        </select>
-
-        <select
-          className="h-9 rounded-lg border border-border bg-background text-xs px-2"
-          value={sigunguValue}
-          disabled={!sidoId || sidoId === "__shipping__"}
-          onChange={(e) => {
-            const unit = e.target.value;
-            if (!sidoId || sidoId === "__shipping__") return;
-            if (!unit) {
-              apply({ sido: sidoId, region: null });
-              return;
-            }
-            const s = getSidoById(sidoId);
-            if (s) apply({ region: formatUsedRegion(s.short, unit), sido: null });
-          }}
-        >
-          <option value="">{t("used.s2dzhae")}</option>
-          {sigunguList.map((u) => (
-            <option key={u} value={u}>
-              {u}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
+    <select
+      className={cn(
+        "h-[38px] min-w-0 w-full rounded-full border-[1.5px] border-border bg-card px-3 text-[13px] font-extrabold text-folk-cobalt",
+        className
+      )}
+      value={selected}
+      disabled={isPending}
+      aria-label={t("used.s2dzhae")}
+      onChange={(e) => {
+        const id = e.target.value;
+        if (!id) apply({ region: null, sido: null });
+        else if (id === "__shipping__") apply({ region: USED_SHIPPING_REGION, sido: null });
+        else if (korea) apply({ sido: id, region: null });
+        else apply({ region: id, sido: null });
+      }}
+    >
+      <option value="">{t("used.s2dzhae")}</option>
+      {cities.map((c) => (
+        <option key={c.value} value={c.value}>
+          {c.label}
+        </option>
+      ))}
+      {extraCurrent ? <option value={selected}>{selected}</option> : null}
+      <option value="__shipping__">{usedShippingRegionLabel(locale)}</option>
+    </select>
   );
 }

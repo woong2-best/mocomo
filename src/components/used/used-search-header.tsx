@@ -1,8 +1,5 @@
 "use client";
 
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
@@ -10,7 +7,6 @@ import { USED_MARKET_BROWSE_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
 import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters";
 import { useLocale } from "@/components/providers/locale-provider";
-
 
 type UsedSearchHeaderProps = {
   viewerCountryCode: string;
@@ -21,7 +17,7 @@ export function UsedSearchHeader({
   viewerCountryCode,
   viewerServiceRegion,
 }: UsedSearchHeaderProps) {
-  const { locale , t } = useLocale();
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -62,42 +58,44 @@ export function UsedSearchHeader({
         </div>
       ) : null}
 
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <button
-          type="button"
-          onClick={() => apply({ category: null })}
-          className={cn(
-            "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
-            !searchParams.get("category")
-              ? "border-folk-cobalt bg-folk-cobalt text-white"
-              : "border-border bg-card text-folk-cobalt"
-          )}
-        >
-          {t("anime.genreAll")}
-        </button>
-        {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
           <button
-            key={c.id}
             type="button"
-            onClick={() => apply({ category: c.id, mode: null })}
+            onClick={() => apply({ category: null })}
             className={cn(
-              "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
-              searchParams.get("category") === c.id
+              "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
+              !searchParams.get("category")
                 ? "border-folk-cobalt bg-folk-cobalt text-white"
                 : "border-border bg-card text-folk-cobalt"
             )}
           >
-            {c.label.split(" / ")[0]}
+            {t("anime.genreAll")}
           </button>
-        ))}
+          {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => apply({ category: c.id, mode: null })}
+              className={cn(
+                "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
+                searchParams.get("category") === c.id
+                  ? "border-folk-cobalt bg-folk-cobalt text-white"
+                  : "border-border bg-card text-folk-cobalt"
+              )}
+            >
+              {c.label.split(" / ")[0]}
+            </button>
+          ))}
+        </div>
+        <UsedRegionFilter
+          className="min-w-[8rem] flex-1"
+          viewerCountryCode={viewerCountryCode}
+          viewerServiceRegion={viewerServiceRegion}
+          onNavigate={apply}
+          isPending={isPending}
+        />
       </div>
-
-      <UsedRegionFilter
-        viewerCountryCode={viewerCountryCode}
-        viewerServiceRegion={viewerServiceRegion}
-        onNavigate={apply}
-        isPending={isPending}
-      />
 
       <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />
     </div>
