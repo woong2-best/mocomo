@@ -53,6 +53,12 @@ function present(item: QueuedToast) {
     emit();
     return;
   }
+  // Posted pill 위에서 링크 복사 등 짧은 info — 큐 대기 없이 즉시 교체
+  if (current?.kind === "published" && item.kind === "info") {
+    current = item;
+    emit();
+    return;
+  }
   if (!current) {
     current = item;
     emit();
