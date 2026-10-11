@@ -8,6 +8,7 @@ import { Languages } from "lucide-react";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { LinkPreviewCard } from "@/components/ui/link-preview-card";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useClientTranslationOptional } from "@/components/providers/client-translation-provider";
 import { usePostTranslate } from "@/components/providers/post-translate-provider";
 import { useAutoClientTranslation } from "@/hooks/use-auto-client-translate";
 import { needsClientTranslation } from "@/lib/client-translate/detect-source";
@@ -31,6 +32,9 @@ export function TranslatableText({
 }) {
   const { locale, t } = useLocale();
   const { preference } = usePostTranslate();
+  const clientTranslation = useClientTranslationOptional();
+  const loadProgress = clientTranslation?.loadState.progress ?? 0;
+  const modelLoading = clientTranslation?.loadState.status === "loading";
   const showTranslate = useMemo(
     () => needsClientTranslation(text, preference),
     [text, preference]
@@ -130,7 +134,10 @@ export function TranslatableText({
               {t("translate.viewTranslation")}
             </button>
           ) : loading ? (
-            <span className="text-muted-foreground">{t("translate.loading")}</span>
+            <span className="text-muted-foreground">
+              {t("translate.loading")}
+              {modelLoading && loadProgress > 0 ? ` ${loadProgress}%` : ""}
+            </span>
           ) : (
             <>
               {failed ? (

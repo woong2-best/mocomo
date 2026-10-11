@@ -125,6 +125,13 @@ export function resolveOpusModel(sourceLang: string | null, targetLang: string):
   return null;
 }
 
+/** Most common incoming pair for this viewer, used to start the download early. */
+export function likelyWarmupModel(targetLang: string): string | null {
+  if (!targetLang || targetLang === POST_TRANSLATE_OFF) return null;
+  if (targetLang === "en") return OPUS_PAIR_MODELS["ko:en"] ?? OPUS_MUL_EN;
+  return resolveOpusModel("en", targetLang);
+}
+
 export function postTranslateLanguageLabel(code: PostTranslateLang, uiLocale = "en"): string {
   try {
     return new Intl.DisplayNames([uiLocale, "en"], { type: "language" }).of(code) ?? code;

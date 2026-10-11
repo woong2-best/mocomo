@@ -4,6 +4,7 @@ import { needsClientTranslation } from "@/lib/client-translate/detect-source";
 import {
   defaultPostTranslateFromBrowser,
   inferPostTranslateInto,
+  likelyWarmupModel,
   resolveOpusModel,
 } from "@/lib/client-translate/opus-mt-pairs";
 
@@ -29,6 +30,12 @@ test("direct Opus-MT pairs exist both ways for English and Japanese", () => {
   assert.equal(resolveOpusModel("en", "ja"), "Xenova/opus-mt-en-jap");
   assert.equal(resolveOpusModel("en", "ko"), null);
   assert.equal(resolveOpusModel("ko", "ja"), null);
+});
+
+test("warmup prefers the Korean-to-English pair for English viewers", () => {
+  assert.equal(likelyWarmupModel("en"), "Xenova/opus-mt-ko-en");
+  assert.equal(likelyWarmupModel("ja"), "Xenova/opus-mt-en-jap");
+  assert.equal(likelyWarmupModel("off"), null);
 });
 
 test("translation is needed when post language differs and a pair exists", () => {

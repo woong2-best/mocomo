@@ -17,8 +17,14 @@ type LoadState = {
 
 type ClientTranslationContextValue = {
   loadState: LoadState;
-  warmUp: () => void;
-  translate: (text: string, targetLang: string) => Promise<ClientTranslateResult | null>;
+  warmUp: (targetLang?: string) => void;
+  prefetch: (text: string, targetLang: string) => void;
+  lookup: (text: string, targetLang: string) => Promise<ClientTranslateResult | null>;
+  translate: (
+    text: string,
+    targetLang: string,
+    priority?: number
+  ) => Promise<ClientTranslateResult | null>;
 };
 
 const ClientTranslationContext = createContext<ClientTranslationContextValue | null>(null);
@@ -26,44 +32,66 @@ const ClientTranslationContext = createContext<ClientTranslationContextValue | n
 export function ClientTranslationProvider({ children }: { children: ReactNode }) {
   const [loadState, setLoadState] = useState<LoadState>({ status: "idle", progress: 0 });
 
-  const warmUp = useCallback(() => {
-    void import("@/lib/client-translate/engine")
-      .then(async (engine) => {
-        const unsub = engine.subscribeTranslationLoad((event) => {
-          setLoadState({
-            status: event.status as LoadState["status"],
-            progress: event.progress ?? 0,
-          });
-        });
-        try {
-          await engine.warmClientTranslationModel();
-        } finally {
-          unsub();
-        }
-      })
-      .catch(() => {
-        setLoadState((prev) => ({ ...prev, status: "error" }));
-      });
-  }, []);
-
-  const translate = useCallback(async (text: string, targetLang: string) => {
+  const subscribeLoad = useCallback(async () => {
     const engine = await import("@/lib/client-translate/engine");
-    const unsub = engine.subscribeTranslationLoad((event) => {
+    return engine.subscribeTranslationLoad((event) => {
       setLoadState({
         status: event.status as LoadState["status"],
         progress: event.progress ?? 0,
       });
     });
-    try {
-      return await engine.translateTextClientSide(text, targetLang);
-    } finally {
-      unsub();
-    }
   }, []);
 
+  const warmUp = useCallback(
+    (targetLang?: string) => {
+      void import("@/lib/client-translate/engine")
+        .then(async (engine) => {
+          const unsub = await subscribeLoad();
+          try {
+            await engine.warmClientTranslationModel(targetLang);
+          } finally {
+            unsub();
+          }
+        })
+        .catch(() => {
+          setLoadState((prev) => ({ ...prev, status: "error" }));
+        });
+    },
+    [subscribeLoad]
+  );
+
+  const prefetch = useCallback((text: string, targetLang: string) => {
+    void import("@/lib/client-translate/engine")
+      .then((engine) => engine.prefetchClientTranslationModel(text, targetLang))
+      .catch(() => undefined);
+  }, []);
+
+  const lookup = useCallback(async (text: string, targetLang: string) => {
+    const engine = await import("@/lib/client-translate/engine");
+    return engine.lookupCachedClientTranslation(text, targetLang);
+  }, []);
+
+  const translate = useCallback(
+    async (text: string, targetLang: string, priority = 1) => {
+      const engine = await import("@/lib/client-translate/engine");
+      const unsub = engine.subscribeTranslationLoad((event) => {
+        setLoadState({
+          status: event.status as LoadState["status"],
+          progress: event.progress ?? 0,
+        });
+      });
+      try {
+        return await engine.translateTextClientSide(text, targetLang, { priority });
+      } finally {
+        unsub();
+      }
+    },
+    []
+  );
+
   const value = useMemo(
-    () => ({ loadState, warmUp, translate }),
-    [loadState, warmUp, translate]
+    () => ({ loadState, warmUp, prefetch, lookup, translate }),
+    [loadState, warmUp, prefetch, lookup, translate]
   );
 
   return (

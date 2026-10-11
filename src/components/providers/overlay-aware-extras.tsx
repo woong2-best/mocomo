@@ -50,6 +50,14 @@ const StaleDeploymentRecovery = dynamic(
   { ssr: false }
 );
 
+const ClientTranslationWarmup = dynamic(
+  () =>
+    import("@/components/client-translation/client-translation-warmup").then(
+      (m) => m.ClientTranslationWarmup
+    ),
+  { ssr: false }
+);
+
 /** Site chrome (calls, MFA, toasts) must not paint over OBS overlays. */
 export function OverlayAwareExtras({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -60,6 +68,7 @@ export function OverlayAwareExtras({ children }: { children: React.ReactNode }) 
   return (
     <>
       <StaleDeploymentRecovery />
+      <ClientTranslationWarmup />
       <PushRegistration />
       <NativePushRegistration />
       <CheckoutResumeHandler />

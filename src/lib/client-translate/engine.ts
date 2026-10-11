@@ -1,7 +1,14 @@
-import { getCachedTranslation, setCachedTranslation } from "@/lib/client-translate/cache";
+import {
+  getCachedFullTranslation,
+  getCachedFullTranslationAsync,
+  getCachedTranslation,
+  setCachedFullTranslation,
+  setCachedTranslation,
+} from "@/lib/client-translate/cache";
 import { detectSourceNllb, detectSourceOpusLang } from "@/lib/client-translate/detect-source";
 import { type NllbCode } from "@/lib/client-translate/nllb-codes";
 import {
+  likelyWarmupModel,
   POST_TRANSLATE_OFF,
   resolveOpusModel,
 } from "@/lib/client-translate/opus-mt-pairs";
@@ -17,11 +24,22 @@ export const CLIENT_TRANSLATE_MODEL = "Helsinki-NLP/Opus-MT";
 export const MAX_TRANSLATE_CHARS = 2000;
 const CHUNK_CHARS = 380;
 
+export type ClientTranslateResult = {
+  translated: string;
+  sourceLang: string | null;
+  sourceNllb: NllbCode;
+};
+
+export type TranslateTextOptions = {
+  priority?: number;
+};
+
 type TranslationPipeline = (text: string) => Promise<{ translation_text: string }[]>;
 
 type ProgressCallback = (progress: { status: string; progress?: number }) => void;
 
 const pipelinePromises = new Map<string, Promise<TranslationPipeline>>();
+const inflight = new Map<string, Promise<ClientTranslateResult | null>>();
 let loadProgress = 0;
 let loadStatus: "idle" | "loading" | "ready" | "error" = "idle";
 const progressListeners = new Set<ProgressCallback>();
@@ -40,6 +58,17 @@ export function getTranslationLoadState(): { status: typeof loadStatus; progress
   return { status: loadStatus, progress: loadProgress };
 }
 
+function configureWasmBackend(env: {
+  backends?: { onnx?: { wasm?: { proxy?: boolean; numThreads?: number } } };
+}): void {
+  const wasm = env.backends?.onnx?.wasm;
+  if (!wasm) return;
+  wasm.proxy = true;
+  if (typeof navigator !== "undefined" && navigator.hardwareConcurrency) {
+    wasm.numThreads = Math.min(4, navigator.hardwareConcurrency);
+  }
+}
+
 async function createPipeline(modelId: string): Promise<TranslationPipeline> {
   if (typeof window === "undefined") {
     throw new Error("Client translation is browser-only");
@@ -52,20 +81,11 @@ async function createPipeline(modelId: string): Promise<TranslationPipeline> {
   const { pipeline, env } = await import("@huggingface/transformers");
   env.allowLocalModels = false;
   env.useBrowserCache = true;
-
-  let device: "webgpu" | "wasm" = "wasm";
-  if (typeof navigator !== "undefined" && "gpu" in navigator) {
-    try {
-      const nav = navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } };
-      const gpu = await nav.gpu?.requestAdapter();
-      if (gpu) device = "webgpu";
-    } catch {
-      device = "wasm";
-    }
-  }
+  configureWasmBackend(env);
 
   const loadOptions = {
-    device,
+    device: "wasm" as const,
+    dtype: "q8" as const,
     progress_callback: (event: { status?: string; progress?: number }) => {
       if (typeof event.progress === "number") {
         loadProgress = Math.round(event.progress);
@@ -80,20 +100,21 @@ async function createPipeline(modelId: string): Promise<TranslationPipeline> {
     loadProgress = 100;
     notifyProgress({ status: loadStatus, progress: loadProgress });
     return translator as TranslationPipeline;
-  } catch (webgpuError) {
-    if (device === "webgpu") {
+  } catch (quantizedError) {
+    try {
       const translator = await pipeline("translation", modelId, {
-        ...loadOptions,
         device: "wasm",
+        progress_callback: loadOptions.progress_callback,
       });
       loadStatus = "ready";
       loadProgress = 100;
       notifyProgress({ status: loadStatus, progress: loadProgress });
       return translator as TranslationPipeline;
+    } catch {
+      loadStatus = "error";
+      notifyProgress({ status: loadStatus });
+      throw quantizedError;
     }
-    loadStatus = "error";
-    notifyProgress({ status: loadStatus });
-    throw webgpuError;
   }
 }
 
@@ -109,12 +130,59 @@ function getPipeline(modelId: string): Promise<TranslationPipeline> {
   return pending;
 }
 
-/** Warmup keeps the existing provider loop from retrying; pair models load on first post. */
-export async function warmClientTranslationModel(): Promise<void> {
+function resolveJob(text: string, targetLang: string) {
+  const trimmed = text.trim();
+  if (!trimmed || !isTextWorthTranslating(trimmed)) return null;
+  if (!targetLang || targetLang === POST_TRANSLATE_OFF) return null;
+
+  const slice = trimmed.length > MAX_TRANSLATE_CHARS ? trimmed.slice(0, MAX_TRANSLATE_CHARS) : trimmed;
+  const sourceNllb = detectSourceNllb(slice);
+  const sourceLang = detectSourceOpusLang(slice);
+  if (!sourceNllb || !sourceLang || sourceLang === targetLang) return null;
+
+  const modelId = resolveOpusModel(sourceLang, targetLang);
+  if (!modelId) return null;
+
+  return { slice, sourceNllb, sourceLang, modelId, targetLang };
+}
+
+export async function lookupCachedClientTranslation(
+  text: string,
+  targetLang: string
+): Promise<ClientTranslateResult | null> {
+  const job = resolveJob(text, targetLang);
+  if (!job) return null;
+  const cached =
+    getCachedFullTranslation(job.sourceNllb, job.targetLang, job.slice) ??
+    (await getCachedFullTranslationAsync(job.sourceNllb, job.targetLang, job.slice));
+  if (!cached) return null;
+  return {
+    translated: cached.translated,
+    sourceLang: cached.sourceLang ?? job.sourceLang,
+    sourceNllb: cached.sourceNllb || job.sourceNllb,
+  };
+}
+
+export async function prefetchClientTranslationModel(
+  text: string,
+  targetLang: string
+): Promise<void> {
+  const job = resolveJob(text, targetLang);
+  if (!job) return;
+  await getPipeline(job.modelId);
+}
+
+/** Preload the JS chunk and the most likely pair model for this viewer. */
+export async function warmClientTranslationModel(targetLang?: string): Promise<void> {
   if (typeof window === "undefined") return;
-  if (loadStatus !== "idle") return;
-  loadStatus = "ready";
-  notifyProgress({ status: loadStatus, progress: 0 });
+  if (loadStatus === "idle") {
+    loadStatus = "ready";
+    notifyProgress({ status: loadStatus, progress: 0 });
+  }
+  if (!targetLang || targetLang === POST_TRANSLATE_OFF) return;
+  const modelId = likelyWarmupModel(targetLang);
+  if (!modelId) return;
+  await getPipeline(modelId);
 }
 
 function chunkText(text: string): string[] {
@@ -167,31 +235,27 @@ async function translatePlainText(
   return parts.join(chunks.length > 1 ? "\n" : "");
 }
 
-export type ClientTranslateResult = {
-  translated: string;
-  sourceLang: string | null;
-  sourceNllb: NllbCode;
-};
-
 export async function translateTextClientSide(
   text: string,
-  targetLang: string
+  targetLang: string,
+  options: TranslateTextOptions = {}
 ): Promise<ClientTranslateResult | null> {
-  const trimmed = text.trim();
-  if (!trimmed || !isTextWorthTranslating(trimmed)) return null;
-  if (!targetLang || targetLang === POST_TRANSLATE_OFF) return null;
+  const job = resolveJob(text, targetLang);
+  if (!job) return null;
 
-  const slice = trimmed.length > MAX_TRANSLATE_CHARS ? trimmed.slice(0, MAX_TRANSLATE_CHARS) : trimmed;
-  const sourceNllb = detectSourceNllb(slice);
-  const sourceLang = detectSourceOpusLang(slice);
-  if (!sourceNllb || !sourceLang || sourceLang === targetLang) return null;
+  const cached = await lookupCachedClientTranslation(text, targetLang);
+  if (cached) return cached;
 
-  const modelId = resolveOpusModel(sourceLang, targetLang);
-  if (!modelId) return null;
+  const inflightKey = `${job.sourceNllb}:${job.targetLang}:${job.slice}`;
+  const existing = inflight.get(inflightKey);
+  if (existing) return existing;
 
-  return enqueueTranslation(async () => {
-    const translator = await getPipeline(modelId);
-    const segments = splitTranslatableSegments(slice);
+  const pending = enqueueTranslation(async () => {
+    const fromCache = await lookupCachedClientTranslation(text, targetLang);
+    if (fromCache) return fromCache;
+
+    const translator = await getPipeline(job.modelId);
+    const segments = splitTranslatableSegments(job.slice);
     const translatedParts = new Map<number, string>();
     let textIndex = 0;
 
@@ -209,18 +273,27 @@ export async function translateTextClientSide(
       const translated = await translatePlainText(
         translator,
         segment.value,
-        sourceNllb,
-        targetLang
+        job.sourceNllb,
+        job.targetLang
       );
       translatedParts.set(textIndex, translated);
       textIndex += 1;
     }
 
     const translated = joinTranslatedSegments(segments, translatedParts);
-    return {
+    const result = {
       translated,
-      sourceLang,
-      sourceNllb,
+      sourceLang: job.sourceLang,
+      sourceNllb: job.sourceNllb,
     };
-  });
+    setCachedFullTranslation(job.sourceNllb, job.targetLang, job.slice, result);
+    return result;
+  }, options.priority ?? 1);
+
+  inflight.set(inflightKey, pending);
+  try {
+    return await pending;
+  } finally {
+    inflight.delete(inflightKey);
+  }
 }
