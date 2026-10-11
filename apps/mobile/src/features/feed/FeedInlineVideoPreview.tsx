@@ -8,7 +8,7 @@ import { isPaidPlaybackPath } from "@/api/watermark";
 import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
-import { resolveVideoPoster } from "@/lib/video-poster";
+import { posterToImageSource, useFeedVideoPoster } from "@/lib/video-thumbnail";
 import { cachedImageSource, IMAGE_CACHE_POLICY } from "@/perf/image";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -17,6 +17,7 @@ import {
   MocomoPooledVideoView,
 } from "@/native/MocomoNativeFeed";
 import { feedMediaFrameHeight } from "@/features/feed/feedMediaAspect";
+import { formatFeedVideoDuration } from "@/features/feed/feedMediaDuration";
 import { spacing } from "@/theme/tokens";
 
 /** Feed-wide mute preference (Twitter-style). */
@@ -49,12 +50,10 @@ export function resolveVideoSrc(media: FeedMedia): string {
   return hls || progressive;
 }
 
-function formatDuration(sec: number | null | undefined): string | null {
-  if (sec == null || !Number.isFinite(sec) || sec <= 0) return null;
-  const total = Math.round(sec);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+function posterSource(poster: string | object) {
+  return posterToImageSource(poster, (uri) => cachedImageSource(uri)) as
+    | { uri: string }
+    | object;
 }
 
 type Props = {
@@ -84,7 +83,7 @@ function FeedInlineVideoPreviewInner({
 }: Props) {
   const { t } = useI18n();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const poster = useMemo(() => resolveVideoPoster(media), [media]);
+  const poster = useFeedVideoPoster(media);
   const src = useMemo(() => resolveVideoSrc(media), [media]);
   const frameStyle = useMemo(() => {
     if (embedded) return null;
@@ -95,7 +94,7 @@ function FeedInlineVideoPreviewInner({
   }, [embedded, media.height, media.type, media.width, windowHeight, windowWidth]);
   const isPaid =
     isPaidPlaybackPath(src) || isPaidPlaybackPath(media.url) || (media.priceKrw ?? 0) > 0;
-  const durationLabel = formatDuration(media.duration);
+  const durationLabel = formatFeedVideoDuration(media.duration);
   const [muted, setMuted] = useFeedPreviewMuted();
   /** Keep poster covering the decoder surface until a real frame paints. */
   const [hasFirstFrame, setHasFirstFrame] = useState(false);
@@ -108,10 +107,14 @@ function FeedInlineVideoPreviewInner({
     );
   }
 
-  // Android pooled surface mounts whenever we have a src so idle cells still show a still
-  // (poster / first-frame extract). Playback only when `active`.
+  // Idle cells stay on the JS poster + play overlay. Native surfaces composite on top
+  // of RN siblings and were hiding the thumbnail / play button.
   const usePooledAndroid =
-    Platform.OS === "android" && isPooledVideoSupported() && Boolean(src) && !isPaid;
+    Platform.OS === "android" &&
+    isPooledVideoSupported() &&
+    Boolean(src) &&
+    active &&
+    !isPaid;
   const shouldLoadNativePlayer = Boolean(src) && active && !isPaid && !usePooledAndroid;
   const shouldLoadPaidPlayer = Boolean(media.url) && active && isPaid && !media.locked;
 
@@ -178,11 +181,11 @@ function FeedInlineVideoPreviewInner({
     <View style={[styles.wrap, embedded ? styles.wrapEmbedded : frameStyle]}>
       {poster ? (
         <Image
-          source={cachedImageSource(poster)}
+          source={posterSource(poster)}
           style={StyleSheet.absoluteFill}
           contentFit={contentFit}
           cachePolicy={IMAGE_CACHE_POLICY}
-          recyclingKey={poster}
+          recyclingKey={typeof poster === "string" ? poster : media.id ?? media.url}
           transition={0}
           pointerEvents="none"
         />
@@ -202,7 +205,7 @@ function FeedInlineVideoPreviewInner({
         <MocomoPooledVideoView
           style={StyleSheet.absoluteFill}
           url={src}
-          posterUrl={poster}
+          posterUrl={typeof poster === "string" ? poster : null}
           streamUid={media.streamUid}
           playing={active}
           muted={muted}
@@ -221,11 +224,13 @@ function FeedInlineVideoPreviewInner({
       {/* Cover decoder black until first frame — same footprint as poster underneath. */}
       {poster && !hasFirstFrame && active ? (
         <Image
-          source={cachedImageSource(poster)}
+          source={posterSource(poster)}
           style={[StyleSheet.absoluteFill, styles.posterCover]}
           contentFit={contentFit}
           cachePolicy={IMAGE_CACHE_POLICY}
-          recyclingKey={`${poster}-cover`}
+          recyclingKey={
+            typeof poster === "string" ? `${poster}-cover` : `${media.id ?? media.url}-cover`
+          }
           transition={0}
           pointerEvents="none"
         />
@@ -288,7 +293,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     marginBottom: 0,
   },
-  fallbackBg: { backgroundColor: "#1a1a1a" },
+  fallbackBg: { backgroundColor: "#3a3a3a" },
   posterCover: { zIndex: 1 },
   openHit: {
     ...StyleSheet.absoluteFill,
@@ -298,6 +303,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 3,
+    elevation: 3,
   },
   playCircle: {
     width: 48,

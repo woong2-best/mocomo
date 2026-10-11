@@ -40,6 +40,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
+import { formatFeedVideoDuration } from "@/features/feed/feedMediaDuration";
 import { starUi } from "@/features/star/star-ui";
 
 const GRID_GAP = 2;
@@ -66,13 +67,6 @@ function mergeCreators(groups: StarHubCreator[][]): StarHubCreator[] {
     }
   }
   return [...map.values()].sort((a, b) => b.count - a.count);
-}
-
-function formatDuration(sec: number | null | undefined): string | null {
-  if (!sec || sec <= 0 || !Number.isFinite(sec)) return null;
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function pickCover(post: FeedPost) {
@@ -227,7 +221,7 @@ export function StarListScreen() {
     (item: FeedPost) => {
       const cover = pickCover(item);
       const isVideo = cover?.type === "VIDEO" || item.postType === "VIDEO";
-      const duration = isVideo ? formatDuration(cover?.duration) : null;
+      const duration = isVideo ? formatFeedVideoDuration(cover?.duration) : null;
       const qna = isQnaPost(item);
       const fallback = qna
         ? item.community?.name || item.title || item.content || "QnA"

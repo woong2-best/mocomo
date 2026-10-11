@@ -1,14 +1,11 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  FlatList,
   Image as RNImage,
   Pressable,
   StyleSheet,
+  Text,
   View,
   useWindowDimensions,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  type ViewToken,
 } from "react-native";
 import { Image } from "expo-image";
 import type { FeedMedia, FeedPost } from "@/api/feed";
@@ -17,12 +14,11 @@ import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
+import { resolveVideoPoster } from "@/lib/video-poster";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
-import { feedCarouselTileSize, feedMediaFrame } from "@/features/feed/feedMediaAspect";
-
-const ITEM_GAP = 8;
+import { feedMediaFrame, feedMediaGridLayout } from "@/features/feed/feedMediaAspect";
 
 type VisualItem = FeedMedia & { index: number };
 
@@ -75,8 +71,6 @@ function FeedPostMediaCarouselInner({
     () => buildMonetization(post, paymentsEnabled, onPurchaseSuccess),
     [post, paymentsEnabled, onPurchaseSuccess]
   );
-  const listRef = useRef<FlatList<VisualItem>>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   const items = useMemo(
     () =>
@@ -97,27 +91,16 @@ function FeedPostMediaCarouselInner({
     [measured]
   );
 
-  const multiLayout = useMemo(() => {
-    if (items.length < 2) return null;
-    const tiles = items.map((item) => {
-      const media = resolveMedia(item);
-      return feedCarouselTileSize(windowHeight, media.width, media.height, media.type);
-    });
-    const offsets: number[] = [];
-    tiles.forEach((tile, index) => {
-      const prev = index === 0 ? 0 : offsets[index - 1]! + tiles[index - 1]!.width + ITEM_GAP;
-      offsets.push(prev);
-    });
-    return { tiles, offsets };
-  }, [items, resolveMedia, windowHeight]);
-
   useEffect(() => {
     let cancelled = false;
     for (const item of items) {
       if (item.width && item.height && item.width > 0 && item.height > 0) continue;
-      const uri = item.type === "IMAGE" ? item.url?.trim() : item.posterUrl?.trim();
+      const uri =
+        item.type === "IMAGE"
+          ? item.url?.trim()
+          : resolveVideoPoster(item) || item.posterUrl?.trim();
       if (!uri) continue;
-      const key = item.id ?? uri;
+      const key = item.id ?? item.url ?? uri;
       RNImage.getSize(
         uri,
         (width, height) => {
@@ -137,35 +120,6 @@ function FeedPostMediaCarouselInner({
   }, [items]);
 
   const decode = feedMediaDecodeWidth(layoutWidth);
-
-  const onScrollEnd = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsets = multiLayout?.offsets;
-      if (!offsets?.length) return;
-      const x = e.nativeEvent.contentOffset.x;
-      let best = 0;
-      let bestDist = Infinity;
-      offsets.forEach((offset, index) => {
-        const dist = Math.abs(offset - x);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = index;
-        }
-      });
-      setActiveIndex(best);
-    },
-    [multiLayout]
-  );
-
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    const centered = viewableItems.find((v) => v.isViewable)?.index;
-    if (typeof centered === "number") setActiveIndex(centered);
-  }).current;
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 72,
-    minimumViewTime: 80,
-  }).current;
 
   const openMedia = useCallback(
     (item: VisualItem) => {
@@ -195,7 +149,7 @@ function FeedPostMediaCarouselInner({
     );
   };
 
-  const renderImageCell = (item: VisualItem, fit: "cover" | "contain" = "cover") => (
+  const renderImageCell = (item: VisualItem) => (
     <Pressable
       style={StyleSheet.absoluteFill}
       onPress={() => openMedia(item)}
@@ -205,7 +159,7 @@ function FeedPostMediaCarouselInner({
       <Image
         source={cachedImageSource(item.url, decode)}
         style={StyleSheet.absoluteFill}
-        contentFit={fit}
+        contentFit="cover"
         cachePolicy={IMAGE_CACHE_POLICY}
         recyclingKey={item.url}
         transition={0}
@@ -228,22 +182,21 @@ function FeedPostMediaCarouselInner({
         <LazyFeedVideoPreview
           media={item}
           active={active}
-          embedded={items.length > 1}
-          contentFit={items.length > 1 ? "contain" : "cover"}
+          embedded
+          contentFit="cover"
           monetization={monetization}
           onPress={() => openMedia(item)}
         />
       );
     }
 
-    return renderImageCell(item, items.length > 1 ? "contain" : "cover");
+    return renderImageCell(item);
   };
 
   if (items.length === 1) {
     const item = resolveMedia(items[0]!);
     const box = feedMediaFrame(layoutWidth, windowHeight, item.width, item.height, item.type);
     const size = { width: box.width, height: box.height };
-    const fit = box.contain ? "contain" : "cover";
 
     if (item.locked && item.type === "VIDEO") {
       return wrapGate(
@@ -260,7 +213,7 @@ function FeedPostMediaCarouselInner({
             media={item}
             active={previewActive}
             embedded
-            contentFit={fit}
+            contentFit="cover"
             monetization={monetization}
             onPress={() => openMedia(item)}
           />
@@ -271,7 +224,7 @@ function FeedPostMediaCarouselInner({
     if (item.locked) {
       return wrapGate(
         <View style={[styles.singleMedia, size]}>
-          {renderImageCell(item, fit)}
+          {renderImageCell(item)}
         </View>
       );
     }
@@ -286,7 +239,7 @@ function FeedPostMediaCarouselInner({
         <Image
           source={cachedImageSource(item.url, box.width)}
           style={StyleSheet.absoluteFill}
-          contentFit={fit}
+          contentFit="cover"
           cachePolicy={IMAGE_CACHE_POLICY}
           recyclingKey={item.url}
           transition={0}
@@ -296,63 +249,39 @@ function FeedPostMediaCarouselInner({
     );
   }
 
+  const grid = feedMediaGridLayout(layoutWidth, windowHeight, items.length);
+
   return wrapGate(
-    <View style={[styles.wrap, { width: layoutWidth }]}>
-      <View style={styles.dots} pointerEvents="none">
-        {items.map((item, i) => (
+    <View style={[styles.grid, { width: grid.width, height: grid.height }]}>
+      {grid.cells.map((cell) => {
+        const item = items[cell.index];
+        if (!item) return null;
+        const media = resolveMedia(item);
+        const showMore = grid.overflow > 0 && cell.index === 3;
+        return (
           <View
-            key={item.id ?? `${post.id}:${i}`}
-            style={[styles.dot, i === activeIndex ? styles.dotActive : null]}
-          />
-        ))}
-      </View>
-
-      <FlatList
-        ref={listRef}
-        data={items}
-        horizontal
-        keyboardShouldPersistTaps="handled"
-        keyExtractor={(item) => item.id ?? `${post.id}:media:${item.index}`}
-        showsHorizontalScrollIndicator={false}
-        style={{ height: multiLayout?.tiles[0]?.height ?? 0 }}
-        decelerationRate="fast"
-        snapToOffsets={multiLayout?.offsets}
-        snapToAlignment="start"
-        disableIntervalMomentum
-        onMomentumScrollEnd={onScrollEnd}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        getItemLayout={(_, index) => {
-          const tile = multiLayout?.tiles[index];
-          const offset = multiLayout?.offsets[index] ?? 0;
-          const length = (tile?.width ?? 0) + (index < items.length - 1 ? ITEM_GAP : 0);
-          return { length, offset, index };
-        }}
-        renderItem={({ item, index }) => {
-          const isActiveSlide = previewActive && index === activeIndex;
-          const media = resolveMedia(item);
-          const size =
-            multiLayout?.tiles[index] ??
-            feedCarouselTileSize(windowHeight, media.width, media.height, media.type);
-
-          return (
-            <View
-              style={[
-                styles.slideInner,
-                {
-                  width: size.width,
-                  height: size.height,
-                  marginRight: index < items.length - 1 ? ITEM_GAP : 0,
-                },
-              ]}
-            >
-              {renderMediaCell(media, isActiveSlide)}
-            </View>
-          );
-        }}
-      />
+            key={item.id ?? `${post.id}:media:${item.index}`}
+            style={[
+              styles.gridCell,
+              {
+                left: cell.x,
+                top: cell.y,
+                width: cell.width,
+                height: cell.height,
+              },
+            ]}
+          >
+            {renderMediaCell(media, false)}
+            {showMore ? (
+              <View style={styles.moreBadge} pointerEvents="none">
+                <Text style={styles.moreText}>+{grid.overflow}</Text>
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
     </View>,
-    styles.wrap
+    styles.grid
   );
 }
 
@@ -360,30 +289,15 @@ export const FeedPostMediaCarousel = memo(FeedPostMediaCarouselInner);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    wrap: { marginBottom: 10 },
-    dots: {
-      flexDirection: "row",
-      justifyContent: "center",
-      alignItems: "center",
-      gap: 5,
-      marginBottom: 8,
-    },
-    dot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.textMuted,
-      opacity: 0.35,
-    },
-    dotActive: {
-      opacity: 1,
-      backgroundColor: colors.cobalt,
-      width: 7,
-      height: 7,
-      borderRadius: 3.5,
-    },
-    slideInner: {
+    grid: {
+      alignSelf: "flex-start",
       borderRadius: 16,
+      overflow: "hidden",
+      backgroundColor: colors.muted,
+      marginBottom: 10,
+    },
+    gridCell: {
+      position: "absolute",
       overflow: "hidden",
       backgroundColor: colors.muted,
     },
@@ -403,5 +317,12 @@ function createStyles(colors: ThemeColors) {
       width: "100%",
       height: "100%",
     },
+    moreBadge: {
+      ...StyleSheet.absoluteFill,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.45)",
+    },
+    moreText: { color: "#fff", fontSize: 22, fontWeight: "700" },
   });
 }

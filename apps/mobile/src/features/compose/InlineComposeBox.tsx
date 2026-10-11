@@ -31,6 +31,7 @@ import {
   warnIfPayoutAccountMissing,
 } from "@/features/compose/payout-account-warning";
 import { resetFeedPostOffset } from "@/features/feed/feed-post-offset";
+import { normalizeMediaDurationSec } from "@/features/feed/feedMediaDuration";
 import type {
   TextOverlayCaptureJob,
   WatermarkCaptureJob,
@@ -93,7 +94,7 @@ function assetToDraft(asset: PickerAsset): LocalMediaDraft {
     type: isVideo ? "VIDEO" : "IMAGE",
     width: asset.width,
     height: asset.height,
-    duration: asset.duration ?? undefined,
+    duration: normalizeMediaDurationSec(asset.duration) ?? undefined,
   };
 }
 
@@ -337,8 +338,7 @@ export function InlineComposeBox({
           if (!probe) {
             out.push({
               ...localItem,
-              duration:
-                localItem.duration != null ? Math.round(localItem.duration) : undefined,
+              duration: normalizeMediaDurationSec(localItem.duration) ?? undefined,
             });
             continue;
           }

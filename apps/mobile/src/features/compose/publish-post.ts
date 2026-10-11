@@ -3,6 +3,7 @@ import { uploadLocalFile } from "@/api/upload-file";
 import type { CollaboratorDraft, LocalMediaDraft, PollDraft } from "@/features/compose/compose-types";
 import { validatePollDraft } from "@/features/compose/compose-types";
 import { translate } from "@/i18n/runtime";
+import { normalizeMediaDurationSec } from "@/features/feed/feedMediaDuration";
 
 function guessMime(filename: string, fallback: string) {
   const lower = filename.toLowerCase();
@@ -29,7 +30,7 @@ async function uploadLocalMedia(item: LocalMediaDraft) {
     type: item.type,
     width: item.width,
     height: item.height,
-    duration: item.duration != null ? Math.round(item.duration) : undefined,
+    duration: normalizeMediaDurationSec(item.duration) ?? undefined,
     priceKrw: item.priceKrw && item.priceKrw > 0 ? Math.floor(item.priceKrw) : undefined,
   };
 }

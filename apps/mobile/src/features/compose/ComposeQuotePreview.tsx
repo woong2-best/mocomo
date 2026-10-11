@@ -6,14 +6,7 @@ import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
-
-function formatDuration(sec: number | null | undefined): string | null {
-  if (sec == null || !Number.isFinite(sec) || sec <= 0) return null;
-  const total = Math.floor(sec);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
+import { formatFeedVideoDuration } from "@/features/feed/feedMediaDuration";
 
 type Props = {
   postId: string;
@@ -66,7 +59,7 @@ export function ComposeQuotePreview({ postId, onLoaded }: Props) {
   }
 
   const cover = post.media?.[0];
-  const durationLabel = cover?.type === "VIDEO" ? formatDuration(cover.duration) : null;
+  const durationLabel = cover?.type === "VIDEO" ? formatFeedVideoDuration(cover.duration) : null;
 
   return (
     <View style={styles.card}>

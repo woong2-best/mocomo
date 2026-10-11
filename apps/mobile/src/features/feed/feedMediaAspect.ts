@@ -30,8 +30,8 @@ export type FeedMediaFrame = {
 };
 
 /**
- * One photo or video: portrait sits on the left at its own ratio (whole frame visible).
- * Landscape stays the full column width. Several photos use `feedCarouselTileSize`.
+ * One photo or video: keep the real ratio, fit inside the column × max height.
+ * Pixels are never stretched — the frame matches the media, then cover fills it.
  */
 export function feedMediaFrame(
   layoutWidth: number,
@@ -41,20 +41,18 @@ export function feedMediaFrame(
   type?: string
 ): FeedMediaFrame {
   const maxH = feedMediaMaxHeight(windowHeight);
-  if (isPortraitMedia(width, height) && width && height) {
-    const aspect = width / height;
-    const frameHeight = Math.max(120, Math.min(maxH, layoutWidth / aspect));
-    const frameWidth = Math.min(layoutWidth, frameHeight * aspect);
-    return {
-      width: Math.round(frameWidth),
-      height: Math.round(frameHeight),
-      contain: true,
-    };
+  const hasSize = !!(width && height && width > 0 && height > 0);
+  const aspect = feedMediaNativeAspect(width, height, type);
+  let frameWidth = layoutWidth;
+  let frameHeight = frameWidth / aspect;
+  if (frameHeight > maxH) {
+    frameHeight = maxH;
+    frameWidth = Math.min(layoutWidth, frameHeight * aspect);
   }
-  const aspect = clampFeedMediaAspect(width, height, type);
+  const minH = hasSize ? 1 : 120;
   return {
-    width: layoutWidth,
-    height: Math.round(Math.max(120, Math.min(layoutWidth / aspect, maxH))),
+    width: Math.round(Math.max(72, frameWidth)),
+    height: Math.round(Math.max(minH, frameHeight)),
     contain: false,
   };
 }
@@ -87,7 +85,7 @@ export function feedCarouselTileSize(
   };
 }
 
-/** Full-column cell height. Portrait is cropped to 3:4. */
+/** Full-column cell height from the same single-tile frame. */
 export function feedMediaFrameHeight(
   layoutWidth: number,
   windowHeight: number,
@@ -95,7 +93,63 @@ export function feedMediaFrameHeight(
   height?: number | null,
   type?: string
 ): number {
-  const aspect = clampFeedMediaAspect(width, height, type);
-  const maxH = Math.round(Math.min(windowHeight * 0.58, 520));
-  return Math.max(120, Math.min(layoutWidth / aspect, maxH));
+  return feedMediaFrame(layoutWidth, windowHeight, width, height, type).height;
+}
+
+export const FEED_MEDIA_GRID_GAP = 2;
+
+export type FeedMediaGridCell = {
+  index: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+/**
+ * Twitter-style attach grid (equal 50/50 split, 3 = left + two, 4 = 2×2).
+ * Extra items stay in the 4th cell with a +N overlay.
+ */
+export function feedMediaGridLayout(
+  layoutWidth: number,
+  windowHeight: number,
+  count: number
+): { width: number; height: number; cells: FeedMediaGridCell[]; overflow: number } {
+  const n = Math.min(Math.max(count, 2), 4);
+  const overflow = Math.max(0, count - 4);
+  const gap = FEED_MEDIA_GRID_GAP;
+  const maxH = feedMediaMaxHeight(windowHeight);
+  const width = Math.max(1, Math.round(layoutWidth));
+
+  let height: number;
+  if (n === 2) {
+    height = Math.min(maxH, Math.round(width * (9 / 16)));
+  } else if (n === 3) {
+    height = Math.min(maxH, Math.round(width * 0.75));
+  } else {
+    height = Math.min(maxH, width);
+  }
+  height = Math.max(120, height);
+
+  const halfW = Math.floor((width - gap) / 2);
+  const rightW = width - gap - halfW;
+  const halfH = Math.floor((height - gap) / 2);
+  const bottomH = height - gap - halfH;
+
+  const cells: FeedMediaGridCell[] = [];
+  if (n === 2) {
+    cells.push({ index: 0, x: 0, y: 0, width: halfW, height });
+    cells.push({ index: 1, x: halfW + gap, y: 0, width: rightW, height });
+  } else if (n === 3) {
+    cells.push({ index: 0, x: 0, y: 0, width: halfW, height });
+    cells.push({ index: 1, x: halfW + gap, y: 0, width: rightW, height: halfH });
+    cells.push({ index: 2, x: halfW + gap, y: halfH + gap, width: rightW, height: bottomH });
+  } else {
+    cells.push({ index: 0, x: 0, y: 0, width: halfW, height: halfH });
+    cells.push({ index: 1, x: halfW + gap, y: 0, width: rightW, height: halfH });
+    cells.push({ index: 2, x: 0, y: halfH + gap, width: halfW, height: bottomH });
+    cells.push({ index: 3, x: halfW + gap, y: halfH + gap, width: rightW, height: bottomH });
+  }
+
+  return { width, height, cells, overflow };
 }

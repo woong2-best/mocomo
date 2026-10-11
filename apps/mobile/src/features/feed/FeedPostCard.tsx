@@ -26,6 +26,7 @@ import { ShareGlobeIcon } from "@/ui/ShareGlobeIcon";
 import { PerformanceBudgets } from "@/perf/budgets";
 import { formatRelativeTimeAgo } from "@/lib/format-relative-time";
 import { formatViewCount, recordPostViewOnce } from "@/lib/post-view";
+import { formatFeedVideoDuration } from "@/features/feed/feedMediaDuration";
 import { useTheme } from "@/theme/ThemeContext";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { spacing, type ThemeColors } from "@/theme/tokens";
@@ -58,10 +59,7 @@ function formatCount(n: number) {
 }
 
 function formatQuoteDuration(sec: number) {
-  const total = Math.floor(sec);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  return formatFeedVideoDuration(sec) ?? "0:00";
 }
 
 function FeedPostCardInner({

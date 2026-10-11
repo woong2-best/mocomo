@@ -3,9 +3,10 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-na
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { FeedMedia } from "@/api/feed";
-import { resolveVideoPoster } from "@/lib/video-poster";
+import { posterToImageSource, resolveCachedVideoPoster } from "@/lib/video-thumbnail";
 import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { PerformanceBudgets } from "@/perf/budgets";
+import { formatFeedVideoDuration } from "@/features/feed/feedMediaDuration";
 import { spacing } from "@/theme/tokens";
 
 type Props = {
@@ -13,7 +14,7 @@ type Props = {
   active: boolean;
   videoCount?: number;
   onPress: () => void;
-  /** Inside horizontal carousel — fill parent cell, no outer margin. */
+  /** Inside a sized parent cell — fill it, no outer margin. */
   embedded?: boolean;
   /** Portrait single tiles use contain so the whole frame stays visible. */
   contentFit?: "contain" | "cover";
@@ -36,10 +37,6 @@ function loadPreview(): Promise<PreviewComponent> {
   return loadingPreview;
 }
 
-function posterUri(media: FeedMedia): string | null {
-  return resolveVideoPoster(media);
-}
-
 /**
  * Keeps expo-video out of the Home JS graph until a video cell actually mounts.
  */
@@ -48,7 +45,8 @@ function LazyFeedVideoPreviewInner(props: Props) {
   const { width: windowWidth } = useWindowDimensions();
   const mediaLayout = Math.min(windowWidth - spacing.md * 2, PerformanceBudgets.feedMediaLayoutMax);
   const decode = feedMediaDecodeWidth(mediaLayout);
-  const poster = posterUri(props.media);
+  const poster = resolveCachedVideoPoster(props.media);
+  const durationLabel = formatFeedVideoDuration(props.media.duration);
 
   useEffect(() => {
     if (Preview) return;
@@ -77,11 +75,11 @@ function LazyFeedVideoPreviewInner(props: Props) {
     >
       {poster ? (
         <Image
-          source={cachedImageSource(poster, decode)}
+          source={posterToImageSource(poster, (uri) => cachedImageSource(uri, decode)) as object}
           style={StyleSheet.absoluteFill}
           contentFit={props.contentFit ?? "cover"}
           cachePolicy={IMAGE_CACHE_POLICY}
-          recyclingKey={poster}
+          recyclingKey={typeof poster === "string" ? poster : props.media.id ?? props.media.url}
           transition={0}
           pointerEvents="none"
         />
@@ -89,8 +87,15 @@ function LazyFeedVideoPreviewInner(props: Props) {
         <View style={[StyleSheet.absoluteFill, styles.fallback]} pointerEvents="none" />
       )}
       <View style={styles.play} pointerEvents="none">
-        <Ionicons name="play" size={22} color="#fff" />
+        <View style={styles.playCircle}>
+          <Ionicons name="play" size={22} color="#fff" style={{ marginLeft: 2 }} />
+        </View>
       </View>
+      {durationLabel ? (
+        <View style={styles.durationBadge} pointerEvents="none">
+          <Text style={styles.badgeText}>{durationLabel}</Text>
+        </View>
+      ) : null}
       {(props.videoCount ?? 1) > 1 ? (
         <View style={styles.badge} pointerEvents="none">
           <Text style={styles.badgeText}>{props.videoCount}</Text>
@@ -105,7 +110,7 @@ export const LazyFeedVideoPreview = memo(LazyFeedVideoPreviewInner);
 const styles = StyleSheet.create({
   wrap: {
     borderRadius: 12,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#3a3a3a",
     marginBottom: 8,
     aspectRatio: 16 / 10,
     alignSelf: "stretch",
@@ -116,14 +121,33 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 0,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#3a3a3a",
     overflow: "hidden",
   },
-  fallback: { backgroundColor: "#222" },
+  fallback: { backgroundColor: "#3a3a3a" },
   play: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 3,
+  },
+  playCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  durationBadge: {
+    position: "absolute",
+    left: 8,
+    bottom: 8,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    zIndex: 3,
   },
   badge: {
     position: "absolute",
