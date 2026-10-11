@@ -89,9 +89,19 @@ function configureWasmBackend(env: {
 }): void {
   const wasm = env.backends?.onnx?.wasm;
   if (!wasm) return;
-  wasm.proxy = true;
-  if (typeof navigator !== "undefined" && navigator.hardwareConcurrency) {
-    wasm.numThreads = Math.min(4, navigator.hardwareConcurrency);
+  const isolated = typeof crossOriginIsolated !== "undefined" && crossOriginIsolated;
+  wasm.proxy = isolated;
+  wasm.numThreads = isolated ? Math.min(4, navigator.hardwareConcurrency || 1) : 1;
+}
+
+async function resolveDevice(): Promise<"webgpu" | "wasm"> {
+  if (typeof navigator === "undefined" || !("gpu" in navigator)) return "wasm";
+  try {
+    const nav = navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } };
+    const gpu = await nav.gpu?.requestAdapter();
+    return gpu ? "webgpu" : "wasm";
+  } catch {
+    return "wasm";
   }
 }
 
@@ -109,9 +119,9 @@ async function createPipeline(modelId: string): Promise<TranslationPipeline> {
   env.useBrowserCache = true;
   configureWasmBackend(env);
 
+  const device = await resolveDevice();
   const loadOptions = {
-    device: "wasm" as const,
-    dtype: "q8" as const,
+    device,
     progress_callback: (event: { status?: string; progress?: number }) => {
       if (typeof event.progress !== "number") return;
       const next = Math.round(event.progress);
@@ -128,21 +138,26 @@ async function createPipeline(modelId: string): Promise<TranslationPipeline> {
     loadProgress = 100;
     notifyProgress({ status: loadStatus, progress: loadProgress });
     return translator as TranslationPipeline;
-  } catch (quantizedError) {
-    try {
-      const translator = await pipeline("translation", modelId, {
-        device: "wasm",
-        progress_callback: loadOptions.progress_callback,
-      });
-      loadStatus = "ready";
-      loadProgress = 100;
-      notifyProgress({ status: loadStatus, progress: loadProgress });
-      return translator as TranslationPipeline;
-    } catch {
-      loadStatus = "error";
-      notifyProgress({ status: loadStatus });
-      throw quantizedError;
+  } catch (firstError) {
+    if (device === "webgpu") {
+      try {
+        const translator = await pipeline("translation", modelId, {
+          ...loadOptions,
+          device: "wasm",
+        });
+        loadStatus = "ready";
+        loadProgress = 100;
+        notifyProgress({ status: loadStatus, progress: loadProgress });
+        return translator as TranslationPipeline;
+      } catch {
+        loadStatus = "error";
+        notifyProgress({ status: loadStatus });
+        throw firstError;
+      }
     }
+    loadStatus = "error";
+    notifyProgress({ status: loadStatus });
+    throw firstError;
   }
 }
 
@@ -151,6 +166,10 @@ function getPipeline(modelId: string): Promise<TranslationPipeline> {
   if (!pending) {
     pending = createPipeline(modelId).catch((error) => {
       pipelinePromises.delete(modelId);
+      console.error(
+        "[client-translate] model load failed",
+        error instanceof Error ? error.message : "error"
+      );
       throw error;
     });
     pipelinePromises.set(modelId, pending);
@@ -203,10 +222,6 @@ export async function prefetchClientTranslationModel(
 /** Preload the JS chunk and the most likely pair model for this viewer. */
 export async function warmClientTranslationModel(targetLang?: string): Promise<void> {
   if (typeof window === "undefined") return;
-  if (loadStatus === "idle") {
-    loadStatus = "ready";
-    notifyProgress({ status: loadStatus, progress: 0 });
-  }
   if (!targetLang || targetLang === POST_TRANSLATE_OFF) return;
   const modelId = likelyWarmupModel(targetLang);
   if (!modelId) return;

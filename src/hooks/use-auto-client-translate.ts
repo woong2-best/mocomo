@@ -95,8 +95,12 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
         setSourceLang(result.sourceLang);
         setShowOriginal(false);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (cancelled) return;
+        console.error(
+          "[client-translate] request failed",
+          error instanceof Error ? error.message : "error"
+        );
         setFailed(true);
         setRequested(false);
       })
