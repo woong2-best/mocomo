@@ -95,6 +95,33 @@ export function postVideoToReelItem(
   };
 }
 
+/**
+ * Keep the open Reels order stable when Home feed refetches.
+ * Updates existing groups in place, appends newcomers, never reshuffles.
+ */
+export function stabilizeVideoGroups(
+  previous: FeedVideoGroup[],
+  incoming: FeedVideoGroup[]
+): FeedVideoGroup[] {
+  if (previous.length === 0) return incoming;
+  const incomingById = new Map(incoming.map((g) => [g.postId, g]));
+  const seen = new Set<string>();
+  const out: FeedVideoGroup[] = [];
+  for (const group of previous) {
+    const next = incomingById.get(group.postId);
+    if (next) {
+      out.push(next);
+      seen.add(group.postId);
+    } else {
+      out.push(group);
+    }
+  }
+  for (const group of incoming) {
+    if (!seen.has(group.postId)) out.push(group);
+  }
+  return out;
+}
+
 /** Vertical = post groups; horizontal = videos inside a post. */
 export function buildFeedVideoGroups(
   posts: FeedPost[],

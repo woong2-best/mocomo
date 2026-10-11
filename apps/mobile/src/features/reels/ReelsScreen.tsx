@@ -8,6 +8,8 @@ import {
   Text,
   TextInput,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   type ViewToken,
   useWindowDimensions,
 } from "react-native";
@@ -29,14 +31,19 @@ import {
 import {
   buildFeedVideoGroups,
   findGroupOpenPosition,
+  stabilizeVideoGroups,
+  type FeedVideoGroup,
 } from "@/features/feed/feed-video-groups";
 import { FeedVideoPostSlide } from "@/features/feed/FeedVideoPostSlide";
 import { ReelSponsoredSlide } from "@/features/reels/ReelSponsoredSlide";
 import {
   buildReelsSlots,
   findReelSlotIndex,
+  findSlotIndexByIdentity,
+  reelsSlotIdentity,
   type ReelsSlot,
 } from "@/features/reels/reels-slots";
+import { PerformanceBudgets } from "@/perf/budgets";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { useI18n } from "@/i18n/I18nProvider";
 import { reelsUi } from "@/features/reels/reels-ui";
@@ -46,11 +53,23 @@ export function ReelsScreen() {
   const { t } = useI18n();
   const copy = useMemo(() => reelsUi(t), [t]);
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  const { width, height: windowHeight } = useWindowDimensions();
+  const [height, setHeight] = useState(windowHeight);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Reels">>();
   const queryClient = useQueryClient();
   const listRef = useRef<FlatList<ReelsSlot>>(null);
+  const activeSlotRef = useRef(0);
+  const activeIdentityRef = useRef<string | null>(null);
+  const ignoreViewabilityRef = useRef(false);
+  const draggingRef = useRef(false);
+  const groupsStableRef = useRef<FeedVideoGroup[]>([]);
+
+  // Keyboard / system-bar jitter must not resize the pager — that shakes every reel.
+  useEffect(() => {
+    if (Math.abs(windowHeight - height) < 100) return;
+    setHeight(windowHeight);
+  }, [height, windowHeight]);
 
   const targetPostId = route.params?.postId;
   const targetMediaId = route.params?.mediaId;
@@ -104,6 +123,8 @@ export function ReelsScreen() {
     queryKey: ["mobile-reels-ads"],
     queryFn: fetchReelsAds,
     staleTime: 120_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const posts = useMemo(() => {
@@ -128,14 +149,45 @@ export function ReelsScreen() {
   }, [feedQuery.data, queryClient]);
 
   const paymentsEnabled = feedQuery.data?.pages[0]?.paymentsEnabled ?? false;
-  const groups = useMemo(
-    () => buildFeedVideoGroups(posts, paymentsEnabled),
-    [posts, paymentsEnabled]
-  );
+  const groups = useMemo(() => {
+    const next = stabilizeVideoGroups(
+      groupsStableRef.current,
+      buildFeedVideoGroups(posts, paymentsEnabled)
+    );
+    groupsStableRef.current = next;
+    return next;
+  }, [posts, paymentsEnabled]);
 
   const slots = useMemo(
     () => buildReelsSlots(groups, adsQuery.data ?? []),
     [adsQuery.data, groups]
+  );
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
+
+  const commitSlot = useCallback((index: number) => {
+    const slot = slotsRef.current[index];
+    const identity = slot ? reelsSlotIdentity(slot) : null;
+    if (activeSlotRef.current === index && activeIdentityRef.current === identity) return;
+    activeSlotRef.current = index;
+    activeIdentityRef.current = identity;
+    setActiveSlot(index);
+  }, []);
+
+  const snapToSlot = useCallback(
+    (index: number, animated: boolean) => {
+      ignoreViewabilityRef.current = true;
+      commitSlot(index);
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToIndex({ index, animated });
+        if (!animated) {
+          setTimeout(() => {
+            ignoreViewabilityRef.current = false;
+          }, 80);
+        }
+      });
+    },
+    [commitSlot]
   );
 
   useEffect(() => {
@@ -149,17 +201,34 @@ export function ReelsScreen() {
       if (groupPos) {
         const slotIndex = findReelSlotIndex(slots, groups[groupPos.groupIndex]!.postId);
         const index = slotIndex >= 0 ? slotIndex : 0;
-        setActiveSlot(index);
         setSeedVideoByGroup({ [groups[groupPos.groupIndex]!.postId]: groupPos.videoIndex });
-        requestAnimationFrame(() => {
-          listRef.current?.scrollToIndex({ index, animated: false });
-        });
+        snapToSlot(index, false);
         setDidSeed(true);
         return;
       }
     }
+    const first = slots[0];
+    if (first) activeIdentityRef.current = reelsSlotIdentity(first);
     setDidSeed(true);
-  }, [didSeed, groups, slots, targetMediaId, targetMediaIndex, targetPostId]);
+  }, [didSeed, groups, slots, snapToSlot, targetMediaId, targetMediaIndex, targetPostId]);
+
+  // Ads / feed updates must not steal the viewport — remap to the same reel, no animation.
+  useEffect(() => {
+    if (!didSeed || slots.length === 0) return;
+    const identity = activeIdentityRef.current;
+    if (!identity) {
+      const slot = slots[Math.min(activeSlotRef.current, slots.length - 1)];
+      if (slot) activeIdentityRef.current = reelsSlotIdentity(slot);
+      return;
+    }
+    const next = findSlotIndexByIdentity(slots, identity);
+    if (next < 0) {
+      commitSlot(Math.min(activeSlotRef.current, slots.length - 1));
+      return;
+    }
+    if (next === activeSlotRef.current) return;
+    snapToSlot(next, false);
+  }, [commitSlot, didSeed, slots, snapToSlot]);
 
   /** Prefetch comments for visible reels so the sheet opens instantly (IG/X). */
   useEffect(() => {
@@ -176,16 +245,27 @@ export function ReelsScreen() {
     if (targetPostId) prefetchPostComments(queryClient, targetPostId);
   }, [activeSlot, slots, queryClient, targetPostId]);
 
+  const syncSlotFromOffset = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const idx = Math.round(e.nativeEvent.contentOffset.y / Math.max(height, 1));
+      if (idx < 0 || idx >= slotsRef.current.length) return;
+      if (idx === activeSlotRef.current) return;
+      commitSlot(idx);
+    },
+    [commitSlot, height]
+  );
+
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (ignoreViewabilityRef.current || draggingRef.current) return;
       const first = viewableItems.find((v) => v.isViewable && typeof v.index === "number");
-      if (first?.index != null) setActiveSlot(first.index);
+      if (first?.index != null) commitSlot(first.index);
     }
   ).current;
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 80,
-    minimumViewTime: 60,
+    minimumViewTime: 120,
   }).current;
 
   const openComments = useCallback(
@@ -223,7 +303,6 @@ export function ReelsScreen() {
       );
       setCommentDraft("");
       setHeaderCommentCount((n) => n + 1);
-      await queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
     } catch {
       // keep draft
     } finally {
@@ -233,12 +312,11 @@ export function ReelsScreen() {
 
   const goSlot = useCallback(
     (delta: number) => {
-      const next = Math.min(Math.max(activeSlot + delta, 0), slots.length - 1);
-      if (next === activeSlot) return;
-      setActiveSlot(next);
-      listRef.current?.scrollToIndex({ index: next, animated: true });
+      const next = Math.min(Math.max(activeSlotRef.current + delta, 0), slots.length - 1);
+      if (next === activeSlotRef.current) return;
+      snapToSlot(next, true);
     },
-    [activeSlot, slots.length]
+    [slots.length, snapToSlot]
   );
 
   const onFastForwardChange = useCallback((hidden: boolean) => {
@@ -250,12 +328,14 @@ export function ReelsScreen() {
       if (item.kind === "ad") {
         return <ReelSponsoredSlide ad={item.ad} width={width} height={height} />;
       }
+      const near = Math.abs(index - activeSlot) <= PerformanceBudgets.reelsPrebufferNeighbors;
       return (
         <FeedVideoPostSlide
           group={item.group}
           width={width}
           height={height}
           active={index === activeSlot}
+          loadPlayer={near}
           initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
           onOpenComments={openComments}
           onPrefetchComments={prefetchComments}
@@ -315,14 +395,36 @@ export function ReelsScreen() {
       <FlatList
         ref={listRef}
         data={slots}
+        extraData={activeSlot}
         keyExtractor={(s) => s.key}
         renderItem={renderItem}
         pagingEnabled
         decelerationRate="fast"
         disableIntervalMomentum
+        directionalLockEnabled
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
+        onScrollBeginDrag={() => {
+          draggingRef.current = true;
+        }}
+        onScrollEndDrag={(e) => {
+          const vy = e.nativeEvent.velocity?.y ?? 0;
+          if (Math.abs(vy) > 0.05) return;
+          draggingRef.current = false;
+          ignoreViewabilityRef.current = false;
+          syncSlotFromOffset(e);
+        }}
+        onMomentumScrollEnd={(e) => {
+          draggingRef.current = false;
+          ignoreViewabilityRef.current = false;
+          syncSlotFromOffset(e);
+        }}
+        onScrollToIndexFailed={({ index }) => {
+          requestAnimationFrame(() => {
+            listRef.current?.scrollToOffset({ offset: height * index, animated: false });
+          });
+        }}
         getItemLayout={(_, index) => ({
           length: height,
           offset: height * index,
@@ -337,7 +439,7 @@ export function ReelsScreen() {
         windowSize={3}
         initialNumToRender={1}
         maxToRenderPerBatch={2}
-        removeClippedSubviews
+        removeClippedSubviews={false}
         ListEmptyComponent={
           <View style={[styles.center, { height }]}>
             <Text style={styles.muted}>{copy.noVideos}</Text>

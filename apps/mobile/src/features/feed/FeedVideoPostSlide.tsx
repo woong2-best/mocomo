@@ -88,6 +88,8 @@ type Props = {
   height: number;
   /** This post row is the vertically active one. */
   active: boolean;
+  /** Mount native decoder only when near viewport (memory + shake gate). */
+  loadPlayer: boolean;
   initialVideoIndex: number;
   onOpenComments: (postId: string, commentCount: number) => void;
   onPrefetchComments?: (postId: string) => void;
@@ -158,6 +160,7 @@ function NativeVideoCell({
           style={StyleSheet.absoluteFill}
           contentFit="contain"
           cachePolicy={IMAGE_CACHE_POLICY}
+          transition={0}
         />
       ) : null}
       <VideoView
@@ -170,6 +173,22 @@ function NativeVideoCell({
   );
 }
 
+function VideoPoster({ item }: { item: ReelItem }) {
+  const imageUri = item.media.posterUrl?.trim() || item.media.url?.trim() || "";
+  if (!imageUri) {
+    return <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111" }]} />;
+  }
+  return (
+    <Image
+      source={cachedImageSource(imageUri)}
+      style={StyleSheet.absoluteFill}
+      contentFit="contain"
+      cachePolicy={IMAGE_CACHE_POLICY}
+      transition={0}
+    />
+  );
+}
+
 function VideoCell({
   item,
   active,
@@ -177,6 +196,7 @@ function VideoCell({
   muted,
   pausedByUser,
   fastForward,
+  loadPlayer,
 }: {
   item: ReelItem;
   active: boolean;
@@ -184,6 +204,7 @@ function VideoCell({
   muted: boolean;
   pausedByUser: boolean;
   fastForward: boolean;
+  loadPlayer: boolean;
 }) {
   const src = useMemo(() => {
     const progressive = item.media.url?.trim();
@@ -252,6 +273,10 @@ function VideoCell({
 
   if (!src) {
     return <View style={[StyleSheet.absoluteFill, { backgroundColor: "#111" }]} />;
+  }
+
+  if (!loadPlayer) {
+    return <VideoPoster item={item} />;
   }
 
   if (isPaid && mediaId) {
@@ -344,6 +369,7 @@ function FeedVideoPostSlideInner({
   width,
   height,
   active,
+  loadPlayer,
   initialVideoIndex,
   onOpenComments,
   onPrefetchComments,
@@ -540,10 +566,13 @@ function FeedVideoPostSlideInner({
         keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
+        nestedScrollEnabled
+        directionalLockEnabled
+        scrollEnabled={active}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         onMomentumScrollEnd={onHScroll}
-        extraData={`${videoIndex}:${active ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${muted ? 1 : 0}:${fastForward ? 1 : 0}`}
+        extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${muted ? 1 : 0}:${fastForward ? 1 : 0}`}
         getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         initialScrollIndex={Math.min(initialVideoIndex, group.videos.length - 1)}
         onScrollToIndexFailed={() => {
@@ -565,6 +594,7 @@ function FeedVideoPostSlideInner({
                   muted={muted}
                   pausedByUser={pausedByUser}
                   fastForward={isPlaying && fastForward}
+                  loadPlayer={loadPlayer && Math.abs(index - videoIndex) <= 1}
                 />
               </SensitiveContentGate>
               {isCurrent && !chromeHidden && item.mediaType !== "IMAGE" ? (
@@ -735,6 +765,7 @@ function slideEqual(a: Props, b: Props) {
   return (
     a.group.postId === b.group.postId &&
     a.active === b.active &&
+    a.loadPlayer === b.loadPlayer &&
     a.width === b.width &&
     a.height === b.height &&
     a.initialVideoIndex === b.initialVideoIndex &&
