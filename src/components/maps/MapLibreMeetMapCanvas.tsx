@@ -5,6 +5,7 @@ const t = createTranslator("en");
 
 import { useEffect, useRef } from "react";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, Popup as MapLibrePopup, StyleSpecification } from "maplibre-gl";
+import { collapseMapLibreAttribution } from "@/lib/maps/maplibre-attribution";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import type { MeetCoords } from "@/lib/maps/types";
 import { cn } from "@/lib/utils";
@@ -113,6 +114,9 @@ export function MapLibreMeetMapCanvas({
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
         mapRef.current = map;
 
+        const collapseAttribution = () => {
+          collapseMapLibreAttribution(map.getContainer());
+        };
         const resize = () => {
           try {
             map.resize();
@@ -122,9 +126,14 @@ export function MapLibreMeetMapCanvas({
         };
         map.once("load", () => {
           resize();
+          collapseAttribution();
           onReadyRef.current?.();
         });
-        requestAnimationFrame(resize);
+        map.once("idle", collapseAttribution);
+        requestAnimationFrame(() => {
+          resize();
+          collapseAttribution();
+        });
         resizeObserver = new ResizeObserver(resize);
         resizeObserver.observe(containerRef.current);
 

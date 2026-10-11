@@ -13,6 +13,7 @@ import type { MapEventPin } from "@/lib/subculture-events";
 import { googleSearchUrlForEvent } from "@/lib/subculture-event-pins";
 import { eventCountryFlag } from "@/lib/subculture-event-countries";
 import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
+import { collapseMapLibreAttribution } from "@/lib/maps/maplibre-attribution";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -257,6 +258,12 @@ export function SubcultureEventsMap({
             new maplibregl.AttributionControl({ compact: true }),
             immersive ? "bottom-left" : "bottom-right"
           );
+          const collapseAttribution = () => {
+            collapseMapLibreAttribution(map.getContainer());
+          };
+          collapseAttribution();
+          map.once("load", collapseAttribution);
+          map.once("idle", collapseAttribution);
         }
         if (navigationControls) {
           map.addControl(
