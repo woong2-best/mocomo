@@ -4,6 +4,7 @@ import type { CollaboratorDraft, LocalMediaDraft, PollDraft } from "@/features/c
 import { validatePollDraft } from "@/features/compose/compose-types";
 import { translate } from "@/i18n/runtime";
 import { normalizeMediaDurationSec } from "@/features/feed/feedMediaDuration";
+import { isGeneralPostOverGraphemeLimit } from "@/lib/post-content-limit";
 
 function guessMime(filename: string, fallback: string) {
   const lower = filename.toLowerCase();
@@ -46,6 +47,9 @@ export async function publishComposePost(input: {
 }) {
   const content = input.content.trim();
   const locale = input.locale;
+  if (isGeneralPostOverGraphemeLimit(content)) {
+    throw new Error(translate("m.compose.content_too_long"));
+  }
   if (input.poll) {
     const pollErr = validatePollDraft(input.poll, locale);
     if (pollErr) throw new Error(pollErr);

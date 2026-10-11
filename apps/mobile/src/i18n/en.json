@@ -1074,6 +1074,7 @@
   "m.compose.poll_options_must_be_unique": "Poll options must be unique.",
   "m.compose.post_body_becomes_the_question_2": "Post body becomes the question · 2–4 options",
   "m.compose.post_failed": "Post failed",
+  "m.compose.content_too_long": "Posts can be up to 350 characters.",
   "m.compose.preview": "Preview:",
   "m.compose.remove_attachment": "Remove attachment",
   "m.compose.reset_to_on": "Reset to on",

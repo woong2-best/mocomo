@@ -21,6 +21,7 @@ import { validateSaleMediaPricing } from "@/lib/money";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { extractHashtagNames } from "@/lib/linkify";
 import { isCommunityScopedPost } from "@/lib/post-scope";
+import { validateGeneralPostContentLength } from "@/lib/post-content-limit";
 import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
 import { hasPermission } from "@/lib/community-server/permissions";
 import {
@@ -97,6 +98,12 @@ export async function createPostForUser(
   }
 
   const requestedCommunityId = data.communityId?.trim() || undefined;
+  const contentLengthErr = validateGeneralPostContentLength(
+    content,
+    requestedCommunityId
+  );
+  if (contentLengthErr) return { error: contentLengthErr };
+
   if (
     requestedCommunityId &&
     (Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)) > 0 ||

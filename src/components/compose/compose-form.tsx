@@ -44,6 +44,13 @@ import { ComposeRichTextarea } from "@/components/compose/compose-rich-textarea"
 import { QnaIdentityToggle } from "@/components/compose/qna-identity-toggle";
 import type { ContentRating } from "@prisma/client";
 import { ComposeQuotedPostPreview } from "@/components/compose/compose-quoted-post-preview";
+import { ComposeCharRemaining } from "@/components/compose/compose-char-remaining";
+import {
+  isGeneralPostContentLimited,
+  isGeneralPostOverGraphemeLimit,
+  remainingGeneralPostGraphemes,
+  validateGeneralPostContentLength,
+} from "@/lib/post-content-limit";
 import { notifyPostPublished } from "@/lib/feed-live-sync";
 import {
   FLASH_POST_STORAGE_KEY,
@@ -116,8 +123,13 @@ export function ComposeForm({
     );
   const submitBusy = loading || mediaUploading || !mediaReady;
   const isQuoteCompose = Boolean(quotedPostId);
+  const enforcePostLimit = isGeneralPostContentLimited(communityId);
+  const remainingChars = remainingGeneralPostGraphemes(content);
+  const overPostLimit =
+    enforcePostLimit && isGeneralPostOverGraphemeLimit(content);
   const canSubmit =
-    content.trim().length > 0 || media.length > 0 || (isQuoteCompose && !submitBusy);
+    !overPostLimit &&
+    (content.trim().length > 0 || media.length > 0 || (isQuoteCompose && !submitBusy));
   const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
   const paidMediaCents = media.reduce((max, m) => Math.max(max, m.priceKrw ?? 0), 0);
   const showInstantPurchase = visibility !== "PUBLIC" && contentRating !== "ADULT";
@@ -228,6 +240,12 @@ export function ComposeForm({
       content.trim() || String(form.get("content") ?? "").trim();
 
     if (!contentText && media.length === 0 && !quotedPostId) return;
+
+    const lengthErr = validateGeneralPostContentLength(contentText, communityId);
+    if (lengthErr) {
+      setError(t("compose.contentTooLong"));
+      return;
+    }
 
     if (poll) {
       const pollErr = validatePostPollInput(poll);
@@ -428,18 +446,23 @@ export function ComposeForm({
               )
             }
             toolbarFooter={
-              <Button
-                type="submit"
-                size="sm"
-                className="rounded-full px-5 font-semibold shrink-0"
-                disabled={submitBusy || !canSubmit}
-              >
-                {!mediaReady || mediaUploading
-                  ? t("compose.uploading")
-                  : loading
-                    ? t("compose.posting")
-                    : t("compose.post")}
-              </Button>
+              <div className="flex items-center gap-2.5 shrink-0">
+                {enforcePostLimit ? (
+                  <ComposeCharRemaining remaining={remainingChars} />
+                ) : null}
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="rounded-full px-5 font-semibold shrink-0"
+                  disabled={submitBusy || !canSubmit}
+                >
+                  {!mediaReady || mediaUploading
+                    ? t("compose.uploading")
+                    : loading
+                      ? t("compose.posting")
+                      : t("compose.post")}
+                </Button>
+              </div>
             }
           />
 
@@ -566,13 +589,22 @@ export function ComposeForm({
         />
       ) : null}
       <input type="hidden" name="contentRating" value={contentRating} />
-      <Button type="submit" className="w-full rounded-xl" disabled={submitBusy}>
-        {!mediaReady || mediaUploading
-          ? t("compose.uploading")
-          : loading
-            ? t("compose.posting")
-            : t("compose.post")}
-      </Button>
+      <div className="flex items-center gap-3">
+        {enforcePostLimit ? (
+          <ComposeCharRemaining remaining={remainingChars} />
+        ) : null}
+        <Button
+          type="submit"
+          className="flex-1 rounded-xl"
+          disabled={submitBusy || !canSubmit}
+        >
+          {!mediaReady || mediaUploading
+            ? t("compose.uploading")
+            : loading
+              ? t("compose.posting")
+              : t("compose.post")}
+        </Button>
+      </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </form>
   );

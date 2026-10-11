@@ -8,6 +8,12 @@ import { errorText } from "@/lib/i18n/error-text";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ComposeCharRemaining } from "@/components/compose/compose-char-remaining";
+import {
+  isGeneralPostOverGraphemeLimit,
+  remainingGeneralPostGraphemes,
+  validateGeneralPostContentLength,
+} from "@/lib/post-content-limit";
 
 export function AnimeCommunityPanel({
   animeId,
@@ -27,6 +33,11 @@ export function AnimeCommunityPanel({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!content.trim()) return;
+    const lengthErr = validateGeneralPostContentLength(content.trim(), null);
+    if (lengthErr) {
+      setError(errorText(lengthErr));
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -63,9 +74,17 @@ export function AnimeCommunityPanel({
             className="w-full rounded-lg border border-border bg-background p-2 text-sm"
             required
           />
-          <Button type="submit" size="sm" disabled={loading} className="rounded-lg">
-            {loading ? t("lib.published.toast.store.sfaa0601b2e") : t("anime.s1qeqjzk")}
-          </Button>
+          <div className="flex items-center gap-3">
+            <ComposeCharRemaining remaining={remainingGeneralPostGraphemes(content)} />
+            <Button
+              type="submit"
+              size="sm"
+              disabled={loading || isGeneralPostOverGraphemeLimit(content)}
+              className="rounded-lg"
+            >
+              {loading ? t("lib.published.toast.store.sfaa0601b2e") : t("anime.s1qeqjzk")}
+            </Button>
+          </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
         </form>
       ) : (

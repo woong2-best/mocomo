@@ -59,6 +59,10 @@ import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import {
+  isGeneralPostOverGraphemeLimit,
+  remainingGeneralPostGraphemes,
+} from "@/lib/post-content-limit";
 
 type Props = {
   avatarUrl?: string | null;
@@ -142,7 +146,7 @@ export function InlineComposeBox({
   onPosted,
 }: Props) {
   const { t, locale } = useI18n();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const pollDurationOptions = useMemo(() => getPollDurationOptions(locale), [locale]);
   const queryClient = useQueryClient();
@@ -201,8 +205,12 @@ export function InlineComposeBox({
       )
     );
   }, [user?.preferences?.watermarkInsertEnabled, user?.preferences?.watermarkPlacement]);
+  const remainingChars = remainingGeneralPostGraphemes(content);
+  const overPostLimit = isGeneralPostOverGraphemeLimit(content);
   const canPost =
-    !busy && (content.trim().length > 0 || media.length > 0 || !!poll || !!quotedPostId);
+    !busy &&
+    !overPostLimit &&
+    (content.trim().length > 0 || media.length > 0 || !!poll || !!quotedPostId);
 
   const composeLightboxImages = useMemo(
     () =>
@@ -623,6 +631,19 @@ export function InlineComposeBox({
             </>
           ) : null}
         </View>
+        <Text
+          style={[
+            styles.remaining,
+            remainingChars < 0
+              ? styles.remainingOver
+              : isDark
+                ? styles.remainingOkDark
+                : styles.remainingOkLight,
+          ]}
+          accessibilityLiveRegion="polite"
+        >
+          {remainingChars}
+        </Text>
         <Pressable
           style={[styles.postBtn, (!canPost || busy) && styles.postBtnDisabled]}
           onPress={() => void onPost()}
@@ -1164,6 +1185,21 @@ function createStyles(colors: ThemeColors) {
       gap: 10,
     },
     toolbarLeading: { flex: 1, flexDirection: "row", gap: 14, alignItems: "center" },
+    remaining: {
+      minWidth: 28,
+      textAlign: "right",
+      fontSize: 14,
+      fontWeight: "800",
+      fontVariant: ["tabular-nums"],
+    },
+    remainingOkDark: { color: "#FFFFFF" },
+    remainingOkLight: {
+      color: "#FFFFFF",
+      textShadowColor: "rgba(0,0,0,0.45)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    },
+    remainingOver: { color: "#FF3B30" },
     postBtn: {
       paddingHorizontal: 20,
       paddingVertical: 8,

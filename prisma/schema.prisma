@@ -1139,6 +1139,7 @@ enum SupportTierLevel {
 model Post {
   id          String   @id @default(cuid())
   title       String?
+  /** UTF-8 TEXT (Postgres). General posts: 350 grapheme clusters in create-post-core. QnA (`communityId` set) is uncapped. */
   content     String   @db.Text
   authorId    String
   communityId String?
