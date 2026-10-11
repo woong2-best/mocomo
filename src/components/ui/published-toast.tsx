@@ -8,12 +8,9 @@ const t = createTranslator("en");
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Copy,
   Eye,
-  Link2,
   Loader2,
   MoreHorizontal,
-  Pencil,
   Trash2,
   Upload,
   X,
@@ -28,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteOwnPost } from "@/actions/post-delete";
-import { ShareGlobeIcon } from "@/components/ui/share-globe-icon";
 import { notifyPostDeleted } from "@/lib/post-deleted-sync";
 import { postUrl } from "@/lib/post-share";
 import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
@@ -166,17 +162,6 @@ export function PublishedToastPill({
     router.push(DEFAULT_LANDING_PATH);
   }
 
-  function viewPostDetail() {
-    if (!toast.postId) return;
-    onDismiss();
-    try {
-      sessionStorage.setItem(FLASH_POST_STORAGE_KEY, toast.postId);
-    } catch {
-      /* ignore */
-    }
-    router.push(`/post/${toast.postId}`);
-  }
-
   async function copyLink() {
     if (!toast.postId) return;
     try {
@@ -187,31 +172,6 @@ export function PublishedToastPill({
     }
     setMenuOpen(false);
     setSheetOpen(false);
-  }
-
-  async function sharePost() {
-    if (!toast.postId) return;
-    const url = postUrl(toast.postId);
-    try {
-      if (navigator.share) {
-        await navigator.share({ url, title: t("toast.published") });
-      } else {
-        await navigator.clipboard.writeText(url);
-        onShowInfo({ message: t("toast.linkCopied") });
-      }
-    } catch {
-      /* cancelled */
-    }
-    setMenuOpen(false);
-    setSheetOpen(false);
-  }
-
-  function editPost() {
-    setMenuOpen(false);
-    setSheetOpen(false);
-    onDismiss();
-    onShowInfo({ message: t("toast.editSoon") });
-    if (toast.postId) router.push(`/post/${toast.postId}`);
   }
 
   async function confirmDeletePost() {
@@ -262,6 +222,32 @@ export function PublishedToastPill({
           if (!menuOpen && !sheetOpen && !confirmDelete) onResume();
         }}
       >
+        {isPublished && toast.postId ? (
+          <button
+            type="button"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 outline-none hover:bg-white/25 focus-visible:ring-2 focus-visible:ring-white/70"
+            aria-label={t("toast.copyLink")}
+            onClick={(e) => {
+              e.stopPropagation();
+              void copyLink();
+            }}
+          >
+            <Upload className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+          </button>
+        ) : (
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15">
+            {isPublishing ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : isError ? (
+              <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+            ) : isWarning ? (
+              <AlertTriangle className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+            ) : (
+              <Upload className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+            )}
+          </span>
+        )}
+
         <button
           type="button"
           className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full text-left outline-none focus-visible:ring-2 focus-visible:ring-white/70"
@@ -281,18 +267,6 @@ export function PublishedToastPill({
                 : toast.message
           }
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15">
-            {isPublishing ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : isError ? (
-              <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-            ) : isWarning ? (
-              <AlertTriangle className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-            ) : (
-              <Upload className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-            )}
-          </span>
-
           {avatars.length > 0 && (
             <span className="flex shrink-0 items-center pl-1">
               {avatars.map((a, i) => (
@@ -353,22 +327,6 @@ export function PublishedToastPill({
                   <Eye className="h-4 w-4" />
                   {t("toast.viewPost")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={viewPostDetail}>
-                  <Link2 className="h-4 w-4" />
-                  {t("feed.displayMode.openPost")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={editPost}>
-                  <Pencil className="h-4 w-4" />
-                  {t("toast.edit")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void copyLink()}>
-                  <Copy className="h-4 w-4" />
-                  {t("toast.copyLink")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void sharePost()}>
-                  <ShareGlobeIcon className="h-4 w-4" />
-                  {t("toast.share")}
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
@@ -396,10 +354,6 @@ export function PublishedToastPill({
           />
           <div className="relative space-y-1 rounded-t-2xl border-t border-border bg-card p-3 pb-safe animate-in slide-in-from-bottom">
             <ActionRow icon={Eye} label={t("toast.viewPost")} onClick={goToPublishedContent} />
-            <ActionRow icon={Link2} label={t("feed.displayMode.openPost")} onClick={viewPostDetail} />
-            <ActionRow icon={Pencil} label={t("toast.edit")} onClick={editPost} />
-            <ActionRow icon={Copy} label={t("toast.copyLink")} onClick={() => void copyLink()} />
-            <ActionRow icon={ShareGlobeIcon} label={t("toast.share")} onClick={() => void sharePost()} />
             <ActionRow
               icon={Trash2}
               label={t("toast.delete")}
