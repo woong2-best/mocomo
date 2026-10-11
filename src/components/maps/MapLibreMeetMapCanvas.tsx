@@ -107,7 +107,7 @@ export function MapLibreMeetMapCanvas({
           style: ESRI_SATELLITE_STYLE,
           center: [center.lng, center.lat],
           zoom,
-          attributionControl: {},
+          attributionControl: { compact: true },
           fadeDuration: 0,
         });
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");

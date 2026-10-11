@@ -274,7 +274,7 @@ export function MeetMapView({
           className={mapReady ? undefined : "pointer-events-none opacity-0"}
         />
         {!activeCoords && mode === "pick" && (
-          <div className="absolute bottom-2 left-2 right-2 z-10 pointer-events-none">
+          <div className="absolute bottom-2 left-2 right-10 z-10 pointer-events-none">
             <p className="text-[11px] text-center px-2 py-1 rounded-lg bg-background/90 border shadow-sm">
               {t("maps.s1otcmgg")}
             </p>
