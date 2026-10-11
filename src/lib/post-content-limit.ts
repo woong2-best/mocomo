@@ -18,7 +18,7 @@ export const GENERAL_POST_MAX_GRAPHEMES = 350;
 export const GENERAL_POST_TOO_LONG_ERROR = "compose.contentTooLong";
 
 const FALLBACK_GRAPHEME_RE =
-  /(?:\p{RI}\p{RI})|(?:[0-9#*]\u{FE0F}?\u{20E3})|(?:\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F}|\u{FE0E})?(?:\u{200D}\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F}|\u{FE0E})?)*)|(?:\P{M}\p{M}*)|(?:.)/gsu;
+  /(?:\p{RI}\p{RI})|(?:[0-9#*]\u{FE0F}?\u{20E3})|(?:\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F}|\u{FE0E})?(?:\u{200D}\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F}|\u{FE0E})?)*)|(?:\P{M}\p{M}*)|(?:.)/gu;
 
 let cachedSegmenter: Intl.Segmenter | null | undefined;
 
