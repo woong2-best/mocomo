@@ -34,6 +34,7 @@ import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { profileDisplayTier } from "@/lib/support-tier-display";
 import { useUserProfileNav, type UserProfileSeed, userProfileQueryKey } from "@/features/profile/user-profile-nav";
 import { useI18n } from "@/i18n/I18nProvider";
+import { qnaListTitle } from "@/features/community/qna-list-title";
 
 type Props = {
   post: FeedPost;
@@ -52,6 +53,8 @@ type Props = {
   onPressVideo?: (postId: string, mediaId?: string, mediaIndex?: number) => void;
   onBlockedAuthor?: (authorId: string) => void;
   onDeletedPost?: (postId: string) => void;
+  /** QnA hub list: keep Q mark / title / translate chrome, hide body + photos. */
+  qnaPreview?: boolean;
 };
 
 function formatCount(n: number) {
@@ -76,6 +79,7 @@ function FeedPostCardInner({
   onPressVideo,
   onBlockedAuthor,
   onDeletedPost,
+  qnaPreview = false,
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute();
@@ -108,6 +112,7 @@ function FeedPostCardInner({
   const [viewCount, setViewCount] = useState(post.viewCount ?? 0);
 
   const isQna = Boolean(post.community?.slug);
+  const hideQnaBody = isQna && qnaPreview;
   const hideIdentity = isQna || post.isAnonymous || post.author?.username === "anonymous";
   const isSelf = user?.id === post.author?.id;
   const canShowMenu = status === "signedIn" && (isSelf || !hideIdentity || isQna);
@@ -380,7 +385,7 @@ function FeedPostCardInner({
                   </Text>
                 </Pressable>
               )}
-              {post.community?.slug ? (
+              {hideQnaBody || !post.community?.slug ? null : (
                 <Pressable
                   onPress={() => onPressCommunity?.(post.community!.slug)}
                   disabled={!onPressCommunity}
@@ -390,7 +395,7 @@ function FeedPostCardInner({
                     {post.community.name}
                   </Text>
                 </Pressable>
-              ) : null}
+              )}
             </View>
           </View>
         </Pressable>
@@ -409,7 +414,15 @@ function FeedPostCardInner({
         ) : null}
       </View>
 
-      {post.content ? (
+      {hideQnaBody ? (
+        <TranslatableText
+          text={qnaListTitle(post)}
+          style={styles.qnaTitle}
+          numberOfLines={4}
+          onBackgroundPress={onPressPost ? openPost : undefined}
+          translateActive
+        />
+      ) : post.content ? (
         <TranslatableText
           text={post.content}
           style={styles.content}
@@ -425,7 +438,7 @@ function FeedPostCardInner({
         </Pressable>
       ) : null}
 
-      {post.quotedPostBlocked ? (
+      {hideQnaBody ? null : post.quotedPostBlocked ? (
         <View style={styles.quoteCardOuter}>
           <View style={[styles.quoteCard, styles.quoteBlocked]}>
             <Text style={styles.quoteBlockedText}>
@@ -474,6 +487,7 @@ function FeedPostCardInner({
         </Pressable>
       ) : null}
 
+      {hideQnaBody ? null : (
       <FeedPostMediaCarousel
         post={post}
         layoutWidth={mediaLayout}
@@ -483,8 +497,9 @@ function FeedPostCardInner({
         onPurchaseSuccess={onPurchaseSuccess}
         onPressVideo={isQna ? undefined : onPressVideo}
       />
+      )}
 
-      {post.poll ? (
+      {hideQnaBody || !post.poll ? null : (
         <FeedPostPoll
           postId={post.id}
           poll={post.poll}
@@ -492,7 +507,7 @@ function FeedPostCardInner({
           signedIn={status === "signedIn"}
           onNeedLogin={requireLogin}
         />
-      ) : null}
+      )}
 
       <View style={styles.actions}>
         <View style={styles.actionsLeft}>
@@ -623,7 +638,8 @@ function propsEqual(a: Props, b: Props) {
     a.post.profilePinned === b.post.profilePinned &&
     a.onPressAuthor === b.onPressAuthor &&
     a.onPressCommunity === b.onPressCommunity &&
-    a.onPressVideo === b.onPressVideo
+    a.onPressVideo === b.onPressVideo &&
+    a.qnaPreview === b.qnaPreview
   );
 }
 
@@ -755,6 +771,13 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       color: colors.brand,
     },
     content: { fontSize: 15, lineHeight: 21, color: colors.text, marginBottom: 10 },
+    qnaTitle: {
+      fontSize: 15,
+      lineHeight: 21,
+      fontWeight: "700",
+      color: isDark ? "#FFFFFF" : colors.text,
+      marginBottom: 10,
+    },
     actions: {
       flexDirection: "row",
       alignItems: "center",

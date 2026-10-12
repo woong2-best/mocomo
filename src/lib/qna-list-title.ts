@@ -1,4 +1,4 @@
-/** QnA hub list: title only until the user opens the post. */
+/** QnA hub list headline — body and photos stay on the detail page. */
 export function qnaListTitle(post: {
   title?: string | null;
   content?: string | null;

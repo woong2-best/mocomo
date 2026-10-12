@@ -28,6 +28,7 @@ import { QuotedPostCard } from "@/components/post/quoted-post-card";
 import { useLocale } from "@/components/providers/locale-provider";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
+import { qnaListTitle } from "@/lib/qna-list-title";
 
 export function FeedTimelinePostCard({
   post,
@@ -35,12 +36,15 @@ export function FeedTimelinePostCard({
   initialStarred = false,
   initialReposted = false,
   paymentsEnabled = false,
+  qnaPreview = false,
 }: {
   post: GridPost & { createdAt: string | Date };
   initialLiked?: boolean;
   initialStarred?: boolean;
   initialReposted?: boolean;
   paymentsEnabled?: boolean;
+  /** QnA hub list: keep header / title / translate chrome, hide body + photos. */
+  qnaPreview?: boolean;
 }) {
   const like = useOptimisticLike(post.id, initialLiked, post._count?.likes ?? 0);
   const star = useOptimisticStar(post.id, initialStarred);
@@ -56,6 +60,8 @@ export function FeedTimelinePostCard({
   const isOwner = session?.user?.id === post.author.id;
   const hasMedia = postHasVisualMedia(post);
   const qna = Boolean(post.community?.slug);
+  const hideQnaBody = qna && qnaPreview;
+  const qnaHeadline = hideQnaBody ? qnaListTitle(post) : "";
   const { liked, likeCount } = like;
   const { starred } = star;
   const displayError = actionError || like.error || star.error;
@@ -107,7 +113,7 @@ export function FeedTimelinePostCard({
                 qna={qna}
                 anonymous={!!post.isAnonymous}
               />
-              {post.community?.slug ? (
+              {hideQnaBody ? null : post.community?.slug ? (
                 <PrefetchLink
                   href={`/c/${post.community.slug}`}
                   className="inline-flex max-w-full items-center text-[12px] font-bold text-folk-cobalt hover:underline"
@@ -115,7 +121,24 @@ export function FeedTimelinePostCard({
                   <span className="truncate">{post.community.name}</span>
                 </PrefetchLink>
               ) : null}
-              {post.title && (
+              {hideQnaBody && qnaHeadline ? (
+                <div
+                  className="cursor-pointer"
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("a, button, [role='link']")) return;
+                    topProgress.start();
+                    router.push(`/post/${post.id}`);
+                  }}
+                >
+                  <TranslatableText
+                    text={qnaHeadline}
+                    as="p"
+                    stopPropagation
+                    showLinkPreview={false}
+                    className="font-semibold text-[15px] mb-1 text-white whitespace-pre-wrap break-words"
+                  />
+                </div>
+              ) : post.title ? (
                 <PrefetchLink href={postHref} className="block">
                   <p
                     className={cn(
@@ -126,8 +149,8 @@ export function FeedTimelinePostCard({
                     {post.title}
                   </p>
                 </PrefetchLink>
-              )}
-              {post.content && (
+              ) : null}
+              {hideQnaBody || !post.content ? null : (
                 <div
                   className="cursor-pointer"
                   onClick={(e) => {
@@ -144,7 +167,8 @@ export function FeedTimelinePostCard({
                   />
                 </div>
               )}
-              {post.quotedPost || (post as { quotedPostBlocked?: boolean }).quotedPostBlocked ? (
+              {hideQnaBody ? null : post.quotedPost ||
+                (post as { quotedPostBlocked?: boolean }).quotedPostBlocked ? (
                 <QuotedPostCard
                   post={post.quotedPost}
                   quotedPostBlocked={(post as { quotedPostBlocked?: boolean }).quotedPostBlocked}
@@ -152,7 +176,7 @@ export function FeedTimelinePostCard({
                   viewerShowNsfw={false}
                 />
               ) : null}
-              {hasMedia && post.media && (
+              {hideQnaBody || !hasMedia || !post.media ? null : (
                 <FeedPostMediaCarousel
                   media={post.media as ProfilePostMediaItem[]}
                   postId={post.id}
@@ -170,7 +194,7 @@ export function FeedTimelinePostCard({
                   }}
                 />
               )}
-              {post.poll && (
+              {hideQnaBody || !post.poll ? null : (
                 <div className="mt-3">
                   <PostPollCard postId={post.id} poll={post.poll} isAuthor={isOwner} compact />
                 </div>

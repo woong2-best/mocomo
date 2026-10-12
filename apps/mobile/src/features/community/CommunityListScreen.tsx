@@ -18,7 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchQnaFeedPage } from "@/api/community";
 import { backfillOwnedEmptyQnaPosts } from "@/features/community/publish-qna-post";
 import type { FeedItem } from "@/api/feed";
-import { qnaListTitle } from "@/features/community/qna-list-title";
+import { FeedPostCard } from "@/features/feed/FeedPostCard";
+import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
 import {
   QNA_FEED_CATEGORY_TABS,
   QNA_MY_CATEGORY_ID,
@@ -41,6 +42,7 @@ export function CommunityListScreen() {
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { open: openUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
   const { status: authStatus } = useAuth();
   const searchRef = useRef<TextInput>(null);
@@ -114,28 +116,43 @@ export function CommunityListScreen() {
     [authStatus, locale, t]
   );
 
+  const paymentsEnabled = query.data?.pages[0]?.paymentsEnabled ?? false;
+
   const onPressPost = useCallback(
     (id: string) => navigation.navigate("PostDetail", { id }),
     [navigation]
+  );
+  const onPressAuthor = useCallback(
+    (author: UserProfileSeed) => openUserProfile(author),
+    [openUserProfile]
+  );
+  const onPressCommunity = useCallback(
+    (slug: string) => {
+      const hit = items.find(
+        (item) => item.type === "post" && item.data.community?.slug === slug
+      );
+      if (hit?.type === "post") {
+        navigation.navigate("PostDetail", { id: hit.data.id });
+      }
+    },
+    [items, navigation]
   );
 
   const renderItem = useCallback(
     ({ item }: { item: FeedItem }) => {
       if (item.type !== "post") return null;
       return (
-        <Pressable
-          onPress={() => onPressPost(item.data.id)}
-          style={styles.titleRow}
-          accessibilityRole="button"
-          accessibilityLabel={t("m.common.view_post")}
-        >
-          <Text style={styles.title} numberOfLines={2}>
-            {qnaListTitle(item.data)}
-          </Text>
-        </Pressable>
+        <FeedPostCard
+          post={item.data}
+          paymentsEnabled={paymentsEnabled}
+          qnaPreview
+          onPressPost={onPressPost}
+          onPressAuthor={onPressAuthor}
+          onPressCommunity={onPressCommunity}
+        />
       );
     },
-    [onPressPost, styles.title, styles.titleRow, t]
+    [onPressAuthor, onPressCommunity, onPressPost, paymentsEnabled]
   );
 
   const listHeader = (
@@ -316,17 +333,5 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: colors.brand,
     },
     emptyBtnText: { color: "#fff", fontWeight: "800" },
-    titleRow: {
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-    title: {
-      fontSize: 15,
-      fontWeight: "700",
-      color: isDark ? "#FFFFFF" : colors.text,
-      lineHeight: 21,
-    },
   });
 }

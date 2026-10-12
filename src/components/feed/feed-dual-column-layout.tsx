@@ -27,12 +27,14 @@ export function FeedDualColumnLayout({
   starredIds,
   repostedIds,
   paymentsEnabled = false,
+  qnaPreview = false,
 }: {
   items: FeedLayoutItem[];
   likedIds: Set<string>;
   starredIds: Set<string>;
   repostedIds: Set<string>;
   paymentsEnabled?: boolean;
+  qnaPreview?: boolean;
 }) {
   function renderItem(item: FeedLayoutItem, keySuffix: string, index: number) {
     const wrap = (node: ReactNode, key: string) => (
@@ -54,6 +56,7 @@ export function FeedDualColumnLayout({
         initialStarred={starredIds.has(item.data.id)}
         initialReposted={repostedIds.has(item.data.id)}
         paymentsEnabled={paymentsEnabled}
+        qnaPreview={qnaPreview}
       />,
       `${item.data.id}-${keySuffix}`
     );

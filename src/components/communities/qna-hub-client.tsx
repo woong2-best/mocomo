@@ -11,8 +11,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativePageTitle } from "@/components/layout/app-page-chrome";
-import { type FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
-import { QnaTitleList } from "@/components/communities/qna-title-list";
+import {
+  FeedDualColumnLayout,
+  type FeedLayoutItem,
+} from "@/components/feed/feed-dual-column-layout";
 import {
   QNA_FEED_CATEGORY_TABS,
   QNA_MY_CATEGORY_ID,
@@ -30,8 +32,18 @@ import { scrollMainToTop } from "@/lib/scroll-main";
 type FeedPage = {
   items?: FeedLayoutItem[];
   nextCursor?: string | null;
+  likedIds?: string[];
+  starredIds?: string[];
+  repostedIds?: string[];
   error?: string;
 };
+
+function mergeIds(prev: Set<string>, ids?: string[]) {
+  if (!ids?.length) return prev;
+  const next = new Set(prev);
+  for (const id of ids) next.add(id);
+  return next;
+}
 
 export function QnaHubClient() {
   const router = useRouter();
@@ -47,6 +59,9 @@ export function QnaHubClient() {
   const sessionUserId = sessionState?.data?.user?.id;
 
   const [items, setItems] = useState<FeedLayoutItem[]>([]);
+  const [likedIds, setLikedIds] = useState(() => new Set<string>());
+  const [starredIds, setStarredIds] = useState(() => new Set<string>());
+  const [repostedIds, setRepostedIds] = useState(() => new Set<string>());
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -106,6 +121,13 @@ export function QnaHubClient() {
           return;
         }
         const added = json.items;
+        setLikedIds((prev) => (mode === "replace" ? new Set(json.likedIds ?? []) : mergeIds(prev, json.likedIds)));
+        setStarredIds((prev) =>
+          mode === "replace" ? new Set(json.starredIds ?? []) : mergeIds(prev, json.starredIds)
+        );
+        setRepostedIds((prev) =>
+          mode === "replace" ? new Set(json.repostedIds ?? []) : mergeIds(prev, json.repostedIds)
+        );
         setItems((prev) => {
           if (mode === "replace") return added;
           const seen = new Set(prev.filter((i) => i.type === "post").map((i) => i.data.id));
@@ -222,10 +244,9 @@ export function QnaHubClient() {
       <QnaNsfwBlockedDialog open={blockedOpen} onOpenChange={setBlockedOpen} />
 
       {loading && items.length === 0 ? (
-        <div className="space-y-2" aria-busy="true">
-          <div className="h-12 rounded-xl bg-muted/40" />
-          <div className="h-12 rounded-xl bg-muted/40" />
-          <div className="h-12 rounded-xl bg-muted/40" />
+        <div className="space-y-3" aria-busy="true">
+          <div className="h-32 rounded-2xl bg-muted/40" />
+          <div className="h-32 rounded-2xl bg-muted/40" />
         </div>
       ) : loadError && items.length === 0 ? (
         <div className="px-4 py-14 text-center space-y-3">
@@ -254,7 +275,13 @@ export function QnaHubClient() {
         </div>
       ) : (
         <>
-          <QnaTitleList items={items} />
+          <FeedDualColumnLayout
+            items={items}
+            likedIds={likedIds}
+            starredIds={starredIds}
+            repostedIds={repostedIds}
+            qnaPreview
+          />
           <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-8">
             {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
             {loadError && (
