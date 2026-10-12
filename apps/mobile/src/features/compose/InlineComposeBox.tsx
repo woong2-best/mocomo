@@ -146,7 +146,7 @@ export function InlineComposeBox({
   onPosted,
 }: Props) {
   const { t, locale } = useI18n();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const pollDurationOptions = useMemo(() => getPollDurationOptions(locale), [locale]);
   const queryClient = useQueryClient();
@@ -634,11 +634,7 @@ export function InlineComposeBox({
         <Text
           style={[
             styles.remaining,
-            remainingChars < 0
-              ? styles.remainingOver
-              : isDark
-                ? styles.remainingOkDark
-                : styles.remainingOkLight,
+            remainingChars < 0 ? styles.remainingOver : styles.remainingOk,
           ]}
           accessibilityLiveRegion="polite"
         >
@@ -1192,13 +1188,7 @@ function createStyles(colors: ThemeColors) {
       fontWeight: "800",
       fontVariant: ["tabular-nums"],
     },
-    remainingOkDark: { color: "#FFFFFF" },
-    remainingOkLight: {
-      color: "#FFFFFF",
-      textShadowColor: "rgba(0,0,0,0.45)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 2,
-    },
+    remainingOk: { color: "#22C55E" },
     remainingOver: { color: "#FF3B30" },
     postBtn: {
       paddingHorizontal: 20,

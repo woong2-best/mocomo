@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Remaining graphemes for the general-post composer.
- * Under the limit: white. Over the limit: red (Twitter/X overflow).
+ * Under the limit: green. Over the limit: red.
  */
 export function ComposeCharRemaining({
   remaining,
@@ -18,9 +18,7 @@ export function ComposeCharRemaining({
     <span
       className={cn(
         "min-w-[2.25rem] shrink-0 text-right text-[13px] font-semibold tabular-nums leading-none",
-        over
-          ? "text-red-500"
-          : "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.55)]",
+        over ? "text-red-500" : "text-green-500",
         className
       )}
       aria-live="polite"
