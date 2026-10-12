@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Modal,
@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useI18n } from "@/i18n/I18nProvider";
 import { parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco-amount";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
@@ -36,6 +37,7 @@ export function ComposeAttachModal({
   onClose,
   onPick,
   onConfirm,
+  onRemovePreview,
   pickedLabel,
   previews,
 }: {
@@ -47,32 +49,42 @@ export function ComposeAttachModal({
   onClose: () => void;
   onPick: () => void;
   onConfirm: (priceKrw: number) => void;
+  onRemovePreview: (index: number) => void;
 }) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const keyboardHeight = useKeyboardBottomInset();
+  const previewScrollRef = useRef<ScrollView>(null);
+  const pageRef = useRef(0);
   const [moco, setMoco] = useState("");
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
-  const [previewWidth, setPreviewWidth] = useState(0);
+  const [heroSize, setHeroSize] = useState({ width: 0, height: 0 });
   const keyboardOpen = keyboardHeight > 0;
-  // Modal overlays the IME; use screen height so a resized activity window
-  // cannot collapse the remaining space and clip the amount field.
+  pageRef.current = page;
   const remainingAboveKeyboard = Math.min(
     windowHeight,
     Dimensions.get("screen").height - keyboardHeight
   );
-  const sheetMaxHeight = Math.max(220, remainingAboveKeyboard - spacing.xl * 2);
-  const previewHeight = Math.round(
-    Math.min(
-      keyboardOpen ? 118 : 152,
-      Math.max(96, windowWidth * (keyboardOpen ? 0.26 : 0.34))
-    )
-  );
+  const sheetReserve = previews.length > 0 ? 132 : 24;
+  const sheetMaxHeight = Math.max(220, remainingAboveKeyboard - sheetReserve);
+  const pageWidth = heroSize.width > 0 ? heroSize.width : windowWidth;
 
   useEffect(() => {
-    setPage(0);
-  }, [previews.length, visible]);
+    if (!visible) {
+      setMoco("");
+      setError("");
+      setPage(0);
+      return;
+    }
+    const next = Math.max(0, Math.min(pageRef.current, Math.max(0, previews.length - 1)));
+    setPage(next);
+    if (pageWidth <= 0) return;
+    requestAnimationFrame(() => {
+      previewScrollRef.current?.scrollTo({ x: next * pageWidth, animated: false });
+    });
+  }, [pageWidth, previews.length, visible]);
 
   function close() {
     setMoco("");
@@ -96,7 +108,7 @@ export function ComposeAttachModal({
       setError(t("m.compose.attach_too_high"));
       return;
     }
-    if (!pickedLabel) {
+    if (previews.length === 0) {
       setError(t("m.compose.attach_need_file"));
       return;
     }
@@ -107,22 +119,90 @@ export function ComposeAttachModal({
   }
 
   function onPreviewScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    if (previewWidth <= 0) return;
-    const next = Math.round(event.nativeEvent.contentOffset.x / previewWidth);
+    if (pageWidth <= 0) return;
+    const next = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
     setPage(Math.max(0, Math.min(previews.length - 1, next)));
   }
 
+  function removeCurrent() {
+    if (previews.length === 0) return;
+    onRemovePreview(page);
+  }
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={close}
+    >
       <View
         style={[
-          styles.backdrop,
-          keyboardOpen
-            ? { justifyContent: "flex-end", paddingBottom: keyboardHeight + spacing.sm }
-            : null,
+          styles.root,
+          {
+            paddingBottom: keyboardOpen
+              ? keyboardHeight + spacing.sm
+              : Math.max(insets.bottom, spacing.md),
+          },
         ]}
       >
-        <Pressable style={StyleSheet.absoluteFill} onPress={close} />
+        {previews.length > 0 ? (
+          <View
+            style={styles.hero}
+            onLayout={(event) => {
+              const { width, height } = event.nativeEvent.layout;
+              setHeroSize({ width, height });
+            }}
+          >
+            {heroSize.height > 0 && heroSize.width > 0 ? (
+              <ScrollView
+                ref={previewScrollRef}
+                horizontal
+                pagingEnabled
+                decelerationRate="fast"
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={onPreviewScroll}
+                keyboardShouldPersistTaps="handled"
+              >
+                {previews.map((item, index) => (
+                  <View
+                    key={`${item.uri}-${index}`}
+                    style={{ width: pageWidth, height: heroSize.height }}
+                    accessibilityLabel={t("m.common.preview")}
+                  >
+                    <Image source={{ uri: item.uri }} style={styles.heroMedia} contentFit="cover" />
+                    {item.type === "VIDEO" ? (
+                      <View style={styles.videoBadge} pointerEvents="none">
+                        <Ionicons name="play" size={16} color="#fff" />
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
+            <Pressable
+              style={[styles.removeBtn, { top: insets.top + 10 }]}
+              onPress={removeCurrent}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t("m.compose.remove_attachment")}
+            >
+              <Ionicons name="remove" size={22} color="#142848" />
+            </Pressable>
+            {previews.length > 1 ? (
+              <View style={styles.pagePillWrap} pointerEvents="none">
+                <View style={styles.pagePill}>
+                  <Text style={styles.pagePillText}>
+                    {page + 1}/{previews.length}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <Pressable style={styles.backdropFill} onPress={close} />
+        )}
         <Pressable
           style={[
             styles.sheet,
@@ -167,67 +247,6 @@ export function ComposeAttachModal({
                 {pickedLabel ?? t("m.compose.attach_upload")}
               </Text>
             </Pressable>
-            {previews.length > 0 ? (
-              <View style={styles.previewBlock}>
-                <View
-                  onLayout={(event) => setPreviewWidth(event.nativeEvent.layout.width)}
-                  style={[
-                    styles.previewFrame,
-                    { height: previewHeight, backgroundColor: colors.background, borderColor: colors.hairline },
-                  ]}
-                >
-                  {previewWidth > 0 ? (
-                    <ScrollView
-                      horizontal
-                      pagingEnabled
-                      nestedScrollEnabled
-                      decelerationRate="fast"
-                      showsHorizontalScrollIndicator={false}
-                      onMomentumScrollEnd={onPreviewScroll}
-                      keyboardShouldPersistTaps="handled"
-                    >
-                      {previews.map((item, index) => (
-                        <View
-                          key={`${item.uri}-${index}`}
-                          style={[styles.previewPage, { width: previewWidth, height: previewHeight }]}
-                          accessibilityLabel={t("m.common.preview")}
-                        >
-                          <Image
-                            source={{ uri: item.uri }}
-                            style={styles.previewMedia}
-                            contentFit="contain"
-                          />
-                          {item.type === "VIDEO" ? (
-                            <View style={styles.videoBadge} pointerEvents="none">
-                              <Ionicons name="play" size={14} color="#fff" />
-                            </View>
-                          ) : null}
-                        </View>
-                      ))}
-                    </ScrollView>
-                  ) : null}
-                </View>
-                {previews.length > 1 ? (
-                  <View style={styles.dots}>
-                    {previews.map((item, index) => (
-                      <View
-                        key={`${item.uri}-dot-${index}`}
-                        style={[
-                          styles.dot,
-                          {
-                            backgroundColor:
-                              index === page ? colors.brand : colors.hairline,
-                          },
-                        ]}
-                      />
-                    ))}
-                    <Text style={[styles.pageLabel, { color: colors.textMuted }]}>
-                      {page + 1}/{previews.length}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <View style={styles.actions}>
               <Pressable onPress={close} hitSlop={8} disabled={busy}>
@@ -249,18 +268,69 @@ export function ComposeAttachModal({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  root: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+  },
+  backdropFill: {
+    flex: 1,
+  },
+  hero: {
+    flex: 1,
+    marginHorizontal: -16,
+    backgroundColor: "#000",
+  },
+  heroMedia: {
+    width: "100%",
+    height: "100%",
+  },
+  removeBtn: {
+    position: "absolute",
+    right: 16,
+    zIndex: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(245, 240, 232, 0.94)",
+    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
+  },
+  pagePillWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 12,
+    alignItems: "center",
+  },
+  pagePill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  pagePillText: {
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  videoBadge: {
+    position: "absolute",
+    left: 12,
+    bottom: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.62)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   sheet: {
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: 18,
+    marginTop: 12,
   },
   sheetBody: {
     gap: 8,
@@ -277,43 +347,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  previewBlock: { gap: 8, marginTop: 4 },
-  previewFrame: {
-    borderWidth: 1,
-    borderRadius: radii.md,
-    overflow: "hidden",
-  },
-  previewPage: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  previewMedia: {
-    width: "100%",
-    height: "100%",
-  },
-  videoBadge: {
-    position: "absolute",
-    left: 8,
-    bottom: 8,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "rgba(0,0,0,0.62)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dots: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  pageLabel: { fontSize: 11, fontWeight: "700", marginLeft: 4 },
   uploadBtn: {
     marginTop: 4,
     borderWidth: 1,

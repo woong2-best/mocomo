@@ -302,6 +302,10 @@ export function InlineComposeBox({
     [attachPicked, focusInput]
   );
 
+  const removeAttachPreview = useCallback((index: number) => {
+    setAttachPicked((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+  }, []);
+
   const togglePoll = useCallback(() => {
     setPoll((prev) =>
       prev
@@ -706,6 +710,7 @@ export function InlineComposeBox({
         }}
         onPick={() => void pickAttachMedia()}
         onConfirm={confirmAttach}
+        onRemovePreview={removeAttachPreview}
       />
     </View>
   );
