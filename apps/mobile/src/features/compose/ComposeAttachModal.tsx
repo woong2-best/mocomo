@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dimensions,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +12,8 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "@/i18n/I18nProvider";
 import { parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco-amount";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
@@ -20,6 +24,11 @@ import {
 } from "@/lib/money";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
+export type ComposeAttachPreview = {
+  uri: string;
+  type: "IMAGE" | "VIDEO";
+};
+
 export function ComposeAttachModal({
   visible,
   colors,
@@ -28,20 +37,24 @@ export function ComposeAttachModal({
   onPick,
   onConfirm,
   pickedLabel,
+  previews,
 }: {
   visible: boolean;
   colors: ThemeColors;
   busy?: boolean;
   pickedLabel: string | null;
+  previews: ComposeAttachPreview[];
   onClose: () => void;
   onPick: () => void;
   onConfirm: (priceKrw: number) => void;
 }) {
   const { t } = useI18n();
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const keyboardHeight = useKeyboardBottomInset();
   const [moco, setMoco] = useState("");
   const [error, setError] = useState("");
+  const [page, setPage] = useState(0);
+  const [previewWidth, setPreviewWidth] = useState(0);
   const keyboardOpen = keyboardHeight > 0;
   // Modal overlays the IME; use screen height so a resized activity window
   // cannot collapse the remaining space and clip the amount field.
@@ -50,10 +63,21 @@ export function ComposeAttachModal({
     Dimensions.get("screen").height - keyboardHeight
   );
   const sheetMaxHeight = Math.max(220, remainingAboveKeyboard - spacing.xl * 2);
+  const previewHeight = Math.round(
+    Math.min(
+      keyboardOpen ? 118 : 152,
+      Math.max(96, windowWidth * (keyboardOpen ? 0.26 : 0.34))
+    )
+  );
+
+  useEffect(() => {
+    setPage(0);
+  }, [previews.length, visible]);
 
   function close() {
     setMoco("");
     setError("");
+    setPage(0);
     onClose();
   }
 
@@ -79,6 +103,13 @@ export function ComposeAttachModal({
     onConfirm(cents);
     setMoco("");
     setError("");
+    setPage(0);
+  }
+
+  function onPreviewScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    if (previewWidth <= 0) return;
+    const next = Math.round(event.nativeEvent.contentOffset.x / previewWidth);
+    setPage(Math.max(0, Math.min(previews.length - 1, next)));
   }
 
   return (
@@ -136,6 +167,67 @@ export function ComposeAttachModal({
                 {pickedLabel ?? t("m.compose.attach_upload")}
               </Text>
             </Pressable>
+            {previews.length > 0 ? (
+              <View style={styles.previewBlock}>
+                <View
+                  onLayout={(event) => setPreviewWidth(event.nativeEvent.layout.width)}
+                  style={[
+                    styles.previewFrame,
+                    { height: previewHeight, backgroundColor: colors.background, borderColor: colors.hairline },
+                  ]}
+                >
+                  {previewWidth > 0 ? (
+                    <ScrollView
+                      horizontal
+                      pagingEnabled
+                      nestedScrollEnabled
+                      decelerationRate="fast"
+                      showsHorizontalScrollIndicator={false}
+                      onMomentumScrollEnd={onPreviewScroll}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      {previews.map((item, index) => (
+                        <View
+                          key={`${item.uri}-${index}`}
+                          style={[styles.previewPage, { width: previewWidth, height: previewHeight }]}
+                          accessibilityLabel={t("m.common.preview")}
+                        >
+                          <Image
+                            source={{ uri: item.uri }}
+                            style={styles.previewMedia}
+                            contentFit="contain"
+                          />
+                          {item.type === "VIDEO" ? (
+                            <View style={styles.videoBadge} pointerEvents="none">
+                              <Ionicons name="play" size={14} color="#fff" />
+                            </View>
+                          ) : null}
+                        </View>
+                      ))}
+                    </ScrollView>
+                  ) : null}
+                </View>
+                {previews.length > 1 ? (
+                  <View style={styles.dots}>
+                    {previews.map((item, index) => (
+                      <View
+                        key={`${item.uri}-dot-${index}`}
+                        style={[
+                          styles.dot,
+                          {
+                            backgroundColor:
+                              index === page ? colors.brand : colors.hairline,
+                          },
+                        ]}
+                      />
+                    ))}
+                    <Text style={[styles.pageLabel, { color: colors.textMuted }]}>
+                      {page + 1}/{previews.length}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <View style={styles.actions}>
               <Pressable onPress={close} hitSlop={8} disabled={busy}>
@@ -185,6 +277,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  previewBlock: { gap: 8, marginTop: 4 },
+  previewFrame: {
+    borderWidth: 1,
+    borderRadius: radii.md,
+    overflow: "hidden",
+  },
+  previewPage: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewMedia: {
+    width: "100%",
+    height: "100%",
+  },
+  videoBadge: {
+    position: "absolute",
+    left: 8,
+    bottom: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(0,0,0,0.62)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dots: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  pageLabel: { fontSize: 11, fontWeight: "700", marginLeft: 4 },
   uploadBtn: {
     marginTop: 4,
     borderWidth: 1,

@@ -4171,6 +4171,7 @@
   "compose.attach.mocoPh": "1",
   "compose.attach.hint": "1 MOCO = $5. Minimum 0.2 MOCO ($1).",
   "compose.attach.upload": "Upload photo or video",
+  "compose.attach.picked": "{count} selected",
   "compose.attach.needFile": "Choose a photo or video.",
   "compose.attach.needMoco": "Enter a MOCO amount (0.2 or more).",
   "compose.attach.tooHigh": "Maximum is 200 MOCO ($1,000).",

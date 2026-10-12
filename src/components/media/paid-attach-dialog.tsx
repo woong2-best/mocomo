@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { ImagePlus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   saleCentsFromMoco,
 } from "@/lib/money";
 import { parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco/decimal-amount";
+import { cn } from "@/lib/utils";
 
 const MEDIA_ACCEPT =
   "image/*,.heic,.heif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov";
@@ -28,6 +29,16 @@ function isAttachFile(file: File): boolean {
   const type = file.type?.trim().toLowerCase() ?? "";
   return type.startsWith("video/") || /\.(mp4|webm|mov|m4v|mkv)$/i.test(file.name);
 }
+
+function isVideoFile(file: File): boolean {
+  const type = file.type?.trim().toLowerCase() ?? "";
+  return type.startsWith("video/") || /\.(mp4|webm|mov|m4v|mkv)$/i.test(file.name);
+}
+
+type PreviewItem = {
+  url: string;
+  kind: "image" | "video";
+};
 
 export function PaidAttachDialog({
   open,
@@ -45,11 +56,26 @@ export function PaidAttachDialog({
   const [moco, setMoco] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
+  const [previews, setPreviews] = useState<PreviewItem[]>([]);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    const next = files.map((file) => ({
+      url: URL.createObjectURL(file),
+      kind: isVideoFile(file) ? ("video" as const) : ("image" as const),
+    }));
+    setPreviews(next);
+    setPage(0);
+    return () => {
+      next.forEach((item) => URL.revokeObjectURL(item.url));
+    };
+  }, [files]);
 
   function reset() {
     setMoco("");
     setFiles([]);
     setError("");
+    setPage(0);
   }
 
   function close() {
@@ -91,6 +117,13 @@ export function PaidAttachDialog({
     close();
   }
 
+  function onPreviewScroll(event: React.UIEvent<HTMLDivElement>) {
+    const el = event.currentTarget;
+    if (el.clientWidth <= 0) return;
+    const next = Math.round(el.scrollLeft / el.clientWidth);
+    setPage(Math.max(0, Math.min(previews.length - 1, next)));
+  }
+
   return (
     <Dialog
       open={open}
@@ -126,16 +159,62 @@ export function PaidAttachDialog({
             onClick={() => inputRef.current?.click()}
           >
             <ImagePlus className="h-4 w-4" />
-            {t("compose.attach.upload")}
+            {files.length > 0
+              ? t("compose.attach.picked", { count: files.length })
+              : t("compose.attach.upload")}
           </Button>
-          {files.length > 0 ? (
-            <ul className="text-xs text-muted-foreground space-y-1 max-h-28 overflow-y-auto">
-              {files.map((file) => (
-                <li key={`${file.name}-${file.size}`} className="truncate">
-                  {file.name}
-                </li>
-              ))}
-            </ul>
+          {previews.length > 0 ? (
+            <div className="space-y-2">
+              <div
+                className="flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-muted/40 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                onScroll={onPreviewScroll}
+              >
+                {previews.map((item, index) => (
+                  <div
+                    key={`${item.url}-${index}`}
+                    className="relative h-32 w-full shrink-0 snap-center sm:h-36"
+                  >
+                    {item.kind === "video" ? (
+                      <video
+                        src={item.url}
+                        className="h-full w-full object-contain"
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.url}
+                        alt=""
+                        className="h-full w-full object-contain"
+                      />
+                    )}
+                    {item.kind === "video" ? (
+                      <span className="pointer-events-none absolute bottom-1.5 left-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white">
+                        <Play className="h-3 w-3" fill="currentColor" />
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              {previews.length > 1 ? (
+                <div className="flex items-center justify-center gap-1.5">
+                  {previews.map((item, index) => (
+                    <span
+                      key={`${item.url}-dot-${index}`}
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        index === page ? "bg-primary" : "bg-muted-foreground/35"
+                      )}
+                    />
+                  ))}
+                  <span className="ml-1 text-[11px] font-semibold text-muted-foreground">
+                    {page + 1}/{previews.length}
+                  </span>
+                </div>
+              ) : null}
+            </div>
           ) : null}
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
           <div className="flex justify-end gap-2">

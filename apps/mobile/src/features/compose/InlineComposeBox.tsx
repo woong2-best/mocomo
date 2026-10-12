@@ -693,6 +693,13 @@ export function InlineComposeBox({
             ? t("m.compose.attach_picked", { count: String(attachPicked.length) })
             : null
         }
+        previews={attachPicked.map((asset) => ({
+          uri: asset.uri,
+          type:
+            asset.type === "video" || (asset.mimeType?.startsWith("video/") ?? false)
+              ? "VIDEO"
+              : "IMAGE",
+        }))}
         onClose={() => {
           setAttachOpen(false);
           setAttachPicked([]);
