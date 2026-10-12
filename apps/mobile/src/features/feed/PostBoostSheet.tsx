@@ -105,27 +105,39 @@ export function PostBoostSheet({ visible, postId, onClose, onSuccess }: Props) {
   return (
     <KeyboardSheet visible={visible} onClose={onClose} sheetStyle={{ backgroundColor: colors.surfaceRaised }}>
       <Text style={styles.title}>{t("m.boost.title")}</Text>
-      <Text style={styles.sub}>{t("m.boost.intro")}</Text>
-
-      <Text style={styles.durationLabel}>{t("m.boost.duration")}</Text>
-      <BoostDayDial
-        key={`${visible}:${postId}`}
-        value={days}
-        onChange={setDays}
-        maxDays={maxDays}
-        colors={colors}
-        alignKey={`${visible}:${postId}`}
-      />
-      <Text style={styles.cost}>
-        {t(days === 1 ? "m.boost.days" : "m.boost.days_plural", {
-          days: String(days),
-          moco: String(cost),
-        })}
+      <Text style={styles.sub}>
+        {complimentaryEligible ? t("m.boost.intro_complimentary") : t("m.boost.intro")}
       </Text>
+
+      {complimentaryEligible ? (
+        <View style={styles.unlimitedBox}>
+          <Text style={styles.durationLabel}>{t("m.boost.duration")}</Text>
+          <Text style={styles.unlimited}>{t("m.boost.unlimited")}</Text>
+          <Text style={styles.unlimitedHint}>{t("m.boost.unlimited_hint")}</Text>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.durationLabel}>{t("m.boost.duration")}</Text>
+          <BoostDayDial
+            key={`${visible}:${postId}`}
+            value={days}
+            onChange={setDays}
+            maxDays={maxDays}
+            colors={colors}
+            alignKey={`${visible}:${postId}`}
+          />
+          <Text style={styles.cost}>
+            {t(days === 1 ? "m.boost.days" : "m.boost.days_plural", {
+              days: String(days),
+              moco: String(cost),
+            })}
+          </Text>
+        </>
+      )}
 
       {loading ? (
         <ActivityIndicator color={colors.cobalt} style={{ marginVertical: spacing.md }} />
-      ) : (
+      ) : complimentaryEligible ? null : (
         <>
           <Text style={styles.balance}>
             {t("m.boost.balance", { balance: String(balance) })}
@@ -150,7 +162,7 @@ export function PostBoostSheet({ visible, postId, onClose, onSuccess }: Props) {
           >
             {t("m.boost.terms_link")}
           </Text>
-          {t("m.boost.terms_after")}
+          {complimentaryEligible ? t("m.boost.terms_after_complimentary") : t("m.boost.terms_after")}
         </Text>
       </View>
 
@@ -159,7 +171,13 @@ export function PostBoostSheet({ visible, postId, onClose, onSuccess }: Props) {
       <View style={styles.actions}>
         <FolkButton label={t("m.common.close")} variant="ghost" onPress={onClose} />
         <FolkButton
-          label={busy ? t("m.boost.busy") : t("m.boost.submit")}
+          label={
+            busy
+              ? t("m.boost.busy")
+              : complimentaryEligible
+                ? t("m.boost.submit_complimentary")
+                : t("m.boost.submit")
+          }
           onPress={() => void submit()}
           loading={busy}
           disabled={loading || !agreed || !canAfford || days < 1}
@@ -302,6 +320,26 @@ function createStyles(colors: ThemeColors) {
       lineHeight: 20,
       textAlign: "center",
       marginBottom: spacing.md,
+    },
+    unlimitedBox: {
+      marginBottom: spacing.md,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.muted,
+    },
+    unlimited: {
+      fontSize: 22,
+      fontWeight: "800",
+      color: colors.cobalt,
+      marginBottom: 4,
+    },
+    unlimitedHint: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.textMuted,
     },
     balance: { fontSize: 14, fontWeight: "700", color: colors.text, marginBottom: 6 },
     charge: { fontSize: 13, fontWeight: "700", color: colors.cobalt, marginBottom: spacing.sm },

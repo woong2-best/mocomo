@@ -21,7 +21,7 @@ export type PostBoostStatus = {
   purchasedMocoBalance?: number;
   complimentaryEligible?: boolean;
   active: boolean;
-  campaign: { id: string; days: number; expiresAt: string } | null;
+  campaign: { id: string; days: number; expiresAt: string; mocoPaid?: number } | null;
   refund: BoostRefundQuote | null;
 };
 

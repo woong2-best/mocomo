@@ -126,19 +126,13 @@ export async function purchaseSponsoredAd(
   });
   if (actor && canRegisterSponsoredAdComplimentary(actor)) {
     const startsAt = input.startsAt ?? new Date();
-    const complimentaryEvent = input.targetType === SPONSORED_AD_TARGET_EVENT;
-    const days = complimentaryEvent
-      ? SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS
-      : input.days;
     return activateSponsoredAdComplimentary({
       userId: input.userId,
       targetType: input.targetType,
       targetId: input.targetId,
-      days,
+      days: SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS,
       startsAt,
-      expiresAt: complimentaryEvent
-        ? calcOperatorUnlimitedExpiresAt(startsAt)
-        : calcSponsoredAdExpiresAt(days, startsAt),
+      expiresAt: calcOperatorUnlimitedExpiresAt(startsAt),
     });
   }
 
@@ -297,6 +291,9 @@ export async function activateSponsoredAdComplimentary(
 
     revalidatePath("/events");
     revalidatePath("/");
+    if (input.targetType === SPONSORED_AD_TARGET_POST) {
+      revalidatePath(`/post/${input.targetId}`);
+    }
     return result;
   } catch (e) {
     throw e;

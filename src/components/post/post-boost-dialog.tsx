@@ -71,10 +71,11 @@ export function PostBoostDialog({
       .finally(() => setLoading(false));
   }, [open, postId, t]);
 
+  const complimentary = Boolean(status?.complimentaryEligible);
   const maxDays = status?.maxDays ?? SPONSORED_AD_MAX_DAYS;
-  const cost = boostCost(days);
+  const cost = complimentary ? 0 : boostCost(days);
   const balance = status?.purchasedMoco ?? 0;
-  const canAfford = Boolean(status?.complimentaryEligible) || mocoCovers(balance, cost);
+  const canAfford = complimentary || mocoCovers(balance, cost);
   const dayLabel = days === 1 ? "post.boost.days" : "post.boost.daysPlural";
 
   async function submit() {
@@ -112,7 +113,9 @@ export function PostBoostDialog({
             {t("post.boost.title")}
           </DialogTitle>
           <DialogDescription className="text-left text-pretty text-sm leading-relaxed break-words text-muted-foreground">
-            {t("post.boost.intro")}
+            {complimentary
+              ? t("post.boost.introComplimentary")
+              : t("post.boost.intro")}
           </DialogDescription>
         </DialogHeader>
 
@@ -120,30 +123,48 @@ export function PostBoostDialog({
           <p className="text-sm text-muted-foreground">{t("post.loadingComments")}</p>
         ) : (
           <div className="min-w-0 space-y-4">
-            <BoostDayStepper
-              value={days}
-              onChange={setDays}
-              maxDays={maxDays}
-              label={t("post.boost.duration")}
-              addLabel={t("post.boost.addDay")}
-              removeLabel={t("post.boost.removeDay")}
-            />
-            <p className="text-sm font-semibold leading-relaxed break-words text-folk-cobalt">
-              {t(dayLabel, { days, moco: formatMocoCount(cost) })}
-            </p>
+            {complimentary ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("post.boost.duration")}
+                </p>
+                <div className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
+                  <p className="text-2xl font-bold tracking-tight text-folk-cobalt">
+                    {t("post.boost.unlimited")}
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {t("post.boost.unlimitedHint")}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <BoostDayStepper
+                  value={days}
+                  onChange={setDays}
+                  maxDays={maxDays}
+                  label={t("post.boost.duration")}
+                  addLabel={t("post.boost.addDay")}
+                  removeLabel={t("post.boost.removeDay")}
+                />
+                <p className="text-sm font-semibold leading-relaxed break-words text-folk-cobalt">
+                  {t(dayLabel, { days, moco: formatMocoCount(cost) })}
+                </p>
 
-            <p className="text-sm font-medium leading-relaxed break-words">
-              {t("post.boost.balance", { balance: formatMocoCount(balance) })}
-            </p>
-            {!canAfford ? (
-              <p className="text-sm leading-relaxed break-words text-destructive">
-                {t("post.boost.insufficient")}
-                <br />
-                <Link href="/wallet" className="font-semibold underline">
-                  {t("post.boost.charge")}
-                </Link>
-              </p>
-            ) : null}
+                <p className="text-sm font-medium leading-relaxed break-words">
+                  {t("post.boost.balance", { balance: formatMocoCount(balance) })}
+                </p>
+                {!canAfford ? (
+                  <p className="text-sm leading-relaxed break-words text-destructive">
+                    {t("post.boost.insufficient")}
+                    <br />
+                    <Link href="/wallet" className="font-semibold underline">
+                      {t("post.boost.charge")}
+                    </Link>
+                  </p>
+                ) : null}
+              </>
+            )}
 
             <div className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
               <input
@@ -162,7 +183,7 @@ export function PostBoostDialog({
                 >
                   {t("post.boost.termsLink")}
                 </Link>
-                {t("post.boost.termsAfter")}
+                {complimentary ? t("post.boost.termsAfterComplimentary") : t("post.boost.termsAfter")}
               </span>
             </div>
 
@@ -174,7 +195,11 @@ export function PostBoostDialog({
               onClick={() => void submit()}
               className="inline-flex w-full items-center justify-center rounded-full bg-folk-cobalt px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             >
-              {busy ? t("post.boost.busy") : t("post.boost.submit")}
+              {busy
+                ? t("post.boost.busy")
+                : complimentary
+                  ? t("post.boost.submitComplimentary")
+                  : t("post.boost.submit")}
             </button>
           </div>
         )}

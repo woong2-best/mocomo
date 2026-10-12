@@ -20,6 +20,7 @@ export function PostCancelBoostSheet({ visible, postId, onClose, onSuccess }: Pr
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refund, setRefund] = useState<BoostRefundQuote | null>(null);
+  const [complimentary, setComplimentary] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -27,9 +28,16 @@ export function PostCancelBoostSheet({ visible, postId, onClose, onSuccess }: Pr
   useEffect(() => {
     if (!visible) return;
     setError("");
+    setComplimentary(false);
     setLoading(true);
     void fetchPostBoostStatus(postId)
-      .then((s) => setRefund(s.refund))
+      .then((s) => {
+        setRefund(s.refund);
+        setComplimentary(
+          Boolean(s.complimentaryEligible) ||
+            (s.campaign != null && Number(s.campaign.mocoPaid ?? 0) === 0)
+        );
+      })
       .catch((e) => setError(e instanceof Error ? e.message : t("m.boost.load_failed")))
       .finally(() => setLoading(false));
   }, [visible, postId, t]);
@@ -52,8 +60,9 @@ export function PostCancelBoostSheet({ visible, postId, onClose, onSuccess }: Pr
     }
   }
 
-  const body =
-    refund && refund.refundMoco > 0
+  const body = complimentary
+    ? t("m.boost.cancel_complimentary")
+    : refund && refund.refundMoco > 0
       ? t("m.boost.cancel_body", {
           used: String(refund.usedDays),
           total: String(refund.totalDays),
@@ -73,7 +82,13 @@ export function PostCancelBoostSheet({ visible, postId, onClose, onSuccess }: Pr
       <View style={styles.actions}>
         <FolkButton label={t("m.common.close")} variant="ghost" onPress={onClose} />
         <FolkButton
-          label={busy ? t("m.boost.cancel_busy") : t("m.boost.cancel_submit")}
+          label={
+            busy
+              ? t("m.boost.cancel_busy")
+              : complimentary
+                ? t("m.boost.cancel_submit_complimentary")
+                : t("m.boost.cancel_submit")
+          }
           onPress={() => void submit()}
           loading={busy}
           disabled={loading}
