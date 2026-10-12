@@ -53,9 +53,7 @@ type Props = {
   onPressVideo?: (postId: string, mediaId?: string, mediaIndex?: number) => void;
   onBlockedAuthor?: (authorId: string) => void;
   onDeletedPost?: (postId: string) => void;
-  /** QnA hub list: keep Q mark / title / translate chrome, hide body + photos. */
-  qnaPreview?: boolean;
-  /** Post detail: show the full body. Feed/profile cards stay 8-line previews. */
+  /** Post detail: show the full body. List cards hide QnA description + photos. */
   expandBody?: boolean;
 };
 
@@ -81,7 +79,6 @@ function FeedPostCardInner({
   onPressVideo,
   onBlockedAuthor,
   onDeletedPost,
-  qnaPreview = false,
   expandBody = false,
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -115,7 +112,7 @@ function FeedPostCardInner({
   const [viewCount, setViewCount] = useState(post.viewCount ?? 0);
 
   const isQna = Boolean(post.community?.slug);
-  const hideQnaBody = isQna && qnaPreview;
+  const hideQnaBody = isQna && !expandBody;
   const hideIdentity = isQna || post.isAnonymous || post.author?.username === "anonymous";
   const isSelf = user?.id === post.author?.id;
   const canShowMenu = status === "signedIn" && (isSelf || !hideIdentity || isQna);
@@ -642,7 +639,6 @@ function propsEqual(a: Props, b: Props) {
     a.onPressAuthor === b.onPressAuthor &&
     a.onPressCommunity === b.onPressCommunity &&
     a.onPressVideo === b.onPressVideo &&
-    a.qnaPreview === b.qnaPreview &&
     a.expandBody === b.expandBody
   );
 }

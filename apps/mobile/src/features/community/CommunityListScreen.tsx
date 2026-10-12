@@ -145,7 +145,6 @@ export function CommunityListScreen() {
         <FeedPostCard
           post={item.data}
           paymentsEnabled={paymentsEnabled}
-          qnaPreview
           onPressPost={onPressPost}
           onPressAuthor={onPressAuthor}
           onPressCommunity={onPressCommunity}
