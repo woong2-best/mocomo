@@ -1209,6 +1209,7 @@
   "m.feed.me": "Me",
   "m.feed.mins_m_left": "{mins}m left",
   "m.feed.mute": "Mute",
+  "m.feed.n_new_posts": "{count} new posts",
   "m.feed.no_highlights_yet": "No highlights yet.",
   "m.feed.open_video_full_screen": "Open video full screen",
   "m.feed.our_team_will_review_it": "Our team will review it.",

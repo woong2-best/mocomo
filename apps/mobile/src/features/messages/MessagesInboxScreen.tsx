@@ -115,7 +115,7 @@ export function MessagesInboxScreen({ presentation, onRequestClose }: Props = {}
     queryKey: ["mobile-dm-inbox"],
     queryFn: fetchDmInbox,
     staleTime: 10_000,
-    refetchOnMount: "always",
+    refetchOnMount: false,
     gcTime: 30 * 60_000,
     placeholderData: (previous) => previous ?? getDmInboxMemory() ?? undefined,
   });

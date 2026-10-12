@@ -25,7 +25,13 @@ import type { FeedPage } from "@/api/feed";
 import {
   fetchMobileFeedInfinitePage,
   MOBILE_FEED_QUERY_KEY,
+  MOBILE_FEED_STALE_MS,
 } from "@/features/feed/mobile-feed-query";
+import {
+  feedHasVisiblePosts,
+  silentRefreshHomeFeed,
+  type InfiniteFeedData,
+} from "@/features/feed/silent-feed-refresh";
 import { MobileApi } from "@/api/paths";
 import { scheduleTabWarmup, resetTabWarmup } from "@/navigation/tab-warmup";
 import {
@@ -143,13 +149,22 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-function prefetchHomeFeed(queryClient: ReturnType<typeof useQueryClient>) {
+function prefetchHomeFeed(
+  queryClient: ReturnType<typeof useQueryClient>,
+  mode: "cold" | "quiet" = "quiet"
+) {
+  const cached = queryClient.getQueryData<InfiniteFeedData>(MOBILE_FEED_QUERY_KEY);
+  if (feedHasVisiblePosts(cached)) {
+    // Cold start is at the top — prepend. Later auth refreshes must not jump scroll.
+    void silentRefreshHomeFeed(queryClient, { prependNew: mode === "cold" });
+    return;
+  }
   void queryClient.prefetchInfiniteQuery({
     queryKey: MOBILE_FEED_QUERY_KEY,
     queryFn: fetchMobileFeedInfinitePage,
     initialPageParam: null as string | null,
     getNextPageParam: (last: FeedPage) => last.nextCursor,
-    staleTime: 0,
+    staleTime: MOBILE_FEED_STALE_MS,
   });
 }
 
@@ -288,7 +303,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setStatus("signedIn");
-      prefetchHomeFeed(queryClient);
+      prefetchHomeFeed(queryClient, "cold");
       scheduleTabWarmup(queryClient);
       void registerPushSafe();
 

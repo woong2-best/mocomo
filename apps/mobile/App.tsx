@@ -5,6 +5,7 @@ import { StyleSheet, View } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
+import { ForegroundSync } from "@/api/app-foreground";
 import { createAppQueryClient } from "@/api/query-client";
 import { AuthProvider } from "@/auth/AuthContext";
 import { AccountLocaleSync } from "@/i18n/AccountLocaleSync";
@@ -39,6 +40,7 @@ export default function App() {
         <ThemeProvider>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
+              <ForegroundSync />
               <I18nProvider>
                 <AccountLocaleSync />
                 <ClientTranslationProvider>

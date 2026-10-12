@@ -98,6 +98,7 @@ export function MarketScreen() {
         mode: "discover",
       }),
     staleTime: 90_000,
+    refetchOnMount: false,
     placeholderData: (previous) => previous,
   });
   const loading = query.isLoading && !query.data;

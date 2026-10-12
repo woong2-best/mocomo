@@ -79,6 +79,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [menuItem, setMenuItem] = useState<MarketplaceListItem | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     void loadDismissedUsedListingIds().then(setDismissedIds);
   }, []);
@@ -103,8 +104,18 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     queryKey: ["mobile-marketplace", hubLane ?? "used", listQuery],
     queryFn: () => fetchMarketplaceList(listQuery),
     staleTime: 90_000,
+    refetchOnMount: false,
     placeholderData: (previous) => previous,
   });
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await query.refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [query]);
 
   const favorite = useMutation({
     mutationFn: (id: string) => toggleMarketplaceFavorite(id),
@@ -352,8 +363,8 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           flexGrow: 1,
         }}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
-        refreshing={query.isFetching && !!query.data}
-        onRefresh={() => void query.refetch()}
+        refreshing={refreshing}
+        onRefresh={() => void onRefresh()}
       />
 
       <Pressable

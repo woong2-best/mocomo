@@ -29,10 +29,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type FeedItem, type FeedPost } from "@/api/feed";
 import { saveFeedBootstrap } from "@/api/feed-bootstrap-cache";
 import {
+  APP_FOREGROUND_MIN_BACKGROUND_MS,
+  APP_FOREGROUND_MIN_SYNC_MS,
+  useAppForeground,
+} from "@/api/app-foreground";
+import {
   fetchMobileFeedInfinitePage,
   MOBILE_FEED_QUERY_KEY,
   MOBILE_FEED_STALE_MS,
 } from "@/features/feed/mobile-feed-query";
+import {
+  feedItemKey,
+  prependFeedItems,
+  silentRefreshHomeFeed,
+  type InfiniteFeedData,
+} from "@/features/feed/silent-feed-refresh";
 import { fetchWeeklyHighlights, type HighlightItem } from "@/api/highlights";
 import { searchAll, type SearchResult } from "@/api/social";
 import { prefetchPostComments } from "@/api/post-comments-query";
@@ -147,6 +158,10 @@ export function FeedScreen() {
   const [isFeedScrolling, setIsFeedScrolling] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const showScrollTopRef = useRef(false);
+  const scrollOffsetRef = useRef(0);
+  const pendingNewRef = useRef<FeedItem[]>([]);
+  const lastSilentSyncRef = useRef(0);
+  const [pendingNewCount, setPendingNewCount] = useState(0);
   const searchRef = useRef<TextInput>(null);
   const firstPaintMarked = useRef(false);
   const activePreviewIdRef = useRef<string | null>(null);
@@ -175,7 +190,10 @@ export function FeedScreen() {
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     staleTime: MOBILE_FEED_STALE_MS,
-    refetchOnMount: "always",
+    gcTime: 30 * 60_000,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    placeholderData: (previous) => previous,
   });
 
   const feedItems = useMemo(() => {
@@ -231,6 +249,8 @@ export function FeedScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    pendingNewRef.current = [];
+    setPendingNewCount(0);
     resetFeedPostOffset();
     await queryClient.invalidateQueries({ queryKey: MOBILE_FEED_QUERY_KEY });
     setRefreshing(false);
@@ -244,6 +264,8 @@ export function FeedScreen() {
 
   const onComposePosted = useCallback(async () => {
     resetFeedPostOffset();
+    pendingNewRef.current = [];
+    setPendingNewCount(0);
     feedListRef.current?.scrollToOffset({ offset: 0, animated: false });
     hideScrollTop();
     await Promise.all([
@@ -253,7 +275,9 @@ export function FeedScreen() {
   }, [hideScrollTop, queryClient]);
 
   const onFeedScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = e.nativeEvent.contentOffset.y > 80;
+    const y = e.nativeEvent.contentOffset.y;
+    scrollOffsetRef.current = y;
+    const next = y > 80;
     if (next === showScrollTopRef.current) return;
     showScrollTopRef.current = next;
     setShowScrollTop(next);
@@ -263,6 +287,52 @@ export function FeedScreen() {
     feedListRef.current?.scrollToOffset({ offset: 0, animated: false });
     hideScrollTop();
   }, [hideScrollTop]);
+
+  const applyPendingNew = useCallback(() => {
+    const incoming = pendingNewRef.current;
+    if (incoming.length === 0) return;
+    queryClient.setQueryData<InfiniteFeedData>(MOBILE_FEED_QUERY_KEY, (old) => {
+      if (!old?.pages?.length) return old;
+      return prependFeedItems(old, incoming);
+    });
+    pendingNewRef.current = [];
+    setPendingNewCount(0);
+    feedListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    hideScrollTop();
+  }, [hideScrollTop, queryClient]);
+
+  const onNewPostsOrScrollTop = useCallback(() => {
+    if (pendingNewRef.current.length > 0) {
+      applyPendingNew();
+      return;
+    }
+    scrollFeedToTop();
+  }, [applyPendingNew, scrollFeedToTop]);
+
+  useAppForeground((backgroundedMs) => {
+    if (backgroundedMs < APP_FOREGROUND_MIN_BACKGROUND_MS) return;
+    const now = Date.now();
+    if (now - lastSilentSyncRef.current < APP_FOREGROUND_MIN_SYNC_MS) return;
+    lastSilentSyncRef.current = now;
+    const atTop = scrollOffsetRef.current < 80;
+    void silentRefreshHomeFeed(queryClient, { prependNew: atTop }).then((incoming) => {
+      if (atTop || incoming.length === 0) {
+        pendingNewRef.current = [];
+        setPendingNewCount(0);
+        return;
+      }
+      const seen = new Set(pendingNewRef.current.map(feedItemKey));
+      const merged = pendingNewRef.current.slice();
+      for (const item of incoming) {
+        const key = feedItemKey(item);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(item);
+      }
+      pendingNewRef.current = merged;
+      setPendingNewCount(merged.length);
+    });
+  });
 
   const composeHeader = useMemo(
     () => (
@@ -544,7 +614,6 @@ export function FeedScreen() {
         <FlashList
           ref={feedListRef}
           style={styles.feedList}
-          key={feedItems.length > 0 ? "feed-data" : "feed-empty"}
           data={feedItems}
           renderItem={renderItem}
           keyExtractor={(item) =>
@@ -552,6 +621,7 @@ export function FeedScreen() {
           }
           getItemType={getItemType}
           extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${isFeedScrolling ? 1 : 0}:${visiblePostIds.join(",")}`}
+          maintainVisibleContentPosition={{ autoscrollToTopThreshold: 80 }}
           drawDistance={PerformanceBudgets.feedDrawDistance}
           ListHeaderComponent={composeHeader}
           keyboardShouldPersistTaps="handled"
@@ -600,16 +670,29 @@ export function FeedScreen() {
           contentContainerStyle={{ paddingBottom: bottomPad }}
         />
 
-        {showScrollTop ? (
+        {showScrollTop || pendingNewCount > 0 ? (
           <View style={styles.scrollTopWrap} pointerEvents="box-none">
             <Pressable
-              onPress={scrollFeedToTop}
+              onPress={onNewPostsOrScrollTop}
               hitSlop={8}
-              style={({ pressed }) => [styles.scrollTopBtn, pressed && styles.scrollTopBtnPressed]}
+              style={({ pressed }) => [
+                pendingNewCount > 0 ? styles.scrollTopChip : styles.scrollTopBtn,
+                pressed && styles.scrollTopBtnPressed,
+              ]}
               accessibilityRole="button"
-              accessibilityLabel={t("m.feed.scroll_to_top")}
+              accessibilityLabel={
+                pendingNewCount > 0
+                  ? t("m.feed.n_new_posts", { count: String(pendingNewCount) })
+                  : t("m.feed.scroll_to_top")
+              }
             >
-              <Ionicons name="chevron-up" size={22} color={styles.headerIcon.color} />
+              {pendingNewCount > 0 ? (
+                <Text style={styles.scrollTopChipText}>
+                  {t("m.feed.n_new_posts", { count: String(pendingNewCount) })}
+                </Text>
+              ) : (
+                <Ionicons name="chevron-up" size={22} color={styles.headerIcon.color} />
+              )}
             </Pressable>
           </View>
         ) : null}
@@ -831,6 +914,26 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: isDark ? 0.35 : 0.18,
       shadowRadius: 6,
+    },
+    scrollTopChip: {
+      minHeight: 40,
+      paddingHorizontal: 14,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceRaised,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+      elevation: 6,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.35 : 0.18,
+      shadowRadius: 6,
+    },
+    scrollTopChipText: {
+      fontSize: 13,
+      fontWeight: "800",
+      color: headerIconColor,
     },
     scrollTopBtnPressed: {
       opacity: 0.82,
