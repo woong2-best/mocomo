@@ -18,6 +18,7 @@ import {
   type CommunityPostsBoardItem,
   type CommunityPostsBoardTab,
 } from "@/lib/community-posts-board";
+import { usePostCardNavigate } from "@/components/feed/post-card-navigate";
 
 const TABS: { id: CommunityPostsBoardTab; label: string }[] = [
   { id: "all", label: t("community-server.suag9c") },
@@ -33,13 +34,16 @@ function BoardRow({
 }) {
   const title = postDisplayTitle(post);
   const writer = galleryAuthorLabel(post.authorName, post.authorUsername, post.isAnonymous);
+  const { onClick, onAuxClick } = usePostCardNavigate(`/post/${post.id}`);
 
   return (
     <tr
       className={cn(
-        "border-b border-[#e8e8e8] dark:border-border/60 hover:bg-[#f5f8ff] dark:hover:bg-muted/40 transition-colors",
+        "border-b border-[#e8e8e8] dark:border-border/60 hover:bg-[#f5f8ff] dark:hover:bg-muted/40 transition-colors cursor-pointer",
         post.isPinned && "bg-[#fff8e8] dark:bg-amber-950/20"
       )}
+      onClick={onClick}
+      onAuxClick={onAuxClick}
     >
       <td className="py-2 px-2 text-center text-[11px] text-muted-foreground tabular-nums w-14">
         {post.isPinned ? (

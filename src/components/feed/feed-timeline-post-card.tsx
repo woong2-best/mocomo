@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
-import { topProgress } from "@/lib/top-progress";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, Star } from "lucide-react";
 import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
@@ -30,6 +29,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 import { qnaListTitle } from "@/lib/qna-list-title";
+import { PostCardNavigate } from "@/components/feed/post-card-navigate";
 
 export function FeedTimelinePostCard({
   post,
@@ -91,7 +91,10 @@ export function FeedTimelinePostCard({
   }
 
   return (
-    <article className="w-full rounded-2xl border border-border bg-card overflow-hidden">
+    <PostCardNavigate
+      href={postHref}
+      className="w-full rounded-2xl border border-border bg-card overflow-hidden"
+    >
       {post.repostBy ? (
         <div className="px-4 pt-3">
           <RepostBanner user={post.repostBy.user} />
@@ -123,22 +126,13 @@ export function FeedTimelinePostCard({
                 </PrefetchLink>
               ) : null}
               {hideQnaBody && qnaHeadline ? (
-                <div
-                  className="cursor-pointer"
-                  onClick={(e) => {
-                    if ((e.target as HTMLElement).closest("a, button, [role='link']")) return;
-                    topProgress.start();
-                    router.push(`/post/${post.id}`);
-                  }}
-                >
-                  <TranslatableText
-                    text={qnaHeadline}
-                    as="p"
-                    stopPropagation
-                    showLinkPreview={false}
-                    className="font-semibold text-[15px] mb-1 text-white whitespace-pre-wrap break-words line-clamp-[8]"
-                  />
-                </div>
+                <TranslatableText
+                  text={qnaHeadline}
+                  as="p"
+                  stopPropagation
+                  showLinkPreview={false}
+                  className="font-semibold text-[15px] mb-1 text-white whitespace-pre-wrap break-words line-clamp-[8]"
+                />
               ) : post.title ? (
                 <PrefetchLink href={postHref} className="block">
                   <p
@@ -152,21 +146,12 @@ export function FeedTimelinePostCard({
                 </PrefetchLink>
               ) : null}
               {hideQnaBody || !post.content ? null : (
-                <div
-                  className="cursor-pointer"
-                  onClick={(e) => {
-                    if ((e.target as HTMLElement).closest("a, button, [role='link']")) return;
-                    topProgress.start();
-                    router.push(`/post/${post.id}`);
-                  }}
-                >
-                  <TranslatableText
-                    text={post.content}
-                    as="p"
-                    stopPropagation
-                    className="text-[15px] whitespace-pre-wrap break-words line-clamp-[8]"
-                  />
-                </div>
+                <TranslatableText
+                  text={post.content}
+                  as="p"
+                  stopPropagation
+                  className="text-[15px] whitespace-pre-wrap break-words line-clamp-[8]"
+                />
               )}
               {hideQnaBody ? null : post.quotedPost ||
                 (post as { quotedPostBlocked?: boolean }).quotedPostBlocked ? (
@@ -221,10 +206,7 @@ export function FeedTimelinePostCard({
           </div>
         </div>
       </div>
-      <div
-        className="flex items-center justify-between px-4 py-2 border-t border-border/60 text-muted-foreground"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="flex items-center justify-between px-4 py-2 border-t border-border/60 text-muted-foreground">
         <div className="flex items-center gap-1 text-xs">
           {qna ? null : (
           <button
@@ -288,6 +270,6 @@ export function FeedTimelinePostCard({
         </div>
       </div>
       {displayError && <p className="px-4 pb-2 text-xs text-destructive">{displayError}</p>}
-    </article>
+    </PostCardNavigate>
   );
 }

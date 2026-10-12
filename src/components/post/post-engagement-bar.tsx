@@ -85,7 +85,7 @@ export function PostEngagementBar({
   }
 
   return (
-    <div className={cn("space-y-1", className)} onClick={(e) => e.stopPropagation()}>
+    <div className={cn("space-y-1", className)}>
       <div className="flex items-center justify-between text-muted-foreground">
         <div className="flex items-center gap-1 text-xs">
           <button

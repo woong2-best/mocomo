@@ -277,7 +277,16 @@ function FeedPostCardInner({
     : null;
 
   return (
-    <View style={[styles.card, pinnedHighlight && styles.cardPinned]}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        pinnedHighlight && styles.cardPinned,
+        pressed && onPressPost ? styles.cardPressed : null,
+      ]}
+      onPress={onPressPost ? openPost : undefined}
+      accessibilityRole={onPressPost ? "button" : undefined}
+      accessibilityLabel={onPressPost ? t("m.common.view_post") : undefined}
+    >
       {pinnedHighlight ? (
         <View style={styles.pinnedLabel}>
           <Ionicons name="pin" size={14} color={colors.textMuted} />
@@ -617,7 +626,7 @@ function FeedPostCardInner({
           }
         />
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -674,6 +683,9 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       backgroundColor: isDark ? colors.muted : "rgba(197, 82, 42, 0.06)",
       borderLeftWidth: 3,
       borderLeftColor: colors.cobalt,
+    },
+    cardPressed: {
+      backgroundColor: isDark ? colors.muted : "rgba(15, 23, 42, 0.04)",
     },
     pinnedLabel: {
       flexDirection: "row",

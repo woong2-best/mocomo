@@ -11,6 +11,7 @@ import { FeedPostMediaCarousel } from "@/components/feed/feed-post-media-carouse
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
 import type { SupportTierLevel } from "@prisma/client";
+import { PostCardNavigate } from "@/components/feed/post-card-navigate";
 
 type PostCardProps = {
   post: {
@@ -53,6 +54,7 @@ type PostCardProps = {
 
 export function PostCard({ post, paymentsEnabled = false }: PostCardProps) {
   return (
+    <PostCardNavigate href={`/post/${post.id}`} as="div">
     <Card className="hover:border-primary/30 transition-all duration-300">
       <CardContent className="p-4 space-y-3">
         <PostCollaboratorsHeader
@@ -134,5 +136,6 @@ export function PostCard({ post, paymentsEnabled = false }: PostCardProps) {
         </div>
       </CardContent>
     </Card>
+    </PostCardNavigate>
   );
 }

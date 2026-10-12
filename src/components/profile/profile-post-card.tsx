@@ -15,6 +15,7 @@ import { PostPollCard } from "@/components/post/post-poll-card";
 import { RepostBanner } from "@/components/post/repost-banner";
 import { QuotedPostCard } from "@/components/post/quoted-post-card";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
+import { PostCardNavigate } from "@/components/feed/post-card-navigate";
 
 export function ProfilePostCard({
   post,
@@ -47,7 +48,8 @@ export function ProfilePostCard({
   const isPollAuthor = Boolean(isSelf && authorId && post.author.id === authorId);
 
   return (
-    <article
+    <PostCardNavigate
+      href={`/post/${post.id}`}
       className={cn(
         "relative px-4 py-3 border-b border-border/60 hover:bg-muted/30 transition-colors min-w-0 max-w-full overflow-hidden",
         pinnedHighlight && "bg-muted/15 border-l-4 border-l-primary/70"
@@ -153,6 +155,6 @@ export function ProfilePostCard({
           </div>
         </div>
       </div>
-    </article>
+    </PostCardNavigate>
   );
 }

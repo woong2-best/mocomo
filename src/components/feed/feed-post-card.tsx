@@ -16,6 +16,7 @@ import type { SupportTierLevel } from "@prisma/client";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import type { PostPollView } from "@/lib/post-poll";
+import { PostCardNavigate } from "@/components/feed/post-card-navigate";
 import { ANONYMOUS_AUTHOR_USERNAME, ANONYMOUS_DISPLAY_NAME } from "@/lib/anonymous-post";
 
 export type GridPost = {
@@ -127,6 +128,7 @@ export function FeedPostCard({
   );
 
   return (
+    <PostCardNavigate href={`/post/${post.id}`} as="div" className="h-full">
     <Card className="overflow-hidden hover:border-primary/40 transition-all duration-300 group h-full flex flex-col">
       <CardContent className="p-0 flex flex-col flex-1">
         <div className="flex items-center gap-2 p-3 pb-2">
@@ -216,5 +218,6 @@ export function FeedPostCard({
         </div>
       </CardContent>
     </Card>
+    </PostCardNavigate>
   );
 }
