@@ -551,7 +551,9 @@ export async function getPendingSanctionNotice(userId: string): Promise<PendingS
     startsAt: row.startsAt.toISOString(),
     endsAt: row.endsAt?.toISOString() ?? null,
     accountStatus: refreshed?.accountStatus ?? user.accountStatus,
-    readOnly: isReadOnlySuspended(refreshed?.accountStatus) || isServiceBanned(refreshed),
+    readOnly:
+      isReadOnlySuspended(refreshed?.accountStatus ?? user.accountStatus) ||
+      isServiceBanned(refreshed ?? user),
   };
 }
 
