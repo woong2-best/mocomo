@@ -146,6 +146,7 @@ function NativePaidVideo({
       style={[StyleSheet.absoluteFill, style]}
       contentFit={contentFit}
       nativeControls={false}
+      pointerEvents="none"
     />
   );
 }

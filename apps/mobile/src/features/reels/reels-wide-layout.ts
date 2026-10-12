@@ -20,6 +20,24 @@ export const REELS_WIDE_ASPECT_SLACK = 0.04;
 /** Minimum gutter for a tappable icon rail on each side. */
 export const REELS_WIDE_MIN_RAIL = 64;
 
+/** Instagram card radius on the centered 9:16 stage (fold / tablet). */
+export const REELS_WIDE_CARD_RADIUS = 18;
+
+/** Phone 2× hold strip — keep narrow so the action rail stays tappable. */
+export const REELS_PHONE_EDGE_HOLD = 52;
+
+/** Fold / tablet 2× hold sits on the video frame, not the nav-button gutter. */
+export const REELS_WIDE_EDGE_HOLD_MIN = 80;
+export const REELS_WIDE_EDGE_HOLD_MAX = 132;
+export const REELS_WIDE_EDGE_HOLD_RATIO = 0.2;
+
+/** Left-edge 2× width on the video card. Wide = Instagram-sized frame, not the side buttons. */
+export function reelsEdgeHoldWidth(stageWidth: number, isWide: boolean): number {
+  if (!isWide) return REELS_PHONE_EDGE_HOLD;
+  const fromRatio = Math.round(stageWidth * REELS_WIDE_EDGE_HOLD_RATIO);
+  return Math.min(REELS_WIDE_EDGE_HOLD_MAX, Math.max(REELS_WIDE_EDGE_HOLD_MIN, fromRatio));
+}
+
 export type ReelsWideNavRoute = Extract<
   DrawerRoute,
   "Home" | "Used" | "StarList" | "CommunityList" | "AnimeList" | "Wallet"

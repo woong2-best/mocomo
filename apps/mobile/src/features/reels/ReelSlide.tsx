@@ -68,6 +68,7 @@ function ReelNativePlayer({
         player={player}
         contentFit="cover"
         nativeControls={false}
+        pointerEvents="none"
       />
     </>
   );

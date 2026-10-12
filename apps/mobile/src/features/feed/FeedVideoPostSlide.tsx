@@ -39,9 +39,12 @@ import { useAuth } from "@/auth/AuthContext";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { useI18n } from "@/i18n/I18nProvider";
+import {
+  REELS_PHONE_EDGE_HOLD,
+  REELS_WIDE_CARD_RADIUS,
+  reelsEdgeHoldWidth,
+} from "@/features/reels/reels-wide-layout";
 
-/** Instagram Reels-style edge hold width — narrow so center taps / right rail stay safe. */
-const EDGE_HOLD_WIDTH = 52;
 /** Right inset for center tap zone so it does not compete with the action rail. */
 const RAIL_CLEARANCE = 76;
 const FAST_PLAYBACK_RATE = 2;
@@ -172,6 +175,7 @@ function NativeVideoCell({
         player={player}
         contentFit="contain"
         nativeControls={false}
+        pointerEvents="none"
       />
     </View>
   );
@@ -328,11 +332,13 @@ function VideoCell({
 
 function EdgeHoldZone({
   side,
+  width = REELS_PHONE_EDGE_HOLD,
   disabled,
   onHoldStart,
   onHoldEnd,
 }: {
   side: "left" | "right";
+  width?: number;
   disabled?: boolean;
   onHoldStart: () => void;
   onHoldEnd: () => void;
@@ -354,7 +360,11 @@ function EdgeHoldZone({
 
   return (
     <Pressable
-      style={[styles.edgeZone, side === "left" ? styles.edgeLeft : styles.edgeRight]}
+      style={[
+        styles.edgeZone,
+        { width },
+        side === "left" ? styles.edgeLeft : styles.edgeRight,
+      ]}
       onLongPress={startHold}
       onPressOut={endHold}
       delayLongPress={160}
@@ -385,6 +395,8 @@ function FeedVideoPostSlideInner({
   const stageWidth = stageWidthProp ?? width;
   const stageLeft = stageLeftProp ?? 0;
   const isWide = stageLeft > 0 || stageWidth < width;
+  const leftEdgeWidth = reelsEdgeHoldWidth(stageWidth, isWide);
+  const rightEdgeWidth = REELS_PHONE_EDGE_HOLD;
   const { t } = useI18n();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
@@ -580,7 +592,16 @@ function FeedVideoPostSlideInner({
 
   return (
     <View style={{ width, height, backgroundColor: "#000", overflow: "hidden" }}>
-      <View style={{ position: "absolute", left: stageLeft, width: stageWidth, height, overflow: "hidden" }}>
+      <View
+        style={{
+          position: "absolute",
+          left: stageLeft,
+          width: stageWidth,
+          height,
+          overflow: "hidden",
+          borderRadius: isWide ? REELS_WIDE_CARD_RADIUS : 0,
+        }}
+      >
       <FlatList
         ref={listRef}
         data={group.videos}
@@ -630,7 +651,10 @@ function FeedVideoPostSlideInner({
               {isCurrent && !chromeHidden && item.mediaType !== "IMAGE" ? (
                 <>
                   <Pressable
-                    style={[styles.tapZone, isWide ? styles.tapZoneWide : null]}
+                    style={[
+                      styles.tapZone,
+                      { left: leftEdgeWidth, right: RAIL_CLEARANCE },
+                    ]}
                     onPress={togglePause}
                     accessibilityRole="button"
                     accessibilityLabel={pausedByUser ? t("m.common.play") : t("m.common.pause")}
@@ -642,12 +666,14 @@ function FeedVideoPostSlideInner({
                   ) : null}
                   <EdgeHoldZone
                     side="left"
+                    width={leftEdgeWidth}
                     disabled={pausedByUser}
                     onHoldStart={startFastForward}
                     onHoldEnd={stopFastForward}
                   />
                   <EdgeHoldZone
                     side="right"
+                    width={rightEdgeWidth}
                     disabled={pausedByUser}
                     onHoldStart={startFastForward}
                     onHoldEnd={stopFastForward}
@@ -721,9 +747,8 @@ function FeedVideoPostSlideInner({
         ) : null}
         </View>
       ) : null}
-      </View>
 
-      {/* Right rail */}
+      {/* Action rail sits on the video's right edge (Instagram), not the fold gutter. */}
       {!chromeHidden ? (
         <View style={styles.rail} pointerEvents="box-none">
         <Pressable onPress={onLike} style={styles.railBtn} hitSlop={10}>
@@ -777,6 +802,7 @@ function FeedVideoPostSlideInner({
         </Pressable>
         </View>
       ) : null}
+      </View>
 
       <PostReportSheet
         visible={reportOpen}
@@ -831,20 +857,14 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: "#fff" },
   tapZone: {
     position: "absolute",
-    left: EDGE_HOLD_WIDTH,
-    right: RAIL_CLEARANCE,
     top: 32,
     bottom: 88,
     zIndex: 2,
-  },
-  tapZoneWide: {
-    right: EDGE_HOLD_WIDTH,
   },
   edgeZone: {
     position: "absolute",
     top: 0,
     bottom: 0,
-    width: EDGE_HOLD_WIDTH,
     zIndex: 4,
   },
   edgeLeft: { left: 0 },

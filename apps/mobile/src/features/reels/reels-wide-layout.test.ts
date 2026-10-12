@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import {
   computeReelsChromeLayout,
   isReelsWideViewport,
+  reelsEdgeHoldWidth,
+  REELS_PHONE_EDGE_HOLD,
   REELS_STAGE_ASPECT,
+  REELS_WIDE_EDGE_HOLD_MAX,
+  REELS_WIDE_EDGE_HOLD_MIN,
   REELS_WIDE_NAV_ITEMS,
 } from "./reels-wide-layout";
 
@@ -56,6 +60,19 @@ test("tight leftover shrinks the stage so both rails stay tappable", () => {
   assert.ok(layout.leftRailWidth >= 64);
   assert.ok(layout.rightRailWidth >= 64);
   assert.equal(layout.leftRailWidth + layout.stageWidth + layout.rightRailWidth, width);
+});
+
+test("phone 2x hold stays a narrow strip", () => {
+  assert.equal(reelsEdgeHoldWidth(390, false), REELS_PHONE_EDGE_HOLD);
+});
+
+test("fold 2x hold is on the video frame, wider than the phone strip", () => {
+  const layout = computeReelsChromeLayout(1812, 2176);
+  const edge = reelsEdgeHoldWidth(layout.stageWidth, true);
+  assert.ok(edge >= REELS_WIDE_EDGE_HOLD_MIN);
+  assert.ok(edge <= REELS_WIDE_EDGE_HOLD_MAX);
+  assert.ok(edge > REELS_PHONE_EDGE_HOLD);
+  assert.ok(edge < layout.stageWidth / 2);
 });
 
 test("wide nav uses the same six app destinations as the drawer", () => {

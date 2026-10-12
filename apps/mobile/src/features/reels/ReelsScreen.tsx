@@ -535,7 +535,16 @@ export function ReelsScreen() {
 
       {/* Up / down affordances like web */}
       {!chromeHidden ? (
-        <View style={[styles.navArrows, { top: insets.top + 56 }]} pointerEvents="box-none">
+        <View
+          style={[
+            styles.navArrows,
+            { top: insets.top + 56 },
+            chrome.isWide
+              ? { left: chrome.stageLeft + chrome.stageWidth - 48 }
+              : { right: 10 },
+          ]}
+          pointerEvents="box-none"
+        >
           <Pressable style={styles.arrowBtn} onPress={() => goSlot(-1)} disabled={activeSlot <= 0}>
             <Ionicons name="chevron-up" size={22} color="#fff" />
           </Pressable>
@@ -693,7 +702,6 @@ const styles = StyleSheet.create({
   backBtn: { width: 44, height: 40, alignItems: "center", justifyContent: "center" },
   navArrows: {
     position: "absolute",
-    right: 10,
     zIndex: 20,
     gap: 8,
   },

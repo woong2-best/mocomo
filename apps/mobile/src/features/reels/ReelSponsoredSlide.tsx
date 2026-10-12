@@ -8,6 +8,7 @@ import type { FeedAd } from "@/api/feed";
 import { API_BASE_URL } from "@/config/env";
 import { useI18n } from "@/i18n/I18nProvider";
 import { reelsUi } from "@/features/reels/reels-ui";
+import { REELS_WIDE_CARD_RADIUS } from "@/features/reels/reels-wide-layout";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation/types";
@@ -38,6 +39,7 @@ function ReelSponsoredSlideInner({
   const insets = useSafeAreaInsets();
   const stageWidth = stageWidthProp ?? width;
   const stageLeft = stageLeftProp ?? 0;
+  const isWide = stageLeft > 0 || stageWidth < width;
   const styles = useMemo(() => createStyles(stageWidth, height), [stageWidth, height]);
   const imageUri = resolveAdUrl(ad.imageUrl);
 
@@ -56,7 +58,12 @@ function ReelSponsoredSlideInner({
 
   return (
     <View style={{ width, height, backgroundColor: "#0a0a0f", overflow: "hidden" }}>
-    <View style={[styles.root, { left: stageLeft }]}>
+    <View
+      style={[
+        styles.root,
+        { left: stageLeft, borderRadius: isWide ? REELS_WIDE_CARD_RADIUS : 0 },
+      ]}
+    >
       <Image
         source={{ uri: imageUri }}
         style={styles.image}
@@ -110,6 +117,7 @@ function createStyles(width: number, height: number) {
       height,
       backgroundColor: "#0a0a0f",
       justifyContent: "flex-end",
+      overflow: "hidden",
     },
     image: {
       ...StyleSheet.absoluteFill,
