@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCachedAuthUserMinimal } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getJwtSessionUser } from "@/lib/session-jwt";
 
 export async function POST(req: NextRequest) {
-  const user = await getCachedAuthUserMinimal();
+  const user = await getJwtSessionUser();
   if (!user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -22,17 +22,21 @@ export async function POST(req: NextRequest) {
 
   const userAgent = req.headers.get("user-agent")?.slice(0, 500) ?? null;
 
-  await db.pushSubscription.upsert({
-    where: { userId_endpoint: { userId: user.id, endpoint } },
-    create: { userId: user.id, endpoint, p256dh, auth, userAgent },
-    update: { p256dh, auth, userAgent },
-  });
+  try {
+    await db.pushSubscription.upsert({
+      where: { userId_endpoint: { userId: user.id, endpoint } },
+      create: { userId: user.id, endpoint, p256dh, auth, userAgent },
+      update: { p256dh, auth, userAgent },
+    });
+  } catch {
+    return NextResponse.json({ ok: false }, { status: 503 });
+  }
 
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest) {
-  const user = await getCachedAuthUserMinimal();
+  const user = await getJwtSessionUser();
   if (!user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -43,9 +47,13 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "endpoint required" }, { status: 400 });
   }
 
-  await db.pushSubscription.deleteMany({
-    where: { userId: user.id, endpoint },
-  });
+  try {
+    await db.pushSubscription.deleteMany({
+      where: { userId: user.id, endpoint },
+    });
+  } catch {
+    return NextResponse.json({ ok: false }, { status: 503 });
+  }
 
   return NextResponse.json({ ok: true });
 }

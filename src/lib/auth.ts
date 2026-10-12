@@ -407,7 +407,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
         // credentials early-path에서도 isOperator/isStaff 세팅됨 — 오너면 DB role 보정
         if (token.isOperator && token.id) {
-          void db.user
+          await db.user
             .update({
               where: { id: String(token.id) },
               data: { role: "OWNER", adminDisabledAt: null, lastLoginAt: new Date() },
@@ -422,14 +422,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       if (user?.id || trigger === "update" || isProfileTokenStale(token)) {
         const userId = (user?.id ?? token.id) as string;
-        if (user?.id) {
-          void db.user
-            .update({
-              where: { id: userId },
-              data: { lastLoginAt: new Date() },
-            })
-            .catch(() => undefined);
-        }
         const dbUser = await db.user.findUnique({
           where: { id: userId },
           select: {
@@ -472,7 +464,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.picture = displayableImageUrl(displayed.image);
           token.profileSyncedAt = Date.now();
           if (dbUser.image && !isPublicHttpUrl(dbUser.image)) {
-            void db.user
+            await db.user
               .update({ where: { id: userId }, data: { image: null } })
               .catch(() => undefined);
           }
@@ -498,13 +490,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.role = "OWNER";
             token.isStaff = true;
             if (dbUser.role !== "OWNER" || dbUser.adminDisabledAt) {
-              void db.user
+              await db.user
                 .update({
                   where: { id: userId },
                   data: { role: "OWNER", adminDisabledAt: null },
                 })
                 .catch(() => undefined);
             }
+          }
+          if (user?.id) {
+            await db.user
+              .update({
+                where: { id: userId },
+                data: { lastLoginAt: new Date() },
+              })
+              .catch(() => undefined);
           }
         }
       } else if (token.username && !token.isOperator && !token.isStaff) {
@@ -583,20 +583,24 @@ export async function requireAuthForAction(options?: { writeKind?: AccountWriteK
 export const getCachedAuthUserMinimal = cache(async () => {
   const session = await getCachedSession();
   if (!session?.user?.id) return null;
-  return db.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      username: true,
-      image: true,
-      isBanned: true,
-      accountStatus: true,
-      deletedAt: true,
-      role: true,
-      supportTierSent: true,
-      suspensionExpiresAt: true,
-    },
-  });
+  try {
+    return await db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        username: true,
+        image: true,
+        isBanned: true,
+        accountStatus: true,
+        deletedAt: true,
+        role: true,
+        supportTierSent: true,
+        suspensionExpiresAt: true,
+      },
+    });
+  } catch {
+    return null;
+  }
 });
 
 export async function requireAuthMinimal(options?: { writeKind?: AccountWriteKind }) {

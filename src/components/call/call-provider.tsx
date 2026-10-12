@@ -117,6 +117,7 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   /** Calls we already finished. A late sync must not reopen them over a new call. */
   const finishedCallIdsRef = useRef<Set<string>>(new Set());
   const syncGenRef = useRef(0);
+  const syncInFlightRef = useRef(false);
   const earlySignalsRef = useRef<CallSignalEvent[]>([]);
 
   callStateRef.current = callState;
@@ -292,6 +293,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
   }, []);
 
   const pullSync = useCallback(async () => {
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
     const my = ++syncGenRef.current;
     try {
       const res = await fetch("/api/calls/sync", { cache: "no-store" });
@@ -301,6 +304,8 @@ function CallProviderRuntime({ children }: { children: React.ReactNode }) {
       applySync(data);
     } catch {
       /* ignore */
+    } finally {
+      syncInFlightRef.current = false;
     }
   }, [applySync]);
 

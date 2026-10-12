@@ -17,14 +17,16 @@ const userSelect = {
 } as const;
 
 export async function requireApiUser(options?: { writeKind?: AccountWriteKind }) {
-  const session = await auth();
+  const session = await auth().catch(() => null);
   if (!session?.user?.id) {
     return { error: NextResponse.json({ error: "Sign-in required." }, { status: 401 }) };
   }
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: userSelect,
-  });
+  const user = await db.user
+    .findUnique({
+      where: { id: session.user.id },
+      select: userSelect,
+    })
+    .catch(() => null);
   if (!user) {
     return { error: NextResponse.json({ error: "Sign-in required." }, { status: 401 }) };
   }
