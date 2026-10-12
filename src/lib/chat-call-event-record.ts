@@ -30,6 +30,7 @@ export async function recordCallChatEvents(opts: {
   if (call.status !== CallStatus.ENDED) return;
   if (!call.startedAt) return;
 
+  const chatRoomId = call.chatRoomId;
   const kind: CallEventKind = call.callType === CallType.VIDEO ? "VIDEO" : "AUDIO";
   const startedMarker = callEventMarker("started", kind, call.id);
   const endedMarker = callEventMarker("ended", kind, call.id);
@@ -44,7 +45,7 @@ export async function recordCallChatEvents(opts: {
   const created = await db.$transaction(async (tx) => {
     const existing = await tx.message.findMany({
       where: {
-        roomId: call.chatRoomId,
+        roomId: chatRoomId,
         OR: [
           { content: { startsWith: startedMarker } },
           { content: { startsWith: endedMarker } },
@@ -61,7 +62,7 @@ export async function recordCallChatEvents(opts: {
       rows.push(
         await tx.message.create({
           data: {
-            roomId: call.chatRoomId!,
+            roomId: chatRoomId,
             senderId: call.callerId,
             content: buildCallEventMessageBody("started", kind, call.id),
             createdAt: startedAt,
@@ -74,7 +75,7 @@ export async function recordCallChatEvents(opts: {
       rows.push(
         await tx.message.create({
           data: {
-            roomId: call.chatRoomId!,
+            roomId: chatRoomId,
             senderId: endedBy,
             content: buildCallEventMessageBody("ended", kind, call.id),
             createdAt: endedAt,
@@ -84,13 +85,13 @@ export async function recordCallChatEvents(opts: {
       );
     }
     await tx.chatRoom.update({
-      where: { id: call.chatRoomId! },
+      where: { id: chatRoomId },
       data: { updatedAt: endedAt },
     });
     return rows;
   });
 
   for (const message of created) {
-    void relayChatMessageToSocket(call.chatRoomId, serializeChatMessageForRelay(message));
+    void relayChatMessageToSocket(chatRoomId, serializeChatMessageForRelay(message));
   }
 }
