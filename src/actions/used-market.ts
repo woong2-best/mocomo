@@ -124,6 +124,7 @@ export async function getUsedListings(
     sessionCountry: options?.sessionCountry ?? params?.viewerCountryCode ?? null,
   });
   const andFilters: Prisma.UsedListingWhereInput[] = [
+    { removedAt: null },
     buildScopedUsedListingWhere(locality, {
       region: params?.region,
       sido: params?.sido,
@@ -273,6 +274,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
       });
     }
     if (!listing) return null;
+    if (listing.removedAt) return null;
 
     if (
       (listing.meetLat == null || listing.meetLng == null) &&

@@ -174,6 +174,28 @@ enum AppealStatus {
   CLOSED
 }
 
+enum AppealKind {
+  ACCOUNT
+  CONTENT
+}
+
+enum OperatorSanctionKind {
+  CONTENT_REMOVE
+  SUSPEND_24H
+  SUSPEND_3D
+  SUSPEND_5D
+  SUSPEND_PERMANENT
+  RESTORE_CONTENT
+  LIFT_SUSPENSION
+}
+
+enum OperatorSanctionTargetType {
+  POST
+  USED_LISTING
+  MARKETPLACE_LISTING
+  ACCOUNT
+}
+
 enum ContentVisibility {
   PUBLIC
   SUBSCRIBERS
@@ -478,6 +500,12 @@ model User {
   suspensionLogs      AccountSuspensionLog[] @relation("SuspensionTarget")
   accountAppeals      AccountAppeal[]
   appealsAdministered AccountAppeal[] @relation("AppealAdmin")
+  postsRemoved               Post[] @relation("PostRemovedBy")
+  usedListingsRemoved        UsedListing[] @relation("UsedListingRemovedBy")
+  marketplaceListingsRemoved MarketplaceListing[] @relation("MarketplaceListingRemovedBy")
+  operatorSanctionsReceived  OperatorSanction[] @relation("SanctionTarget")
+  operatorSanctionsIssued    OperatorSanction[] @relation("SanctionActor")
+  operatorSanctionsReversed  OperatorSanction[] @relation("SanctionReverser")
   banEvasionAsNew     BanEvasionSuspect[] @relation("BanEvasionNew")
   banEvasionAsLinked  BanEvasionSuspect[] @relation("BanEvasionLinked")
   riskScoreEvents     RiskScoreEvent[]
@@ -1158,12 +1186,17 @@ model Post {
   instantPurchasePriceKrw Int @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  /** Operator soft-hide — likes/comments/order stay; restore clears this. */
+  removedAt       DateTime?
+  removedById     String?
+  removalReason   String?   @db.Text
   /** 인용 게시 — 원본 게시물. 단순 재게시는 Repost 테이블. */
   quotedPostId String?
   quotedPost   Post?  @relation("PostQuotes", fields: [quotedPostId], references: [id], onDelete: SetNull)
   quotes       Post[] @relation("PostQuotes")
 
   author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  removedBy User?     @relation("PostRemovedBy", fields: [removedById], references: [id], onDelete: SetNull)
   community Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
   anime     Anime?    @relation(fields: [animeId], references: [id], onDelete: SetNull)
   media     PostMedia[]
@@ -1187,6 +1220,7 @@ model Post {
   @@index([authorId, isPinned])
   @@index([communityId, createdAt(sort: Desc)])
   @@index([quotedPostId])
+  @@index([removedAt])
 }
 
 enum PostCollaboratorStatus {
@@ -3145,7 +3179,11 @@ model UsedListing {
   lastBumpedAt DateTime?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
+  removedAt       DateTime?
+  removedById     String?
+  removalReason   String?   @db.Text
   seller      User                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  removedBy   User?               @relation("UsedListingRemovedBy", fields: [removedById], references: [id], onDelete: SetNull)
   currentBidder User?             @relation("UsedAuctionWinner", fields: [currentBidderId], references: [id], onDelete: SetNull)
   winningBidder User?             @relation("UsedAuctionWinningBidder", fields: [winningBidderId], references: [id], onDelete: SetNull)
   negotiationBuyer User?          @relation("UsedAuctionNegotiationBuyer", fields: [negotiationBuyerId], references: [id], onDelete: SetNull)
@@ -3179,6 +3217,7 @@ model UsedListing {
   @@index([paymentDueAt])
   @@index([negotiationDueAt])
   @@index([winningBidderId])
+  @@index([removedAt])
 }
 
 model UsedAuctionBid {
@@ -4124,6 +4163,10 @@ model AccountAppeal {
   userId                   String
   accountStatusAtSubmit    AccountStatus
   suspensionReasonSnapshot String?       @db.Text
+  kind                     AppealKind    @default(ACCOUNT)
+  targetType               String?
+  targetId                 String?
+  sanctionId               String?
   title                    String
   content                  String        @db.Text
   contactEmail             String
@@ -4140,11 +4183,39 @@ model AccountAppeal {
 
   user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   admin       User?                     @relation("AppealAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  sanction    OperatorSanction?         @relation(fields: [sanctionId], references: [id], onDelete: SetNull)
   attachments AccountAppealAttachment[]
   responses   AccountAppealResponse[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
+  @@index([sanctionId])
+}
+
+model OperatorSanction {
+  id           String                      @id @default(cuid())
+  userId       String
+  actorId      String
+  kind         OperatorSanctionKind
+  targetType   OperatorSanctionTargetType
+  targetId     String?
+  reason       String?                     @db.Text
+  startsAt     DateTime                    @default(now())
+  endsAt       DateTime?
+  reversedAt   DateTime?
+  reversedById String?
+  noticeSeenAt DateTime?
+  metadata     Json?
+  createdAt    DateTime                    @default(now())
+
+  user       User             @relation("SanctionTarget", fields: [userId], references: [id], onDelete: Cascade)
+  actor      User             @relation("SanctionActor", fields: [actorId], references: [id], onDelete: Cascade)
+  reversedBy User?            @relation("SanctionReverser", fields: [reversedById], references: [id], onDelete: SetNull)
+  appeals    AccountAppeal[]
+
+  @@index([userId, createdAt])
+  @@index([targetType, targetId])
+  @@index([userId, noticeSeenAt])
 }
 
 model AccountAppealAttachment {
@@ -6988,8 +7059,12 @@ model MarketplaceListing {
   publishedAt        DateTime?
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
+  removedAt          DateTime?
+  removedById        String?
+  removalReason      String?                    @db.Text
 
   seller        User                      @relation("MarketplaceSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  removedBy     User?                     @relation("MarketplaceListingRemovedBy", fields: [removedById], references: [id], onDelete: SetNull)
   sellerProfile MarketplaceSellerProfile? @relation(fields: [sellerProfileId], references: [id], onDelete: SetNull)
   media         MarketplaceListingMedia[]
   favorites     MarketplaceFavorite[]
@@ -7004,6 +7079,7 @@ model MarketplaceListing {
   @@index([productType])
   @@index([tradeMode])
   @@index([priceAmount])
+  @@index([removedAt])
 }
 
 model MarketplaceListingMedia {

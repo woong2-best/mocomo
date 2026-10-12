@@ -4,6 +4,7 @@ const t = createTranslator("en");
 import Link from "next/link";
 import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminSuspensionsPanel } from "@/components/admin/admin-suspensions-panel";
+import { AdminSanctionsLookup } from "@/components/admin/admin-sanctions-lookup";
 import { searchSuspendedUsers } from "@/actions/admin";
 import { getAdminAppeals, getBanEvasionSuspects } from "@/actions/appeal";
 
@@ -17,8 +18,11 @@ export default async function AdminSuspensionsPage() {
   return (
     <AdminPageChrome maxWidth="4xl" title={t("app.admin.s1tvjdmu")}>
       <p className="mb-4 text-sm text-muted-foreground">
-        영구 정지, 복구, 이의 제기, 제재 우회 의심 기록을 관리합니다.
+        유저 ID로 제재 이력을 찾고, 숨긴 게시물을 삭제 전과 동일하게 복구할 수 있습니다.
       </p>
+      <div className="mb-6">
+        <AdminSanctionsLookup />
+      </div>
       <div className="mb-4">
         <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
           ← 관리자 홈

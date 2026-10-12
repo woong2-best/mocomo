@@ -10,10 +10,12 @@ import {
   requireMobileApiUser,
 } from "@/lib/api-mobile-auth";
 import {
-  ACCOUNT_SUSPENDED_WRITE_MESSAGE,
-  assertAccountCanWrite,
+  isReadOnlySuspended,
   isServiceBanned,
 } from "@/lib/account-status";
+import { expireTemporarySuspensionIfNeeded } from "@/lib/expire-suspension";
+import { getPendingSanctionNotice } from "@/lib/operator-sanctions";
+import { canModerateContent } from "@/lib/content-moderator";
 import { FEED_POSTS_CACHE_TAG, profileUserCacheTag } from "@/lib/cache-tags";
 import { isLocale, normalizeLocale } from "@/lib/i18n/config";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
@@ -45,7 +47,10 @@ const meSelect = {
   birthDate: true,
   isBanned: true,
   accountStatus: true,
+  suspensionReason: true,
+  suspensionExpiresAt: true,
   deletedAt: true,
+  role: true,
   premiumTier: true,
   passwordHash: true,
   profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true } },
@@ -76,14 +81,13 @@ export async function GET(req: NextRequest) {
   if (user.deletedAt) {
     return NextResponse.json({ error: "This account has been deleted." }, { status: 403 });
   }
-  try {
-    assertAccountCanWrite(user, "default");
-  } catch {
-    return NextResponse.json(
-      { error: ACCOUNT_SUSPENDED_WRITE_MESSAGE, code: "ACCOUNT_SUSPENDED" },
-      { status: 403 }
-    );
-  }
+  await expireTemporarySuspensionIfNeeded(user);
+  const refreshed = await db.user.findUnique({
+    where: { id: user.id },
+    select: { accountStatus: true, suspensionReason: true, suspensionExpiresAt: true, isBanned: true },
+  });
+  const notice = await getPendingSanctionNotice(user.id);
+  const readOnly = isReadOnlySuspended(refreshed?.accountStatus ?? user.accountStatus);
 
   const settings = await getProfileSettingsForUser(userId);
   const storedImage = user.image;
@@ -146,6 +150,15 @@ export async function GET(req: NextRequest) {
             : null,
       },
       moneyAge: toPublicMoneyAge(evaluateMoneyAge(user.birthDate)),
+      isModerator: canModerateContent({
+        username: user.username,
+        role: user.role,
+      }),
+      accountStatus: refreshed?.accountStatus ?? user.accountStatus,
+      readOnly,
+      suspensionReason: refreshed?.suspensionReason ?? user.suspensionReason,
+      suspensionExpiresAt: (refreshed?.suspensionExpiresAt ?? user.suspensionExpiresAt)?.toISOString() ?? null,
+      pendingSanctionNotice: notice,
     },
   });
 }

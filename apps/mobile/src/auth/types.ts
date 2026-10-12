@@ -30,4 +30,20 @@ export type MobileAuthUser = {
     hasBirthDate: boolean;
     minAge?: number;
   };
+  isModerator?: boolean;
+  accountStatus?: string;
+  readOnly?: boolean;
+  suspensionReason?: string | null;
+  suspensionExpiresAt?: string | null;
+  pendingSanctionNotice?: {
+    id: string;
+    kind: string;
+    targetType: string;
+    targetId: string | null;
+    reason: string | null;
+    startsAt: string;
+    endsAt: string | null;
+    accountStatus: string;
+    readOnly: boolean;
+  } | null;
 };

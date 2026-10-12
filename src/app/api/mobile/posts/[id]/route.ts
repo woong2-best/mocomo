@@ -37,6 +37,7 @@ export async function GET(
       title: true,
       content: true,
       postType: true,
+      removedAt: true,
       createdAt: true,
       isNsfw: true,
       isAnonymous: true,
@@ -57,7 +58,7 @@ export async function GET(
     },
   });
 
-  if (!post) {
+  if (!post || post.removedAt) {
     return NextResponse.json({ error: "Post not found." }, { status: 404 });
   }
 

@@ -45,6 +45,7 @@ import {
   isSuspendedReadOnly,
   type AccountWriteKind,
 } from "@/lib/account-status";
+import { expireTemporarySuspensionIfNeeded } from "@/lib/expire-suspension";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 
@@ -548,6 +549,7 @@ export async function requireAuth(options?: { writeKind?: AccountWriteKind }) {
   if (!user) throw new Error("UNAUTHORIZED");
   if (isServiceBanned(user)) throw new Error("BANNED");
   if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
+  await expireTemporarySuspensionIfNeeded(user);
   assertAccountCanWrite(user, options?.writeKind ?? "default");
   return user;
 }
@@ -566,11 +568,13 @@ export async function requireAuthForAction(options?: { writeKind?: AccountWriteK
       isBanned: true,
       accountStatus: true,
       deletedAt: true,
+      suspensionExpiresAt: true,
     },
   });
   if (!user) throw new Error("USER_NOT_FOUND");
   if (isServiceBanned(user)) throw new Error("BANNED");
   if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
+  await expireTemporarySuspensionIfNeeded(user);
   assertAccountCanWrite(user, options?.writeKind ?? "default");
   return user;
 }
@@ -590,6 +594,7 @@ export const getCachedAuthUserMinimal = cache(async () => {
       deletedAt: true,
       role: true,
       supportTierSent: true,
+      suspensionExpiresAt: true,
     },
   });
 });
@@ -599,6 +604,7 @@ export async function requireAuthMinimal(options?: { writeKind?: AccountWriteKin
   if (!user) throw new Error("UNAUTHORIZED");
   if (isServiceBanned(user)) throw new Error("BANNED");
   if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
+  await expireTemporarySuspensionIfNeeded(user);
   assertAccountCanWrite(user, options?.writeKind ?? "default");
   return user;
 }

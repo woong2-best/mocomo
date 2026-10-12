@@ -9316,5 +9316,14 @@
   "moneyAge.blockedMissing": "Add your date of birth on your profile before using payments, tips, or transfers.",
   "moneyAge.blockedUnderage": "Payments, tips, and transfers are only available to users 18 or older.",
   "moneyAge.unavailable": "Unavailable",
-  "moneyAge.dateOfBirthLink": "Date of birth"
+  "moneyAge.dateOfBirthLink": "Date of birth",
+  "moderation.notice.contentTitle": "A post was removed",
+  "moderation.notice.contentBody": "Operators removed one of your posts after judging that it violated MoCoMo's terms of service. You can appeal below.",
+  "moderation.notice.suspendTitle": "Your account is in read-only mode",
+  "moderation.notice.permanentTitle": "Your account is permanently restricted",
+  "moderation.menu.removePost": "Remove this post",
+  "moderation.menu.suspend24h": "Suspend account 24 hours",
+  "moderation.menu.suspend3d": "Suspend account 3 days",
+  "moderation.menu.suspend5d": "Suspend account 5 days",
+  "moderation.menu.suspendPermanent": "Permanently restrict account"
 }

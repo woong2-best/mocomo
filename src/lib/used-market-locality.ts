@@ -146,6 +146,7 @@ export function buildUsedListingLocalityWhere(
   params?: { region?: string; sido?: string }
 ): Prisma.UsedListingWhereInput {
   const and: Prisma.UsedListingWhereInput[] = [
+    { removedAt: null },
     {
       OR: [
         { meetCountry: locality.countryCode },

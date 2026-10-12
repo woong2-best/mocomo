@@ -27,6 +27,12 @@ const CheckoutResumeHandler = dynamic(
   { ssr: false }
 );
 
+const SanctionNoticeDialog = dynamic(
+  () =>
+    import("@/components/moderation/sanction-notice-dialog").then((m) => m.SanctionNoticeDialog),
+  { ssr: false }
+);
+
 const OperatorSiteMfaGate = dynamic(
   () => import("@/components/auth/operator-site-mfa-gate").then((m) => m.OperatorSiteMfaGate),
   { ssr: false }
@@ -77,6 +83,7 @@ export function OverlayAwareExtras({ children }: { children: React.ReactNode }) 
         <AddAccountFlowHandler />
         <AdminSessionAutoLogout />
         <OperatorSiteMfaGate />
+        <SanctionNoticeDialog />
         {children}
       </CallProviderGate>
     </>

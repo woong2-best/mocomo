@@ -11,6 +11,7 @@ import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { PostShareMenu } from "@/components/post/post-share-menu";
 import { PostRepostMenu } from "@/components/post/post-repost-menu";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
+import { AdminContentActionMenu } from "@/components/moderation/admin-content-action-menu";
 import { PostViewCount } from "@/components/post/post-view-count";
 import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { formatNumber, cn } from "@/lib/utils";
@@ -200,16 +201,23 @@ export function FeedTimelinePostCard({
                 </div>
               )}
             </div>
-            <PostOwnerMenu
-              postId={post.id}
-              isPinned={post.isPinned}
-              isOwner={isOwner}
-              authorId={post.isAnonymous ? undefined : post.author.id}
-              authorUsername={post.isAnonymous ? undefined : post.author.username}
-              anonymous={!!post.isAnonymous}
-              qna={qna}
-              canBoost={isOwner && isBoostableImageMedia(post.media)}
-            />
+            <div className="flex shrink-0 items-center">
+              <AdminContentActionMenu
+                targetType="POST"
+                targetId={post.id}
+                authorId={post.isAnonymous ? undefined : post.author.id}
+              />
+              <PostOwnerMenu
+                postId={post.id}
+                isPinned={post.isPinned}
+                isOwner={isOwner}
+                authorId={post.isAnonymous ? undefined : post.author.id}
+                authorUsername={post.isAnonymous ? undefined : post.author.username}
+                anonymous={!!post.isAnonymous}
+                qna={qna}
+                canBoost={isOwner && isBoostableImageMedia(post.media)}
+              />
+            </div>
           </div>
         </div>
       </div>

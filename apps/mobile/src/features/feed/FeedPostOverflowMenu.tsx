@@ -16,6 +16,7 @@ import {
   toggleMuteUser,
   togglePostProfileFeature,
 } from "@/api/social";
+import { applyMobileModeratorAction, type ModeratorAction } from "@/api/moderation";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
 import { PostBoostSheet } from "@/features/feed/PostBoostSheet";
 import { PostCancelBoostSheet } from "@/features/feed/PostCancelBoostSheet";
@@ -49,6 +50,7 @@ type Props = {
   onBlocked?: () => void;
   onDeleted?: () => void;
   canBoost?: boolean;
+  isModerator?: boolean;
 };
 
 const MENU_WIDTH = 248;
@@ -69,6 +71,7 @@ export function FeedPostOverflowMenu({
   onBlocked,
   onDeleted,
   canBoost = false,
+  isModerator = false,
 }: Props) {
   const { colors } = useTheme();
   const { t } = useI18n();
@@ -196,6 +199,33 @@ export function FeedPostOverflowMenu({
     setReportOpen(true);
   }, []);
 
+  const runModerator = useCallback(
+    (action: ModeratorAction) => {
+      if (busy) return;
+      setBusy(action);
+      void (async () => {
+        try {
+          await applyMobileModeratorAction({
+            action,
+            targetType: "POST",
+            targetId: postId,
+          });
+          closeAll();
+          if (action === "CONTENT_REMOVE") onDeleted?.();
+          showIslandSuccess("Moderation action applied");
+        } catch (e) {
+          showIslandError(
+            t("m.common.error"),
+            e instanceof Error ? e.message : t("m.common.something_went_wrong")
+          );
+        } finally {
+          setBusy(null);
+        }
+      })();
+    },
+    [busy, closeAll, onDeleted, postId, t]
+  );
+
   return (
     <>
       <Modal visible={visible && !reportOpen} transparent animationType="fade" onRequestClose={closeAll}>
@@ -277,6 +307,27 @@ export function FeedPostOverflowMenu({
                 </>
               ) : (
                 <>
+                  {isModerator ? (
+                    <>
+                      <Pressable style={styles.row} onPress={() => runModerator("CONTENT_REMOVE")} disabled={!!busy}>
+                        <Ionicons name="warning-outline" size={18} color={colors.terracotta} />
+                        <Text style={[styles.rowText, styles.dangerText]}>1. Remove this post</Text>
+                      </Pressable>
+                      <Pressable style={styles.row} onPress={() => runModerator("SUSPEND_24H")} disabled={!!busy}>
+                        <Text style={styles.rowText}>2. Suspend 24 hours</Text>
+                      </Pressable>
+                      <Pressable style={styles.row} onPress={() => runModerator("SUSPEND_3D")} disabled={!!busy}>
+                        <Text style={styles.rowText}>3. Suspend 3 days</Text>
+                      </Pressable>
+                      <Pressable style={styles.row} onPress={() => runModerator("SUSPEND_5D")} disabled={!!busy}>
+                        <Text style={styles.rowText}>4. Suspend 5 days</Text>
+                      </Pressable>
+                      <Pressable style={styles.row} onPress={() => runModerator("SUSPEND_PERMANENT")} disabled={!!busy}>
+                        <Text style={[styles.rowText, styles.dangerText]}>5. Permanent restriction</Text>
+                      </Pressable>
+                      <View style={styles.sep} />
+                    </>
+                  ) : null}
                   <Pressable style={styles.row} onPress={() => void onFeature()} disabled={!!busy}>
                     <Ionicons name={featured ? "pin-outline" : "pin"} size={18} color={colors.text} />
                     <Text style={styles.rowText}>

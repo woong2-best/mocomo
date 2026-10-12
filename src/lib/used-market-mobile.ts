@@ -695,6 +695,7 @@ export async function listMobileRecommendedUsed(userId: string | null, take = 24
   const pool = await db.usedListing.findMany({
     where: {
       status: "SELLING",
+      removedAt: null,
       ...(exclude.length ? { id: { notIn: exclude } } : {}),
     },
     orderBy: { createdAt: "desc" },

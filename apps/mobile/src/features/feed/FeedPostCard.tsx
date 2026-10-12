@@ -399,17 +399,30 @@ function FeedPostCardInner({
             </View>
           </View>
         </Pressable>
-        {canShowMenu ? (
-          <View ref={menuAnchorRef} collapsable={false}>
-            <Pressable
-              onPress={openMenu}
-              hitSlop={10}
-              style={styles.menuBtn}
-              accessibilityRole="button"
-              accessibilityLabel={t("post.menu.ariaLabel")}
-            >
-              <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
-            </Pressable>
+        {canShowMenu || user?.isModerator ? (
+          <View ref={menuAnchorRef} collapsable={false} style={{ flexDirection: "row", alignItems: "center" }}>
+            {user?.isModerator && !isSelf ? (
+              <Pressable
+                onPress={openMenu}
+                hitSlop={10}
+                style={styles.menuBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Operator moderation"
+              >
+                <Ionicons name="warning-outline" size={18} color="#ef4444" />
+              </Pressable>
+            ) : null}
+            {canShowMenu ? (
+              <Pressable
+                onPress={openMenu}
+                hitSlop={10}
+                style={styles.menuBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t("post.menu.ariaLabel")}
+              >
+                <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -579,7 +592,7 @@ function FeedPostCardInner({
         />
       )}
 
-      {canShowMenu ? (
+      {canShowMenu || user?.isModerator ? (
         <FeedPostOverflowMenu
           visible={menuOpen}
           anchor={menuAnchor}
@@ -597,6 +610,7 @@ function FeedPostCardInner({
           onFeaturedChange={onProfilePinChange}
           onBlocked={() => onBlockedAuthor?.(post.author.id)}
           onDeleted={handleDeleted}
+          isModerator={!!user?.isModerator && !isSelf}
           canBoost={
             isSelf &&
             (post.media ?? []).some((m) => m.type === "IMAGE" && Boolean(m.url?.trim()))

@@ -45,7 +45,11 @@ export async function getAppealContext() {
     },
   });
   if (!user) return { error: "actions.svypth4" as const };
-  if (!isReadOnlySuspended(user.accountStatus) && !isServiceBanned(user)) {
+  const unrestored = await db.operatorSanction.findFirst({
+    where: { userId: user.id, kind: "CONTENT_REMOVE", reversedAt: null },
+    select: { id: true },
+  });
+  if (!isReadOnlySuspended(user.accountStatus) && !isServiceBanned(user) && !unrestored) {
     return { error: "actions.sdjz9fu" as const };
   }
 
@@ -71,7 +75,15 @@ export async function submitAccountAppeal(data: z.infer<typeof appealSchema>) {
     select: { accountStatus: true, suspensionReason: true, isBanned: true },
   });
   if (!dbUser) return { error: "actions.svypth4" };
-  if (!isReadOnlySuspended(dbUser.accountStatus) && !isServiceBanned(dbUser)) {
+  const unrestoredContent = await db.operatorSanction.findFirst({
+    where: { userId: user.id, kind: "CONTENT_REMOVE", reversedAt: null },
+    select: { id: true },
+  });
+  if (
+    !isReadOnlySuspended(dbUser.accountStatus) &&
+    !isServiceBanned(dbUser) &&
+    !unrestoredContent
+  ) {
     return { error: "actions.sdjz9fu" };
   }
 

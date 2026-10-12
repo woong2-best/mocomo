@@ -365,53 +365,27 @@ export async function adminForceDeleteEventMapRecommendation(
 }
 
 export async function adminForceDeletePost(postId: string, modReason?: string) {
+  const { applyModeratorAction } = await import("@/lib/operator-sanctions");
   const admin = await requireAdmin();
-  const post = await db.post.findUnique({
-    where: { id: postId },
-    select: { id: true, authorId: true, title: true },
+  return applyModeratorAction({
+    actorId: admin.id,
+    action: "CONTENT_REMOVE",
+    targetType: "POST",
+    targetId: postId,
+    reason: modReason,
   });
-  if (!post) return { error: "actions.sgr97ft" };
-
-  await db.post.delete({ where: { id: postId } });
-  await db.modLog.create({
-    data: {
-      actorId: admin.id,
-      targetId: post.authorId,
-      action: "force_delete_post",
-      reason: modReason ?? "Force-deleted by admin",
-      metadata: { postId, title: post.title },
-    },
-  });
-
-  revalidatePath(COMMUNITY_FEED_PATH);
-  revalidatePath("/admin");
-  revalidatePath(`/post/${postId}`);
-  return { success: true };
 }
 
 export async function adminForceDeleteUsedListing(listingId: string, modReason?: string) {
+  const { applyModeratorAction } = await import("@/lib/operator-sanctions");
   const admin = await requireAdmin();
-  const listing = await db.usedListing.findUnique({
-    where: { id: listingId },
-    select: { id: true, sellerId: true, title: true },
+  return applyModeratorAction({
+    actorId: admin.id,
+    action: "CONTENT_REMOVE",
+    targetType: "USED_LISTING",
+    targetId: listingId,
+    reason: modReason,
   });
-  if (!listing) return { error: "actions.s1frmqks" };
-
-  await db.usedListing.delete({ where: { id: listingId } });
-  await db.modLog.create({
-    data: {
-      actorId: admin.id,
-      targetId: listing.sellerId,
-      action: "force_delete_used_listing",
-      reason: modReason ?? "Force-deleted by admin",
-      metadata: { listingId, title: listing.title },
-    },
-  });
-
-  revalidatePath("/market");
-  revalidatePath("/admin");
-  revalidatePath(`/market/${listingId}`);
-  return { success: true };
 }
 
 export async function adminForceDeleteByReport(

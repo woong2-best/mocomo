@@ -63,6 +63,7 @@ export async function listMarketplaceListingsByTags(
 
   const where: Prisma.MarketplaceListingWhereInput = {
     status: "ACTIVE",
+    removedAt: null,
     type: { not: "DIGITAL" },
     tags: { hasSome: normalized },
   };
@@ -103,6 +104,7 @@ export async function listCreatorSellerListingsForUser(userId: string, take = 24
   const items = await db.marketplaceListing.findMany({
     where: {
       status: "ACTIVE",
+      removedAt: null,
       type: { not: "DIGITAL" },
       sellerId: { in: sellerIds },
     },

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import type { AccountStatus, PremiumTier } from "@prisma/client";
+import type { AccountStatus, PremiumTier, UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   ACCOUNT_SUSPENDED_WRITE_MESSAGE,
@@ -9,6 +9,7 @@ import {
   type AccountWriteKind,
 } from "@/lib/account-status";
 import { verifyMobileAccessToken } from "@/lib/mobile-auth-tokens";
+import { expireTemporarySuspensionIfNeeded } from "@/lib/expire-suspension";
 
 const userSelect = {
   id: true,
@@ -19,6 +20,8 @@ const userSelect = {
   isBanned: true,
   accountStatus: true,
   deletedAt: true,
+  role: true,
+  suspensionExpiresAt: true,
 } as const;
 
 type GateUser = {
@@ -30,6 +33,8 @@ type GateUser = {
   isBanned: boolean;
   accountStatus: AccountStatus;
   deletedAt: Date | null;
+  role: UserRole;
+  suspensionExpiresAt: Date | null;
 };
 
 /** Short TTL so chat sync / inbox don't pay a DB round-trip every poll. */
@@ -95,6 +100,7 @@ export async function requireMobileApiUser(
   if (user.deletedAt) {
     return { error: NextResponse.json({ error: "This account has been deleted." }, { status: 403 }) };
   }
+  await expireTemporarySuspensionIfNeeded(user);
   try {
     assertAccountCanWrite(user, options?.writeKind ?? "default");
   } catch {

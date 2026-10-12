@@ -108,6 +108,9 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         );
         return;
       }
+      if (session.user.isSuspendedReadOnly) {
+        return;
+      }
       showComposeOverlay(opts);
     },
     [pathname, router, session?.user, showComposeOverlay, status]
@@ -122,6 +125,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
       router.push(`/auth/signin?callbackUrl=${encodeURIComponent(callback)}`);
       return;
     }
+    if (session.user.isSuspendedReadOnly) return;
     showComposeOverlay(opts);
   }, [status, pendingOpen, session?.user, pathname, router, showComposeOverlay]);
 

@@ -30,6 +30,13 @@ function UsedTabScreen() {
 
 import { useI18n } from "@/i18n/I18nProvider";
 
+function SignedInSanctionNotice() {
+  const { SanctionNoticeHost } = require("@/features/moderation/SanctionNoticeHost") as {
+    SanctionNoticeHost: ComponentType;
+  };
+  return <SanctionNoticeHost />;
+}
+
 function SignedInCallListener() {
   const { IncomingCallListener } = require("@/features/messages/IncomingCallListener") as {
     IncomingCallListener: ComponentType;
@@ -434,6 +441,7 @@ export function RootNavigator() {
           </>
         )}
       </Stack.Navigator>
+      {status === "signedIn" ? <SignedInSanctionNotice /> : null}
       </View>
       </MobileCallSessionProvider>
     </NavigationContainer>

@@ -8,6 +8,7 @@ import { TranslatableText } from "@/components/ui/translatable-text";
 import { PaidPostMediaGrid } from "@/components/profile/paid-post-media-grid";
 import type { ProfilePostMediaItem } from "@/components/profile/paid-post-media-grid";
 import { PostOwnerMenu } from "@/components/post/post-owner-menu";
+import { AdminContentActionMenu } from "@/components/moderation/admin-content-action-menu";
 import { PostCollaboratorsHeader } from "@/components/post/post-collaborators-header";
 import { PostEngagementBar } from "@/components/post/post-engagement-bar";
 import { PostPollCard } from "@/components/post/post-poll-card";
@@ -132,16 +133,23 @@ export function ProfilePostCard({
                 initialReposted={initialReposted}
               />
             </div>
-            <PostOwnerMenu
-              postId={post.id}
-              isPinned={!!post.isPinned}
-              isOwner={canOwnMenu}
-              authorId={post.author.id}
-              authorUsername={post.author.username}
-              qna={Boolean(post.community?.slug)}
-              size="md"
-              canBoost={canOwnMenu && isBoostableImageMedia(post.media)}
-            />
+            <div className="flex shrink-0 items-center">
+              <AdminContentActionMenu
+                targetType="POST"
+                targetId={post.id}
+                authorId={post.author.id}
+              />
+              <PostOwnerMenu
+                postId={post.id}
+                isPinned={!!post.isPinned}
+                isOwner={canOwnMenu}
+                authorId={post.author.id}
+                authorUsername={post.author.username}
+                qna={Boolean(post.community?.slug)}
+                size="md"
+                canBoost={canOwnMenu && isBoostableImageMedia(post.media)}
+              />
+            </div>
           </div>
         </div>
       </div>

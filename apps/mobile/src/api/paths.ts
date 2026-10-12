@@ -148,4 +148,7 @@ export const MobileApi = {
   liveVideoDonations: (id: string) => `/api/mobile/live/${id}/video-donations`,
   liveEnd: (id: string) => `/api/mobile/live/${id}/end`,
   highlights: "/api/mobile/highlights",
+  moderationAction: "/api/mobile/moderation/action",
+  moderationNotice: "/api/mobile/moderation/notice",
+  moderationAppeal: "/api/mobile/moderation/appeal",
 } as const;

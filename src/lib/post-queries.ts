@@ -34,6 +34,7 @@ const postDetailSelect = {
   id: true,
   title: true,
   content: true,
+  removedAt: true,
   createdAt: true,
   isPinned: true,
   isNsfw: true,
@@ -85,6 +86,7 @@ export async function getPostDetail(id: string, viewerId?: string) {
   try {
     const post = await db.post.findUnique({ where: { id }, select: postDetailSelect });
     if (!post) return null;
+    if (post.removedAt) return null;
     if (
       post.isNsfw &&
       !(await canViewNsfwResource({
@@ -108,6 +110,7 @@ export async function getPostDetail(id: string, viewerId?: string) {
     console.error("[getPostDetail]", e);
     const post = await db.post.findUnique({ where: { id }, select: postDetailSelectNoReposts });
     if (!post) return null;
+    if ("removedAt" in post && post.removedAt) return null;
     if (
       post.isNsfw &&
       !(await canViewNsfwResource({

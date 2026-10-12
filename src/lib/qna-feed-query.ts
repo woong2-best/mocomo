@@ -61,6 +61,7 @@ export function qnaFeedWhere(opts: {
     return {
       communityId: { not: null },
       authorId: opts.ownerId,
+      removedAt: null,
       author: { deletedAt: null },
       ...(search ?? {}),
     };
@@ -79,6 +80,7 @@ export function qnaFeedWhere(opts: {
     return {
       communityId: { not: null },
       visibility: "PUBLIC",
+      removedAt: null,
       author: { deletedAt: null },
       isNsfw: true,
       community,
@@ -96,6 +98,7 @@ export function qnaFeedWhere(opts: {
   return {
     communityId: { not: null },
     visibility: "PUBLIC",
+    removedAt: null,
     author: { deletedAt: null },
     ...nsfwGate(opts.canViewNsfw),
     community,
