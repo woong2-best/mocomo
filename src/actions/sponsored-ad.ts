@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { isOperatorIdentity } from "@/lib/operator-config";
 import { EVENT_REGISTRATION_MAX_DAYS } from "@/lib/event-registration";
 import { getPurchasedMoco } from "@/lib/settlement-moco/balance";
 import {
@@ -12,6 +11,7 @@ import {
   calcOperatorUnlimitedExpiresAt,
   calcSponsoredAdEndTime,
   calcSponsoredAdMoco,
+  canRegisterSponsoredAdComplimentary,
   purchaseSponsoredAd,
   SPONSORED_AD_TARGET_EVENT,
   SPONSORED_AD_MAX_DAYS,
@@ -53,7 +53,7 @@ export async function registerEventSponsoredAd(data: {
   if (!imageUrl) return { ok: false as const, error: "actions.s15062kd" };
   if (!linkUrl) return { ok: false as const, error: "actions.sxfb8bl" };
 
-  const isOperator = isOperatorIdentity({
+  const isOperator = canRegisterSponsoredAdComplimentary({
     username: user.username,
     role: user.role,
     email: user.email,

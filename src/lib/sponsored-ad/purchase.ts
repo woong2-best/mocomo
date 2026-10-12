@@ -13,7 +13,9 @@ import {
   burnPurchasedMocoWithHistory,
 } from "@/lib/moco/transaction-history";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
+import { canRegisterSponsoredAdComplimentary } from "@/lib/sponsored-ad/access";
 import {
+  calcOperatorUnlimitedExpiresAt,
   calcSponsoredAdExpiresAt,
   calcSponsoredAdMoco,
   campaignPaidMoco,
@@ -118,6 +120,28 @@ function purchaseReason(targetType: SponsoredAdTargetType, days: number): string
 export async function purchaseSponsoredAd(
   input: PurchaseSponsoredAdInput
 ): Promise<PurchaseSponsoredAdResult> {
+  const actor = await db.user.findUnique({
+    where: { id: input.userId },
+    select: { username: true, role: true, email: true },
+  });
+  if (actor && canRegisterSponsoredAdComplimentary(actor)) {
+    const startsAt = input.startsAt ?? new Date();
+    const complimentaryEvent = input.targetType === SPONSORED_AD_TARGET_EVENT;
+    const days = complimentaryEvent
+      ? SPONSORED_AD_OPERATOR_UNLIMITED_MAX_DAYS
+      : input.days;
+    return activateSponsoredAdComplimentary({
+      userId: input.userId,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      days,
+      startsAt,
+      expiresAt: complimentaryEvent
+        ? calcOperatorUnlimitedExpiresAt(startsAt)
+        : calcSponsoredAdExpiresAt(days, startsAt),
+    });
+  }
+
   const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
   const ageBlock = await assertMoneyAgeAllowed(input.userId);
   if (ageBlock) return { ok: false, error: ageBlock.error };

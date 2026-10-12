@@ -43,6 +43,7 @@ export function PostBoostSheet({ visible, postId, onClose, onSuccess }: Props) {
   const [maxDays, setMaxDays] = useState(DEFAULT_MAX_DAYS);
   const [mocoPerDay, setMocoPerDay] = useState(DEFAULT_MOCO_PER_DAY);
   const [balance, setBalance] = useState(0);
+  const [complimentaryEligible, setComplimentaryEligible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -64,18 +65,24 @@ export function PostBoostSheet({ visible, postId, onClose, onSuccess }: Props) {
     setError("");
     setDays(1);
     setLoading(true);
+    setComplimentaryEligible(false);
     void fetchPostBoostStatus(postId)
       .then((s) => {
         setMaxDays(s.maxDays || DEFAULT_MAX_DAYS);
         setMocoPerDay(s.mocoPerDay || DEFAULT_MOCO_PER_DAY);
         setBalance(s.purchasedMoco ?? s.purchasedMocoBalance ?? 0);
+        setComplimentaryEligible(Boolean(s.complimentaryEligible));
       })
       .catch((e) => setError(e instanceof Error ? e.message : t("m.boost.load_failed")))
       .finally(() => setLoading(false));
   }, [visible, postId, t]);
 
-  const cost = days < 1 ? 0 : Math.round(days * mocoPerDay * 10) / 10;
-  const canAfford = balance + 1e-9 >= cost;
+  const cost = complimentaryEligible
+    ? 0
+    : days < 1
+      ? 0
+      : Math.round(days * mocoPerDay * 10) / 10;
+  const canAfford = complimentaryEligible || balance + 1e-9 >= cost;
 
   async function submit() {
     if (busy || !agreed || !canAfford || days < 1) return;

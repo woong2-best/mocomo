@@ -23,6 +23,7 @@ import {
 type BoostStatus = {
   boostable: boolean;
   purchasedMoco: number;
+  complimentaryEligible?: boolean;
   active: boolean;
   maxDays?: number;
 };
@@ -73,7 +74,7 @@ export function PostBoostDialog({
   const maxDays = status?.maxDays ?? SPONSORED_AD_MAX_DAYS;
   const cost = boostCost(days);
   const balance = status?.purchasedMoco ?? 0;
-  const canAfford = mocoCovers(balance, cost);
+  const canAfford = Boolean(status?.complimentaryEligible) || mocoCovers(balance, cost);
   const dayLabel = days === 1 ? "post.boost.days" : "post.boost.daysPlural";
 
   async function submit() {

@@ -15,6 +15,7 @@ import {
   SPONSORED_AD_TARGET_POST,
   type BoostRefundQuote,
 } from "@/lib/sponsored-ad/constants";
+import { canRegisterSponsoredAdComplimentary } from "@/lib/sponsored-ad/access";
 import {
   getSponsoredAdStatus,
   purchaseSponsoredAd,
@@ -135,6 +136,7 @@ export type PostBoostStatus = {
   boostable: boolean;
   owned: boolean;
   purchasedMoco: number;
+  complimentaryEligible: boolean;
   active: boolean;
   campaign: {
     id: string;
@@ -152,7 +154,7 @@ export async function getPostBoostStatus(
   userId: string,
   postId: string
 ): Promise<PostBoostStatus> {
-  const [post, status, balance] = await Promise.all([
+  const [post, status, balance, actor] = await Promise.all([
     db.post.findUnique({
       where: { id: postId },
       select: {
@@ -163,6 +165,10 @@ export async function getPostBoostStatus(
     }),
     getSponsoredAdStatus(SPONSORED_AD_TARGET_POST, postId),
     getMocoBalanceSnapshot(userId),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { username: true, role: true, email: true },
+    }),
   ]);
 
   const owned = post?.authorId === userId;
@@ -181,6 +187,7 @@ export async function getPostBoostStatus(
     boostable,
     owned,
     purchasedMoco: balance.availableMocoBalance,
+    complimentaryEligible: !!actor && canRegisterSponsoredAdComplimentary(actor),
     active: status.active,
     campaign: status.campaign,
     refund,

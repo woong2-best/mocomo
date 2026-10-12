@@ -11,6 +11,7 @@ export async function fetchSponsoredAdStatus(eventId: string, days?: number) {
     mocoPerDay: number;
     maxDays: number;
     purchasedMocoBalance: number;
+    complimentaryEligible?: boolean;
     quoteMoco: number | null;
     canAfford: boolean | null;
     active: boolean;

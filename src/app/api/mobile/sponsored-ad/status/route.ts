@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { getMocoBalanceSnapshot } from "@/lib/auction-deposit";
+import { db } from "@/lib/db";
 import {
   calcSponsoredAdMoco,
+  canRegisterSponsoredAdComplimentary,
   getSponsoredAdStatus,
   SPONSORED_AD_MOCO_PER_DAY,
   SPONSORED_AD_MAX_DAYS,
@@ -35,15 +37,21 @@ export async function GET(req: NextRequest) {
   const daysParam = req.nextUrl.searchParams.get("days");
   const days = daysParam ? Number.parseInt(daysParam, 10) : null;
 
-  const [balance, status] = await Promise.all([
+  const [balance, status, actor] = await Promise.all([
     getMocoBalanceSnapshot(auth.user.id),
     targetId ? getSponsoredAdStatus(targetType, targetId) : Promise.resolve({ active: false, campaign: null }),
+    db.user.findUnique({
+      where: { id: auth.user.id },
+      select: { username: true, role: true, email: true },
+    }),
   ]);
+
+  const complimentaryEligible = !!actor && canRegisterSponsoredAdComplimentary(actor);
 
   let quoteMoco: number | null = null;
   if (days && Number.isInteger(days) && days >= 1 && days <= SPONSORED_AD_MAX_DAYS) {
     try {
-      quoteMoco = calcSponsoredAdMoco(days);
+      quoteMoco = complimentaryEligible ? 0 : calcSponsoredAdMoco(days);
     } catch {
       quoteMoco = null;
     }
@@ -53,8 +61,11 @@ export async function GET(req: NextRequest) {
     mocoPerDay: SPONSORED_AD_MOCO_PER_DAY,
     maxDays: SPONSORED_AD_MAX_DAYS,
     purchasedMocoBalance: balance.availableMocoBalance,
+    complimentaryEligible,
     quoteMoco,
-    canAfford: quoteMoco != null ? mocoCovers(balance.availableMocoBalance, quoteMoco) : null,
+    canAfford:
+      complimentaryEligible ||
+      (quoteMoco != null ? mocoCovers(balance.availableMocoBalance, quoteMoco) : null),
     ...status,
     campaign: status.campaign
       ? {

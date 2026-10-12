@@ -1,4 +1,5 @@
 export * from "@/lib/sponsored-ad/constants";
+export * from "@/lib/sponsored-ad/access";
 export * from "@/lib/sponsored-ad/boostable";
 export * from "@/lib/sponsored-ad/purchase";
 export * from "@/lib/sponsored-ad/boost";

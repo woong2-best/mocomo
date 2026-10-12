@@ -23,6 +23,7 @@ function serializeStatus(status: Awaited<ReturnType<typeof getPostBoostStatus>>)
     owned: status.owned,
     purchasedMoco: status.purchasedMoco,
     purchasedMocoBalance: status.purchasedMoco,
+    complimentaryEligible: status.complimentaryEligible,
     active: status.active,
     campaign: status.campaign
       ? {
