@@ -356,7 +356,12 @@ export function RootNavigator() {
             <Stack.Screen
               name="Reels"
               getComponent={() => require("@/features/reels/ReelsScreen").ReelsScreen}
-              options={{ animation: "fade", gestureEnabled: true, fullScreenGestureEnabled: true }}
+              options={{
+                animation: "fade",
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+                orientation: "default",
+              }}
             />
             <Stack.Screen
               name="Activity"

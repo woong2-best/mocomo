@@ -36,6 +36,8 @@ import {
 } from "@/features/feed/feed-video-groups";
 import { FeedVideoPostSlide } from "@/features/feed/FeedVideoPostSlide";
 import { ReelSponsoredSlide } from "@/features/reels/ReelSponsoredSlide";
+import { ReelsWideNavRail } from "@/features/reels/ReelsWideNavRail";
+import { computeReelsChromeLayout } from "@/features/reels/reels-wide-layout";
 import {
   buildReelsSlots,
   findReelSlotIndex,
@@ -55,6 +57,7 @@ export function ReelsScreen() {
   const insets = useSafeAreaInsets();
   const { width, height: windowHeight } = useWindowDimensions();
   const [height, setHeight] = useState(windowHeight);
+  const chrome = useMemo(() => computeReelsChromeLayout(width, height), [width, height]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "Reels">>();
   const queryClient = useQueryClient();
@@ -326,7 +329,15 @@ export function ReelsScreen() {
   const renderItem = useCallback(
     ({ item, index }: { item: ReelsSlot; index: number }) => {
       if (item.kind === "ad") {
-        return <ReelSponsoredSlide ad={item.ad} width={width} height={height} />;
+        return (
+          <ReelSponsoredSlide
+            ad={item.ad}
+            width={width}
+            height={height}
+            stageWidth={chrome.stageWidth}
+            stageLeft={chrome.stageLeft}
+          />
+        );
       }
       const near = Math.abs(index - activeSlot) <= PerformanceBudgets.reelsPrebufferNeighbors;
       return (
@@ -334,6 +345,8 @@ export function ReelsScreen() {
           group={item.group}
           width={width}
           height={height}
+          stageWidth={chrome.stageWidth}
+          stageLeft={chrome.stageLeft}
           active={index === activeSlot}
           loadPlayer={near}
           initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
@@ -345,6 +358,8 @@ export function ReelsScreen() {
     },
     [
       activeSlot,
+      chrome.stageLeft,
+      chrome.stageWidth,
       height,
       onFastForwardChange,
       openComments,
@@ -353,6 +368,17 @@ export function ReelsScreen() {
       width,
     ]
   );
+
+  const dimKeyRef = useRef(`${width}x${height}`);
+  useEffect(() => {
+    const key = `${width}x${height}`;
+    if (dimKeyRef.current === key) return;
+    dimKeyRef.current = key;
+    const index = activeSlotRef.current;
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset({ offset: height * index, animated: false });
+    });
+  }, [height, width]);
 
   useEffect(() => {
     setChromeHidden(false);
@@ -376,6 +402,14 @@ export function ReelsScreen() {
         </View>
       ) : null}
 
+      {!chromeHidden && chrome.isWide ? (
+        <ReelsWideNavRail
+          width={chrome.leftRailWidth}
+          topInset={insets.top}
+          bottomInset={insets.bottom}
+        />
+      ) : null}
+
       {/* Up / down affordances like web */}
       {!chromeHidden ? (
         <View style={[styles.navArrows, { top: insets.top + 56 }]} pointerEvents="box-none">
@@ -395,7 +429,7 @@ export function ReelsScreen() {
       <FlatList
         ref={listRef}
         data={slots}
-        extraData={activeSlot}
+        extraData={`${activeSlot}:${chrome.stageWidth}:${chrome.stageLeft}`}
         keyExtractor={(s) => s.key}
         renderItem={renderItem}
         pagingEnabled

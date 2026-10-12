@@ -16,6 +16,8 @@ type Props = {
   ad: FeedAd;
   width: number;
   height: number;
+  stageWidth?: number;
+  stageLeft?: number;
 };
 
 function resolveAdUrl(linkUrl: string): string {
@@ -24,11 +26,19 @@ function resolveAdUrl(linkUrl: string): string {
   return `${base}${linkUrl.startsWith("/") ? linkUrl : `/${linkUrl}`}`;
 }
 
-function ReelSponsoredSlideInner({ ad, width, height }: Props) {
+function ReelSponsoredSlideInner({
+  ad,
+  width,
+  height,
+  stageWidth: stageWidthProp,
+  stageLeft: stageLeftProp,
+}: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => reelsUi(t), [t]);
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(width, height), [width, height]);
+  const stageWidth = stageWidthProp ?? width;
+  const stageLeft = stageLeftProp ?? 0;
+  const styles = useMemo(() => createStyles(stageWidth, height), [stageWidth, height]);
   const imageUri = resolveAdUrl(ad.imageUrl);
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -45,7 +55,8 @@ function ReelSponsoredSlideInner({ ad, width, height }: Props) {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={{ width, height, backgroundColor: "#0a0a0f" }}>
+    <View style={[styles.root, { left: stageLeft }]}>
       <Image
         source={{ uri: imageUri }}
         style={styles.image}
@@ -87,12 +98,14 @@ function ReelSponsoredSlideInner({ ad, width, height }: Props) {
         </Pressable>
       </View>
     </View>
+    </View>
   );
 }
 
 function createStyles(width: number, height: number) {
   return StyleSheet.create({
     root: {
+      position: "absolute",
       width,
       height,
       backgroundColor: "#0a0a0f",

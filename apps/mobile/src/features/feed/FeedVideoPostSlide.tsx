@@ -86,6 +86,9 @@ type Props = {
   group: FeedVideoGroup;
   width: number;
   height: number;
+  /** 9:16 column on wide viewports; defaults to full `width`. */
+  stageWidth?: number;
+  stageLeft?: number;
   /** This post row is the vertically active one. */
   active: boolean;
   /** Mount native decoder only when near viewport (memory + shake gate). */
@@ -368,6 +371,8 @@ function FeedVideoPostSlideInner({
   group,
   width,
   height,
+  stageWidth: stageWidthProp,
+  stageLeft: stageLeftProp,
   active,
   loadPlayer,
   initialVideoIndex,
@@ -376,6 +381,9 @@ function FeedVideoPostSlideInner({
   onChangeVideoIndex,
   onFastForwardChange,
 }: Props) {
+  const stageWidth = stageWidthProp ?? width;
+  const stageLeft = stageLeftProp ?? 0;
+  const isWide = stageLeft > 0 || stageWidth < width;
   const { t } = useI18n();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
@@ -443,6 +451,12 @@ function FeedVideoPostSlideInner({
   }, [group.postId, initialVideoIndex, group.videos.length]);
 
   useEffect(() => {
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index: videoIndex, animated: false });
+    });
+  }, [stageWidth]);
+
+  useEffect(() => {
     starLock.current = false;
   }, [group.postId]);
 
@@ -470,13 +484,13 @@ function FeedVideoPostSlideInner({
   const onHScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const x = e.nativeEvent.contentOffset.x;
-      const next = Math.round(x / Math.max(width, 1));
+      const next = Math.round(x / Math.max(stageWidth, 1));
       if (next !== videoIndex && next >= 0 && next < group.videos.length) {
         setVideoIndex(next);
         onChangeVideoIndex?.(next);
       }
     },
-    [group.videos.length, onChangeVideoIndex, videoIndex, width]
+    [group.videos.length, onChangeVideoIndex, stageWidth, videoIndex]
   );
 
   const onLike = useCallback(() => {
@@ -560,6 +574,7 @@ function FeedVideoPostSlideInner({
 
   return (
     <View style={{ width, height, backgroundColor: "#000" }}>
+      <View style={{ position: "absolute", left: stageLeft, width: stageWidth, height }}>
       <FlatList
         ref={listRef}
         data={group.videos}
@@ -573,7 +588,11 @@ function FeedVideoPostSlideInner({
         decelerationRate="fast"
         onMomentumScrollEnd={onHScroll}
         extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${muted ? 1 : 0}:${fastForward ? 1 : 0}`}
-        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+        getItemLayout={(_, index) => ({
+          length: stageWidth,
+          offset: stageWidth * index,
+          index,
+        })}
         initialScrollIndex={Math.min(initialVideoIndex, group.videos.length - 1)}
         onScrollToIndexFailed={() => {
           // ignore cold layout race
@@ -582,7 +601,7 @@ function FeedVideoPostSlideInner({
           const isCurrent = active && index === videoIndex;
           const isPlaying = isCurrent && isFocused;
           return (
-            <View style={{ width, height }}>
+            <View style={{ width: stageWidth, height }}>
               <SensitiveContentGate
                 enabled={!!item.isNsfw && user?.id !== item.author.id}
                 style={{ flex: 1 }}
@@ -600,7 +619,7 @@ function FeedVideoPostSlideInner({
               {isCurrent && !chromeHidden && item.mediaType !== "IMAGE" ? (
                 <>
                   <Pressable
-                    style={styles.tapZone}
+                    style={[styles.tapZone, isWide ? styles.tapZoneWide : null]}
                     onPress={togglePause}
                     accessibilityRole="button"
                     accessibilityLabel={pausedByUser ? t("m.common.play") : t("m.common.pause")}
@@ -640,6 +659,58 @@ function FeedVideoPostSlideInner({
           ))}
         </View>
       ) : null}
+
+      {!chromeHidden && captionExpanded ? (
+        <Pressable
+          style={collapsibleCaptionStyles.expandedBackdrop}
+          onPress={() => setCaptionExpanded(false)}
+          accessibilityRole="button"
+          accessibilityLabel={t("m.feed.close_caption")}
+        />
+      ) : null}
+
+      {/* Bottom meta — stays on the 9:16 stage */}
+      {!chromeHidden ? (
+        <View
+          style={[
+            styles.meta,
+            isWide ? styles.metaWide : null,
+            captionExpanded && collapsibleCaptionStyles.expandedMeta,
+          ]}
+          pointerEvents="box-none"
+        >
+        <Pressable
+          onPressIn={onAuthorPressIn}
+          onPress={onAuthorPress}
+          style={styles.authorRow}
+          accessibilityRole="button"
+          accessibilityLabel={t("m.feed.username_profile", { username: String(current.author.username) })}
+        >
+          <FolkAvatar
+            uri={current.author.image}
+            name={current.author.name ?? current.author.username}
+            size={36}
+            framed={false}
+            style={styles.metaAvatar}
+          />
+          <Text style={styles.user}>@{current.author.username}</Text>
+        </Pressable>
+        {captionText ? (
+          <CollapsibleVideoCaption
+            text={captionText}
+            style={styles.caption}
+            resetKey={`${group.postId}:${current.id}`}
+            onExpandedChange={setCaptionExpanded}
+          />
+        ) : null}
+        {group.videos.length > 1 ? (
+          <Text style={styles.index}>
+            {videoIndex + 1} / {group.videos.length}
+          </Text>
+        ) : null}
+        </View>
+      ) : null}
+      </View>
 
       {/* Right rail */}
       {!chromeHidden ? (
@@ -696,53 +767,6 @@ function FeedVideoPostSlideInner({
         </View>
       ) : null}
 
-      {!chromeHidden && captionExpanded ? (
-        <Pressable
-          style={collapsibleCaptionStyles.expandedBackdrop}
-          onPress={() => setCaptionExpanded(false)}
-          accessibilityRole="button"
-          accessibilityLabel={t("m.feed.close_caption")}
-        />
-      ) : null}
-
-      {/* Bottom meta */}
-      {!chromeHidden ? (
-        <View
-          style={[styles.meta, captionExpanded && collapsibleCaptionStyles.expandedMeta]}
-          pointerEvents="box-none"
-        >
-        <Pressable
-          onPressIn={onAuthorPressIn}
-          onPress={onAuthorPress}
-          style={styles.authorRow}
-          accessibilityRole="button"
-          accessibilityLabel={t("m.feed.username_profile", { username: String(current.author.username) })}
-        >
-          <FolkAvatar
-            uri={current.author.image}
-            name={current.author.name ?? current.author.username}
-            size={36}
-            framed={false}
-            style={styles.metaAvatar}
-          />
-          <Text style={styles.user}>@{current.author.username}</Text>
-        </Pressable>
-        {captionText ? (
-          <CollapsibleVideoCaption
-            text={captionText}
-            style={styles.caption}
-            resetKey={`${group.postId}:${current.id}`}
-            onExpandedChange={setCaptionExpanded}
-          />
-        ) : null}
-        {group.videos.length > 1 ? (
-          <Text style={styles.index}>
-            {videoIndex + 1} / {group.videos.length}
-          </Text>
-        ) : null}
-        </View>
-      ) : null}
-
       <PostReportSheet
         visible={reportOpen}
         onClose={() => setReportOpen(false)}
@@ -768,6 +792,8 @@ function slideEqual(a: Props, b: Props) {
     a.loadPlayer === b.loadPlayer &&
     a.width === b.width &&
     a.height === b.height &&
+    a.stageWidth === b.stageWidth &&
+    a.stageLeft === b.stageLeft &&
     a.initialVideoIndex === b.initialVideoIndex &&
     a.group.videos.length === b.group.videos.length
   );
@@ -799,6 +825,9 @@ const styles = StyleSheet.create({
     top: 32,
     bottom: 88,
     zIndex: 2,
+  },
+  tapZoneWide: {
+    right: EDGE_HOLD_WIDTH,
   },
   edgeZone: {
     position: "absolute",
@@ -835,6 +864,9 @@ const styles = StyleSheet.create({
     right: 72,
     bottom: 28,
     zIndex: 5,
+  },
+  metaWide: {
+    right: spacing.md,
   },
   authorRow: {
     flexDirection: "row",
