@@ -55,6 +55,8 @@ type Props = {
   onDeletedPost?: (postId: string) => void;
   /** QnA hub list: keep Q mark / title / translate chrome, hide body + photos. */
   qnaPreview?: boolean;
+  /** Post detail: show the full body. Feed/profile cards stay 8-line previews. */
+  expandBody?: boolean;
 };
 
 function formatCount(n: number) {
@@ -80,6 +82,7 @@ function FeedPostCardInner({
   onBlockedAuthor,
   onDeletedPost,
   qnaPreview = false,
+  expandBody = false,
 }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute();
@@ -418,7 +421,7 @@ function FeedPostCardInner({
         <TranslatableText
           text={qnaListTitle(post)}
           style={styles.qnaTitle}
-          numberOfLines={4}
+          numberOfLines={expandBody ? undefined : 4}
           onBackgroundPress={onPressPost ? openPost : undefined}
           translateActive
         />
@@ -426,13 +429,13 @@ function FeedPostCardInner({
         <TranslatableText
           text={post.content}
           style={styles.content}
-          numberOfLines={8}
+          numberOfLines={expandBody ? undefined : 8}
           onBackgroundPress={onPressPost ? openPost : undefined}
           translateActive={viewTrackActive}
         />
       ) : post.title ? (
         <Pressable onPress={openPost} disabled={!onPressPost}>
-          <Text style={styles.content} numberOfLines={4}>
+          <Text style={styles.content} numberOfLines={expandBody ? undefined : 4}>
             {post.title}
           </Text>
         </Pressable>
@@ -639,7 +642,8 @@ function propsEqual(a: Props, b: Props) {
     a.onPressAuthor === b.onPressAuthor &&
     a.onPressCommunity === b.onPressCommunity &&
     a.onPressVideo === b.onPressVideo &&
-    a.qnaPreview === b.qnaPreview
+    a.qnaPreview === b.qnaPreview &&
+    a.expandBody === b.expandBody
   );
 }
 

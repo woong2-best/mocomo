@@ -202,6 +202,7 @@ export function PostDetailScreen() {
               <View>
                 <FeedPostCard
                   post={post}
+                  expandBody
                   previewActive
                   viewTrackActive
                   paymentsEnabled={post.paymentsEnabled}
