@@ -44,6 +44,8 @@ import {
 import { stripLegacyGameShareMarker } from "@/lib/chat-legacy-game-share";
 import { parseAtmLetter } from "@/lib/chat-atm-letter";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
+import { parseCallEvent } from "@/lib/chat-call-event";
+import { ChatCallEventCard } from "@/components/chat/chat-call-event-card";
 import { TransferLetterCard } from "@/components/messages/transfer-letter-stage";
 import { LetterDonationCard } from "@/components/donations/letter-donation-card";
 import { cn } from "@/lib/utils";
@@ -512,6 +514,18 @@ export function ChatRoomClient({
                 <p className="text-xs text-center text-muted-foreground bg-muted/80 border border-border/50 px-3 py-2 rounded-xl max-w-md leading-relaxed">
                   {m.content}
                 </p>
+              </div>
+            );
+          }
+          const callEvent = parseCallEvent(m.content);
+          if (callEvent) {
+            return (
+              <div key={m.id} className="my-2 px-1">
+                <ChatCallEventCard
+                  event={callEvent}
+                  createdAt={m.createdAt}
+                  align={callEvent.phase === "ended" ? "right" : "left"}
+                />
               </div>
             );
           }

@@ -8,12 +8,15 @@ type Props = {
   isVideo: boolean;
   displayName: string;
   displayImage: string | null;
+  selfName?: string;
+  selfImage?: string | null;
   state: MobilePeerCallState;
   statusHint: string;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   micEnabled: boolean;
   cameraEnabled: boolean;
+  remoteCameraEnabled?: boolean;
   onToggleMic: () => void;
   onToggleCamera?: () => void;
   topInset: number;
@@ -33,53 +36,79 @@ function VideoSurface({ stream, mirror }: { stream: MediaStream | null; mirror?:
   );
 }
 
+function CameraOffPane({
+  uri,
+  name,
+  compact,
+}: {
+  uri?: string | null;
+  name: string;
+  compact?: boolean;
+}) {
+  return (
+    <View style={styles.cameraOff}>
+      <FolkAvatar uri={uri} name={name} size={compact ? 72 : 104} />
+    </View>
+  );
+}
+
 export function DmCallLiveView({
   isVideo,
   displayName,
   displayImage,
-  state,
+  selfName = "Me",
+  selfImage = null,
   statusHint,
   localStream,
   remoteStream,
   micEnabled,
   cameraEnabled,
+  remoteCameraEnabled = true,
   onToggleMic,
   onToggleCamera,
   topInset,
 }: Props) {
-  const hasRemoteVideo = Boolean(remoteStream?.getVideoTracks().some((t) => t.enabled));
-  const hasLocalVideo = Boolean(localStream?.getVideoTracks().some((t) => t.enabled && cameraEnabled));
+  const hasRemoteTrack = Boolean(remoteStream?.getVideoTracks().length);
+  const showRemoteVideo = remoteCameraEnabled && hasRemoteTrack;
+  const showLocalVideo = Boolean(
+    cameraEnabled && localStream?.getVideoTracks().some((track) => track.enabled)
+  );
 
   if (isVideo) {
     return (
       <View style={styles.videoRoot}>
         <View style={styles.remotePane}>
-          {hasRemoteVideo ? (
+          {showRemoteVideo ? (
             <VideoSurface stream={remoteStream} />
           ) : (
-            <View style={styles.remoteFallback}>
-              <FolkAvatar uri={displayImage} name={displayName} size={96} />
-              <Text style={styles.statusHint}>{statusHint}</Text>
-            </View>
+            <CameraOffPane uri={displayImage} name={displayName} />
           )}
         </View>
         <View style={styles.localPane}>
-          {hasLocalVideo ? (
+          {showLocalVideo ? (
             <VideoSurface stream={localStream} mirror />
           ) : (
-            <View style={styles.localFallback} />
+            <CameraOffPane uri={selfImage} name={selfName} compact />
           )}
         </View>
-        <View style={[styles.videoTop, { paddingTop: topInset + 12 }]}>
+        <View style={[styles.videoTop, { paddingTop: topInset + 12 }]} pointerEvents="none">
           <Text style={styles.videoName}>{displayName}</Text>
-          <Text style={styles.videoSub}>{state === "connected" ? statusHint : statusHint}</Text>
+          <Text style={styles.videoSub}>{statusHint}</Text>
         </View>
         <View style={styles.toolRow}>
-          <Pressable style={styles.toolBtn} onPress={onToggleMic}>
+          <Pressable
+            style={[styles.toolBtn, !micEnabled && styles.toolBtnOff]}
+            onPress={onToggleMic}
+            hitSlop={8}
+          >
             <Ionicons name={micEnabled ? "mic" : "mic-off"} size={24} color="#fff" />
           </Pressable>
           {onToggleCamera ? (
-            <Pressable style={styles.toolBtn} onPress={onToggleCamera}>
+            <Pressable
+              style={[styles.toolBtn, !cameraEnabled && styles.toolBtnOff]}
+              onPress={onToggleCamera}
+              hitSlop={8}
+            >
               <Ionicons name={cameraEnabled ? "videocam" : "videocam-off"} size={24} color="#fff" />
             </Pressable>
           ) : null}
@@ -92,7 +121,11 @@ export function DmCallLiveView({
     <View style={styles.audioStage}>
       <FolkAvatar uri={displayImage} name={displayName} size={96} />
       <Text style={styles.statusHint}>{statusHint}</Text>
-      <Pressable style={styles.micBtn} onPress={onToggleMic}>
+      <Pressable
+        style={[styles.micBtn, !micEnabled && styles.toolBtnOff]}
+        onPress={onToggleMic}
+        hitSlop={8}
+      >
         <Ionicons name={micEnabled ? "mic" : "mic-off"} size={26} color="#fff" />
       </Pressable>
     </View>
@@ -109,14 +142,12 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.12)",
   },
-  remoteFallback: {
+  cameraOff: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    paddingHorizontal: 24,
+    backgroundColor: "#0B1220",
   },
-  localFallback: { flex: 1, alignItems: "center", justifyContent: "center" },
   videoTop: {
     position: "absolute",
     left: 0,
@@ -143,6 +174,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  toolBtnOff: { backgroundColor: "rgba(225,29,72,0.88)" },
   audioStage: {
     flex: 1,
     alignItems: "center",

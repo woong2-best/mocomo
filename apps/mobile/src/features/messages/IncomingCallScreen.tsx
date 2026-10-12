@@ -233,12 +233,15 @@ export function IncomingCallScreen() {
         isVideo={isVideo}
         displayName={callerName}
         displayImage={callerImage}
+        selfName={user?.name || user?.username || "Me"}
+        selfImage={user?.image ?? null}
         state={session.peer.state}
         statusHint={statusHint}
         localStream={session.peer.localStream}
         remoteStream={session.peer.remoteStream}
         micEnabled={session.peer.micEnabled}
         cameraEnabled={session.peer.cameraEnabled}
+        remoteCameraEnabled={session.peer.remoteCameraEnabled}
         onToggleMic={() => session.peer.setMic(!session.peer.micEnabled)}
         onToggleCamera={
           isVideo ? () => session.peer.setCamera(!session.peer.cameraEnabled) : undefined

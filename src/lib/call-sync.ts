@@ -1,4 +1,5 @@
 import { CallStatus, CallType } from "@prisma/client";
+import { recordCallChatEvents } from "@/lib/chat-call-event-record";
 import { db } from "@/lib/db";
 
 const ACTIVE: CallStatus[] = [CallStatus.RINGING, CallStatus.ACTIVE];
@@ -65,13 +66,17 @@ export async function endVoiceCallForParticipant(
   ) {
     return { ok: true };
   }
+  const nextStatus = call.status === CallStatus.RINGING ? CallStatus.DECLINED : CallStatus.ENDED;
   await db.voiceCall.update({
     where: { id: callId },
     data: {
-      status: call.status === CallStatus.RINGING ? CallStatus.DECLINED : CallStatus.ENDED,
+      status: nextStatus,
       endedAt: new Date(),
     },
   });
+  if (nextStatus === CallStatus.ENDED) {
+    void recordCallChatEvents({ callId, endedByUserId: userId }).catch(() => undefined);
+  }
   return { ok: true };
 }
 

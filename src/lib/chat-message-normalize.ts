@@ -3,6 +3,7 @@ import type { ChatAttachmentView } from "@/lib/chat-attachments";
 import { parseChatAttachmentType } from "@/lib/chat-attachments";
 import { atmLetterListPreview } from "@/lib/chat-atm-letter";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
+import { callEventListPreview } from "@/lib/chat-call-event";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 
@@ -41,6 +42,8 @@ export function getChatMessageReplyPreview(
   const letterPreview = atmLetterListPreview(m.content);
   if (letterPreview) return letterPreview;
   if (parseLetterDonationMarker(m.content)) return "A letter has arrived";
+  const callEventPreview = callEventListPreview(m.content);
+  if (callEventPreview) return callEventPreview;
   const text = m.content?.trim();
   if (text) return text.length > 100 ? `${text.slice(0, 100)}…` : text;
   const att = m.attachments?.[0];

@@ -46,6 +46,9 @@ function signalKey(payload: VoiceWireSignal): string {
     const candidate = payload.candidate;
     return `ice:${candidate?.candidate ?? ""}:${candidate?.sdpMid ?? ""}:${candidate?.sdpMLineIndex ?? ""}`;
   }
+  if (payload.type === "media") {
+    return `media:${payload.mic}:${payload.camera}`;
+  }
   return payload.type;
 }
 
@@ -119,6 +122,10 @@ export function useMobilePeerCall({
   const [failure, setFailure] = useState<string | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(video);
+  const [remoteMicEnabled, setRemoteMicEnabled] = useState(true);
+  const [remoteCameraEnabled, setRemoteCameraEnabled] = useState(video);
+  const micEnabledRef = useRef(true);
+  const cameraEnabledRef = useRef(video);
 
   useEffect(() => {
     onFailedRef.current = onFailed;
@@ -128,8 +135,17 @@ export function useMobilePeerCall({
     isCallerRef.current = isCaller;
     videoRef.current = video;
     politeRef.current = !isCaller;
-    setCameraEnabled(video);
   });
+
+  useEffect(() => {
+    if (!enabled) return;
+    setRemoteMicEnabled(true);
+    setRemoteCameraEnabled(video);
+    micEnabledRef.current = true;
+    cameraEnabledRef.current = video;
+    setMicEnabled(true);
+    setCameraEnabled(video);
+  }, [enabled, callId, video]);
 
   const cleanup = useCallback(() => {
     pcRef.current?.close();
@@ -165,7 +181,9 @@ export function useMobilePeerCall({
     })) as MediaStream;
     localStreamRef.current = stream;
     setLocalStream(stream);
-    setCameraEnabled(wantsVideo && stream.getVideoTracks().some((t) => t.enabled));
+    const cameraOn = wantsVideo && stream.getVideoTracks().some((t) => t.enabled);
+    cameraEnabledRef.current = cameraOn;
+    setCameraEnabled(cameraOn);
     return stream;
   }, []);
 
@@ -205,8 +223,12 @@ export function useMobilePeerCall({
     pc.ontrack = (ev) => {
       const event = ev as {
         streams?: readonly MediaStream[];
-        track?: MediaStream extends { getTracks(): Array<infer T> } ? T : never;
+        track?: { kind?: string; id: string; onmute: (() => void) | null; onunmute: (() => void) | null };
       };
+      if (event.track?.kind === "video") {
+        event.track.onmute = () => setRemoteCameraEnabled(false);
+        event.track.onunmute = () => setRemoteCameraEnabled(true);
+      }
       const [first] = event.streams ?? [];
       if (first) {
         remoteStreamRef.current = first;
@@ -242,8 +264,14 @@ export function useMobilePeerCall({
 
     pc.onconnectionstatechange = () => {
       const cs = pc.connectionState;
-      if (cs === "connected") setState("connected");
-      else if (cs === "failed") failNatBlocked();
+      if (cs === "connected") {
+        setState("connected");
+        sessionSendRef.current({
+          type: "media",
+          mic: micEnabledRef.current,
+          camera: cameraEnabledRef.current,
+        });
+      } else if (cs === "failed") failNatBlocked();
     };
 
     const local = await ensureLocalStream();
@@ -259,6 +287,12 @@ export function useMobilePeerCall({
       if (payload.type === "hello" || payload.type === "ready") return;
       const key = signalKey(payload);
       if (payload.type !== "hangup" && appliedSignalsRef.current.has(key)) return;
+
+      if (payload.type === "media") {
+        setRemoteMicEnabled(payload.mic);
+        setRemoteCameraEnabled(payload.camera);
+        return;
+      }
 
       const pc = pcRef.current ?? (await createPeerConnection());
       const polite = politeRef.current;
@@ -449,19 +483,42 @@ export function useMobilePeerCall({
     };
   }, [enabled, callId, signalingRoomId, userId, isCaller, cleanup]);
 
+  const publishMedia = useCallback((mic: boolean, camera: boolean) => {
+    sessionSendRef.current({ type: "media", mic, camera });
+  }, []);
+
   const setMic = useCallback((on: boolean) => {
     for (const track of localStreamRef.current?.getAudioTracks() ?? []) {
       track.enabled = on;
     }
+    const pc = pcRef.current as { getSenders?: () => Array<{ track?: { kind: string; enabled: boolean } | null }> } | null;
+    for (const sender of pc?.getSenders?.() ?? []) {
+      if (sender.track?.kind === "audio") sender.track.enabled = on;
+    }
+    micEnabledRef.current = on;
     setMicEnabled(on);
-  }, []);
+    publishMedia(on, cameraEnabledRef.current);
+  }, [publishMedia]);
 
   const setCamera = useCallback((on: boolean) => {
-    for (const track of localStreamRef.current?.getVideoTracks() ?? []) {
-      track.enabled = on;
+    const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+    if (videoTrack) videoTrack.enabled = on;
+    const pc = pcRef.current as {
+      getSenders?: () => Array<{
+        track?: { kind: string; enabled: boolean } | null;
+        replaceTrack?: (next: unknown) => Promise<void>;
+      }>;
+    } | null;
+    const sender = pc?.getSenders?.().find((item) => item.track?.kind === "video" || item.track === videoTrack);
+    if (sender?.replaceTrack) {
+      void sender.replaceTrack(on ? videoTrack ?? sender.track : null).catch(() => {
+        if (videoTrack) videoTrack.enabled = on;
+      });
     }
+    cameraEnabledRef.current = on;
     setCameraEnabled(on);
-  }, []);
+    publishMedia(micEnabledRef.current, on);
+  }, [publishMedia]);
 
   const hangup = useCallback(() => {
     sessionSendRef.current({ type: "hangup" });
@@ -475,6 +532,8 @@ export function useMobilePeerCall({
     failure,
     micEnabled,
     cameraEnabled,
+    remoteMicEnabled,
+    remoteCameraEnabled,
     setMic,
     setCamera,
     hangup,

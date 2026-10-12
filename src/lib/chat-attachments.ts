@@ -1,6 +1,7 @@
 import type { MessageAttachmentType } from "@prisma/client";
 import { atmLetterListPreview } from "@/lib/chat-atm-letter";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
+import { callEventListPreview } from "@/lib/chat-call-event";
 import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { stripLegacyGameShareMarker } from "@/lib/chat-legacy-game-share";
 import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
@@ -99,6 +100,8 @@ export function lastMessagePreview(
   const letterPreview = atmLetterListPreview(content);
   if (letterPreview) return letterPreview;
   if (parseLetterDonationMarker(content)) return "A letter has arrived";
+  const callEventPreview = callEventListPreview(content);
+  if (callEventPreview) return callEventPreview;
   if (content?.trim()) return content.trim();
   if (!attachments?.length) return "Start a conversation";
   const hasImage = attachments.some((a) => a.type === "IMAGE" || a.type === "GIF");

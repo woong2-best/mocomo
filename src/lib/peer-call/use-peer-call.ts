@@ -41,6 +41,9 @@ function signalKey(payload: CallSignalPayload): string {
     const candidate = payload.candidate;
     return `ice:${candidate?.candidate ?? ""}:${candidate?.sdpMid ?? ""}:${candidate?.sdpMLineIndex ?? ""}`;
   }
+  if (payload.type === "media") {
+    return `media:${payload.mic}:${payload.camera}`;
+  }
   return payload.type;
 }
 
@@ -177,6 +180,10 @@ export function usePeerCall({
   const [state, setState] = useState<PeerCallState>("idle");
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(video);
+  const [remoteMicEnabled, setRemoteMicEnabled] = useState(true);
+  const [remoteCameraEnabled, setRemoteCameraEnabled] = useState(video);
+  const micEnabledRef = useRef(true);
+  const cameraEnabledRef = useRef(video);
 
   useEffect(() => {
     onConnectedRef.current = onConnected;
@@ -258,7 +265,9 @@ export function usePeerCall({
     rawMicRef.current = stream;
     localStreamRef.current = stream;
     setLocalStream(stream);
-    setCameraEnabled(wantsVideo && stream.getVideoTracks().some((t) => t.enabled));
+    const cameraOn = wantsVideo && stream.getVideoTracks().some((t) => t.enabled);
+    cameraEnabledRef.current = cameraOn;
+    setCameraEnabled(cameraOn);
     return stream;
   }, []);
 
@@ -310,7 +319,14 @@ export function usePeerCall({
         }
       };
 
+      const bindRemoteTrack = (track: MediaStreamTrack) => {
+        if (track.kind !== "video") return;
+        track.onmute = () => setRemoteCameraEnabled(false);
+        track.onunmute = () => setRemoteCameraEnabled(true);
+      };
+
       pc.ontrack = (ev) => {
+        bindRemoteTrack(ev.track);
         const [first] = ev.streams;
         if (first) {
           remoteStreamRef.current = first;
@@ -349,6 +365,11 @@ export function usePeerCall({
         if (cs === "connected") {
           setState("connected");
           onConnectedRef.current?.();
+          emitSignal({
+            type: "media",
+            mic: micEnabledRef.current,
+            camera: cameraEnabledRef.current,
+          });
         } else if (cs === "failed") {
           failNatBlocked();
         }
@@ -381,6 +402,11 @@ export function usePeerCall({
       const epoch = epochRef.current;
       const live = () => epochRef.current === epoch;
       const key = signalKey(payload);
+      if (payload.type === "media") {
+        setRemoteMicEnabled(payload.mic);
+        setRemoteCameraEnabled(payload.camera);
+        return;
+      }
       if (payload.type !== "hangup" && appliedSignalsRef.current.has(key)) return;
 
       const pc = pcRef.current ?? (await createPeerConnection());
@@ -655,6 +681,10 @@ export function usePeerCall({
     };
   }, [enabled, socket]);
 
+  const publishMedia = useCallback((mic: boolean, camera: boolean) => {
+    emitSignal({ type: "media", mic, camera });
+  }, [emitSignal]);
+
   const setMic = useCallback((on: boolean) => {
     for (const track of rawMicRef.current?.getAudioTracks() ?? []) {
       track.enabled = on;
@@ -662,15 +692,27 @@ export function usePeerCall({
     for (const track of localStreamRef.current?.getAudioTracks() ?? []) {
       track.enabled = on;
     }
+    for (const sender of pcRef.current?.getSenders() ?? []) {
+      if (sender.track?.kind === "audio") sender.track.enabled = on;
+    }
+    micEnabledRef.current = on;
     setMicEnabled(on);
-  }, []);
+    publishMedia(on, cameraEnabledRef.current);
+  }, [publishMedia]);
 
   const setCamera = useCallback((on: boolean) => {
-    for (const track of localStreamRef.current?.getVideoTracks() ?? []) {
-      track.enabled = on;
+    const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+    if (videoTrack) videoTrack.enabled = on;
+    const sender = pcRef.current?.getSenders().find((item) => item.track?.kind === "video" || item.track === videoTrack);
+    if (sender) {
+      void sender.replaceTrack(on ? videoTrack ?? sender.track : null).catch(() => {
+        if (videoTrack) videoTrack.enabled = on;
+      });
     }
+    cameraEnabledRef.current = on;
     setCameraEnabled(on);
-  }, []);
+    publishMedia(micEnabledRef.current, on);
+  }, [publishMedia]);
 
   const flipCamera = useCallback(async () => {
     const videoTrack = localStreamRef.current?.getVideoTracks()[0];
@@ -689,11 +731,23 @@ export function usePeerCall({
       localStreamRef.current?.removeTrack(videoTrack);
       localStreamRef.current?.addTrack(newTrack);
       setLocalStream(localStreamRef.current ? new MediaStream(localStreamRef.current.getTracks()) : null);
+      cameraEnabledRef.current = true;
       setCameraEnabled(true);
+      publishMedia(micEnabledRef.current, true);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [publishMedia]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    setRemoteMicEnabled(true);
+    setRemoteCameraEnabled(video);
+    micEnabledRef.current = true;
+    cameraEnabledRef.current = video;
+    setMicEnabled(true);
+    setCameraEnabled(video);
+  }, [enabled, callId, video]);
 
   return {
     localStream,
@@ -701,6 +755,8 @@ export function usePeerCall({
     state,
     micEnabled,
     cameraEnabled,
+    remoteMicEnabled,
+    remoteCameraEnabled,
     setMic,
     setCamera,
     flipCamera,

@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
+import { recordCallChatEvents } from "@/lib/chat-call-event-record";
 import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
@@ -196,6 +197,7 @@ export async function endCall(callId: string) {
     where: { id: callId },
     select: { chatRoomId: true },
   });
+  void recordCallChatEvents({ callId, endedByUserId: user.id }).catch(() => undefined);
   if (chat?.chatRoomId) revalidatePath(`/messages/${chat.chatRoomId}`);
   return { ok: true as const };
 }

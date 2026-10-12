@@ -3,6 +3,7 @@ import { chatPostShareListPreview } from "@/lib/chat-post-share";
 import { chatUsedListingListPreview } from "@/lib/chat-used-listing-share";
 import { parseUsedTradeRequestMarker } from "@/lib/chat-used-trade-request";
 import { parseCallBookingMarker } from "@/lib/chat-call-booking";
+import { callEventListPreview } from "@/lib/chat-call-event";
 import { parseLetterDonationMarker } from "@/lib/chat-letter-donation";
 import { parseAtmLetter } from "@/lib/chat-atm-letter";
 import { translate } from "@/i18n/runtime";
@@ -75,6 +76,8 @@ export function getChatReplyPreview(
   if (parseCallBookingMarker(m.content)) {
     return translate("m.common.call_booking");
   }
+  const callEventPreview = callEventListPreview(m.content);
+  if (callEventPreview) return callEventPreview;
   if (parseAtmLetter(m.content)) {
     return translate("m.messages.transfer_letter");
   }

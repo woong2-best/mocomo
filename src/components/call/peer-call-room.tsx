@@ -50,53 +50,67 @@ function AudioAttach({ stream, speakerOn }: { stream: MediaStream | null; speake
   return <audio ref={ref} autoPlay playsInline />;
 }
 
+function CameraOffPane({
+  name,
+  image,
+  hint,
+}: {
+  name: string;
+  image: string | null;
+  hint?: string;
+}) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-neutral-950 px-4">
+      <Avatar className="h-24 w-24 ring-2 ring-white/15">
+        <AvatarImage src={image ?? undefined} />
+        <AvatarFallback className="bg-white/10 text-2xl text-white">
+          {name[0]?.toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      {hint ? <p className="text-center text-sm text-white/55">{hint}</p> : null}
+    </div>
+  );
+}
+
 function DmVideoSplitStage({
   peer,
   selfPeer,
   localStream,
   remoteStream,
   phase,
+  cameraEnabled,
+  remoteCameraEnabled,
 }: {
   peer: CallParticipant;
   selfPeer: CallParticipant;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   phase: "outgoing" | "active";
+  cameraEnabled: boolean;
+  remoteCameraEnabled: boolean;
 }) {
-  const hasRemoteVideo = !!remoteStream?.getVideoTracks().some((t) => t.enabled);
+  const showRemoteVideo = remoteCameraEnabled && !!remoteStream?.getVideoTracks().length;
+  const showLocalVideo = cameraEnabled && !!localStream?.getVideoTracks().some((track) => track.enabled);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-neutral-900">
-        {hasRemoteVideo ? (
+    <div className="flex h-full min-h-0 w-full flex-row">
+      <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-neutral-900">
+        {showRemoteVideo ? (
           <VideoAttach stream={remoteStream} className="h-full w-full object-cover" />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-neutral-700 via-neutral-800 to-neutral-900 px-4">
-            <Avatar className="h-24 w-24 ring-2 ring-white/15">
-              <AvatarImage src={peer.image ?? undefined} />
-              <AvatarFallback className="bg-white/10 text-2xl text-white">
-                {peer.username[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            {phase === "outgoing" && (
-              <p className="text-center text-sm text-white/55">{t("call.s6y69qd")}</p>
-            )}
-          </div>
+          <CameraOffPane
+            name={peer.username}
+            image={peer.image}
+            hint={phase === "outgoing" ? t("call.s6y69qd") : undefined}
+          />
         )}
       </div>
-      <div className="h-px shrink-0 bg-white/10" />
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-neutral-900">
-        {localStream?.getVideoTracks().some((t) => t.enabled) ? (
-          <VideoAttach stream={localStream} className="h-full w-full object-cover" />
+      <div className="w-px shrink-0 bg-white/10" />
+      <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-neutral-900">
+        {showLocalVideo ? (
+          <VideoAttach stream={localStream} className="h-full w-full object-cover -scale-x-100" />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-neutral-700 via-neutral-800 to-neutral-900">
-            <Avatar className="h-24 w-24 ring-2 ring-white/15">
-              <AvatarImage src={selfPeer.image ?? undefined} />
-              <AvatarFallback className="bg-white/10 text-2xl text-white">
-                {selfPeer.username[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </div>
+          <CameraOffPane name={selfPeer.username} image={selfPeer.image} />
         )}
       </div>
     </div>
@@ -254,6 +268,8 @@ export function PeerCallRoom({
             localStream={peerCall.localStream}
             remoteStream={peerCall.remoteStream}
             phase={phase}
+            cameraEnabled={peerCall.cameraEnabled}
+            remoteCameraEnabled={peerCall.remoteCameraEnabled}
           />
         ) : (
           <AudioCallStage peer={peer} seconds={seconds} />

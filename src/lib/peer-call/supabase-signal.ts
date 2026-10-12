@@ -9,6 +9,7 @@ export type VoiceWireSignal =
   | { type: "offer"; sdp: RTCSessionDescriptionInit }
   | { type: "answer"; sdp: RTCSessionDescriptionInit }
   | { type: "ice"; candidate: RTCIceCandidateInit }
+  | { type: "media"; mic: boolean; camera: boolean }
   | { type: "hangup" };
 
 export type UserCallEventName = "ring" | "accepted" | "declined" | "ended";
@@ -52,6 +53,7 @@ function isVoiceSignal(value: unknown): value is VoiceWireSignal {
     type === "offer" ||
     type === "answer" ||
     type === "ice" ||
+    type === "media" ||
     type === "hangup"
   );
 }

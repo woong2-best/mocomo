@@ -21,6 +21,8 @@ import { formatBubbleTime } from "@/features/messages/chat-display";
 import { useI18n } from "@/i18n/I18nProvider";
 import { parseChatPostShare } from "@/lib/chat-post-share";
 import { parseCallBookingMarker, stripCallBookingMarker } from "@/lib/chat-call-booking";
+import { parseCallEvent } from "@/lib/chat-call-event";
+import { ChatCallEventCard } from "@/features/messages/ChatCallEventCard";
 import {
   parseLetterDonationMarker,
   stripLetterDonationMarker,
@@ -293,6 +295,11 @@ function MessageBubbleInner({
         <Text style={styles.systemText}>{message.content}</Text>
       </View>
     );
+  }
+
+  const callEvent = parseCallEvent(message.content);
+  if (callEvent) {
+    return <ChatCallEventCard event={callEvent} createdAt={message.createdAt} />;
   }
 
   const listingCard = message.usedListing ?? null;
