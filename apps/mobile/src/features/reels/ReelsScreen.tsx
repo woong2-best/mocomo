@@ -3,11 +3,13 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type ViewToken,
@@ -39,6 +41,13 @@ import { ReelSponsoredSlide } from "@/features/reels/ReelSponsoredSlide";
 import { ReelsWideNavRail } from "@/features/reels/ReelsWideNavRail";
 import { computeReelsChromeLayout } from "@/features/reels/reels-wide-layout";
 import {
+  isPageAligned,
+  pageIndexFromOffset,
+  pageOffsetForIndex,
+  REELS_PAGE_ALIGN_EPSILON,
+  shouldWaitForMomentum,
+} from "@/features/reels/reels-pager";
+import {
   buildReelsSlots,
   findReelSlotIndex,
   findSlotIndexByIdentity,
@@ -66,13 +75,45 @@ export function ReelsScreen() {
   const activeIdentityRef = useRef<string | null>(null);
   const ignoreViewabilityRef = useRef(false);
   const draggingRef = useRef(false);
+  const didMeasureListRef = useRef(false);
+  const pageHeightRef = useRef(windowHeight);
+  const lastOffsetYRef = useRef(0);
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const groupsStableRef = useRef<FeedVideoGroup[]>([]);
+  pageHeightRef.current = height;
 
-  // Keyboard / system-bar jitter must not resize the pager — that shakes every reel.
+  const commitPageHeight = useCallback((next: number, source: "layout" | "window") => {
+    const rounded = Math.round(next);
+    if (rounded < 200) return;
+    const prev = pageHeightRef.current;
+    if (source === "layout") {
+      if (!didMeasureListRef.current) {
+        didMeasureListRef.current = true;
+        if (rounded === prev) return;
+        pageHeightRef.current = rounded;
+        setHeight(rounded);
+        return;
+      }
+      if (Math.abs(rounded - prev) < 80) return;
+    } else if (Math.abs(rounded - prev) < 100) {
+      return;
+    }
+    if (rounded === prev) return;
+    pageHeightRef.current = rounded;
+    setHeight(rounded);
+  }, []);
+
+  // First list onLayout is the page size. Window updates only cover rotate / fold.
   useEffect(() => {
-    if (Math.abs(windowHeight - height) < 100) return;
-    setHeight(windowHeight);
-  }, [height, windowHeight]);
+    commitPageHeight(windowHeight, "window");
+  }, [commitPageHeight, windowHeight]);
+
+  const onListLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      commitPageHeight(e.nativeEvent.layout.height, "layout");
+    },
+    [commitPageHeight]
+  );
 
   const targetPostId = route.params?.postId;
   const targetMediaId = route.params?.mediaId;
@@ -167,6 +208,10 @@ export function ReelsScreen() {
   );
   const slotsRef = useRef(slots);
   slotsRef.current = slots;
+  const snapOffsets = useMemo(
+    () => (Platform.OS === "android" ? slots.map((_, i) => pageOffsetForIndex(i, height)) : undefined),
+    [height, slots]
+  );
 
   const commitSlot = useCallback((index: number) => {
     const slot = slotsRef.current[index];
@@ -182,12 +227,13 @@ export function ReelsScreen() {
       ignoreViewabilityRef.current = true;
       commitSlot(index);
       requestAnimationFrame(() => {
-        listRef.current?.scrollToIndex({ index, animated });
-        if (!animated) {
-          setTimeout(() => {
-            ignoreViewabilityRef.current = false;
-          }, 80);
-        }
+        listRef.current?.scrollToOffset({
+          offset: pageOffsetForIndex(index, pageHeightRef.current),
+          animated,
+        });
+        setTimeout(() => {
+          ignoreViewabilityRef.current = false;
+        }, animated ? 320 : 80);
       });
     },
     [commitSlot]
@@ -248,14 +294,88 @@ export function ReelsScreen() {
     if (targetPostId) prefetchPostComments(queryClient, targetPostId);
   }, [activeSlot, slots, queryClient, targetPostId]);
 
-  const syncSlotFromOffset = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const idx = Math.round(e.nativeEvent.contentOffset.y / Math.max(height, 1));
-      if (idx < 0 || idx >= slotsRef.current.length) return;
-      if (idx === activeSlotRef.current) return;
+  const clearSettleTimer = useCallback(() => {
+    if (!settleTimerRef.current) return;
+    clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = null;
+  }, []);
+
+  const settlingRef = useRef(false);
+
+  const settleToNearestSlot = useCallback(
+    (offsetY: number, animated: boolean) => {
+      const page = Math.max(pageHeightRef.current, 1);
+      const count = slotsRef.current.length;
+      if (count === 0) return;
+      const idx = pageIndexFromOffset(offsetY, page, count);
+      const target = pageOffsetForIndex(idx, page);
       commitSlot(idx);
+      if (Math.abs(offsetY - target) <= REELS_PAGE_ALIGN_EPSILON) {
+        settlingRef.current = false;
+        ignoreViewabilityRef.current = false;
+        return;
+      }
+      if (settlingRef.current) return;
+      settlingRef.current = true;
+      ignoreViewabilityRef.current = true;
+      listRef.current?.scrollToOffset({ offset: target, animated });
+      setTimeout(() => {
+        settlingRef.current = false;
+        ignoreViewabilityRef.current = false;
+      }, animated ? 280 : 80);
     },
-    [commitSlot, height]
+    [commitSlot]
+  );
+
+  const scheduleSettle = useCallback(
+    (offsetY: number) => {
+      lastOffsetYRef.current = offsetY;
+      clearSettleTimer();
+      settleTimerRef.current = setTimeout(() => {
+        settleTimerRef.current = null;
+        if (draggingRef.current || ignoreViewabilityRef.current) return;
+        settleToNearestSlot(lastOffsetYRef.current, true);
+      }, 140);
+    },
+    [clearSettleTimer, settleToNearestSlot]
+  );
+
+  useEffect(() => () => clearSettleTimer(), [clearSettleTimer]);
+
+  const onPagerScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      lastOffsetYRef.current = e.nativeEvent.contentOffset.y;
+      if (draggingRef.current || ignoreViewabilityRef.current) return;
+      scheduleSettle(lastOffsetYRef.current);
+    },
+    [scheduleSettle]
+  );
+
+  const onPagerEndDrag = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      draggingRef.current = false;
+      const y = e.nativeEvent.contentOffset.y;
+      lastOffsetYRef.current = y;
+      if (shouldWaitForMomentum(e.nativeEvent.velocity?.y)) {
+        ignoreViewabilityRef.current = true;
+        scheduleSettle(y);
+        return;
+      }
+      clearSettleTimer();
+      settleToNearestSlot(y, true);
+    },
+    [clearSettleTimer, scheduleSettle, settleToNearestSlot]
+  );
+
+  const onPagerMomentumEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      draggingRef.current = false;
+      clearSettleTimer();
+      const y = e.nativeEvent.contentOffset.y;
+      lastOffsetYRef.current = y;
+      settleToNearestSlot(y, !isPageAligned(y, pageHeightRef.current, slotsRef.current.length));
+    },
+    [clearSettleTimer, settleToNearestSlot]
   );
 
   const onViewableItemsChanged = useRef(
@@ -376,7 +496,10 @@ export function ReelsScreen() {
     dimKeyRef.current = key;
     const index = activeSlotRef.current;
     requestAnimationFrame(() => {
-      listRef.current?.scrollToOffset({ offset: height * index, animated: false });
+      listRef.current?.scrollToOffset({
+        offset: pageOffsetForIndex(index, height),
+        animated: false,
+      });
     });
   }, [height, width]);
 
@@ -428,40 +551,45 @@ export function ReelsScreen() {
 
       <FlatList
         ref={listRef}
+        style={styles.pager}
         data={slots}
-        extraData={`${activeSlot}:${chrome.stageWidth}:${chrome.stageLeft}`}
+        extraData={`${activeSlot}:${chrome.stageWidth}:${chrome.stageLeft}:${height}`}
         keyExtractor={(s) => s.key}
         renderItem={renderItem}
-        pagingEnabled
+        pagingEnabled={Platform.OS === "ios"}
+        snapToInterval={Platform.OS === "android" ? height : undefined}
+        snapToOffsets={snapOffsets}
+        snapToAlignment={Platform.OS === "android" ? "start" : undefined}
         decelerationRate="fast"
         disableIntervalMomentum
         directionalLockEnabled
+        bounces={false}
+        overScrollMode="never"
         showsVerticalScrollIndicator={false}
+        onLayout={onListLayout}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
+        scrollEventThrottle={16}
+        onScroll={onPagerScroll}
         onScrollBeginDrag={() => {
           draggingRef.current = true;
+          ignoreViewabilityRef.current = true;
+          settlingRef.current = false;
+          clearSettleTimer();
         }}
-        onScrollEndDrag={(e) => {
-          const vy = e.nativeEvent.velocity?.y ?? 0;
-          if (Math.abs(vy) > 0.05) return;
-          draggingRef.current = false;
-          ignoreViewabilityRef.current = false;
-          syncSlotFromOffset(e);
-        }}
-        onMomentumScrollEnd={(e) => {
-          draggingRef.current = false;
-          ignoreViewabilityRef.current = false;
-          syncSlotFromOffset(e);
-        }}
+        onScrollEndDrag={onPagerEndDrag}
+        onMomentumScrollEnd={onPagerMomentumEnd}
         onScrollToIndexFailed={({ index }) => {
           requestAnimationFrame(() => {
-            listRef.current?.scrollToOffset({ offset: height * index, animated: false });
+            listRef.current?.scrollToOffset({
+              offset: pageOffsetForIndex(index, pageHeightRef.current),
+              animated: false,
+            });
           });
         }}
         getItemLayout={(_, index) => ({
           length: height,
-          offset: height * index,
+          offset: pageOffsetForIndex(index, height),
           index,
         })}
         onEndReached={() => {
@@ -542,6 +670,7 @@ export function ReelsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#000" },
+  pager: { flex: 1, overflow: "hidden" },
   center: {
     flex: 1,
     backgroundColor: "#000",

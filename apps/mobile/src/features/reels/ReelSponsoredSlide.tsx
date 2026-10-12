@@ -55,7 +55,7 @@ function ReelSponsoredSlideInner({
   };
 
   return (
-    <View style={{ width, height, backgroundColor: "#0a0a0f" }}>
+    <View style={{ width, height, backgroundColor: "#0a0a0f", overflow: "hidden" }}>
     <View style={[styles.root, { left: stageLeft }]}>
       <Image
         source={{ uri: imageUri }}

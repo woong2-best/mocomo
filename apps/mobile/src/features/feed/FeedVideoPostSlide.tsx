@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
+  Platform,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -483,8 +484,13 @@ function FeedVideoPostSlideInner({
 
   const onHScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const page = Math.max(stageWidth, 1);
       const x = e.nativeEvent.contentOffset.x;
-      const next = Math.round(x / Math.max(stageWidth, 1));
+      const next = Math.round(x / page);
+      const target = Math.max(0, Math.min(group.videos.length - 1, next)) * page;
+      if (Math.abs(x - target) > 1.5) {
+        listRef.current?.scrollToOffset({ offset: target, animated: true });
+      }
       if (next !== videoIndex && next >= 0 && next < group.videos.length) {
         setVideoIndex(next);
         onChangeVideoIndex?.(next);
@@ -573,19 +579,24 @@ function FeedVideoPostSlideInner({
   }
 
   return (
-    <View style={{ width, height, backgroundColor: "#000" }}>
-      <View style={{ position: "absolute", left: stageLeft, width: stageWidth, height }}>
+    <View style={{ width, height, backgroundColor: "#000", overflow: "hidden" }}>
+      <View style={{ position: "absolute", left: stageLeft, width: stageWidth, height, overflow: "hidden" }}>
       <FlatList
         ref={listRef}
         data={group.videos}
         keyExtractor={(item) => item.id}
         horizontal
-        pagingEnabled
+        pagingEnabled={Platform.OS === "ios"}
+        snapToInterval={Platform.OS === "android" ? stageWidth : undefined}
+        snapToAlignment={Platform.OS === "android" ? "start" : undefined}
+        disableIntervalMomentum
         nestedScrollEnabled
         directionalLockEnabled
         scrollEnabled={active}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
+        bounces={false}
+        overScrollMode="never"
         onMomentumScrollEnd={onHScroll}
         extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${muted ? 1 : 0}:${fastForward ? 1 : 0}`}
         getItemLayout={(_, index) => ({
@@ -601,7 +612,7 @@ function FeedVideoPostSlideInner({
           const isCurrent = active && index === videoIndex;
           const isPlaying = isCurrent && isFocused;
           return (
-            <View style={{ width: stageWidth, height }}>
+            <View style={{ width: stageWidth, height, overflow: "hidden" }}>
               <SensitiveContentGate
                 enabled={!!item.isNsfw && user?.id !== item.author.id}
                 style={{ flex: 1 }}
