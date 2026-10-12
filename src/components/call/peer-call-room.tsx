@@ -89,21 +89,20 @@ function DmVideoSplitStage({
   cameraEnabled: boolean;
   remoteCameraEnabled: boolean;
 }) {
-  const showRemoteVideo = remoteCameraEnabled && !!remoteStream?.getVideoTracks().length;
-  const showLocalVideo = cameraEnabled && !!localStream?.getVideoTracks().some((track) => track.enabled);
+  const showRemoteVideo = remoteCameraEnabled !== false;
+  const showLocalVideo = cameraEnabled;
 
   return (
     <div className="flex h-full min-h-0 w-full flex-row">
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-neutral-900">
-        {showRemoteVideo ? (
-          <VideoAttach stream={remoteStream} className="h-full w-full object-cover" />
-        ) : (
+        <VideoAttach stream={remoteStream} className="h-full w-full object-cover" />
+        {!showRemoteVideo ? (
           <CameraOffPane
             name={peer.username}
             image={peer.image}
             hint={phase === "outgoing" ? t("call.s6y69qd") : undefined}
           />
-        )}
+        ) : null}
       </div>
       <div className="w-px shrink-0 bg-white/10" />
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-neutral-900">

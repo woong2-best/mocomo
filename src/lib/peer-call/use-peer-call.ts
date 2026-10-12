@@ -319,26 +319,29 @@ export function usePeerCall({
         }
       };
 
-      const bindRemoteTrack = (track: MediaStreamTrack) => {
-        if (track.kind !== "video") return;
-        track.onmute = () => setRemoteCameraEnabled(false);
-        track.onunmute = () => setRemoteCameraEnabled(true);
+      const markConnected = () => {
+        setState((prev) => (prev === "failed" || prev === "closed" ? prev : "connected"));
+        onConnectedRef.current?.();
       };
 
       pc.ontrack = (ev) => {
-        bindRemoteTrack(ev.track);
-        const [first] = ev.streams;
-        if (first) {
-          remoteStreamRef.current = first;
-          setRemoteStream(first);
-          return;
+        const merged = new MediaStream();
+        const seen = new Set<string>();
+        for (const existing of remoteStreamRef.current?.getTracks() ?? []) {
+          merged.addTrack(existing);
+          seen.add(existing.id);
         }
-        const merged = remoteStreamRef.current ?? new MediaStream();
-        if (!merged.getTracks().some((track) => track.id === ev.track.id)) {
-          merged.addTrack(ev.track);
+        for (const stream of ev.streams ?? []) {
+          for (const track of stream.getTracks()) {
+            if (seen.has(track.id)) continue;
+            merged.addTrack(track);
+            seen.add(track.id);
+          }
         }
+        if (ev.track && !seen.has(ev.track.id)) merged.addTrack(ev.track);
         remoteStreamRef.current = merged;
         setRemoteStream(merged);
+        markConnected();
       };
 
       const failNatBlocked = () => {
@@ -357,22 +360,15 @@ export function usePeerCall({
       };
 
       pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === "failed") failNatBlocked();
+        const ice = pc.iceConnectionState;
+        if (ice === "connected" || ice === "completed") markConnected();
+        if (ice === "failed") failNatBlocked();
       };
 
       pc.onconnectionstatechange = () => {
         const cs = pc.connectionState;
-        if (cs === "connected") {
-          setState("connected");
-          onConnectedRef.current?.();
-          emitSignal({
-            type: "media",
-            mic: micEnabledRef.current,
-            camera: cameraEnabledRef.current,
-          });
-        } else if (cs === "failed") {
-          failNatBlocked();
-        }
+        if (cs === "connected") markConnected();
+        else if (cs === "failed") failNatBlocked();
       };
 
       const local = await ensureLocalStream();
@@ -701,13 +697,11 @@ export function usePeerCall({
   }, [publishMedia]);
 
   const setCamera = useCallback((on: boolean) => {
-    const videoTrack = localStreamRef.current?.getVideoTracks()[0];
-    if (videoTrack) videoTrack.enabled = on;
-    const sender = pcRef.current?.getSenders().find((item) => item.track?.kind === "video" || item.track === videoTrack);
-    if (sender) {
-      void sender.replaceTrack(on ? videoTrack ?? sender.track : null).catch(() => {
-        if (videoTrack) videoTrack.enabled = on;
-      });
+    for (const track of localStreamRef.current?.getVideoTracks() ?? []) {
+      track.enabled = on;
+    }
+    for (const sender of pcRef.current?.getSenders() ?? []) {
+      if (sender.track?.kind === "video") sender.track.enabled = on;
     }
     cameraEnabledRef.current = on;
     setCameraEnabled(on);

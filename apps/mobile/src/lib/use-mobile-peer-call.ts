@@ -220,29 +220,34 @@ export function useMobilePeerCall({
       }
     };
 
+    const markConnected = () => {
+      setState((prev) => (prev === "failed" || prev === "closed" ? prev : "connected"));
+    };
+
     pc.ontrack = (ev) => {
       const event = ev as {
         streams?: readonly MediaStream[];
-        track?: { kind?: string; id: string; onmute: (() => void) | null; onunmute: (() => void) | null };
+        track?: { id: string };
       };
-      if (event.track?.kind === "video") {
-        event.track.onmute = () => setRemoteCameraEnabled(false);
-        event.track.onunmute = () => setRemoteCameraEnabled(true);
-      }
-      const [first] = event.streams ?? [];
-      if (first) {
-        remoteStreamRef.current = first;
-        setRemoteStream(first);
-        return;
-      }
-      if (!event.track) return;
       const merged = new rtc.MediaStream();
+      const seen = new Set<string>();
       for (const existing of remoteStreamRef.current?.getTracks() ?? []) {
-        if (existing.id !== event.track.id) merged.addTrack(existing);
+        merged.addTrack(existing);
+        seen.add(existing.id);
       }
-      merged.addTrack(event.track);
+      for (const stream of event.streams ?? []) {
+        for (const track of stream.getTracks()) {
+          if (seen.has(track.id)) continue;
+          merged.addTrack(track);
+          seen.add(track.id);
+        }
+      }
+      if (event.track && !seen.has(event.track.id)) {
+        merged.addTrack(event.track as never);
+      }
       remoteStreamRef.current = merged;
       setRemoteStream(merged);
+      markConnected();
     };
 
     const failNatBlocked = () => {
@@ -259,19 +264,15 @@ export function useMobilePeerCall({
     };
 
     pc.oniceconnectionstatechange = () => {
-      if (pc.iceConnectionState === "failed") failNatBlocked();
+      const ice = pc.iceConnectionState;
+      if (ice === "connected" || ice === "completed") markConnected();
+      if (ice === "failed") failNatBlocked();
     };
 
     pc.onconnectionstatechange = () => {
       const cs = pc.connectionState;
-      if (cs === "connected") {
-        setState("connected");
-        sessionSendRef.current({
-          type: "media",
-          mic: micEnabledRef.current,
-          camera: cameraEnabledRef.current,
-        });
-      } else if (cs === "failed") failNatBlocked();
+      if (cs === "connected") markConnected();
+      else if (cs === "failed") failNatBlocked();
     };
 
     const local = await ensureLocalStream();
@@ -286,13 +287,12 @@ export function useMobilePeerCall({
     async (payload: VoiceWireSignal) => {
       if (payload.type === "hello" || payload.type === "ready") return;
       const key = signalKey(payload);
-      if (payload.type !== "hangup" && appliedSignalsRef.current.has(key)) return;
-
       if (payload.type === "media") {
         setRemoteMicEnabled(payload.mic);
         setRemoteCameraEnabled(payload.camera);
         return;
       }
+      if (payload.type !== "hangup" && appliedSignalsRef.current.has(key)) return;
 
       const pc = pcRef.current ?? (await createPeerConnection());
       const polite = politeRef.current;
@@ -501,19 +501,14 @@ export function useMobilePeerCall({
   }, [publishMedia]);
 
   const setCamera = useCallback((on: boolean) => {
-    const videoTrack = localStreamRef.current?.getVideoTracks()[0];
-    if (videoTrack) videoTrack.enabled = on;
+    for (const track of localStreamRef.current?.getVideoTracks() ?? []) {
+      track.enabled = on;
+    }
     const pc = pcRef.current as {
-      getSenders?: () => Array<{
-        track?: { kind: string; enabled: boolean } | null;
-        replaceTrack?: (next: unknown) => Promise<void>;
-      }>;
+      getSenders?: () => Array<{ track?: { kind: string; enabled: boolean } | null }>;
     } | null;
-    const sender = pc?.getSenders?.().find((item) => item.track?.kind === "video" || item.track === videoTrack);
-    if (sender?.replaceTrack) {
-      void sender.replaceTrack(on ? videoTrack ?? sender.track : null).catch(() => {
-        if (videoTrack) videoTrack.enabled = on;
-      });
+    for (const sender of pc?.getSenders?.() ?? []) {
+      if (sender.track?.kind === "video") sender.track.enabled = on;
     }
     cameraEnabledRef.current = on;
     setCameraEnabled(on);

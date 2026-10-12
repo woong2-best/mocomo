@@ -68,28 +68,23 @@ export function DmCallLiveView({
   onToggleCamera,
   topInset,
 }: Props) {
-  const hasRemoteTrack = Boolean(remoteStream?.getVideoTracks().length);
-  const showRemoteVideo = remoteCameraEnabled && hasRemoteTrack;
-  const showLocalVideo = Boolean(
-    cameraEnabled && localStream?.getVideoTracks().some((track) => track.enabled)
-  );
+  const showRemoteVideo = remoteCameraEnabled !== false;
+  const showLocalVideo = cameraEnabled;
 
   if (isVideo) {
     return (
       <View style={styles.videoRoot}>
         <View style={styles.remotePane}>
-          {showRemoteVideo ? (
-            <VideoSurface stream={remoteStream} />
-          ) : (
-            <CameraOffPane uri={displayImage} name={displayName} />
-          )}
+          <VideoSurface stream={remoteStream} />
+          {!showRemoteVideo ? (
+            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+              <CameraOffPane uri={displayImage} name={displayName} />
+            </View>
+          ) : null}
         </View>
         <View style={styles.localPane}>
-          {showLocalVideo ? (
-            <VideoSurface stream={localStream} mirror />
-          ) : (
-            <CameraOffPane uri={selfImage} name={selfName} compact />
-          )}
+          {showLocalVideo ? <VideoSurface stream={localStream} mirror /> : null}
+          {!showLocalVideo ? <CameraOffPane uri={selfImage} name={selfName} compact /> : null}
         </View>
         <View style={[styles.videoTop, { paddingTop: topInset + 12 }]} pointerEvents="none">
           <Text style={styles.videoName}>{displayName}</Text>
@@ -146,7 +141,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0B1220",
+    backgroundColor: "#141820",
   },
   videoTop: {
     position: "absolute",

@@ -216,10 +216,12 @@ export function IncomingCallScreen() {
   }
 
   const isVideo = callType === "VIDEO";
+  const liveConnected =
+    session.peer.state === "connected" || Boolean(session.peer.remoteStream);
   const statusHint =
     session.peer.state === "failed"
       ? (session.peer.failure ?? t("m.messages.call_failed"))
-      : session.peer.state === "connected"
+      : liveConnected
         ? isVideo
           ? t("m.messages.on_video_call")
           : t("m.messages.on_voice_call")

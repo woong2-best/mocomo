@@ -184,7 +184,7 @@ export function MobileCallSessionProvider({ children }: { children: ReactNode })
     <MobileCallSessionContext.Provider value={value}>
       <View style={styles.host}>
       {children}
-      {live && live.callType === "AUDIO" && peer.remoteStream ? (
+      {live && peer.remoteStream && (live.callType === "AUDIO" || collapsed) ? (
         <HiddenCallAudio streamURL={peer.remoteStream.toURL()} />
       ) : null}
       {live && collapsed ? (
