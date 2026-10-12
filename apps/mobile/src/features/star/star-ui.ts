@@ -20,13 +20,13 @@ export function starUi(t: TFn) {
     emptyMarket: t("m.star.no_saved_market_items"),
     emptyWiki: t("m.star.no_saved_wiki_articles"),
     emptyPosts: t("m.star.no_saved_posts"),
-    clearAllTitle: t("m.star.clear_all"),
+    clearAllTitle: "Delete All",
     clearAllAllMsg: t("m.star.remove_all_star_saves_posts_qna"),
     clearAllTabMsg: (label: string) =>
       t("m.star.remove_all_saved_label_from_star", { label: String(label) }),
-    clearAllBtn: t("m.star.clear_all"),
+    clearAllBtn: "Delete All",
     cancel: t("m.common.cancel"),
-    clearAllAction: t("m.star.clear_all_saves"),
+    clearAllAction: "Delete All",
     loadError: t("m.star.could_not_load_star_list"),
     retry: t("m.common.try_again"),
     tabLabel: (id: string) => {

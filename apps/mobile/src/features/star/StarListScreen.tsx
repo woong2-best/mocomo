@@ -454,6 +454,7 @@ export function StarListScreen() {
               <ActivityIndicator size="small" color={colors.danger} />
             ) : (
               <Text
+                numberOfLines={1}
                 style={[
                   styles.clearAll,
                   activeTotal <= 0 && styles.clearAllDisabled,
