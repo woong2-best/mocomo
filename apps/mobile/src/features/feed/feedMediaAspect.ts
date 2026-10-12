@@ -97,6 +97,46 @@ export function feedMediaFrameHeight(
 }
 
 export const FEED_MEDIA_GRID_GAP = 2;
+export const FEED_MEDIA_GRID_RADIUS = 16;
+
+export type FeedMediaGridCornerRadii = {
+  borderTopLeftRadius: number;
+  borderTopRightRadius: number;
+  borderBottomLeftRadius: number;
+  borderBottomRightRadius: number;
+};
+
+/** Outer corners only — inner edges stay square so the 2px gutters stay clean. */
+export function feedMediaGridCellRadii(
+  index: number,
+  count: number,
+  radius: number = FEED_MEDIA_GRID_RADIUS
+): FeedMediaGridCornerRadii {
+  const n = Math.min(Math.max(count, 2), 4);
+  const none: FeedMediaGridCornerRadii = {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  };
+  if (n === 2) {
+    if (index === 0) return { ...none, borderTopLeftRadius: radius, borderBottomLeftRadius: radius };
+    if (index === 1) return { ...none, borderTopRightRadius: radius, borderBottomRightRadius: radius };
+  } else if (n === 3) {
+    if (index === 0) return { ...none, borderTopLeftRadius: radius, borderBottomLeftRadius: radius };
+    if (index === 1) return { ...none, borderTopRightRadius: radius };
+    if (index === 2) return { ...none, borderBottomRightRadius: radius };
+  } else if (index === 0) {
+    return { ...none, borderTopLeftRadius: radius };
+  } else if (index === 1) {
+    return { ...none, borderTopRightRadius: radius };
+  } else if (index === 2) {
+    return { ...none, borderBottomLeftRadius: radius };
+  } else if (index === 3) {
+    return { ...none, borderBottomRightRadius: radius };
+  }
+  return none;
+}
 
 export type FeedMediaGridCell = {
   index: number;

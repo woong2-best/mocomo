@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
@@ -65,6 +65,7 @@ type Props = {
   /** Portrait single tiles use contain so the whole frame stays visible. */
   contentFit?: "contain" | "cover";
   monetization?: PaidMediaMonetization;
+  style?: StyleProp<ViewStyle>;
 };
 
 /**
@@ -80,6 +81,7 @@ function FeedInlineVideoPreviewInner({
   embedded = false,
   contentFit = "cover",
   monetization,
+  style,
 }: Props) {
   const { t } = useI18n();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -101,7 +103,7 @@ function FeedInlineVideoPreviewInner({
 
   if (media.locked && monetization) {
     return (
-      <View style={[styles.wrap, embedded ? styles.wrapEmbedded : frameStyle]}>
+      <View style={[styles.wrap, embedded ? styles.wrapEmbedded : frameStyle, style]}>
         <LockedMediaTile media={media} monetization={monetization} />
       </View>
     );
@@ -178,7 +180,7 @@ function FeedInlineVideoPreviewInner({
   };
 
   return (
-    <View style={[styles.wrap, embedded ? styles.wrapEmbedded : frameStyle]}>
+    <View style={[styles.wrap, embedded ? styles.wrapEmbedded : frameStyle, style]}>
       {poster ? (
         <Image
           source={posterSource(poster)}

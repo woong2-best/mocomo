@@ -1,5 +1,5 @@
 import { memo, useEffect, useState, type ComponentType } from "react";
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { FeedMedia } from "@/api/feed";
@@ -19,6 +19,7 @@ type Props = {
   /** Portrait single tiles use contain so the whole frame stays visible. */
   contentFit?: "contain" | "cover";
   monetization?: import("@/components/media/paid-media-types").PaidMediaMonetization;
+  style?: StyleProp<ViewStyle>;
 };
 
 type PreviewComponent = ComponentType<Props>;
@@ -71,7 +72,10 @@ function LazyFeedVideoPreviewInner(props: Props) {
   return (
     <Pressable
       onPress={props.onPress}
-      style={props.embedded ? styles.wrapEmbedded : [styles.wrap, { width: mediaLayout }]}
+      style={[
+        props.embedded ? styles.wrapEmbedded : [styles.wrap, { width: mediaLayout }],
+        props.style,
+      ]}
     >
       {poster ? (
         <Image

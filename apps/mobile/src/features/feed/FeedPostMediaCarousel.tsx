@@ -6,6 +6,8 @@ import {
   Text,
   View,
   useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
 import type { FeedMedia, FeedPost } from "@/api/feed";
@@ -18,7 +20,12 @@ import { resolveVideoPoster } from "@/lib/video-poster";
 import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
-import { feedMediaFrame, feedMediaGridLayout } from "@/features/feed/feedMediaAspect";
+import {
+  FEED_MEDIA_GRID_RADIUS,
+  feedMediaFrame,
+  feedMediaGridCellRadii,
+  feedMediaGridLayout,
+} from "@/features/feed/feedMediaAspect";
 
 type VisualItem = FeedMedia & { index: number };
 
@@ -132,7 +139,7 @@ function FeedPostMediaCarouselInner({
 
   const nsfwGate = !!post.isNsfw && !isOwner;
 
-  const wrapGate = (node: ReactNode, style?: object) => (
+  const wrapGate = (node: ReactNode, style?: StyleProp<ViewStyle>) => (
     <SensitiveContentGate enabled={nsfwGate} style={style}>
       {node}
     </SensitiveContentGate>
@@ -149,7 +156,7 @@ function FeedPostMediaCarouselInner({
     );
   };
 
-  const renderImageCell = (item: VisualItem) => (
+  const renderImageCell = (item: VisualItem, imageStyle?: StyleProp<ViewStyle>) => (
     <Pressable
       style={StyleSheet.absoluteFill}
       onPress={() => openMedia(item)}
@@ -158,7 +165,7 @@ function FeedPostMediaCarouselInner({
     >
       <Image
         source={cachedImageSource(item.url, decode)}
-        style={StyleSheet.absoluteFill}
+        style={[StyleSheet.absoluteFill, imageStyle]}
         contentFit="cover"
         cachePolicy={IMAGE_CACHE_POLICY}
         recyclingKey={item.url}
@@ -168,10 +175,10 @@ function FeedPostMediaCarouselInner({
     </Pressable>
   );
 
-  const renderMediaCell = (item: VisualItem, active: boolean) => {
+  const renderMediaCell = (item: VisualItem, active: boolean, imageStyle?: StyleProp<ViewStyle>) => {
     if (item.locked && item.type === "VIDEO") {
       return (
-        <View style={styles.lockedCell}>
+        <View style={[styles.lockedCell, imageStyle]}>
           <LockedMediaTile media={item} monetization={monetization} />
         </View>
       );
@@ -186,11 +193,12 @@ function FeedPostMediaCarouselInner({
           contentFit="cover"
           monetization={monetization}
           onPress={() => openMedia(item)}
+          style={imageStyle}
         />
       );
     }
 
-    return renderImageCell(item);
+    return renderImageCell(item, imageStyle);
   };
 
   if (items.length === 1) {
@@ -250,19 +258,22 @@ function FeedPostMediaCarouselInner({
   }
 
   const grid = feedMediaGridLayout(layoutWidth, windowHeight, items.length);
+  const gridSize = { width: grid.width, height: grid.height };
 
   return wrapGate(
-    <View style={[styles.grid, { width: grid.width, height: grid.height }]}>
+    <View style={gridSize}>
       {grid.cells.map((cell) => {
         const item = items[cell.index];
         if (!item) return null;
         const media = resolveMedia(item);
         const showMore = grid.overflow > 0 && cell.index === 3;
+        const cellRadii = feedMediaGridCellRadii(cell.index, items.length);
         return (
           <View
             key={item.id ?? `${post.id}:media:${item.index}`}
             style={[
               styles.gridCell,
+              cellRadii,
               {
                 left: cell.x,
                 top: cell.y,
@@ -271,7 +282,7 @@ function FeedPostMediaCarouselInner({
               },
             ]}
           >
-            {renderMediaCell(media, false)}
+            {renderMediaCell(media, false, cellRadii)}
             {showMore ? (
               <View style={styles.moreBadge} pointerEvents="none">
                 <Text style={styles.moreText}>+{grid.overflow}</Text>
@@ -281,7 +292,7 @@ function FeedPostMediaCarouselInner({
         );
       })}
     </View>,
-    styles.grid
+    [styles.grid, gridSize]
   );
 }
 
@@ -291,9 +302,9 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     grid: {
       alignSelf: "flex-start",
-      borderRadius: 16,
+      borderRadius: FEED_MEDIA_GRID_RADIUS,
       overflow: "hidden",
-      backgroundColor: colors.muted,
+      backgroundColor: "transparent",
       marginBottom: 10,
     },
     gridCell: {
@@ -303,13 +314,12 @@ function createStyles(colors: ThemeColors) {
     },
     singleMedia: {
       alignSelf: "flex-start",
-      borderRadius: 16,
+      borderRadius: FEED_MEDIA_GRID_RADIUS,
       overflow: "hidden",
       backgroundColor: colors.muted,
       marginBottom: 10,
     },
     lockedCell: {
-      borderRadius: 16,
       overflow: "hidden",
       backgroundColor: colors.muted,
       position: "relative",

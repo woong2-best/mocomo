@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   feedMediaFrame,
+  feedMediaGridCellRadii,
   feedMediaGridLayout,
   feedMediaNativeAspect,
 } from "./feedMediaAspect";
@@ -45,4 +46,16 @@ test("four-plus grid is 2x2 and keeps overflow for the +N badge", () => {
   const grid = feedMediaGridLayout(360, 800, 6);
   assert.equal(grid.cells.length, 4);
   assert.equal(grid.overflow, 2);
+});
+
+test("grid cell radii only round the outer corners", () => {
+  const twoLeft = feedMediaGridCellRadii(0, 2, 16);
+  assert.equal(twoLeft.borderTopLeftRadius, 16);
+  assert.equal(twoLeft.borderBottomLeftRadius, 16);
+  assert.equal(twoLeft.borderTopRightRadius, 0);
+
+  const fourBottomRight = feedMediaGridCellRadii(3, 5, 16);
+  assert.equal(fourBottomRight.borderBottomRightRadius, 16);
+  assert.equal(fourBottomRight.borderTopLeftRadius, 0);
+  assert.equal(fourBottomRight.borderBottomLeftRadius, 0);
 });

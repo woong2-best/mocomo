@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
@@ -9,7 +9,7 @@ import { useMoneyAgeGate } from "@/hooks/useMoneyAgeGate";
 type Props = {
   enabled: boolean;
   children: ReactNode;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 };
 
 export function SensitiveContentGate({ enabled, children, style }: Props) {
