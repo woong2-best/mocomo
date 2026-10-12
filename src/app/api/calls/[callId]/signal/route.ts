@@ -8,13 +8,11 @@ import type { CallSignalPayload } from "@/lib/peer-call/types";
 function isPayload(value: unknown): value is CallSignalPayload {
   if (!value || typeof value !== "object" || !("type" in value)) return false;
   const type = (value as { type?: unknown }).type;
-  return (
-    type === "offer" ||
-    type === "answer" ||
-    type === "ice" ||
-    type === "media" ||
-    type === "hangup"
-  );
+  if (type === "media") {
+    const media = value as { mic?: unknown; camera?: unknown };
+    return typeof media.mic === "boolean" && typeof media.camera === "boolean";
+  }
+  return type === "offer" || type === "answer" || type === "ice" || type === "hangup";
 }
 
 async function requireCallParticipant(userId: string, callId: string) {

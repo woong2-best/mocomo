@@ -562,14 +562,14 @@ export async function notifyIncomingCall(
   chatRoomId?: string | null
 ) {
   const caller = await getActor(callerId);
-  const kind = callType === "VIDEO" ? "Video" : "Voice";
+  const kind = callType === "VIDEO" ? "video" : "voice";
   const label = actorLabel(caller);
   scheduleNotification({
     userId: calleeId,
     actorId: callerId,
     type: "call",
     title: "Incoming call",
-    body: `${label}님의 ${kind} 통화`,
+    body: `${label} is calling (${kind})`,
     link: `/?incomingCall=${callId}`,
     pushData: {
       callId,

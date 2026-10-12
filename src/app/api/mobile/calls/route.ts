@@ -8,10 +8,11 @@ import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
 import { peerBusyWithSomeoneElse, releaseCallerActiveCalls } from "@/lib/call-sync";
 import { isCallEligibleChatRoomType } from "@/lib/chat-call-room";
+import { incomingContactDecision } from "@/lib/contact-audience";
 
 const bodySchema = z.object({
   calleeId: z.string().min(1).max(64),
-  chatRoomId: z.string().min(1).max(64).optional(),
+  chatRoomId: z.string().min(1).max(64),
   callType: z.enum(["AUDIO", "VIDEO"]).optional(),
 });
 
@@ -55,34 +56,29 @@ export async function POST(req: NextRequest) {
   }
 
   await releaseCallerActiveCalls(user.id);
-  const roomPromise = chatRoomId
-    ? db.chatRoom.findUnique({
-        where: { id: chatRoomId },
-        include: { members: { select: { userId: true } } },
-      })
-    : Promise.resolve(null);
-
-  const [room, blocked, peerBusy] = await Promise.all([
-    roomPromise,
+  const [room, blocked, peerBusy, contact] = await Promise.all([
+    db.chatRoom.findUnique({
+      where: { id: chatRoomId },
+      include: { members: { select: { userId: true } } },
+    }),
     isCallBlocked(user.id, calleeId),
     peerBusyWithSomeoneElse(user.id, calleeId),
+    incomingContactDecision(user.id, calleeId, "call"),
   ]);
 
   if (peerBusy) {
     return NextResponse.json({ error: "They are on another call." }, { status: 409 });
   }
-  if (blocked) {
+  if (blocked || !contact.allowed) {
     return NextResponse.json({ error: "Not found." }, { status: 403 });
   }
 
-  if (chatRoomId) {
-    if (!room || !isCallEligibleChatRoomType(room.type)) {
-      return NextResponse.json({ error: "Calls are only available in DM chats." }, { status: 400 });
-    }
-    const memberIds = room.members.map((m) => m.userId);
-    if (!memberIds.includes(user.id) || !memberIds.includes(calleeId)) {
-      return NextResponse.json({ error: "You are not in this chat." }, { status: 403 });
-    }
+  if (!room || !isCallEligibleChatRoomType(room.type)) {
+    return NextResponse.json({ error: "Calls are only available in DM chats." }, { status: 400 });
+  }
+  const memberIds = room.members.map((m) => m.userId);
+  if (!memberIds.includes(user.id) || !memberIds.includes(calleeId)) {
+    return NextResponse.json({ error: "You are not in this chat." }, { status: 403 });
   }
 
   const callType = parsed.data.callType === "VIDEO" ? CallType.VIDEO : CallType.AUDIO;

@@ -64,13 +64,16 @@ function userCallTopic(userId: string) {
 function isVoiceSignal(value: unknown): value is VoiceWireSignal {
   if (!value || typeof value !== "object" || !("type" in value)) return false;
   const type = (value as { type?: unknown }).type;
+  if (type === "media") {
+    const media = value as { mic?: unknown; camera?: unknown };
+    return typeof media.mic === "boolean" && typeof media.camera === "boolean";
+  }
   return (
     type === "hello" ||
     type === "ready" ||
     type === "offer" ||
     type === "answer" ||
     type === "ice" ||
-    type === "media" ||
     type === "hangup"
   );
 }

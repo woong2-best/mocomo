@@ -2,6 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { recordCallChatEvents } from "@/lib/chat-call-event-record";
+import { incomingContactDecision } from "@/lib/contact-audience";
 import { notifyIncomingCall } from "@/lib/notifications";
 import { db } from "@/lib/db";
 import { requireAuth, requireAuthMinimal } from "@/lib/auth";
@@ -85,13 +86,19 @@ export async function initiateCall(data: {
         include: { members: { select: { userId: true } } },
       })
     : Promise.resolve(null);
-  const [room, blocked, peerBusy] = await Promise.all([
+  const [room, blocked, peerBusy, contact] = await Promise.all([
     roomPromise,
     isCallBlocked(user.id, data.calleeId),
     peerBusyWithSomeoneElse(user.id, data.calleeId),
+    incomingContactDecision(user.id, data.calleeId, "call"),
   ]);
   if (peerBusy) return { error: "actions.slc5wpf" };
   if (blocked) return { error: "actions.szstt8f" };
+  if (!contact.allowed) return { error: contact.error };
+
+  if (!data.chatRoomId) {
+    return { error: "actions.s16ydugc" };
+  }
 
   if (data.chatRoomId) {
     const { isCallEligibleChatRoomType } = await import("@/lib/chat-call-room");

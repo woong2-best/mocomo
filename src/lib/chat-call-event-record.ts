@@ -34,20 +34,6 @@ export async function recordCallChatEvents(opts: {
   const startedMarker = callEventMarker("started", kind, call.id);
   const endedMarker = callEventMarker("ended", kind, call.id);
 
-  const existing = await db.message.findMany({
-    where: {
-      roomId: call.chatRoomId,
-      OR: [
-        { content: { startsWith: startedMarker } },
-        { content: { startsWith: endedMarker } },
-      ],
-    },
-    select: { content: true },
-  });
-  const hasStarted = existing.some((row) => row.content?.startsWith(startedMarker));
-  const hasEnded = existing.some((row) => row.content?.startsWith(endedMarker));
-  if (hasStarted && hasEnded) return;
-
   const startedAt = call.startedAt;
   const endedAt = call.endedAt ?? new Date();
   const endedBy =
@@ -56,6 +42,20 @@ export async function recordCallChatEvents(opts: {
       : call.callerId;
 
   const created = await db.$transaction(async (tx) => {
+    const existing = await tx.message.findMany({
+      where: {
+        roomId: call.chatRoomId,
+        OR: [
+          { content: { startsWith: startedMarker } },
+          { content: { startsWith: endedMarker } },
+        ],
+      },
+      select: { content: true },
+    });
+    const hasStarted = existing.some((row) => row.content?.startsWith(startedMarker));
+    const hasEnded = existing.some((row) => row.content?.startsWith(endedMarker));
+    if (hasStarted && hasEnded) return [];
+
     const rows = [];
     if (!hasStarted) {
       rows.push(
