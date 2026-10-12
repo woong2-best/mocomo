@@ -135,7 +135,7 @@ export function FeedTimelinePostCard({
                     as="p"
                     stopPropagation
                     showLinkPreview={false}
-                    className="font-semibold text-[15px] mb-1 text-white whitespace-pre-wrap break-words"
+                    className="font-semibold text-[15px] mb-1 text-white whitespace-pre-wrap break-words line-clamp-[8]"
                   />
                 </div>
               ) : post.title ? (
@@ -163,7 +163,7 @@ export function FeedTimelinePostCard({
                     text={post.content}
                     as="p"
                     stopPropagation
-                    className="text-[15px] whitespace-pre-wrap break-words"
+                    className="text-[15px] whitespace-pre-wrap break-words line-clamp-[8]"
                   />
                 </div>
               )}

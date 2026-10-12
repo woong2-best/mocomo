@@ -181,7 +181,7 @@ export function FeedPostCard({
                 <h3 className="font-semibold text-sm mb-1">{post.title}</h3>
               </Link>
             )}
-            <div className="text-sm text-foreground/85 line-clamp-6">
+            <div className="text-sm text-foreground/85 line-clamp-[8]">
               <TranslatableText text={post.content} as="span" stopPropagation />
             </div>
           </div>

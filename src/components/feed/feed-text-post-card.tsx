@@ -165,7 +165,7 @@ export function FeedTextPostCard({
               text={post.content}
               as="p"
               stopPropagation
-              className="text-sm text-foreground/85 line-clamp-6 whitespace-pre-wrap"
+              className="text-sm text-foreground/85 line-clamp-[8] whitespace-pre-wrap"
             />
           </div>
         </div>

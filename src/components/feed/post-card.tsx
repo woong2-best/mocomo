@@ -93,7 +93,7 @@ export function PostCard({ post, paymentsEnabled = false }: PostCardProps) {
             text={post.content}
             as="p"
             stopPropagation
-            className="text-sm text-foreground/90 line-clamp-4 whitespace-pre-wrap"
+            className="text-sm text-foreground/90 line-clamp-[8] whitespace-pre-wrap"
           />
         </div>
         {post.media && post.media.length > 0 && (

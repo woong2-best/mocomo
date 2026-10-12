@@ -94,7 +94,7 @@ export function ProfilePostCard({
                   text={post.content}
                   as="p"
                   stopPropagation
-                  className="text-[15px] whitespace-pre-wrap break-words line-clamp-6"
+                  className="text-[15px] whitespace-pre-wrap break-words line-clamp-[8]"
                 />
               </div>
               {post.quotedPost ? <QuotedPostCard post={post.quotedPost} /> : null}
