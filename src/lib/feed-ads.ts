@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import type { FeedAdData } from "@/lib/default-ads";
 import { listEligibleSponsorCreatives } from "@/lib/sponsored-ad/eligible-creatives";
 
-/** Boosted photo posts + event creatives + AdSlot 인피드 풀 */
+/** Boosted photo posts + event creatives + AdSlot pool for Reels (not the home feed). */
 export async function fetchFeedAdPool(): Promise<FeedAdData[]> {
   const [slots, creatives] = await Promise.all([
     db.adSlot.findMany({

@@ -13,8 +13,6 @@ import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { hydrateViewerPollVotes } from "@/lib/post-poll";
 import { withRepostActivities } from "@/lib/repost-timeline";
 import { applyViewerBlockPolicyToPosts } from "@/lib/user-block";
-import { fetchFeedAdPool } from "@/lib/feed-ads";
-import { mixFeedWithAds } from "@/lib/feed-mixer";
 
 export async function GET(req: NextRequest) {
   try {
@@ -71,10 +69,6 @@ export async function GET(req: NextRequest) {
     const authorIds = [...new Set(visible.map((p) => p.author.id))];
 
     const blockPolicyPosts = await applyViewerBlockPolicyToPosts(viewerId, visible);
-    const postOffset = Math.max(
-      0,
-      Number.parseInt(req.nextUrl.searchParams.get("postOffset") || "0", 10) || 0
-    );
 
     const [gated, subscriptions, engagement, viewerPin] = await Promise.all([
       attachWebPaidMediaPlayback(blockPolicyPosts, viewerId),
@@ -85,7 +79,7 @@ export async function GET(req: NextRequest) {
       viewerId
         ? db.user.findUnique({
             where: { id: viewerId },
-            select: { profileMainPostId: true, premiumTier: true },
+            select: { profileMainPostId: true },
           })
         : Promise.resolve(null),
     ]);
@@ -108,14 +102,8 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const items =
-      viewerPin?.premiumTier === "PREMIUM"
-        ? serialized.map((data) => ({ type: "post" as const, data }))
-        : mixFeedWithAds(serialized, await fetchFeedAdPool(), {
-            postOffset,
-            postsPerBlock: 6,
-            minPostsBeforeFirstAd: 4,
-          });
+    // Mobile feed is posts only. Sponsored creatives run in Reels, not the home timeline.
+    const items = serialized.map((data) => ({ type: "post" as const, data }));
 
     return NextResponse.json(
       {

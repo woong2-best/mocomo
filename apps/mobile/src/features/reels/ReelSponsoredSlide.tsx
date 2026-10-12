@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import type { FeedAd } from "@/api/feed";
 import { API_BASE_URL } from "@/config/env";
@@ -26,34 +27,37 @@ function resolveAdUrl(linkUrl: string): string {
 function ReelSponsoredSlideInner({ ad, width, height }: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => reelsUi(t), [t]);
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(width, height), [width, height]);
-  const cta = ad.ctaLabel?.trim() || copy.ctaJoin;
   const imageUri = resolveAdUrl(ad.imageUrl);
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const onPress = () => {
+  const openDestination = () => {
     const postId = ad.postId?.trim() || ad.linkUrl.match(/^\/post\/([^/?#]+)/)?.[1];
     if (postId) {
       navigation.navigate("PostDetail", { id: postId });
       return;
     }
-    void Linking.openURL(resolveAdUrl(ad.linkUrl));
+    const href = ad.linkUrl?.trim();
+    if (!href) return;
+    void Linking.openURL(resolveAdUrl(href));
   };
 
   return (
-    <Pressable style={styles.root} onPress={onPress}>
+    <View style={styles.root}>
       <Image
         source={{ uri: imageUri }}
         style={styles.image}
         contentFit="cover"
         cachePolicy={IMAGE_CACHE_POLICY}
         transition={0}
+        pointerEvents="none"
       />
       <View style={styles.topScrim} pointerEvents="none" />
       <View style={styles.bottomScrim} pointerEvents="none" />
 
-      <View style={styles.topBar}>
+      <View style={styles.topBar} pointerEvents="none">
         <View style={styles.sponsoredRow}>
           <Ionicons name="megaphone-outline" size={16} color="#D4A017" />
           <Text style={styles.sponsoredLabel}>Sponsored</Text>
@@ -61,20 +65,28 @@ function ReelSponsoredSlideInner({ ad, width, height }: Props) {
         <Text style={styles.adCategory}>{ad.adCategory || copy.adCategory}</Text>
       </View>
 
-      <View style={styles.bottom}>
-        <Text style={styles.title} numberOfLines={2}>
-          {ad.title}
-        </Text>
-        {ad.sponsorName ? (
-          <Text style={styles.sponsor} numberOfLines={1}>
-            {ad.sponsorName}
+      <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <View pointerEvents="none" style={styles.copyBlock}>
+          <Text style={styles.title} numberOfLines={2}>
+            {ad.title}
           </Text>
-        ) : null}
-        <View style={styles.ctaBtn}>
-          <Text style={styles.ctaText}>{cta}</Text>
+          {ad.sponsorName ? (
+            <Text style={styles.sponsor} numberOfLines={1}>
+              {ad.sponsorName}
+            </Text>
+          ) : null}
         </View>
+        <Pressable
+          style={styles.ctaBar}
+          onPress={openDestination}
+          accessibilityRole="link"
+          accessibilityLabel={copy.learnMore}
+        >
+          <Text style={styles.ctaText}>{copy.learnMore}</Text>
+          <Ionicons name="chevron-forward" size={20} color="#FFFBF5" />
+        </Pressable>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -133,10 +145,12 @@ function createStyles(width: number, height: number) {
       fontWeight: "600",
     },
     bottom: {
-      paddingHorizontal: 20,
-      paddingBottom: 48,
-      gap: 8,
       zIndex: 1,
+      gap: 12,
+    },
+    copyBlock: {
+      paddingHorizontal: 20,
+      gap: 6,
     },
     title: {
       color: "#fff",
@@ -149,18 +163,18 @@ function createStyles(width: number, height: number) {
       fontSize: 14,
       fontWeight: "600",
     },
-    ctaBtn: {
-      alignSelf: "flex-start",
-      marginTop: 8,
-      backgroundColor: "#D4A017",
+    ctaBar: {
+      minHeight: 48,
       paddingHorizontal: 18,
-      paddingVertical: 12,
-      borderRadius: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: "#C5522A",
     },
     ctaText: {
-      color: "#1a1208",
+      color: "#FFFBF5",
       fontWeight: "800",
-      fontSize: 15,
+      fontSize: 16,
     },
   });
 }

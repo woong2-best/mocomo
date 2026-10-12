@@ -12,7 +12,7 @@ export function reelsUi(t: TFn) {
     commentPh: t("m.reels.add_a_comment"),
     postComment: t("m.common.post"),
     adCategory: t("m.common.ad"),
-    ctaJoin: t("m.common.join"),
+    learnMore: t("m.reels.learn_more"),
   };
 }
 

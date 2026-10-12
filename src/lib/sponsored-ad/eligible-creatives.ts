@@ -78,7 +78,7 @@ export async function listEligibleBoostedPosts(): Promise<SponsorCreative[]> {
       authorUsername: p.author.username,
       authorImage: p.author.image,
       excerpt,
-      ctaLabel: "View post",
+      ctaLabel: "Learn more",
       kind: "post",
       postId: p.id,
     });
@@ -105,7 +105,7 @@ export async function listEligibleSponsorCreatives(): Promise<SponsorCreative[]>
         authorUsername: e.createdBy?.username,
         authorImage: e.createdBy?.image,
         excerpt: e.title,
-        ctaLabel: "Go to",
+        ctaLabel: "Learn more",
         kind: "event" as const,
       };
     });

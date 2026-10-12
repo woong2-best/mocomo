@@ -40,7 +40,6 @@ import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user
 import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
-import { FeedAdCard } from "@/features/feed/FeedAdCard";
 import { resetFeedPostOffset } from "@/features/feed/feed-post-offset";
 import { warmDrawerBundles, warmTabBundles } from "@/navigation/tab-warmup";
 import { floatingTabClearance } from "@/navigation/tab-layout";
@@ -182,7 +181,9 @@ export function FeedScreen() {
   const feedItems = useMemo(() => {
     const list: FeedItem[] = [];
     for (const page of query.data?.pages ?? []) {
-      for (const item of page.items) list.push(item);
+      for (const item of page.items) {
+        if (item.type !== "ad") list.push(item);
+      }
     }
     return list;
   }, [query.data]);
@@ -376,9 +377,7 @@ export function FeedScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: FeedItem }) => {
-      if (item.type === "ad") {
-        return <FeedAdCard ad={item.data} />;
-      }
+      if (item.type !== "post") return null;
       const post = item.data;
       if (!post?.id || !post.author?.id) return null;
       return (
@@ -415,7 +414,7 @@ export function FeedScreen() {
   );
 
   const getItemType = useCallback(
-    (item: FeedItem) => (item.type === "ad" ? "ad" : feedItemType(item.data)),
+    (item: FeedItem) => (item.type === "post" ? feedItemType(item.data) : "skip"),
     []
   );
 

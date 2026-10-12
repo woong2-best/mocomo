@@ -235,7 +235,7 @@ export function EventCreateForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Link on click</label>
+          <label className="text-xs font-medium text-muted-foreground">{i18n("events.svje2bf")}</label>
           <Input
             placeholder="https://"
             value={linkUrl}
@@ -244,6 +244,7 @@ export function EventCreateForm({
             type="url"
             required
           />
+          <p className="text-[11px] text-muted-foreground">{i18n("events.sxfb8bl")}</p>
         </div>
 
         <SponsoredAdSchedulePicker
