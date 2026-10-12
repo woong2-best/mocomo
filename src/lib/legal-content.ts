@@ -47,9 +47,9 @@ export type LegalDocument = {
 const GOVERNING_LAW_PARAGRAPH =
   "본 약관 및 서비스와 관련된 사항에는 미합중국 와이오밍 주(State of Wyoming, United States of America)의 법률이 적용됩니다(법률 충돌 원칙은 제외). 본 약관 또는 서비스와 관련하여 분쟁이 발생하여 소송이 제기되는 경우, 와이오밍 주 관할 법원을 전속 관할로 합니다. 다만 이용자의 거주국 강행법규가 적용되는 범위에서는 해당 법령이 우선할 수 있습니다.";
 
-/** English disclaimer for third-party streaming brand integrations (YouTube, Twitch). */
+/** English trademark / affiliation disclaimer for YouTube, Twitch, and other third-party brands. */
 export const THIRD_PARTY_STREAMING_DISCLAIMER =
-  "This service is not affiliated with, endorsed by, or sponsored by YouTube or Twitch. All product and company names are trademarks of their respective holders.";
+  "MoCoMo is not affiliated with, endorsed by, or sponsored by YouTube, Twitch, or their parent or affiliate companies. All product and company names appearing on the Service are trademarks of their respective holders.";
 
 export const COMMUNITY_POLICY: LegalDocument = {
   slug: "policy",
@@ -316,11 +316,24 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: THIRD_PARTY_STREAMING_DISCLAIMER,
+      text: "③ 서비스 제공을 위해 필요한 최소한의 개인정보 처리 위탁 및 국외 이전(데이터 저장/서버 호스팅 등)에 대한 세부 사항은 회사의 개인정보 처리방침에 따릅니다.",
+    },
+    { type: "h3", text: "(제3자 상표 및 외부 스트리밍 서비스)" },
+    {
+      type: "p",
+      text: "① 회사는 YouTube(Google LLC / YouTube, LLC), Twitch(Twitch Interactive, Inc.) 및 그 계열사와 제휴·후원·보증 관계에 있지 않습니다. 서비스에 해당 브랜드명·로고·임베드 플레이어를 표시하는 것은 이용자가 외부 방송을 연동·시청하거나 콘텐츠를 식별하기 위한 목적에 한정되며, 해당 서비스 제공자의 공식 후원·승인·제휴를 의미하지 않습니다.",
     },
     {
       type: "p",
-      text: "③ 서비스 제공을 위해 필요한 최소한의 개인정보 처리 위탁 및 국외 이전(데이터 저장/서버 호스팅 등)에 대한 세부 사항은 회사의 개인정보 처리방침에 따릅니다.",
+      text: "② 이용자가 YouTube, Twitch 등 외부 스트리밍 서비스를 연동하는 경우, 해당 외부 서비스의 이용약관, 커뮤니티 가이드라인 및 저작권 정책이 별도로 적용됩니다. 외부 서비스의 장애, 계정 정지, 임베드 제한, 광고 노출 등에 대해 회사는 고의 또는 중과실이 없는 한 책임을 지지 않습니다.",
+    },
+    {
+      type: "p",
+      text: "③ 서비스에 표시되는 제품명, 상호, 상표, 로고는 각 권리자의 자산입니다. 회사는 해당 상표에 대한 소유권이나 라이선스를 주장하지 않으며, 식별 목적의 표시 외에 권리자의 권리를 침해하지 않습니다.",
+    },
+    {
+      type: "p",
+      text: THIRD_PARTY_STREAMING_DISCLAIMER,
     },
     { type: "h3", text: "(가입의 승낙 및 제한)" },
     {
@@ -1680,7 +1693,7 @@ export const CULTURE_WIKI_TERMS: LegalDocument = {
 export const COPYRIGHT_POLICY: LegalDocument = {
   slug: "copyright",
   title: "MoCoMo 저작권 정책",
-  updatedAt: "2026년 10월 11일",
+  updatedAt: "2026년 10월 12일",
   intro:
     "MoCoMo LLC는 타인의 지식재산권을 존중하며, 적용 가능한 미국 저작권법(DMCA 포함) 및 관련 절차에 따라 침해 신고를 처리합니다.",
   blocks: [
@@ -1724,7 +1737,17 @@ export const COPYRIGHT_POLICY: LegalDocument = {
     { type: "h2", text: "제6조 (준거법)" },
     { type: "p", text: GOVERNING_LAW_PARAGRAPH },
     { type: "hr" },
-    { type: "h2", text: "제7조 (게시물 자동 번역)" },
+    { type: "h2", text: "제7조 (제3자 상표)" },
+    {
+      type: "p",
+      text: "서비스에 표시되는 YouTube, Twitch 및 기타 제품명·상호·로고는 각 권리자의 상표입니다. 회사는 해당 권리자와 제휴·후원·보증 관계에 있지 않으며, 상표 표시는 외부 서비스 연동·콘텐츠 식별 목적에 한정됩니다.",
+    },
+    {
+      type: "p",
+      text: THIRD_PARTY_STREAMING_DISCLAIMER,
+    },
+    { type: "hr" },
+    { type: "h2", text: "제8조 (게시물 자동 번역)" },
     {
       type: "p",
       text: "MoCoMo의 게시물 번역 기능은 아래 오픈소스 모델 및 도구를 사용합니다.",

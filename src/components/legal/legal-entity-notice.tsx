@@ -6,7 +6,6 @@ import {
   LEGAL_CONTACT_EMAIL,
   LEGAL_ENTITY_DISCLOSURE,
   PAYMENT_LEGAL_SECTIONS,
-  THIRD_PARTY_STREAMING_DISCLAIMER,
 } from "@/lib/legal-content";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +37,6 @@ export function LegalEntityFooterNotice({ className = "" }: { className?: string
       <p>
         Contact · DMCA: <LegalEmail />
       </p>
-      <p className="pt-1 max-w-2xl mx-auto px-3 text-pretty">{THIRD_PARTY_STREAMING_DISCLAIMER}</p>
     </div>
   );
 }
