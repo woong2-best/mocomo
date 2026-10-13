@@ -97,6 +97,11 @@ export function sanitizeUsdDollarInput(raw: string): string {
   return `${whole}.${fraction}`;
 }
 
+/** Parse user-facing KRW input — digits only (commas stripped). */
+export function sanitizeKrwWonInput(raw: string): string {
+  return raw.replace(/[^\d]/g, "");
+}
+
 /** Validate paid media / instant purchase amounts (USD cents). */
 export function validateSaleMediaPricing(
   mediaPriceCents: number,

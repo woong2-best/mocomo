@@ -18,7 +18,11 @@ import {
 } from "@/lib/used-market";
 import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
 import { productTypeForSellKind, USED_CONDITION_OPTIONS, USED_SELL_KINDS } from "@/lib/used-catalog";
-import { parseUsdDollarsToCents, sanitizeUsdDollarInput } from "@/lib/money";
+import {
+  parseUsdDollarsToCents,
+  sanitizeKrwWonInput,
+  sanitizeUsdDollarInput,
+} from "@/lib/money";
 import { UsedWorkTitleField } from "@/components/used/used-work-title-field";
 import { UsedMeetMapPicker } from "@/components/used/used-meet-map-picker";
 import type { MeetCoords } from "@/lib/used-market";
@@ -324,7 +328,11 @@ export function UsedPostForm({
               <input
                 value={price}
                 onChange={(e) =>
-                  setPrice(currency === "usd" ? sanitizeUsdDollarInput(e.target.value) : e.target.value)
+                  setPrice(
+                    currency === "usd"
+                      ? sanitizeUsdDollarInput(e.target.value)
+                      : sanitizeKrwWonInput(e.target.value)
+                  )
                 }
                 inputMode={currency === "usd" ? "decimal" : "numeric"}
                 placeholder={t("ui.enter_price")}
