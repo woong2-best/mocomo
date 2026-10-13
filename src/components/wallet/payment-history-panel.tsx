@@ -18,10 +18,7 @@ function formatPaidAt(d: Date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  const ss = String(date.getSeconds()).padStart(2, "0");
-  return `${y}.${m}.${day} ${hh}:${mm}:${ss}`;
+  return `${y}.${m}.${day}`;
 }
 
 export function PaymentHistoryPanel({ items }: Props) {
@@ -37,6 +34,26 @@ export function PaymentHistoryPanel({ items }: Props) {
       ) : (
         <ul className="max-h-[min(70vh,480px)] overflow-y-auto overscroll-contain divide-y divide-border/40">
           {items.map((item) => {
+            if (item.fortuneText) {
+              return (
+                <li key={item.id}>
+                  <div className="px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-4">
+                      <p className="min-w-0 flex-1 text-[15px] font-semibold leading-snug text-foreground">
+                        {item.fortuneText}
+                      </p>
+                      <p className="shrink-0 text-[15px] font-black tabular-nums text-red-600 dark:text-red-400">
+                        -{formatUsd(item.amount)}
+                      </p>
+                    </div>
+                    <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                      {formatPaidAt(item.paidAt)}
+                    </p>
+                  </div>
+                </li>
+              );
+            }
+
             const title = item.contentTitle;
             const subtitle =
               item.creatorUsername && item.contentSubtitle !== `@${item.creatorUsername}`
@@ -46,14 +63,16 @@ export function PaymentHistoryPanel({ items }: Props) {
             const inner = (
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] text-muted-foreground tabular-nums">{formatPaidAt(item.paidAt)}</p>
-                  <p className="text-[15px] font-bold text-foreground mt-0.5 truncate">{title}</p>
+                  <p className="text-[15px] font-bold text-foreground truncate">{title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>
                   <p className="text-[10px] font-semibold tracking-wide text-muted-foreground/80 mt-1 uppercase">
                     {EARNING_CATEGORY_LABELS[item.category] ?? item.typeLabel}
                   </p>
+                  <p className="text-[11px] text-muted-foreground tabular-nums mt-1">
+                    {formatPaidAt(item.paidAt)}
+                  </p>
                 </div>
-                <div className="text-right shrink-0 pt-3">
+                <div className="text-right shrink-0">
                   <p className="text-[15px] font-black tabular-nums text-red-600 dark:text-red-400">
                     -{formatUsd(item.amount)}
                   </p>

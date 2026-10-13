@@ -537,12 +537,6 @@ export function GemBalancePanel({
             disabled={pending}
           />
           <p className="text-[10px] leading-relaxed text-slate-500">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
-          <a
-            href="/fortune-cookies"
-            className="block text-center text-[11px] font-bold text-emerald-400/90 underline"
-          >
-            {t("wallet.viewFortuneCookies")}
-          </a>
 
           {purchases.length > 0 ? (
             <div className="space-y-2 border-t border-slate-700/50 pt-3">

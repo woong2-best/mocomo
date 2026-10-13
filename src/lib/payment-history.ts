@@ -17,6 +17,8 @@ export type PaymentHistoryItem = {
   contentSubtitle: string | null;
   href: string | null;
   category: ReturnType<typeof resolveEarningCategory>;
+  /** GEM_TOPUP — 그날 개봉된 포춘쿠키 운세 */
+  fortuneText: string | null;
 };
 
 const TYPE_LABELS: Record<PaymentIntentType, string> = {
@@ -57,6 +59,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
       amount: true,
       paidAt: true,
       metadata: true,
+      paymentKey: true,
     },
   });
 
@@ -76,7 +79,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
     ...new Set(metaList.map((m) => metaStr(m, "username")).filter(Boolean)),
   ] as string[];
 
-  const [mediaRows, posts, receivers, episodes, products, orders, usersByName] = await Promise.all([
+  const [mediaRows, posts, receivers, episodes, products, orders, usersByName, fortuneCookies] = await Promise.all([
     mediaIds.length
       ? db.postMedia.findMany({
           where: { id: { in: mediaIds } },
@@ -146,6 +149,10 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
           select: { username: true, name: true },
         })
       : [],
+    db.mocoFortuneCookie.findMany({
+      where: { userId },
+      select: { stripePaymentIntentId: true, fortuneText: true },
+    }),
   ]);
 
   const mediaById = new Map(mediaRows.map((m) => [m.id, m]));
@@ -155,6 +162,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
   const productById = new Map(products.map((p) => [p.id, p]));
   const orderById = new Map(orders.map((o) => [o.id, o]));
   const userByUsername = new Map(usersByName.map((u) => [u.username, u]));
+  const fortuneByPi = new Map(fortuneCookies.map((c) => [c.stripePaymentIntentId, c.fortuneText]));
 
   function snippet(text: string | null | undefined, max = 36) {
     if (!text) return "Post";
@@ -172,6 +180,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
     let contentSubtitle: string | null = "E-money";
     let href: string | null = null;
     let referenceType: string | null = null;
+    let fortuneText: string | null = null;
 
     if (intent.type === "TIP") {
       referenceType = "tip";
@@ -268,6 +277,14 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
       href = "/wallet";
     }
 
+    if (intent.type === "GEM_TOPUP") {
+      fortuneText =
+        (intent.paymentKey ? fortuneByPi.get(intent.paymentKey) : null) ?? null;
+      contentTitle = fortuneText ?? "Fortune cookie";
+      contentSubtitle = null;
+      href = null;
+    }
+
     const category = resolveEarningCategory(referenceType, "SELLER_EARNING");
 
     return {
@@ -282,6 +299,7 @@ export async function getPaymentHistoryForUser(userId: string, take = 80): Promi
       contentSubtitle,
       href,
       category,
+      fortuneText,
     };
   });
 }

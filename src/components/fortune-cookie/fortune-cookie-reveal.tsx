@@ -31,16 +31,10 @@ export function FortuneCookieReveal({ cookie, heading }: Props) {
         onOpened={() => setStatus("opened")}
       />
       <p className="mt-8 max-w-md text-sm font-semibold text-[#3a2a18]/75">{t("cookie.saved")}</p>
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-        <Link
-          href="/fortune-cookies"
-          className="rounded-full bg-[#1B3A6B] px-5 py-2.5 text-sm font-bold text-white"
-        >
-          {t("cookie.openCollection")}
-        </Link>
+      <div className="mt-5">
         <Link
           href="/wallet"
-          className="rounded-full border border-[#1B3A6B]/30 px-5 py-2.5 text-sm font-bold text-[#1B3A6B]"
+          className="inline-flex rounded-full bg-[#1B3A6B] px-5 py-2.5 text-sm font-bold text-white"
         >
           {t("cookie.backWallet")}
         </Link>

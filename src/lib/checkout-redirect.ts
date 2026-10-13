@@ -50,7 +50,7 @@ export function checkoutRedirectPath(intent: PaymentIntent, type: string) {
   }
 
   if (type === "GEM_TOPUP") {
-    redirectPath = "/fortune-cookies";
+    redirectPath = "/wallet";
   }
 
   return redirectPath;

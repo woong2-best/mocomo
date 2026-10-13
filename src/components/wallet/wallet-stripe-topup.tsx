@@ -129,11 +129,6 @@ export function WalletStripeTopup({ purchasedMoco, minTopupMoco, lowBalanceNotic
         disabled={pending}
       />
       <p className="text-[11px] leading-relaxed text-muted-foreground">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
-      <p className="text-[11px]">
-        <a href="/fortune-cookies" className="font-bold text-[#1B3A6B] underline dark:text-primary">
-          {t("wallet.viewFortuneCookies")}
-        </a>
-      </p>
 
       {error ? (
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm" role="alert">
