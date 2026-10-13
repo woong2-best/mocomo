@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -14,6 +15,10 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useLocale } from "@/components/providers/locale-provider";
+import { userDisplayName } from "@/lib/user-public-select";
+import { reelCollabStack } from "@/lib/reels/collaborators";
+import type { ReelAuthor } from "@/lib/reels/types";
 
 export function buildVideoCaptionText(
   title: string | null | undefined,
@@ -24,9 +29,11 @@ export function buildVideoCaptionText(
 
 type Props = {
   username: string;
-  /** Author avatar — shown before @handle at bottom meta */
+  /** Author avatar — shown before the nickname at bottom meta */
   authorImage?: string | null;
   authorName?: string | null;
+  authorId?: string;
+  collaborators?: ReelAuthor[] | null;
   title?: string | null;
   content: string;
   /** Extra content below caption (e.g. multi-video index). */
@@ -38,22 +45,51 @@ export function VideoOverlayCaption({
   username,
   authorImage,
   authorName,
+  authorId,
+  collaborators,
   title,
   content,
   footer,
   className,
 }: Props) {
+  const { t } = useLocale();
   const captionId = useId();
   const captionRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [truncatable, setTruncatable] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false);
 
   const captionText = buildVideoCaptionText(title, content);
   const hasCaption = captionText.length > 0;
 
+  const author = useMemo<ReelAuthor>(
+    () => ({
+      id: authorId || username,
+      username,
+      name: authorName ?? null,
+      image: authorImage ?? null,
+    }),
+    [authorId, authorImage, authorName, username]
+  );
+
+  const others = useMemo(
+    () =>
+      (collaborators ?? []).filter(
+        (u) => u.id && u.id !== author.id && u.username !== author.username
+      ),
+    [author.id, author.username, collaborators]
+  );
+  const hasCollab = others.length > 0;
+  const stackUsers = hasCollab ? reelCollabStack(author, others) : [author];
+  const firstOther = others[0];
+  const extraCount = Math.max(0, others.length - 1);
+  const roster = hasCollab ? [author, ...others] : [];
+  const nickname = userDisplayName(author);
+
   useEffect(() => {
     setExpanded(false);
-  }, [captionText]);
+    setRosterOpen(false);
+  }, [captionText, author.id]);
 
   useEffect(() => {
     const el = captionRef.current;
@@ -81,6 +117,46 @@ export function VideoOverlayCaption({
 
   const collapse = useCallback(() => setExpanded(false), []);
 
+  const closeRoster = useCallback(() => setRosterOpen(false), []);
+
+  const avatarStack = (
+    <span className="relative flex shrink-0">
+      {stackUsers.map((u, i) => (
+        <Avatar
+          key={u.id}
+          className={cn(
+            "h-9 w-9 ring-2 ring-white/90 ring-offset-0",
+            i > 0 && "-ml-2.5"
+          )}
+          style={{ zIndex: stackUsers.length - i }}
+        >
+          <AvatarImage src={u.image ?? undefined} alt={userDisplayName(u)} />
+          <AvatarFallback className="text-xs">
+            {userDisplayName(u).slice(0, 1).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      ))}
+    </span>
+  );
+
+  const nameBlock = hasCollab && firstOther ? (
+    <span className="min-w-0 leading-snug">
+      <span className="block truncate font-display text-sm font-bold drop-shadow">
+        {t("collab.headerAuthorWith", { name: nickname })}
+      </span>
+      <span className="block truncate font-display text-sm font-bold drop-shadow">
+        {extraCount > 0
+          ? t("collab.headerOthersMore", {
+              name: userDisplayName(firstOther),
+              count: String(extraCount),
+            })
+          : t("collab.headerOther", { name: userDisplayName(firstOther) })}
+      </span>
+    </span>
+  ) : (
+    <span className="truncate font-display text-sm font-bold drop-shadow">{nickname}</span>
+  );
+
   return (
     <>
       {expanded ? (
@@ -90,6 +166,50 @@ export function VideoOverlayCaption({
           aria-label={i18n("reels.s1wezsxw")}
           onClick={collapse}
         />
+      ) : null}
+
+      {rosterOpen && hasCollab ? (
+        <>
+          <button
+            type="button"
+            className="pointer-events-auto absolute inset-0 z-[11] bg-black/40"
+            aria-label={i18n("reels.s1wezsxw")}
+            onClick={(e) => {
+              e.stopPropagation();
+              closeRoster();
+            }}
+          />
+          <div
+            className="pointer-events-auto absolute inset-x-3 z-[12] rounded-2xl border border-white/15 bg-black/75 p-2 shadow-xl backdrop-blur-md"
+            style={{ top: "max(3.5rem, calc(env(safe-area-inset-top) + 2.75rem))" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="px-2 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-white/60">
+              {t("collab.rosterTitle")}
+            </p>
+            <ul className="max-h-[min(46vh,20rem)] space-y-0.5 overflow-y-auto">
+              {roster.map((u) => (
+                <li key={u.id}>
+                  <Link
+                    href={`/u/${u.username}`}
+                    className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-white hover:bg-white/10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Avatar className="h-8 w-8 ring-1 ring-white/40">
+                      <AvatarImage src={u.image ?? undefined} alt="" />
+                      <AvatarFallback className="text-[10px]">
+                        {userDisplayName(u).slice(0, 1).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="truncate text-sm font-semibold">
+                      {userDisplayName(u)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
       ) : null}
 
       <div
@@ -104,19 +224,30 @@ export function VideoOverlayCaption({
       >
         <div className="pointer-events-auto flex items-end justify-between gap-3 px-4 pr-16">
           <div className="relative z-10 min-w-0 max-w-[78%] space-y-1 text-white">
-            <Link
-              href={`/u/${username}`}
-              className="inline-flex items-center gap-2 rounded font-display text-sm font-bold drop-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Avatar className="h-9 w-9 ring-2 ring-white/90 ring-offset-0">
-                <AvatarImage src={authorImage} alt={authorName || username} />
-                <AvatarFallback className="text-xs">
-                  {(authorName || username).slice(0, 1).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span>@{username}</span>
-            </Link>
+            {hasCollab ? (
+              <button
+                type="button"
+                className="inline-flex max-w-full items-center gap-2 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRosterOpen((open) => !open);
+                }}
+                aria-expanded={rosterOpen}
+                aria-label={t("collab.rosterTitle")}
+              >
+                {avatarStack}
+                {nameBlock}
+              </button>
+            ) : (
+              <Link
+                href={`/u/${username}`}
+                className="inline-flex max-w-full items-center gap-2 rounded font-display text-sm font-bold drop-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {avatarStack}
+                {nameBlock}
+              </Link>
+            )}
 
             {hasCaption ? (
               <button

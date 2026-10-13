@@ -27,7 +27,7 @@ import { runOptimisticStarToggle } from "@/api/star-hub-cache";
 import type { FeedVideoGroup } from "@/features/feed/feed-video-groups";
 import { cachedImageSource, IMAGE_CACHE_POLICY } from "@/perf/image";
 import { spacing } from "@/theme/tokens";
-import { FolkAvatar } from "@/ui/FolkAvatar";
+import { ReelAuthorMeta } from "@/features/reels/ReelAuthorMeta";
 import {
   buildVideoCaptionText,
   CollapsibleVideoCaption,
@@ -36,7 +36,6 @@ import {
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
 import { useAuth } from "@/auth/AuthContext";
-import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
@@ -398,7 +397,6 @@ function FeedVideoPostSlideInner({
   const leftEdgeWidth = reelsEdgeHoldWidth(stageWidth, isWide);
   const rightEdgeWidth = REELS_PHONE_EDGE_HOLD;
   const { t } = useI18n();
-  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
   const starLock = useRef(false);
   const postIdRef = useRef(group.postId);
@@ -556,23 +554,6 @@ function FeedVideoPostSlideInner({
     });
   }, [current]);
 
-  const onAuthorPressIn = useCallback(() => {
-    if (!current) return;
-    prefetchUserProfile({
-      username: current.author.username,
-      name: current.author.name,
-      image: current.author.image,
-    });
-  }, [current, prefetchUserProfile]);
-
-  const onAuthorPress = useCallback(() => {
-    if (!current) return;
-    openUserProfile({
-      username: current.author.username,
-      name: current.author.name,
-      image: current.author.image,
-    });
-  }, [current, openUserProfile]);
 
   const onReportPress = useCallback(() => {
     if (!user) {
@@ -716,22 +697,10 @@ function FeedVideoPostSlideInner({
           ]}
           pointerEvents="box-none"
         >
-        <Pressable
-          onPressIn={onAuthorPressIn}
-          onPress={onAuthorPress}
-          style={styles.authorRow}
-          accessibilityRole="button"
-          accessibilityLabel={t("m.feed.username_profile", { username: String(current.author.username) })}
-        >
-          <FolkAvatar
-            uri={current.author.image}
-            name={current.author.name ?? current.author.username}
-            size={36}
-            framed={false}
-            style={styles.metaAvatar}
-          />
-          <Text style={styles.user}>@{current.author.username}</Text>
-        </Pressable>
+        <ReelAuthorMeta
+          author={current.author}
+          collaborators={current.collaborators}
+        />
         {captionText ? (
           <CollapsibleVideoCaption
             text={captionText}
@@ -899,18 +868,6 @@ const styles = StyleSheet.create({
   metaWide: {
     right: spacing.md,
   },
-  authorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 6,
-    alignSelf: "flex-start",
-  },
-  metaAvatar: {
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
-  user: { color: "#fff", fontWeight: "800", fontSize: 16 },
   caption: { color: "rgba(255,255,255,0.92)", fontSize: 14, lineHeight: 20 },
   index: { color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: "700", marginTop: 6 },
 });

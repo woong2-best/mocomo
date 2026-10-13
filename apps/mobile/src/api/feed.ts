@@ -37,6 +37,17 @@ export type FeedPost = {
     supportTierSent?: string | null;
     earnedMocoTier?: string | null;
   };
+  collaborators?: {
+    id?: string;
+    userId?: string;
+    status?: string;
+    user: {
+      id: string;
+      username: string;
+      name?: string | null;
+      image: string | null;
+    };
+  }[];
   media: FeedMedia[];
   _count: {
     likes: number;

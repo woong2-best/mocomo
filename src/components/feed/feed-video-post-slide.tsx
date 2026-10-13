@@ -349,6 +349,8 @@ export function FeedVideoPostSlide({
                       username={activeReel.author.username}
                       authorImage={activeReel.author.image}
                       authorName={activeReel.author.name}
+                      authorId={activeReel.author.id}
+                      collaborators={activeReel.collaborators}
                       title={activeReel.title}
                       content={activeReel.content}
                       footer={

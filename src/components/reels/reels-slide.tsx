@@ -193,6 +193,8 @@ export function ReelsSlide({
       username={reel.author.username}
       authorImage={reel.author.image}
       authorName={reel.author.name}
+      authorId={reel.author.id}
+      collaborators={reel.collaborators}
       title={reel.title}
       content={reel.content}
     />

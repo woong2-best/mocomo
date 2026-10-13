@@ -1,6 +1,7 @@
 import type { FeedMedia, FeedPost } from "@/api/feed";
 import type { ReelItem } from "@/api/reels";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
+import { mapReelCollaborators } from "@/features/reels/reel-collaborators";
 
 export type FeedVideoGroup = {
   postId: string;
@@ -74,6 +75,9 @@ export function postVideoToReelItem(
       name: post.author.name ?? null,
       image: post.author.image,
     },
+    collaborators: post.isAnonymous
+      ? []
+      : mapReelCollaborators(post.author.id, post.collaborators),
     media: {
       id: video.id?.trim() || id,
       url: video.url,

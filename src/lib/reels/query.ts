@@ -3,10 +3,12 @@ import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import type { ReelItem } from "@/lib/reels/types";
+import { mapReelCollaborators } from "@/lib/reels/collaborators";
 import { REELS_PAGE_SIZE } from "@/lib/reels/constants";
 import { isHlsUrl } from "@/lib/reels/playback-url";
 import { platformPostWhere } from "@/lib/post-scope";
 import { blockedIdList } from "@/lib/user-block";
+import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
 
 const reelsMediaSelect = {
   id: true,
@@ -58,6 +60,7 @@ function mapReelRow(post: {
   content: string;
   createdAt: Date;
   isNsfw: boolean;
+  isAnonymous?: boolean | null;
   viewCount: number;
   author: {
     id: string;
@@ -65,6 +68,14 @@ function mapReelRow(post: {
     name: string | null;
     image: string | null;
   };
+  collaborators?: {
+    user?: {
+      id: string;
+      username: string;
+      name?: string | null;
+      image: string | null;
+    } | null;
+  }[];
   media: {
     id: string;
     url: string;
@@ -100,6 +111,9 @@ function mapReelRow(post: {
       name: post.author.name,
       image: post.author.image,
     },
+    collaborators: post.isAnonymous
+      ? []
+      : mapReelCollaborators(post.author.id, post.collaborators),
     mediaType,
     media: {
       id: media.id,
@@ -153,8 +167,10 @@ export async function fetchReelsPage(
           content: true,
           createdAt: true,
           isNsfw: true,
+          isAnonymous: true,
           viewCount: true,
           author: { select: userPublicSelect },
+          collaborators: postCollaboratorsHeaderInclude,
           media: {
             orderBy: { order: "asc" },
             select: reelsMediaSelect,
@@ -216,7 +232,7 @@ export function getCachedReelsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchReelsPage(cursor, limit),
-    ["reels-page-v5-photos", cacheKey, String(limit)],
+    ["reels-page-v6-collab", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

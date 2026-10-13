@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as Haptics from "expo-haptics";
 import type { ReelItem } from "@/api/reels";
+import { ReelAuthorMeta } from "@/features/reels/ReelAuthorMeta";
 import { togglePostLike } from "@/api/feed";
 import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import { isPaidPlaybackPath } from "@/api/watermark";
@@ -216,7 +217,7 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
 
       <View style={styles.overlay} pointerEvents="box-none">
         <View style={styles.meta}>
-          <Text style={styles.user}>@{item.author.username}</Text>
+          <ReelAuthorMeta author={item.author} collaborators={item.collaborators} />
           {item.content ? (
             <TranslatableText
               text={item.content}
@@ -287,7 +288,6 @@ function createThemedStyles(colors: ThemeColors) {
     alignItems: "flex-end",
   },
   meta: { flex: 1, paddingRight: spacing.md },
-  user: { color: "#fff", fontWeight: "800", fontSize: 16, marginBottom: 6 },
   caption: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 20 },
   rail: { alignItems: "center", gap: 18 },
     avatar: { width: 44, height: 44, borderRadius: 12, borderWidth: 2, borderColor: "#fff" },

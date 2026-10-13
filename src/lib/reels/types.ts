@@ -5,6 +5,8 @@ export type ReelAuthor = {
   image: string | null;
 };
 
+export type ReelCollaborator = ReelAuthor;
+
 export type ReelMediaKind = "IMAGE" | "VIDEO";
 
 export type ReelMedia = {
@@ -33,6 +35,8 @@ export type ReelItem = {
   isNsfw: boolean;
   viewCount: number;
   author: ReelAuthor;
+  /** Invited + accepted collaborators (author excluded). */
+  collaborators?: ReelCollaborator[];
   mediaType?: ReelMediaKind;
   media: ReelMedia;
   likeCount: number;

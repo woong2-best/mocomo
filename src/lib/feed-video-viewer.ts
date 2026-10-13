@@ -1,6 +1,7 @@
 import type { GridPost } from "@/components/feed/feed-post-card";
 import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
 import type { ReelItem } from "@/lib/reels/types";
+import { mapReelCollaborators } from "@/lib/reels/collaborators";
 import { isHlsUrl } from "@/lib/reels/playback-url";
 
 export const FEED_VIDEO_VIEWER_HISTORY_KEY = "mocomoFeedVideoViewer";
@@ -72,6 +73,9 @@ export function postVideoToReelItem(
       name: post.author.name ?? null,
       image: post.author.image,
     },
+    collaborators: post.isAnonymous
+      ? []
+      : mapReelCollaborators(post.author.id, post.collaborators),
     mediaType,
     media: {
       id: mediaId,
