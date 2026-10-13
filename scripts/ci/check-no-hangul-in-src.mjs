@@ -11,6 +11,7 @@ const exts = new Set([".ts", ".tsx"]);
 const HANGUL_ALLOWLIST = new Set([
   "src/components/used/used-post-form.tsx",
   "src/lib/korea-regions.ts",
+  "src/lib/maps/geocode.ts",
   "src/lib/world-countries.ts",
   "src/lib/legal-content.ts",
   "src/lib/anime-wiki-infobox.ts",

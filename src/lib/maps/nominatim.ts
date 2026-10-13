@@ -1,4 +1,4 @@
-/** Nominatim (OSM) geocoding for non-KR meet locations. */
+/** Nominatim (OSM) geocoding for meet locations. */
 
 export type NominatimCoord = { lat: number; lng: number; label: string };
 
@@ -16,6 +16,9 @@ type NominatimSearchOpts = {
   limit?: number;
   /** ISO 3166-1 alpha-2, e.g. kr */
   countryCodes?: string;
+  /** Structured postal search. When set, free-text `q` is omitted. */
+  postalCode?: string;
+  acceptLanguage?: string;
 };
 
 async function nominatimSearchRaw(
@@ -23,18 +26,25 @@ async function nominatimSearchRaw(
   opts?: NominatimSearchOpts
 ): Promise<NominatimCoord[]> {
   const q = query.trim();
-  if (!q) return [];
+  const postal = opts?.postalCode?.trim() ?? "";
+  if (!q && !postal) return [];
   const limit = Math.min(Math.max(opts?.limit ?? 1, 1), 10);
   const params = new URLSearchParams({
     format: "jsonv2",
     limit: String(limit),
-    q,
   });
+  if (postal) params.set("postalcode", postal);
+  else params.set("q", q);
   const cc = opts?.countryCodes?.trim().toLowerCase();
   if (cc) params.set("countrycodes", cc);
   const url = `https://nominatim.openstreetmap.org/search?${params}`;
+  const headers: Record<string, string> = {
+    "User-Agent": USER_AGENT,
+    Accept: "application/json",
+  };
+  if (opts?.acceptLanguage) headers["Accept-Language"] = opts.acceptLanguage;
   const res = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+    headers,
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -61,6 +71,22 @@ export async function nominatimSearchPlaces(
 
 export async function nominatimSearchPlace(query: string): Promise<NominatimCoord | null> {
   const rows = await nominatimSearchRaw(query, { limit: 1 });
+  return rows[0] ?? null;
+}
+
+export async function nominatimSearchPostal(
+  postalCode: string,
+  countryCode: string,
+  opts?: { acceptLanguage?: string }
+): Promise<NominatimCoord | null> {
+  const cc = countryCode.trim().toLowerCase();
+  if (!/^[a-z]{2}$/.test(cc)) return null;
+  const rows = await nominatimSearchRaw(postalCode, {
+    limit: 1,
+    countryCodes: cc,
+    postalCode,
+    acceptLanguage: opts?.acceptLanguage,
+  });
   return rows[0] ?? null;
 }
 
