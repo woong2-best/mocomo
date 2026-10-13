@@ -305,60 +305,9 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     [colors.like, liked, muted, openItem, styles, t, toggleFavorite, t, user?.id]
   );
 
+  const recentTerms = recentQ.slice(0, 3);
   const listHeader = (
     <View>
-      <View style={styles.searchRow}>
-        <Pressable
-          onPress={() => {
-            if (isTab) navigation.navigate("Main", { screen: "Home" });
-            else navigation.goBack();
-          }}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("common.back")}
-        >
-          <Ionicons name="chevron-back" size={26} color={ink} />
-        </Pressable>
-        <SearchField
-          variant="pill"
-          value={q}
-          onChangeText={setQ}
-          onClear={() => setQ("")}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => {
-            saveSearch(q);
-            setTimeout(() => setSearchFocused(false), 180);
-          }}
-          onSubmitEditing={() => saveSearch(q)}
-          placeholder={t("common.search")}
-          containerStyle={{ flex: 1 }}
-        />
-        <Pressable
-          onPress={() => setHubOpen(true)}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("m.marketplace.market_menu")}
-        >
-          <Ionicons name="menu-outline" size={26} color={ink} />
-        </Pressable>
-      </View>
-      {searchFocused && recentQ.length > 0 ? (
-        <View style={styles.recentWrap}>
-          {recentQ.slice(0, 3).map((term) => (
-            <Pressable
-              key={term}
-              style={styles.recentChip}
-              onPressIn={() => applySearch(term)}
-            >
-              <Ionicons name="time-outline" size={14} color={muted} />
-              <Text style={styles.recentChipText} numberOfLines={1}>
-                {term}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -407,6 +356,42 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
 
   return (
     <Screen>
+      <View style={styles.searchRow}>
+        <Pressable
+          onPress={() => {
+            if (isTab) navigation.navigate("Main", { screen: "Home" });
+            else navigation.goBack();
+          }}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.back")}
+        >
+          <Ionicons name="chevron-back" size={26} color={ink} />
+        </Pressable>
+        <SearchField
+          variant="pill"
+          value={q}
+          onChangeText={setQ}
+          onClear={() => setQ("")}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => {
+            saveSearch(q);
+            setTimeout(() => setSearchFocused(false), 180);
+          }}
+          onSubmitEditing={() => saveSearch(q)}
+          placeholder={t("common.search")}
+          containerStyle={{ flex: 1 }}
+        />
+        <Pressable
+          onPress={() => setHubOpen(true)}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("m.marketplace.market_menu")}
+        >
+          <Ionicons name="menu-outline" size={26} color={ink} />
+        </Pressable>
+      </View>
+      <View style={styles.listWrap}>
       <FlatList
         data={query.isError ? [] : items}
         keyExtractor={(item) => item.id}
@@ -422,6 +407,37 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         refreshing={refreshing}
         onRefresh={() => void onRefresh()}
       />
+      {searchFocused && recentTerms.length > 0 ? (
+        <View style={styles.searchPopup}>
+          <Pressable style={styles.searchBackdrop} onPress={() => setSearchFocused(false)} />
+          <View style={[styles.searchPanel, { backgroundColor: colors.surfaceRaised, borderColor: colors.hairline }]}>
+            <View style={[styles.recentHead, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.recentRank, { color: colors.textMuted }]}>#</Text>
+              <Text style={[styles.recentHeadTitle, { color: colors.text }]}>{t("m.marketplace.recent_searches")}</Text>
+            </View>
+            {recentTerms.map((term, index) => (
+              <Pressable
+                key={term}
+                onPressIn={() => applySearch(term)}
+                style={[styles.recentRow, { borderTopColor: colors.hairline }]}
+              >
+                <Text
+                  style={[
+                    styles.recentRank,
+                    { color: index === 0 ? "#d63a3a" : colors.textMuted, fontWeight: index === 0 ? "800" : "600" },
+                  ]}
+                >
+                  {index + 1}
+                </Text>
+                <Text style={styles.recentTerm} numberOfLines={1}>
+                  {term}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+      </View>
 
       <Pressable
         style={[
@@ -469,30 +485,61 @@ function createStyles(colors: ThemeColors) {
       paddingTop: 8,
       paddingBottom: 10,
     },
-    recentWrap: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-      paddingHorizontal: 14,
-      paddingBottom: 10,
+    listWrap: {
+      flex: 1,
     },
-    recentChip: {
+    searchPopup: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      zIndex: 50,
+    },
+    searchBackdrop: {
+      ...StyleSheet.absoluteFill,
+    },
+    searchPanel: {
+      marginHorizontal: 10,
+      marginTop: 4,
+      borderRadius: 10,
+      borderWidth: 1,
+      overflow: "hidden",
+      elevation: 8,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+    },
+    recentHead: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
-      maxWidth: "100%",
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 999,
       paddingHorizontal: 10,
       paddingVertical: 6,
-      backgroundColor: colors.surfaceRaised,
     },
-    recentChipText: {
-      color: colors.text,
-      fontWeight: "600",
+    recentRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderTopWidth: 1,
+    },
+    recentRank: {
+      width: 28,
+      textAlign: "center",
       fontSize: 12,
-      maxWidth: 140,
+      fontWeight: "700",
+    },
+    recentHeadTitle: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "800",
+    },
+    recentTerm: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "700",
+      color: "#1a4db3",
     },
     search: {
       flex: 1,
