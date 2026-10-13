@@ -30,7 +30,6 @@ import {
 import { parseAtmLetter } from "@/lib/chat-atm-letter";
 import { LetterDonationCard } from "@/features/messages/LetterDonationCard";
 import { TransferLetterCard } from "@/features/messages/TransferLetterCard";
-import { UsedTradeRequestCard } from "@/features/messages/UsedTradeRequestCard";
 import { ChatUsedListingCard } from "@/features/messages/ChatUsedListingCard";
 import {
   isUsedListingAttachment,
@@ -276,7 +275,6 @@ function MessageBubbleInner({
   mine,
   selfUserId,
   showTime = true,
-  roomId,
   onMessagesRefresh,
   onReply,
   onJumpToQuoted,
@@ -528,15 +526,6 @@ function MessageBubbleInner({
           mine={mine}
           onLongPress={longPressReply}
           onOpenImage={onOpenImage ? openSharedImage : undefined}
-        />
-      ) : null}
-
-      {tradeRequestId && roomId && selfUserId ? (
-        <UsedTradeRequestCard
-          requestId={tradeRequestId}
-          selfUserId={selfUserId}
-          roomId={roomId}
-          onRefresh={onMessagesRefresh}
         />
       ) : null}
 

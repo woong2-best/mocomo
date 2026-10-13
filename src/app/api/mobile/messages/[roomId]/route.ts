@@ -94,7 +94,9 @@ export async function POST(
           ? "신고가 접수되어 대화가 잠겼습니다."
           : result.error === "MESSAGE_NOT_ALLOWED"
             ? MESSAGE_REQUEST_BLOCKED
-            : result.error;
+            : result.error === "LISTING_SOLD"
+              ? "This item has already been sold."
+              : result.error;
     return NextResponse.json({ error: message, code: result.error }, { status });
   }
   return NextResponse.json(result);

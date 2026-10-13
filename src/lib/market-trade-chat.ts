@@ -15,6 +15,16 @@ import {
 } from "@/lib/chat-message-serialize";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
 
+/** 판매 완료된 상품 대화에는 새 메시지를 넣지 않는다. 예약 중은 그대로 보낸다. */
+export async function usedListingChatSendBlock(roomId: string) {
+  const link = await db.usedListingChat.findUnique({
+    where: { roomId },
+    select: { listing: { select: { status: true } } },
+  });
+  if (link?.listing.status === "SOLD") return "LISTING_SOLD" as const;
+  return null;
+}
+
 /** 상품 상세에서만 여는 마켓 메시지. 일반 DM 방을 재사용하지 않는다. */
 export async function openMarketListingChat(actorId: string, listingId: string) {
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });

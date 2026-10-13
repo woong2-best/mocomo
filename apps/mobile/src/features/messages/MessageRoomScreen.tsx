@@ -2,10 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,8 +12,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
-import { DirectTradeCard } from "@/features/marketplace/DirectTradeCard";
-import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
+import { showIslandError } from "@/ui/IslandToast";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute, useNavigation, type RouteProp } from "@react-navigation/native";
@@ -41,38 +38,10 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import { useJoinPresenceRoom, usePeerOnline } from "@/lib/use-chat-presence";
-import { requestUsedTrade } from "@/api/marketplace";
-import { UsedTradeMeetCompletionCard } from "@/features/messages/UsedTradeMeetCompletionCard";
-import type { Locale } from "@/i18n";
 import { useI18n } from "@/i18n/I18nProvider";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
-import { translate } from "@/i18n/runtime";
 
 const MAX_VOICE_SEC = 120;
-const MEET_DAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
-
-function parseMeetTimeInput(text: string): { hours: number; minutes: number } | null {
-  const m = text.trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return null;
-  const hours = Number(m[1]);
-  const minutes = Number(m[2]);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-  return { hours, minutes };
-}
-
-function meetDayLabel(offset: number, locale: Locale) {
-  const date = new Date();
-  date.setDate(date.getDate() + offset);
-  if (offset === 0) return translate("m.common.today");
-  if (offset === 1) return translate("m.messages.tomorrow");
-  const tag = locale === "zh-TW" ? "zh-Hant" : locale;
-  try {
-    return new Intl.DateTimeFormat(tag, { month: "numeric", day: "numeric", weekday: "short" }).format(date);
-  } catch {
-    return new Intl.DateTimeFormat("en-US", { month: "numeric", day: "numeric", weekday: "short" }).format(date);
-  }
-}
 const NEAR_BOTTOM_PX = 140;
 
 type VoiceControls = {
@@ -86,7 +55,7 @@ type MessageRow = {
 };
 
 export function MessageRoomScreen() {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const route = useRoute<RouteProp<RootStackParamList, "MessageRoom">>();
@@ -139,44 +108,9 @@ export function MessageRoomScreen() {
   const composerBottomPad = keyboardOpen ? 8 : Math.max(insets.bottom, 8);
   const canSendText = !!draft.trim() && !busy && !recording;
   const usedTrade = room?.usedTrade ?? null;
-  const [tradeRequestBusy, setTradeRequestBusy] = useState(false);
-  const [meetDayOffset, setMeetDayOffset] = useState(1);
-  const [meetCustomDate, setMeetCustomDate] = useState<Date | null>(null);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [meetTimeText, setMeetTimeText] = useState("15:00");
+  const listingSold = usedTrade?.listingStatus === "SOLD";
   const [reportOpen, setReportOpen] = useState(false);
   const [roomLockedLocal, setRoomLockedLocal] = useState(false);
-
-  const onRequestUsedTrade = useCallback(async () => {
-    if (!usedTrade?.canRequestTrade || tradeRequestBusy) return;
-    const parsedTime = parseMeetTimeInput(meetTimeText);
-    if (!parsedTime) {
-      showIslandError(t("m.messages.time"), t("m.messages.enter_trade_time_as_hh_mm"));
-      return;
-    }
-    const meetAt = meetCustomDate ? new Date(meetCustomDate) : new Date();
-    if (!meetCustomDate) meetAt.setDate(meetAt.getDate() + meetDayOffset);
-    meetAt.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
-    if (meetAt.getTime() < Date.now()) {
-      showIslandError(t("m.messages.schedule"), t("m.messages.pick_a_time_later_than_now"));
-      return;
-    }
-    setTradeRequestBusy(true);
-    try {
-      await requestUsedTrade(usedTrade.listingId, roomId, meetAt.toISOString());
-      await refresh();
-      showIslandSuccess(
-        t("m.messages.trade_request"),
-        usedTrade.isSeller
-          ? t("m.messages.trade_schedule_sent_to_the_buyer")
-          : t("m.messages.trade_schedule_sent_to_the_seller")
-      );
-    } catch (e) {
-      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.messages.could_not_send_trade_request"));
-    } finally {
-      setTradeRequestBusy(false);
-    }
-  }, [meetCustomDate, meetDayOffset, meetTimeText, refresh, roomId, tradeRequestBusy, t, usedTrade]);
 
   const rows = useMemo<MessageRow[]>(
     () =>
@@ -295,8 +229,11 @@ export function MessageRoomScreen() {
   const canSend =
     !roomLocked &&
     !messagingBlocked &&
+    !listingSold &&
     (room?.type !== "DM" || room.canMessage !== false);
-  const composerLockNote = roomLocked
+  const composerLockNote = listingSold
+    ? t("actions.s1mmunw")
+    : roomLocked
     ? t("m.messages.this_conversation_was_locked_after_a")
     : messagingBlocked
       ? (blockMessage ??
@@ -503,10 +440,6 @@ export function MessageRoomScreen() {
         />
       ) : null}
 
-      {usedTrade?.directTrade ? (
-        <DirectTradeCard view={usedTrade.directTrade} onUpdated={() => void refresh()} />
-      ) : null}
-
       {error ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
@@ -577,72 +510,6 @@ export function MessageRoomScreen() {
         ]}
       >
         {!canSend ? <Text style={styles.lockedNote}>{composerLockNote}</Text> : null}
-
-        {canSend && usedTrade?.approvedMeet?.showCompletionPrompt ? (
-          <UsedTradeMeetCompletionCard
-            requestId={usedTrade.approvedMeet.requestId}
-            selfUserId={user?.id ?? ""}
-            isBuyer={usedTrade.isBuyer}
-            buyerMeetConfirmedAt={usedTrade.approvedMeet.buyerMeetConfirmedAt}
-            sellerMeetConfirmedAt={usedTrade.approvedMeet.sellerMeetConfirmedAt}
-            onRefresh={() => void refresh()}
-          />
-        ) : null}
-
-        {canSend && usedTrade?.canRequestTrade ? (
-          <View style={styles.usedTradeSchedule}>
-            <Text style={styles.usedTradeScheduleLabel}>{t("m.messages.trade_date")}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-              {MEET_DAY_OFFSETS.map((offset) => {
-                const isCalendarSlot = offset === 6;
-                const selected = isCalendarSlot
-                  ? meetCustomDate != null
-                  : meetCustomDate == null && meetDayOffset === offset;
-                const label = isCalendarSlot
-                  ? meetCustomDate
-                    ? `${meetCustomDate.getMonth() + 1}/${meetCustomDate.getDate()}`
-                    : t("m.messages.pick_date")
-                  : meetDayLabel(offset, locale);
-                return (
-                  <Pressable
-                    key={offset}
-                    style={[styles.chip, selected && styles.chipOn]}
-                    onPress={() => {
-                      if (isCalendarSlot) {
-                        setCalendarOpen(true);
-                        return;
-                      }
-                      setMeetCustomDate(null);
-                      setMeetDayOffset(offset);
-                    }}
-                  >
-                    <Text style={[styles.chipText, selected && styles.chipTextOn]}>{label}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Text style={styles.usedTradeScheduleLabel}>{t("m.messages.trade_time")}</Text>
-            <TextInput
-              style={styles.timeInput}
-              value={meetTimeText}
-              onChangeText={setMeetTimeText}
-              placeholder="15:00"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numbers-and-punctuation"
-            />
-            <Pressable
-              style={styles.usedTradeBar}
-              disabled={tradeRequestBusy}
-              onPress={() => void onRequestUsedTrade()}
-            >
-              {tradeRequestBusy ? (
-                <ActivityIndicator color={colors.cobalt} size="small" />
-              ) : (
-                <Text style={styles.usedTradeBarText}>{t("m.messages.request_trade_meetup")}</Text>
-              )}
-            </Pressable>
-          </View>
-        ) : null}
 
         {canSend && replyTo ? (
           <ChatReplyComposerBar
@@ -740,34 +607,6 @@ export function MessageRoomScreen() {
         meta={lightbox?.meta ?? null}
         onClose={() => setLightbox(null)}
       />
-
-      <Modal visible={calendarOpen} transparent animationType="fade" onRequestClose={() => setCalendarOpen(false)}>
-        <Pressable style={styles.calBackdrop} onPress={() => setCalendarOpen(false)}>
-          <Pressable style={styles.calSheet} onPress={() => undefined}>
-            <Text style={styles.calTitle}>{t("m.messages.pick_trade_date")}</Text>
-            <ScrollView style={styles.calScroll} keyboardShouldPersistTaps="handled">
-              {Array.from({ length: 60 }, (_, i) => {
-                const d = new Date();
-                d.setHours(0, 0, 0, 0);
-                d.setDate(d.getDate() + i);
-                const label = meetDayLabel(i, locale);
-                return (
-                  <Pressable
-                    key={i}
-                    style={styles.calRow}
-                    onPress={() => {
-                      setMeetCustomDate(d);
-                      setCalendarOpen(false);
-                    }}
-                  >
-                    <Text style={styles.calRowText}>{label}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
     </View>
   );

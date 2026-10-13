@@ -19,6 +19,7 @@ import {
 import { contactPermissions, dmSendBlockReason, incomingContactDecision } from "@/lib/contact-audience";
 import { areUsersBlocked, filterDmInboxByBlock, getBlockedUserIdSet } from "@/lib/user-block";
 import { presentMobileUsedListingMessages } from "@/lib/used-listing-share-card";
+import { usedListingChatSendBlock } from "@/lib/market-trade-chat";
 
 async function assertRoomMember(roomId: string, userId: string) {
   const member = await db.chatMember.findUnique({
@@ -377,6 +378,8 @@ export async function sendMobileDmMessage(
   if (roomRow?.status === "READ_ONLY") {
     return { error: "ROOM_LOCKED" as const };
   }
+  const listingBlock = await usedListingChatSendBlock(data.roomId);
+  if (listingBlock) return { error: listingBlock };
 
   const room = access.room;
 

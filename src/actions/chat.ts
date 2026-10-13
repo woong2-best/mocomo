@@ -29,6 +29,7 @@ import { filterDmInboxByBlock, getBlockedUserIdSet } from "@/lib/user-block";
 import { addChatMemberByUsername } from "@/lib/chat-group-invite";
 import { dmSendBlockReason, incomingContactDecision } from "@/lib/contact-audience";
 import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
+import { usedListingChatSendBlock } from "@/lib/market-trade-chat";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -174,6 +175,8 @@ export async function sendMessage(data: {
   });
   if (!room) throw new Error("ROOM_NOT_FOUND");
   if (room.status === "READ_ONLY") throw new Error("ROOM_LOCKED");
+  const listingBlock = await usedListingChatSendBlock(data.roomId);
+  if (listingBlock) throw new Error(listingBlock);
 
   if (room.type === "DM") {
     const block = await dmSendBlockReason(user.id, data.roomId);

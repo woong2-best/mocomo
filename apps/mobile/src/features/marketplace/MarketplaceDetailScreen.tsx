@@ -412,12 +412,6 @@ export function MarketplaceDetailScreen() {
                     <Text style={styles.btnTextMuted}>{t("m.marketplace.trade_completed")}</Text>
                   </Pressable>
                 </View>
-              ) : item.status === "RESERVED" && !(item as { reservedTradeParticipant?: boolean }).reservedTradeParticipant ? (
-                <View style={styles.actions}>
-                  <Pressable style={[styles.btn, styles.btnDisabled]} disabled>
-                    <Text style={styles.btnTextMuted}>{t("m.common.reserved")}</Text>
-                  </Pressable>
-                </View>
               ) : item.status !== "SOLD" ? (
                 <View style={styles.actions}>
                   <Pressable

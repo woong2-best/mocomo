@@ -19,8 +19,6 @@ import { ChatMessageReplyQuote } from "@/components/chat/chat-message-reply-quot
 import { ChatReplyComposerBar } from "@/components/chat/chat-reply-composer-bar";
 import { ChatSharedPostCard } from "@/components/chat/chat-shared-post-card";
 import { ChatUsedListingCard } from "@/components/chat/chat-used-listing-card";
-import { ChatUsedTradeRequestCard } from "@/components/chat/chat-used-trade-request-card";
-import { ChatUsedTradePanel } from "@/components/chat/chat-used-trade-panel";
 import {
   parseUsedTradeRequestMarker,
   stripUsedTradeRequestMarker,
@@ -90,6 +88,7 @@ export function ChatRoomClient({
   const [input, setInput] = useState("");
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
   const [error, setError] = useState("");
+  const [listingSold, setListingSold] = useState(false);
   const [filterWarning, setFilterWarning] = useState("");
   const { socket, socketReady, realtimeOff, subscribeMessages } = useChatSocket();
   const router = useRouter();
@@ -159,6 +158,23 @@ export function ChatRoomClient({
   useEffect(() => {
     scrollToBottom(messages.length <= initialMessages.length ? "auto" : "smooth");
   }, [messages, scrollToBottom, initialMessages.length]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/used/trade-room/${encodeURIComponent(roomId)}`);
+        if (!res.ok) return;
+        const body = (await res.json()) as { usedTrade?: { listingStatus?: string } | null };
+        if (!cancelled) setListingSold(body.usedTrade?.listingStatus === "SOLD");
+      } catch {
+        if (!cancelled) setListingSold(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId]);
 
   useEffect(() => subscribeMessages(mergeIncoming), [subscribeMessages, mergeIncoming]);
 
@@ -389,7 +405,9 @@ export function ChatRoomClient({
               ? t("ui.couldn_t_save_attachment_please_try")
               : msg === "PAID_DM_DISABLED"
                 ? t("ui.paid_fan_art_sales_in_messages")
-                : msg === MESSAGE_REQUEST_BLOCKED
+                : msg === "LISTING_SOLD"
+                  ? t("actions.s1mmunw")
+                  : msg === MESSAGE_REQUEST_BLOCKED
                   ? msg
                   : t("ui.couldn_t_send_message")
       );
@@ -398,7 +416,7 @@ export function ChatRoomClient({
 
   function send() {
     const raw = input.trim();
-    if (!raw || sendLockRef.current) return;
+    if (!raw || sendLockRef.current || listingSold || readOnly) return;
 
     const filtered = filterDmMessageContent(raw);
     if (filtered.wasFiltered) {
@@ -430,7 +448,7 @@ export function ChatRoomClient({
   }
 
   async function sendAttachments(attachments: ChatAttachmentInput[], caption?: string) {
-    if (!attachments.length || sendLockRef.current) return;
+    if (!attachments.length || sendLockRef.current || listingSold || readOnly) return;
 
     const filteredCaption = caption?.trim()
       ? filterDmMessageContent(caption.trim())
@@ -672,9 +690,6 @@ export function ChatRoomClient({
                     {usedShare && (
                       <ChatUsedListingCard listingId={usedShare.listingId} />
                     )}
-                    {tradeRequestId ? (
-                      <ChatUsedTradeRequestCard requestId={tradeRequestId} selfUserId={userId} />
-                    ) : null}
                     {postShare && (
                       <div className={cn(hasText && "mt-1")}>
                         {m.replyTo && !hasAttachments && !hasText && (
@@ -744,8 +759,7 @@ export function ChatRoomClient({
         <p className="text-xs text-amber-700 dark:text-amber-400 px-4 pb-1 text-center">{filterWarning}</p>
       )}
       {error && <p className="text-xs text-destructive px-4 pb-1 text-center">{error}</p>}
-      {!readOnly ? <ChatUsedTradePanel roomId={roomId} readOnly={readOnly} /> : null}
-      {!readOnly && (
+      {!readOnly && !listingSold && (
         <div className="shrink-0 border-t border-border/60 bg-background">
           {replyTarget && (
             <ChatReplyComposerBar
@@ -763,9 +777,11 @@ export function ChatRoomClient({
           />
         </div>
       )}
-      {readOnly && (
+      {(readOnly || listingSold) && (
         <div className="shrink-0 border-t border-border/60 bg-muted/30 px-4 py-3 text-center text-xs text-muted-foreground">
-          {readOnlyHint
+          {listingSold
+            ? t("actions.s1mmunw")
+            : readOnlyHint
             ? readOnlyHint
             : userId === "guest"
               ? t("ui.read_only_as_guest_sign_in")

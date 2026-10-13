@@ -475,6 +475,15 @@ io.on("connection", (socket: AuthedSocket) => {
       });
       if (!member) return;
 
+      const soldLink = await prisma.usedListingChat.findUnique({
+        where: { roomId: data.roomId },
+        select: { listing: { select: { status: true } } },
+      });
+      if (soldLink?.listing.status === "SOLD") {
+        socket.emit("error", { message: "This item has already been sold." });
+        return;
+      }
+
       if (data.replyToId) {
         const parent = await prisma.message.findFirst({
           where: { id: data.replyToId, roomId: data.roomId },

@@ -30,7 +30,6 @@ export function UsedDetailBottomBar({
   status,
   chatCount,
   initialBuyerRoomId,
-  reservedTradeParticipant = false,
   restrictedKind = "NONE",
   viewerAdultVerified = false,
 }: {
@@ -149,21 +148,6 @@ export function UsedDetailBottomBar({
           className="h-12 w-full rounded-[10px] bg-muted font-bold text-muted-foreground"
         >
           {t("ui.trade_completed")}
-        </Button>
-      </div>
-    );
-  }
-
-  if (status === "RESERVED" && !isSeller && !reservedTradeParticipant) {
-    return (
-      <div className="used-action-bar border-t bg-muted/40 p-3 pb-safe z-20">
-        <Button
-          type="button"
-          size="lg"
-          disabled
-          className="h-12 w-full rounded-[10px] bg-muted font-bold text-muted-foreground"
-        >
-          {t("ui.reserved")}
         </Button>
       </div>
     );
