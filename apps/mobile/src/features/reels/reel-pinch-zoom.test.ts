@@ -2,15 +2,34 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   clampReelPinchScale,
+  REEL_PINCH_COMMIT,
   REEL_PINCH_MAX,
   REEL_PINCH_MIN,
+  reelCommittedVisualScale,
+  reelFillPhoneScale,
   reelPinchOffset,
+  reelPinchShouldCommit,
 } from "./reel-pinch-zoom";
 
 test("pinch scale rubber-bands below 1 and caps at max", () => {
   assert.equal(clampReelPinchScale(1), 1);
   assert.equal(clampReelPinchScale(0.2), REEL_PINCH_MIN);
   assert.equal(clampReelPinchScale(12), REEL_PINCH_MAX);
+});
+
+test("one finger never commits a pinch", () => {
+  assert.equal(reelPinchShouldCommit(2, 1), false);
+  assert.equal(reelPinchShouldCommit(1.01, 2), false);
+  assert.equal(reelPinchShouldCommit(REEL_PINCH_COMMIT, 2), true);
+});
+
+test("16:9 contain in a 9:16 phone fills the whole phone when zoomed", () => {
+  const phoneW = 390;
+  const phoneH = 844;
+  const boost = reelFillPhoneScale(1920, 1080, phoneW, phoneH, phoneW, phoneH);
+  assert.ok(boost > 1.7);
+  const visual = reelCommittedVisualScale(REEL_PINCH_COMMIT, boost);
+  assert.ok(Math.abs(visual - boost) < 0.02);
 });
 
 test("pinch offset keeps the focal point while scaling from center", () => {

@@ -44,7 +44,10 @@ import {
   reelsEdgeHoldWidth,
 } from "@/features/reels/reels-wide-layout";
 import { ReelPinchZoom } from "@/features/reels/ReelPinchZoom";
+import { reelFillPhoneScale } from "@/features/reels/reel-pinch-zoom";
 
+/** Right inset for center tap zone so it does not compete with the action rail. */
+const RAIL_CLEARANCE = 76;
 const FAST_PLAYBACK_RATE = 2;
 
 function reelAsFeedPost(reel: ReelItem, starred: boolean): FeedPost {
@@ -602,8 +605,9 @@ function FeedVideoPostSlideInner({
           left: stageLeft,
           width: stageWidth,
           height,
-          overflow: "hidden",
-          borderRadius: isWide ? REELS_WIDE_CARD_RADIUS : 0,
+          overflow: pinchZooming ? "visible" : "hidden",
+          borderRadius: pinchZooming ? 0 : isWide ? REELS_WIDE_CARD_RADIUS : 0,
+          zIndex: pinchZooming ? 12 : 0,
         }}
       >
       <FlatList
@@ -617,6 +621,7 @@ function FeedVideoPostSlideInner({
         disableIntervalMomentum
         nestedScrollEnabled
         directionalLockEnabled
+        removeClippedSubviews={false}
         scrollEnabled={active && !pinchZooming}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
@@ -637,13 +642,59 @@ function FeedVideoPostSlideInner({
           const isCurrent = active && index === videoIndex;
           const isPlaying = isCurrent && isFocused;
           return (
-            <View style={{ width: stageWidth, height, overflow: "hidden" }}>
+            <View
+              style={{
+                width: stageWidth,
+                height,
+                overflow: pinchZooming && isCurrent ? "visible" : "hidden",
+                zIndex: pinchZooming && isCurrent ? 12 : 0,
+              }}
+            >
               <ReelPinchZoom
                 enabled={isCurrent}
                 resetKey={`${item.id}:${isCurrent ? 1 : 0}`}
+                fillBoost={reelFillPhoneScale(
+                  item.media.width ?? 0,
+                  item.media.height ?? 0,
+                  stageWidth,
+                  height,
+                  width,
+                  height
+                )}
                 onZoomChange={isCurrent ? handlePinchZoomChange : undefined}
-                onSingleTap={
-                  isCurrent && item.mediaType !== "IMAGE" ? togglePause : undefined
+                overlay={
+                  isCurrent && !fastForward && item.mediaType !== "IMAGE" ? (
+                    <>
+                      <Pressable
+                        style={[
+                          styles.tapZone,
+                          { left: leftEdgeWidth, right: RAIL_CLEARANCE },
+                        ]}
+                        onPress={togglePause}
+                        accessibilityRole="button"
+                        accessibilityLabel={pausedByUser ? t("m.common.play") : t("m.common.pause")}
+                      />
+                      {pausedByUser ? (
+                        <View style={styles.pauseBadge} pointerEvents="none">
+                          <Ionicons name="play" size={56} color="rgba(255,255,255,0.9)" />
+                        </View>
+                      ) : null}
+                      <EdgeHoldZone
+                        side="left"
+                        width={leftEdgeWidth}
+                        disabled={pausedByUser || pinchZooming}
+                        onHoldStart={startFastForward}
+                        onHoldEnd={stopFastForward}
+                      />
+                      <EdgeHoldZone
+                        side="right"
+                        width={rightEdgeWidth}
+                        disabled={pausedByUser || pinchZooming}
+                        onHoldStart={startFastForward}
+                        onHoldEnd={stopFastForward}
+                      />
+                    </>
+                  ) : null
                 }
               >
                 <SensitiveContentGate
@@ -661,29 +712,6 @@ function FeedVideoPostSlideInner({
                   />
                 </SensitiveContentGate>
               </ReelPinchZoom>
-              {isCurrent && !fastForward && item.mediaType !== "IMAGE" ? (
-                <>
-                  {pausedByUser ? (
-                    <View style={styles.pauseBadge} pointerEvents="none">
-                      <Ionicons name="play" size={56} color="rgba(255,255,255,0.9)" />
-                    </View>
-                  ) : null}
-                  <EdgeHoldZone
-                    side="left"
-                    width={leftEdgeWidth}
-                    disabled={pausedByUser || pinchZooming}
-                    onHoldStart={startFastForward}
-                    onHoldEnd={stopFastForward}
-                  />
-                  <EdgeHoldZone
-                    side="right"
-                    width={rightEdgeWidth}
-                    disabled={pausedByUser || pinchZooming}
-                    onHoldStart={startFastForward}
-                    onHoldEnd={stopFastForward}
-                  />
-                </>
-              ) : null}
             </View>
           );
         }}
@@ -847,6 +875,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.28)",
   },
   segmentActive: { backgroundColor: "#fff" },
+  tapZone: {
+    position: "absolute",
+    top: 32,
+    bottom: 88,
+    zIndex: 2,
+  },
   edgeZone: {
     position: "absolute",
     top: 0,

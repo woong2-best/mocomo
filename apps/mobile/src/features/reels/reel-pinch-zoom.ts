@@ -1,12 +1,57 @@
-/** Transient Instagram-style zoom: pinch around a focal point, then snap back. */
+/** Transient Instagram-style zoom: two-finger only, fill the phone, snap back. */
 
 export const REEL_PINCH_MAX = 4;
-export const REEL_PINCH_MIN = 0.88;
+export const REEL_PINCH_MIN = 0.92;
 export const REEL_PINCH_SNAP_MS = 240;
+/** Ignore jitter until the gesture is clearly a two-finger pinch. */
+export const REEL_PINCH_COMMIT = 1.12;
 
 export function clampReelPinchScale(scale: number): number {
   "worklet";
   return Math.min(REEL_PINCH_MAX, Math.max(REEL_PINCH_MIN, scale));
+}
+
+export function reelPinchShouldCommit(scale: number, pointers: number): boolean {
+  "worklet";
+  return pointers >= 2 && scale >= REEL_PINCH_COMMIT;
+}
+
+export function containFittedSize(
+  mediaW: number,
+  mediaH: number,
+  viewW: number,
+  viewH: number
+): { w: number; h: number } {
+  if (mediaW <= 0 || mediaH <= 0 || viewW <= 0 || viewH <= 0) {
+    return { w: viewW, h: viewH };
+  }
+  const scale = Math.min(viewW / mediaW, viewH / mediaH);
+  return { w: mediaW * scale, h: mediaH * scale };
+}
+
+/**
+ * Scale a contain-fitted stage so the media covers the full phone.
+ * Landscape / square clips no longer stay letterboxed in a 9:16 box.
+ */
+export function reelFillPhoneScale(
+  mediaW: number,
+  mediaH: number,
+  stageW: number,
+  stageH: number,
+  phoneW: number,
+  phoneH: number
+): number {
+  const fitted = containFittedSize(mediaW, mediaH, stageW, stageH);
+  if (fitted.w <= 0 || fitted.h <= 0 || phoneW <= 0 || phoneH <= 0) return 1;
+  return Math.max(phoneW / fitted.w, phoneH / fitted.h, 1);
+}
+
+/** After commit, map pinch scale so 1.12× already fills the phone, then zoom further. */
+export function reelCommittedVisualScale(pinchScale: number, fillBoost: number): number {
+  "worklet";
+  const boost = Math.max(1, fillBoost);
+  const extra = clampReelPinchScale(pinchScale) / REEL_PINCH_COMMIT;
+  return Math.min(REEL_PINCH_MAX * boost, boost * extra);
 }
 
 /** Keep the pinch midpoint under the fingers while scaling from the view center. */
