@@ -146,6 +146,7 @@ export default async function WalletPage({
           settlement={settlement}
           lowBalanceNotice={lowBalanceNotice}
           userImageUrl={session.user.image}
+          supportTierSent={session.user.supportTierSent}
         />
       </Suspense>
     </AppPageChrome>

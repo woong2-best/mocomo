@@ -16,6 +16,9 @@ import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import type { PaymentHistoryItem } from "@/lib/payment-history";
 import type { TipHistory } from "@/actions/support";
+import { OreTierBadgeLink } from "@/components/support/ore-tier-button";
+import { resolveProfileDisplayTier } from "@/lib/settlement-moco/balance";
+import type { SupportTierLevel } from "@prisma/client";
 import { cn } from "@/lib/utils";
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
 
@@ -38,6 +41,7 @@ type Props = {
     createdAt: Date;
   }[];
   userImageUrl?: string | null;
+  supportTierSent?: SupportTierLevel;
   settlement: Awaited<
     ReturnType<typeof import("@/actions/settlement-register").getCreatorSettlementStatus>
   >;
@@ -60,6 +64,7 @@ export function WalletHub({
   minTopupMoco,
   lowBalanceNotice,
   userImageUrl,
+  supportTierSent = "SEED",
   settlement,
 }: Props) {
   const router = useRouter();
@@ -148,6 +153,16 @@ export function WalletHub({
             {row.label}
           </button>
         ))}
+      </div>
+
+      <div className="flex items-center gap-2 px-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {t("settings.supportTier")}
+        </p>
+        <OreTierBadgeLink
+          tier={resolveProfileDisplayTier(supportTierSent, settlement.earnedMocoTier ?? "SEED")}
+          size="md"
+        />
       </div>
 
       {tab === "wallet" ? (
