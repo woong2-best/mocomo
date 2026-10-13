@@ -112,5 +112,6 @@ export type RootStackParamList = {
   Settings: undefined;
   LegalPolicies: undefined;
   Wallet: { initialTab?: "wallet" | "earnings" | "transfer" | "tier"; returnScreen?: "UsedCreate" | "AuctionCreate" | "MarketplaceList" | "AuctionList" | "MarketSellItem" } | undefined;
+  FortuneCookies: { openLatest?: boolean } | undefined;
   Support: undefined;
 };

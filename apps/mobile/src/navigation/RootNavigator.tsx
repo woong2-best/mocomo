@@ -418,6 +418,12 @@ export function RootNavigator() {
               getComponent={() => require("@/features/wallet/WalletScreen").WalletScreen}
             />
             <Stack.Screen
+              name="FortuneCookies"
+              getComponent={() =>
+                require("@/features/fortune-cookie/FortuneCookiesScreen").FortuneCookiesScreen
+              }
+            />
+            <Stack.Screen
               name="Login"
               component={LoginScreen}
               options={{

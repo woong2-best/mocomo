@@ -5,12 +5,12 @@ export const MOCO_PURCHASE_TERMS_BLOCKS: LegalBlock[] = [
   { type: "h2", text: "P.1 Scope" },
   {
     type: "p",
-    text: 'These terms apply to every purchase of MOCO on the Service, including purchases of the MOCO and Contribution Tower package described below (each, a "Purchase"). They supplement the Terms of Service. If these terms conflict with the Terms of Service on a matter relating to Purchases, these terms control.',
+    text: 'These terms apply to every purchase of MOCO on the Service, including purchases of the MOCO and Fortune Cookie package described below (each, a "Purchase"). They supplement the Terms of Service. If these terms conflict with the Terms of Service on a matter relating to Purchases, these terms control.',
   },
   { type: "h2", text: "P.2 Definitions" },
   {
     type: "p",
-    text: '"MOCO" means the virtual item made available on the Service for use within the Service. "Contribution Tower" means the real-time display on the Service that records user contributions. "Package" means the bundled product sold in each Purchase, as described in P.4. "Wallet" means the account balance in which a user\'s MOCO is held.',
+    text: '"MOCO" means the virtual item made available on the Service for use within the Service. "Fortune Cookie" means the digital fortune that is created and automatically opened immediately after a successful Purchase, then stored permanently in your collection. "Package" means the bundled product sold in each Purchase, as described in P.4. "Wallet" means the account balance in which a user\'s MOCO is held.',
   },
   { type: "h2", text: "P.3 Nature of MOCO" },
   {
@@ -20,7 +20,7 @@ export const MOCO_PURCHASE_TERMS_BLOCKS: LegalBlock[] = [
   { type: "h2", text: "P.4 The Package" },
   {
     type: "p",
-    text: "Every Purchase is a Package that combines (a) a credit of MOCO to your Wallet and (b) a real-time Contribution Tower registration service. When your payment is successfully completed, your MOCO is credited and your user information is recorded on the Contribution Tower in real time. The Package is therefore delivered in full at the moment of payment, regardless of whether or when you use the MOCO. The price of the Package is not separable into a MOCO portion and a Contribution Tower portion.",
+    text: "Every Purchase is a Package that combines (a) a credit of MOCO to your Wallet and (b) a Fortune Cookie that is automatically opened the moment payment is completed. When your payment is successfully completed, your MOCO is credited and your Fortune Cookie (nickname, unique serial number, and fortune) is delivered, opened, and permanently saved to your collection. The Package is therefore delivered in full at the moment of payment, regardless of whether or when you use the MOCO. The price of the Package is not separable into a MOCO portion and a Fortune Cookie portion.",
   },
   { type: "h2", text: "P.5 Eligibility and Authorization" },
   {
@@ -39,17 +39,17 @@ export const MOCO_PURCHASE_TERMS_BLOCKS: LegalBlock[] = [
   { type: "h2", text: "P.7 Immediate Delivery and Acknowledgment" },
   {
     type: "p",
-    text: "Before completing a Purchase, you must accept these terms at checkout. By checking the box and completing payment, you (a) agree to these terms, (b) request immediate delivery of the Package, (c) acknowledge that the Package is delivered in full at the time of payment, and (d) agree that you have no right to cancel the Purchase after payment, except as stated in P.9.",
+    text: "Before completing a Purchase, you must accept these terms at checkout, including the required consent that the Fortune Cookie opens automatically and that withdrawal of offer (refund) is not available. By checking the box and completing payment, you (a) agree to these terms, (b) request immediate delivery and automatic opening of the Fortune Cookie, (c) acknowledge that the Package is delivered in full and use has begun at the time of payment, and (d) agree that you have no right to cancel the Purchase after payment, except as stated in P.9.",
   },
   { type: "h2", text: "P.8 All Sales Final" },
   {
     type: "p",
-    text: "Except as stated in P.9, all Purchases are final and non-refundable. This includes, without limitation: change of mind or purchase made by mistake after confirmation; unused MOCO; dissatisfaction with your position, ranking, or visibility on the Contribution Tower; Purchases made without your authorization, including through theft or misuse of a payment method or compromise of your account; MOCO that has been sent in a completed Transfer (see Section X) or used for support or other features; and MOCO that is frozen, cancelled, or forfeited because your account was suspended or terminated for a violation. We do not provide partial refunds, prorated refunds, or substitute credits. The fact that MOCO does not expire does not create a right to a refund.",
+    text: "Except as stated in P.9, all Purchases are final and non-refundable. This includes, without limitation: change of mind or purchase made by mistake after confirmation; unused MOCO; dissatisfaction with the Fortune Cookie text, serial number, or animation; Purchases made without your authorization, including through theft or misuse of a payment method or compromise of your account; MOCO that has been sent in a completed Transfer (see Section X) or used for support or other features; and MOCO that is frozen, cancelled, or forfeited because your account was suspended or terminated for a violation. We do not provide partial refunds, prorated refunds, or substitute credits. The fact that MOCO does not expire does not create a right to a refund.",
   },
   { type: "h2", text: "P.9 Exceptions" },
   {
     type: "p",
-    text: "We will correct a Purchase or refund the payment only in the following cases: (a) you were charged twice or charged an amount different from the amount shown at checkout; or (b) due to a technical failure on our side, your MOCO was not credited or your Contribution Tower registration was not recorded, and we cannot fix it. Requests must be sent to support@mocomo.net within 30 days of the Purchase. We may ask for information to verify the request. Approved refunds are returned to the original payment method through Stripe. A refund may require us to remove the related MOCO and Contribution Tower entry. If the MOCO has already been used or sent, we may deny the refund or deduct its value from the refund amount. No other refunds are provided.",
+    text: "We will correct a Purchase or refund the payment only in the following cases: (a) you were charged twice or charged an amount different from the amount shown at checkout; or (b) due to a technical failure on our side, your MOCO was not credited or your Fortune Cookie was not created, and we cannot fix it. Requests must be sent to support@mocomo.net within 30 days of the Purchase. We may ask for information to verify the request. Approved refunds are returned to the original payment method through Stripe. A refund may require us to remove the related MOCO and Fortune Cookie. If the MOCO has already been used or sent, we may deny the refund or deduct its value from the refund amount. No other refunds are provided.",
   },
   { type: "h2", text: "P.10 Unauthorized Use, Account Compromise, and Minors" },
   {
@@ -79,17 +79,17 @@ export const MOCO_PURCHASE_TERMS_BLOCKS: LegalBlock[] = [
   { type: "h2", text: "P.15 Web-Only Purchases" },
   {
     type: "p",
-    text: "MOCO can be purchased only on the Service's website. In-app purchases are not offered in any mobile app, and purchases are not made through any third-party app store or platform. Any mobile app may be used to access features that use MOCO already in your Wallet, but it does not provide a way to purchase MOCO.",
+    text: "MOCO can be purchased only on the Service's website. In-app purchases are not offered in any mobile app, and purchases are not made through any third-party app store or platform. Any mobile app may be used to access features that use MOCO already in your Wallet and to view Fortune Cookies already delivered, but it does not provide a way to purchase MOCO.",
   },
   { type: "h2", text: "P.16 Changes" },
   {
     type: "p",
-    text: "We may change Package contents, Contribution Tower features, and prices from time to time. Changes apply to future Purchases and do not remove MOCO already credited to your Wallet. We may update these terms and will post the updated version on the Service. Continued Purchases after an update mean you accept it.",
+    text: "We may change Package contents, Fortune Cookie features, and prices from time to time. Changes apply to future Purchases and do not remove MOCO already credited to your Wallet or Fortune Cookies already delivered. We may update these terms and will post the updated version on the Service. Continued Purchases after an update mean you accept it.",
   },
   { type: "h2", text: "P.17 Disclaimer and Limitation of Liability" },
   {
     type: "p",
-    text: 'To the maximum extent permitted by law, the Contribution Tower is provided "as is," and we do not guarantee any particular position, ranking, duration, or visibility. To the maximum extent permitted by law, our total liability for any claim relating to a Purchase is limited to the amount you paid for that Purchase. Nothing in these terms limits liability that cannot be limited under applicable law.',
+    text: 'To the maximum extent permitted by law, Fortune Cookies are provided "as is," and we do not guarantee any particular fortune text, theme, serial number sequence, or animation. To the maximum extent permitted by law, our total liability for any claim relating to a Purchase is limited to the amount you paid for that Purchase. Nothing in these terms limits liability that cannot be limited under applicable law.',
   },
   { type: "h2", text: "P.18 Governing Law and Disputes" },
   {
@@ -102,4 +102,3 @@ export const MOCO_PURCHASE_TERMS_BLOCKS: LegalBlock[] = [
     text: "For questions or requests about Purchases, contact MoCoMo LLC at support@mocomo.net.",
   },
 ];
-

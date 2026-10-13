@@ -145,6 +145,14 @@ export function WalletScreen() {
         ) : tab === "wallet" ? (
             <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
               <GemBalancePanel />
+              <Pressable
+                onPress={() => navigation.navigate("FortuneCookies")}
+                style={[styles.cookieLink, { backgroundColor: colors.surfaceRaised, borderColor: colors.hairline }]}
+              >
+                <Ionicons name="sparkles-outline" size={18} color={colors.cobalt} />
+                <Text style={[styles.cookieLinkText, { color: colors.text }]}>{t("m.cookie.title")}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </Pressable>
             </ScrollView>
         ) : tab === "transfer" ? (
             <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
@@ -393,6 +401,22 @@ function createThemedStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1 },
     listBody: { paddingBottom: 40 },
+    cookieLink: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    cookieLinkText: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: "800",
+    },
     headerBar: {
       flexDirection: "row",
       alignItems: "center",

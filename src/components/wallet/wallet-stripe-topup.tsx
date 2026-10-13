@@ -130,8 +130,8 @@ export function WalletStripeTopup({ purchasedMoco, minTopupMoco, lowBalanceNotic
       />
       <p className="text-[11px] leading-relaxed text-muted-foreground">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
       <p className="text-[11px]">
-        <a href="/contribution-tower" className="font-bold text-[#1B3A6B] underline dark:text-primary">
-          {t("wallet.viewContributionTower")}
+        <a href="/fortune-cookies" className="font-bold text-[#1B3A6B] underline dark:text-primary">
+          {t("wallet.viewFortuneCookies")}
         </a>
       </p>
 

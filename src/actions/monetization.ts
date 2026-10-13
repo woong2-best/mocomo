@@ -57,12 +57,22 @@ export async function confirmStripeCheckout(sessionId: string) {
     revalidatePath("/studio/library");
     revalidatePath("/studio/market");
   }
+  if (result.type === "GEM_TOPUP") {
+    revalidatePath("/fortune-cookies");
+  }
+
+  let fortuneCookie = null;
+  if (result.type === "GEM_TOPUP") {
+    const { getLatestFortuneCookieForUser } = await import("@/lib/fortune-cookie/service");
+    fortuneCookie = await getLatestFortuneCookieForUser(user.id);
+  }
 
   return {
     success: true,
     type: result.type,
     alreadyPaid: result.alreadyPaid,
     redirectPath: result.redirectPath,
+    fortuneCookie,
   };
 }
 

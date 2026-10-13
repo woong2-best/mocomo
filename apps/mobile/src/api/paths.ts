@@ -106,6 +106,7 @@ export const MobileApi = {
   walletTransfer: "/api/mobile/wallet/transfer",
   walletEarnings: "/api/mobile/wallet/earnings",
   gems: "/api/mobile/gems",
+  fortuneCookies: "/api/mobile/fortune-cookies",
   letterDonations: "/api/mobile/letter-donations",
   tip: (id: string) => `/api/mobile/tips/${id}`,
   tipOpen: (id: string) => `/api/mobile/tips/${id}/open`,

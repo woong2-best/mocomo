@@ -1,9 +1,18 @@
 import Link from "next/link";
+import { Noto_Serif_KR } from "next/font/google";
 import { confirmStripeCheckout } from "@/actions/monetization";
 import { errorText } from "@/lib/i18n/error-text";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { FortuneCookieReveal } from "@/components/fortune-cookie/fortune-cookie-reveal";
+import type { FortuneCookieDto } from "@/lib/fortune-cookie/service";
+
+const notoSerifKr = Noto_Serif_KR({
+  weight: ["500", "600"],
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export default async function PaymentSuccessPage({
   searchParams,
@@ -26,6 +35,14 @@ export default async function PaymentSuccessPage({
 
   if ("error" in result && result.error) {
     return <Result ok={false} title="Payment failed" message={errorText(result.error)} />;
+  }
+
+  if (result.type === "GEM_TOPUP" && result.fortuneCookie) {
+    return (
+      <main className={`min-h-[80vh] bg-[#f6f3ec] ${notoSerifKr.className}`}>
+        <FortuneCookieReveal cookie={result.fortuneCookie as FortuneCookieDto} />
+      </main>
+    );
   }
 
   const labels: Record<string, string> = {

@@ -555,7 +555,7 @@ export async function fulfillPaymentIntent(
     });
     if ("error" in r && r.error) return { ok: false, error: r.error };
     revalidatePath("/wallet");
-    revalidatePath("/contribution-tower");
+    revalidatePath("/fortune-cookies");
   }
 
   if (intent.type === "CALL_BOOKING") {

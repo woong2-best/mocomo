@@ -589,7 +589,7 @@ model User {
   payoutsProcessed PayoutRequest[] @relation("PayoutProcessor")
 
   gemPurchases                 GemPurchase[]              @relation("GemPurchaseFan")
-  mocoContributionTowerBlocks  MocoContributionTowerBlock[]
+  mocoFortuneCookies           MocoFortuneCookie[]
   mocoTopupTransactions        MocoTopupTransaction[]
   creatorBalance               CreatorBalance?
   giftEventsSent               GiftEvent[]                @relation("GiftEventFan")
@@ -2342,31 +2342,30 @@ model GemPurchase {
 
   fan         User                  @relation("GemPurchaseFan", fields: [fanId], references: [id], onDelete: Cascade)
   allocations GiftEventAllocation[]
-  contributionTowerBlock MocoContributionTowerBlock?
+  fortuneCookie MocoFortuneCookie?
 
   @@index([fanId, createdAt])
   @@index([fanId, remainingGems])
 }
 
-/** MOCO 충전 1건 = 기여 탑 블록 1개 (결제 완료 즉시 등록) */
-model MocoContributionTowerBlock {
-  id                    String    @id @default(cuid())
-  stackOrder            Int       @unique @default(autoincrement())
+/** MOCO 충전 1건 = 포춘쿠키 1개 (결제 완료 즉시 자동 개봉) */
+model MocoFortuneCookie {
+  id                    String   @id @default(cuid())
+  serialNo              Int      @unique @default(autoincrement())
   userId                String
-  gemPurchaseId         String    @unique
-  stripePaymentIntentId String    @unique
+  gemPurchaseId         String   @unique
+  stripePaymentIntentId String   @unique
+  nickname              String
+  fortuneText           String
+  fortuneIndex          Int
+  theme                 String
   mocoQuantity          Int
-  username              String
-  displayName           String?
-  profileImageUrl       String?
-  visible               Boolean   @default(true)
-  removedAt             DateTime?
-  createdAt             DateTime  @default(now())
+  openedAt              DateTime @default(now())
+  createdAt             DateTime @default(now())
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   gemPurchase GemPurchase @relation(fields: [gemPurchaseId], references: [id], onDelete: Cascade)
 
-  @@index([visible, stackOrder])
   @@index([userId, createdAt])
 }
 

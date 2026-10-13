@@ -538,10 +538,10 @@ export function GemBalancePanel({
           />
           <p className="text-[10px] leading-relaxed text-slate-500">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
           <a
-            href="/contribution-tower"
+            href="/fortune-cookies"
             className="block text-center text-[11px] font-bold text-emerald-400/90 underline"
           >
-            {t("wallet.viewContributionTower")}
+            {t("wallet.viewFortuneCookies")}
           </a>
 
           {purchases.length > 0 ? (

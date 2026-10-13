@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { PRICE_PER_MOCO_USD, quoteGemTopup } from "@/lib/gems/constants";
 import { syncUserGemBalance } from "@/lib/gems/balance";
 import { recordMocoTopupTransaction } from "@/lib/moco/topup-ledger";
-import { registerContributionTowerBlock } from "@/lib/contribution-tower/service";
+import { registerFortuneCookie } from "@/lib/fortune-cookie/service";
 
 export async function fulfillGemTopup(input: {
   fanId: string;
@@ -30,7 +30,7 @@ export async function fulfillGemTopup(input: {
   });
   if (existing) {
     await db.$transaction(async (tx) => {
-      await registerContributionTowerBlock(tx, {
+      await registerFortuneCookie(tx, {
         userId: input.fanId,
         gemPurchaseId: existing.id,
         stripePaymentIntentId: input.stripePaymentIntentId,
@@ -38,7 +38,8 @@ export async function fulfillGemTopup(input: {
       });
     });
     await syncUserGemBalance(input.fanId);
-    revalidatePath("/contribution-tower");
+    revalidatePath("/fortune-cookies");
+    revalidatePath("/wallet");
     return { success: true as const, alreadyFulfilled: true, gems: existing.gems };
   }
 
@@ -62,7 +63,7 @@ export async function fulfillGemTopup(input: {
       stripePaymentRef: input.stripePaymentIntentId,
       grossAmountCents: input.amountUsdCents,
     });
-    await registerContributionTowerBlock(tx, {
+    await registerFortuneCookie(tx, {
       userId: input.fanId,
       gemPurchaseId: purchase.id,
       stripePaymentIntentId: input.stripePaymentIntentId,
@@ -70,7 +71,8 @@ export async function fulfillGemTopup(input: {
     });
   });
 
-  revalidatePath("/contribution-tower");
+  revalidatePath("/fortune-cookies");
+  revalidatePath("/wallet");
 
   const balance = await syncUserGemBalance(input.fanId);
   return { success: true as const, gems: quote.moco, balance };

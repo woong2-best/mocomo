@@ -91,6 +91,8 @@ const nextConfig: NextConfig = {
     // MARKET is the Stripe Connect marketplace (was wrongly sent to /support).
     return [
       { source: "/feed", destination: "/", permanent: true },
+      { source: "/contribution-tower", destination: "/fortune-cookies", permanent: true },
+      { source: "/api/contribution-tower", destination: "/api/fortune-cookies", permanent: true },
       { source: "/events", destination: "/events/new", permanent: false },
       { source: "/market/storage", destination: "/support?tab=storage", permanent: true },
       { source: "/market/received", destination: "/support?tab=gifts", permanent: true },

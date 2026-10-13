@@ -1,0 +1,158 @@
+.stage {
+  --fg: #3a2a18;
+  --paper: #fff8ea;
+  --paper-edge: #ead9b4;
+  --serif: "Noto Serif KR", "Song Myung", "Times New Roman", serif;
+  position: relative;
+  width: min(88vw, 380px);
+  aspect-ratio: 1;
+  color: var(--fg);
+  font-family: var(--serif);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stage svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
+}
+
+.half {
+  transition: transform 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.hl {
+  transform-origin: 152px 252px;
+}
+
+.hr {
+  transform-origin: 152px 252px;
+}
+
+.brk {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.open .brk {
+  opacity: 1;
+}
+
+.open .hl {
+  transform: rotate(-6deg);
+}
+
+.open .hr {
+  transform: rotate(6deg);
+}
+
+.shake {
+  animation: shake 0.38s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(-4deg) scale(1.02);
+  }
+  40% {
+    transform: rotate(4deg) scale(1.03);
+  }
+  60% {
+    transform: rotate(-3deg) scale(1.02);
+  }
+  80% {
+    transform: rotate(2deg);
+  }
+}
+
+.paper {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: min(92vw, 280px);
+  min-height: 4.6rem;
+  transform: translate(-50%, -50%) scaleX(0);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 2px;
+  box-shadow: 0 6px 16px rgb(58 42 24 / 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  padding: 0.7rem 0.85rem;
+  opacity: 0;
+  pointer-events: none;
+  text-align: center;
+}
+
+.open .paper {
+  animation: slip 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.35s forwards;
+}
+
+.nickname {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 0;
+}
+
+.serial {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #8a5516;
+  opacity: 0;
+}
+
+.fortune {
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.35;
+  opacity: 0;
+}
+
+.open .nickname,
+.open .serial,
+.open .fortune {
+  animation: ink 0.35s ease 0.8s forwards;
+}
+
+@keyframes slip {
+  to {
+    transform: translate(-50%, -50%) scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ink {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .half {
+    transition: none;
+  }
+  .shake {
+    animation: none;
+  }
+  .open .paper {
+    animation: none;
+    transform: translate(-50%, -50%) scaleX(1);
+    opacity: 1;
+  }
+  .open .nickname,
+  .open .serial,
+  .open .fortune {
+    animation: none;
+    opacity: 1;
+  }
+}
