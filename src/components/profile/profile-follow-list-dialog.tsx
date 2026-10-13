@@ -65,7 +65,10 @@ export function ProfileFollowListDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[78vh] w-[min(100%-2rem,28rem)] flex-col gap-0 overflow-hidden bg-background p-0 sm:max-w-md">
+      <DialogContent
+        layer="drawer"
+        className="flex max-h-[78vh] w-[min(100%-2rem,28rem)] flex-col gap-0 overflow-hidden bg-background p-0 sm:max-w-md"
+      >
         <DialogHeader className="border-b border-border/60 px-4 py-3.5 pr-12 text-left">
           <DialogTitle className="text-[18px] font-extrabold text-foreground">{title}</DialogTitle>
         </DialogHeader>

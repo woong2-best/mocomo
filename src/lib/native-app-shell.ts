@@ -38,7 +38,6 @@ export function shouldHideNativeComposeFab(pathname: string): boolean {
 }
 
 export function nativeAppMainPadding(pathname: string): string {
-  if (shouldHideNativeAppNav(pathname)) return "pb-safe";
-  if (shouldHideNativeComposeFab(pathname)) return "pb-native-nav";
+  if (shouldHideNativeComposeFab(pathname)) return "pb-safe";
   return "pb-native-fab";
 }

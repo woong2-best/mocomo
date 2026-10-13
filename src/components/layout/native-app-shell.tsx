@@ -4,14 +4,12 @@ import { memo, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { NativeAppHeader } from "@/components/layout/native-app-header";
-import { NativeAppNav } from "@/components/layout/native-app-nav";
 import { NativeAppComposeFab } from "@/components/layout/native-app-compose-fab";
 import { OfflineBanner } from "@/components/layout/offline-banner";
 import { SuspendedAccountBanner } from "@/components/account/suspended-account-banner";
 import {
   isFastHubPath,
   nativeAppMainPadding,
-  shouldHideNativeAppNav,
   shouldHideNativeAppHeader,
 } from "@/lib/native-app-shell";
 import { REELS_PATH } from "@/lib/site-routes";
@@ -32,7 +30,6 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
   const reduced = usePrefersReducedMotion();
   const isAuthRoute = pathname.startsWith("/auth");
   const isLegalRoute = pathname.startsWith("/legal");
-  const hideNav = shouldHideNativeAppNav(pathname);
   const hideHeader = shouldHideNativeAppHeader(pathname);
   const mainPb = nativeAppMainPadding(pathname);
   const isVoiceRoom = pathname.startsWith("/voice/") && pathname !== "/voice/new";
@@ -112,7 +109,6 @@ function NativeAppShellInner({ children }: { children: React.ReactNode }) {
           {pageMotion}
         </div>
       </main>
-      {!hideNav && <NativeAppNav />}
       <NativeAppComposeFab />
     </>
   );

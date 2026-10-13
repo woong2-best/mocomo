@@ -1,12 +1,12 @@
-/** 모바일·태블릿 앱 셸 — 높이·패딩·하단 네비 표시 규칙
+/** 모바일·태블릿 앱 셸 — 높이·패딩 규칙
  *  lg(1024px) 이상: 좌측 사이드바 + 우측 패널 (PC·노트북)
- *  lg 미만: 상단 로고+메뉴 버튼 + 하단 탭 (스마트폰·태블릿)
+ *  lg 미만: 앱과 동일 — 상단 메뉴 드로어, 하단 탭 없음
  */
 
 import { REELS_PATH } from "@/lib/site-routes";
 
 export const HEADER_REM = "3.5rem";
-export const MOBILE_NAV_REM = "calc(92px + max(env(safe-area-inset-bottom, 0px), 8px))";
+export const MOBILE_NAV_REM = "max(env(safe-area-inset-bottom, 0px), 8px)";
 
 const MARKET_SECTION_PATHS = new Set([
   "new",
@@ -41,10 +41,10 @@ export function shouldHideMobileNav(pathname: string): boolean {
   return false;
 }
 
-/** 메인 스크롤 영역 하단 패딩 */
+/** 메인 스크롤 영역 하단 패딩 — 하단 탭 제거 후 safe area만 */
 export function mainScrollPaddingClass(pathname: string): string {
-  if (shouldHideMobileNav(pathname)) return "pb-safe lg:pb-0";
-  return "pb-nav lg:pb-0";
+  void pathname;
+  return "pb-safe lg:pb-0";
 }
 
 /** 중고거래 섹션 헤더(Auction·글쓰기 버튼) 숨김 */

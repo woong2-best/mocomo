@@ -11,11 +11,12 @@ const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
 
 /** default: 일반 모달 · stack: 글쓰기 시트(z~61) 위 — 카메라·자르기·Video 편집 */
-export type DialogLayer = "default" | "stack";
+export type DialogLayer = "default" | "stack" | "drawer";
 
 const dialogLayerZ = {
   default: { overlay: "z-50", content: "z-50" },
   stack: { overlay: "z-[79]", content: "z-[80]" },
+  drawer: { overlay: "z-[420]", content: "z-[420]" },
 } as const;
 
 const DialogOverlay = React.forwardRef<

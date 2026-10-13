@@ -5,14 +5,12 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { MobileNav } from "@/components/layout/mobile-nav";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { SuspendedAccountBanner } from "@/components/account/suspended-account-banner";
 import { FolkArtStage } from "@/components/brand/folk-decor";
 import {
   isEventsMapImmersivePath,
   mainScrollPaddingClass,
-  shouldHideMobileNav,
 } from "@/lib/mobile-shell";
 import { isMobileHubChromePath } from "@/lib/floating-tab-nav";
 import { shouldShowRightPanel } from "@/lib/sidebar-panel-paths";
@@ -40,7 +38,6 @@ function AppShellInner({
   const isReelsImmersive =
     pathname === REELS_PATH || pathname.startsWith(`${REELS_PATH}/`);
   const isEventsMapImmersive = isEventsMapImmersivePath(pathname);
-  const hideMobileNav = shouldHideMobileNav(pathname);
   const isHubChrome = isMobileHubChromePath(pathname);
   const mainPb = mainScrollPaddingClass(pathname);
   const showRightPanel = shouldShowRightPanel(pathname);
@@ -171,7 +168,6 @@ function AppShellInner({
         </main>
         {showRightPanel ? rightPanel : null}
       </div>
-      {!hideMobileNav && <MobileNav />}
       {!isMessagesRoute && !isCommunityServerRoute && !isEventsMapImmersive && (
         <footer
           id="mocomo-legal-footer"

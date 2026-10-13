@@ -1,16 +1,12 @@
 "use client";
 
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, Send } from "lucide-react";
 import { useAuthReady } from "@/hooks/use-auth-ready";
 import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
 import { HeaderSearch } from "@/components/search/header-search";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
@@ -28,14 +24,12 @@ function SearchPill() {
   );
 }
 
-/** RN FeedScreen header strip — menu · search · bell · avatar */
+/** RN FeedScreen header strip — menu · search · bell · messages */
 export function MobileHubHeader({ className }: { className?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { session, pending, authenticated } = useAuthReady();
   const router = useRouter();
   const { t } = useLocale();
-  const username = session?.user?.username;
-  const displayName = session?.user?.name || username || "?";
 
   return (
     <>
@@ -71,16 +65,13 @@ export function MobileHubHeader({ className }: { className?: string }) {
             aria-busy="true"
             aria-label="Loading session"
           />
-        ) : authenticated && username ? (
+        ) : authenticated ? (
           <Link
-            href={`/u/${username}`}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            aria-label={t("common.myProfile")}
+            href="/messages"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted/60"
+            aria-label={t("nav.messages")}
           >
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={session?.user?.image ?? undefined} />
-              <AvatarFallback>{displayName[0]}</AvatarFallback>
-            </Avatar>
+            <Send className="h-[22px] w-[22px]" strokeWidth={2} />
           </Link>
         ) : (
           <button

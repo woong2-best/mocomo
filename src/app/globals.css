@@ -10,8 +10,8 @@
     /* Right rail (ad + map) — was w-56 / xl:w-60 before full-bleed 20rem */
     --right-panel-w: 14rem;
     --profile-compact-h: 3.25rem;
-    /* Floating glass pill — parity with apps/mobile tab-layout.ts (68 + 10 + 14 + safe) */
-    --mobile-nav-h: calc(92px + max(env(safe-area-inset-bottom, 0px), 8px));
+    /* Bottom tab removed — keep token for FABs / leftover pb-nav (safe area only) */
+    --mobile-nav-h: max(env(safe-area-inset-bottom, 0px), 8px);
 
     --folk-cobalt: 224 68% 33%;
     --folk-terracotta: 15 65% 47%;

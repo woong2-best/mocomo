@@ -88,10 +88,10 @@ export function AccountSwitcherDialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[260] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[420] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-x-0 bottom-0 z-[261] mx-auto w-full max-w-lg rounded-t-2xl border border-border bg-background shadow-xl",
+            "fixed inset-x-0 bottom-0 z-[421] mx-auto w-full max-w-lg rounded-t-2xl border border-border bg-background shadow-xl",
             "pb-safe max-h-[85dvh] overflow-y-auto",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom duration-200"
           )}
