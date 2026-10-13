@@ -86,7 +86,7 @@ export type MarketplaceListQuery = {
   limited?: string;
   trade?: string;
   mode?: "auction" | "fixed";
-  lane?: "all" | "recommend" | "purchased" | "favorites" | "live-auctions" | "disputes";
+  lane?: "all" | "recommend" | "purchased" | "favorites" | "live-auctions" | "my-bids" | "disputes";
   ids?: string[];
   mine?: boolean;
   take?: number;
@@ -330,6 +330,30 @@ export async function submitUsedListingReport(params: {
   });
 }
 
+export type AuctionBidRoom = {
+  listing: {
+    id: string;
+    title: string;
+    image: string | null;
+    price: number;
+    currency: string;
+    currentBidAmount: number | null;
+    bidCount: number;
+    minNextBid: number | null;
+    auctionEndsAt: string | null;
+    auctionLive: boolean;
+    isOwner: boolean;
+    isLeader: boolean;
+    sellerName: string;
+    messageRoomId: string | null;
+  };
+  bids: { id: string; amount: number; createdAt: string; name: string; mine: boolean }[];
+};
+
+export async function fetchAuctionBidRoom(id: string) {
+  return apiRequest<AuctionBidRoom>(`${MobileApi.marketplace}/${id}/bids`, { auth: true });
+}
+
 export async function placeMarketplaceBid(
   id: string,
   amount: number,
@@ -342,6 +366,7 @@ export async function placeMarketplaceBid(
     error?: string;
     needsBidHold?: boolean;
     needsAdultVerify?: boolean;
+    chatRoomId?: string | null;
   }>(`${MobileApi.marketplace}/${id}/bid`, {
     method: "POST",
     body: {

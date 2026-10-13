@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
   type ListRenderItem,
@@ -24,9 +23,7 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  confirmAuctionTrade,
   fetchMarketplaceDetail,
-  placeMarketplaceBid,
   startMarketplaceTradeChat,
   toggleMarketplaceFavorite,
   toggleMarketplaceStar,
@@ -35,8 +32,6 @@ import {
   UsedListingOverflowMenu,
   type MenuAnchor,
 } from "@/features/marketplace/UsedListingOverflowMenu";
-import { fetchAuctionDepositStatus } from "@/api/auction-deposit";
-import { UsedAuctionBidHoldSheet } from "@/payments/UsedAuctionBidHoldSheet";
 import { ApiError } from "@/api/client";
 import { UsedMeetMapCard } from "@/features/marketplace/UsedMeetMapCard";
 import {
@@ -48,10 +43,7 @@ import { USED_AUCTION_RETIRED } from "@/lib/retired-product-features";
 import {
   displayUsedRegion,
   formatUsedPrice,
-  parseListingPriceInput,
-  USED_CURRENCY_META,
   usedListingMediaItems,
-  usedPriceInputValue,
 } from "@/features/marketplace/used-catalog";
 import { rememberViewedListing } from "@/features/marketplace/market-memory";
 import { FeedImageLightbox } from "@/features/feed/FeedImageLightbox";
@@ -75,35 +67,6 @@ function apiErrMessage(err: unknown, fallback: string) {
     return (err.body as { error: string }).error;
   }
   return fallback;
-}
-
-function auctionQuickBids(item: {
-  minNextBid: number | null;
-  bidIncrement: number | null;
-  currency?: string | null;
-}) {
-  const base = item.minNextBid ?? 0;
-  if (base <= 0) return [];
-  const inc =
-    item.bidIncrement && item.bidIncrement > 0
-      ? item.bidIncrement
-      : (item.currency ?? "krw") === "usd"
-        ? 100
-        : 1000;
-  return [0, 1, 2, 4]
-    .map((n) => base + n * inc)
-    .filter((value, index, all) => all.indexOf(value) === index);
-}
-
-function mineTradeConfirmed(item: {
-  isOwner?: boolean;
-  isWinningBidder?: boolean;
-  sellerTradeConfirmed?: boolean;
-  buyerTradeConfirmed?: boolean;
-}) {
-  if (item.isOwner) return !!item.sellerTradeConfirmed;
-  if (item.isWinningBidder) return !!item.buyerTradeConfirmed;
-  return false;
 }
 
 function HeroVideoSlide({ url, width, active }: { url: string; width: number; active: boolean }) {
@@ -134,10 +97,7 @@ export function MarketplaceDetailScreen() {
   const queryClient = useQueryClient();
   const { status: authStatus } = useAuth();
   const screenWidth = Dimensions.get("window").width;
-  const [bidText, setBidText] = useState("");
-  const bidPrefilled = useRef(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [holdSheet, setHoldSheet] = useState<{ amount: number } | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -155,7 +115,6 @@ export function MarketplaceDetailScreen() {
     Platform.OS === "ios"
       ? keyboardHeight
       : Math.max(0, keyboardHeight - resizedBy);
-  const keyboardOpen = keyboardLift > 0;
 
   const query = useQuery({
     queryKey: ["mobile-marketplace", route.params.id],
@@ -167,17 +126,6 @@ export function MarketplaceDetailScreen() {
     if (route.params.id) void rememberViewedListing(route.params.id);
   }, [route.params.id]);
 
-  useEffect(() => {
-    if (bidPrefilled.current || item?.minNextBid == null) return;
-    bidPrefilled.current = true;
-    setBidText(usedPriceInputValue(item.minNextBid, item.currency));
-  }, [item?.minNextBid, item?.currency]);
-
-  const depositQuery = useQuery({
-    queryKey: ["mobile-auction-deposit", route.params.id],
-    queryFn: () => fetchAuctionDepositStatus(route.params.id),
-    enabled: !!item?.auctionLive && !item?.isOwner,
-  });
   const nsfwGate = !!item?.isNsfw && !item?.isOwner;
   const mediaItems = useMemo(
     () => usedListingMediaItems(item?.images ?? []),
@@ -265,81 +213,6 @@ export function MarketplaceDetailScreen() {
     },
     onError: (err) => setMsg(apiErrMessage(err, t("m.common.could_not_open_chat"))),
   });
-
-  const tradeComplete = useMutation({
-    mutationFn: () => confirmAuctionTrade(route.params.id),
-    onSuccess: async (res) => {
-      setMsg(
-        res.completed
-          ? t("m.marketplace.trade_complete_your_2_moco_deposit")
-          : t("m.marketplace.you_marked_the_trade_complete_when")
-      );
-      await invalidate();
-    },
-    onError: (err) => setMsg(apiErrMessage(err, t("m.marketplace.could_not_confirm_trade"))),
-  });
-
-  const bid = useMutation({
-    mutationFn: (amount: number) =>
-      placeMarketplaceBid(route.params.id, amount, { termsAccepted: true }),
-    onSuccess: async (res) => {
-      if (res.error) {
-        if (res.needsBidHold) {
-          setHoldSheet({ amount: parseListingPriceInput(bidText, item?.currency ?? "krw") });
-          return;
-        }
-        setMsg(res.error);
-        return;
-      }
-      if (!res.amount) {
-        setMsg(t("m.common.bid_failed"));
-        return;
-      }
-      setMsg(`${t("m.marketplace.bid_placed")} · ${formatUsedPrice(res.amount, item?.currency, t)}`);
-      setBidText("");
-      await invalidate();
-    },
-    onError: (err) => {
-      const body =
-        err instanceof ApiError &&
-        err.body &&
-        typeof err.body === "object" &&
-        "needsBidHold" in err.body &&
-        (err.body as { needsBidHold?: boolean }).needsBidHold;
-      if (body) {
-        setHoldSheet({ amount: parseListingPriceInput(bidText, item?.currency ?? "krw") });
-        return;
-      }
-      setMsg(apiErrMessage(err, t("m.common.bid_failed")));
-    },
-  });
-
-  const onBid = async () => {
-    if (USED_AUCTION_RETIRED) {
-      showIslandError(t("m.marketplace.auctions_ended"), t("m.marketplace.auction_retired_msg"));
-      return;
-    }
-    try {
-      const deposit =
-        depositQuery.data ?? (await fetchAuctionDepositStatus(route.params.id));
-      if (!deposit.canParticipate) {
-        showIslandError(t("m.marketplace.cannot_bid"), t("m.marketplace.need_min_moco_to_bid"));
-        return;
-      }
-    } catch {
-      showIslandError(
-        t("m.marketplace.cannot_bid"),
-        t("m.marketplace.could_not_verify_wallet_balance_try")
-      );
-      return;
-    }
-    const amount = parseListingPriceInput(bidText, item?.currency ?? "krw");
-    if (!Number.isFinite(amount) || amount <= 0) {
-      showIslandError(t("m.marketplace.bid_amount"), t("m.marketplace.enter_a_valid_amount"));
-      return;
-    }
-    bid.mutate(amount);
-  };
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -521,7 +394,7 @@ export function MarketplaceDetailScreen() {
               characterName={item.characterName}
             />
 
-            {item.map && Number.isFinite(item.map.lat) && Number.isFinite(item.map.lng) ? (
+            {item.saleType !== "AUCTION" && item.map && Number.isFinite(item.map.lat) && Number.isFinite(item.map.lng) ? (
               <UsedMeetMapCard
                 map={item.map}
                 region={item.region}
@@ -567,91 +440,18 @@ export function MarketplaceDetailScreen() {
               ) : null
             ) : null}
 
-            {item.saleType === "AUCTION" &&
-            item.meetLat != null &&
-            item.meetLng != null &&
-            !item.auctionLive &&
-            item.winningBidderId &&
-            item.status !== "SOLD" &&
-            (item.isOwner || item.isWinningBidder) ? (
-              <View style={styles.bidBox}>
-                <Text style={styles.bidLabel}>
-                  {t("m.marketplace.at_meetup_time_confirm_arrival_in")}
-                </Text>
-              </View>
-            ) : null}
-
-            {item.saleType === "AUCTION" &&
-            (item.meetLat == null || item.meetLng == null) &&
-            !item.auctionLive &&
-            item.winningBidderId &&
-            item.status !== "SOLD" &&
-            (item.isOwner || item.isWinningBidder) ? (
-              <View style={styles.bidBox}>
-                <Text style={styles.bidLabel}>
-                  {t("m.marketplace.when_done_seller_and_winning_bidder")}
-                </Text>
-                <Pressable
-                  style={[styles.btn, (tradeComplete.isPending || mineTradeConfirmed(item)) && styles.btnDisabled]}
-                  disabled={tradeComplete.isPending || mineTradeConfirmed(item)}
-                  onPress={() => tradeComplete.mutate()}
-                >
-                  <Text style={styles.btnText}>
-                    {mineTradeConfirmed(item)
-                      ? t("m.marketplace.waiting_for_other_party")
-                      : t("m.marketplace.mark_complete")}
-                  </Text>
-                </Pressable>
-              </View>
-            ) : null}
-
             {msg && !(item.auctionLive && !item.isOwner) ? (
               <Text style={styles.note}>{msg}</Text>
             ) : null}
           </View>
         </ScrollView>
-        {item.auctionLive && !item.isOwner && !USED_AUCTION_RETIRED ? (
-          <View
-            style={[
-              styles.bidDock,
-              { paddingBottom: keyboardOpen ? spacing.sm : Math.max(insets.bottom, spacing.sm) },
-            ]}
-          >
-            {msg ? <Text style={styles.dockNote}>{msg}</Text> : null}
-            <View style={styles.quickRow}>
-              {auctionQuickBids(item).map((amount) => (
-                <Pressable
-                  key={amount}
-                  style={styles.quickChip}
-                  onPress={() => setBidText(usedPriceInputValue(amount, item.currency))}
-                >
-                  <Text style={styles.quickChipText}>{formatUsedPrice(amount, item.currency, t)}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.pricePrefix}>
-                {(USED_CURRENCY_META[item.currency ?? "krw"] ?? USED_CURRENCY_META.krw).symbol}
-              </Text>
-              <TextInput
-                style={styles.priceInput}
-                keyboardType={(item.currency ?? "krw") === "usd" ? "decimal-pad" : "number-pad"}
-                placeholder={
-                  (item.currency ?? "krw") === "usd"
-                    ? t("m.marketplace.amount_in_usd")
-                    : t("m.marketplace.enter_amount")
-                }
-                placeholderTextColor={colors.textMuted}
-                value={bidText}
-                onChangeText={setBidText}
-              />
-            </View>
+        {item.saleType === "AUCTION" && item.auctionLive && !USED_AUCTION_RETIRED ? (
+          <View style={[styles.bidDock, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
             <Pressable
-              style={[styles.btn, bid.isPending && styles.btnDisabled]}
-              disabled={bid.isPending}
-              onPress={onBid}
+              style={styles.btn}
+              onPress={() => navigation.navigate("AuctionRoom", { id: item.id })}
             >
-              <Text style={styles.btnText}>{t("m.marketplace.place_bid")}</Text>
+              <Text style={styles.btnText}>{t("m.marketplace.join_auction")}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -667,21 +467,6 @@ export function MarketplaceDetailScreen() {
           }))}
           initialIndex={lightboxIndex}
           onClose={() => setLightboxOpen(false)}
-        />
-      ) : null}
-      {holdSheet ? (
-        <UsedAuctionBidHoldSheet
-          visible
-          listingId={route.params.id}
-          bidAmount={holdSheet.amount}
-          currency={item?.currency}
-          onClose={() => setHoldSheet(null)}
-          onSuccess={async (res) => {
-            setHoldSheet(null);
-            setMsg(`${t("m.marketplace.bid_placed")} · ${formatUsedPrice(res.amount, item?.currency, t)}`);
-            setBidText("");
-            await invalidate();
-          }}
         />
       ) : null}
       {item ? (

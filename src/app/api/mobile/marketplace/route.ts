@@ -9,6 +9,7 @@ import { listingImages } from "@/lib/used-market";
 import {
   createMobileUsedListing,
   listMobileLiveAuctions,
+  listMobileMyActiveBids,
   listMobileMyUsedListings,
   listMobileRecommendedUsed,
   listMobileUsedByIds,
@@ -54,7 +55,13 @@ export async function GET(req: NextRequest) {
   if (lane === "live-auctions" && USED_AUCTION_RETIRED) {
     return NextResponse.json({ items: [], lane: "live-auctions" });
   }
-  if (lane === "favorites" || lane === "purchased" || lane === "live-auctions" || lane === "disputes") {
+  if (
+    lane === "favorites" ||
+    lane === "purchased" ||
+    lane === "live-auctions" ||
+    lane === "my-bids" ||
+    lane === "disputes"
+  ) {
     const auth = await requireMobileApiUser(req);
     if ("error" in auth) return auth.error;
     const takeLane = Math.min(Number(req.nextUrl.searchParams.get("take") ?? "24") || 24, 48);
@@ -66,7 +73,9 @@ export async function GET(req: NextRequest) {
             ? await listMobileUsedPurchases(auth.user.id, takeLane)
             : lane === "live-auctions"
               ? await listMobileLiveAuctions(auth.user.id, takeLane)
-              : await listMobileUsedDisputes(auth.user.id, takeLane);
+              : lane === "my-bids"
+                ? await listMobileMyActiveBids(auth.user.id, takeLane)
+                : await listMobileUsedDisputes(auth.user.id, takeLane);
       return NextResponse.json({ items, lane });
     } catch {
       return NextResponse.json({ error: "Not found.", items: [] }, { status: 500 });

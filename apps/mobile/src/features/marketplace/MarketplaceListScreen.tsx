@@ -71,7 +71,11 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const [hubLaneLocal, setHubLaneLocal] = useState<HubLane | undefined>(undefined);
   const isTab = mode === "tab" || route.name === "Used";
   const hubLane = isTab ? hubLaneLocal : routeParams.lane;
-  const isCombined = hubLane !== "purchased" && hubLane !== "favorites" && hubLane !== "disputes";
+  const isCombined =
+    hubLane !== "purchased" &&
+    hubLane !== "favorites" &&
+    hubLane !== "disputes" &&
+    hubLane !== "my-bids";
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const { user, status: authStatus } = useAuth();
@@ -118,7 +122,8 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         hubLane === "recommend" ||
         hubLane === "purchased" ||
         hubLane === "favorites" ||
-        hubLane === "disputes"
+        hubLane === "disputes" ||
+        hubLane === "my-bids"
           ? hubLane
           : undefined,
       take: 48,
@@ -180,9 +185,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     [authStatus, favorite, t]
   );
 
-  const items = (query.data?.items ?? []).filter(
-    (item) => item.saleType !== "AUCTION" && !dismissedIds.has(item.id)
-  );
+  const items = (query.data?.items ?? []).filter((item) => !dismissedIds.has(item.id));
 
   const applyHubLane = useCallback(
     (lane: HubLane, q?: string) => {
@@ -395,7 +398,11 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         </Text>
       </Pressable>
     ) : (
-      <Text style={styles.empty}>{t("m.marketplace.no_listings_match_your_filters")}</Text>
+      <Text style={styles.empty}>
+        {hubLane === "my-bids"
+          ? t("m.marketplace.no_active_bids")
+          : t("m.marketplace.no_listings_match_your_filters")}
+      </Text>
     );
 
   return (

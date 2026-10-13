@@ -59,13 +59,14 @@ export type RootStackParamList = {
   LiveStudio: undefined;
   MarketplaceList:
     | {
-        lane?: "all" | "recommend" | "purchased" | "favorites" | "disputes";
+        lane?: "all" | "recommend" | "purchased" | "favorites" | "disputes" | "my-bids";
         q?: string;
       }
     | undefined;
   AuctionList: undefined;
   MarketplaceDetail: { id: string };
   AuctionDetail: { id: string };
+  AuctionRoom: { id: string };
   UsedCreate: { editId?: string } | undefined;
   AuctionCreate: undefined;
   UsedMy: undefined;

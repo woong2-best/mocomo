@@ -54,11 +54,11 @@ export function canParticipateInAuction(balance: Pick<MocoBalanceSnapshot, "avai
   return balance.availableMocoBalance >= AUCTION_BID_DEPOSIT_MOCO;
 }
 
-/** Auction 입찰 — 항상 2 MOCO 보증금(미구매 시 몰수) 적용 */
+/** Auction bids no longer lock a MOCO deposit. */
 export async function isMocoBidDepositRequired(_listing: {
   depositEnabled: boolean;
 }): Promise<boolean> {
-  return true;
+  return false;
 }
 
 async function consumePurchasedGemsForDeposit(

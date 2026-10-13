@@ -248,7 +248,12 @@ export async function placeUsedAuctionBid(
 
     revalidatePath(`/market/${listingId}`);
     revalidatePath("/market");
-    return { success: true, amount: result.amount, extended: result.extended };
+    return {
+      success: true,
+      amount: result.amount,
+      extended: result.extended,
+      chatRoomId: result.chatRoomId,
+    };
   } catch (e) {
     console.error("[placeUsedAuctionBid]", e);
     return { error: "actions.sp4jlrg" };

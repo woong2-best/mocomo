@@ -267,40 +267,13 @@ export async function listDirectTradesForUser(userId: string): Promise<DirectTra
   return views;
 }
 
-export async function ensureAuctionDirectTrade(input: {
+export async function ensureAuctionDirectTrade(_input: {
   listingId: string;
   roomId: string;
   buyerId: string;
   sellerId: string;
 }): Promise<void> {
-  const listing = await db.usedListing.findUnique({
-    where: { id: input.listingId },
-    select: {
-      saleType: true,
-      meetLat: true,
-      meetLng: true,
-      winningBidderId: true,
-      currentBidderId: true,
-      sellerId: true,
-    },
-  });
-  if (!listing || listing.saleType !== "AUCTION") return;
-  if (listing.meetLat == null || listing.meetLng == null) return;
-  if (!Number.isFinite(listing.meetLat) || !Number.isFinite(listing.meetLng)) return;
-  const winnerId = listing.winningBidderId ?? listing.currentBidderId;
-  if (!winnerId || winnerId !== input.buyerId || listing.sellerId !== input.sellerId) return;
-  const existing = await db.usedDirectTrade.findUnique({ where: { listingId: input.listingId }, select: { id: true } });
-  if (existing) return;
-  await db.usedDirectTrade
-    .create({
-      data: {
-        listingId: input.listingId,
-        roomId: input.roomId,
-        buyerId: input.buyerId,
-        sellerId: input.sellerId,
-      },
-    })
-    .catch(() => undefined);
+  // Auctions no longer start in-person location tracking.
 }
 
 async function notify(userId: string, actorId: string | undefined, title: string, body: string, link: string) {

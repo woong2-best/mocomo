@@ -142,6 +142,7 @@ export function UsedPostForm({
     meetLng?: number | null;
     images: unknown;
     isNsfw?: boolean;
+    saleType?: string | null;
   };
 }) {
   const router = useRouter();
@@ -189,6 +190,7 @@ export function UsedPostForm({
       : null
   );
   const [isNsfw, setIsNsfw] = useState(!!editListing?.isNsfw);
+  const [auction, setAuction] = useState(editListing?.saleType === "AUCTION");
   const [images, setImages] = useState<string[]>(
     editListing ? listingImages(editListing.images) : []
   );
@@ -196,7 +198,7 @@ export function UsedPostForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const isTrade = !giveaway && tradeMode === "TRADE";
+  const isTrade = !giveaway && !auction && tradeMode === "TRADE";
   const numericPrice = parseFormPrice(price, currency);
   const priceMax = maxUsedListingPrice(currency);
   const priceOverLimit =
@@ -245,11 +247,11 @@ export function UsedPostForm({
       setError(t("ui.enter_a_price"));
       return;
     }
-    if (!meetCoords) {
+    if (!auction && !meetCoords) {
       setError(t("ui.choose_a_trade_region"));
       return;
     }
-    const submitRegion = region.trim();
+    const submitRegion = auction ? "Shipping" : region.trim();
     if (!submitRegion) {
       setError(t("ui.choose_a_trade_region"));
       return;
@@ -262,9 +264,9 @@ export function UsedPostForm({
       price: submitPrice,
       currency,
       region: submitRegion,
-      meetPlace: meetPlace.trim() || undefined,
-      meetLat: meetCoords?.lat,
-      meetLng: meetCoords?.lng,
+      meetPlace: auction ? undefined : meetPlace.trim() || undefined,
+      meetLat: auction ? undefined : meetCoords?.lat,
+      meetLng: auction ? undefined : meetCoords?.lng,
       meetCountry: sellerCountry,
       images,
       workTitle: workTitle.trim() || undefined,
@@ -282,7 +284,7 @@ export function UsedPostForm({
           ...payload,
           category: sellKind,
           categories: [sellKind],
-          saleType: "FIXED",
+          saleType: auction ? "AUCTION" : "FIXED",
         });
     setLoading(false);
     if ("error" in res && res.error) {
@@ -332,9 +334,10 @@ export function UsedPostForm({
         <div className="flex flex-wrap">
           <MarketCheckOption
             label={t("ui.sell")}
-            checked={!giveaway && !isTrade}
+            checked={!giveaway && !isTrade && !auction}
             onPress={() => {
               setGiveaway(false);
+              setAuction(false);
               setTradeMode("SELL");
             }}
           />
@@ -343,6 +346,7 @@ export function UsedPostForm({
             checked={giveaway}
             onPress={() => {
               setGiveaway(true);
+              setAuction(false);
               setTradeMode("SELL");
               setPrice("0");
             }}
@@ -352,14 +356,27 @@ export function UsedPostForm({
             checked={isTrade}
             onPress={() => {
               setGiveaway(false);
+              setAuction(false);
               setTradeMode("TRADE");
               setPrice("0");
             }}
           />
+          {!editing || auction ? (
+            <MarketCheckOption
+              label={t("ui.auction")}
+              checked={auction}
+              onPress={() => {
+                if (editing) return;
+                setAuction(true);
+                setGiveaway(false);
+                setTradeMode("SELL");
+              }}
+            />
+          ) : null}
         </div>
         {!giveaway && !isTrade ? (
           <div className="space-y-2 pt-1">
-            <p className="text-[15px] font-bold">{t("ui.price")}</p>
+            <p className="text-[15px] font-bold">{auction ? t("ui.starting_bid") : t("ui.price")}</p>
             <div className="flex flex-wrap">
               {listingCurrencyChoices(sellerCountry).map((c) => (
                 <MarketCheckOption
@@ -435,6 +452,7 @@ export function UsedPostForm({
         </div>
       </div>
 
+      {auction ? null : (
       <div className="space-y-3">
         <p className="text-[15px] font-bold">{t("ui.local_meetup_city")}</p>
         <UsedMeetMapPicker
@@ -447,6 +465,7 @@ export function UsedPostForm({
           onGeocodeLabel={syncRegionFromMapLabel}
         />
       </div>
+      )}
 
       <MarketCheckOption
         label={t("ui.nsfw_sensitive_content")}

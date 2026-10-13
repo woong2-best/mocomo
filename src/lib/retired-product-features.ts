@@ -1,5 +1,5 @@
 /** Product features removed from UX; legacy data may still exist in DB. */
-export const USED_AUCTION_RETIRED = true;
+export const USED_AUCTION_RETIRED = false;
 export const CREATOR_BULK_DM_RETIRED = true;
 export const GROUP_CHAT_CREATE_RETIRED = true;
 

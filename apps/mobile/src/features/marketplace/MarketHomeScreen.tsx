@@ -24,7 +24,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
-export type MarketHubLane = "all" | "recommend" | "purchased" | "favorites" | "disputes";
+export type MarketHubLane = "all" | "recommend" | "purchased" | "favorites" | "disputes" | "my-bids";
 
 type HubLane = MarketHubLane;
 
@@ -43,6 +43,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
       [
         { lane: "purchased" as const, label: t("m.marketplace.purchases"), icon: "bag-handle-outline" as const },
         { my: true, label: t("m.marketplace.sales"), icon: "logo-usd" as const },
+        { lane: "my-bids" as const, label: t("m.marketplace.auction"), icon: "hammer-outline" as const },
         { lane: "favorites" as const, label: t("m.marketplace.favorites"), icon: "heart-outline" as const },
       ] satisfies {
         lane?: HubLane;

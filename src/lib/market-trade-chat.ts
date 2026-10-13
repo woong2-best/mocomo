@@ -20,8 +20,12 @@ export async function openMarketListingChat(actorId: string, listingId: string) 
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing) return { error: "Listing not found." as const };
   if (listing.status === "SOLD") return { error: "This item has already been sold." as const };
-  if (isAuctionLive(listing)) {
-    return { error: "During an auction, please bid instead of sending messages." as const };
+  if (listing.saleType === "AUCTION" && isAuctionLive(listing)) {
+    const leaderId = listing.currentBidderId;
+    const allowed = actorId === listing.sellerId || (leaderId != null && actorId === leaderId);
+    if (!allowed) {
+      return { error: "During an auction, please bid instead of sending messages." as const };
+    }
   }
 
   const winnerId = listing.winningBidderId ?? listing.currentBidderId;
@@ -138,4 +142,72 @@ export async function openMarketListingChat(actorId: string, listingId: string) 
     });
     return { error: "Couldn't open trade messages." as const };
   }
+}
+
+/** After a bid becomes the high bid, open seller↔bidder messages with the final-bidder line. */
+export async function announceAuctionLeader(input: {
+  listingId: string;
+  sellerId: string;
+  bidderId: string;
+}): Promise<string | null> {
+  if (input.sellerId === input.bidderId) return null;
+  const bidder = await db.user.findUnique({
+    where: { id: input.bidderId },
+    select: { name: true, username: true },
+  });
+  const name = bidder?.name?.trim() || bidder?.username || "회원";
+  const content = `최종 입찰자 ${name} 님입니다`;
+
+  const existing = await db.usedListingChat.findUnique({
+    where: { listingId_buyerId: { listingId: input.listingId, buyerId: input.bidderId } },
+    select: { roomId: true },
+  });
+
+  let roomId = existing?.roomId ?? null;
+  if (!roomId) {
+    const room = await db.chatRoom.create({
+      data: {
+        type: "MARKET",
+        isPublic: false,
+        createdById: input.bidderId,
+        members: {
+          create: [
+            { userId: input.sellerId, role: "owner" },
+            { userId: input.bidderId, role: "member" },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    roomId = room.id;
+    await db.usedListingChat.create({
+      data: { listingId: input.listingId, roomId, buyerId: input.bidderId },
+    });
+  }
+
+  const already = await db.message.findFirst({
+    where: { roomId, content, isSystemMessage: true },
+    select: { id: true },
+  });
+  if (!already) {
+    const message = await db.message.create({
+      data: {
+        roomId,
+        senderId: input.bidderId,
+        content,
+        isSystemMessage: true,
+      },
+      include: chatMessageInclude,
+    });
+    await db.chatRoom.update({ where: { id: roomId }, data: { updatedAt: new Date() } });
+    void notifyChatMessage({
+      roomId,
+      senderId: input.bidderId,
+      content,
+      roomType: "MARKET",
+    });
+    void relayChatMessageToSocket(roomId, serializeChatMessageForRelay(message));
+  }
+
+  return roomId;
 }

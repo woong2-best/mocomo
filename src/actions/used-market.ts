@@ -53,14 +53,8 @@ import { finalizeUsedListingSold } from "@/lib/subculture-commerce/sale-records"
 import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { assertAuctionPostAccess, assertUsedMarketAccess } from "@/lib/used-market-access";
-import {
-  AUCTION_SELLER_DEPOSIT_ERROR,
-  canParticipateInAuction,
-  getMocoBalanceSnapshot,
-  lockSellerDepositInTransaction,
-  mapDepositError,
-  releaseAllListingDepositsExcept,
-} from "@/lib/auction-deposit";
+import { releaseAllListingDepositsExcept } from "@/lib/auction-deposit";
+import { openMarketListingChat } from "@/lib/market-trade-chat";
 import { confirmAuctionTradeComplete } from "@/lib/used-auction-trade-complete";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
@@ -547,10 +541,6 @@ export async function createUsedListing(data: {
   const isAuction = data.saleType === "AUCTION";
   if (USED_AUCTION_RETIRED && isAuction) return { error: USED_AUCTION_RETIRED_MSG };
   if (isAuction && price <= 0) return { error: "actions.sti0vaw" };
-  if (isAuction) {
-    const balance = await getMocoBalanceSnapshot(user.id);
-    if (!canParticipateInAuction(balance)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
-  }
 
   const bidIncrement = Math.floor(data.bidIncrement ?? defaultBidIncrement(currency));
   const buyNowPrice =
@@ -597,11 +587,12 @@ export async function createUsedListing(data: {
   }
 
   try {
-    let meetLat = data.meetLat;
-    let meetLng = data.meetLng;
-    const meetPlaceTrim = data.meetPlace?.trim() || null;
+    let meetLat = isAuction ? undefined : data.meetLat;
+    let meetLng = isAuction ? undefined : data.meetLng;
+    const meetPlaceTrim = isAuction ? null : data.meetPlace?.trim() || null;
     const meetCountry = listingCountry;
     if (
+      !isAuction &&
       (meetLat == null || meetLng == null) &&
       meetPlaceTrim &&
       !isUsedShippingRegion(data.region) &&
@@ -676,9 +667,6 @@ export async function createUsedListing(data: {
           : {}),
       },
       });
-      if (isAuction) {
-        await lockSellerDepositInTransaction(tx, { userId: user.id, listingId: created.id });
-      }
       return created;
     });
     void notifyWtbAlertsForListing(listing.id).catch(() => undefined);
@@ -686,7 +674,6 @@ export async function createUsedListing(data: {
     revalidatePath("/market/my");
     return { listingId: listing.id };
   } catch (e) {
-    if (mapDepositError(e)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === "P2021") {
         return { error: "actions.db_supabase_sql_k" };
@@ -937,13 +924,12 @@ export async function startUsedTradeChat(listingId: string) {
   });
   if (tradeErr) return { error: tradeErr };
   if (listing.status === "SOLD") return { error: "actions.s1mmunw" };
-  if (
-    listing.saleType === "AUCTION" &&
-    listing.auctionEndsAt &&
-    listing.auctionEndsAt.getTime() > Date.now() &&
-    listing.auctionState !== "ENDED"
-  ) {
-    return { error: "actions.socghxo" };
+  if (listing.saleType === "AUCTION") {
+    const opened = await openMarketListingChat(user.id, listingId);
+    if ("error" in opened && opened.error) return { error: opened.error };
+    if (!("roomId" in opened) || !opened.roomId) return { error: "actions.s1k5cvor" };
+    revalidatePath(`/market/${listingId}`);
+    return { roomId: opened.roomId };
   }
 
   const dm = await getOrCreateDM(listing.sellerId);

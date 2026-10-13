@@ -26,6 +26,7 @@ import {
   verifyUsedAuctionBidHold,
   voidActiveHoldForBidder,
 } from "@/lib/used-auction-bid-hold";
+import { announceAuctionLeader } from "@/lib/market-trade-chat";
 
 export type ExecuteUsedAuctionBidInput = {
   userId: string;
@@ -36,7 +37,7 @@ export type ExecuteUsedAuctionBidInput = {
 };
 
 export type ExecuteUsedAuctionBidResult =
-  | { success: true; amount: number; extended: boolean; holdRequired: boolean }
+  | { success: true; amount: number; extended: boolean; holdRequired: boolean; chatRoomId: string | null }
   | { error: string; needsAdultVerify?: true; needsBidHold?: true; holdMode?: string };
 
 export async function executeUsedAuctionBid(
@@ -213,5 +214,24 @@ export async function executeUsedAuctionBid(
     }
   }
 
-  return { success: true, amount: bidAmount, extended: !!extendTo, holdRequired };
+  let chatRoomId: string | null = null;
+  if (prevBidderId !== input.userId) {
+    try {
+      chatRoomId = await announceAuctionLeader({
+        listingId: input.listingId,
+        sellerId: listing.sellerId,
+        bidderId: input.userId,
+      });
+    } catch {
+      chatRoomId = null;
+    }
+  } else {
+    const row = await db.usedListingChat.findUnique({
+      where: { listingId_buyerId: { listingId: input.listingId, buyerId: input.userId } },
+      select: { roomId: true },
+    });
+    chatRoomId = row?.roomId ?? null;
+  }
+
+  return { success: true, amount: bidAmount, extended: !!extendTo, holdRequired, chatRoomId };
 }

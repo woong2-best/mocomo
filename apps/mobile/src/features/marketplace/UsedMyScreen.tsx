@@ -48,7 +48,7 @@ export function UsedMyScreen() {
     queryFn: fetchMyWtbAlerts,
   });
 
-  const items = (query.data?.items ?? []).filter((item) => item.saleType !== "AUCTION");
+  const items = query.data?.items ?? [];
 
   const renderItem = useCallback(
     ({ item }: { item: MarketplaceListItem }) => (

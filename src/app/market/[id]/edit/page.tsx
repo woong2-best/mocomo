@@ -49,6 +49,7 @@ export default async function UsedEditPage({ params }: { params: Promise<{ id: s
           meetLng: data.listing.meetLng,
           images: data.listing.images,
           isNsfw: data.listing.isNsfw,
+          saleType: data.listing.saleType,
         }}
       />
     </AppPageChrome>

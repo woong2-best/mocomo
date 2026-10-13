@@ -81,6 +81,7 @@ export function UsedCreateScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "UsedCreate">>();
   const editId = route.params?.editId;
   const [giveaway, setGiveaway] = useState(false);
+  const [auction, setAuction] = useState(false);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -99,7 +100,7 @@ export function UsedCreateScreen() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isNsfw, setIsNsfw] = useState(false);
   const [subculture, setSubculture] = useState<MobileSubcultureFormState>(EMPTY_MOBILE_SUBCULTURE);
-  const isTrade = !giveaway && subculture.tradeMode === "TRADE";
+  const isTrade = !giveaway && !auction && subculture.tradeMode === "TRADE";
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
   const insets = useSafeAreaInsets();
@@ -135,6 +136,7 @@ export function UsedCreateScreen() {
           setMeetCoords({ lat: item.meetLat, lng: item.meetLng });
         }
         setIsNsfw(!!item.isNsfw);
+        setAuction(item.saleType === "AUCTION");
         setExistingImages(item.images ?? []);
         setSubculture((prev) => ({
           ...prev,
@@ -273,12 +275,12 @@ export function UsedCreateScreen() {
         return;
       }
 
-      if (!meetCoords || !region.trim()) {
+      if (!auction && (!meetCoords || !region.trim())) {
         showIslandError(t("m.marketplace.meetup_location"), t("m.events.tap_the_map_to_pick_a"));
         setBusy(false);
         return;
       }
-      const submitRegion = region.trim();
+      const submitRegion = auction ? "Shipping" : region.trim();
 
       const payload = {
         title: title.trim(),
@@ -288,12 +290,12 @@ export function UsedCreateScreen() {
         category: subculture.productType,
         categories: [subculture.productType] as string[],
         region: submitRegion,
-        meetPlace: meetPlace.trim() || undefined,
-        meetLat: meetCoords?.lat,
-        meetLng: meetCoords?.lng,
+        meetPlace: auction ? undefined : meetPlace.trim() || undefined,
+        meetLat: auction ? undefined : meetCoords?.lat,
+        meetLng: auction ? undefined : meetCoords?.lng,
         meetCountry: countryCode,
         images,
-        saleType: "FIXED" as const,
+        saleType: auction ? ("AUCTION" as const) : ("FIXED" as const),
         isNsfw,
         workTitle: subculture.workTitle.trim() || undefined,
         animeSlug: subculture.animeSlug ?? undefined,
@@ -445,9 +447,10 @@ export function UsedCreateScreen() {
               <View style={styles.checkWrap}>
                 <MarketCheckOption
                   label={t("m.marketplace.sell")}
-                  checked={!giveaway && !isTrade}
+                  checked={!giveaway && !isTrade && !auction}
                   onPress={() => {
                     setGiveaway(false);
+                    setAuction(false);
                     setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
                   }}
                   ink={ink}
@@ -459,6 +462,7 @@ export function UsedCreateScreen() {
                   checked={giveaway}
                   onPress={() => {
                     setGiveaway(true);
+                    setAuction(false);
                     setPrice("0");
                     setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
                   }}
@@ -471,6 +475,7 @@ export function UsedCreateScreen() {
                   checked={isTrade}
                   onPress={() => {
                     setGiveaway(false);
+                    setAuction(false);
                     setPrice("0");
                     setSubculture((s) => ({ ...s, tradeMode: "TRADE" }));
                   }}
@@ -478,10 +483,27 @@ export function UsedCreateScreen() {
                   paper={paper}
                   line={line}
                 />
+                {!editId || auction ? (
+                  <MarketCheckOption
+                    label={t("m.marketplace.auction")}
+                    checked={auction}
+                    onPress={() => {
+                      if (editId) return;
+                      setAuction(true);
+                      setGiveaway(false);
+                      setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
+                    }}
+                    ink={ink}
+                    paper={paper}
+                    line={line}
+                  />
+                ) : null}
               </View>
               {!giveaway && !isTrade ? (
                 <>
-                  <Text style={[styles.label, styles.priceSectionLabel]}>{t("m.marketplace.price")}</Text>
+                  <Text style={[styles.label, styles.priceSectionLabel]}>
+                    {auction ? t("m.marketplace.starting_bid") : t("m.marketplace.price")}
+                  </Text>
                   <View style={styles.checkWrap}>
                     {listingCurrencyChoices(countryCode).map((c) => (
                       <MarketCheckOption
@@ -524,6 +546,7 @@ export function UsedCreateScreen() {
                     line={line}
             />
 
+            {auction ? null : (
             <View style={styles.block}>
               <Text style={styles.label}>{t("m.marketplace.local_meetup_city")}</Text>
               <MeetMap
@@ -545,6 +568,7 @@ export function UsedCreateScreen() {
                 onFocus={() => onInputFocus(meetPlaceRef.current)}
               />
             </View>
+            )}
 
             <View style={styles.block}>
               <MarketCheckOption

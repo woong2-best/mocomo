@@ -36,13 +36,6 @@ import { sendMobileDmMessage } from "@/lib/chat-dm-service";
 import { openMarketListingChat } from "@/lib/market-trade-chat";
 import { getDirectTradeView } from "@/lib/direct-trade/service";
 import {
-  AUCTION_SELLER_DEPOSIT_ERROR,
-  canParticipateInAuction,
-  getMocoBalanceSnapshot,
-  lockSellerDepositInTransaction,
-  mapDepositError,
-} from "@/lib/auction-deposit";
-import {
   listingCategoryTags,
   mergeExtraCategories,
   parseUsedSellCategories,
@@ -127,10 +120,6 @@ export async function createMobileUsedListing(
   if ("error" in parsedCats && parsedCats.error) return { error: parsedCats.error };
 
   if (isAuction && price <= 0) return { error: "Enter a starting bid." as const };
-  if (isAuction) {
-    const balance = await getMocoBalanceSnapshot(userId);
-    if (!canParticipateInAuction(balance)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
-  }
 
   const bidIncrement = Math.floor(data.bidIncrement ?? defaultBidIncrement(currency));
   const buyNowPrice =
@@ -154,9 +143,9 @@ export async function createMobileUsedListing(
   }
 
   try {
-    let meetLat = data.meetLat;
-    let meetLng = data.meetLng;
-    const meetPlaceTrim = data.meetPlace?.trim() || null;
+    let meetLat = isAuction ? undefined : data.meetLat;
+    let meetLng = isAuction ? undefined : data.meetLng;
+    const meetPlaceTrim = isAuction ? null : data.meetPlace?.trim() || null;
     const meetCountry = listingCountry;
     if (
       (meetLat == null || meetLng == null) &&
@@ -232,15 +221,11 @@ export async function createMobileUsedListing(
           : {}),
       },
       });
-      if (isAuction) {
-        await lockSellerDepositInTransaction(tx, { userId, listingId: created.id });
-      }
       return created;
     });
     void notifyWtbAlertsForListing(listing.id).catch(() => undefined);
     return { listingId: listing.id };
   } catch (e) {
-    if (mapDepositError(e)) return { error: AUCTION_SELLER_DEPOSIT_ERROR };
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
       return { error: "Marketplace database isn't ready." as const };
     }
@@ -464,7 +449,12 @@ export async function placeMobileUsedAuctionBid(
       });
     }
 
-    return { success: true as const, amount: result.amount, extended: result.extended };
+    return {
+      success: true as const,
+      amount: result.amount,
+      extended: result.extended,
+      chatRoomId: result.chatRoomId,
+    };
   } catch (e) {
     console.error("[placeMobileUsedAuctionBid]", e);
     return { error: "Bid failed. Please try again shortly." as const };
@@ -571,6 +561,22 @@ export async function listMobileUsedPurchases(userId: string, take = 48) {
     select: hubListingSelect,
   });
   return listings.map((l) => mapHubListing(l));
+}
+
+export async function listMobileMyActiveBids(userId: string, take = 48) {
+  const rows = await db.usedListing.findMany({
+    where: {
+      saleType: "AUCTION",
+      status: "SELLING",
+      auctionEndsAt: { gt: new Date() },
+      OR: [{ auctionState: "LIVE" }, { auctionState: null }],
+      auctionBids: { some: { bidderId: userId } },
+    },
+    orderBy: { auctionEndsAt: "asc" },
+    take: Math.min(take, 48),
+    select: hubListingSelect,
+  });
+  return rows.map((l) => mapHubListing(l));
 }
 
 export async function listMobileLiveAuctions(userId: string, take = 48) {

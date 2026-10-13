@@ -228,6 +228,12 @@ export function RootNavigator() {
               }
             />
             <Stack.Screen
+              name="AuctionRoom"
+              getComponent={() =>
+                require("@/features/marketplace/AuctionBidRoomScreen").AuctionBidRoomScreen
+              }
+            />
+            <Stack.Screen
               name="Market"
               getComponent={() => require("@/features/market/MarketScreen").MarketScreen}
             />

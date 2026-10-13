@@ -13,7 +13,6 @@ import {
   getUsedListingChatRooms,
 } from "@/actions/used-market";
 import { cancelUsedAuction } from "@/actions/used-auction";
-import { UsedAuctionBidSheet } from "@/components/used/used-auction-bid-sheet";
 import { MessageSquare, Gavel, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,14 +32,9 @@ export function UsedAuctionBottomBar({
   initialBuyerRoomId,
   auctionLive,
   auctionState,
-  minBid,
-  bidIncrement,
-  buyNowPrice,
   isWinningBidder,
   restrictedKind = "NONE",
   viewerAdultVerified = false,
-  currency,
-  availableMocoBalance,
 }: {
   listingId: string;
   isSeller: boolean;
@@ -158,6 +152,11 @@ export function UsedAuctionBottomBar({
             {t("ui.cancel_auction_no_bids")}
           </Button>
         ) : null}
+        {auctionLive ? (
+          <Button asChild size="lg" className="w-full h-12 rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
+            <Link href={`/market/${listingId}/auction`}>{t("ui.join_auction")}</Link>
+          </Button>
+        ) : (
         <Button
           type="button"
           variant="secondary"
@@ -169,6 +168,7 @@ export function UsedAuctionBottomBar({
           <MessageSquare className="h-5 w-5 mr-2" />
           {loading ? t("tower.loadingMore") : t("ui.message")}
         </Button>
+        )}
         {sellerRooms && sellerRooms.length > 1 && (
           <ul className="max-h-32 overflow-y-auto rounded-xl border divide-y text-sm">
             {sellerRooms.map((r) => (
@@ -273,17 +273,12 @@ export function UsedAuctionBottomBar({
       {barError && <p className="px-3 pt-2 text-xs text-destructive text-center">{barError}</p>}
       <div className="p-3 pb-safe">
       {isLoggedIn ? (
-        <UsedAuctionBidSheet
-          listingId={listingId}
-          minBid={minBid}
-          buyNowPrice={buyNowPrice}
-          quickBids={[0, 1, 2, 4].map(
-            (n) => minBid + n * (bidIncrement && bidIncrement > 0 ? bidIncrement : currency === "usd" ? 100 : 1000)
-          )}
-          restrictedKind={restrictedKind}
-          currency={currency}
-          availableMocoBalance={availableMocoBalance}
-        />
+        <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
+          <Link href={`/market/${listingId}/auction`}>
+            <Gavel className="h-5 w-5" />
+            {t("ui.join_auction")}
+          </Link>
+        </Button>
       ) : (
         <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90 gap-2">
           <Link href={`/auth/signin?callbackUrl=/market/${listingId}`}>
