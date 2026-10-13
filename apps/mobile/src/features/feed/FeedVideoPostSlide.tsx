@@ -43,9 +43,8 @@ import {
   REELS_WIDE_CARD_RADIUS,
   reelsEdgeHoldWidth,
 } from "@/features/reels/reels-wide-layout";
+import { ReelPinchZoom } from "@/features/reels/ReelPinchZoom";
 
-/** Right inset for center tap zone so it does not compete with the action rail. */
-const RAIL_CLEARANCE = 76;
 const FAST_PLAYBACK_RATE = 2;
 
 function reelAsFeedPost(reel: ReelItem, starred: boolean): FeedPost {
@@ -102,6 +101,8 @@ type Props = {
   onChangeVideoIndex?: (index: number) => void;
   /** Hide Reels chrome (header / nav arrows) while edge-hold 2× is active. */
   onFastForwardChange?: (active: boolean) => void;
+  /** Lock the vertical pager while a two-finger pinch is active. */
+  onPinchZoomChange?: (zooming: boolean) => void;
 };
 
 function NativeVideoCell({
@@ -390,6 +391,7 @@ function FeedVideoPostSlideInner({
   onPrefetchComments,
   onChangeVideoIndex,
   onFastForwardChange,
+  onPinchZoomChange,
 }: Props) {
   const stageWidth = stageWidthProp ?? width;
   const stageLeft = stageLeftProp ?? 0;
@@ -416,13 +418,14 @@ function FeedVideoPostSlideInner({
   const [fastForward, setFastForward] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [pinchZooming, setPinchZooming] = useState(false);
 
   const current = group.videos[videoIndex] ?? group.videos[0];
   const captionText = useMemo(
     () => buildVideoCaptionText(current?.title, current?.content ?? ""),
     [current?.content, current?.title]
   );
-  const chromeHidden = fastForward;
+  const chromeHidden = fastForward || pinchZooming;
 
   const stopFastForward = useCallback(() => {
     setFastForward((prev) => {
@@ -430,6 +433,15 @@ function FeedVideoPostSlideInner({
       return false;
     });
   }, [onFastForwardChange]);
+
+  const handlePinchZoomChange = useCallback(
+    (next: boolean) => {
+      setPinchZooming(next);
+      if (next) stopFastForward();
+      onPinchZoomChange?.(next);
+    },
+    [onPinchZoomChange, stopFastForward]
+  );
 
   const startFastForward = useCallback(() => {
     if (!active || !isFocused || pausedByUser) return;
@@ -481,6 +493,17 @@ function FeedVideoPostSlideInner({
   useEffect(() => {
     if (!active) setPausedByUser(false);
   }, [active]);
+
+  useEffect(() => {
+    if (active) return;
+    setPinchZooming(false);
+    onPinchZoomChange?.(false);
+  }, [active, onPinchZoomChange]);
+
+  useEffect(() => {
+    setPinchZooming(false);
+    onPinchZoomChange?.(false);
+  }, [videoIndex, group.postId, onPinchZoomChange]);
 
   useEffect(() => {
     setPausedByUser(false);
@@ -594,13 +617,13 @@ function FeedVideoPostSlideInner({
         disableIntervalMomentum
         nestedScrollEnabled
         directionalLockEnabled
-        scrollEnabled={active}
+        scrollEnabled={active && !pinchZooming}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         bounces={false}
         overScrollMode="never"
         onMomentumScrollEnd={onHScroll}
-        extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${muted ? 1 : 0}:${fastForward ? 1 : 0}`}
+        extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${muted ? 1 : 0}:${fastForward ? 1 : 0}:${pinchZooming ? 1 : 0}`}
         getItemLayout={(_, index) => ({
           length: stageWidth,
           offset: stageWidth * index,
@@ -615,31 +638,31 @@ function FeedVideoPostSlideInner({
           const isPlaying = isCurrent && isFocused;
           return (
             <View style={{ width: stageWidth, height, overflow: "hidden" }}>
-              <SensitiveContentGate
-                enabled={!!item.isNsfw && user?.id !== item.author.id}
-                style={{ flex: 1 }}
+              <ReelPinchZoom
+                enabled={isCurrent}
+                resetKey={`${item.id}:${isCurrent ? 1 : 0}`}
+                onZoomChange={isCurrent ? handlePinchZoomChange : undefined}
+                onSingleTap={
+                  isCurrent && item.mediaType !== "IMAGE" ? togglePause : undefined
+                }
               >
-                <VideoCell
-                  item={item}
-                  active={isCurrent}
-                  playing={isPlaying}
-                  muted={muted}
-                  pausedByUser={pausedByUser}
-                  fastForward={isPlaying && fastForward}
-                  loadPlayer={loadPlayer && Math.abs(index - videoIndex) <= 1}
-                />
-              </SensitiveContentGate>
-              {isCurrent && !chromeHidden && item.mediaType !== "IMAGE" ? (
-                <>
-                  <Pressable
-                    style={[
-                      styles.tapZone,
-                      { left: leftEdgeWidth, right: RAIL_CLEARANCE },
-                    ]}
-                    onPress={togglePause}
-                    accessibilityRole="button"
-                    accessibilityLabel={pausedByUser ? t("m.common.play") : t("m.common.pause")}
+                <SensitiveContentGate
+                  enabled={!!item.isNsfw && user?.id !== item.author.id}
+                  style={StyleSheet.absoluteFill}
+                >
+                  <VideoCell
+                    item={item}
+                    active={isCurrent}
+                    playing={isPlaying}
+                    muted={muted}
+                    pausedByUser={pausedByUser}
+                    fastForward={isPlaying && fastForward}
+                    loadPlayer={loadPlayer && Math.abs(index - videoIndex) <= 1}
                   />
+                </SensitiveContentGate>
+              </ReelPinchZoom>
+              {isCurrent && !fastForward && item.mediaType !== "IMAGE" ? (
+                <>
                   {pausedByUser ? (
                     <View style={styles.pauseBadge} pointerEvents="none">
                       <Ionicons name="play" size={56} color="rgba(255,255,255,0.9)" />
@@ -648,14 +671,14 @@ function FeedVideoPostSlideInner({
                   <EdgeHoldZone
                     side="left"
                     width={leftEdgeWidth}
-                    disabled={pausedByUser}
+                    disabled={pausedByUser || pinchZooming}
                     onHoldStart={startFastForward}
                     onHoldEnd={stopFastForward}
                   />
                   <EdgeHoldZone
                     side="right"
                     width={rightEdgeWidth}
-                    disabled={pausedByUser}
+                    disabled={pausedByUser || pinchZooming}
                     onHoldStart={startFastForward}
                     onHoldEnd={stopFastForward}
                   />
@@ -824,12 +847,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.28)",
   },
   segmentActive: { backgroundColor: "#fff" },
-  tapZone: {
-    position: "absolute",
-    top: 32,
-    bottom: 88,
-    zIndex: 2,
-  },
   edgeZone: {
     position: "absolute",
     top: 0,

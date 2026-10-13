@@ -127,6 +127,7 @@ export function ReelsScreen() {
   const [commentDraft, setCommentDraft] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [chromeHidden, setChromeHidden] = useState(false);
+  const [pinchZooming, setPinchZooming] = useState(false);
 
   const commentsQuery = useQuery({
     ...postCommentsQueryOptions(commentsPostId ?? ""),
@@ -446,6 +447,10 @@ export function ReelsScreen() {
     setChromeHidden(hidden);
   }, []);
 
+  const onPinchZoomChange = useCallback((zooming: boolean) => {
+    setPinchZooming(zooming);
+  }, []);
+
   const renderItem = useCallback(
     ({ item, index }: { item: ReelsSlot; index: number }) => {
       if (item.kind === "ad") {
@@ -473,6 +478,7 @@ export function ReelsScreen() {
           onOpenComments={openComments}
           onPrefetchComments={prefetchComments}
           onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
+          onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
         />
       );
     },
@@ -482,6 +488,7 @@ export function ReelsScreen() {
       chrome.stageWidth,
       height,
       onFastForwardChange,
+      onPinchZoomChange,
       openComments,
       prefetchComments,
       seedVideoByGroup,
@@ -505,7 +512,10 @@ export function ReelsScreen() {
 
   useEffect(() => {
     setChromeHidden(false);
+    setPinchZooming(false);
   }, [activeSlot]);
+
+  const hideChrome = chromeHidden || pinchZooming;
 
   if (feedQuery.isLoading && groups.length === 0) {
     return (
@@ -517,7 +527,7 @@ export function ReelsScreen() {
 
   return (
     <View style={styles.root}>
-      {!chromeHidden ? (
+      {!hideChrome ? (
         <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={28} color="#fff" />
@@ -525,7 +535,7 @@ export function ReelsScreen() {
         </View>
       ) : null}
 
-      {!chromeHidden && chrome.isWide ? (
+      {!hideChrome && chrome.isWide ? (
         <ReelsWideNavRail
           width={chrome.leftRailWidth}
           topInset={insets.top}
@@ -534,7 +544,7 @@ export function ReelsScreen() {
       ) : null}
 
       {/* Up / down affordances like web */}
-      {!chromeHidden ? (
+      {!hideChrome ? (
         <View
           style={[
             styles.navArrows,
@@ -575,6 +585,7 @@ export function ReelsScreen() {
         bounces={false}
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
+        scrollEnabled={!pinchZooming}
         onLayout={onListLayout}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
