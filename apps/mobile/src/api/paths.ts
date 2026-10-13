@@ -61,6 +61,7 @@ export const MobileApi = {
   marketplaceShareCard: (id: string) => `/api/mobile/marketplace/${id}/share-card`,
   marketplaceTradeComplete: (id: string) => `/api/mobile/marketplace/${id}/trade-complete`,
   marketplaceBump: (id: string) => `/api/mobile/marketplace/${id}/bump`,
+  marketplaceHide: (id: string) => `/api/mobile/marketplace/${id}/hide`,
   marketplaceMeetPins: "/api/mobile/marketplace/meet-pins",
   marketplaceTradeRequest: (id: string) => `/api/mobile/marketplace/${id}/trade-request`,
   marketplaceTradeRequestDetail: (requestId: string) =>

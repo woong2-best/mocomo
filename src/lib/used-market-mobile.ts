@@ -270,9 +270,12 @@ export async function listMobileMyUsedListings(
       auctionEndsAt: true,
       currentBidAmount: true,
       bidCount: true,
+      removedAt: true,
+      removalReason: true,
     },
   });
 
+  const { isSellerHiddenUsedListing } = await import("@/lib/used-listing-seller-hide");
   return listings.map((l) => {
     const images = listingImages(l.images);
     return {
@@ -288,6 +291,7 @@ export async function listMobileMyUsedListings(
       auctionEndsAt: l.auctionEndsAt?.toISOString() ?? null,
       currentBidAmount: l.currentBidAmount ?? null,
       bidCount: l.bidCount ?? null,
+      sellerHidden: isSellerHiddenUsedListing(l),
     };
   });
 }
@@ -727,6 +731,51 @@ export function isUsedListingEditable(status: string) {
   return status === "SELLING";
 }
 
+export async function setMobileUsedListingHidden(
+  userId: string,
+  listingId: string,
+  hidden: boolean
+) {
+  const listing = await db.usedListing.findUnique({ where: { id: listingId } });
+  if (!listing || listing.sellerId !== userId) return { error: "Permission denied." as const };
+  if (!isUsedListingEditable(listing.status)) {
+    return { error: "Can't hide listings that are in progress or completed." as const };
+  }
+  const user = await loadUsedMarketUser(userId);
+  if (!user) return { error: "Sign-in required." as const };
+  const accessErr = assertUsedMarketAccess(user);
+  if (accessErr) return { error: accessErr };
+
+  const { USED_LISTING_SELLER_HIDDEN_REASON, isSellerHiddenUsedListing } = await import(
+    "@/lib/used-listing-seller-hide"
+  );
+
+  if (hidden) {
+    if (listing.removedAt && !isSellerHiddenUsedListing(listing)) {
+      return { error: "This listing was removed." as const };
+    }
+    await db.usedListing.update({
+      where: { id: listingId },
+      data: {
+        removedAt: new Date(),
+        removedById: userId,
+        removalReason: USED_LISTING_SELLER_HIDDEN_REASON,
+      },
+    });
+    return { success: true as const, hidden: true as const };
+  }
+
+  if (!listing.removedAt) return { success: true as const, hidden: false as const };
+  if (!isSellerHiddenUsedListing(listing)) {
+    return { error: "This listing was removed." as const };
+  }
+  await db.usedListing.update({
+    where: { id: listingId },
+    data: { removedAt: null, removedById: null, removalReason: null },
+  });
+  return { success: true as const, hidden: false as const };
+}
+
 export async function deleteMobileUsedListing(userId: string, listingId: string) {
   const listing = await db.usedListing.findUnique({ where: { id: listingId } });
   if (!listing || listing.sellerId !== userId) return { error: "Permission denied." as const };
@@ -749,6 +798,9 @@ export async function bumpMobileUsedListing(userId: string, listingId: string) {
   if (listing.saleType !== "FIXED") return { error: "Auction listings can't be bumped." as const };
   if (!isUsedListingEditable(listing.status)) {
     return { error: "Can't bump listings that are in progress or completed." as const };
+  }
+  if (listing.removedAt) {
+    return { error: "Can't bump a hidden listing." as const };
   }
   const user = await loadUsedMarketUser(userId);
   if (!user) return { error: "Sign-in required." as const };

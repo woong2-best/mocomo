@@ -274,7 +274,10 @@ export async function getUsedListing(id: string, viewerId?: string) {
       });
     }
     if (!listing) return null;
-    if (listing.removedAt) return null;
+    if (listing.removedAt) {
+      const { isSellerHiddenUsedListing } = await import("@/lib/used-listing-seller-hide");
+      if (!isSellerHiddenUsedListing(listing) || listing.sellerId !== viewerId) return null;
+    }
 
     if (
       (listing.meetLat == null || listing.meetLng == null) &&
@@ -466,6 +469,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
       }
     }
 
+    const { isSellerHiddenUsedListing } = await import("@/lib/used-listing-seller-hide");
     return {
       listing,
       favorited,
@@ -480,6 +484,7 @@ export async function getUsedListing(id: string, viewerId?: string) {
       viewerAdultVerified,
       auctionBids,
       priceOffers,
+      sellerHidden: isSellerHiddenUsedListing(listing),
     };
   } catch {
     return null;
@@ -703,6 +708,55 @@ export async function createUsedListing(data: {
       error: "actions.s178nboa",
     };
   }
+}
+
+export async function bumpUsedListing(listingId: string) {
+  const user = await requireAuth();
+  const { bumpMobileUsedListing } = await import("@/lib/used-market-mobile");
+  const result = await bumpMobileUsedListing(user.id, listingId);
+  if ("error" in result && result.error) return { error: result.error };
+  revalidatePath("/market");
+  revalidatePath(`/market/${listingId}`);
+  revalidatePath("/market/my");
+  return result;
+}
+
+export async function hideUsedListing(listingId: string, hidden: boolean) {
+  const user = await requireAuth();
+  const { setMobileUsedListingHidden } = await import("@/lib/used-market-mobile");
+  const result = await setMobileUsedListingHidden(user.id, listingId, hidden);
+  if ("error" in result && result.error) return { error: result.error };
+  revalidatePath("/market");
+  revalidatePath(`/market/${listingId}`);
+  revalidatePath("/market/my");
+  return result;
+}
+
+export async function updateUsedListing(
+  listingId: string,
+  data: {
+    title?: string;
+    description?: string;
+    price?: number;
+    currency?: string;
+    region?: string;
+    meetPlace?: string;
+    meetLat?: number;
+    meetLng?: number;
+    meetCountry?: string;
+    images?: string[];
+    isNsfw?: boolean;
+  } & SubcultureListingInput
+) {
+  const user = await requireAuth();
+  const { updateMobileUsedListing } = await import("@/lib/used-market-mobile");
+  const result = await updateMobileUsedListing(user.id, listingId, data);
+  if ("error" in result && result.error) return { error: result.error };
+  revalidatePath("/market");
+  revalidatePath(`/market/${listingId}`);
+  revalidatePath(`/market/${listingId}/edit`);
+  revalidatePath("/market/my");
+  return result;
 }
 
 export async function updateUsedListingStatus(listingId: string, status: UsedListingStatus) {

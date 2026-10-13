@@ -103,6 +103,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
     auctionBids,
 
     priceOffers,
+    sellerHidden = false,
 
   } = data;
 
@@ -198,7 +199,12 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
       <UsedDetailHeader
         listingId={listing.id}
+        listingTitle={listing.title}
         isSeller={!!isSeller}
+        sellerId={listing.sellerId}
+        sellerUsername={listing.seller?.username ?? "user"}
+        saleType={listing.saleType}
+        sellerHidden={!!sellerHidden}
         initialFavorited={favorited}
         initialStarred={starred}
         heading={showLiveAuctionUi ? t("ui.auction") : t("ui.listing")}

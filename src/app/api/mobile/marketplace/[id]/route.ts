@@ -143,6 +143,7 @@ export async function GET(
       buyerTradeConfirmed: !!listing.buyerTradeConfirmedAt,
       isNsfw: listing.isNsfw,
       editLocked: listing.status !== "SELLING",
+      sellerHidden: result.sellerHidden ?? false,
     },
   });
 }

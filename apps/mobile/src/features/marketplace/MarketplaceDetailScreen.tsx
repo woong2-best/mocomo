@@ -31,6 +31,10 @@ import {
   toggleMarketplaceFavorite,
   toggleMarketplaceStar,
 } from "@/api/marketplace";
+import {
+  UsedListingOverflowMenu,
+  type MenuAnchor,
+} from "@/features/marketplace/UsedListingOverflowMenu";
 import { fetchAuctionDepositStatus } from "@/api/auction-deposit";
 import { UsedAuctionBidHoldSheet } from "@/payments/UsedAuctionBidHoldSheet";
 import { ApiError } from "@/api/client";
@@ -137,6 +141,8 @@ export function MarketplaceDetailScreen() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
+  const moreRef = useRef<View>(null);
   const keyboardHeight = useKeyboardBottomInset();
   const { height: windowHeight } = useWindowDimensions();
   const relaxedHeightRef = useRef(windowHeight);
@@ -403,8 +409,28 @@ export function MarketplaceDetailScreen() {
               />
             </Pressable>
           ) : null}
+          {item ? (
+            <View ref={moreRef} collapsable={false}>
+              <Pressable
+                style={styles.topHeart}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t("nav.more")}
+                onPress={() => {
+                  moreRef.current?.measureInWindow((x, y, width, height) => {
+                    setMenuAnchor({ x, y, width, height });
+                  });
+                }}
+              >
+                <Ionicons name="ellipsis-horizontal" size={24} color={colors.textMuted} />
+              </Pressable>
+            </View>
+          ) : null}
         </View>
       </View>
+      {item?.isOwner && item.sellerHidden ? (
+        <Text style={styles.hiddenBanner}>{t("m.marketplace.listing_hidden_from_market")}</Text>
+      ) : null}
       {query.isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.accent} />
       ) : query.isError || !item ? (
@@ -658,6 +684,24 @@ export function MarketplaceDetailScreen() {
           }}
         />
       ) : null}
+      {item ? (
+        <UsedListingOverflowMenu
+          visible={!!menuAnchor}
+          anchor={menuAnchor}
+          item={item}
+          isOwner={!!item.isOwner}
+          navigation={navigation}
+          onClose={() => setMenuAnchor(null)}
+          onDismissed={() => {
+            void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
+            navigation.goBack();
+          }}
+          onDeleted={() => {
+            void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
+            navigation.goBack();
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -678,6 +722,13 @@ function createThemedStyles(colors: ThemeColors) {
   },
   back: { color: colors.accent, fontWeight: "600" },
   heading: { flex: 1, fontSize: 20, fontWeight: "800", color: colors.text },
+  hiddenBanner: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "600",
+  },
   topActions: { flexDirection: "row", alignItems: "center", gap: 2 },
   topHeart: { padding: 4 },
   topHeartSpacer: { width: 32 },

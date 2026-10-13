@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -14,11 +15,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   bumpMarketplaceListing,
   deleteMarketplaceListing,
+  hideMarketplaceListing,
+  type MarketplaceDetail,
   type MarketplaceListItem,
 } from "@/api/marketplace";
 import { blockUser } from "@/api/social";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
-import { dismissUsedListing } from "@/lib/used-listing-dismiss";
+import { API_BASE_URL } from "@/config/env";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
@@ -36,7 +39,7 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   anchor: MenuAnchor | null;
-  item: MarketplaceListItem;
+  item: MarketplaceListItem | MarketplaceDetail;
   isOwner: boolean;
   navigation: NativeStackNavigationProp<RootStackParamList>;
   onDismissed?: (listingId: string) => void;
@@ -62,7 +65,8 @@ export function UsedListingOverflowMenu({
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
-  const [confirm, setConfirm] = useState<"delete" | "block" | null>(null);
+  const [confirm, setConfirm] = useState<"delete" | "block" | "hide" | null>(null);
+  const sellerHidden = !!item.sellerHidden;
 
   const sellerId = item.sellerId ?? item.seller?.id ?? "";
   const sellerUsername = item.seller?.username ?? "user";
@@ -77,6 +81,16 @@ export function UsedListingOverflowMenu({
   const menuLeft = anchor
     ? Math.max(spacing.sm, Math.min(anchor.x + anchor.width - MENU_WIDTH, windowWidth - MENU_WIDTH - spacing.sm))
     : spacing.sm;
+
+  const listingShareUrl = `${API_BASE_URL.replace(/\/$/, "")}/market/${item.id}`;
+
+  const onShare = useCallback(() => {
+    closeAll();
+    void Share.share({
+      message: `${item.title}\n${listingShareUrl}`,
+      url: listingShareUrl,
+    });
+  }, [closeAll, item.title, listingShareUrl]);
 
   const onEdit = useCallback(() => {
     closeAll();
@@ -121,20 +135,34 @@ export function UsedListingOverflowMenu({
     setConfirm("delete");
   }, [busy]);
 
-  const onNotInterested = useCallback(async () => {
+  const runHide = useCallback(() => {
     if (busy) return;
     setBusy("hide");
-    try {
-      await dismissUsedListing(item.id);
-      closeAll();
-      onDismissed?.(item.id);
-      showIslandSuccess(t("m.marketplace.not_interested"), t("m.marketplace.hidden_this_listing_from_your_feed"));
-    } catch (e) {
-      showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.common.something_went_wrong"));
-    } finally {
-      setBusy(null);
+    void (async () => {
+      try {
+        await hideMarketplaceListing(item.id, !sellerHidden);
+        closeAll();
+        void queryClient.invalidateQueries({ queryKey: ["mobile-marketplace"] });
+        showIslandSuccess(
+          sellerHidden ? t("m.marketplace.unhide") : t("m.marketplace.hidden"),
+          sellerHidden ? undefined : t("m.marketplace.listing_hidden_from_market")
+        );
+      } catch (e) {
+        showIslandError(t("m.common.error"), e instanceof Error ? e.message : t("m.common.something_went_wrong"));
+      } finally {
+        setBusy(null);
+      }
+    })();
+  }, [busy, closeAll, item.id, onDismissed, queryClient, sellerHidden, t]);
+
+  const onHide = useCallback(() => {
+    if (busy) return;
+    if (sellerHidden) {
+      runHide();
+      return;
     }
-  }, [busy, closeAll, item.id, onDismissed]);
+    setConfirm("hide");
+  }, [busy, runHide, sellerHidden]);
 
   const runBlock = useCallback(() => {
     if (busy || !sellerId) return;
@@ -188,6 +216,19 @@ export function UsedListingOverflowMenu({
                     <Text style={styles.rowText}>{t("toast.cancel")}</Text>
                   </Pressable>
                 </>
+              ) : confirm === "hide" ? (
+                <>
+                  <Text style={styles.confirmTitle}>{t("m.marketplace.hide_listing")}</Text>
+                  <Text style={styles.confirmBody}>{t("m.marketplace.hide_this_used_market_listing")}</Text>
+                  <Pressable style={styles.row} onPress={runHide} disabled={!!busy}>
+                    <Ionicons name="eye-off-outline" size={18} color={colors.text} />
+                    <Text style={styles.rowText}>{t("m.marketplace.hide")}</Text>
+                    {busy === "hide" ? <ActivityIndicator size="small" color={colors.cobalt} /> : null}
+                  </Pressable>
+                  <Pressable style={styles.row} onPress={() => setConfirm(null)}>
+                    <Text style={styles.rowText}>{t("toast.cancel")}</Text>
+                  </Pressable>
+                </>
               ) : confirm === "block" ? (
                 <>
                   <Text style={styles.confirmTitle}>{t("m.common.block")}</Text>
@@ -207,15 +248,27 @@ export function UsedListingOverflowMenu({
                 <>
                   <Pressable style={styles.row} onPress={onEdit} disabled={!!busy}>
                     <Ionicons name="create-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>{t("m.common.edit")}</Text>
+                    <Text style={styles.rowText}>{t("m.marketplace.edit_listing")}</Text>
                   </Pressable>
+                  {item.saleType !== "AUCTION" && !sellerHidden ? (
+                    <>
+                      <View style={styles.sep} />
+                      <Pressable style={styles.row} onPress={() => void onBump()} disabled={!!busy}>
+                        <Ionicons name="arrow-up-circle-outline" size={18} color={colors.text} />
+                        <Text style={styles.rowText}>{t("m.marketplace.up")}</Text>
+                        {busy === "bump" ? (
+                          <ActivityIndicator size="small" color={colors.cobalt} />
+                        ) : null}
+                      </Pressable>
+                    </>
+                  ) : null}
                   <View style={styles.sep} />
-                  <Pressable style={styles.row} onPress={() => void onBump()} disabled={!!busy}>
-                    <Ionicons name="arrow-up-circle-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>{t("m.marketplace.bump")}</Text>
-                    {busy === "bump" ? (
-                      <ActivityIndicator size="small" color={colors.cobalt} />
-                    ) : null}
+                  <Pressable style={styles.row} onPress={onHide} disabled={!!busy}>
+                    <Ionicons name="eye-off-outline" size={18} color={colors.text} />
+                    <Text style={styles.rowText}>
+                      {sellerHidden ? t("m.marketplace.unhide") : t("m.marketplace.hide")}
+                    </Text>
+                    {busy === "hide" ? <ActivityIndicator size="small" color={colors.cobalt} /> : null}
                   </Pressable>
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={onDelete} disabled={!!busy}>
@@ -228,15 +281,9 @@ export function UsedListingOverflowMenu({
                 </>
               ) : (
                 <>
-                  <Pressable style={styles.row} onPress={openReport} disabled={!!busy}>
-                    <Ionicons name="flag-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>{t("post.menu.report")}</Text>
-                  </Pressable>
-                  <View style={styles.sep} />
-                  <Pressable style={styles.row} onPress={() => void onNotInterested()} disabled={!!busy}>
-                    <Ionicons name="eye-off-outline" size={18} color={colors.text} />
-                    <Text style={styles.rowText}>{t("m.marketplace.not_interested")}</Text>
-                    {busy === "hide" ? <ActivityIndicator size="small" color={colors.cobalt} /> : null}
+                  <Pressable style={styles.row} onPress={onShare} disabled={!!busy}>
+                    <Ionicons name="share-outline" size={18} color={colors.text} />
+                    <Text style={styles.rowText}>{t("m.marketplace.share")}</Text>
                   </Pressable>
                   <View style={styles.sep} />
                   <Pressable style={styles.row} onPress={onBlock} disabled={!!busy}>
@@ -245,6 +292,11 @@ export function UsedListingOverflowMenu({
                     {busy === "block" ? (
                       <ActivityIndicator size="small" color={colors.terracotta} />
                     ) : null}
+                  </Pressable>
+                  <View style={styles.sep} />
+                  <Pressable style={styles.row} onPress={openReport} disabled={!!busy}>
+                    <Ionicons name="flag-outline" size={18} color={colors.text} />
+                    <Text style={styles.rowText}>{t("post.menu.report")}</Text>
                   </Pressable>
                 </>
               )}

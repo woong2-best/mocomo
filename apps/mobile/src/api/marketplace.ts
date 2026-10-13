@@ -20,6 +20,7 @@ export type MarketplaceListItem = {
   workTitle: string | null;
   productType: string | null;
   isNsfw?: boolean;
+  sellerHidden?: boolean;
   sellerId?: string;
   seller: { id: string; username: string; image: string | null } | null;
 };
@@ -221,6 +222,13 @@ export async function bumpMarketplaceListing(id: string) {
   return apiRequest<{ success: true; bumpedAt: string }>(MobileApi.marketplaceBump(id), {
     method: "POST",
     body: {},
+  });
+}
+
+export async function hideMarketplaceListing(id: string, hidden: boolean) {
+  return apiRequest<{ success: true; hidden: boolean }>(MobileApi.marketplaceHide(id), {
+    method: "POST",
+    body: { hidden },
   });
 }
 

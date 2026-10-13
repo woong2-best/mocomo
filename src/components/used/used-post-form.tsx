@@ -7,7 +7,7 @@ const t = createTranslator("en");
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUsedListing } from "@/actions/used-market";
+import { createUsedListing, updateUsedListing } from "@/actions/used-market";
 import { UsedImageComposer } from "@/components/media/post-media-composer";
 import {
   DEFAULT_USED_CURRENCY,
@@ -17,7 +17,14 @@ import {
   type UsedCurrency,
 } from "@/lib/used-market";
 import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
-import { productTypeForSellKind, USED_CONDITION_OPTIONS, USED_SELL_KINDS } from "@/lib/used-catalog";
+import {
+  productTypeForSellKind,
+  sellKindFromListing,
+  usedPriceInputValue,
+  USED_CONDITION_OPTIONS,
+  USED_SELL_KINDS,
+} from "@/lib/used-catalog";
+import { listingImages } from "@/lib/used-market";
 import {
   parseUsdDollarsToCents,
   sanitizeKrwWonInput,
@@ -112,42 +119,79 @@ function MarketCheckOption({
 export function UsedPostForm({
   defaultRegion,
   sellerCountryCode = "KR",
+  editListing,
 }: {
   defaultRegion?: string;
   sellerAdultVerified?: boolean;
   sellerCountryCode?: string;
+  editListing?: {
+    id: string;
+    title: string;
+    description: string;
+    price: number;
+    currency?: string | null;
+    category?: string | null;
+    productType?: string | null;
+    workTitle?: string | null;
+    animeSlug?: string | null;
+    conditionGrade?: string | null;
+    tradeMode?: string | null;
+    region: string;
+    meetPlace?: string | null;
+    meetLat?: number | null;
+    meetLng?: number | null;
+    images: unknown;
+    isNsfw?: boolean;
+  };
 }) {
   const router = useRouter();
   const { t } = useLocale();
   const sellerCountry = sellerCountryCode.toUpperCase();
   const korea = isKoreaUsedMarketCountry(sellerCountry);
   const parsedDefault = defaultRegion ? parseUsedRegion(defaultRegion) : null;
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
+  const editing = !!editListing;
+  const [title, setTitle] = useState(editListing?.title ?? "");
+  const [description, setDescription] = useState(editListing?.description ?? "");
+  const [price, setPrice] = useState(
+    editListing ? usedPriceInputValue(editListing.price, editListing.currency) : ""
+  );
   const [currency, setCurrency] = useState<UsedCurrency>(
-    korea ? DEFAULT_USED_CURRENCY : "usd"
+    (editListing?.currency as UsedCurrency | undefined) ?? (korea ? DEFAULT_USED_CURRENCY : "usd")
   );
-  const [giveaway, setGiveaway] = useState(false);
-  const [tradeMode, setTradeMode] = useState<"SELL" | "TRADE">("SELL");
-  const [workTitle, setWorkTitle] = useState("");
-  const [animeSlug, setAnimeSlug] = useState<string | null>(null);
-  const [sellKind, setSellKind] = useState("");
-  const [conditionGrade, setConditionGrade] = useState("NEW");
+  const [giveaway, setGiveaway] = useState(
+    !!editListing && editListing.price === 0 && editListing.tradeMode !== "TRADE"
+  );
+  const [tradeMode, setTradeMode] = useState<"SELL" | "TRADE">(
+    editListing?.tradeMode === "TRADE" ? "TRADE" : "SELL"
+  );
+  const [workTitle, setWorkTitle] = useState(editListing?.workTitle ?? "");
+  const [animeSlug, setAnimeSlug] = useState<string | null>(editListing?.animeSlug ?? null);
+  const [sellKind, setSellKind] = useState(
+    editListing ? sellKindFromListing(editListing.category, editListing.productType) : ""
+  );
+  const [conditionGrade, setConditionGrade] = useState(editListing?.conditionGrade ?? "NEW");
   const [region, setRegion] = useState(
-    parsedDefault && defaultRegion
-      ? defaultRegion
-      : korea
-        ? formatUsedRegion(
-            KOREA_SIDO[0]?.short ?? t("lib.maps.sxxr0"),
-            KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? t("used.su9n85")
-          )
-        : ""
+    editListing?.region
+      ? editListing.region
+      : parsedDefault && defaultRegion
+        ? defaultRegion
+        : korea
+          ? formatUsedRegion(
+              KOREA_SIDO[0]?.short ?? t("lib.maps.sxxr0"),
+              KOREA_SIGUNGU_BY_SIDO.seoul?.[0] ?? t("used.su9n85")
+            )
+          : ""
   );
-  const [meetPlace, setMeetPlace] = useState("");
-  const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(null);
-  const [isNsfw, setIsNsfw] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
+  const [meetPlace, setMeetPlace] = useState(editListing?.meetPlace ?? "");
+  const [meetCoords, setMeetCoords] = useState<MeetCoords | null>(
+    editListing?.meetLat != null && editListing?.meetLng != null
+      ? { lat: editListing.meetLat, lng: editListing.meetLng }
+      : null
+  );
+  const [isNsfw, setIsNsfw] = useState(!!editListing?.isNsfw);
+  const [images, setImages] = useState<string[]>(
+    editListing ? listingImages(editListing.images) : []
+  );
   const [mediaUploading, setMediaUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -212,13 +256,11 @@ export function UsedPostForm({
     }
 
     setLoading(true);
-    const res = await createUsedListing({
+    const payload = {
       title: title.trim(),
       description: description.trim(),
       price: submitPrice,
       currency,
-      category: sellKind,
-      categories: [sellKind],
       region: submitRegion,
       meetPlace: meetPlace.trim() || undefined,
       meetLat: meetCoords?.lat,
@@ -233,15 +275,23 @@ export function UsedPostForm({
         tradeMode: isTrade ? "TRADE" : "SELL",
       }),
       isNsfw,
-      saleType: "FIXED",
-    });
+    };
+    const res = editing
+      ? await updateUsedListing(editListing.id, payload)
+      : await createUsedListing({
+          ...payload,
+          category: sellKind,
+          categories: [sellKind],
+          saleType: "FIXED",
+        });
     setLoading(false);
     if ("error" in res && res.error) {
       setError(errorText(res.error));
       return;
     }
-    if ("listingId" in res && res.listingId) {
-      router.push(`/market/${res.listingId}`);
+    const nextId = editing ? editListing.id : "listingId" in res ? res.listingId : null;
+    if (nextId) {
+      router.push(`/market/${nextId}`);
       return;
     }
     setError(t("ui.could_not_publish_please_try_again"));
@@ -411,7 +461,7 @@ export function UsedPostForm({
         disabled={loading || priceOverLimit || mediaUploading}
         className="fixed inset-x-4 bottom-[calc(var(--mobile-nav-h,0px)+1rem)] z-40 h-12 rounded-full bg-folk-terracotta text-base font-extrabold text-white shadow-md hover:bg-folk-terracotta/90 disabled:opacity-60 md:static md:inset-auto md:mt-2 md:w-full"
       >
-        {loading ? t("ui.publishing") : t("ui.publish")}
+        {loading ? t("ui.publishing") : editing ? t("ui.save_changes") : t("ui.publish")}
       </button>
     </form>
   );

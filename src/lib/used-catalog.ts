@@ -35,6 +35,28 @@ export function productTypeForSellKind(kind: string): string | undefined {
   return undefined;
 }
 
+export function sellKindFromListing(category?: string | null, productType?: string | null) {
+  const kinds = new Set(USED_SELL_KINDS.map((k) => k.id));
+  if (category && kinds.has(category as (typeof USED_SELL_KINDS)[number]["id"])) {
+    return category;
+  }
+  if (productType === "FIGURE") return "FIGURE";
+  if (productType === "TCG_CARD") return "TCG";
+  if (productType === "BOOK") return "BOOK";
+  if (productType === "COSPLAY_COSTUME") return "COSPLAY";
+  if (category === "DIGITAL") return "DIGITAL";
+  return "GOODS";
+}
+
+export function usedPriceInputValue(amount: number, currency?: string | null): string {
+  if (!Number.isFinite(amount)) return "";
+  if ((currency ?? "krw").toLowerCase() === "usd") {
+    const dollars = amount / 100;
+    return Number.isInteger(dollars) ? String(dollars) : dollars.toFixed(2);
+  }
+  return String(Math.max(0, Math.round(amount)));
+}
+
 /** 띄어쓰기·특수공백 제거 (작품명 검색·저장용) */
 export function compactWorkKey(input: string | null | undefined): string {
   if (!input) return "";

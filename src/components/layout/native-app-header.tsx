@@ -102,6 +102,7 @@ function titleForPath(
   if (pathname === "/market/adult-verify") return t("ui.adult_verification");
   if (pathname === "/market/verify") return t("ui.identity_verification");
   if (pathname.startsWith("/wallet")) return t("nav.wallet");
+  if (pathname.match(/^\/market\/[^/]+\/edit$/)) return t("ui.edit_listing");
   if (pathname.match(/^\/market\/[^/]+$/) && pathname !== "/market/new" && pathname !== "/market/my") {
     return t("ui.listing");
   }
