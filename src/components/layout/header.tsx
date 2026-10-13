@@ -78,7 +78,7 @@ export function Header() {
             aria-label={isHome ? t("auth.reload", { v0: BRAND.name }) : BRAND.name}
           >
             <span className="font-display font-bold text-base truncate folk-chunky-text text-folk-cobalt">
-              {BRAND.name}
+              {BRAND.wordmark}
             </span>
           </Link>
         </div>

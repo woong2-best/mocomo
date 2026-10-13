@@ -43,7 +43,7 @@ export function SidebarToggleButton() {
             !isHome && "group-hover/home:opacity-0"
           )}
         >
-          {BRAND.name}
+          {BRAND.wordmark}
         </span>
         {!isHome && (
           <span

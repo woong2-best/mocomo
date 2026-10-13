@@ -12,6 +12,7 @@ export function PageSection({
   children,
   className,
   headerClassName,
+  titleClassName,
   id,
 }: {
   title: string;
@@ -22,12 +23,18 @@ export function PageSection({
   children: React.ReactNode;
   className?: string;
   headerClassName?: string;
+  titleClassName?: string;
   id?: string;
 }) {
   const header = (
     <div className={cn("flex items-start justify-between gap-3", variant !== "plain" && "mb-3", headerClassName)}>
       <div className="min-w-0">
-        <h2 className="font-display font-bold text-base sm:text-lg text-folk-cobalt flex items-center gap-2 leading-tight">
+        <h2
+          className={cn(
+            "font-display font-bold text-base sm:text-lg text-folk-cobalt flex items-center gap-2 leading-tight",
+            titleClassName
+          )}
+        >
           {Icon ? <Icon className="h-5 w-5 shrink-0 text-folk-terracotta" aria-hidden /> : null}
           <span>{title}</span>
         </h2>

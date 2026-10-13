@@ -51,7 +51,7 @@ export function HomeFeedClient({
     <>
       <FeedScrollTopOnMount />
       <FolkBrushDivider className="mb-5 opacity-40" />
-      <PageSection title={t("feed.title")} description={t("feed.tabs")}>
+      <PageSection title={t("feed.title")} description={t("feed.tabs")} titleClassName="text-white">
         <FeedInfinite
           initialItems={visibleItems}
           initialCursor={nextCursor}
