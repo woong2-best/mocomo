@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useSession } from "next-auth/react";
+import { AlertTriangle, X } from "lucide-react";
 import {
   ackSanctionNotice,
   loadMySanctionNotice,
@@ -87,12 +88,24 @@ export function SanctionNoticeDialog() {
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-5 shadow-xl">
+      <div className="w-full max-w-md space-y-4 overflow-hidden rounded-2xl border border-border bg-[hsl(var(--card))] p-5 text-card-foreground shadow-xl">
         <div>
-          <p className="text-lg font-semibold">{copy.title}</p>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-folk-terracotta" aria-hidden />
+            <p className="min-w-0 flex-1 text-lg font-semibold">{copy.title}</p>
+            <button
+              type="button"
+              aria-label="Close"
+              disabled={pending}
+              onClick={closeAfterAck}
+              className="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-muted"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
           <p className="mt-2 text-sm text-muted-foreground">{copy.body}</p>
           {notice.reason ? (
-            <p className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-sm">{notice.reason}</p>
+            <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-sm">{notice.reason}</p>
           ) : null}
         </div>
         {done ? (
@@ -109,18 +122,21 @@ export function SanctionNoticeDialog() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Appeal title"
               maxLength={100}
+              className="bg-background"
             />
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Explain why this decision should be reviewed (20+ characters)"
               rows={4}
+              className="bg-background"
             />
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Contact email"
+              className="bg-background"
             />
             {error ? <p className="text-xs text-destructive">{error}</p> : null}
             <div className="flex gap-2">

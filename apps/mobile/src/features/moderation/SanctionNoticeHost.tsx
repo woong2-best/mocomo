@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/auth/AuthContext";
 import {
   ackSanctionNotice,
@@ -69,12 +70,31 @@ export function SanctionNoticeHost() {
 
   if (status !== "signedIn" || !notice) return null;
   const copy = copyFor(notice);
+  const cardBg = colors.surfaceRaised;
+
+  function dismiss() {
+    void ackSanctionNotice(notice.id).finally(() => setNotice(null));
+  }
 
   return (
     <Modal visible transparent animationType="fade">
       <View style={styles.scrim}>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <Text style={[styles.title, { color: colors.text }]}>{copy.title}</Text>
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: colors.border }]}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Ionicons name="warning" size={22} color={colors.terracotta} />
+              <Text style={[styles.title, { color: colors.text }]}>{copy.title}</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              hitSlop={10}
+              onPress={dismiss}
+              style={styles.closeBtn}
+            >
+              <Ionicons name="close" size={22} color={colors.text} />
+            </Pressable>
+          </View>
           <Text style={[styles.body, { color: colors.textMuted }]}>{copy.body}</Text>
           {notice.reason ? (
             <Text style={[styles.reason, { color: colors.text }]}>{notice.reason}</Text>
@@ -93,7 +113,10 @@ export function SanctionNoticeHost() {
                 onChangeText={setTitle}
                 placeholder="Appeal title"
                 placeholderTextColor={colors.textMuted}
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
               />
               <TextInput
                 value={content}
@@ -101,7 +124,11 @@ export function SanctionNoticeHost() {
                 placeholder="Why this should be reviewed (20+ characters)"
                 placeholderTextColor={colors.textMuted}
                 multiline
-                style={[styles.input, styles.area, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  styles.area,
+                  { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
               />
               <TextInput
                 value={email}
@@ -110,16 +137,17 @@ export function SanctionNoticeHost() {
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.input,
+                  { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
               />
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <View style={styles.row}>
                 <Pressable
                   style={[styles.btn, styles.ghost]}
                   disabled={busy}
-                  onPress={() => {
-                    void ackSanctionNotice(notice.id).finally(() => setNotice(null));
-                  }}
+                  onPress={dismiss}
                 >
                   <Text style={[styles.btnText, { color: colors.text }]}>Dismiss</Text>
                 </Pressable>
@@ -167,8 +195,30 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     gap: 10,
+    borderWidth: 1,
+    overflow: "hidden",
+    backgroundColor: "#1E2C45",
   },
-  title: { fontSize: 18, fontWeight: "700" },
+  header: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  headerLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: { flex: 1, fontSize: 18, fontWeight: "700" },
   body: { fontSize: 14, lineHeight: 20 },
   reason: { fontSize: 13, lineHeight: 18 },
   input: {
