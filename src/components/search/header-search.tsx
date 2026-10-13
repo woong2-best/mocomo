@@ -6,12 +6,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import type { FastSearchResult } from "@/lib/search-fast";
 import { SearchPreviewPanel } from "@/components/search/search-preview-panel";
-import { SearchRankingFocusPanel } from "@/components/search/search-ranking-focus-panel";
+import { SearchRecentFocusPanel } from "@/components/search/search-recent-focus-panel";
 import { getHeaderSearchContext } from "@/lib/header-search-context";
-import type {
-  SidebarSearchRankingItem,
-  SidebarSearchRankingScope,
-} from "@/lib/scoped-search-rank-shared";
+import { loadRecentSearches, rememberRecentSearch } from "@/lib/recent-searches";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -43,9 +40,8 @@ export function HeaderSearch({
   const [q, setQ] = useState(usesPageQuery ? urlQuery : defaultQuery);
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<FastSearchResult | null>(null);
-  const [rankings, setRankings] = useState<SidebarSearchRankingItem[]>([]);
-  const [rankScope, setRankScope] = useState<SidebarSearchRankingScope>("global");
-  const [rankPending, setRankPending] = useState(false);
+  const [recents, setRecents] = useState<string[]>([]);
+  const [recentsPending, setRecentsPending] = useState(false);
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null);
   const [mounted, setMounted] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -58,18 +54,11 @@ export function HeaderSearch({
     setMounted(true);
   }, []);
 
-  const loadRankings = useCallback(() => {
-    setRankPending(true);
-    void fetch(`/api/search/ranking?pathname=${encodeURIComponent(pathname ?? "/")}`)
-      .then((res) => res.json())
-      .then((body: { ok?: boolean; items?: SidebarSearchRankingItem[]; scope?: SidebarSearchRankingScope }) => {
-        if (!body.ok) return;
-        setRankings(body.items ?? []);
-        setRankScope(body.scope ?? "global");
-      })
-      .catch(() => undefined)
-      .finally(() => setRankPending(false));
-  }, [pathname]);
+  const refreshRecents = useCallback(() => {
+    setRecentsPending(true);
+    setRecents(loadRecentSearches(searchContext.scope));
+    setRecentsPending(false);
+  }, [searchContext.scope]);
 
   const fetchPreview = useCallback((term: string) => {
     const trimmed = term.trim();
@@ -130,7 +119,7 @@ export function HeaderSearch({
   useEffect(() => {
     setOpen(false);
     setResults(null);
-    setRankings([]);
+    setRecents([]);
   }, [pathname]);
 
   useEffect(() => {
@@ -182,13 +171,15 @@ export function HeaderSearch({
       window.removeEventListener("resize", updatePanelRect);
       window.removeEventListener("scroll", onScroll, true);
     };
-  }, [showDropdown, updatePanelRect, q, results, pending, rankings, rankPending]);
+  }, [showDropdown, updatePanelRect, q, results, pending, recents, recentsPending]);
 
-  function goFullSearch(e?: React.FormEvent) {
+  function goFullSearch(e?: React.FormEvent, nextTerm?: string) {
     e?.preventDefault();
-    const term = q.trim();
+    const term = (nextTerm ?? q).trim();
     if (term.length < 1) return;
+    setQ(term);
     setOpen(false);
+    setRecents(rememberRecentSearch(searchContext.scope, term));
 
     if (
       searchContext.scope === "used" ||
@@ -225,7 +216,7 @@ export function HeaderSearch({
     setQ("");
     setResults(null);
     setOpen(true);
-    loadRankings();
+    refreshRecents();
 
     if (usesPageQuery) {
       const params = new URLSearchParams(searchParams.toString());
@@ -241,7 +232,7 @@ export function HeaderSearch({
 
   function onInputFocus() {
     setOpen(true);
-    loadRankings();
+    refreshRecents();
     if (!searchContext.inPage && trimmed.length >= 1) {
       fetchPreview(q);
     }
@@ -285,12 +276,11 @@ export function HeaderSearch({
             onFullSearch={() => goFullSearch()}
           />
         ) : (
-          <SearchRankingFocusPanel
-            scope={rankScope}
-            items={rankings}
-            pending={rankPending}
+          <SearchRecentFocusPanel
+            items={recents}
+            pending={recentsPending}
             filter={searchContext.inPage ? q : undefined}
-            onPick={() => setOpen(false)}
+            onPick={(term) => goFullSearch(undefined, term)}
           />
         )}
       </div>,
@@ -325,7 +315,7 @@ export function HeaderSearch({
                   /* preview fetched via effect */
                 } else if (e.target.value.trim().length < 1) {
                   setResults(null);
-                  loadRankings();
+                  refreshRecents();
                 }
               }}
               onFocus={onInputFocus}

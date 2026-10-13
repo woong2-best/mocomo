@@ -476,6 +476,8 @@
   "search.headerPlaceholder.community": "QnA search",
   "search.headerPlaceholder.global": "Search",
   "search.rankingNoMatch": "No matching search terms.",
+  "search.recentTitle": "Recent searches",
+  "search.recentEmpty": "No recent searches",
   "search.clearAria": "Clear search",
   "messages.findByNickname": "Find by nickname",
   "messages.searchUserPlaceholder": "Search by name or username",

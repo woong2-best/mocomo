@@ -34,6 +34,10 @@ import type { RootStackParamList } from "@/navigation/types";
 import { useAuth } from "@/auth/AuthContext";
 import { MarketHubSlidePanel } from "@/features/marketplace/MarketHubSlidePanel";
 import type { MarketHubLane } from "@/features/marketplace/MarketHomeScreen";
+import {
+  loadRecentSearches,
+  rememberSearch,
+} from "@/features/marketplace/market-memory";
 import { SearchField } from "@/ui/SearchField";
 import {
   UsedListingOverflowMenu,
@@ -73,6 +77,8 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const { user, status: authStatus } = useAuth();
 
   const [q, setQ] = useState(routeParams.q ?? "");
+  const [recentQ, setRecentQ] = useState<string[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [category, setCategory] = useState<string | "ALL">("ALL");
   const [hubOpen, setHubOpen] = useState(false);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
@@ -83,6 +89,25 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   useEffect(() => {
     void loadDismissedUsedListingIds().then(setDismissedIds);
   }, []);
+
+  useEffect(() => {
+    void loadRecentSearches().then((terms) => setRecentQ(terms.slice(0, 3)));
+  }, []);
+
+  const saveSearch = useCallback((term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+    void rememberSearch(trimmed).then((terms) => setRecentQ(terms.slice(0, 3)));
+  }, []);
+
+  const applySearch = useCallback(
+    (term: string) => {
+      setQ(term);
+      saveSearch(term);
+      setSearchFocused(false);
+    },
+    [saveSearch]
+  );
 
   const listQuery = useMemo(() => {
     return {
@@ -169,10 +194,11 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       }
       if (q !== undefined) {
         setQ(q);
+        saveSearch(q);
       }
       setHubOpen(false);
     },
-    [isTab, navigation]
+    [isTab, navigation, saveSearch]
   );
 
   const openItem = useCallback(
@@ -295,6 +321,12 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           value={q}
           onChangeText={setQ}
           onClear={() => setQ("")}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => {
+            saveSearch(q);
+            setTimeout(() => setSearchFocused(false), 180);
+          }}
+          onSubmitEditing={() => saveSearch(q)}
           placeholder={t("common.search")}
           containerStyle={{ flex: 1 }}
         />
@@ -307,6 +339,22 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           <Ionicons name="menu-outline" size={26} color={ink} />
         </Pressable>
       </View>
+      {searchFocused && recentQ.length > 0 ? (
+        <View style={styles.recentWrap}>
+          {recentQ.slice(0, 3).map((term) => (
+            <Pressable
+              key={term}
+              style={styles.recentChip}
+              onPressIn={() => applySearch(term)}
+            >
+              <Ionicons name="time-outline" size={14} color={muted} />
+              <Text style={styles.recentChipText} numberOfLines={1}>
+                {term}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <ScrollView
         horizontal
@@ -358,6 +406,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingBottom: (isTab ? floatingTabClearance(insets.bottom) : insets.bottom) + 88,
           flexGrow: 1,
@@ -412,6 +461,31 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 14,
       paddingTop: 8,
       paddingBottom: 10,
+    },
+    recentWrap: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingBottom: 10,
+    },
+    recentChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      maxWidth: "100%",
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      backgroundColor: colors.surfaceRaised,
+    },
+    recentChipText: {
+      color: colors.text,
+      fontWeight: "600",
+      fontSize: 12,
+      maxWidth: 140,
     },
     search: {
       flex: 1,

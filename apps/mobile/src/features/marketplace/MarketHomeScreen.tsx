@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,11 +15,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchMarketplaceList, type MarketplaceListItem } from "@/api/marketplace";
-import {
-  clearRecentSearches,
-  loadRecentSearches,
-  loadRecentViews,
-} from "@/features/marketplace/market-memory";
+import { loadRecentViews } from "@/features/marketplace/market-memory";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import type { RootStackParamList } from "@/navigation/types";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -62,15 +57,12 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [recentQ, setRecentQ] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
-  const [clearOpen, setClearOpen] = useState(false);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      void Promise.all([loadRecentSearches(), loadRecentViews()]).then(([searches, ids]) => {
+      void loadRecentViews().then((ids) => {
         if (!alive) return;
-        setRecentQ(searches);
         setRecentIds(ids);
       });
       return () => {
@@ -123,37 +115,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
           </View>
         ) : null}
 
-        <View style={[styles.sectionHead, embedded && styles.sectionHeadEmbeddedTop]}>
-          <Text style={styles.sectionTitle}>{t("m.marketplace.recent_searches")}</Text>
-          <Pressable
-            hitSlop={10}
-            onPress={() => setClearOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel={t("m.marketplace.recent_search_menu")}
-          >
-            <Ionicons name="ellipsis-horizontal" size={18} color={icon} />
-          </Pressable>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipScroll}
-          contentContainerStyle={styles.chipRow}
-        >
-          {recentQ.length === 0 ? (
-            <Text style={styles.muted}>{t("m.marketplace.no_recent_searches")}</Text>
-          ) : (
-            recentQ.map((term) => (
-              <Pressable key={term} style={styles.chip} onPress={() => openLane("all", term)}>
-                <Text style={styles.chipText} numberOfLines={1}>
-                  {term}
-                </Text>
-              </Pressable>
-            ))
-          )}
-        </ScrollView>
-
-        <View style={styles.shortcutRow}>
+        <View style={[styles.shortcutRow, embedded && styles.shortcutRowEmbeddedTop]}>
           {shortcuts.map((item) => (
             <Pressable
               key={item.label}
@@ -231,24 +193,6 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
         </ScrollView>
       )}
 
-      <Modal visible={clearOpen} transparent animationType="fade" onRequestClose={() => setClearOpen(false)}>
-        <Pressable style={styles.popupScrim} onPress={() => setClearOpen(false)}>
-          <Pressable style={styles.popup} onPress={() => undefined}>
-            <Pressable
-              style={styles.popupBtn}
-              onPress={() => {
-                void clearRecentSearches().then((next) => {
-                  setRecentQ(next);
-                  setClearOpen(false);
-                });
-              }}
-            >
-              <Text style={styles.popupBtnText}>{t("m.marketplace.clear_search_history")}</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       {embedded ? null : (
         <Pressable
           style={[styles.fab, { bottom: floatingTabClearance(insets.bottom) + 12 }]}
@@ -324,10 +268,6 @@ function createStyles(colors: ThemeColors) {
     embeddedScrollContent: {
       paddingBottom: spacing.lg,
     },
-    chipScroll: {
-      flexGrow: 0,
-      flexShrink: 0,
-    },
     topRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -358,26 +298,14 @@ function createStyles(colors: ThemeColors) {
       marginTop: 18,
       marginBottom: 10,
     },
-    sectionHeadEmbeddedTop: {
-      marginTop: spacing.sm,
-    },
-    sectionTitle: { fontSize: 16, fontWeight: "800", color: colors.brand },
-    chipRow: { paddingHorizontal: spacing.md, gap: 8, paddingBottom: 4 },
-    chip: {
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 999,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-      backgroundColor: colors.surfaceRaised,
-      maxWidth: 160,
-    },
-    chipText: { color: colors.text, fontWeight: "600", fontSize: 12 },
     shortcutRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       paddingHorizontal: 10,
       marginTop: 18,
+    },
+    shortcutRowEmbeddedTop: {
+      marginTop: spacing.sm,
     },
     shortcut: { width: "19%", alignItems: "center", gap: 6 },
     shortcutLabel: {
@@ -407,20 +335,5 @@ function createStyles(colors: ThemeColors) {
     photo: { width: "100%", aspectRatio: 1, backgroundColor: colors.muted },
     photoEmpty: { alignItems: "center", justifyContent: "center" },
     muted: { color: colors.textMuted, paddingHorizontal: spacing.md, fontWeight: "600" },
-    popupScrim: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.35)",
-      justifyContent: "center",
-      paddingHorizontal: 40,
-    },
-    popup: {
-      backgroundColor: colors.surfaceRaised,
-      borderRadius: 12,
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      overflow: "hidden",
-    },
-    popupBtn: { paddingVertical: 16, paddingHorizontal: 18, alignItems: "center" },
-    popupBtnText: { color: colors.brand, fontWeight: "800", fontSize: 15 },
   });
 }
