@@ -6,7 +6,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import type { FastSearchResult } from "@/lib/search-fast";
 import { SearchPreviewPanel } from "@/components/search/search-preview-panel";
+import { SearchRankingFocusPanel } from "@/components/search/search-ranking-focus-panel";
 import { SearchRecentFocusPanel } from "@/components/search/search-recent-focus-panel";
+import type { SidebarSearchRankingItem } from "@/lib/scoped-search-rank-shared";
 import { getHeaderSearchContext } from "@/lib/header-search-context";
 import { loadRecentSearches, rememberRecentSearch } from "@/lib/recent-searches";
 import { cn } from "@/lib/utils";
@@ -42,6 +44,8 @@ export function HeaderSearch({
   const [results, setResults] = useState<FastSearchResult | null>(null);
   const [recents, setRecents] = useState<string[]>([]);
   const [recentsPending, setRecentsPending] = useState(false);
+  const [usedRanking, setUsedRanking] = useState<SidebarSearchRankingItem[]>([]);
+  const [rankingPending, setRankingPending] = useState(false);
   const [panelRect, setPanelRect] = useState<PanelRect | null>(null);
   const [mounted, setMounted] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -120,7 +124,35 @@ export function HeaderSearch({
     setOpen(false);
     setResults(null);
     setRecents([]);
+    setUsedRanking([]);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!open || searchContext.scope !== "used" || q.trim().length >= 1) {
+      setRankingPending(false);
+      return;
+    }
+    const ac = new AbortController();
+    setRankingPending(true);
+    void fetch(`/api/search/ranking?pathname=${encodeURIComponent(pathname || "/market")}`, {
+      signal: ac.signal,
+    })
+      .then((res) => res.json())
+      .then((body) => {
+        if (!body?.ok) {
+          setUsedRanking([]);
+          return;
+        }
+        setUsedRanking(Array.isArray(body.items) ? body.items : []);
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setUsedRanking([]);
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setRankingPending(false);
+      });
+    return () => ac.abort();
+  }, [open, pathname, q, searchContext.scope]);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -171,7 +203,7 @@ export function HeaderSearch({
       window.removeEventListener("resize", updatePanelRect);
       window.removeEventListener("scroll", onScroll, true);
     };
-  }, [showDropdown, updatePanelRect, q, results, pending, recents, recentsPending]);
+  }, [showDropdown, updatePanelRect, q, results, pending, recents, recentsPending, usedRanking, rankingPending]);
 
   function goFullSearch(e?: React.FormEvent, nextTerm?: string) {
     e?.preventDefault();
@@ -276,12 +308,27 @@ export function HeaderSearch({
             onFullSearch={() => goFullSearch()}
           />
         ) : (
-          <SearchRecentFocusPanel
-            items={recents}
-            pending={recentsPending}
-            filter={searchContext.inPage ? q : undefined}
-            onPick={(term) => goFullSearch(undefined, term)}
-          />
+          <div>
+            {searchContext.scope === "used" && (rankingPending || usedRanking.length > 0) ? (
+              <div className="border-b border-border/60">
+                <p className="px-4 pt-3 text-xs font-semibold text-muted-foreground">
+                  {t("used.query.recommended")}
+                </p>
+                <SearchRankingFocusPanel
+                  scope="used"
+                  items={usedRanking}
+                  pending={rankingPending}
+                  onPick={() => setOpen(false)}
+                />
+              </div>
+            ) : null}
+            <SearchRecentFocusPanel
+              items={recents}
+              pending={recentsPending}
+              filter={searchContext.inPage ? q : undefined}
+              onPick={(term) => goFullSearch(undefined, term)}
+            />
+          </div>
         )}
       </div>,
       document.body

@@ -39,6 +39,7 @@ import {
   formatUsedPrice,
   usedBrowseCategoryWhere,
 } from "@/lib/used-market";
+import { usedListingTextMatchWhere } from "@/lib/used-market-query";
 import {
   compactWorkKey,
   isValidProductType,
@@ -168,14 +169,8 @@ export async function getUsedListings(
     andFilters.push({ tradeMode: params.trade.trim() as SubcultureTradeMode });
   }
   if (params?.sellerId) andFilters.push({ sellerId: params.sellerId });
-  if (params?.q?.trim()) {
-    andFilters.push({
-      OR: [
-        { title: { contains: params.q.trim(), mode: "insensitive" } },
-        { description: { contains: params.q.trim(), mode: "insensitive" } },
-      ],
-    });
-  }
+  const textMatch = params?.q ? usedListingTextMatchWhere(params.q) : null;
+  if (textMatch) andFilters.push(textMatch);
 
   const where: Prisma.UsedListingWhereInput = { AND: andFilters };
 
