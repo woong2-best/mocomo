@@ -14,7 +14,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReelItem, ReelsPageResponse } from "@/lib/reels/types";
 import { REELS_PREFETCH_REMAINING } from "@/lib/reels/constants";
@@ -295,7 +295,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
 
   if (items.length === 0) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white lg:bg-background lg:text-foreground">
         <p className="font-display text-lg font-bold">{i18n("reels.sy1abv7")}</p>
         <p className="text-sm text-white/70">{i18n("reels.s1lhnbz0")}</p>
         <Link
@@ -312,13 +312,14 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   }
 
   const activeReel = items[menu.index] ?? items[activeIndex];
+  const canPrev = activeIndex > 0;
+  const canNext = activeIndex < items.length - 1;
 
   return (
-    <div className="relative flex h-[100dvh] w-full overflow-hidden bg-black">
+    <div className="absolute inset-0 flex overflow-hidden bg-black lg:bg-transparent">
       <div
         className={cn(
-          "relative min-h-0 min-w-0 flex-1 select-none transition-[max-width] duration-300 ease-out",
-          commentsPanel && "lg:max-w-[calc(100%-24rem)]"
+          "absolute inset-0 min-h-0 min-w-0 select-none"
         )}
       >
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
@@ -334,7 +335,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
       <div
         ref={scrollerRef}
         className={cn(
-          "h-[100dvh] w-full overflow-y-auto overflow-x-hidden overscroll-y-contain",
+          "absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain",
           "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
@@ -365,6 +366,42 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
             <Loader2 className="h-5 w-5 animate-spin text-white/70" />
           </div>
         )}
+      </div>
+
+      <div
+        className={cn(
+          "pointer-events-none absolute z-40 flex flex-col gap-2",
+          "right-2 top-[max(4.5rem,env(safe-area-inset-top))]",
+          "lg:right-3 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
+          commentsPanel && "hidden"
+        )}
+      >
+        <button
+          type="button"
+          disabled={!canPrev}
+          onClick={() => goTo(activeIndex - 1)}
+          className={cn(
+            "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md transition",
+            "hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+            "disabled:pointer-events-none disabled:opacity-30"
+          )}
+          aria-label={t("feed.s2a5jqc")}
+        >
+          <ChevronUp className="h-6 w-6" />
+        </button>
+        <button
+          type="button"
+          disabled={!canNext}
+          onClick={() => goTo(activeIndex + 1)}
+          className={cn(
+            "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md transition",
+            "hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+            "disabled:pointer-events-none disabled:opacity-30"
+          )}
+          aria-label={t("feed.s186cci4")}
+        >
+          <ChevronDown className="h-6 w-6" />
+        </button>
       </div>
 
       {activeReel && (

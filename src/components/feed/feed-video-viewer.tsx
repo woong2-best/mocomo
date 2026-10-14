@@ -6,6 +6,7 @@ const t = createTranslator("en");
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useTransition,
@@ -36,6 +37,62 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { copyShareUrl, postUrl } from "@/lib/post-share";
 import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
+type ColumnBox = { top: number; left: number; width: number; height: number };
+
+/** Desktop viewer sits in the center column so the shell stays visible. */
+function useDesktopMainColumnBox(): ColumnBox | null {
+  const [box, setBox] = useState<ColumnBox | null>(null);
+
+  useLayoutEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    let ro: ResizeObserver | null = null;
+
+    const measure = () => {
+      if (!mq.matches) {
+        setBox(null);
+        ro?.disconnect();
+        ro = null;
+        return;
+      }
+      const el = document.getElementById("mocomo-main-scroll");
+      if (!el) {
+        setBox(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8) {
+        setBox(null);
+        return;
+      }
+      const next = { top: r.top, left: r.left, width: r.width, height: r.height };
+      setBox((prev) =>
+        prev &&
+        prev.top === next.top &&
+        prev.left === next.left &&
+        prev.width === next.width &&
+        prev.height === next.height
+          ? prev
+          : next
+      );
+      if (!ro) {
+        ro = new ResizeObserver(measure);
+        ro.observe(el);
+      }
+    };
+
+    measure();
+    mq.addEventListener("change", measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      mq.removeEventListener("change", measure);
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
+  }, []);
+
+  return box;
+}
+
 type Props = {
   groups: FeedVideoGroup[];
   startGroupIndex: number;
@@ -53,6 +110,7 @@ export function FeedVideoViewer({
   onNearEnd,
   loadingMore = false,
 }: Props) {
+  const column = useDesktopMainColumnBox();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(() =>
     Math.max(0, Math.min(startGroupIndex, Math.max(0, groups.length - 1)))
@@ -350,14 +408,26 @@ export function FeedVideoViewer({
   return createPortal(
     <div
       role="dialog"
-      aria-modal="true"
+      aria-modal={column ? "false" : "true"}
       aria-label={t("feed.szady4c")}
-      className="fixed inset-0 z-[200] flex overflow-hidden bg-black"
+      className={cn(
+        "fixed z-[160] flex overflow-hidden",
+        column ? "bg-background" : "inset-0 bg-black"
+      )}
+      style={
+        column
+          ? {
+              top: column.top,
+              left: column.left,
+              width: column.width,
+              height: column.height,
+            }
+          : undefined
+      }
     >
       <div
         className={cn(
-          "relative min-h-0 min-w-0 flex-1 select-none transition-[max-width] duration-300 ease-out",
-          commentsPanel && "lg:max-w-[calc(100%-24rem)]"
+          "absolute inset-0 min-h-0 min-w-0 select-none"
         )}
       >
       <header
@@ -379,7 +449,7 @@ export function FeedVideoViewer({
       <div
         ref={scrollerRef}
         className={cn(
-          "h-[100dvh] w-full overflow-y-auto overflow-x-hidden overscroll-y-contain",
+          "absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain",
           "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
@@ -430,8 +500,8 @@ export function FeedVideoViewer({
       <div
         className={cn(
           "pointer-events-none absolute z-40 flex flex-col gap-2",
-          "right-3 top-[max(4.5rem,env(safe-area-inset-top))]",
-          "lg:right-10 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
+          "right-2 top-[max(4.5rem,env(safe-area-inset-top))]",
+          "lg:right-3 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
           commentsPanel && "hidden"
         )}
       >
@@ -440,8 +510,8 @@ export function FeedVideoViewer({
           disabled={!canPrev}
           onClick={goPrev}
           className={cn(
-            "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition",
-            "hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+            "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md transition",
+            "hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
             "disabled:pointer-events-none disabled:opacity-30"
           )}
           aria-label={t("feed.s2a5jqc")}
@@ -453,8 +523,8 @@ export function FeedVideoViewer({
           disabled={!canNext}
           onClick={goNext}
           className={cn(
-            "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition",
-            "hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+            "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md transition",
+            "hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
             "disabled:pointer-events-none disabled:opacity-30"
           )}
           aria-label={t("feed.s186cci4")}

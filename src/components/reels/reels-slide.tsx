@@ -237,9 +237,8 @@ export function ReelsSlide({
       data-reel-id={reel.id}
       data-cinema={cinema ? "1" : "0"}
       className={cn(
-        "relative h-[100dvh] w-full shrink-0 snap-start snap-always select-none bg-black",
-        isViewer && !cinema && "flex items-center justify-center",
-        cinema && "z-[60]"
+        "relative flex h-full w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none",
+        cinema ? "z-[60] bg-black" : "bg-black lg:bg-transparent"
       )}
       aria-label={`Video by ${userDisplayName(reel.author)}`}
       onClick={
@@ -250,45 +249,37 @@ export function ReelsSlide({
           : undefined
       }
     >
-      {isViewer ? (
-        <div
-          className={cn(
-            "relative bg-black",
-            cinema
-              ? "fixed inset-0 z-[60] h-[100dvh] w-screen max-w-none"
-              : "h-full w-full lg:h-[min(100dvh,920px)] lg:max-w-[420px]"
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {player}
-          {captionBlock}
-          {actions}
+      <div
+        className={cn(
+          "relative bg-black",
+          cinema
+            ? "fixed inset-0 z-[60] h-[100dvh] w-screen max-w-none"
+            : "h-full w-full overflow-hidden lg:h-[min(100%,920px)] lg:w-[min(420px,calc(100%-7.5rem))] lg:rounded-2xl"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {player}
+        {captionBlock}
+        {actions}
 
-          {cinema && (
-            <button
-              type="button"
-              onClick={exitCinema}
-              className={cn(
-                "pointer-events-auto absolute left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-30 -translate-x-1/2",
-                "inline-flex h-10 w-10 items-center justify-center rounded-full",
-                "bg-black/55 text-white shadow-lg backdrop-blur-md ring-1 ring-white/25",
-                "transition-opacity duration-300",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-                showExitChrome ? "opacity-100" : "opacity-0 pointer-events-none"
-              )}
-              aria-label={i18n("reels.s9ngb1x")}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          )}
-        </div>
-      ) : (
-        <>
-          {player}
-          {captionBlock}
-          {actions}
-        </>
-      )}
+        {cinema && (
+          <button
+            type="button"
+            onClick={exitCinema}
+            className={cn(
+              "pointer-events-auto absolute left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-30 -translate-x-1/2",
+              "inline-flex h-10 w-10 items-center justify-center rounded-full",
+              "bg-black/55 text-white shadow-lg backdrop-blur-md ring-1 ring-white/25",
+              "transition-opacity duration-300",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+              showExitChrome ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}
+            aria-label={i18n("reels.s9ngb1x")}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
+      </div>
     </section>
   );
 }

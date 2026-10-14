@@ -110,7 +110,29 @@ function AppShellInner({
   }
 
   if (isReelsImmersive) {
-    return <main className="fixed inset-0 z-40 overflow-hidden bg-black">{children}</main>;
+    // Desktop: keep header, sidebar, and the ad/map rail. Phone stays full-bleed.
+    return (
+      <>
+        <div className="hidden lg:block">
+          <Header />
+          <SuspendedAccountBanner />
+        </div>
+        <div className="flex h-dvh overflow-hidden lg:h-app">
+          <Sidebar />
+          <main
+            id="mocomo-main-scroll"
+            className={cn(
+              "relative min-h-0 min-w-0 flex-1 overflow-hidden bg-black lg:bg-background",
+              "max-lg:fixed max-lg:inset-0 max-lg:z-40",
+              showRightPanel && "lg:shell-col-divider-r"
+            )}
+          >
+            {children}
+          </main>
+          {showRightPanel ? rightPanel : null}
+        </div>
+      </>
+    );
   }
 
   if (isEventsMapImmersive) {

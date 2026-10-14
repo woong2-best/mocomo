@@ -1166,7 +1166,7 @@ export function ReelsCommentsPanel({
     <>
       <aside
         className={cn(
-          "pointer-events-auto relative z-[230] hidden h-full shrink-0 flex-col overflow-hidden border-l border-white/10 bg-[#121212] text-white transition-[width,opacity,transform] duration-150 ease-out lg:flex",
+          "pointer-events-auto absolute inset-y-0 right-0 z-[230] hidden h-full flex-col overflow-hidden border-l border-white/10 bg-[#121212] text-white shadow-2xl transition-[width,opacity,transform] duration-150 ease-out lg:flex",
           open
             ? "w-[min(100%,24rem)] translate-x-0 opacity-100"
             : "w-0 translate-x-4 opacity-0 pointer-events-none border-0"

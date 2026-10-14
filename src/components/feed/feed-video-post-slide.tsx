@@ -22,8 +22,9 @@ import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
 import { cn } from "@/lib/utils";
 import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
-/** Desktop phone-frame width (px) — keep in sync with lg:w-[420px] */
-const DESKTOP_CARD_PX = 420;
+/** Desktop stage width — one card in the center column, no neighbor peek. */
+const DESKTOP_CARD_CLASS =
+  "lg:h-[min(100%,920px)] lg:w-[min(420px,calc(100%-7.5rem))]";
 
 type Props = {
   group: FeedVideoGroup;
@@ -215,7 +216,7 @@ export function FeedVideoPostSlide({
     return () => window.removeEventListener("keydown", onKey);
   }, [goH, horizontalNavEnabled, isActive, multiVideo, videoIndex]);
 
-  // Recenter on resize so peeks stay balanced
+  // Keep the active clip snapped after the column width changes.
   useEffect(() => {
     if (!multiVideo) return;
     const onResize = () => scrollToIndex(videoIndex, "instant" as ScrollBehavior);
@@ -241,14 +242,11 @@ export function FeedVideoPostSlide({
     "lg:flex"
   );
 
-  // Place arrows just outside the centered 420px card
-  const arrowOffset = `calc(50% - ${DESKTOP_CARD_PX / 2}px - 3.25rem)`;
-
   return (
     <section
       data-reel-index={index}
       data-reel-id={group.postId}
-      className="relative flex h-[100dvh] w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none bg-black"
+      className="relative flex h-full w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none bg-black lg:bg-transparent"
       aria-label={`Videos by ${userDisplayName(activeReel.author)}`}
       onClick={
         onBackgroundClick
@@ -259,7 +257,11 @@ export function FeedVideoPostSlide({
       }
     >
       <div
-        className="relative h-full w-full"
+        className={cn(
+          "relative h-full w-full overflow-hidden bg-black",
+          DESKTOP_CARD_CLASS,
+          "lg:rounded-2xl"
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div
@@ -268,15 +270,7 @@ export function FeedVideoPostSlide({
           className={cn(
             "flex h-full w-full overflow-x-auto overflow-y-hidden overscroll-x-contain",
             "snap-x snap-mandatory [overflow-anchor:none]",
-            "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-            // Desktop multi: peek neighbors with centered snap
-            multiVideo
-              ? cn(
-                  "lg:items-center lg:gap-5",
-                  // pad so first/last can sit in the center with peeks
-                  "lg:px-[max(1rem,calc(50%-13.125rem))]"
-                )
-              : "lg:items-center lg:justify-center"
+            "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           )}
           style={
             multiVideo
@@ -296,26 +290,7 @@ export function FeedVideoPostSlide({
                 key={reel.id}
                 data-feed-video-h={vi}
                 role="listitem"
-                className={cn(
-                  "relative shrink-0 snap-center bg-black",
-                  // Mobile: full-bleed page
-                  "h-full w-full",
-                  // Desktop card
-                  multiVideo
-                    ? cn(
-                        "lg:h-[min(100dvh,920px)] lg:w-[420px] lg:overflow-hidden lg:rounded-2xl",
-                        "lg:origin-center lg:transition-[transform,opacity,box-shadow] lg:duration-500",
-                        "lg:ease-[cubic-bezier(0.22,1,0.36,1)]",
-                        isCurrent
-                          ? "lg:z-10 lg:scale-100 lg:opacity-100 lg:shadow-[0_25px_80px_rgba(0,0,0,0.55)]"
-                          : "lg:z-0 lg:scale-[0.78] lg:opacity-45 lg:cursor-pointer hover:lg:opacity-60"
-                      )
-                    : "lg:h-[min(100dvh,920px)] lg:w-[420px] lg:overflow-hidden lg:rounded-2xl"
-                )}
-                onClick={() => {
-                  if (!multiVideo || isCurrent || !isActive) return;
-                  goH(vi);
-                }}
+                className="relative h-full w-full shrink-0 snap-center bg-black"
               >
                 <ReelsPlayer
                   ref={(el) => {
@@ -354,13 +329,6 @@ export function FeedVideoPostSlide({
                       collaborators={activeReel.collaborators}
                       title={activeReel.title}
                       content={activeReel.content}
-                      footer={
-                        multiVideo ? (
-                          <p className="text-[11px] tabular-nums text-white/70">
-                            {videoIndex + 1} / {group.videos.length}
-                          </p>
-                        ) : undefined
-                      }
                     />
 
                     {multiVideo && (
@@ -416,8 +384,7 @@ export function FeedVideoPostSlide({
               type="button"
               disabled={!canHPrev || animating}
               onClick={() => goH(videoIndex - 1)}
-              className={sideNavBtnClass}
-              style={{ left: arrowOffset }}
+              className={cn(sideNavBtnClass, "left-2")}
               aria-label={t("feed.snrsq28")}
             >
               <ChevronLeft className="h-5 w-5" />
@@ -426,8 +393,7 @@ export function FeedVideoPostSlide({
               type="button"
               disabled={!canHNext || animating}
               onClick={() => goH(videoIndex + 1)}
-              className={sideNavBtnClass}
-              style={{ right: arrowOffset }}
+              className={cn(sideNavBtnClass, "right-14")}
               aria-label={t("feed.sebaazc")}
             >
               <ChevronRight className="h-5 w-5" />
