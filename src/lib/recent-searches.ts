@@ -26,7 +26,14 @@ function writeMap(map: RecentMap) {
 }
 
 export function loadRecentSearches(scope: string): string[] {
-  return (readMap()[scope] ?? []).slice(0, MAX_RECENT_SEARCHES_PER_SCOPE);
+  const map = readMap();
+  const stored = map[scope] ?? [];
+  const next = stored.slice(0, MAX_RECENT_SEARCHES_PER_SCOPE);
+  if (stored.length > next.length && typeof window !== "undefined") {
+    map[scope] = next;
+    writeMap(map);
+  }
+  return next;
 }
 
 export function rememberRecentSearch(scope: string, q: string): string[] {
@@ -46,7 +53,9 @@ export function removeRecentSearch(scope: string, q: string): string[] {
   const trimmed = q.trim();
   if (!trimmed || typeof window === "undefined") return loadRecentSearches(scope);
   const map = readMap();
-  const next = (map[scope] ?? []).filter((item) => item !== trimmed);
+  const next = (map[scope] ?? [])
+    .filter((item) => item !== trimmed)
+    .slice(0, MAX_RECENT_SEARCHES_PER_SCOPE);
   map[scope] = next;
   writeMap(map);
   return next;
