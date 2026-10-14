@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { HeaderSearch } from "@/components/search/header-search";
+import { BrandWordmark } from "@/components/brand/brand-wordmark";
 import { BRAND } from "@/lib/brand";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileDrawerNav, MobileMenuButton } from "@/components/layout/mobile-drawer-nav";
@@ -77,9 +78,11 @@ export function Header() {
             className="flex items-center gap-2 text-foreground min-w-0"
             aria-label={isHome ? t("auth.reload", { v0: BRAND.name }) : BRAND.name}
           >
-            <span className="font-display font-bold text-base truncate folk-chunky-text text-folk-cobalt">
-              {BRAND.wordmark}
-            </span>
+            <BrandWordmark
+              className="max-w-full truncate text-base"
+              nameClassName="font-display font-bold folk-chunky-text text-folk-cobalt"
+              suffixClassName="text-base"
+            />
           </Link>
         </div>
         <SidebarToggleButton />

@@ -6,6 +6,7 @@ const t = createTranslator("en");
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { BrandWordmark } from "@/components/brand/brand-wordmark";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_LANDING_PATH, isCommunityFeedPath } from "@/lib/site-routes";
 import { notifyFeedLiveReload } from "@/lib/feed-live-sync";
@@ -36,15 +37,17 @@ export function SidebarToggleButton() {
         )}
         aria-label={isHome ? t("auth.reload", { v0: BRAND.name }) : t("layout.home")}
       >
-        <span
+        <BrandWordmark
           className={cn(
-            "font-display font-bold text-[1.65rem] leading-none tracking-tight folk-chunky-text text-[hsl(330,82%,72%)] transition-opacity duration-200",
-            "[text-shadow:1px_2px_0_hsl(330,55%,38%/0.45)]",
+            "text-[1.65rem] tracking-tight transition-opacity duration-200",
             !isHome && "group-hover/home:opacity-0"
           )}
-        >
-          {BRAND.wordmark}
-        </span>
+          nameClassName={cn(
+            "font-display font-bold leading-none folk-chunky-text text-[hsl(330,82%,72%)]",
+            "[text-shadow:1px_2px_0_hsl(330,55%,38%/0.45)]"
+          )}
+          suffixClassName="text-[1.65rem]"
+        />
         {!isHome && (
           <span
             className={cn(
