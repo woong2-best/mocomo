@@ -21,7 +21,7 @@ export function Sidebar() {
   const { data: session } = useSession();
   const { t } = useLocale();
   const { open } = useSidebarToggle();
-  const expandedWidth = "14.5rem";
+  const expandedWidth = "var(--sidebar-w)";
   const ownProfilePath = session?.user?.username ? `/u/${session.user.username}` : null;
 
   const navItems = mainNavItems
@@ -41,7 +41,7 @@ export function Sidebar() {
     <div
       className={cn(
         "hidden lg:block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
-        open ? "w-[14.5rem]" : "w-0"
+        open ? "w-[var(--sidebar-w)]" : "w-0"
       )}
       aria-hidden={!open}
     >

@@ -18,6 +18,7 @@ import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, Loader2 } from "lucide-react";
 import { composeSheetRegionClass } from "@/lib/compose-sheet-layout";
+import { useSidebarToggle } from "@/components/providers/sidebar-toggle-provider";
 import { safeRouterRefresh } from "@/lib/feed-overlay-guard";
 import { scrollMainToTop } from "@/lib/scroll-main";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
@@ -71,6 +72,7 @@ export function useComposeOptional() {
 export function ComposeProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { open: sidebarOpen } = useSidebarToggle();
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const [communityId, setCommunityId] = useState<string | undefined>();
@@ -153,7 +155,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     [open, openCompose, closeCompose]
   );
 
-  const sheetRegion = composeSheetRegionClass(pathname || "/");
+  const sheetRegion = composeSheetRegionClass(pathname || "/", sidebarOpen);
   const useFloatingInline = open && !viaMailbox;
 
   return (

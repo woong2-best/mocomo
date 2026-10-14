@@ -155,7 +155,7 @@ export function ComposeCollaboratorPicker({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent layer="stack" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{labels?.add ?? t("compose.collabAdd")}</DialogTitle>
         </DialogHeader>

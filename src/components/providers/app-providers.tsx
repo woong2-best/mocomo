@@ -31,13 +31,13 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               <QueryProvider>
                 <PublishedToastProvider>
                   <FeedPhotoLightboxProvider>
-                    <ComposeProvider>
-                      <SidebarToggleProvider>
+                    <SidebarToggleProvider>
+                      <ComposeProvider>
                         <LegalComplianceProvider>
                           <OverlayAwareExtras>{children}</OverlayAwareExtras>
                         </LegalComplianceProvider>
-                      </SidebarToggleProvider>
-                    </ComposeProvider>
+                      </ComposeProvider>
+                    </SidebarToggleProvider>
                   </FeedPhotoLightboxProvider>
                 </PublishedToastProvider>
               </QueryProvider>
