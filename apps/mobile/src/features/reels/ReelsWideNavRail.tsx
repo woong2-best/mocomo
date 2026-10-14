@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,7 +22,7 @@ function goWideNavRoute(
   navigation: NativeStackNavigationProp<RootStackParamList>,
   route: ReelsWideNavRoute
 ) {
-  if (route === "Home" || route === "Used") {
+  if (route === "Used") {
     navigation.navigate("Main", { screen: route });
     return;
   }
@@ -33,8 +33,6 @@ export function ReelsWideNavRail({ width, topInset, bottomInset }: Props) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const showLabel = width >= 72;
-
   return (
     <View
       style={[
@@ -55,7 +53,7 @@ export function ReelsWideNavRail({ width, topInset, bottomInset }: Props) {
             style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
             onPressIn={() => {
               void Haptics.selectionAsync();
-              if (item.route === "Home" || item.route === "Used") {
+              if (item.route === "Used") {
                 prefetchTabForRoute(queryClient, item.route as keyof RootTabParamList);
               } else {
                 prefetchDrawerRoute(queryClient, item.route);
@@ -67,11 +65,6 @@ export function ReelsWideNavRail({ width, topInset, bottomInset }: Props) {
             hitSlop={6}
           >
             <Ionicons name={item.icon} size={26} color="#fff" />
-            {showLabel ? (
-              <Text style={styles.label} numberOfLines={2}>
-                {label}
-              </Text>
-            ) : null}
           </Pressable>
         );
       })}
@@ -100,11 +93,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   itemPressed: { opacity: 0.55 },
-  label: {
-    color: "rgba(255,255,255,0.88)",
-    fontSize: 10,
-    fontWeight: "700",
-    textAlign: "center",
-    maxWidth: 72,
-  },
 });

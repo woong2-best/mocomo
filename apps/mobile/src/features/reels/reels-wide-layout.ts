@@ -1,7 +1,7 @@
 import type { DrawerRoute } from "@/navigation/types";
 
 type ReelsWideNavIcon =
-  | "home-outline"
+  | "radio-outline"
   | "cart-outline"
   | "star-outline"
   | "people-outline"
@@ -40,7 +40,7 @@ export function reelsEdgeHoldWidth(stageWidth: number, isWide: boolean): number 
 
 export type ReelsWideNavRoute = Extract<
   DrawerRoute,
-  "Home" | "Used" | "StarList" | "CommunityList" | "AnimeList" | "Wallet"
+  "LiveList" | "Used" | "StarList" | "CommunityList" | "AnimeList" | "Wallet"
 >;
 
 export type ReelsWideNavItem = {
@@ -51,7 +51,7 @@ export type ReelsWideNavItem = {
 
 /** Same destinations + Ionicons as the side drawer / tab bar — not Instagram chrome. */
 export const REELS_WIDE_NAV_ITEMS: readonly ReelsWideNavItem[] = [
-  { route: "Home", labelKey: "nav.home", icon: "home-outline" },
+  { route: "LiveList", labelKey: "nav.live", icon: "radio-outline" },
   { route: "Used", labelKey: "nav.market", icon: "cart-outline" },
   { route: "StarList", labelKey: "nav.star", icon: "star-outline" },
   { route: "CommunityList", labelKey: "nav.communities", icon: "people-outline" },

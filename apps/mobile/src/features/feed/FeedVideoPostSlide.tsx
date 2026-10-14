@@ -760,11 +760,6 @@ function FeedVideoPostSlideInner({
             onExpandedChange={setCaptionExpanded}
           />
         ) : null}
-        {group.videos.length > 1 ? (
-          <Text style={styles.index}>
-            {videoIndex + 1} / {group.videos.length}
-          </Text>
-        ) : null}
         </View>
       ) : null}
 
@@ -920,5 +915,4 @@ const styles = StyleSheet.create({
     right: spacing.md,
   },
   caption: { color: "rgba(255,255,255,0.92)", fontSize: 14, lineHeight: 20 },
-  index: { color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: "700", marginTop: 6 },
 });

@@ -78,10 +78,10 @@ test("fold 2x hold is on the video frame, wider than the phone strip", () => {
 test("wide nav uses the same six app destinations as the drawer", () => {
   assert.deepEqual(
     REELS_WIDE_NAV_ITEMS.map((item) => item.route),
-    ["Home", "Used", "StarList", "CommunityList", "AnimeList", "Wallet"]
+    ["LiveList", "Used", "StarList", "CommunityList", "AnimeList", "Wallet"]
   );
   assert.deepEqual(
     REELS_WIDE_NAV_ITEMS.map((item) => item.icon),
-    ["home-outline", "cart-outline", "star-outline", "people-outline", "book-outline", "wallet-outline"]
+    ["radio-outline", "cart-outline", "star-outline", "people-outline", "book-outline", "wallet-outline"]
   );
 });
