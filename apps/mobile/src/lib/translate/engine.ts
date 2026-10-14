@@ -10,11 +10,13 @@ import {
   joinTranslatedSegments,
   splitTranslatableSegments,
 } from "@/lib/translate/preserve-segments";
+import { translateMlKit } from "@/lib/translate/mlkit-client";
 import { enqueueTranslation } from "@/lib/translate/queue";
 import { isTextWorthTranslating } from "@/lib/translate/text-filter";
 
 export const MAX_TRANSLATE_CHARS = 2000;
-const CHUNK_CHARS = 380;
+/** One native call per post when possible. The Android client reloads the model if it is closed between calls. */
+const CHUNK_CHARS = 1000;
 
 function chunkText(text: string): string[] {
   const trimmed = text.trim();
@@ -33,18 +35,6 @@ function chunkText(text: string): string[] {
   return chunks.filter(Boolean);
 }
 
-type TranslateTextModule = {
-  translate?: (opts: Record<string, unknown>) => Promise<unknown>;
-};
-
-async function loadTranslateText(): Promise<TranslateTextModule | null> {
-  try {
-    return (await import("@react-native-ml-kit/translate-text")).default as unknown as TranslateTextModule;
-  } catch {
-    return null;
-  }
-}
-
 async function translateChunk(
   text: string,
   sourceLanguage: TranslateLanguage,
@@ -53,18 +43,18 @@ async function translateChunk(
   const cached = await getCachedTranslation(sourceLanguage, targetLanguage, text);
   if (cached) return cached;
 
-  const TranslateText = await loadTranslateText();
-  if (!TranslateText?.translate) return text;
-
-  const result = (await TranslateText.translate({
-    text,
-    sourceLanguage,
-    targetLanguage,
-    downloadModelIfNeeded: true,
-  })) as unknown as string;
-
-  const translated = typeof result === "string" ? result.trim() : text;
-  await setCachedTranslation(sourceLanguage, targetLanguage, text, translated);
+  let translated = text;
+  try {
+    translated = await translateMlKit({
+      text,
+      sourceLanguage,
+      targetLanguage,
+      downloadModelIfNeeded: true,
+    });
+  } catch {
+    return text;
+  }
+  setCachedTranslation(sourceLanguage, targetLanguage, text, translated);
   return translated;
 }
 

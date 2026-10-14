@@ -38,11 +38,25 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [revision, setRevision] = useState(0);
   const overlayRef = useRef<Record<string, string>>({});
   const scheduledRef = useRef(new Set<string>());
+  const attemptsRef = useRef(new Map<string, number>());
   const localeRef = useRef(locale);
   const chosenRef = useRef(false);
   localeRef.current = locale;
 
-  const bump = useCallback(() => setRevision((n) => n + 1), []);
+  const bumpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bump = useCallback(() => {
+    if (bumpTimer.current != null) return;
+    bumpTimer.current = setTimeout(() => {
+      bumpTimer.current = null;
+      setRevision((n) => n + 1);
+    }, 48);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (bumpTimer.current != null) clearTimeout(bumpTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +72,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     scheduledRef.current.clear();
+    attemptsRef.current.clear();
     let cancelled = false;
     void (async () => {
       overlayRef.current = await loadUiKeyTable(locale, uiMessagesAppVersion());
@@ -81,10 +96,21 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       if (scheduledRef.current.has(key)) return;
       scheduledRef.current.add(key);
       void translateUiKey(key, targetLocale).then((translated) => {
+        if (localeRef.current !== targetLocale) {
+          scheduledRef.current.delete(key);
+          return;
+        }
+        if (translated) {
+          overlayRef.current[key] = translated;
+          scheduledRef.current.delete(key);
+          attemptsRef.current.delete(key);
+          bump();
+          return;
+        }
+        const attempts = (attemptsRef.current.get(key) ?? 0) + 1;
+        attemptsRef.current.set(key, attempts);
+        if (attempts >= 2) return;
         scheduledRef.current.delete(key);
-        if (!translated || localeRef.current !== targetLocale) return;
-        overlayRef.current[key] = translated;
-        bump();
       });
     },
     [bump]

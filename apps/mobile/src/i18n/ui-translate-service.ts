@@ -6,8 +6,8 @@ import {
   joinUiTranslatedSegments,
   splitUiTranslatableSegments,
 } from "@/i18n/ui-translate-segments";
+import { translateMlKit } from "@/lib/translate/mlkit-client";
 import { localeToMlKit, MlLang } from "@/lib/translate/mlkit-locale";
-import { enqueueTranslation } from "@/lib/translate/queue";
 
 const SKIP_KEY_PREFIXES = ["legal.", "wiki.", "brand.", "m.anime."];
 
@@ -18,61 +18,29 @@ export function uiKeyNeedsMlKit(key: string, targetLocale: Locale): boolean {
   return Boolean(localeToMlKit(targetLocale));
 }
 
-type TranslateTextModule = {
-  downloadModel?: (opts: Record<string, unknown>) => Promise<void>;
-  translate?: (opts: Record<string, unknown>) => Promise<unknown>;
-};
-
-async function loadTranslateText(): Promise<TranslateTextModule | null> {
-  try {
-    return (await import("@react-native-ml-kit/translate-text")).default as unknown as TranslateTextModule;
-  } catch {
-    return null;
-  }
-}
-
 export async function prefetchUiTranslationModel(targetLocale: Locale): Promise<void> {
-  if (targetLocale === "en") return;
-  const targetLanguage = localeToMlKit(targetLocale);
-  if (!targetLanguage) return;
-  const TranslateText = await loadTranslateText();
-  if (!TranslateText?.downloadModel) return;
-  try {
-    await TranslateText.downloadModel({
-      sourceLanguage: MlLang.ENGLISH,
-      targetLanguage,
-      requireWifi: true,
-    });
-  } catch {
-    /* fall back to English at runtime */
-  }
+  if (targetLocale === "en" || !localeToMlKit(targetLocale)) return;
+  // The stock Android module has no downloadModel(). The first batched translate
+  // downloads once; a separate warmup call would close the model before that batch.
 }
 
-async function translateEnglishFragment(
-  text: string,
-  targetLocale: Locale
-): Promise<string> {
+function translateEnglishFragment(text: string, targetLocale: Locale): Promise<string> {
   const trimmed = text.trim();
-  if (!trimmed) return text;
+  if (!trimmed) return Promise.resolve(text);
   const targetLanguage = localeToMlKit(targetLocale);
-  if (!targetLanguage) return text;
+  if (!targetLanguage) return Promise.resolve(text);
 
-  const TranslateText = await loadTranslateText();
-  if (!TranslateText?.translate) return text;
-
-  const result = (await TranslateText.translate({
+  const lead = text.match(/^\s*/)?.[0] ?? "";
+  const trail = text.match(/\s*$/)?.[0] ?? "";
+  return translateMlKit({
     text: trimmed,
     sourceLanguage: MlLang.ENGLISH,
     targetLanguage,
     downloadModelIfNeeded: true,
     requireWifi: true,
-  })) as unknown as string;
-
-  const translated = typeof result === "string" ? result.trim() : trimmed;
-  if (!translated) return text;
-  const lead = text.match(/^\s*/)?.[0] ?? "";
-  const trail = text.match(/\s*$/)?.[0] ?? "";
-  return `${lead}${translated}${trail}`;
+  })
+    .then((translated) => (translated ? `${lead}${translated}${trail}` : text))
+    .catch(() => text);
 }
 
 export async function translateUiEnglishString(
@@ -82,24 +50,23 @@ export async function translateUiEnglishString(
   if (!english.trim() || targetLocale === "en") return english;
   if (!localeToMlKit(targetLocale)) return english;
 
-  return enqueueTranslation(async () => {
-    const segments = splitUiTranslatableSegments(english);
-    const translatedParts = new Map<number, string>();
-    let textIndex = 0;
-    for (const segment of segments) {
-      if (segment.kind !== "text") continue;
-      if (!segment.value.trim()) {
-        textIndex += 1;
-        continue;
-      }
-      translatedParts.set(
-        textIndex,
-        await translateEnglishFragment(segment.value, targetLocale)
-      );
-      textIndex += 1;
-    }
-    return joinUiTranslatedSegments(segments, translatedParts);
-  });
+  const segments = splitUiTranslatableSegments(english);
+  const translatedParts = new Map<number, string>();
+  const pending: Array<Promise<void>> = [];
+  let textIndex = 0;
+  for (const segment of segments) {
+    if (segment.kind !== "text") continue;
+    const index = textIndex;
+    textIndex += 1;
+    if (!segment.value.trim()) continue;
+    pending.push(
+      translateEnglishFragment(segment.value, targetLocale).then((translated) => {
+        translatedParts.set(index, translated);
+      })
+    );
+  }
+  await Promise.all(pending);
+  return joinUiTranslatedSegments(segments, translatedParts);
 }
 
 const inflight = new Map<string, Promise<string | null>>();
@@ -121,7 +88,7 @@ export function translateUiKey(
     try {
       const translated = await translateUiEnglishString(english, targetLocale);
       if (!translated || translated === english) return null;
-      await mergeUiKeyTable(targetLocale, { [key]: translated }, appVersion);
+      void mergeUiKeyTable(targetLocale, { [key]: translated }, appVersion);
       return translated;
     } catch {
       return null;
