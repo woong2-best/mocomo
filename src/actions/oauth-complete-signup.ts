@@ -20,6 +20,7 @@ import {
   signupIdentityEntryPath,
 } from "@/lib/signup-identity-onboarding";
 import { getRequestIp } from "@/lib/request-ip";
+import { applyLatestTermsOnSignup } from "@/lib/legal/terms-agreement";
 import { recordUserAccessLog } from "@/lib/user-access-log";
 
 export async function completeWebOAuthSignup(input: {
@@ -87,6 +88,7 @@ export async function completeWebOAuthSignup(input: {
         if (!existing.birthDate) {
           await applyBirthDateIfMissing(existing.id, parsed.birthDate);
         }
+        await applyLatestTermsOnSignup(db, existing.id, await getRequestIp());
         const sessionOk = await establishWebSessionForUser(existing);
         await clearWebOAuthPendingSignupCookie();
         if (!sessionOk) return { error: "actions.sa48s0g" };

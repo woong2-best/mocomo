@@ -38,6 +38,7 @@ import {
   isTermsGateExemptApiPath,
   termsRequiredJsonResponse,
 } from "@/lib/legal/terms-gate-edge";
+import { readTermsAck, TERMS_ACK_COOKIE } from "@/lib/legal/terms-ack";
 
 const protectedRoutes = [
   "/settings",
@@ -213,10 +214,18 @@ export default edgeAuth(async (req) => {
   const isLoggedIn = !!req.auth?.user?.id;
   const isFullBanned = Boolean(req.auth?.user?.isBanned);
   const termsRequired = Boolean(req.auth?.user?.termsRequired);
+  const requiredTermsVersion = req.auth?.user?.requiredTermsVersion ?? null;
+  const acknowledgedVersion = termsRequired
+    ? await readTermsAck(req.cookies.get(TERMS_ACK_COOKIE)?.value)
+    : null;
+  const termsAcknowledged =
+    Boolean(acknowledgedVersion) &&
+    (!requiredTermsVersion || acknowledgedVersion === requiredTermsVersion);
 
   if (
     isLoggedIn &&
     termsRequired &&
+    !termsAcknowledged &&
     pathname.startsWith("/api/") &&
     !isTermsGateExemptApiPath(pathname)
   ) {

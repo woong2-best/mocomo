@@ -3,6 +3,8 @@ import {
   setSessionCookie,
 } from "@/lib/account-switch/server";
 import { toCredentialsAuthUser } from "@/lib/auth-credentials";
+import { db } from "@/lib/db";
+import { applyTermsGateToJwtToken } from "@/lib/legal/terms-agreement";
 import {
   openMobileOAuthHandoff,
   sealMobileOAuthNeedsSignup,
@@ -49,18 +51,25 @@ export function sealWebOAuthPendingSignup(
 }
 
 export async function establishWebSessionForUser(user: CreatedOAuthUser): Promise<boolean> {
+  const row = await db.user.findUnique({
+    where: { id: user.id },
+    select: { currentTermsVersion: true },
+  });
   const authUser = toCredentialsAuthUser({
     ...user,
     passwordHash: null,
     deletedAt: null,
     scheduledPurgeAt: null,
     emailVerified: user.email ? new Date() : null,
+    currentTermsVersion: row?.currentTermsVersion ?? null,
   });
-  const token = await encodeSessionFromPayload({
+  const tokenPayload = {
     ...authUser,
     sub: user.id,
     picture: user.image,
-  });
+  };
+  await applyTermsGateToJwtToken(tokenPayload, row?.currentTermsVersion ?? null);
+  const token = await encodeSessionFromPayload(tokenPayload);
   if (!token) return false;
   await setSessionCookie(token);
   return true;

@@ -6,6 +6,7 @@ import {
   resolveTermsGate,
   toPublicTermsVersion,
 } from "@/lib/legal/terms-agreement";
+import { sealTermsAck, TERMS_ACK_COOKIE, termsAckCookieOptions } from "@/lib/legal/terms-ack";
 
 export async function termsStatusForUserId(userId: string | null) {
   if (!userId) {
@@ -26,12 +27,17 @@ export async function termsStatusJson(userId: string | null, currentTermsVersion
 
   const gate = await resolveTermsGate(currentTermsVersion);
   if (!gate.termsRequired || !gate.required) {
-    return NextResponse.json({
+    const res = NextResponse.json({
       required: false,
       signedIn: true,
       currentTermsVersion: gate.currentTermsVersion,
       terms: gate.required,
     });
+    if (gate.required?.versionTag) {
+      const sealed = await sealTermsAck(gate.required.versionTag);
+      if (sealed) res.cookies.set(TERMS_ACK_COOKIE, sealed, termsAckCookieOptions());
+    }
+    return res;
   }
 
   return NextResponse.json({
@@ -49,9 +55,15 @@ export async function termsAgreeJson(userId: string, userIp: string | null) {
   }
 
   const agreed = await recordTermsAgreement({ userId, userIp });
-  return NextResponse.json({
+  const terms = agreed ?? toPublicTermsVersion(latest);
+  const res = NextResponse.json({
     ok: true,
     required: false,
-    terms: agreed ?? toPublicTermsVersion(latest),
+    terms,
   });
+  const sealed = await sealTermsAck(terms.versionTag);
+  if (sealed) {
+    res.cookies.set(TERMS_ACK_COOKIE, sealed, termsAckCookieOptions());
+  }
+  return res;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
@@ -65,47 +65,43 @@ export function TermsAgreementProvider({ children }: { children: React.ReactNode
   const sessionState = useSession();
   const [terms, setTerms] = useState<TermsAgreementInfo | null>(null);
   const [accepting, setAccepting] = useState(false);
+  const acceptedVersionRef = useRef<string | null>(null);
+  const dbSatisfiedRef = useRef(false);
 
   const showModal = Boolean(terms) && !isTermsGateExemptPagePath(pathname);
 
   const openFromPayload = useCallback((payload: TermsAgreementInfo | null) => {
-    if (!payload) return;
+    if (!payload || dbSatisfiedRef.current) return;
+    if (acceptedVersionRef.current && acceptedVersionRef.current === payload.versionTag) return;
     setTerms(payload);
   }, []);
 
   useEffect(() => {
     if (sessionState?.status === "unauthenticated") {
+      acceptedVersionRef.current = null;
+      dbSatisfiedRef.current = false;
       setTerms(null);
       return;
     }
     if (sessionState?.status === "loading") return;
 
-    const jwtTerms = sessionState?.data?.user?.termsRequired
-      ? parseTermsPayload({
-          code: TERMS_REQUIRED_CODE,
-          versionTag: sessionState.data.user.requiredTermsVersion,
-          effectiveDate: sessionState.data.user.requiredTermsEffectiveDate,
-          termsUrl: sessionState.data.user.requiredTermsUrl,
-        })
-      : null;
-    if (jwtTerms) setTerms(jwtTerms);
-
     let cancelled = false;
     void (async () => {
       const next = await fetchTermsStatus();
-      if (!cancelled) setTerms(next);
+      if (cancelled) return;
+      if (!next || acceptedVersionRef.current === next.versionTag) {
+        dbSatisfiedRef.current = !next || acceptedVersionRef.current === next.versionTag;
+        if (!next) acceptedVersionRef.current = null;
+        setTerms(null);
+        return;
+      }
+      dbSatisfiedRef.current = false;
+      setTerms(next);
     })();
     return () => {
       cancelled = true;
     };
-  }, [
-    sessionState?.data?.user?.id,
-    sessionState?.status,
-    sessionState?.data?.user?.termsRequired,
-    sessionState?.data?.user?.requiredTermsVersion,
-    sessionState?.data?.user?.requiredTermsEffectiveDate,
-    sessionState?.data?.user?.requiredTermsUrl,
-  ]);
+  }, [sessionState?.data?.user?.id, sessionState?.status]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -143,6 +139,9 @@ export function TermsAgreementProvider({ children }: { children: React.ReactNode
         headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) return;
+      const body: unknown = await res.json().catch(() => null);
+      const accepted = parseTermsPayload(body);
+      if (accepted?.versionTag) acceptedVersionRef.current = accepted.versionTag;
       setTerms(null);
       await sessionState?.update?.();
       router.refresh();

@@ -140,6 +140,10 @@ export async function termsGateApiResponse(
   return termsRequiredApiResponse(gate.required);
 }
 
+/**
+ * Signup already showed the current Terms. Store that version immediately so the
+ * first login matches Terms_Version and does not open the forced popup.
+ */
 export async function applyLatestTermsOnSignup(
   client: DbLike,
   userId: string,
