@@ -20,6 +20,9 @@ export function isTermsGateExemptApiPath(pathname: string): boolean {
   if (pathname.startsWith("/api/legal/terms")) return true;
   if (pathname.startsWith("/api/mobile/legal/terms")) return true;
   if (pathname.startsWith("/api/mobile/auth")) return true;
+  // Shell chrome must load before terms acceptance (ad, map, deploy check).
+  if (pathname === "/api/sidebar" || pathname.startsWith("/api/sidebar/")) return true;
+  if (pathname === "/api/build-id") return true;
   return false;
 }
 

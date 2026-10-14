@@ -56,8 +56,20 @@ export function RightPanelHydrated({
       try {
         const params = new URLSearchParams({ country });
         const res = await fetch(`/api/sidebar?${params.toString()}`, { signal: ac.signal });
-        const body = await res.json();
-        if (cancelled || !body.ok) return;
+        const body = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (!res.ok || !body?.ok) {
+          setData(
+            (prev) =>
+              prev ?? {
+                tips: [],
+                sidebarAds: [],
+                eventPins: [],
+                sponsorEvent: initialSponsorRef.current,
+              }
+          );
+          return;
+        }
         setData((prev) => ({
           tips: body.tips ?? [],
           sidebarAds: body.sidebarAds ?? [],

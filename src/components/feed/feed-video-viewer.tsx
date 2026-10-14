@@ -46,6 +46,7 @@ function useDesktopMainColumnBox(): ColumnBox | null {
   useLayoutEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
     let ro: ResizeObserver | null = null;
+    let railObserved = false;
 
     const measure = () => {
       if (!mq.matches) {
@@ -64,7 +65,13 @@ function useDesktopMainColumnBox(): ColumnBox | null {
         setBox(null);
         return;
       }
-      const next = { top: r.top, left: r.left, width: r.width, height: r.height };
+      const rail = document.querySelector(".right-panel-rail");
+      const railRect = rail?.getBoundingClientRect();
+      let width = r.width;
+      if (railRect && railRect.width > 8 && railRect.left < r.right - 4) {
+        width = Math.max(8, railRect.left - r.left);
+      }
+      const next = { top: r.top, left: r.left, width, height: r.height };
       setBox((prev) =>
         prev &&
         prev.top === next.top &&
@@ -77,6 +84,13 @@ function useDesktopMainColumnBox(): ColumnBox | null {
       if (!ro) {
         ro = new ResizeObserver(measure);
         ro.observe(el);
+      }
+      if (ro && !railObserved) {
+        const railEl = document.querySelector(".right-panel-rail");
+        if (railEl) {
+          ro.observe(railEl);
+          railObserved = true;
+        }
       }
     };
 

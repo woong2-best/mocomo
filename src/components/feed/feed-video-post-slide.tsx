@@ -24,7 +24,10 @@ import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
 /** Desktop stage width — one card in the center column, no neighbor peek. */
 const DESKTOP_CARD_CLASS =
-  "lg:h-[min(100%,920px)] lg:w-[min(420px,calc(100%-7.5rem))]";
+  "lg:h-[min(100%,920px)] lg:w-[min(420px,calc(100%-15rem))]";
+
+/** Half of the desktop card, used to park prev/next just outside the frame. */
+const DESKTOP_CARD_HALF = "min(210px, 50% - 7.5rem)";
 
 type Props = {
   group: FeedVideoGroup;
@@ -377,30 +380,35 @@ export function FeedVideoPostSlide({
           })}
         </div>
 
-        {/* Desktop Instagram-style side arrows */}
-        {showSideNav && (
-          <>
-            <button
-              type="button"
-              disabled={!canHPrev || animating}
-              onClick={() => goH(videoIndex - 1)}
-              className={cn(sideNavBtnClass, "left-2")}
-              aria-label={t("feed.snrsq28")}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              disabled={!canHNext || animating}
-              onClick={() => goH(videoIndex + 1)}
-              className={cn(sideNavBtnClass, "right-14")}
-              aria-label={t("feed.sebaazc")}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </>
-        )}
       </div>
+      {showSideNav ? (
+        <>
+          <button
+            type="button"
+            disabled={!canHPrev || animating}
+            onClick={() => goH(videoIndex - 1)}
+            className={sideNavBtnClass}
+            style={{
+              left: `max(0.75rem, calc(50% - ${DESKTOP_CARD_HALF} - 3.25rem))`,
+            }}
+            aria-label={t("feed.snrsq28")}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            disabled={!canHNext || animating}
+            onClick={() => goH(videoIndex + 1)}
+            className={sideNavBtnClass}
+            style={{
+              right: `max(4.75rem, calc(50% - ${DESKTOP_CARD_HALF} - 3.25rem))`,
+            }}
+            aria-label={t("feed.sebaazc")}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      ) : null}
     </section>
   );
 }
