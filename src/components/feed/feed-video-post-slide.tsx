@@ -264,6 +264,7 @@ export function FeedVideoPostSlide({
       >
         <div
           ref={hScrollerRef}
+          data-reels-scroller="x"
           className={cn(
             "flex h-full w-full overflow-x-auto overflow-y-hidden overscroll-x-contain",
             "snap-x snap-mandatory [overflow-anchor:none]",

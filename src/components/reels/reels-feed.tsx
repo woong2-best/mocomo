@@ -338,6 +338,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
           "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
+        data-reels-scroller="y"
         role="feed"
         aria-label="Short video feed"
       >

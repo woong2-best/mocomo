@@ -19,21 +19,28 @@ import type HlsType from "hls.js";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  REELS_ATTACH_WATCHDOG_MS,
   REELS_AUTOPAUSE_THRESHOLD,
   REELS_AUTOPLAY_THRESHOLD,
+  REELS_DETACH_AFTER_MS,
   REELS_LOOP_MAX_SEC,
 } from "@/lib/reels/constants";
+import { reelShouldHoldSrc } from "@/lib/reels/attach-policy";
 import {
   hlsStartLevelForNetwork,
   reelPreloadForDistance,
   resolveReelPlaybackSrc,
 } from "@/lib/reels/playback-url";
+import { useReelsScrollerSettled } from "@/lib/reels/use-scroller-settled";
 import {
   getNetworkQuality,
   getVideoPlaybackController,
+  MAX_RETRIES,
   readMutedPreference,
+  RETRY_DELAYS_MS,
   writeMutedPreference,
   shouldAutoplayOnNetwork,
+  withVideoCacheBust,
 } from "@/lib/video-playback";
 import { ReelsProgressBar } from "@/components/reels/reels-progress-bar";
 import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
@@ -209,6 +216,14 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
   const attachedSrcRef = useRef<string | null>(null);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const [wantSrc, setWantSrc] = useState(() => distance === 0);
+  const wantSrcRef = useRef(wantSrc);
+  wantSrcRef.current = wantSrc;
+  const [retryToken, setRetryToken] = useState(0);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<number | null>(null);
+  const detachTimerRef = useRef<number | null>(null);
+  const scrollerSettled = useReelsScrollerSettled(containerRef);
 
   useEffect(() => {
     setForensicCanvasReady(false);
@@ -221,8 +236,51 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
   const forensicBlocked = forensicRequired && (Boolean(sessionError) || forensicCanvasFailed);
   const forensicLoading = forensicRequired && !forensicBlocked && !markedOutputReady;
 
-  const { src: playbackSrc, mode } = resolveReelPlaybackSrc({ url: src, hlsUrl });
-  const shouldMountMedia = distance <= 3;
+  const resolved = resolveReelPlaybackSrc({ url: src, hlsUrl });
+  const playbackSrc = withVideoCacheBust(resolved.src, retryToken);
+  const mode = resolved.mode;
+  const shouldMountMedia = wantSrc;
+
+  const scheduleRetry = useCallback(() => {
+    if (retryCountRef.current >= MAX_RETRIES) return;
+    const delay =
+      RETRY_DELAYS_MS[Math.min(retryCountRef.current, RETRY_DELAYS_MS.length - 1)] ?? 1000;
+    retryCountRef.current += 1;
+    if (retryTimerRef.current != null) window.clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = window.setTimeout(() => {
+      retryTimerRef.current = null;
+      attachedSrcRef.current = null;
+      setRetryToken((token) => token + 1);
+    }, delay);
+  }, []);
+
+  useEffect(() => {
+    retryCountRef.current = 0;
+    setRetryToken(0);
+  }, [src, hlsUrl, mediaId]);
+
+  useEffect(() => {
+    const hold = reelShouldHoldSrc({
+      distance,
+      settled: scrollerSettled,
+      alreadyAttached: wantSrcRef.current,
+    });
+    if (hold) {
+      if (detachTimerRef.current != null) {
+        window.clearTimeout(detachTimerRef.current);
+        detachTimerRef.current = null;
+      }
+      setWantSrc(true);
+      return;
+    }
+    if (detachTimerRef.current != null) return;
+    detachTimerRef.current = window.setTimeout(() => {
+      detachTimerRef.current = null;
+      if (!wantSrcRef.current) return;
+      setWantSrc(false);
+      setRetryToken((token) => token + 1);
+    }, REELS_DETACH_AFTER_MS);
+  }, [distance, scrollerSettled]);
 
   const destroyHls = useCallback(() => {
     hlsRef.current?.destroy();
@@ -262,14 +320,21 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
       hls.attachMedia(video);
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          if (retryCountRef.current >= MAX_RETRIES) {
+            hls.startLoad();
+            return;
+          }
+          scheduleRetry();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
       });
       return;
     }
 
     video.src = playbackSrc;
-  }, [destroyHls, mode, playbackSrc, shouldMountMedia]);
+  }, [destroyHls, mode, playbackSrc, scheduleRetry, shouldMountMedia]);
 
   const detachSource = useCallback(() => {
     const video = videoRef.current;
@@ -290,7 +355,14 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
     void attachSource();
   }, [attachSource, detachSource, shouldMountMedia]);
 
-  useEffect(() => () => detachSource(), [detachSource]);
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current != null) window.clearTimeout(retryTimerRef.current);
+      if (detachTimerRef.current != null) window.clearTimeout(detachTimerRef.current);
+      detachSource();
+    },
+    [detachSource]
+  );
 
   useEffect(() => {
     const video = videoRef.current;
@@ -383,7 +455,7 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
   useEffect(() => {
     // Settled active slide always owns playback — do not require inView
     // (orientation change briefly collapses intersection ratios).
-    if (isActive && distance === 0) {
+    if (isActive && distance === 0 && wantSrc) {
       // Opening tap from the feed also lands here and would pause. Play anyway.
       ignoreTapUntilRef.current = Date.now() + 500;
       void tryPlay("user");
@@ -394,10 +466,10 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
     }
     if (distance > 0 || !inView) {
       pauseSelf();
-    } else if (inView && distance === 0) {
+    } else if (inView && distance === 0 && wantSrc) {
       void tryPlay("user");
     }
-  }, [distance, inView, isActive, pauseSelf, tryPlay]);
+  }, [distance, inView, isActive, pauseSelf, tryPlay, wantSrc]);
 
   // After rotate layout settles, resume the active reel.
   useEffect(() => {
@@ -436,6 +508,10 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
     };
     const onWaiting = () => setBuffering(true);
     const onPlaying = () => setBuffering(false);
+    const onCanPlay = () => {
+      setBuffering(false);
+      if (isActiveRef.current) void tryPlay("user");
+    };
     const onMeta = () => {
       const d = video.duration;
       if (disableLoop) {
@@ -449,22 +525,36 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
     const onVideoEnded = () => {
       if (disableLoop) onEnded?.();
     };
+    const onError = () => {
+      if (!isActiveRef.current) return;
+      scheduleRetry();
+    };
 
     video.addEventListener("timeupdate", onTime);
     video.addEventListener("progress", onTime);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
+    video.addEventListener("canplay", onCanPlay);
     video.addEventListener("loadedmetadata", onMeta);
     video.addEventListener("ended", onVideoEnded);
+    video.addEventListener("error", onError);
+    const watchdog = window.setTimeout(() => {
+      if (!isActiveRef.current) return;
+      if (video.readyState >= 2) return;
+      scheduleRetry();
+    }, REELS_ATTACH_WATCHDOG_MS);
     return () => {
+      window.clearTimeout(watchdog);
       video.removeEventListener("timeupdate", onTime);
       video.removeEventListener("progress", onTime);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("loadedmetadata", onMeta);
       video.removeEventListener("ended", onVideoEnded);
+      video.removeEventListener("error", onError);
     };
-  }, [playbackSrc, disableLoop, onEnded]);
+  }, [playbackSrc, disableLoop, onEnded, scheduleRetry, tryPlay]);
 
   const onSeek = useCallback((ratio: number) => {
     const video = videoRef.current;
@@ -532,6 +622,7 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
     >
       {shouldMountMedia ? (
         <video
+          key={playbackSrc}
           ref={videoRef}
           className="absolute inset-0 h-full w-full object-contain bg-black"
           tabIndex={-1}
