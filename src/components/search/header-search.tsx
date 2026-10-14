@@ -10,7 +10,7 @@ import { SearchRankingFocusPanel } from "@/components/search/search-ranking-focu
 import { SearchRecentFocusPanel } from "@/components/search/search-recent-focus-panel";
 import type { SidebarSearchRankingItem } from "@/lib/scoped-search-rank-shared";
 import { getHeaderSearchContext } from "@/lib/header-search-context";
-import { loadRecentSearches, rememberRecentSearch } from "@/lib/recent-searches";
+import { loadRecentSearches, rememberRecentSearch, removeRecentSearch } from "@/lib/recent-searches";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -63,6 +63,13 @@ export function HeaderSearch({
     setRecents(loadRecentSearches(searchContext.scope));
     setRecentsPending(false);
   }, [searchContext.scope]);
+
+  const handleRemoveRecent = useCallback(
+    (term: string) => {
+      setRecents(removeRecentSearch(searchContext.scope, term));
+    },
+    [searchContext.scope]
+  );
 
   const fetchPreview = useCallback((term: string) => {
     const trimmed = term.trim();
@@ -327,6 +334,7 @@ export function HeaderSearch({
               pending={recentsPending}
               filter={searchContext.inPage ? q : undefined}
               onPick={(term) => goFullSearch(undefined, term)}
+              onRemove={handleRemoveRecent}
             />
           </div>
         )}

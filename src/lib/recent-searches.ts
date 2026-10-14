@@ -1,5 +1,5 @@
 const STORAGE_KEY = "mocomo.recent-searches.v1";
-const MAX_PER_SCOPE = 12;
+export const MAX_RECENT_SEARCHES_PER_SCOPE = 5;
 
 type RecentMap = Record<string, string[]>;
 
@@ -26,14 +26,27 @@ function writeMap(map: RecentMap) {
 }
 
 export function loadRecentSearches(scope: string): string[] {
-  return readMap()[scope] ?? [];
+  return (readMap()[scope] ?? []).slice(0, MAX_RECENT_SEARCHES_PER_SCOPE);
 }
 
 export function rememberRecentSearch(scope: string, q: string): string[] {
   const trimmed = q.trim();
   if (!trimmed || typeof window === "undefined") return loadRecentSearches(scope);
   const map = readMap();
-  const next = [trimmed, ...(map[scope] ?? []).filter((item) => item !== trimmed)].slice(0, MAX_PER_SCOPE);
+  const next = [trimmed, ...(map[scope] ?? []).filter((item) => item !== trimmed)].slice(
+    0,
+    MAX_RECENT_SEARCHES_PER_SCOPE
+  );
+  map[scope] = next;
+  writeMap(map);
+  return next;
+}
+
+export function removeRecentSearch(scope: string, q: string): string[] {
+  const trimmed = q.trim();
+  if (!trimmed || typeof window === "undefined") return loadRecentSearches(scope);
+  const map = readMap();
+  const next = (map[scope] ?? []).filter((item) => item !== trimmed);
   map[scope] = next;
   writeMap(map);
   return next;

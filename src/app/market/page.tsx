@@ -8,7 +8,6 @@ import { Package } from "lucide-react";
 import { getUsedListings, getViewerUsedListingStarIds, isUsedDbReady } from "@/actions/used-market";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getCachedSidebarSearchRanking } from "@/lib/scoped-search-rank";
 import { resolveUsedMarketScope } from "@/lib/used-market-locale-scope";
 import {
   listingMatchesBrowseCategory,
@@ -19,7 +18,6 @@ import { DbSetupBanner } from "@/components/ui/db-setup-banner";
 import { UsedListingGrid } from "@/components/used/used-listing-grid";
 import { UsedQueryCategories } from "@/components/used/used-query-categories";
 import { UsedSearchHeader } from "@/components/used/used-search-header";
-import { UsedSearchRecommendations } from "@/components/used/used-search-recommendations";
 import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
 import { Button } from "@/components/ui/button";
 
@@ -183,19 +181,10 @@ export default async function UsedHomePage({
   if (categoryHref) redirect(categoryHref);
 
   const session = await auth();
-  const [scope, ranking] = await Promise.all([
-    resolveUsedMarketScope({
-      userId: session?.user?.id,
-      sessionCountry: session?.user?.countryCode,
-    }),
-    search.q?.trim()
-      ? Promise.resolve(null)
-      : getCachedSidebarSearchRanking("/market", 8).catch(() => null),
-  ]);
-  const recommended = (ranking?.items ?? [])
-    .map((item) => item.label.trim())
-    .filter((label, index, all) => label.length > 0 && all.indexOf(label) === index)
-    .slice(0, 8);
+  const scope = await resolveUsedMarketScope({
+    userId: session?.user?.id,
+    sessionCountry: session?.user?.countryCode,
+  });
 
   return (
     <div className="space-y-2">
@@ -203,9 +192,6 @@ export default async function UsedHomePage({
         viewerCountryCode={scope.countryCode}
         viewerServiceRegion={scope.serviceRegion}
       />
-      {!search.q?.trim() && !search.category ? (
-        <UsedSearchRecommendations labels={recommended} />
-      ) : null}
       <Suspense fallback={<UsedFeedSkeleton />}>
         <UsedFeed searchParams={searchParams} />
       </Suspense>
