@@ -9,9 +9,11 @@ export default async function UsedMyPage({
   searchParams: Promise<{ lane?: string }>;
 }) {
   const user = await getCachedCurrentUser();
-  if (!user?.id) redirect("/auth/signin?callbackUrl=/market/my");
-
   const { lane } = await searchParams;
+  const callbackPath =
+    lane && lane.length < 32 ? `/market/my?lane=${encodeURIComponent(lane)}` : "/market/my";
+  if (!user?.id) redirect(`/auth/signin?callbackUrl=${encodeURIComponent(callbackPath)}`);
+
   const initialLane: UsedHubLane =
     lane === "purchased" ||
     lane === "selling" ||
