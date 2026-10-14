@@ -2,7 +2,7 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { CULTURE_WIKI_TERMS } from "@/lib/legal-content";
-import { LegalDocumentView } from "@/components/legal/legal-document";
+import { PublishedLegalDocument } from "@/components/legal/published-legal-document";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -10,6 +10,6 @@ export const metadata: Metadata = {
   description: t("app.legal.mocomo_cc_by_nc_sa"),
 };
 
-export default function CultureWikiTermsPage() {
-  return <LegalDocumentView document={CULTURE_WIKI_TERMS} />;
+export default async function CultureWikiTermsPage() {
+  return <PublishedLegalDocument fallback={CULTURE_WIKI_TERMS} />;
 }

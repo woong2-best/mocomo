@@ -74,6 +74,10 @@
     {
       "path": "/api/cron/settlement-moco-payouts",
       "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/legal-publish",
+      "schedule": "15 * * * *"
     }
   ],
   "functions": {
@@ -81,6 +85,9 @@
       "maxDuration": 300
     },
     "src/app/api/cron/used-auctions/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/legal-publish/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/cron/subculture-events/route.ts": {

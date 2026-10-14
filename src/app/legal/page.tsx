@@ -5,13 +5,21 @@ import Link from "next/link";
 import { LEGAL_PAGES } from "@/lib/legal-content";
 import type { Metadata } from "next";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
+import { resolvePublishedLegalDocument } from "@/lib/legal/legal-document-store";
 
 export const metadata: Metadata = {
   title: t("app.legal.mocomo_8"),
   description: t("app.legal.mocomo_9"),
 };
 
-export default function LegalIndexPage() {
+export default async function LegalIndexPage() {
+  const pages = await Promise.all(
+    LEGAL_PAGES.map(async (page) => {
+      const resolved = await resolvePublishedLegalDocument(page.doc.slug, page.doc);
+      return { ...page, updatedAt: resolved.document.updatedAt };
+    })
+  );
+
   return (
     <AppPageChrome maxWidth="3xl">
       <NativePageTitle>
@@ -21,7 +29,7 @@ export default function LegalIndexPage() {
         MoCoMo 서비스 이용에 관한 약관과 커뮤니티 운영 정책입니다.
       </p>
       <ul className="space-y-3">
-        {LEGAL_PAGES.map((page) => (
+        {pages.map((page) => (
           <li key={page.href}>
             <Link
               href={page.href}
@@ -29,7 +37,7 @@ export default function LegalIndexPage() {
             >
               <span className="font-semibold">{page.label}</span>
               <span className="block text-xs text-muted-foreground mt-1">
-                최종 업데이트: {page.doc.updatedAt}
+                최종 업데이트: {page.updatedAt}
               </span>
             </Link>
           </li>

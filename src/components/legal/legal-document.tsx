@@ -130,9 +130,11 @@ function renderBlock(block: LegalDocument["blocks"][number], key: number) {
 export function LegalDocumentView({
   document,
   supplementalBlocks = [],
+  scheduledNotice = null,
 }: {
   document: LegalDocument;
   supplementalBlocks?: LegalDocument["blocks"];
+  scheduledNotice?: { effectiveDate: string; title: string } | null;
 }) {
   const blocks = [...document.blocks, ...supplementalBlocks];
 
@@ -141,6 +143,12 @@ export function LegalDocumentView({
       <p className="mb-6 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
         {t("legal.englishOnlyBanner")}
       </p>
+      {scheduledNotice ? (
+        <p className="mb-6 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+          Notice: an updated version of this document is announced and takes effect on{" "}
+          {scheduledNotice.effectiveDate}. Until then the current text below remains in force.
+        </p>
+      ) : null}
       <header className="mb-8">
         <h1 className="text-2xl font-bold">{document.title}</h1>
         <p className="text-sm text-muted-foreground mt-2">

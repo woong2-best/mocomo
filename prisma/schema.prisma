@@ -739,6 +739,33 @@ enum TermsConsentAction {
   TRANSFER
 }
 
+enum LegalDocumentStatus {
+  LIVE
+  SCHEDULED
+  SUPERSEDED
+}
+
+/** Admin-editable legal documents. LIVE row is what the public pages render. */
+model LegalDocumentRevision {
+  id                  String               @id @default(cuid())
+  slug                String
+  title               String
+  intro               String?              @db.Text
+  bodyText            String               @db.Text
+  versionLabel        String?
+  status              LegalDocumentStatus
+  scheduledPublishAt  DateTime?
+  publishedAt         DateTime?
+  triggerTermsPopup   Boolean              @default(false)
+  createdById         String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([slug, status])
+  @@index([status, scheduledPublishAt])
+  @@map("legal_document_revision")
+}
+
 /** Published Terms of Service versions. Latest row is required for all users. */
 model TermsVersion {
   id            String   @id @default(cuid())

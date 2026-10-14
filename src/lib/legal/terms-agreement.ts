@@ -27,6 +27,10 @@ export type PublicTermsVersion = {
 const LATEST_TTL_MS = 30_000;
 let latestCache: { at: number; value: TermsVersionRow | null } | null = null;
 
+export function invalidateLatestTermsCache() {
+  latestCache = null;
+}
+
 type DbLike = Prisma.TransactionClient | typeof db;
 
 export class TermsRequiredError extends Error {

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";

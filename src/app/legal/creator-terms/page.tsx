@@ -2,13 +2,13 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { CREATOR_TERMS } from "@/lib/legal-content";
-import { LegalDocumentView } from "@/components/legal/legal-document";
+import { PublishedLegalDocument } from "@/components/legal/published-legal-document";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: t("app.legal.mocomo_4"),
 };
 
-export default function CreatorTermsPage() {
-  return <LegalDocumentView document={CREATOR_TERMS} />;
+export default async function CreatorTermsPage() {
+  return <PublishedLegalDocument fallback={CREATOR_TERMS} />;
 }

@@ -12,6 +12,6 @@ export const metadata: Metadata = {
 
 export default async function TermsPage() {
   const countryCode = await resolveLegalCountryCode();
-  const document = buildUnifiedTermsDocument(countryCode);
-  return <LegalDocumentView document={document} />;
+  const { document, scheduledNotice } = await buildUnifiedTermsDocument(countryCode);
+  return <LegalDocumentView document={document} scheduledNotice={scheduledNotice} />;
 }

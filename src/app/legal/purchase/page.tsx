@@ -1,5 +1,5 @@
 import { MOCO_PURCHASE_TERMS } from "@/lib/legal-content";
-import { LegalDocumentView } from "@/components/legal/legal-document";
+import { PublishedLegalDocument } from "@/components/legal/published-legal-document";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,6 +8,6 @@ export const metadata: Metadata = {
     "Terms that apply to every purchase of MOCO on MoCoMo, including the MOCO and Fortune Cookie package.",
 };
 
-export default function MocoPurchaseTermsPage() {
-  return <LegalDocumentView document={MOCO_PURCHASE_TERMS} />;
+export default async function MocoPurchaseTermsPage() {
+  return <PublishedLegalDocument fallback={MOCO_PURCHASE_TERMS} />;
 }
