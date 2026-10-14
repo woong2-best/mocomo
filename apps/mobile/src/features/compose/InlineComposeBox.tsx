@@ -226,6 +226,10 @@ export function InlineComposeBox({
     inputRef.current?.focus();
   }, []);
 
+  const onQuotePreviewLoaded = useCallback((p: { isNsfw: boolean }) => {
+    setQuotedSourceNsfw(!!p.isNsfw);
+  }, []);
+
   useEffect(() => {
     if (quotedPostId) {
       setContent("");
@@ -513,7 +517,7 @@ export function InlineComposeBox({
         {quotedPostId ? (
           <ComposeQuotePreview
             postId={quotedPostId}
-            onLoaded={(p) => setQuotedSourceNsfw(!!p.isNsfw)}
+            onLoaded={onQuotePreviewLoaded}
           />
         ) : null}
         </View>

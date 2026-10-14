@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { fetchQuotePreview, type QuotePreviewPost } from "@/api/posts";
@@ -13,22 +13,25 @@ type Props = {
   onLoaded?: (post: QuotePreviewPost) => void;
 };
 
-export function ComposeQuotePreview({ postId, onLoaded }: Props) {
+export const ComposeQuotePreview = memo(function ComposeQuotePreview({ postId, onLoaded }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [post, setPost] = useState<QuotePreviewPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const onLoadedRef = useRef(onLoaded);
+  onLoadedRef.current = onLoaded;
 
   useEffect(() => {
     let cancelled = false;
+    setPost(null);
     setLoading(true);
     void (async () => {
       try {
         const res = await fetchQuotePreview(postId);
         if (!cancelled) {
           setPost(res.post);
-          onLoaded?.(res.post);
+          onLoadedRef.current?.(res.post);
         }
       } catch {
         if (!cancelled) setPost(null);
@@ -39,9 +42,9 @@ export function ComposeQuotePreview({ postId, onLoaded }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [onLoaded, postId]);
+  }, [postId]);
 
-  if (loading) {
+  if (loading && !post) {
     return (
       <View style={styles.shell}>
         <ActivityIndicator color={colors.terracotta} />
@@ -90,7 +93,7 @@ export function ComposeQuotePreview({ postId, onLoaded }: Props) {
       ) : null}
     </View>
   );
-}
+});
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
