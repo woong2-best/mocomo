@@ -31,12 +31,14 @@ export async function GET(req: NextRequest) {
 
     const liked = new Set(engagement.likedIds);
     const starred = new Set(engagement.starredIds);
+    const reposted = new Set(engagement.repostedIds);
 
     return NextResponse.json({
       items: items.map((item) => ({
         ...item,
         liked: liked.has(item.postId),
         starred: starred.has(item.postId),
+        reposted: reposted.has(item.postId),
       })),
       nextCursor,
     });

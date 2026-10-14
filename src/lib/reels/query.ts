@@ -88,7 +88,7 @@ function mapReelRow(post: {
     priceKrw: number;
     order: number;
   }[];
-  _count: { likes: number; comments: number };
+  _count: { likes: number; comments: number; reposts: number };
 }): ReelItem | null {
   const media = pickPrimaryReelMedia(post.media);
   if (!media) return null;
@@ -127,8 +127,10 @@ function mapReelRow(post: {
     },
     likeCount: post._count.likes,
     commentCount: post._count.comments,
+    repostCount: post._count.reposts,
     liked: false,
     starred: false,
+    reposted: false,
   };
 }
 
@@ -175,7 +177,7 @@ export async function fetchReelsPage(
             orderBy: { order: "asc" },
             select: reelsMediaSelect,
           },
-          _count: { select: { likes: true, comments: true } },
+          _count: { select: { likes: true, comments: true, reposts: true } },
         },
       });
 
@@ -232,7 +234,7 @@ export function getCachedReelsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchReelsPage(cursor, limit),
-    ["reels-page-v6-collab", cacheKey, String(limit)],
+    ["reels-page-v7-repost", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

@@ -1,6 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  FlatList,
   Platform,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -10,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 import { showIslandError, showIslandInfo } from "@/ui/IslandToast";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -35,19 +35,15 @@ import {
 } from "@/ui/CollapsibleVideoCaption";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
+import { FeedPostRepostMenu } from "@/features/feed/FeedPostRepostMenu";
+import type { MenuAnchor } from "@/features/feed/FeedPostOverflowMenu";
 import { useAuth } from "@/auth/AuthContext";
 import { useShowLikeCounts } from "@/hooks/use-display-preferences";
 import { useI18n } from "@/i18n/I18nProvider";
-import {
-  REELS_PHONE_EDGE_HOLD,
-  REELS_WIDE_CARD_RADIUS,
-  reelsEdgeHoldWidth,
-} from "@/features/reels/reels-wide-layout";
+import { REELS_WIDE_CARD_RADIUS } from "@/features/reels/reels-wide-layout";
 import { ReelPinchZoom } from "@/features/reels/ReelPinchZoom";
 import { reelFillPhoneScale } from "@/features/reels/reel-pinch-zoom";
 
-/** Right inset for center tap zone so it does not compete with the action rail. */
-const RAIL_CLEARANCE = 76;
 const FAST_PLAYBACK_RATE = 2;
 
 function reelAsFeedPost(reel: ReelItem, starred: boolean): FeedPost {
@@ -102,7 +98,7 @@ type Props = {
   onOpenComments: (postId: string, commentCount: number) => void;
   onPrefetchComments?: (postId: string) => void;
   onChangeVideoIndex?: (index: number) => void;
-  /** Hide Reels chrome (header / nav arrows) while edge-hold 2× is active. */
+  /** Hide Reels chrome while a still-hold 2× is active. */
   onFastForwardChange?: (active: boolean) => void;
   /** Lock the vertical pager while a two-finger pinch is active. */
   onPinchZoomChange?: (zooming: boolean) => void;
@@ -312,7 +308,7 @@ function VideoCell({
             instantPurchasePriceKrw: item.media.instantPurchasePriceKrw,
           }}
           active={playing && (!pausedByUser || fastForward)}
-          muted={muted}
+          muted={false}
           contentFit="contain"
           monetization={item.monetization}
         />
@@ -329,54 +325,6 @@ function VideoCell({
       muted={muted}
       pausedByUser={pausedByUser}
       fastForward={fastForward}
-    />
-  );
-}
-
-function EdgeHoldZone({
-  side,
-  width = REELS_PHONE_EDGE_HOLD,
-  disabled,
-  onHoldStart,
-  onHoldEnd,
-}: {
-  side: "left" | "right";
-  width?: number;
-  disabled?: boolean;
-  onHoldStart: () => void;
-  onHoldEnd: () => void;
-}) {
-  const { t } = useI18n();
-  const holdingRef = useRef(false);
-
-  const endHold = useCallback(() => {
-    if (!holdingRef.current) return;
-    holdingRef.current = false;
-    onHoldEnd();
-  }, [onHoldEnd]);
-
-  const startHold = useCallback(() => {
-    if (disabled || holdingRef.current) return;
-    holdingRef.current = true;
-    onHoldStart();
-  }, [disabled, onHoldStart]);
-
-  return (
-    <Pressable
-      style={[
-        styles.edgeZone,
-        { width },
-        side === "left" ? styles.edgeLeft : styles.edgeRight,
-      ]}
-      onLongPress={startHold}
-      onPressOut={endHold}
-      delayLongPress={160}
-      accessibilityRole="button"
-      accessibilityLabel={
-        side === "left"
-          ? t("m.feed.hold_left_edge_for_2_speed")
-          : t("m.feed.hold_right_edge_for_2_speed")
-      }
     />
   );
 }
@@ -399,15 +347,13 @@ function FeedVideoPostSlideInner({
   const stageWidth = stageWidthProp ?? width;
   const stageLeft = stageLeftProp ?? 0;
   const isWide = stageLeft > 0 || stageWidth < width;
-  const leftEdgeWidth = reelsEdgeHoldWidth(stageWidth, isWide);
-  const rightEdgeWidth = REELS_PHONE_EDGE_HOLD;
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const starLock = useRef(false);
   const postIdRef = useRef(group.postId);
   postIdRef.current = group.postId;
   const isFocused = useIsFocused();
-  const { user } = useAuth();
+  const { user, status } = useAuth();
   const showLikeCounts = useShowLikeCounts();
   const listRef = useRef<FlatList<ReelItem>>(null);
   const [videoIndex, setVideoIndex] = useState(
@@ -416,7 +362,12 @@ function FeedVideoPostSlideInner({
   const [liked, setLiked] = useState(!!group.videos[0]?.liked);
   const [likeCount, setLikeCount] = useState(group.videos[0]?.likeCount ?? 0);
   const [starred, setStarred] = useState(!!group.videos[0]?.starred);
-  const [muted, setMuted] = useState(false);
+  const [reposted, setReposted] = useState(!!group.videos[0]?.reposted);
+  const [repostCount, setRepostCount] = useState(group.videos[0]?.repostCount ?? 0);
+  const [repostBusy, setRepostBusy] = useState(false);
+  const [repostMenuOpen, setRepostMenuOpen] = useState(false);
+  const [repostMenuAnchor, setRepostMenuAnchor] = useState<MenuAnchor | null>(null);
+  const repostAnchorRef = useRef<View>(null);
   const [pausedByUser, setPausedByUser] = useState(false);
   const [fastForward, setFastForward] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
@@ -491,7 +442,16 @@ function FeedVideoPostSlideInner({
     setLiked(!!current.liked);
     setLikeCount(current.likeCount);
     setStarred(!!current.starred);
-  }, [current?.id, current?.liked, current?.likeCount, current?.starred]);
+    setReposted(!!current.reposted);
+    setRepostCount(current.repostCount ?? 0);
+  }, [
+    current?.id,
+    current?.liked,
+    current?.likeCount,
+    current?.starred,
+    current?.reposted,
+    current?.repostCount,
+  ]);
 
   useEffect(() => {
     if (!active) setPausedByUser(false);
@@ -572,6 +532,28 @@ function FeedVideoPostSlideInner({
       });
   }, [current, queryClient, starred]);
 
+  const requireLogin = useCallback(() => {
+    if (status !== "signedIn") {
+      showIslandError(t("m.common.sign_in_required"), t("m.feed.sign_in_to_use_this_feature"));
+      return false;
+    }
+    return true;
+  }, [status, t]);
+
+  const openRepostMenu = useCallback(() => {
+    if (!requireLogin()) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    repostAnchorRef.current?.measureInWindow((x, y, width, height) => {
+      setRepostMenuAnchor({ x, y, width, height });
+      setRepostMenuOpen(true);
+    });
+  }, [requireLogin]);
+
+  const onRepostChange = useCallback((nextReposted: boolean, nextCount: number) => {
+    setReposted(nextReposted);
+    setRepostCount(nextCount);
+  }, []);
+
   const onShare = useCallback(() => {
     if (!current) return;
     void Share.share({
@@ -622,13 +604,13 @@ function FeedVideoPostSlideInner({
         nestedScrollEnabled
         directionalLockEnabled
         removeClippedSubviews={false}
-        scrollEnabled={active && !pinchZooming}
+        scrollEnabled={active && !pinchZooming && !fastForward}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         bounces={false}
         overScrollMode="never"
         onMomentumScrollEnd={onHScroll}
-        extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${muted ? 1 : 0}:${fastForward ? 1 : 0}:${pinchZooming ? 1 : 0}`}
+        extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${fastForward ? 1 : 0}:${pinchZooming ? 1 : 0}`}
         getItemLayout={(_, index) => ({
           length: stageWidth,
           offset: stageWidth * index,
@@ -652,6 +634,11 @@ function FeedVideoPostSlideInner({
             >
               <ReelPinchZoom
                 enabled={isCurrent}
+                tapEnabled={isCurrent && item.mediaType !== "IMAGE"}
+                holdEnabled={isCurrent && item.mediaType !== "IMAGE" && !pausedByUser}
+                onTap={togglePause}
+                onHoldStart={startFastForward}
+                onHoldEnd={stopFastForward}
                 resetKey={`${item.id}:${isCurrent ? 1 : 0}`}
                 fillBoost={reelFillPhoneScale(
                   item.media.width ?? 0,
@@ -663,37 +650,10 @@ function FeedVideoPostSlideInner({
                 )}
                 onZoomChange={isCurrent ? handlePinchZoomChange : undefined}
                 overlay={
-                  isCurrent && !fastForward && item.mediaType !== "IMAGE" ? (
-                    <>
-                      <Pressable
-                        style={[
-                          styles.tapZone,
-                          { left: leftEdgeWidth, right: RAIL_CLEARANCE },
-                        ]}
-                        onPress={togglePause}
-                        accessibilityRole="button"
-                        accessibilityLabel={pausedByUser ? t("m.common.play") : t("m.common.pause")}
-                      />
-                      {pausedByUser ? (
-                        <View style={styles.pauseBadge} pointerEvents="none">
-                          <Ionicons name="play" size={56} color="rgba(255,255,255,0.9)" />
-                        </View>
-                      ) : null}
-                      <EdgeHoldZone
-                        side="left"
-                        width={leftEdgeWidth}
-                        disabled={pausedByUser || pinchZooming}
-                        onHoldStart={startFastForward}
-                        onHoldEnd={stopFastForward}
-                      />
-                      <EdgeHoldZone
-                        side="right"
-                        width={rightEdgeWidth}
-                        disabled={pausedByUser || pinchZooming}
-                        onHoldStart={startFastForward}
-                        onHoldEnd={stopFastForward}
-                      />
-                    </>
+                  isCurrent && pausedByUser && !fastForward && item.mediaType !== "IMAGE" ? (
+                    <View style={styles.pauseBadge} pointerEvents="none">
+                      <Ionicons name="play" size={56} color="rgba(255,255,255,0.9)" />
+                    </View>
                   ) : null
                 }
               >
@@ -705,7 +665,7 @@ function FeedVideoPostSlideInner({
                     item={item}
                     active={isCurrent}
                     playing={isPlaying}
-                    muted={muted}
+                    muted={false}
                     pausedByUser={pausedByUser}
                     fastForward={isPlaying && fastForward}
                     loadPlayer={loadPlayer && Math.abs(index - videoIndex) <= 1}
@@ -803,9 +763,21 @@ function FeedVideoPostSlideInner({
         >
           <ShareGlobeIcon size={26} color="#fff" />
         </Pressable>
-        <Pressable onPress={() => setMuted((m) => !m)} style={styles.railBtn} hitSlop={10}>
-          <Ionicons name={muted ? "volume-mute" : "volume-high"} size={26} color="#fff" />
-        </Pressable>
+        <View ref={repostAnchorRef} collapsable={false}>
+          <Pressable
+            onPress={openRepostMenu}
+            style={styles.railBtn}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={reposted ? t("m.feed.undo_repost") : t("m.feed.repost")}
+          >
+            <Ionicons
+              name="repeat-outline"
+              size={26}
+              color={reposted ? "#8EBEFF" : "#fff"}
+            />
+          </Pressable>
+        </View>
         <Pressable
           onPress={onReportPress}
           style={styles.railBtn}
@@ -825,14 +797,24 @@ function FeedVideoPostSlideInner({
         postId={current.postId}
         authorId={current.author.id}
       />
-
-      {fastForward ? (
-        <Pressable
-          style={styles.releaseCatcher}
-          onPressOut={stopFastForward}
-          accessibilityLabel={t("m.feed.release_2_speed")}
-        />
-      ) : null}
+      <FeedPostRepostMenu
+        visible={repostMenuOpen}
+        anchor={repostMenuAnchor}
+        onClose={() => {
+          setRepostMenuOpen(false);
+          setRepostMenuAnchor(null);
+        }}
+        postId={current.postId}
+        authorUsername={current.author.username}
+        title={current.title}
+        content={current.content}
+        reposted={reposted}
+        repostCount={repostCount}
+        busy={repostBusy}
+        onBusyChange={setRepostBusy}
+        onRepostChange={onRepostChange}
+        requireLogin={requireLogin}
+      />
     </View>
   );
 }
@@ -870,24 +852,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.28)",
   },
   segmentActive: { backgroundColor: "#fff" },
-  tapZone: {
-    position: "absolute",
-    top: 32,
-    bottom: 88,
-    zIndex: 2,
-  },
-  edgeZone: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    zIndex: 4,
-  },
-  edgeLeft: { left: 0 },
-  edgeRight: { right: 0 },
-  releaseCatcher: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 20,
-  },
   pauseBadge: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",

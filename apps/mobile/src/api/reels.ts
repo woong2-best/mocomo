@@ -40,8 +40,10 @@ export type ReelItem = {
   monetization?: PaidMediaMonetization;
   likeCount: number;
   commentCount: number;
+  repostCount?: number;
   liked: boolean;
   starred: boolean;
+  reposted?: boolean;
 };
 
 export type ReelsPage = {

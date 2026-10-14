@@ -9,12 +9,38 @@ import {
   reelFillPhoneScale,
   reelPinchOffset,
   reelPinchShouldCommit,
+  REEL_GESTURE_SLOP,
+  REEL_HOLD_MS,
+  reelSurfaceIntent,
 } from "./reel-pinch-zoom";
 
 test("pinch scale rubber-bands below 1 and caps at max", () => {
   assert.equal(clampReelPinchScale(1), 1);
   assert.equal(clampReelPinchScale(0.2), REEL_PINCH_MIN);
   assert.equal(clampReelPinchScale(12), REEL_PINCH_MAX);
+});
+
+test("instagram surface: pinch beats swipe, swipe beats hold, hold beats tap", () => {
+  assert.equal(
+    reelSurfaceIntent({ pointers: 2, distance: 40, heldMs: 400, released: false }),
+    "pinch"
+  );
+  assert.equal(
+    reelSurfaceIntent({ pointers: 1, distance: REEL_GESTURE_SLOP + 1, heldMs: 400, released: false }),
+    "swipe"
+  );
+  assert.equal(
+    reelSurfaceIntent({ pointers: 1, distance: 2, heldMs: REEL_HOLD_MS, released: false }),
+    "fast"
+  );
+  assert.equal(
+    reelSurfaceIntent({ pointers: 1, distance: 2, heldMs: 80, released: true }),
+    "tap"
+  );
+  assert.equal(
+    reelSurfaceIntent({ pointers: 1, distance: 2, heldMs: 80, released: false }),
+    "pending"
+  );
 });
 
 test("one finger never commits a pinch", () => {

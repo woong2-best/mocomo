@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Modal,
   Platform,
   Pressable,
@@ -19,6 +18,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchFeedPage, type FeedPost } from "@/api/feed";
 import { fetchReelsAds } from "@/api/ads";
@@ -434,15 +434,6 @@ export function ReelsScreen() {
     }
   }, [commentBusy, commentDraft, commentsPostId, queryClient]);
 
-  const goSlot = useCallback(
-    (delta: number) => {
-      const next = Math.min(Math.max(activeSlotRef.current + delta, 0), slots.length - 1);
-      if (next === activeSlotRef.current) return;
-      snapToSlot(next, true);
-    },
-    [slots.length, snapToSlot]
-  );
-
   const onFastForwardChange = useCallback((hidden: boolean) => {
     setChromeHidden(hidden);
   }, []);
@@ -528,7 +519,7 @@ export function ReelsScreen() {
   return (
     <View style={styles.root}>
       {!hideChrome ? (
-        <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 4 }]} pointerEvents="box-none">
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={28} color="#fff" />
           </Pressable>
@@ -541,31 +532,6 @@ export function ReelsScreen() {
           topInset={insets.top}
           bottomInset={insets.bottom}
         />
-      ) : null}
-
-      {/* Up / down affordances like web */}
-      {!hideChrome ? (
-        <View
-          style={[
-            styles.navArrows,
-            { top: insets.top + 56 },
-            chrome.isWide
-              ? { left: chrome.stageLeft + chrome.stageWidth - 48 }
-              : { right: 10 },
-          ]}
-          pointerEvents="box-none"
-        >
-          <Pressable style={styles.arrowBtn} onPress={() => goSlot(-1)} disabled={activeSlot <= 0}>
-            <Ionicons name="chevron-up" size={22} color="#fff" />
-          </Pressable>
-          <Pressable
-            style={styles.arrowBtn}
-            onPress={() => goSlot(1)}
-            disabled={activeSlot >= slots.length - 1}
-          >
-            <Ionicons name="chevron-down" size={22} color="#fff" />
-          </Pressable>
-        </View>
       ) : null}
 
       <FlatList
@@ -585,7 +551,8 @@ export function ReelsScreen() {
         bounces={false}
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
-        scrollEnabled={!pinchZooming}
+        nestedScrollEnabled
+        scrollEnabled={!pinchZooming && !chromeHidden}
         onLayout={onListLayout}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
@@ -711,21 +678,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   backBtn: { width: 44, height: 40, alignItems: "center", justifyContent: "center" },
-  navArrows: {
-    position: "absolute",
-    zIndex: 20,
-    gap: 8,
-  },
-  arrowBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.35)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   sheetRoot: { flex: 1, justifyContent: "flex-end" },
   sheetScrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
   sheet: {

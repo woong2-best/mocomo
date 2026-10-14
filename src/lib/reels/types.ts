@@ -41,8 +41,10 @@ export type ReelItem = {
   media: ReelMedia;
   likeCount: number;
   commentCount: number;
+  repostCount?: number;
   liked: boolean;
   starred: boolean;
+  reposted?: boolean;
   /** QnA clip — stays out of the home reels actions. */
   qna?: boolean;
 };

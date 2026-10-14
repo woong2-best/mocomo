@@ -5,6 +5,37 @@ export const REEL_PINCH_MIN = 0.92;
 export const REEL_PINCH_SNAP_MS = 240;
 /** Ignore jitter until the gesture is clearly a two-finger pinch. */
 export const REEL_PINCH_COMMIT = 1.12;
+/**
+ * One-finger travel past this belongs to the pagers (sideways = next media,
+ * up/down = next post). Tap and 2× only win while the finger stays inside it.
+ */
+export const REEL_GESTURE_SLOP = 16;
+/** A still finger held this long is 2×. A shorter release is play/pause. */
+export const REEL_HOLD_MS = 280;
+
+export function reelOneFingerShouldYield(distanceSq: number): boolean {
+  "worklet";
+  return distanceSq > REEL_GESTURE_SLOP * REEL_GESTURE_SLOP;
+}
+
+export type ReelSurfaceIntent = "pinch" | "swipe" | "fast" | "tap" | "pending";
+
+/**
+ * Instagram Reels priority on one surface:
+ * two fingers zoom, movement pages, a still hold is 2×, a short tap pauses.
+ */
+export function reelSurfaceIntent(input: {
+  pointers: number;
+  distance: number;
+  heldMs: number;
+  released: boolean;
+}): ReelSurfaceIntent {
+  if (input.pointers >= 2) return "pinch";
+  if (input.distance > REEL_GESTURE_SLOP) return "swipe";
+  if (!input.released && input.heldMs < REEL_HOLD_MS) return "pending";
+  if (input.heldMs >= REEL_HOLD_MS) return "fast";
+  return "tap";
+}
 
 export function clampReelPinchScale(scale: number): number {
   "worklet";

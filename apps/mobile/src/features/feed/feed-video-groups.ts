@@ -94,8 +94,10 @@ export function postVideoToReelItem(
     monetization: buildMonetization(post, paymentsEnabled),
     likeCount: post._count?.likes ?? 0,
     commentCount: post._count?.comments ?? 0,
+    repostCount: post._count?.reposts ?? 0,
     liked: !!post.liked,
     starred: !!post.starred,
+    reposted: !!post.reposted,
   };
 }
 
