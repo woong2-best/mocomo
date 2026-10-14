@@ -8,7 +8,7 @@ import { Eye, EyeOff, ImagePlus, Link2, Loader2 } from "lucide-react";
 import { WikiContent, WIKI_EDITOR_HELP } from "@/components/anime/wiki-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { prepareGalleryImageForUpload } from "@/lib/gallery-image-upload";
+import { prepareWikiImageForUpload } from "@/lib/gallery-image-upload";
 import { uploadImageBlob } from "@/lib/client-upload";
 import { extractYoutubeId } from "@/lib/anime-revision";
 
@@ -36,7 +36,7 @@ export function AnimeWikiField({
     setUploading(true);
     setUploadError("");
     try {
-      const prepared = await prepareGalleryImageForUpload(file);
+      const prepared = await prepareWikiImageForUpload(file);
       const url = await uploadImageBlob(prepared, prepared.name || "wiki.webp");
       const insert = `\n![${file.name.replace(/\.[^.]+$/, "")}](${url})\n`;
       setValue((v) => v + insert);

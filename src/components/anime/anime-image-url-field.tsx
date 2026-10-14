@@ -6,7 +6,7 @@ const t = createTranslator("en");
 import { useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { prepareGalleryImageForUpload } from "@/lib/gallery-image-upload";
+import { prepareWikiImageForUpload } from "@/lib/gallery-image-upload";
 import { uploadImageBlob } from "@/lib/client-upload";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,7 @@ export function AnimeImageUrlField({
     setUploading(true);
     setUploadError("");
     try {
-      const prepared = await prepareGalleryImageForUpload(file);
+      const prepared = await prepareWikiImageForUpload(file);
       const uploaded = await uploadImageBlob(prepared, prepared.name || `${name}.webp`);
       setUrl(uploaded);
     } catch {

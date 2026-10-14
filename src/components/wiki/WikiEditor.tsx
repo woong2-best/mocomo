@@ -286,9 +286,9 @@ export function WikiEditor({
       setImageBusy(true);
       setMediaError("");
       try {
-        const { prepareGalleryImageForUpload } = await import("@/lib/gallery-image-upload");
+        const { prepareWikiImageForUpload } = await import("@/lib/gallery-image-upload");
         const { uploadImageBlob } = await import("@/lib/client-upload");
-        const prepared = await prepareGalleryImageForUpload(file);
+        const prepared = await prepareWikiImageForUpload(file);
         const url = await uploadImageBlob(prepared, prepared.name || "wiki.webp");
         const alt = file.name.replace(/\.[^.]+$/, "");
         insertMediaSnippet(`![${alt}](${url})`);

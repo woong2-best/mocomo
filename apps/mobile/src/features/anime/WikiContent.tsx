@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ImageStyle } from "react-native";
 import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
 import { WikiInline, type FootnoteMap } from "@/features/anime/WikiInline";
@@ -8,6 +8,23 @@ import { animeUi } from "@/features/anime/anime-ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+
+function WikiBodyImage({ uri, style }: { uri: string; style: StyleProp<ImageStyle> }) {
+  const [ratio, setRatio] = useState<number | null>(null);
+  return (
+    <Image
+      source={{ uri }}
+      style={[style, ratio ? { aspectRatio: ratio } : null]}
+      contentFit="contain"
+      allowDownscaling={false}
+      onLoad={(event) => {
+        const width = event.source?.width;
+        const height = event.source?.height;
+        if (width && height) setRatio(width / height);
+      }}
+    />
+  );
+}
 
 function parseFootnotes(source: string): { body: string; notes: FootnoteMap } {
   const notes: FootnoteMap = new Map();
@@ -96,14 +113,7 @@ export function WikiContent({ source }: { source: string }) {
 
     const imageOnly = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (imageOnly) {
-      rendered.push(
-        <Image
-          key={`img-${bi}`}
-          source={{ uri: imageOnly[2] }}
-          style={styles.inlineImage}
-          contentFit="cover"
-        />
-      );
+      rendered.push(<WikiBodyImage key={`img-${bi}`} uri={imageOnly[2]} style={styles.inlineImage} />);
       return;
     }
 

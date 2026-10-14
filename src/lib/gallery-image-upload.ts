@@ -49,8 +49,13 @@ function sourceDimensions(source: CanvasImageSource): { width: number; height: n
   return { width: 0, height: 0 };
 }
 
-async function drawToJpegFile(source: CanvasImageSource, outName: string): Promise<File> {
-  const maxSide = 1920;
+async function drawToJpegFile(
+  source: CanvasImageSource,
+  outName: string,
+  opts?: { maxSide?: number; quality?: number }
+): Promise<File> {
+  const maxSide = opts?.maxSide ?? 1920;
+  const quality = opts?.quality ?? 0.88;
   let { width, height } = sourceDimensions(source);
   if (!width || !height) throw new Error("Invalid image dimensions");
 
@@ -70,7 +75,7 @@ async function drawToJpegFile(source: CanvasImageSource, outName: string): Promi
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("JPEG conversion failed"))),
       "image/jpeg",
-      0.88
+      quality
     );
   });
   return new File([blob], outName, { type: "image/jpeg", lastModified: Date.now() });
@@ -117,6 +122,50 @@ export async function fileToUploadableJpeg(file: File): Promise<File> {
         });
       }
       throw new Error("This photo format is not supported. Choose a different photo.");
+    }
+  }
+}
+
+const WIKI_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
+const WIKI_PASSTHROUGH_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+/**
+ * Culture Wiki photos stay at the file the user picked.
+ * JPEG/PNG/WebP/GIF under the upload cap are not redrawn.
+ * HEIC and oversized files are encoded once, near original size.
+ */
+export async function prepareWikiImageForUpload(file: File): Promise<File> {
+  const normalized = normalizeGalleryImageFile(file);
+  const mime = guessImageMime(normalized.name, normalized.type);
+  if (
+    WIKI_PASSTHROUGH_MIME.has(mime) &&
+    normalized.size > 0 &&
+    normalized.size <= WIKI_UPLOAD_MAX_BYTES
+  ) {
+    if (normalized.type === mime) return normalized;
+    return new File([normalized], normalized.name, {
+      type: mime,
+      lastModified: normalized.lastModified,
+    });
+  }
+
+  const outName = normalized.name.replace(/\.[^.]+$/i, "") + ".jpg";
+  try {
+    const bitmap = await createImageBitmap(normalized);
+    try {
+      return await drawToJpegFile(bitmap, outName, { maxSide: 8192, quality: 0.95 });
+    } finally {
+      bitmap.close();
+    }
+  } catch {
+    try {
+      const img = await loadImageElement(normalized);
+      return await drawToJpegFile(img, outName, { maxSide: 8192, quality: 0.95 });
+    } catch {
+      if (normalized.size <= 0) {
+        throw new Error("The file is empty. Choose a different photo.");
+      }
+      return normalized;
     }
   }
 }

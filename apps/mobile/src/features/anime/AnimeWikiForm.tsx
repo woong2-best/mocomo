@@ -59,14 +59,25 @@ async function pickAndUploadImage(aspect?: [number, number], permDeniedMsg?: str
   }
   const picked = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["images"],
-    quality: 0.92,
+    quality: 1,
     allowsEditing: Boolean(aspect),
     aspect,
+    preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
   });
   if (picked.canceled || !picked.assets[0]) return null;
   const asset = picked.assets[0];
   const mime = asset.mimeType ?? "image/jpeg";
-  const ext = mime.includes("png") ? "png" : "jpg";
+  const ext = mime.includes("png")
+    ? "png"
+    : mime.includes("webp")
+      ? "webp"
+      : mime.includes("gif")
+        ? "gif"
+        : mime.includes("heic")
+          ? "heic"
+          : mime.includes("heif")
+            ? "heif"
+            : "jpg";
   const url = await uploadLocalFile({
     uri: asset.uri,
     filename: `wiki-${Date.now()}.${ext}`,
