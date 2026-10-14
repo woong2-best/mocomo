@@ -61,6 +61,8 @@ export function UsedMyHub({
         return t("ui.no_listings_yet");
       case "live-auctions":
         return t("ui.no_live_auctions");
+      case "my-bids":
+        return t("ui.no_active_bids");
       case "favorites":
         return t("ui.no_favorites_yet");
       case "disputes":

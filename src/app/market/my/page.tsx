@@ -13,7 +13,11 @@ export default async function UsedMyPage({
 
   const { lane } = await searchParams;
   const initialLane: UsedHubLane =
-    lane === "purchased" || lane === "selling" || lane === "favorites" || lane === "disputes"
+    lane === "purchased" ||
+    lane === "selling" ||
+    lane === "my-bids" ||
+    lane === "favorites" ||
+    lane === "disputes"
       ? lane
       : "selling";
 

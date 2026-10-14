@@ -1232,6 +1232,7 @@
   "ui.no_purchases_yet": "No purchases yet.",
   "ui.no_listings_yet": "No listings yet.",
   "ui.no_live_auctions": "No live auctions.",
+  "ui.no_active_bids": "No auctions you're bidding on.",
   "ui.no_favorites_yet": "No favorites yet.",
   "ui.no_disputes": "No disputes.",
   "ui.sell": "Sell",
