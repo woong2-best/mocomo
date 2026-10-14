@@ -19,6 +19,7 @@ import {
   isValidUsername,
   normalizeUsername,
 } from "@/lib/username-policy";
+import { applyLatestTermsOnSignup } from "@/lib/legal/terms-agreement";
 
 const OAUTH_SIGNUP_BCRYPT_ROUNDS = 10;
 
@@ -187,6 +188,7 @@ export async function createOAuthUserWithConsent(opts: {
       source: "OAUTH_COMPLETE",
       createdAt: collected.birthDateCollectedAt,
     });
+    await applyLatestTermsOnSignup(tx, created.id, signupIp);
     return created;
   })) as CreatedOAuthUser;
 

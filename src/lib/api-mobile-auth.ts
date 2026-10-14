@@ -10,6 +10,8 @@ import {
 } from "@/lib/account-status";
 import { verifyMobileAccessToken } from "@/lib/mobile-auth-tokens";
 import { expireTemporarySuspensionIfNeeded } from "@/lib/expire-suspension";
+import { isTermsGateExemptApiPath } from "@/lib/legal/terms-gate-edge";
+import { termsGateApiResponse } from "@/lib/legal/terms-agreement";
 
 const userSelect = {
   id: true,
@@ -22,6 +24,7 @@ const userSelect = {
   deletedAt: true,
   role: true,
   suspensionExpiresAt: true,
+  currentTermsVersion: true,
 } as const;
 
 type GateUser = {
@@ -35,6 +38,7 @@ type GateUser = {
   deletedAt: Date | null;
   role: UserRole;
   suspensionExpiresAt: Date | null;
+  currentTermsVersion: string | null;
 };
 
 /** Short TTL so chat sync / inbox don't pay a DB round-trip every poll. */
@@ -56,6 +60,10 @@ function setCachedGateUser(userId: string, user: GateUser | null) {
   userGateCache.set(userId, { at: Date.now(), user });
 }
 
+export function invalidateMobileUserGateCache(userId: string) {
+  userGateCache.delete(userId);
+}
+
 export function extractBearerToken(req: NextRequest): string | null {
   const header = req.headers.get("authorization");
   if (!header) return null;
@@ -75,7 +83,7 @@ export async function getMobileUserId(req: NextRequest): Promise<string | null> 
  */
 export async function requireMobileApiUser(
   req: NextRequest,
-  options?: { writeKind?: AccountWriteKind }
+  options?: { writeKind?: AccountWriteKind; skipTermsGate?: boolean }
 ) {
   const userId = await getMobileUserId(req);
   if (!userId) {
@@ -110,6 +118,13 @@ export async function requireMobileApiUser(
         { status: 403 }
       ),
     };
+  }
+  if (!options?.skipTermsGate) {
+    const pathname = req.nextUrl.pathname;
+    if (!isTermsGateExemptApiPath(pathname)) {
+      const blocked = await termsGateApiResponse(user.currentTermsVersion);
+      if (blocked) return { error: blocked };
+    }
   }
   return { user };
 }

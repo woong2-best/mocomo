@@ -46,6 +46,10 @@ import {
   type AccountWriteKind,
 } from "@/lib/account-status";
 import { expireTemporarySuspensionIfNeeded } from "@/lib/expire-suspension";
+import {
+  applyTermsGateToJwtToken,
+  assertLatestTermsAccepted,
+} from "@/lib/legal/terms-agreement";
 
 const useSecureCookies = process.env.NODE_ENV === "production";
 
@@ -403,6 +407,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             isSuspendedReadOnly?: boolean;
             isOperator?: boolean;
             isStaff?: boolean;
+            currentTermsVersion?: string | null;
           }
         );
         // credentials early-path에서도 isOperator/isStaff 세팅됨 — 오너면 DB role 보정
@@ -414,6 +419,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             })
             .catch(() => undefined);
         }
+        await applyTermsGateToJwtToken(
+          token,
+          (user as { currentTermsVersion?: string | null }).currentTermsVersion
+        );
         return applyAdminWebSessionLifetime(token, { isNewLogin: true });
       }
 
@@ -442,6 +451,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             accountStatus: true,
             deletedAt: true,
             adminDisabledAt: true,
+            currentTermsVersion: true,
           },
         });
         if (dbUser) {
@@ -506,6 +516,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               })
               .catch(() => undefined);
           }
+          await applyTermsGateToJwtToken(token, dbUser.currentTermsVersion);
         }
       } else if (token.username && !token.isOperator && !token.isStaff) {
         // 기존 세션: username만으로 오너 플래그 복구 (재로그인 없이)
@@ -515,6 +526,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.isStaff = true;
           token.role = "OWNER";
         }
+      }
+      if (token.id) {
+        await applyTermsGateToJwtToken(token);
       }
       return applyAdminWebSessionLifetime(token, { isNewLogin: Boolean(user?.id) });
     },
@@ -569,6 +583,7 @@ export async function requireAuthForAction(options?: { writeKind?: AccountWriteK
       accountStatus: true,
       deletedAt: true,
       suspensionExpiresAt: true,
+      currentTermsVersion: true,
     },
   });
   if (!user) throw new Error("USER_NOT_FOUND");
@@ -576,6 +591,7 @@ export async function requireAuthForAction(options?: { writeKind?: AccountWriteK
   if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
   await expireTemporarySuspensionIfNeeded(user);
   assertAccountCanWrite(user, options?.writeKind ?? "default");
+  await assertLatestTermsAccepted(user.currentTermsVersion);
   return user;
 }
 
@@ -596,6 +612,7 @@ export const getCachedAuthUserMinimal = cache(async () => {
         role: true,
         supportTierSent: true,
         suspensionExpiresAt: true,
+        currentTermsVersion: true,
       },
     });
   } catch {
@@ -610,6 +627,7 @@ export async function requireAuthMinimal(options?: { writeKind?: AccountWriteKin
   if (user.deletedAt) throw new Error("ACCOUNT_DELETED");
   await expireTemporarySuspensionIfNeeded(user);
   assertAccountCanWrite(user, options?.writeKind ?? "default");
+  await assertLatestTermsAccepted(user.currentTermsVersion);
   return user;
 }
 

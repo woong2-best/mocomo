@@ -6,6 +6,7 @@ import {
   isServiceBanned,
   type AccountWriteKind,
 } from "@/lib/account-status";
+import { termsGateApiResponse } from "@/lib/legal/terms-agreement";
 import { NextResponse } from "next/server";
 
 const userSelect = {
@@ -14,9 +15,13 @@ const userSelect = {
   isBanned: true,
   accountStatus: true,
   deletedAt: true,
+  currentTermsVersion: true,
 } as const;
 
-export async function requireApiUser(options?: { writeKind?: AccountWriteKind }) {
+export async function requireApiUser(options?: {
+  writeKind?: AccountWriteKind;
+  skipTermsGate?: boolean;
+}) {
   const session = await auth().catch(() => null);
   if (!session?.user?.id) {
     return { error: NextResponse.json({ error: "Sign-in required." }, { status: 401 }) };
@@ -45,6 +50,10 @@ export async function requireApiUser(options?: { writeKind?: AccountWriteKind })
         { status: 403 }
       ),
     };
+  }
+  if (!options?.skipTermsGate) {
+    const blocked = await termsGateApiResponse(user.currentTermsVersion);
+    if (blocked) return { error: blocked };
   }
   return { user };
 }

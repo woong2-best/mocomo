@@ -85,6 +85,17 @@ export const authConfig = {
         }
         session.user.supportTierSent = token.supportTierSent;
         session.user.earnedMocoTier = token.earnedMocoTier;
+        session.user.currentTermsVersion =
+          typeof token.currentTermsVersion === "string" ? token.currentTermsVersion : null;
+        session.user.termsRequired = Boolean(token.termsRequired);
+        session.user.requiredTermsVersion =
+          typeof token.requiredTermsVersion === "string" ? token.requiredTermsVersion : null;
+        session.user.requiredTermsEffectiveDate =
+          typeof token.requiredTermsEffectiveDate === "string"
+            ? token.requiredTermsEffectiveDate
+            : null;
+        session.user.requiredTermsUrl =
+          typeof token.requiredTermsUrl === "string" ? token.requiredTermsUrl : null;
         session.user.image = displayableImageUrl(
           typeof token.picture === "string" ? token.picture : null
         );

@@ -28,6 +28,7 @@ export const CREDENTIALS_JWT_USER_SELECT = {
   timeZone: true,
   supportTierSent: true,
   earnedMocoTier: true,
+  currentTermsVersion: true,
 } as const;
 
 export type CredentialsJwtUser = Pick<
@@ -52,6 +53,7 @@ export type CredentialsJwtUser = Pick<
   | "earnedMocoTier"
 > & {
   postTranslateInto?: string | null;
+  currentTermsVersion?: string | null;
 };
 
 export function toCredentialsAuthUser(user: CredentialsJwtUser) {
@@ -73,6 +75,7 @@ export function toCredentialsAuthUser(user: CredentialsJwtUser) {
     timeZone: user.timeZone,
     supportTierSent: user.supportTierSent,
     earnedMocoTier: user.earnedMocoTier,
+    currentTermsVersion: user.currentTermsVersion ?? null,
     isOperator: isOperatorIdentity({
       username: user.username,
       role,
@@ -106,6 +109,7 @@ export function hydrateTokenFromCredentialsUser(
     isSuspendedReadOnly?: boolean;
     isOperator?: boolean;
     isStaff?: boolean;
+    currentTermsVersion?: string | null;
   }
 ) {
   token.id = user.id;
@@ -121,6 +125,7 @@ export function hydrateTokenFromCredentialsUser(
   token.isBanned = user.isBanned;
   token.accountStatus = user.accountStatus;
   token.isSuspendedReadOnly = user.isSuspendedReadOnly;
+  token.currentTermsVersion = user.currentTermsVersion ?? null;
 
   const identity = {
     username: user.username ?? "",

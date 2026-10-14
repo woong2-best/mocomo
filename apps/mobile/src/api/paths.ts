@@ -153,4 +153,6 @@ export const MobileApi = {
   moderationAction: "/api/mobile/moderation/action",
   moderationNotice: "/api/mobile/moderation/notice",
   moderationAppeal: "/api/mobile/moderation/appeal",
+  termsStatus: "/api/mobile/legal/terms-status",
+  termsAgree: "/api/mobile/legal/terms-agree",
 } as const;

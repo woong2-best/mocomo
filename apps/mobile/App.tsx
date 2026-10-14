@@ -15,6 +15,7 @@ import { RootNavigator } from "@/navigation/RootNavigator";
 import { ThemeProvider, useTheme } from "@/theme/ThemeContext";
 import { IslandToastHost } from "@/ui/IslandToast";
 import { AgeBlockedModalHost } from "@/ui/AgeBlockedModal";
+import { TermsAgreementModalHost } from "@/ui/TermsAgreementModal";
 import { ScreenErrorBoundary } from "@/ui/ScreenErrorBoundary";
 import { perfMark } from "@/perf/mark";
 
@@ -50,6 +51,7 @@ export default function App() {
                     </ScreenErrorBoundary>
                     <IslandToastHost />
                     <AgeBlockedModalHost />
+                    <TermsAgreementModalHost />
                   </View>
                 </ClientTranslationProvider>
               </I18nProvider>

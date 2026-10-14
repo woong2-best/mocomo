@@ -337,6 +337,8 @@ model User {
   deletionReason      String?
   /** 최근 로그인 (세션/로그인 콜백에서 갱신) */
   lastLoginAt         DateTime?
+  /** 동의한 최신 이용약관 version_tag (Terms_Version.version_tag) */
+  currentTermsVersion String?   @map("current_terms_version")
   /** 알림 페이지 방문 시각 — 헤더 뱃지는 이 이후 미확인만 표시. 개별 read와 별개 */
   notificationsLastSeenAt DateTime?
   /** 관리자 계정 활성 여부 (스태프 역할일 때) */
@@ -347,6 +349,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   usernameChangeLogs UsernameChangeLog[]
+  termsAgreementHistory TermsAgreementHistory[]
   birthDateChangeLogs BirthDateChangeLog[] @relation("BirthDateChangeSubject")
   birthDateChangesActed BirthDateChangeLog[] @relation("BirthDateChangeActor")
   calendarMemos CalendarMemo[]
@@ -734,6 +737,32 @@ model BirthDateChangeLog {
 enum TermsConsentAction {
   CHECKOUT
   TRANSFER
+}
+
+/** Published Terms of Service versions. Latest row is required for all users. */
+model TermsVersion {
+  id            String   @id @default(cuid())
+  versionTag    String   @unique @map("version_tag")
+  effectiveDate DateTime @map("effective_date")
+  termsUrl      String   @map("terms_url")
+
+  @@index([effectiveDate])
+  @@map("Terms_Version")
+}
+
+/** Append-only user agreement history for each Terms of Service version. */
+model TermsAgreementHistory {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  termsVersion String   @map("terms_version")
+  agreedAt     DateTime @default(now()) @map("agreed_at")
+  userIp       String?  @map("user_ip")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, agreedAt])
+  @@index([termsVersion])
+  @@map("Terms_Agreement_History")
 }
 
 /** Append-only checkout / Transfer acknowledgement log. Survives account deletion. */

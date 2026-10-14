@@ -34,6 +34,10 @@ import { getRequestCountryFromHeaders } from "@/lib/compliance/request-country";
 import { isFirstPartyLivePath } from "@/lib/live-feature";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  isTermsGateExemptApiPath,
+  termsRequiredJsonResponse,
+} from "@/lib/legal/terms-gate-edge";
 
 const protectedRoutes = [
   "/settings",
@@ -208,6 +212,22 @@ export default edgeAuth(async (req) => {
 
   const isLoggedIn = !!req.auth?.user?.id;
   const isFullBanned = Boolean(req.auth?.user?.isBanned);
+  const termsRequired = Boolean(req.auth?.user?.termsRequired);
+
+  if (
+    isLoggedIn &&
+    termsRequired &&
+    pathname.startsWith("/api/") &&
+    !isTermsGateExemptApiPath(pathname)
+  ) {
+    const res = termsRequiredJsonResponse({
+      versionTag: req.auth?.user?.requiredTermsVersion ?? null,
+      effectiveDate: req.auth?.user?.requiredTermsEffectiveDate ?? null,
+      termsUrl: req.auth?.user?.requiredTermsUrl ?? null,
+    });
+    stampAppClientIfNeeded(req, res);
+    return res;
+  }
   const isDeleted = Boolean(req.auth?.user?.isDeleted);
   const isAdmin = pathname.startsWith("/admin");
   const isAdminLoginPage = pathname === "/admin/login";

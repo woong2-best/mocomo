@@ -8,6 +8,7 @@ import { MOCO_PURCHASE_TERMS_BLOCKS } from "@/lib/legal/moco-purchase-terms";
 import {
   MOCO_PURCHASE_TERMS_EFFECTIVE_DATE,
   MOCO_PURCHASE_TERMS_VERSION,
+  TERMS_CHANGED_PART_ID,
   TERMS_OF_SERVICE_EFFECTIVE_DATE,
   TERMS_OF_SERVICE_VERSION,
 } from "@/lib/legal/terms-versions";
@@ -270,6 +271,16 @@ export const TERMS_OF_SERVICE: LegalDocument = {
   intro:
     '본 약관은 미합중국 와이오밍 주에 설립된 MoCoMo LLC(이하 "회사" 또는 "MoCoMo")가 제공하는 웹사이트(mocomo.net), 모바일 애플리케이션 및 관련 서비스의 이용 조건을 규정합니다.',
   blocks: [
+    {
+      type: "h2",
+      text: "Revision notice (effective November 15, 2026)",
+      id: TERMS_CHANGED_PART_ID,
+    },
+    {
+      type: "p",
+      text: "This Terms of Service was updated to comply with updated legal standards and improve our operations. Please review the full document below.",
+    },
+    { type: "hr" },
     { type: "h2", text: "제1조 (목적)" },
     {
       type: "p",

@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/config/env";
 import { errorCodeOfBody, localizeErrorBody } from "@/api/error-code";
+import { emitTermsRequired } from "@/legal/terms-required-event";
 import {
   clearTokens,
   currentAuthEpoch,
@@ -184,6 +185,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       parsed = undefined;
     }
     const localized = localizeErrorBody(parsed);
+    if (
+      res.status === 403 &&
+      parsed &&
+      typeof parsed === "object" &&
+      (parsed as { code?: unknown }).code === "TERMS_REQUIRED"
+    ) {
+      emitTermsRequired(parsed);
+    }
     throw new ApiError(
       localized.message ?? `API ${method} ${path} failed`,
       res.status,

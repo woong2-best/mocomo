@@ -16,6 +16,7 @@ import { SidebarToggleProvider } from "@/components/providers/sidebar-toggle-pro
 import { LegalComplianceProvider } from "@/components/providers/legal-compliance-provider";
 import { TopProgressProvider } from "@/components/providers/top-progress-provider";
 import { MoneyAgePromptProvider } from "@/components/account/money-age-prompt";
+import { TermsAgreementProvider } from "@/components/providers/terms-agreement-provider";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -26,6 +27,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <PostTranslateProvider>
           <PostTranslateSessionSync />
           <TopProgressProvider>
+          <TermsAgreementProvider>
           <ClientTranslationProvider>
             <AppSocketProvider>
               <QueryProvider>
@@ -43,6 +45,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               </QueryProvider>
             </AppSocketProvider>
           </ClientTranslationProvider>
+          </TermsAgreementProvider>
           </TopProgressProvider>
         </PostTranslateProvider>
       </LocaleProvider>

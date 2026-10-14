@@ -57,6 +57,7 @@ import { assertCountrySelectable } from "@/lib/compliance/ofac-sanctioned-countr
 import { parseBirthDateInput, toStoredBirthDate } from "@/lib/birth-date";
 import { birthDateCollectionMeta } from "@/lib/age-policy";
 import { recordBirthDateChange } from "@/lib/birth-date-change-log";
+import { applyLatestTermsOnSignup } from "@/lib/legal/terms-agreement";
 import { z } from "zod";
 
 const birthDateSignupFields = {
@@ -592,6 +593,7 @@ export async function registerUser(
           source: "SIGNUP",
           createdAt: collected.birthDateCollectedAt,
         });
+        await applyLatestTermsOnSignup(tx, row.id, ip);
         return row;
       });
       userId = updated.id;
@@ -619,6 +621,7 @@ export async function registerUser(
           source: "SIGNUP",
           createdAt: collected.birthDateCollectedAt,
         });
+        await applyLatestTermsOnSignup(tx, created.id, ip);
         return created;
       });
       userId = user.id;
