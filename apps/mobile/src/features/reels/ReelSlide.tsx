@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { enablePitchPreservingPlayback } from "@/lib/video-preserve-pitch";
 import * as Haptics from "expo-haptics";
 import type { ReelItem } from "@/api/reels";
 import { ReelAuthorMeta } from "@/features/reels/ReelAuthorMeta";
@@ -35,6 +36,7 @@ function ReelNativePlayer({
   posterUrl: string | null;
 }) {
   const player = useVideoPlayer(src, (p) => {
+    enablePitchPreservingPlayback(p);
     p.loop = true;
     p.muted = false;
     p.timeUpdateEventInterval = 0;

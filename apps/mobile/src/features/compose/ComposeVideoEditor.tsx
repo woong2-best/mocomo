@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { enablePitchPreservingPlayback } from "@/lib/video-preserve-pitch";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SvgXml } from "react-native-svg";
@@ -78,6 +79,7 @@ export function ComposeVideoEditor({
   const [previewSize, setPreviewSize] = useState({ w: screenW, h: screenW * 1.2 });
 
   const player = useVideoPlayer(item?.uri ?? "", (p) => {
+    enablePitchPreservingPlayback(p);
     p.loop = true;
     p.muted = false;
   });

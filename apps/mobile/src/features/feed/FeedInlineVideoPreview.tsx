@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { enablePitchPreservingPlayback } from "@/lib/video-preserve-pitch";
 import { Ionicons } from "@expo/vector-icons";
 import type { FeedMedia } from "@/api/feed";
 import { isPaidPlaybackPath } from "@/api/watermark";
@@ -121,6 +122,7 @@ function FeedInlineVideoPreviewInner({
   const shouldLoadPaidPlayer = Boolean(media.url) && active && isPaid && !media.locked;
 
   const player = useVideoPlayer(shouldLoadNativePlayer ? src : null, (p) => {
+    enablePitchPreservingPlayback(p);
     p.loop = true;
     p.muted = muted;
   });

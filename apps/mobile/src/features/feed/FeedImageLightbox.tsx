@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cachedImageSource, IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { enablePitchPreservingPlayback } from "@/lib/video-preserve-pitch";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export type FeedLightboxImage = {
@@ -36,6 +37,7 @@ function LightboxVideoSlide({
   active: boolean;
 }) {
   const player = useVideoPlayer(active ? url : null, (p) => {
+    enablePitchPreservingPlayback(p);
     p.loop = false;
   });
 

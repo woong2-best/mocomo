@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { enablePitchPreservingPlayback } from "@/lib/video-preserve-pitch";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import type { FeedMedia } from "@/api/feed";
@@ -107,6 +108,7 @@ function NativePaidVideo({
 }) {
   const source = active ? { uri: src, headers } : null;
   const player = useVideoPlayer(source, (p) => {
+    enablePitchPreservingPlayback(p);
     p.loop = true;
     p.muted = muted;
   });

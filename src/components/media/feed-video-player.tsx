@@ -54,6 +54,8 @@ import {
   toggleVideoFullscreen,
   bindVideoFullscreenEvents,
   withVideoCacheBust,
+  applyPitchPreservingPlaybackRate,
+  enablePitchPreservingPlayback,
 } from "@/lib/video-playback";
 import { isFeedVideoViewerOpen } from "@/lib/feed-video-viewer";
 
@@ -326,6 +328,7 @@ export function FeedVideoPlayer({
     restoredRef.current = false;
     setMediaAttached(true);
     v.src = playbackSrc;
+    enablePitchPreservingPlayback(v);
     v.load();
 
     await new Promise<void>((resolve) => {
@@ -485,6 +488,7 @@ export function FeedVideoPlayer({
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    enablePitchPreservingPlayback(v);
 
     const clearBufferingSoon = () => {
       if (bufferingTimerRef.current) {
@@ -635,6 +639,10 @@ export function FeedVideoPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per src attach
   }, [src, mediaAttached, retryToken, syncDuration, restoreProgress, pKey, loop, protect, previewMode, previewMaxSeconds, onPreviewEnded, poster, playbackSrc]);
 
+  useEffect(() => {
+    applyPitchPreservingPlaybackRate(videoRef.current, speed);
+  }, [speed, mediaAttached, playbackSrc]);
+
   // IntersectionObserver: autoplay / pause / unload / preload
   useEffect(() => {
     const el = containerRef.current;
@@ -777,8 +785,7 @@ export function FeedVideoPlayer({
   }, [ensureMediaSrc, focusPlayer, isPlayerFullscreen, mediaAttached, src]);
 
   const applySpeed = (rate: number) => {
-    const v = videoRef.current;
-    if (v) v.playbackRate = rate;
+    applyPitchPreservingPlaybackRate(videoRef.current, rate);
     setSpeed(rate);
     setSpeedOpen(false);
   };
@@ -987,7 +994,7 @@ export function FeedVideoPlayer({
       longPressTimerRef.current = setTimeout(() => {
         const v = videoRef.current;
         if (!v) return;
-        v.playbackRate = LONG_PRESS_RATE;
+        applyPitchPreservingPlaybackRate(v, LONG_PRESS_RATE);
         holdBoostRef.current = true;
         setHoldBoost(true);
         setSpeed(LONG_PRESS_RATE);
@@ -1002,8 +1009,7 @@ export function FeedVideoPlayer({
       longPressTimerRef.current = null;
     }
     if (holdBoostRef.current) {
-      const v = videoRef.current;
-      if (v) v.playbackRate = 1;
+      applyPitchPreservingPlaybackRate(videoRef.current, 1);
       holdBoostRef.current = false;
       setHoldBoost(false);
       setSpeed(1);
@@ -1045,8 +1051,7 @@ export function FeedVideoPlayer({
       longPressTimerRef.current = null;
     }
     if (holdBoostRef.current) {
-      const v = videoRef.current;
-      if (v) v.playbackRate = 1;
+      applyPitchPreservingPlaybackRate(videoRef.current, 1);
       holdBoostRef.current = false;
       setHoldBoost(false);
       setSpeed(1);

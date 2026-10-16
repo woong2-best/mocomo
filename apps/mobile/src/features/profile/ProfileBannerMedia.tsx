@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { enablePitchPreservingPlayback } from "@/lib/video-preserve-pitch";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
 import { type ThemeColors } from "@/theme/tokens";
@@ -26,6 +27,7 @@ function bannerImageUrl(bannerUrl?: string | null, bannerVideoUrl?: string | nul
 
 function BannerVideo({ uri, active }: { uri: string; active: boolean }) {
   const player = useVideoPlayer(uri, (p) => {
+    enablePitchPreservingPlayback(p);
     p.loop = true;
     p.muted = true;
   });

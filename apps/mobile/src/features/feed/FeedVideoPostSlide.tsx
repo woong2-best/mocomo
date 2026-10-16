@@ -43,6 +43,10 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { REELS_WIDE_CARD_RADIUS } from "@/features/reels/reels-wide-layout";
 import { ReelPinchZoom } from "@/features/reels/ReelPinchZoom";
 import { reelFillPhoneScale } from "@/features/reels/reel-pinch-zoom";
+import {
+  enablePitchPreservingPlayback,
+  setPitchPreservingPlaybackRate,
+} from "@/lib/video-preserve-pitch";
 
 const FAST_PLAYBACK_RATE = 2;
 
@@ -124,6 +128,7 @@ function NativeVideoCell({
   fastForward: boolean;
 }) {
   const player = useVideoPlayer(src || null, (p) => {
+    enablePitchPreservingPlayback(p);
     p.loop = true;
     p.muted = muted;
     p.playbackRate = 1;
@@ -135,7 +140,7 @@ function NativeVideoCell({
   }, [muted, player]);
 
   useEffect(() => {
-    player.playbackRate = fastForward ? FAST_PLAYBACK_RATE : 1;
+    setPitchPreservingPlaybackRate(player, fastForward ? FAST_PLAYBACK_RATE : 1);
   }, [fastForward, player]);
 
   useEffect(() => {

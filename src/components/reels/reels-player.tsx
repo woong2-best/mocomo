@@ -41,6 +41,7 @@ import {
   writeMutedPreference,
   shouldAutoplayOnNetwork,
   withVideoCacheBust,
+  enablePitchPreservingPlayback,
 } from "@/lib/video-playback";
 import { ReelsProgressBar } from "@/components/reels/reels-progress-bar";
 import { ForensicVideoCanvas } from "@/components/media/forensic-video-canvas";
@@ -294,6 +295,7 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
 
     destroyHls();
     attachedSrcRef.current = playbackSrc;
+    enablePitchPreservingPlayback(video);
 
     if (mode === "hls") {
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -318,6 +320,7 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
       hlsRef.current = hls;
       hls.loadSource(playbackSrc);
       hls.attachMedia(video);
+      enablePitchPreservingPlayback(video);
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {

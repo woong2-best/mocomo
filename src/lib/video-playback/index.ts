@@ -50,3 +50,8 @@ export {
 } from "@/lib/video-playback/fullscreen";
 
 export { withVideoCacheBust } from "@/lib/video-playback/src-url";
+
+export {
+  applyPitchPreservingPlaybackRate,
+  enablePitchPreservingPlayback,
+} from "@/lib/video-playback/preserve-pitch";

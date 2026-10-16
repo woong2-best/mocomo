@@ -18,6 +18,7 @@ import { showIslandError } from "@/ui/IslandToast";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { enablePitchPreservingPlayback } from "@/lib/video-preserve-pitch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -71,6 +72,7 @@ function apiErrMessage(err: unknown, fallback: string) {
 
 function HeroVideoSlide({ url, width, active }: { url: string; width: number; active: boolean }) {
   const player = useVideoPlayer(active ? url : null, (p) => {
+    enablePitchPreservingPlayback(p);
     p.loop = false;
   });
   useEffect(() => {

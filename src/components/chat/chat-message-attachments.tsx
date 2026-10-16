@@ -10,6 +10,7 @@ import { LockedMediaPaywallOverlay } from "@/components/media/locked-media-paywa
 import { PurchaseMessageMediaButton } from "@/components/chat/purchase-message-media-button";
 import { ProtectedPaidMedia } from "@/components/media/protected-paid-media";
 import { cn } from "@/lib/utils";
+import { enablePitchPreservingPlayback } from "@/lib/video-playback";
 
 /**
  * The forensic canvas refuses to embed below MIN_FORENSIC_VERIFY_LONG_EDGE
@@ -204,6 +205,7 @@ function ChatVideo({
       controls
       playsInline
       className={cn("max-w-[min(280px,72vw)] rounded-2xl border border-border/40", radius)}
+      onLoadedMetadata={(e) => enablePitchPreservingPlayback(e.currentTarget)}
     />
   );
 }
