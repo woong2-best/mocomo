@@ -22,6 +22,7 @@ import {
   formatUsedTimeAgo,
   usedCatalogLabel,
 } from "@/features/marketplace/used-catalog";
+import { HUB_CATEGORIES, MARKET_SHELF } from "@/features/marketplace/market-browse";
 import { useI18n } from "@/i18n/I18nProvider";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { showIslandError } from "@/ui/IslandToast";
@@ -48,15 +49,14 @@ import { loadDismissedUsedListingIds } from "@/lib/used-listing-dismiss";
 type HubLane = MarketHubLane;
 type Props = { mode?: "tab" | "stack"; lane?: "used" | "auction" };
 
-const LIST_CATEGORIES = [
-  { id: "ALL", labelKey: "m.common.all" },
-  { id: "FIGURE", labelKey: "m.marketplace.figures" },
-  { id: "TCG", labelKey: "m.marketplace.tcg" },
-  { id: "GOODS", labelKey: "m.events.goods" },
-  { id: "BOOK", labelKey: "m.marketplace.books" },
-  { id: "COSPLAY", labelKey: "m.events.cosplay" },
-  { id: "DIGITAL", labelKey: "m.marketplace.digital" },
-] as const;
+type BrowsePick = { source: "hub" | "shelf"; id: string };
+
+const LANE_PILLS = [
+  { id: "purchased" as const, labelKey: "m.marketplace.purchases" },
+  { id: "sales" as const, labelKey: "m.marketplace.sales" },
+  { id: "my-bids" as const, labelKey: "m.marketplace.auction" },
+  { id: "favorites" as const, labelKey: "m.marketplace.favorites" },
+];
 
 export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) {
   const { t } = useI18n();
@@ -83,7 +83,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const [q, setQ] = useState(routeParams.q ?? "");
   const [recentQ, setRecentQ] = useState<string[]>([]);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [category, setCategory] = useState<string | "ALL">("ALL");
+  const [browse, setBrowse] = useState<BrowsePick>({ source: "hub", id: "ALL" });
   const [hubOpen, setHubOpen] = useState(false);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -114,10 +114,20 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   );
 
   const listQuery = useMemo(() => {
+    const shelf = browse.source === "shelf" ? MARKET_SHELF.find((item) => item.id === browse.id) : undefined;
+    const hub = browse.source === "hub" ? HUB_CATEGORIES.find((item) => item.id === browse.id) : undefined;
+    const personalLane = !isCombined;
     return {
       q: q || undefined,
-      category: category !== "ALL" ? category : undefined,
-      mode: isCombined ? undefined : ("fixed" as const),
+      category: personalLane ? undefined : shelf?.category ?? hub?.category,
+      product: personalLane ? undefined : shelf?.product ?? hub?.product,
+      mode: personalLane
+        ? ("fixed" as const)
+        : shelf?.sale === "auction"
+          ? ("auction" as const)
+          : shelf?.sale === "fixed"
+            ? ("fixed" as const)
+            : undefined,
       lane:
         hubLane === "recommend" ||
         hubLane === "purchased" ||
@@ -128,7 +138,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           : undefined,
       take: 48,
     };
-  }, [q, category, isCombined, hubLane]);
+  }, [q, browse, isCombined, hubLane]);
 
   const query = useQuery({
     queryKey: ["mobile-marketplace", hubLane ?? "used", listQuery],
@@ -202,6 +212,46 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       setHubOpen(false);
     },
     [isTab, navigation, saveSearch]
+  );
+
+  const clearPersonalLane = useCallback(() => {
+    if (!hubLane) return;
+    if (isTab) setHubLaneLocal(undefined);
+    else navigation.setParams({ lane: undefined });
+  }, [hubLane, isTab, navigation]);
+
+  const selectHubCategory = useCallback(
+    (id: string) => {
+      setBrowse({ source: "hub", id });
+      clearPersonalLane();
+      setHubOpen(false);
+    },
+    [clearPersonalLane]
+  );
+
+  const selectShelf = useCallback(
+    (id: string) => {
+      setBrowse((prev) =>
+        prev.source === "shelf" && prev.id === id ? { source: "hub", id: "ALL" } : { source: "shelf", id }
+      );
+      clearPersonalLane();
+    },
+    [clearPersonalLane]
+  );
+
+  const onLanePill = useCallback(
+    (id: (typeof LANE_PILLS)[number]["id"]) => {
+      if (id === "sales") {
+        navigation.navigate("UsedMy");
+        return;
+      }
+      if (hubLane === id) {
+        applyHubLane("all");
+        return;
+      }
+      applyHubLane(id);
+    },
+    [applyHubLane, hubLane, navigation]
   );
 
   const openItem = useCallback(
@@ -306,19 +356,52 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   );
 
   const recentTerms = recentQ.slice(0, 3);
-  const listHeader = (
+  const shelfActiveId = isCombined && browse.source === "shelf" ? browse.id : null;
+  const hubActiveId = isCombined && browse.source === "hub" ? browse.id : null;
+  const filterBar = (
     <View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipScroller}
         contentContainerStyle={styles.catRow}
       >
-        {LIST_CATEGORIES.map((c) => {
-          const active = category === c.id;
+        {MARKET_SHELF.map((item) => {
+          const active = shelfActiveId === item.id;
+          const label = item.labelKey ? t(item.labelKey) : usedCatalogLabel(item.id, t);
           return (
             <Pressable
-              key={c.id}
-              onPress={() => setCategory(c.id)}
+              key={item.id}
+              onPress={() => selectShelf(item.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              style={[
+                styles.cat,
+                {
+                  backgroundColor: active ? colors.brand : colors.surfaceRaised,
+                  borderColor: active ? colors.brand : colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>{label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipScroller}
+        contentContainerStyle={styles.catRow}
+      >
+        {LANE_PILLS.map((item) => {
+          const active = item.id !== "sales" && hubLane === item.id;
+          return (
+            <Pressable
+              key={item.id}
+              onPress={() => onLanePill(item.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               style={[
                 styles.cat,
                 {
@@ -328,7 +411,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
               ]}
             >
               <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>
-                {c.id === "ALL" ? t(c.labelKey) : usedCatalogLabel(c.id, t)}
+                {t(item.labelKey)}
               </Text>
             </Pressable>
           );
@@ -391,12 +474,12 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           <Ionicons name="menu-outline" size={26} color={ink} />
         </Pressable>
       </View>
+      {filterBar}
       <View style={styles.listWrap}>
       <FlatList
         data={query.isError ? [] : items}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
@@ -451,7 +534,12 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         <Ionicons name="add" size={30} color="#fff" />
       </Pressable>
 
-      <MarketHubSlidePanel visible={hubOpen} onClose={() => setHubOpen(false)} onOpenLane={applyHubLane} />
+      <MarketHubSlidePanel
+        visible={hubOpen}
+        onClose={() => setHubOpen(false)}
+        onSelectCategory={selectHubCategory}
+        selectedCategoryId={hubActiveId}
+      />
 
       {menuItem ? (
         <UsedListingOverflowMenu
@@ -554,6 +642,7 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
     },
     catRow: { paddingHorizontal: 14, paddingBottom: 8, gap: 8 },
+    chipScroller: { flexGrow: 0 },
     cat: {
       paddingHorizontal: 14,
       paddingVertical: 8,

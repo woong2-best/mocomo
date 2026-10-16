@@ -57,6 +57,10 @@ const CATALOG_LABEL_EN: Record<string, string> = {
   VTUBER_GOODS: "VTuber goods",
   EVENT_GOODS: "Event exclusives",
   MEDIA: "CD / DVD / Blu-ray",
+  ELECTRONICS: "Electronics",
+  CUSTOM_COMMISSION: "Custom commission",
+  STREAMER_ASSET: "Streamer assets",
+  FASHION: "Fashion",
   OTHER: "Other",
   COSPLAY_FASHION: "Cosplay / fashion",
   NEW: "Sealed / like new",
@@ -256,6 +260,62 @@ export function productTypeForSellKind(kind: string): string | undefined {
   if (id === "GOODS" || id === "DIGITAL") return "OTHER";
   return undefined;
 }
+
+/** Enum bucket stored on UsedListing.category. Specific kinds stay on productType. */
+const LISTING_CATEGORY_FOR_PRODUCT: Record<string, string> = {
+  FIGURE: "FIGURE",
+  PLAMODEL: "FIGURE",
+  STATUE: "FIGURE",
+  PLUSH: "GOODS",
+  ACRYLIC_STAND: "GOODS",
+  CAN_BADGE: "GOODS",
+  KEYRING: "GOODS",
+  VTUBER_GOODS: "GOODS",
+  EVENT_GOODS: "GOODS",
+  GOODS: "GOODS",
+  TCG: "GOODS",
+  TCG_CARD: "GOODS",
+  TCG_POKEMON: "GOODS",
+  TCG_YGO: "GOODS",
+  TCG_MTG: "GOODS",
+  TCG_ONEPIECE: "GOODS",
+  TCG_OTHER: "GOODS",
+  PHOTOCARD: "GOODS",
+  BOOK: "BOOK",
+  ARTBOOK: "BOOK",
+  DOUJIN: "BOOK",
+  MEDIA: "BOOK",
+  BOARDGAME: "BOOK",
+  COSPLAY: "COSPLAY",
+  COSPLAY_COSTUME: "COSPLAY",
+  WIG: "COSPLAY",
+  FASHION: "FASHION",
+  DIGITAL: "DIGITAL",
+  ELECTRONICS: "DIGITAL",
+  STREAMER_ASSET: "DIGITAL",
+  CUSTOM_COMMISSION: "GOODS",
+  OTHER: "GOODS",
+};
+
+const COARSE_SELL_KINDS = new Set(["FIGURE", "TCG", "GOODS", "BOOK", "COSPLAY", "DIGITAL"]);
+
+export function listingCategoryForProduct(kind: string): string {
+  return LISTING_CATEGORY_FOR_PRODUCT[kind.toUpperCase()] ?? "GOODS";
+}
+
+export function storedProductType(kind: string): string {
+  const id = kind.toUpperCase();
+  if (COARSE_SELL_KINDS.has(id)) return productTypeForSellKind(id) ?? "OTHER";
+  return id;
+}
+
+/** Sell-form choices: broad kinds, then every specific product type. */
+export const MARKET_SELL_OPTIONS = [
+  ...USED_SELL_KINDS,
+  ...USED_PRODUCT_TYPES.filter(
+    (product) => !USED_SELL_KINDS.some((kind) => kind.id === product.id)
+  ),
+];
 
 export type UsedListingMediaKind = "image" | "video";
 

@@ -95,9 +95,15 @@ const TCG_BROWSE_PRODUCT_TYPES = [
   "PHOTOCARD",
 ] as const;
 
+/** General cards, separate from the broader TCG browse chip. */
+const CARD_BROWSE_PRODUCT_TYPES = ["TCG_CARD", "PHOTOCARD"] as const;
+
 export function usedBrowseCategoryWhere(category: string): Prisma.UsedListingWhereInput | null {
   if (category === "TCG") {
     return { productType: { in: [...TCG_BROWSE_PRODUCT_TYPES] } };
+  }
+  if (category === "CARDS") {
+    return { productType: { in: [...CARD_BROWSE_PRODUCT_TYPES] } };
   }
   if (category === "COSPLAY_FASHION") {
     return { category: { in: ["COSPLAY", "FASHION"] } };

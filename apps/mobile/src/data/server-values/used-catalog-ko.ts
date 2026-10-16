@@ -44,6 +44,9 @@ export const USED_PRODUCT_TYPES = [
   { id: "EVENT_GOODS", label: "행사·한정 굿즈" },
   { id: "BOOK", label: "만화·라노벨" },
   { id: "MEDIA", label: "CD/DVD/블루레이" },
+  { id: "ELECTRONICS", label: "가전" },
+  { id: "CUSTOM_COMMISSION", label: "커스텀 커미션" },
+  { id: "STREAMER_ASSET", label: "스트리머 에셋" },
   { id: "OTHER", label: "기타" },
 ] as const;
 

@@ -24,6 +24,9 @@ export type SubcultureProductTypeId =
   | "EVENT_GOODS"
   | "BOOK"
   | "MEDIA"
+  | "ELECTRONICS"
+  | "CUSTOM_COMMISSION"
+  | "STREAMER_ASSET"
   | "OTHER";
 
 export type SubcultureProductFamily =
@@ -64,6 +67,9 @@ export const SUBCULTURE_PRODUCT_TYPES: {
   { id: "EVENT_GOODS", label: "Event & limited merch", family: "goods" },
   { id: "BOOK", label: "Manga & light novels", family: "media" },
   { id: "MEDIA", label: "CD/DVD/Blu-ray", family: "media" },
+  { id: "ELECTRONICS", label: "Electronics", family: "other" },
+  { id: "CUSTOM_COMMISSION", label: "Custom commission", family: "other" },
+  { id: "STREAMER_ASSET", label: "Streamer assets", family: "other" },
   { id: "OTHER", label: "Other", family: "other" },
 ];
 

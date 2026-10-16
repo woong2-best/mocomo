@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchMarketplaceList, type MarketplaceListItem } from "@/api/marketplace";
 import { loadRecentViews } from "@/features/marketplace/market-memory";
+import { HUB_CATEGORIES } from "@/features/marketplace/market-browse";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import type { RootStackParamList } from "@/navigation/types";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -26,33 +27,19 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
 export type MarketHubLane = "all" | "recommend" | "purchased" | "favorites" | "disputes" | "my-bids";
 
-type HubLane = MarketHubLane;
-
 type MarketHomeProps = {
   /** Right-side slide hub above the list. */
   embedded?: boolean;
   onClose?: () => void;
-  onOpenLane?: (lane: HubLane, q?: string) => void;
+  onSelectCategory?: (id: string) => void;
+  selectedCategoryId?: string | null;
 };
 
+const RAIL_TAKE = 2;
+
 export function MarketHomeScreen(props: MarketHomeProps = {}) {
-  const { embedded = false, onClose, onOpenLane } = props;
+  const { embedded = false, onClose, onSelectCategory, selectedCategoryId } = props;
   const { t } = useI18n();
-  const shortcuts = useMemo(
-    () =>
-      [
-        { lane: "purchased" as const, label: t("m.marketplace.purchases"), icon: "bag-handle-outline" as const },
-        { my: true, label: t("m.marketplace.sales"), icon: "logo-usd" as const },
-        { lane: "my-bids" as const, label: t("m.marketplace.auction"), icon: "hammer-outline" as const },
-        { lane: "favorites" as const, label: t("m.marketplace.favorites"), icon: "heart-outline" as const },
-      ] satisfies {
-        lane?: HubLane;
-        my?: boolean;
-        label: string;
-        icon?: keyof typeof Ionicons.glyphMap;
-      }[],
-    [t]
-  );
   const { colors, isDark } = useTheme();
   const icon = isDark ? colors.text : colors.brand;
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -75,105 +62,80 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
   const recommend = useQuery({
     queryKey: ["mobile-marketplace", "recommend"],
     queryFn: async () => {
-      const rec = await fetchMarketplaceList({ lane: "recommend", take: 8 });
+      const rec = await fetchMarketplaceList({ lane: "recommend", take: RAIL_TAKE });
       if (rec.items.length > 0) return rec;
-      const fixed = await fetchMarketplaceList({ take: 24, mode: "fixed" });
-      return { items: fixed.items.slice(0, 8) };
+      const fixed = await fetchMarketplaceList({ take: 12, mode: "fixed" });
+      return { items: fixed.items.slice(0, RAIL_TAKE) };
     },
     staleTime: 60_000,
   });
   const recent = useQuery({
-    queryKey: ["mobile-marketplace", "recent-ids", recentIds],
-    queryFn: () => fetchMarketplaceList({ ids: recentIds.slice(0, 8), take: 8 }),
+    queryKey: ["mobile-marketplace", "recent-ids", recentIds.slice(0, RAIL_TAKE)],
+    queryFn: () => fetchMarketplaceList({ ids: recentIds.slice(0, RAIL_TAKE), take: RAIL_TAKE }),
     enabled: recentIds.length > 0,
     staleTime: 30_000,
   });
 
-  const openLane = useCallback(
-    (lane: HubLane, q?: string) => {
-      if (onOpenLane) {
-        onOpenLane(lane, q);
-        return;
-      }
-      navigation.navigate("MarketplaceList", { lane, q });
+  const openItem = useCallback(
+    (id: string) => {
+      if (embedded) onClose?.();
+      navigation.navigate("MarketplaceDetail", { id });
     },
-    [navigation, onOpenLane]
+    [embedded, navigation, onClose]
   );
 
   const refreshing = recommend.isFetching || recent.isFetching;
-  const body = (
+  const categories = (
+    <View style={styles.catList}>
+      {HUB_CATEGORIES.map((item) => {
+        const selected = selectedCategoryId === item.id;
+        return (
+          <Pressable
+            key={item.id}
+            onPress={() => onSelectCategory?.(item.id)}
+            style={[styles.catItem, selected && styles.catItemOn]}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+          >
+            <Text style={[styles.catItemText, selected && styles.catItemTextOn]}>{t(item.labelKey)}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+  const rails = (
     <>
-        {!embedded ? (
-          <View style={styles.topRow}>
-            <Pressable
-              onPress={() => navigation.navigate("Main", { screen: "Home" })}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel={t("common.back")}
-            >
-              <Ionicons name="chevron-back" size={26} color={icon} />
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View style={[styles.shortcutRow, embedded && styles.shortcutRowEmbeddedTop]}>
-          {shortcuts.map((item) => (
-            <Pressable
-              key={item.label}
-              style={styles.shortcut}
-              onPress={() => {
-                if (item.my) {
-                  if (embedded) onClose?.();
-                  navigation.navigate("UsedMy");
-                } else if (item.lane) openLane(item.lane);
-              }}
-            >
-              {item.icon ? (
-                <Ionicons name={item.icon} size={26} color={icon} />
-              ) : null}
-              <Text style={styles.shortcutLabel}>{item.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <ProductRail
-          title={t("m.common.recently_viewed")}
-          items={recent.data?.items ?? []}
-          loading={recent.isLoading && recentIds.length > 0}
-          onMore={() => openLane("all")}
-          onOpen={(id) => {
-            if (embedded) onClose?.();
-            navigation.navigate("MarketplaceDetail", { id });
-          }}
-          ink={icon}
-          styles={styles}
-        />
-        <ProductRail
-          title={t("m.common.recommended")}
-          items={recommend.data?.items ?? []}
-          loading={recommend.isLoading}
-          onMore={() => openLane("recommend")}
-          onOpen={(id) => {
-            if (embedded) onClose?.();
-            navigation.navigate("MarketplaceDetail", { id });
-          }}
-          ink={icon}
-          styles={styles}
-        />
+      <ProductRail
+        title={t("m.common.recently_viewed")}
+        items={recent.data?.items ?? []}
+        loading={recent.isLoading && recentIds.length > 0}
+        onOpen={openItem}
+        styles={styles}
+      />
+      <ProductRail
+        title={t("m.common.recommended")}
+        items={recommend.data?.items ?? []}
+        loading={recommend.isLoading}
+        onOpen={openItem}
+        styles={styles}
+      />
     </>
   );
 
   return (
     <Screen safeTop={!embedded}>
       {embedded ? (
-        <ScrollView
-          style={styles.embeddedBody}
-          contentContainerStyle={styles.embeddedScrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {body}
-        </ScrollView>
+        <View style={styles.embeddedBody}>
+          <ScrollView
+            style={styles.embeddedScroll}
+            contentContainerStyle={styles.embeddedScrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {categories}
+          </ScrollView>
+          <View style={styles.railDock}>{rails}</View>
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={{
@@ -190,19 +152,19 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
             />
           }
         >
-          {body}
+          <View style={styles.topRow}>
+            <Pressable
+              onPress={() => navigation.navigate("Main", { screen: "Home" })}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.back")}
+            >
+              <Ionicons name="chevron-back" size={26} color={icon} />
+            </Pressable>
+          </View>
+          {categories}
+          {rails}
         </ScrollView>
-      )}
-
-      {embedded ? null : (
-        <Pressable
-          style={[styles.fab, { bottom: floatingTabClearance(insets.bottom) + 12 }]}
-          onPress={() => navigation.navigate("UsedCreate")}
-          accessibilityRole="button"
-          accessibilityLabel="Sell"
-        >
-          <Ionicons name="add" size={30} color="#fff" />
-        </Pressable>
       )}
     </Screen>
   );
@@ -212,36 +174,29 @@ function ProductRail({
   title,
   items,
   loading,
-  onMore,
   onOpen,
-  ink,
   styles,
 }: {
   title: string;
   items: MarketplaceListItem[];
   loading: boolean;
-  onMore: () => void;
   onOpen: (id: string) => void;
-  ink: string;
   styles: ReturnType<typeof createStyles>;
 }) {
   const { t } = useI18n();
+  const shown = items.slice(0, RAIL_TAKE);
   return (
     <View style={styles.rail}>
       <View style={styles.sectionHead}>
         <Text style={styles.railTitle}>{title}</Text>
-        <Pressable onPress={onMore} style={styles.moreBtn} accessibilityRole="button">
-          <Text style={styles.moreText}>{t("m.marketplace.see_all")}</Text>
-          <Ionicons name="chevron-forward" size={16} color={ink} />
-        </Pressable>
       </View>
       {loading ? (
-        <ActivityIndicator color={ink} style={{ marginVertical: 24 }} />
-      ) : items.length === 0 ? (
+        <ActivityIndicator color={styles.railTitle.color} style={{ marginVertical: 16 }} />
+      ) : shown.length === 0 ? (
         <Text style={styles.muted}>{t("m.common.no_listings_yet")}</Text>
       ) : (
         <View style={styles.grid}>
-          {items.slice(0, 4).map((item) => (
+          {shown.map((item) => (
             <Pressable key={item.id} style={styles.card} onPress={() => onOpen(item.id)}>
               {item.thumbnailUrl ? (
                 <Image
@@ -266,8 +221,16 @@ function createStyles(colors: ThemeColors) {
     embeddedBody: {
       flex: 1,
     },
+    embeddedScroll: {
+      flex: 1,
+      minHeight: 0,
+    },
     embeddedScrollContent: {
-      paddingBottom: spacing.lg,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.sm,
+    },
+    railDock: {
+      paddingBottom: spacing.sm,
     },
     topRow: {
       flexDirection: "row",
@@ -276,49 +239,36 @@ function createStyles(colors: ThemeColors) {
       paddingTop: spacing.sm,
       minHeight: 42,
     },
-    fab: {
-      position: "absolute",
-      right: 18,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: colors.terracotta,
-      alignItems: "center",
-      justifyContent: "center",
-      shadowColor: "#000",
-      shadowOpacity: 0.28,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 8,
+    catList: {
+      paddingHorizontal: spacing.md,
+    },
+    catItem: {
+      paddingVertical: 13,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.hairline,
+    },
+    catItemOn: {
+      backgroundColor: colors.surfaceRaised,
+      marginHorizontal: -spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    catItemText: {
+      fontSize: 17,
+      fontWeight: "800",
+      color: colors.brand,
+    },
+    catItemTextOn: {
+      color: colors.brand,
     },
     sectionHead: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
       paddingHorizontal: spacing.md,
-      marginTop: 18,
-      marginBottom: 10,
+      marginTop: 8,
+      marginBottom: 8,
     },
-    shortcutRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingHorizontal: 10,
-      marginTop: 18,
-    },
-    shortcutRowEmbeddedTop: {
-      marginTop: spacing.sm,
-    },
-    shortcut: { width: "19%", alignItems: "center", gap: 6 },
-    shortcutLabel: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: colors.text,
-      textAlign: "center",
-    },
-    rail: { marginTop: 8 },
+    rail: { marginTop: 2 },
     railTitle: { fontSize: 18, fontWeight: "800", color: colors.brand },
-    moreBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
-    moreText: { fontSize: 13, fontWeight: "700", color: colors.brand },
     grid: {
       paddingHorizontal: spacing.md,
       flexDirection: "row",
@@ -335,6 +285,6 @@ function createStyles(colors: ThemeColors) {
     },
     photo: { width: "100%", aspectRatio: 1, backgroundColor: colors.muted },
     photoEmpty: { alignItems: "center", justifyContent: "center" },
-    muted: { color: colors.textMuted, paddingHorizontal: spacing.md, fontWeight: "600" },
+    muted: { color: colors.textMuted, paddingHorizontal: spacing.md, fontWeight: "600", marginBottom: 8 },
   });
 }

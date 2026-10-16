@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MarketHomeScreen, type MarketHubLane } from "@/features/marketplace/MarketHomeScreen";
+import { MarketHomeScreen } from "@/features/marketplace/MarketHomeScreen";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 
@@ -19,10 +19,11 @@ const CLOSE_MS = 220;
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onOpenLane: (lane: MarketHubLane, q?: string) => void;
+  onSelectCategory: (id: string) => void;
+  selectedCategoryId?: string | null;
 };
 
-export function MarketHubSlidePanel({ visible, onClose, onOpenLane }: Props) {
+export function MarketHubSlidePanel({ visible, onClose, onSelectCategory, selectedCategoryId }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const { width: screenW } = useWindowDimensions();
@@ -83,7 +84,12 @@ export function MarketHubSlidePanel({ visible, onClose, onOpenLane }: Props) {
             },
           ]}
         >
-          <MarketHomeScreen embedded onClose={onClose} onOpenLane={onOpenLane} />
+          <MarketHomeScreen
+            embedded
+            onClose={onClose}
+            onSelectCategory={onSelectCategory}
+            selectedCategoryId={selectedCategoryId}
+          />
         </Animated.View>
       </View>
     </Modal>
