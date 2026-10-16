@@ -31,6 +31,8 @@ export function AdminSecuritySettingsPanel() {
   const [loading, setLoading] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
+  const [totpStatus, setTotpStatus] = useState<"created" | "existing" | "replaced" | null>(null);
+  const [totpNeedsVerify, setTotpNeedsVerify] = useState(false);
   const [totpCode, setTotpCode] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -76,8 +78,30 @@ export function AdminSecuritySettingsPanel() {
     }
   }
 
-  async function beginTotpReset() {
+  async function showCurrentTotp() {
     setLoading(true);
+    setError(null);
+    const begun = await adminTotpBeginAction();
+    setLoading(false);
+    if ("error" in begun && begun.error) {
+      setError(errorText(begun.error));
+      return;
+    }
+    if ("otpauthUrl" in begun && begun.otpauthUrl) {
+      setSecret(begun.secretBase32 ?? null);
+      setTotpStatus(begun.status ?? "existing");
+      setTotpNeedsVerify(Boolean(begun.needsVerify));
+      setQr(await QRCode.toDataURL(begun.otpauthUrl, { width: 200, margin: 1 }));
+    }
+  }
+
+  async function replaceTotp() {
+    const ok = window.confirm(
+      "서버의 인증 키를 이 계정에 하나뿐인 새 키로 바꿉니다. 지금 쓰던 코드는 바로 무효가 됩니다. 인증 앱의 MoCoMo 항목을 모두 지운 뒤, 새 QR을 한 번만 스캔하세요."
+    );
+    if (!ok) return;
+    setLoading(true);
+    setError(null);
     const begun = await adminTotpBeginAction({ rotate: true });
     setLoading(false);
     if ("error" in begun && begun.error) {
@@ -86,6 +110,9 @@ export function AdminSecuritySettingsPanel() {
     }
     if ("otpauthUrl" in begun && begun.otpauthUrl) {
       setSecret(begun.secretBase32 ?? null);
+      setTotpStatus(begun.status ?? "replaced");
+      setTotpNeedsVerify(true);
+      setTotpCode("");
       setQr(await QRCode.toDataURL(begun.otpauthUrl, { width: 200, margin: 1 }));
     }
   }
@@ -169,8 +196,11 @@ export function AdminSecuritySettingsPanel() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Authenticator (TOTP)</h2>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={loading} onClick={beginTotpReset}>
-              QR 재발급
+            <Button size="sm" variant="outline" disabled={loading} onClick={() => void showCurrentTotp()}>
+              현재 키 보기
+            </Button>
+            <Button size="sm" variant="outline" disabled={loading} onClick={() => void replaceTotp()}>
+              키 교체
             </Button>
             {data.totp?.enabled ? (
               <Button
@@ -209,32 +239,43 @@ export function AdminSecuritySettingsPanel() {
         </p>
         {qr ? (
           <div className="space-y-2 rounded-lg border p-4">
+            <p className="text-sm text-muted-foreground">
+              {totpStatus === "replaced"
+                ? "이 계정의 키를 하나 교체했습니다. 인증 앱의 기존 MoCoMo 항목을 모두 지운 다음, 이 QR만 한 번 스캔하고 코드를 확인하세요."
+                : totpStatus === "created"
+                  ? "이 계정용 키를 하나 만들었습니다. 인증 앱에 한 번만 추가하세요."
+                  : "서버에는 이 계정 키가 하나만 있습니다. 인증 앱에 MoCoMo 항목이 여러 개면 전부 지운 뒤 이 QR을 한 번만 스캔하세요. 이미 있는 항목을 또 추가하지 마세요."}
+            </p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={qr} alt="TOTP QR" className="mx-auto" />
             {secret ? (
               <p className="break-all text-center font-mono text-xs">{secret}</p>
             ) : null}
-            <div className="flex gap-2">
-              <Input
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder={t("admin.s1byjevq")}
-                className="font-mono"
-              />
-              <Button
-                onClick={async () => {
-                  const r = await adminTotpVerifyAction(totpCode);
-                  if ("error" in r && r.error) setError(errorText(r.error));
-                  else {
-                    setQr(null);
-                    setTotpCode("");
-                    await reload();
-                  }
-                }}
-              >
-                확인
-              </Button>
-            </div>
+            {totpNeedsVerify ? (
+              <div className="flex gap-2">
+                <Input
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder={t("admin.s1byjevq")}
+                  className="font-mono"
+                />
+                <Button
+                  onClick={async () => {
+                    const r = await adminTotpVerifyAction(totpCode);
+                    if ("error" in r && r.error) setError(errorText(r.error));
+                    else {
+                      setQr(null);
+                      setTotpStatus(null);
+                      setTotpNeedsVerify(false);
+                      setTotpCode("");
+                      await reload();
+                    }
+                  }}
+                >
+                  확인
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>

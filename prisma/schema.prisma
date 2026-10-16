@@ -4448,7 +4448,7 @@ model AdminWebAuthnCredential {
   @@index([userId])
 }
 
-/** 관리자 TOTP (Google/Microsoft Authenticator 등 RFC 6238) */
+/** 관리자 TOTP. userId 유니크 — 계정당 시크릿 1개. 재발급은 이 행을 UPDATE 한다. */
 model AdminTotpCredential {
   id                String    @id @default(cuid())
   userId            String    @unique

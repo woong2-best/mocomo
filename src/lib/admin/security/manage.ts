@@ -111,20 +111,35 @@ export async function deletePasskey(userId: string, credentialId: string) {
   return { success: true as const };
 }
 
+export type TotpSetupStatus = "created" | "existing" | "replaced";
+
 /**
- * TOTP 시크릿. 기본은 이미 있는 시크릿을 그대로 쓴다.
- * QR을 다시 만들 때마다 시크릿이 바뀌면 인증 앱에 항목이 쌓이고, 예전 코드는 실패한다.
- * rotate=true 일 때만 새 시크릿으로 교체한다.
+ * 계정당 TOTP 시크릿은 AdminTotpCredential 한 행뿐이다.
+ * QR을 다시 열어도 새 키를 만들지 않는다. 인증 앱은 새 otpauth를 스캔할 때마다
+ * 항목을 추가하므로, 키를 바꾸면 예전 코드는 모두 실패한다.
+ * rotate=true 이고 이미 검증된 키가 있을 때만 그 행을 새 시크릿으로 UPDATE 한다.
+ * 검증 전(등록 중)이면 rotate여도 같은 키를 돌려준다.
  */
 export async function beginTotpSetup(
   userId: string,
   accountLabel: string,
   opts?: { rotate?: boolean }
-) {
+): Promise<{
+  otpauthUrl: string;
+  secretBase32: string;
+  status: TotpSetupStatus;
+  needsVerify: boolean;
+}> {
   const existing = await db.adminTotpCredential.findUnique({ where: { userId } });
-  if (existing && !opts?.rotate) {
+  const replaceVerified = Boolean(opts?.rotate && existing?.verifiedAt);
+  if (existing && !replaceVerified) {
     const secretBase32 = decryptTotpSecret(existing);
-    return { otpauthUrl: otpauthUrlForSecret(secretBase32, accountLabel), secretBase32 };
+    return {
+      otpauthUrl: otpauthUrlForSecret(secretBase32, accountLabel),
+      secretBase32,
+      status: "existing",
+      needsVerify: !existing.verifiedAt,
+    };
   }
 
   const { secretBase32, otpauthUrl } = generateTotpSecret(accountLabel);
@@ -154,9 +169,14 @@ export async function beginTotpSetup(
     action: "ADMIN_TOTP_REGISTER",
     targetType: "admin_security",
     targetId: userId,
-    metadata: { phase: "begin" },
+    metadata: { phase: replaceVerified ? "replace" : "begin" },
   });
-  return { otpauthUrl, secretBase32 };
+  return {
+    otpauthUrl,
+    secretBase32,
+    status: replaceVerified ? "replaced" : "created",
+    needsVerify: true,
+  };
 }
 
 export async function verifyTotpSetup(userId: string, code: string) {

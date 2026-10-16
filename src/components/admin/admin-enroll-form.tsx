@@ -161,7 +161,7 @@ export function AdminEnrollForm() {
           <div className="space-y-3">
             <h2 className="font-semibold">{t("admin.2_authenticator")}</h2>
             <p className="text-sm text-muted-foreground">
-              Google Authenticator, Microsoft Authenticator, Authy 등으로 QR을 스캔하세요.
+              Google Authenticator 등에 QR을 한 번만 스캔하세요. 이 계정 키는 하나뿐이라, QR을 다시 만들어도 같은 키가 나옵니다. 앱에 MoCoMo 항목이 이미 여러 개면 전부 지운 뒤 이 QR만 추가하세요.
             </p>
             {!qrDataUrl ? (
               <Button className="w-full" disabled={loading} onClick={beginTotp}>
