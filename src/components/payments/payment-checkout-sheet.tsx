@@ -39,6 +39,7 @@ import { CreditCard, Loader2, Plus } from "lucide-react";
 import { StripeOverseasPaymentNotice } from "@/components/payments/stripe-overseas-payment-notice";
 import { PurchaseChargebackTermsNotice } from "@/components/payments/purchase-chargeback-terms-notice";
 import { MocoPurchaseTermsCheckbox } from "@/components/wallet/moco-purchase-terms-checkbox";
+import { MocoPurchaseSupportNote } from "@/components/wallet/moco-purchase-support-note";
 import { RecurringDonationTermsNotice } from "@/components/payments/recurring-donation-terms-notice";
 
 type Props = {
@@ -254,10 +255,13 @@ export function PaymentCheckoutSheet({
               />
             </>
           ) : isGemTopup ? (
-            <MocoPurchaseTermsCheckbox
-              checked={purchaseTermsAccepted}
-              onCheckedChange={setPurchaseTermsAccepted}
-            />
+            <>
+              <MocoPurchaseTermsCheckbox
+                checked={purchaseTermsAccepted}
+                onCheckedChange={setPurchaseTermsAccepted}
+              />
+              <MocoPurchaseSupportNote />
+            </>
           ) : (
             <PurchaseChargebackTermsNotice
               checked={purchaseTermsAccepted}

@@ -1,10 +1,6 @@
 "use client";
 
 import {
-  MOCO_FORTUNE_COOKIE_CONSENT_EN_BODY,
-  MOCO_FORTUNE_COOKIE_CONSENT_KO_BODY,
-  MOCO_FORTUNE_COOKIE_CONSENT_KO_TITLE,
-  MOCO_FORTUNE_COOKIE_CONSENT_TITLE,
   MOCO_PURCHASE_TERMS_HREF,
   MOCO_PURCHASE_TERMS_LINK_LABEL,
 } from "@/lib/legal/moco-purchase-consent";
@@ -33,23 +29,17 @@ export function MocoPurchaseTermsCheckbox({
           className="mt-0.5 shrink-0"
           required
         />
-        <span className="space-y-1.5">
-          <span className="block font-bold">{MOCO_FORTUNE_COOKIE_CONSENT_TITLE}</span>
-          <span className="block font-bold">{MOCO_FORTUNE_COOKIE_CONSENT_KO_TITLE}</span>
-          <span className="block text-muted-foreground">{MOCO_FORTUNE_COOKIE_CONSENT_KO_BODY}</span>
-          <span className="block text-muted-foreground">{MOCO_FORTUNE_COOKIE_CONSENT_EN_BODY}</span>
-          <span className="block text-muted-foreground">
-            I also agree to the{" "}
-            <a
-              href={MOCO_PURCHASE_TERMS_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-primary underline"
-            >
-              {MOCO_PURCHASE_TERMS_LINK_LABEL}
-            </a>
-            .
-          </span>
+        <span>
+          [Required] By purchasing MOCO, I agree to the{" "}
+          <a
+            href={MOCO_PURCHASE_TERMS_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-primary underline"
+          >
+            {MOCO_PURCHASE_TERMS_LINK_LABEL}
+          </a>
+          , including immediate delivery of the Package and that all sales are final except as stated.
         </span>
       </label>
     </div>

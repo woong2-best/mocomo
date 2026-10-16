@@ -18,6 +18,7 @@ import {
 import { formatMocoDisplay } from "@/lib/gems/display";
 import { useLocale } from "@/components/providers/locale-provider";
 import { MocoPurchaseTermsCheckbox } from "@/components/wallet/moco-purchase-terms-checkbox";
+import { MocoPurchaseSupportNote } from "@/components/wallet/moco-purchase-support-note";
 
 type Props = {
   purchasedMoco: number;
@@ -129,6 +130,7 @@ export function WalletStripeTopup({ purchasedMoco, minTopupMoco, lowBalanceNotic
         disabled={pending}
       />
       <p className="text-[11px] leading-relaxed text-muted-foreground">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
+      <MocoPurchaseSupportNote />
 
       {error ? (
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm" role="alert">

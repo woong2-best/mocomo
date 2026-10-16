@@ -1617,13 +1617,8 @@ export const MOCO_PURCHASE_TERMS: LegalDocument = {
   updatedAt: MOCO_PURCHASE_TERMS_EFFECTIVE_DATE,
   version: MOCO_PURCHASE_TERMS_VERSION,
   intro:
-    "Section X (MOCO Transfers) of the Terms of Service is displayed below these Purchase Terms.",
-  blocks: [
-    ...MOCO_PURCHASE_TERMS_BLOCKS,
-    { type: "hr" },
-    { type: "h2", text: "Section X: MOCO Transfers", id: "section-x" },
-    ...MOCO_TRANSFER_TOS_BLOCKS,
-  ],
+    'These terms apply to every purchase of MOCO on the Service. "Terms of Service" refers to the main Terms at /legal/terms.',
+  blocks: [...MOCO_PURCHASE_TERMS_BLOCKS],
 };
 
 export const CULTURE_WIKI_TERMS: LegalDocument = {

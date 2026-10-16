@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "MOCO Purchase Terms — MoCoMo",
   description:
-    "Terms that apply to every purchase of MOCO on MoCoMo, including the MOCO and Fortune Cookie package.",
+    "Terms that apply to every purchase of MOCO on MoCoMo, including the MOCO and Contribution Tower package.",
 };
 
 export default async function MocoPurchaseTermsPage() {

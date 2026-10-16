@@ -23,6 +23,7 @@ import {
 } from "@/lib/gems/constants";
 import { MocoEarthTransferHero } from "@/components/moco/moco-earth-transfer-hero";
 import { MocoPurchaseTermsCheckbox } from "@/components/wallet/moco-purchase-terms-checkbox";
+import { MocoPurchaseSupportNote } from "@/components/wallet/moco-purchase-support-note";
 import { formatMocoDisplay } from "@/lib/gems/display";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
 import { stripePaymentIntentReturnUrlClient } from "@/lib/stripe-payment-return-url";
@@ -537,6 +538,7 @@ export function GemBalancePanel({
             disabled={pending}
           />
           <p className="text-[10px] leading-relaxed text-slate-500">{MOCO_PURCHASE_PG_FEE_NOTE}</p>
+          <MocoPurchaseSupportNote className="text-[10px] text-slate-500" />
 
           {purchases.length > 0 ? (
             <div className="space-y-2 border-t border-slate-700/50 pt-3">
