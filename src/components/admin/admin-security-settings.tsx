@@ -78,7 +78,7 @@ export function AdminSecuritySettingsPanel() {
 
   async function beginTotpReset() {
     setLoading(true);
-    const begun = await adminTotpBeginAction();
+    const begun = await adminTotpBeginAction({ rotate: true });
     setLoading(false);
     if ("error" in begun && begun.error) {
       setError(errorText(begun.error));

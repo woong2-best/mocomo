@@ -80,10 +80,6 @@ export async function beginPasskeyRegistration(user: {
   email?: string | null;
 }) {
   const { rpID, rpName } = rpConfig();
-  const existing = await db.adminWebAuthnCredential.findMany({
-    where: { userId: user.id },
-    select: { credentialId: true, transports: true },
-  });
 
   const options = await generateRegistrationOptions({
     rpName,
@@ -92,13 +88,9 @@ export async function beginPasskeyRegistration(user: {
     userDisplayName: user.username,
     userID: user.id,
     attestationType: "none",
-    excludeCredentials: existing.map((c) => ({
-      id: fromBase64Url(c.credentialId),
-      type: "public-key" as const,
-      transports: c.transports
-        ? (JSON.parse(c.transports) as AuthenticatorTransportFuture[])
-        : undefined,
-    })),
+    // 같은 인증기에 새 패스키를 만들 수 있게 기존 자격증명은 제외하지 않는다.
+    // 등록이 끝나면 이 사용자 자격증명은 하나만 남긴다.
+    excludeCredentials: [],
     authenticatorSelection: {
       residentKey: "preferred",
       userVerification: "preferred",
@@ -148,8 +140,9 @@ export async function finishPasskeyRegistration(
     ? JSON.stringify(response.response.transports)
     : null;
 
-  await db.adminWebAuthnCredential.create({
-    data: {
+  await db.adminWebAuthnCredential.upsert({
+    where: { credentialId },
+    create: {
       userId,
       credentialId,
       publicKey,
@@ -159,6 +152,18 @@ export async function finishPasskeyRegistration(
       transports,
       name: name?.trim() || "Passkey",
     },
+    update: {
+      userId,
+      publicKey,
+      counter,
+      deviceType: info.credentialDeviceType,
+      backedUp: info.credentialBackedUp,
+      transports,
+      name: name?.trim() || "Passkey",
+    },
+  });
+  await db.adminWebAuthnCredential.deleteMany({
+    where: { userId, credentialId: { not: credentialId } },
   });
 
   return { credentialId };
@@ -168,21 +173,30 @@ export async function beginPasskeyAuthentication(userId: string) {
   const { rpID } = rpConfig();
   const existing = await db.adminWebAuthnCredential.findMany({
     where: { userId },
-    select: { credentialId: true, transports: true },
+    select: { credentialId: true, transports: true, lastUsedAt: true, createdAt: true },
   });
   if (!existing.length) {
     return { error: "No passkeys registered." as const };
   }
 
+  // 로그인 창에는 자격증명 하나만 올린다. 쓰여 본 패스키를 우선하고, 없으면 가장 최근 등록분.
+  const credential = [...existing].sort((a, b) => {
+    const used = (b.lastUsedAt?.getTime() ?? 0) - (a.lastUsedAt?.getTime() ?? 0);
+    if (used !== 0) return used;
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  })[0]!;
+
   const options = await generateAuthenticationOptions({
     rpID,
-    allowCredentials: existing.map((c) => ({
-      id: fromBase64Url(c.credentialId),
-      type: "public-key" as const,
-      transports: c.transports
-        ? (JSON.parse(c.transports) as AuthenticatorTransportFuture[])
-        : undefined,
-    })),
+    allowCredentials: [
+      {
+        id: fromBase64Url(credential.credentialId),
+        type: "public-key" as const,
+        transports: credential.transports
+          ? (JSON.parse(credential.transports) as AuthenticatorTransportFuture[])
+          : undefined,
+      },
+    ],
     userVerification: "preferred",
   });
 
@@ -234,6 +248,9 @@ export async function finishPasskeyAuthentication(
       counter: BigInt(verification.authenticationInfo.newCounter),
       lastUsedAt: new Date(),
     },
+  });
+  await db.adminWebAuthnCredential.deleteMany({
+    where: { userId, id: { not: cred.id } },
   });
 
   return { ok: true };

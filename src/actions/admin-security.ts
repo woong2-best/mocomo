@@ -103,11 +103,11 @@ export async function adminPasskeyRegisterVerifyAction(
   return finishPasskeyEnroll(userId, response, name);
 }
 
-export async function adminTotpBeginAction() {
+export async function adminTotpBeginAction(opts?: { rotate?: boolean }) {
   const session = await auth();
   if (!session?.user?.id) return { error: "actions.sfv3j95" };
   const label = session.user.username || session.user.email || "admin";
-  return beginTotpSetup(session.user.id, label);
+  return beginTotpSetup(session.user.id, label, { rotate: opts?.rotate === true });
 }
 
 export async function adminTotpVerifyAction(code: string) {

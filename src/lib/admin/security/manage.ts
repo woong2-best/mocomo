@@ -8,6 +8,7 @@ import {
   decryptTotpSecret,
   encryptTotpSecret,
   generateTotpSecret,
+  otpauthUrlForSecret,
   verifyTotpCode,
 } from "@/lib/admin/security/totp";
 import { generateRecoveryCodes, listRecoveryCodeStatus } from "@/lib/admin/security/recovery";
@@ -110,8 +111,22 @@ export async function deletePasskey(userId: string, credentialId: string) {
   return { success: true as const };
 }
 
-/** TOTP 시크릿 생성(미검증). QR용 otpauth URL 반환 */
-export async function beginTotpSetup(userId: string, accountLabel: string) {
+/**
+ * TOTP 시크릿. 기본은 이미 있는 시크릿을 그대로 쓴다.
+ * QR을 다시 만들 때마다 시크릿이 바뀌면 인증 앱에 항목이 쌓이고, 예전 코드는 실패한다.
+ * rotate=true 일 때만 새 시크릿으로 교체한다.
+ */
+export async function beginTotpSetup(
+  userId: string,
+  accountLabel: string,
+  opts?: { rotate?: boolean }
+) {
+  const existing = await db.adminTotpCredential.findUnique({ where: { userId } });
+  if (existing && !opts?.rotate) {
+    const secretBase32 = decryptTotpSecret(existing);
+    return { otpauthUrl: otpauthUrlForSecret(secretBase32, accountLabel), secretBase32 };
+  }
+
   const { secretBase32, otpauthUrl } = generateTotpSecret(accountLabel);
   const enc = encryptTotpSecret(secretBase32);
   await db.adminTotpCredential.upsert({

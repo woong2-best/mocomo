@@ -75,6 +75,9 @@ export const authConfig = {
         session.user.isDeleted = Boolean(token.isDeleted);
         session.user.isOperator = Boolean(token.isOperator);
         session.user.isStaff = Boolean(token.isStaff);
+        if (typeof token.email === "string" && token.email) {
+          session.user.email = token.email;
+        }
         const adminStarted = Number(token.adminSessionStartedAt);
         if (
           (token.isStaff || token.isOperator) &&

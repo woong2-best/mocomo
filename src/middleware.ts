@@ -18,7 +18,7 @@ import {
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { isRemovedGameApiPath, isRemovedGamePagePath } from "@/lib/removed-game-routes";
 import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
-import { getOperatorUsernames } from "@/lib/operator-config";
+import { getOperatorEmails, getOperatorUsernames } from "@/lib/operator-config";
 import {
   ADMIN_MFA_COOKIE,
   createAdminMfaCookieValue,
@@ -302,8 +302,12 @@ export default edgeAuth(async (req) => {
     .trim()
     .toLowerCase();
   const isSiteOwnerByUsername = getOperatorUsernames().includes(authUsername);
+  const authEmail = String(req.auth?.user?.email ?? "")
+    .trim()
+    .toLowerCase();
+  const isSiteOwnerByEmail = getOperatorEmails().includes(authEmail);
   const isAdminStaff =
-    isLoggedIn && (isStaff || isOperator || isSiteOwnerByUsername);
+    isLoggedIn && (isStaff || isOperator || isSiteOwnerByUsername || isSiteOwnerByEmail);
 
   // /admin/login · enroll · forbidden — 메인 사이트 로그인 여부와 무관하게 통과
   // (로그인 페이지에서 관리자 계정으로 다시 인증)

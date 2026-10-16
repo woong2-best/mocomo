@@ -5,7 +5,12 @@ import { db } from "@/lib/db";
 import { authConfig } from "@/lib/auth.config";
 import { getAuthProviders } from "@/lib/auth.providers";
 import { createPrismaAuthAdapter } from "@/lib/auth.adapter";
-import { effectiveRole, isOperatorIdentity, isStaffIdentity } from "@/lib/operator-config";
+import {
+  effectiveRole,
+  getOperatorEmails,
+  isOperatorIdentity,
+  isStaffIdentity,
+} from "@/lib/operator-config";
 import {
   credentialsUserHasJwtFields,
   hydrateTokenFromCredentialsUser,
@@ -478,20 +483,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               .update({ where: { id: userId }, data: { image: null } })
               .catch(() => undefined);
           }
+          const identityEmail = displayed.email ?? dbUser.email;
+          if (identityEmail) token.email = identityEmail;
+          const identity = {
+            username: dbUser.username,
+            role: dbUser.role,
+            email: identityEmail,
+          };
           token.isBanned = isServiceBanned(dbUser);
           token.accountStatus = dbUser.accountStatus;
           token.isSuspendedReadOnly = isSuspendedReadOnly(dbUser);
           token.isDeleted = !!dbUser.deletedAt;
-          token.isOperator = isOperatorIdentity({
-            username: dbUser.username,
-            role: effectiveRole(dbUser),
-            email: dbUser.email,
-          });
-          token.isStaff = isStaffIdentity({
-            username: dbUser.username,
-            role: effectiveRole(dbUser),
-            email: dbUser.email,
-          });
+          token.role = effectiveRole(identity);
+          token.isOperator = isOperatorIdentity(identity);
+          token.isStaff = isStaffIdentity(identity);
           if (dbUser.adminDisabledAt && !token.isOperator) {
             token.isStaff = false;
             token.isOperator = false;
@@ -499,11 +504,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (token.isOperator) {
             token.role = "OWNER";
             token.isStaff = true;
-            if (dbUser.role !== "OWNER" || dbUser.adminDisabledAt) {
+            const normalizedEmail = identityEmail?.trim().toLowerCase();
+            const emailToStore =
+              !dbUser.email &&
+              normalizedEmail &&
+              getOperatorEmails().includes(normalizedEmail)
+                ? normalizedEmail
+                : undefined;
+            if (dbUser.role !== "OWNER" || dbUser.adminDisabledAt || emailToStore) {
               await db.user
                 .update({
                   where: { id: userId },
-                  data: { role: "OWNER", adminDisabledAt: null },
+                  data: {
+                    role: "OWNER",
+                    adminDisabledAt: null,
+                    ...(emailToStore ? { email: emailToStore } : {}),
+                  },
                 })
                 .catch(() => undefined);
             }
@@ -519,9 +535,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           await applyTermsGateToJwtToken(token, dbUser.currentTermsVersion);
         }
       } else if (token.username && !token.isOperator && !token.isStaff) {
-        // 기존 세션: username만으로 오너 플래그 복구 (재로그인 없이)
+        // 기존 세션: username·이메일로 오너 플래그 복구 (재로그인 없이)
         const uname = String(token.username);
-        if (isOperatorIdentity({ username: uname, role: String(token.role ?? "USER") })) {
+        const email = typeof token.email === "string" ? token.email : null;
+        if (isOperatorIdentity({ username: uname, role: String(token.role ?? "USER"), email })) {
           token.isOperator = true;
           token.isStaff = true;
           token.role = "OWNER";

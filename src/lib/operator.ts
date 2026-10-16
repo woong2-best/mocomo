@@ -1,15 +1,18 @@
 import type { PrismaClient } from "@prisma/client";
 import {
   getOperatorEmail,
+  getOperatorEmails,
   getOperatorUsername,
   getOperatorUsernames,
 } from "@/lib/operator-config";
 import { safeLogInfo } from "@/lib/safe-log";
+import { findUserIdByOAuthEmail } from "@/lib/oauth-vault";
 
 export {
   getOperatorUsername,
   getOperatorUsernames,
   getOperatorEmail,
+  getOperatorEmails,
   isOperatorIdentity,
 } from "@/lib/operator-config";
 
@@ -25,13 +28,19 @@ function auditLog(event: string, payload: Record<string, unknown>) {
   safeLogInfo("operator", { event, ...payload });
 }
 
-function operatorUsernameFilter() {
-  const allowed = getOperatorUsernames();
+function operatorIdentityFilter() {
+  const usernames = getOperatorUsernames();
+  const emails = getOperatorEmails();
   return {
     NOT: {
-      OR: allowed.map((name) => ({
-        username: { equals: name, mode: "insensitive" as const },
-      })),
+      OR: [
+        ...usernames.map((name) => ({
+          username: { equals: name, mode: "insensitive" as const },
+        })),
+        ...emails.map((email) => ({
+          email: { equals: email, mode: "insensitive" as const },
+        })),
+      ],
     },
   };
 }
@@ -41,7 +50,7 @@ export async function revokeUnauthorizedAdminRoles(prisma: PrismaClient): Promis
   const allowed = getOperatorUsernames();
   const result = await prisma.user.updateMany({
     where: {
-      ...operatorUsernameFilter(),
+      ...operatorIdentityFilter(),
       role: { in: ["ADMIN", "MODERATOR", "OWNER"] },
     },
     data: { role: "USER" },
@@ -64,6 +73,52 @@ export async function bootstrapOperatorRole(prisma: PrismaClient): Promise<Opera
   let anyMissing = false;
   let promotedAny = false;
 
+  for (const email of getOperatorEmails()) {
+    let operator = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: { id: true, username: true, role: true, email: true },
+    });
+    if (!operator) {
+      const oauthUserId = await findUserIdByOAuthEmail(email);
+      if (oauthUserId) {
+        operator = await prisma.user.findFirst({
+          where: { id: oauthUserId },
+          select: { id: true, username: true, role: true, email: true },
+        });
+        if (operator && !operator.email) {
+          await prisma.user.update({
+            where: { id: operator.id },
+            data: { email },
+          });
+          operator = { ...operator, email };
+        }
+      }
+    }
+    if (!operator) {
+      anyMissing = true;
+      auditLog("bootstrap_missing_operator_email", { email, demoted });
+      continue;
+    }
+    const promoted = operator.role !== "OWNER";
+    if (promoted) {
+      await prisma.user.update({
+        where: { id: operator.id },
+        data: { role: "OWNER", adminDisabledAt: null },
+      });
+      promotedAny = true;
+    } else if (operator.role === "OWNER") {
+      await prisma.user.update({
+        where: { id: operator.id },
+        data: { adminDisabledAt: null },
+      });
+    }
+    auditLog("bootstrap_operator_email", {
+      email,
+      username: operator.username,
+      promoted,
+    });
+  }
+
   for (const name of usernames) {
     const operator = await prisma.user.findFirst({
       where: { username: { equals: name, mode: "insensitive" } },
@@ -80,7 +135,7 @@ export async function bootstrapOperatorRole(prisma: PrismaClient): Promise<Opera
         reason: "operator_email_mismatch",
         demoted,
       });
-      return { ok: false, username: name, demoted, promoted: false, reason: "operator_email_mismatch" };
+      return { ok: false, username: name, demoted, promoted: promotedAny, reason: "operator_email_mismatch" };
     }
     const promoted = operator.role !== "OWNER";
     if (promoted) {

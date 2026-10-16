@@ -3,6 +3,18 @@ import { adminDecrypt, adminEncrypt } from "@/lib/admin/security/crypto";
 
 const ISSUER = "MoCoMo Admin";
 
+export function otpauthUrlForSecret(secretBase32: string, accountName: string) {
+  const totp = new OTPAuth.TOTP({
+    issuer: ISSUER,
+    label: accountName,
+    algorithm: "SHA1",
+    digits: 6,
+    period: 30,
+    secret: OTPAuth.Secret.fromBase32(secretBase32),
+  });
+  return totp.toString();
+}
+
 export function generateTotpSecret(accountName: string) {
   const secret = new OTPAuth.Secret({ size: 20 });
   const totp = new OTPAuth.TOTP({
