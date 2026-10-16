@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -26,15 +26,26 @@ export function TermsAgreementModalHost() {
   const [terms, setTerms] = useState<TermsAgreementInfo | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const acceptedVersionRef = useRef<string | null>(null);
+  const shownVersionRef = useRef<string | null>(null);
+  const toggleLockRef = useRef(0);
 
   const openTerms = useCallback((next: TermsAgreementInfo | null) => {
     if (!next) {
+      shownVersionRef.current = null;
       setTerms(null);
       setAgreed(false);
       return;
     }
-    setTerms(next);
+    if (acceptedVersionRef.current && acceptedVersionRef.current === next.versionTag) {
+      return;
+    }
+    if (shownVersionRef.current === next.versionTag) {
+      return;
+    }
+    shownVersionRef.current = next.versionTag;
     setAgreed(false);
+    setTerms(next);
   }, []);
 
   useEffect(() => {
@@ -45,6 +56,7 @@ export function TermsAgreementModalHost() {
 
   useEffect(() => {
     if (status !== "signedIn") {
+      acceptedVersionRef.current = null;
       openTerms(null);
       return;
     }
@@ -52,7 +64,12 @@ export function TermsAgreementModalHost() {
     void (async () => {
       try {
         const next = await fetchTermsAgreementStatus();
-        if (!cancelled) openTerms(next);
+        if (cancelled) return;
+        if (!next) {
+          if (!acceptedVersionRef.current) openTerms(null);
+          return;
+        }
+        openTerms(next);
       } catch {
         /* 403 TERMS_REQUIRED is emitted by the API client */
       }
@@ -66,16 +83,21 @@ export function TermsAgreementModalHost() {
     if (!agreed || accepting) return;
     setAccepting(true);
     try {
-      await acceptLatestTerms();
-      openTerms(null);
+      const accepted = await acceptLatestTerms();
+      acceptedVersionRef.current =
+        terms?.versionTag || accepted?.versionTag || "accepted";
+      shownVersionRef.current = null;
+      setTerms(null);
+      setAgreed(false);
     } catch {
       /* keep modal open */
     } finally {
       setAccepting(false);
     }
-  }, [agreed, accepting, openTerms]);
+  }, [agreed, accepting, terms?.versionTag]);
 
   const onDecline = useCallback(async () => {
+    acceptedVersionRef.current = null;
     openTerms(null);
     await signOut();
   }, [openTerms, signOut]);
@@ -85,13 +107,35 @@ export function TermsAgreementModalHost() {
     await WebBrowser.openBrowserAsync(terms.termsUrl);
   }, [terms]);
 
+  const onToggleAgree = useCallback(() => {
+    const now = Date.now();
+    if (now - toggleLockRef.current < 280) return;
+    toggleLockRef.current = now;
+    setAgreed((prev) => !prev);
+  }, []);
+
   if (!terms) return null;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => undefined}>
-      <View style={styles.scrim}>
-        <View style={[styles.card, themed.card]}>
-          <ScrollView bounces={false} keyboardShouldPersistTaps="handled">
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => undefined}
+    >
+      <View style={styles.scrim} pointerEvents="auto">
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => undefined}
+          accessibilityElementsHidden
+        />
+        <View style={[styles.card, themed.card]} pointerEvents="auto">
+          <ScrollView
+            bounces={false}
+            keyboardShouldPersistTaps="always"
+            nestedScrollEnabled
+          >
             <Text style={[styles.title, themed.title]}>
               Notice of Updated Terms of Service
             </Text>
@@ -117,7 +161,8 @@ export function TermsAgreementModalHost() {
             </Text>
             <Pressable
               style={styles.checkRow}
-              onPress={() => setAgreed((prev) => !prev)}
+              onPress={onToggleAgree}
+              hitSlop={8}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: agreed }}
             >
@@ -208,8 +253,8 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   box: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
     borderRadius: 4,
     borderWidth: 1.5,
     borderColor: "#9AA4B2",

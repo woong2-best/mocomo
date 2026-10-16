@@ -57,6 +57,11 @@ export async function fetchTermsAgreementStatus(): Promise<TermsAgreementInfo | 
   return parseTermsPayload(data);
 }
 
-export async function acceptLatestTerms(): Promise<void> {
-  await apiRequest(MobileApi.termsAgree, { method: "POST", auth: true, body: {} });
+export async function acceptLatestTerms(): Promise<TermsAgreementInfo | null> {
+  const data = await apiRequest<unknown>(MobileApi.termsAgree, {
+    method: "POST",
+    auth: true,
+    body: {},
+  });
+  return parseTermsPayload(data);
 }
