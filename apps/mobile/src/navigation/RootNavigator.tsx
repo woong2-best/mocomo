@@ -153,6 +153,15 @@ export function RootNavigator() {
               getComponent={() => require("@/features/marketplace/CommissionInboxScreen").CommissionInboxScreen}
             />
             <Stack.Screen
+              name="StudioEditor"
+              getComponent={() => require("@/features/marketplace/StudioEditorScreen").StudioEditorScreen}
+              options={{ animation: "slide_from_bottom", presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="StudioDetail"
+              getComponent={() => require("@/features/marketplace/StudioDetailScreen").StudioDetailScreen}
+            />
+            <Stack.Screen
               name="AuctionMy"
               getComponent={() => require("@/features/marketplace/UsedMyScreen").UsedMyScreen}
             />

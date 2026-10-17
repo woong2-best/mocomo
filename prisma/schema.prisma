@@ -465,6 +465,8 @@ model User {
   usedTradeRequestsAsSeller UsedTradeRequest[] @relation("UsedTradeRequestSeller")
   digitalCommissionsBought DigitalCommission[] @relation("DigitalCommissionBuyer")
   digitalCommissionsSold   DigitalCommission[] @relation("DigitalCommissionSeller")
+  creatorStudio            CreatorStudio?
+  studioWaits              StudioWaitlist[]
   directTradesAsBuyer UsedDirectTrade[] @relation("UsedDirectTradeBuyer")
   directTradesAsSeller UsedDirectTrade[] @relation("UsedDirectTradeSeller")
   usedAuctionBids  UsedAuctionBid[]
@@ -3565,15 +3567,56 @@ model DigitalCommission {
   listingId     String?
   roomId        String?
   disputeReason String?   @db.VarChar(500)
+  studioId      String?
+  orderMeta     Json?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   buyer         User      @relation("DigitalCommissionBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
   seller        User      @relation("DigitalCommissionSeller", fields: [sellerId], references: [id], onDelete: Cascade)
   listing       UsedListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  studio        CreatorStudio? @relation(fields: [studioId], references: [id], onDelete: SetNull)
 
   @@index([sellerId, status])
   @@index([buyerId, status])
   @@index([listingId])
+  @@index([studioId])
+}
+
+/** 크리에이터 커미션 메뉴. 중고 판매글과 따로 둔다. */
+model CreatorStudio {
+  id           String   @id @default(cuid())
+  sellerId     String   @unique
+  title        String   @db.VarChar(80)
+  about        String   @default("") @db.Text
+  open         Boolean  @default(true)
+  slotCap      Int      @default(3)
+  deliveryDays Int      @default(14)
+  revisionNote String   @default("") @db.Text
+  currency     String   @default("krw") @db.VarChar(3)
+  portfolio    Json     @default("[]")
+  tiers        Json     @default("[]")
+  addons       Json     @default("[]")
+  formFields   Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  seller      User                @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  waitlist    StudioWaitlist[]
+  commissions DigitalCommission[]
+
+  @@index([open, updatedAt])
+}
+
+model StudioWaitlist {
+  id        String   @id @default(cuid())
+  studioId  String
+  userId    String
+  createdAt DateTime @default(now())
+  studio    CreatorStudio @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([studioId, userId])
+  @@index([userId])
 }
 
 /** 경매 직거래 도착 인증. 좌표는 저장하지 않고 판정 결과만 남긴다. */

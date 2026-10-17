@@ -89,6 +89,13 @@ export async function mutateDigitalDelivery(
     return { error: "Only the buyer can do that." };
   }
   if (action === "approve" && current.disputed) return { error: "This delivery is in dispute." };
+  if (action === "approve") {
+    const held = await db.digitalCommission.findFirst({
+      where: { listingId, status: { in: ["DISPUTED", "LATE_CANCEL"] } },
+      select: { id: true },
+    });
+    if (held) return { error: "This delivery is in dispute." };
+  }
   const status = nextStatus(current.status, action);
   if (!status) return { error: "That delivery step is not available." };
   if (action === "upload" && !file?.fileUrl) return { error: "Upload a file first." };
@@ -151,6 +158,11 @@ export async function maybeAutoApproveDigitalDelivery(listingId: string, actorId
   });
   const state = readDigitalDelivery(listing?.subcultureMeta);
   if (!state || state.status !== "uploaded" || state.disputed || !state.uploadedAt) return state;
+  const held = await db.digitalCommission.findFirst({
+    where: { listingId, status: { in: ["DISPUTED", "LATE_CANCEL"] } },
+    select: { id: true },
+  });
+  if (held) return state;
   const uploaded = new Date(state.uploadedAt).getTime();
   if (!Number.isFinite(uploaded) || Date.now() - uploaded < DIGITAL_AUTO_APPROVE_MS) return state;
   const result = await mutateDigitalDelivery(actorId, listingId, "force", undefined, { asAdmin: true, auto: true });

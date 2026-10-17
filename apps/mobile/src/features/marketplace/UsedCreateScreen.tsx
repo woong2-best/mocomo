@@ -454,6 +454,7 @@ export function UsedCreateScreen() {
 
             <View style={styles.block}>
               <Text style={styles.label}>{t("m.marketplace.listing_type")}</Text>
+              {editId ? (
               <View style={styles.checkWrap}>
                 <MarketCheckOption
                   label={t("m.market.track.physical_item")}
@@ -477,6 +478,7 @@ export function UsedCreateScreen() {
                   line={line}
                 />
               </View>
+              ) : null}
               {itemTrack === "digital" ? (
                 <View style={styles.checkWrap}>
                   <MarketCheckOption

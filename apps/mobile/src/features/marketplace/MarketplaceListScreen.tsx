@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchMarketplaceList, toggleMarketplaceFavorite, type MarketplaceListItem } from "@/api/marketplace";
+import { fetchStudios, type StudioCard } from "@/api/studios";
 import { AuctionCountdown } from "@/features/marketplace/AuctionCountdown";
 import {
   displayUsedRegion,
@@ -41,6 +42,7 @@ import {
   type MenuAnchor,
 } from "@/features/marketplace/UsedListingOverflowMenu";
 import { loadDismissedUsedListingIds } from "@/lib/used-listing-dismiss";
+import { SellChoiceSheet } from "@/features/marketplace/SellChoiceSheet";
 
 type HubLane = MarketHubLane;
 type Props = { mode?: "tab" | "stack"; lane?: "used" | "auction" };
@@ -97,6 +99,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const [menuItem, setMenuItem] = useState<MarketplaceListItem | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [sellOpen, setSellOpen] = useState(false);
   useEffect(() => {
     void loadDismissedUsedListingIds().then(setDismissedIds);
   }, []);
@@ -146,14 +149,22 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     placeholderData: (previous) => previous,
   });
 
+  const showStudios = isCombined && scope !== "physical";
+  const studiosQuery = useQuery({
+    queryKey: ["studios", q],
+    queryFn: () => fetchStudios(q),
+    enabled: showStudios,
+    staleTime: 60_000,
+  });
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await query.refetch();
+      await Promise.all([query.refetch(), showStudios ? studiosQuery.refetch() : Promise.resolve()]);
     } finally {
       setRefreshing(false);
     }
-  }, [query]);
+  }, [query, showStudios, studiosQuery]);
 
   const favorite = useMutation({
     mutationFn: (id: string) => toggleMarketplaceFavorite(id),
@@ -194,6 +205,14 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   );
 
   const items = (query.data?.items ?? []).filter((item) => !dismissedIds.has(item.id));
+  const feedRows = useMemo(() => {
+    const rows: Array<{ kind: "studio"; studio: StudioCard } | { kind: "listing"; item: MarketplaceListItem }> = [];
+    if (showStudios) {
+      for (const studio of studiosQuery.data?.items ?? []) rows.push({ kind: "studio", studio });
+    }
+    for (const item of items) rows.push({ kind: "listing", item });
+    return rows;
+  }, [items, showStudios, studiosQuery.data?.items]);
 
   const applyHubLane = useCallback(
     (lane: HubLane, q?: string) => {
@@ -352,6 +371,34 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     [colors.like, liked, muted, openItem, styles, t, toggleFavorite, t, user?.id]
   );
 
+  const renderStudio = useCallback(
+    (studio: StudioCard) => {
+      const cover = studio.portfolio.find((item) => item.kind !== "video") ?? studio.portfolio[0];
+      return (
+        <Pressable style={styles.row} onPress={() => navigation.navigate("StudioDetail", { id: studio.id })}>
+          <View style={styles.thumbWrap}>
+            {cover && cover.kind !== "video" ? (
+              <Image source={{ uri: cover.url }} style={StyleSheet.absoluteFill} cachePolicy={IMAGE_CACHE_POLICY} transition={0} />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.thumbFallback]} />
+            )}
+          </View>
+          <View style={styles.body}>
+            <Text style={styles.title} numberOfLines={2}>{studio.title}</Text>
+            <Text style={styles.meta} numberOfLines={1}>@{studio.seller.username}</Text>
+            <Text style={styles.price}>{t("m.studio.from")} {formatUsedPrice(studio.fromPrice, studio.currency, t)}</Text>
+            <Text style={[styles.meta, { color: studio.accepting ? "#1f8a4c" : colors.terracotta }]}>
+              {studio.accepting
+                ? `${t("m.studio.open")} ${studio.slotsUsed}/${studio.slotCap}`
+                : `${t("m.studio.closed")} ${studio.slotsUsed}/${studio.slotCap}`}
+            </Text>
+          </View>
+        </Pressable>
+      );
+    },
+    [colors.terracotta, navigation, styles, t]
+  );
+
   const hubActiveId = isCombined && browse.source === "hub" ? browse.id : null;
   const visibleItems = items;
   const recentTerms = recentQ.slice(0, 3);
@@ -457,9 +504,9 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       {filterBar}
       <View style={styles.listWrap}>
       <FlatList
-        data={query.isError ? [] : visibleItems}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
+        data={query.isError ? [] : feedRows}
+        keyExtractor={(row) => (row.kind === "studio" ? `studio-${row.studio.id}` : row.item.id)}
+        renderItem={({ item: row }) => (row.kind === "studio" ? renderStudio(row.studio) : renderItem({ item: row.item }))}
         ListEmptyComponent={listEmpty}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
@@ -498,12 +545,25 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           styles.fab,
           { bottom: (isTab ? floatingTabClearance(insets.bottom) : insets.bottom) + 12 },
         ]}
-        onPress={() => navigation.navigate("UsedCreate")}
+        onPress={() => setSellOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel="Sell"
+        accessibilityLabel={t("m.studio.sell")}
       >
         <Ionicons name="add" size={30} color="#fff" />
       </Pressable>
+      <SellChoiceSheet
+        visible={sellOpen}
+        bottom={(isTab ? floatingTabClearance(insets.bottom) : insets.bottom) + 76}
+        onClose={() => setSellOpen(false)}
+        onPhysical={() => {
+          setSellOpen(false);
+          navigation.navigate("UsedCreate");
+        }}
+        onDigital={() => {
+          setSellOpen(false);
+          navigation.navigate("StudioEditor");
+        }}
+      />
 
       <MarketHubSlidePanel
         visible={hubOpen}

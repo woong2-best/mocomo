@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Package } from "lucide-react";
 import { getUsedListings, getViewerUsedListingStarIds, isUsedDbReady } from "@/actions/used-market";
+import { listCreatorStudios } from "@/lib/creator-studio";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveUsedMarketScope } from "@/lib/used-market-locale-scope";
@@ -161,6 +162,30 @@ async function UsedFeed({
         )
       : [];
   const starredSet = new Set(starredIds);
+  const studios = track === "physical" ? [] : await listCreatorStudios(query || undefined).catch(() => []);
+  const studioStrip =
+    studios.length > 0 ? (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {studios.map((studio) => {
+          const cover = studio.portfolio.find((item) => item.kind !== "video");
+          return (
+            <Link key={studio.id} href={`/market/studio/${studio.id}`} className="overflow-hidden rounded-xl border bg-card">
+              {cover ? <img src={cover.url} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-muted" />}
+              <div className="space-y-1 p-2">
+                <p className="line-clamp-2 text-sm font-extrabold">{studio.title}</p>
+                <p className="text-xs text-muted-foreground">@{studio.seller.username}</p>
+                <p className="text-sm font-extrabold text-folk-terracotta">
+                  {t("market.studio.from")} {studio.fromPrice.toLocaleString()}
+                </p>
+                <p className={`text-xs font-bold ${studio.accepting ? "text-emerald-500" : "text-muted-foreground"}`}>
+                  {studio.accepting ? t("market.studio.open") : t("market.studio.closed")} {studio.slotsUsed}/{studio.slotCap}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    ) : null;
 
   const grid =
     listings.length === 0 ? (
@@ -173,12 +198,19 @@ async function UsedFeed({
       />
     );
 
-  if (!query || facets.length === 0) return grid;
+  const body = (
+    <div className="space-y-4">
+      {studioStrip}
+      {grid}
+    </div>
+  );
+
+  if (!query || facets.length === 0) return body;
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
       <UsedQueryCategories facets={facets} activeCategory={category} preserved={preserved} />
-      <div className="min-w-0 flex-1">{grid}</div>
+      <div className="min-w-0 flex-1">{body}</div>
     </div>
   );
 }
