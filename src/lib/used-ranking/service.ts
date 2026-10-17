@@ -26,6 +26,7 @@ function hasSearchFilters(params: {
   limited?: string;
   trade?: string;
   anime?: string;
+  track?: "physical" | "digital";
 }) {
   return !!(
     params.q?.trim() ||
@@ -38,7 +39,9 @@ function hasSearchFilters(params: {
     params.condition ||
     params.limited ||
     params.trade ||
-    params.anime
+    params.anime ||
+    params.track === "physical" ||
+    params.track === "digital"
   );
 }
 
@@ -100,6 +103,7 @@ export async function resolveUsedMarketBrowse(params: {
   limited?: string;
   trade?: string;
   anime?: string;
+  track?: "physical" | "digital";
   saleType?: "FIXED" | "AUCTION";
   liveAuctionOnly?: boolean;
   take?: number;
@@ -128,6 +132,7 @@ export async function resolveUsedMarketBrowse(params: {
         limited: params.limited,
         trade: params.trade,
         anime: params.anime,
+        track: params.track,
         saleType: params.saleType,
         liveAuctionOnly: params.liveAuctionOnly,
         take,

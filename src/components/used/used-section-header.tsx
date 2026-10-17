@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Gavel, Heart, ShoppingBag, DollarSign } from "lucide-react";
+import { Heart, ShoppingBag, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
@@ -12,7 +12,6 @@ import { useLocale } from "@/components/providers/locale-provider";
 const shortcuts = [
   { href: "/market/my?lane=purchased", lane: "purchased", labelKey: "market.purchases", icon: ShoppingBag },
   { href: "/market/my?lane=selling", lane: "selling", labelKey: "market.sales", icon: DollarSign },
-  { href: "/market/my?lane=my-bids", lane: "my-bids", labelKey: "ui.auction", icon: Gavel },
   { href: "/market/my?lane=favorites", lane: "favorites", labelKey: "market.favorites", icon: Heart },
 ] as const;
 

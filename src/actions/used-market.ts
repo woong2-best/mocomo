@@ -28,9 +28,11 @@ import {
 } from "@/lib/used-auction-lifecycle";
 import {
   defaultBidIncrement,
+  computeAuctionEndsAt,
   isAuctionLive,
   standardAuctionEndsAt,
 } from "@/lib/used-auction";
+import { isDigitalProductType, marketTrackWhere } from "@/lib/market-tracks";
 import { USED_AUCTION_RETIRED, USED_AUCTION_RETIRED_MSG } from "@/lib/retired-product-features";
 import {
   maxUsedListingPrice,
@@ -103,6 +105,7 @@ export async function getUsedListings(
     limited?: string;
     trade?: string;
     anime?: string;
+    track?: "physical" | "digital";
   },
   options?: { viewerId?: string | null; sessionCountry?: string | null }
 ) {
@@ -129,6 +132,10 @@ export async function getUsedListings(
 
   if (params?.saleType) andFilters.push({ saleType: params.saleType });
   else if (USED_AUCTION_RETIRED && !params?.sellerId) andFilters.push({ saleType: "FIXED" });
+
+  if (params?.track === "physical" || params?.track === "digital") {
+    andFilters.push(marketTrackWhere(params.track));
+  }
 
   if (params?.liveAuctionOnly) {
     andFilters.push({
@@ -495,6 +502,7 @@ export async function createUsedListing(data: {
   images: string[];
   saleType?: "FIXED" | "AUCTION";
   auctionHours?: number;
+  digitalKind?: "ready" | "commission";
   bidIncrement?: number;
   buyNowPrice?: number;
   reservePrice?: number;
@@ -636,10 +644,23 @@ export async function createUsedListing(data: {
         tradeMode: subculture.tradeMode,
         itemOrigin: subculture.itemOrigin,
         packagingState: subculture.packagingState,
-        subcultureMeta: mergeExtraCategories(
-          (subculture.subcultureMeta as Prisma.JsonValue | undefined) ?? undefined,
-          parsedCats.extra
-        ),
+        subcultureMeta: (() => {
+          const meta = mergeExtraCategories(
+            (subculture.subcultureMeta as Prisma.JsonValue | undefined) ?? undefined,
+            parsedCats.extra
+          ) as Record<string, unknown>;
+          const productType =
+            data.productType?.trim() && isValidProductType(data.productType.trim())
+              ? data.productType.trim()
+              : null;
+          if (isDigitalProductType(productType) || parsedCats.primary === "DIGITAL") {
+            meta.digitalDelivery = {
+              kind: data.digitalKind === "commission" ? "commission" : "ready",
+              status: "held",
+            };
+          }
+          return meta as Prisma.InputJsonValue;
+        })(),
         restrictedKind: restricted,
         region: data.region.trim(),
         meetPlace: meetPlaceTrim,
@@ -652,7 +673,10 @@ export async function createUsedListing(data: {
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction
           ? {
-              auctionEndsAt: standardAuctionEndsAt(),
+              auctionEndsAt:
+                data.auctionHours && data.auctionHours >= 1 && data.auctionHours <= 168
+                  ? computeAuctionEndsAt(data.auctionHours)
+                  : standardAuctionEndsAt(),
               bidIncrement,
               buyNowPrice,
               reservePrice,

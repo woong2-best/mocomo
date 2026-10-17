@@ -16,7 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchMarketplaceList, type MarketplaceListItem } from "@/api/marketplace";
 import { loadRecentViews } from "@/features/marketplace/market-memory";
-import { HUB_CATEGORIES } from "@/features/marketplace/market-browse";
+import { type HubCategory } from "@/features/marketplace/market-browse";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import type { RootStackParamList } from "@/navigation/types";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -33,12 +33,13 @@ type MarketHomeProps = {
   onClose?: () => void;
   onSelectCategory?: (id: string) => void;
   selectedCategoryId?: string | null;
+  categories?: HubCategory[];
 };
 
 const RAIL_TAKE = 2;
 
 export function MarketHomeScreen(props: MarketHomeProps = {}) {
-  const { embedded = false, onClose, onSelectCategory, selectedCategoryId } = props;
+  const { embedded = false, onClose, onSelectCategory, selectedCategoryId, categories = [] } = props;
   const { t } = useI18n();
   const { colors, isDark } = useTheme();
   const icon = isDark ? colors.text : colors.brand;
@@ -85,9 +86,9 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
   );
 
   const refreshing = recommend.isFetching || recent.isFetching;
-  const categories = (
+  const categoryNodes = (
     <View style={styles.catList}>
-      {HUB_CATEGORIES.map((item) => {
+      {categories.map((item) => {
         const selected = selectedCategoryId === item.id;
         return (
           <Pressable
@@ -132,7 +133,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {categories}
+            {categoryNodes}
           </ScrollView>
           <View style={styles.railDock}>{rails}</View>
         </View>
@@ -162,7 +163,7 @@ export function MarketHomeScreen(props: MarketHomeProps = {}) {
               <Ionicons name="chevron-back" size={26} color={icon} />
             </Pressable>
           </View>
-          {categories}
+          {categoryNodes}
           {rails}
         </ScrollView>
       )}

@@ -28,6 +28,7 @@ import { ApiError } from "@/api/client";
 import { MeetMap } from "@/maps/MeetMap";
 import type { MeetCoords } from "@/maps/types";
 import { MarketCheckOption } from "@/features/marketplace/MarketCheckOption";
+import { DIGITAL_PRODUCT_IDS } from "@/features/marketplace/market-browse";
 import { Screen } from "@/ui/Screen";
 import {
   showIslandError,
@@ -48,6 +49,7 @@ import {
   inferUsedRegionFromGeocodeLabel,
   homeCurrencyForCountry,
   KOREA_SIDO,
+  MARKET_SELL_OPTIONS,
   KOREA_SIGUNGU_BY_SIDO,
   DEFAULT_SIGUNGU,
   DEFAULT_SIDO_SHORT,
@@ -83,6 +85,9 @@ export function UsedCreateScreen() {
   const editId = route.params?.editId;
   const [giveaway, setGiveaway] = useState(false);
   const [auction, setAuction] = useState(false);
+  const [auctionHours, setAuctionHours] = useState(48);
+  const [itemTrack, setItemTrack] = useState<"physical" | "digital">("physical");
+  const [digitalKind, setDigitalKind] = useState<"ready" | "commission">("ready");
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -276,27 +281,31 @@ export function UsedCreateScreen() {
         return;
       }
 
-      if (!auction && (!meetCoords || !region.trim())) {
+      const digital = itemTrack === "digital";
+      if (!digital && !auction && (!meetCoords || !region.trim())) {
         showIslandError(t("m.marketplace.meetup_location"), t("m.events.tap_the_map_to_pick_a"));
         setBusy(false);
         return;
       }
-      const submitRegion = auction ? "Shipping" : region.trim();
+      const submitRegion = digital || auction ? "Shipping" : region.trim();
+      const productId = digital ? subculture.productType : subculture.productType;
 
       const payload = {
         title: title.trim(),
         description: description.trim(),
         price: priceNum,
         currency,
-        category: listingCategoryForProduct(subculture.productType),
-        categories: [listingCategoryForProduct(subculture.productType)] as string[],
+        category: digital ? "DIGITAL" : listingCategoryForProduct(productId),
+        categories: [digital ? "DIGITAL" : listingCategoryForProduct(productId)] as string[],
         region: submitRegion,
-        meetPlace: auction ? undefined : meetPlace.trim() || undefined,
-        meetLat: auction ? undefined : meetCoords?.lat,
-        meetLng: auction ? undefined : meetCoords?.lng,
+        meetPlace: digital || auction ? undefined : meetPlace.trim() || undefined,
+        meetLat: digital || auction ? undefined : meetCoords?.lat,
+        meetLng: digital || auction ? undefined : meetCoords?.lng,
         meetCountry: countryCode,
         images,
-        saleType: auction ? ("AUCTION" as const) : ("FIXED" as const),
+        saleType: !digital && auction ? ("AUCTION" as const) : ("FIXED" as const),
+        auctionHours: !digital && auction ? auctionHours : undefined,
+        digitalKind: digital ? digitalKind : undefined,
         isNsfw,
         workTitle: subculture.workTitle.trim() || undefined,
         animeSlug: subculture.animeSlug ?? undefined,
@@ -447,38 +456,51 @@ export function UsedCreateScreen() {
               <Text style={styles.label}>{t("m.marketplace.listing_type")}</Text>
               <View style={styles.checkWrap}>
                 <MarketCheckOption
-                  label={t("m.marketplace.sell")}
+                  label={t("m.market.track.physical_item")}
+                  checked={itemTrack === "physical"}
+                  onPress={() => setItemTrack("physical")}
+                  ink={ink}
+                  paper={paper}
+                  line={line}
+                />
+                <MarketCheckOption
+                  label={t("m.market.track.digital_asset")}
+                  checked={itemTrack === "digital"}
+                  onPress={() => {
+                    setItemTrack("digital");
+                    setAuction(false);
+                    setGiveaway(false);
+                    setSubculture((s) => ({ ...s, productType: "VTUBER_3D", tradeMode: "SELL" }));
+                  }}
+                  ink={ink}
+                  paper={paper}
+                  line={line}
+                />
+              </View>
+              {itemTrack === "digital" ? (
+                <View style={styles.checkWrap}>
+                  <MarketCheckOption
+                    label={t("m.market.track.ready")}
+                    checked={digitalKind === "ready"}
+                    onPress={() => setDigitalKind("ready")}
+                    ink={ink} paper={paper} line={line}
+                  />
+                  <MarketCheckOption
+                    label={t("m.market.track.commission")}
+                    checked={digitalKind === "commission"}
+                    onPress={() => setDigitalKind("commission")}
+                    ink={ink} paper={paper} line={line}
+                  />
+                </View>
+              ) : (
+              <View style={styles.checkWrap}>
+                <MarketCheckOption
+                  label={t("m.market.track.fixed_price")}
                   checked={!giveaway && !isTrade && !auction}
                   onPress={() => {
                     setGiveaway(false);
                     setAuction(false);
                     setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
-                  }}
-                  ink={ink}
-                  paper={paper}
-                  line={line}
-                />
-                <MarketCheckOption
-                  label={t("m.marketplace.give_away")}
-                  checked={giveaway}
-                  onPress={() => {
-                    setGiveaway(true);
-                    setAuction(false);
-                    setPrice("0");
-                    setSubculture((s) => ({ ...s, tradeMode: "SELL" }));
-                  }}
-                  ink={ink}
-                  paper={paper}
-                  line={line}
-                />
-                <MarketCheckOption
-                  label={t("m.marketplace.trade")}
-                  checked={isTrade}
-                  onPress={() => {
-                    setGiveaway(false);
-                    setAuction(false);
-                    setPrice("0");
-                    setSubculture((s) => ({ ...s, tradeMode: "TRADE" }));
                   }}
                   ink={ink}
                   paper={paper}
@@ -500,6 +522,22 @@ export function UsedCreateScreen() {
                   />
                 ) : null}
               </View>
+              )}
+              {itemTrack === "physical" && auction ? (
+                <View style={styles.checkWrap}>
+                  {[24, 48, 72].map((hours) => (
+                    <MarketCheckOption
+                      key={hours}
+                      label={`${t("m.market.track.deadline")} ${hours}h`}
+                      checked={auctionHours === hours}
+                      onPress={() => setAuctionHours(hours)}
+                      ink={ink}
+                      paper={paper}
+                      line={line}
+                    />
+                  ))}
+                </View>
+              ) : null}
               {!giveaway && !isTrade ? (
                 <>
                   <Text style={[styles.label, styles.priceSectionLabel]}>
@@ -544,10 +582,17 @@ export function UsedCreateScreen() {
               ink={ink}
               paper={paper}
               muted={muted}
-                    line={line}
+              line={line}
+              productIds={
+                itemTrack === "digital"
+                  ? DIGITAL_PRODUCT_IDS
+                  : MARKET_SELL_OPTIONS.map((p) => p.id).filter(
+                      (id) => !(DIGITAL_PRODUCT_IDS as readonly string[]).includes(id)
+                    )
+              }
             />
 
-            {auction ? null : (
+            {itemTrack === "digital" || auction ? null : (
             <View style={styles.block}>
               <Text style={styles.label}>{t("m.marketplace.local_meetup_city")}</Text>
               <MeetMap

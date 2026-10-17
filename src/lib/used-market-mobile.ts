@@ -1,3 +1,4 @@
+import { isDigitalProductType } from "@/lib/market-tracks";
 import { Prisma, type UsedRestrictedKind } from "@prisma/client";
 import { db } from "@/lib/db";
 import { assertAuctionPostAccess, assertUsedMarketAccess } from "@/lib/used-market-access";
@@ -9,6 +10,7 @@ import {
 } from "@/lib/used-youth-protection";
 import {
   defaultBidIncrement,
+  computeAuctionEndsAt,
   standardAuctionEndsAt,
 } from "@/lib/used-auction";
 import {
@@ -77,6 +79,7 @@ export async function createMobileUsedListing(
     images: string[];
     saleType?: "FIXED" | "AUCTION";
     auctionHours?: number;
+    digitalKind?: "ready" | "commission";
     bidIncrement?: number;
     buyNowPrice?: number;
     reservePrice?: number;
@@ -196,10 +199,23 @@ export async function createMobileUsedListing(
         tradeMode: subculture.tradeMode,
         itemOrigin: subculture.itemOrigin,
         packagingState: subculture.packagingState,
-        subcultureMeta: mergeExtraCategories(
-          (subculture.subcultureMeta as Prisma.JsonValue | undefined) ?? undefined,
-          parsedCats.extra
-        ),
+        subcultureMeta: (() => {
+          const meta = mergeExtraCategories(
+            (subculture.subcultureMeta as Prisma.JsonValue | undefined) ?? undefined,
+            parsedCats.extra
+          ) as Record<string, unknown>;
+          const productType =
+            data.productType?.trim() && isValidProductType(data.productType.trim())
+              ? data.productType.trim()
+              : null;
+          if (isDigitalProductType(productType) || parsedCats.primary === "DIGITAL") {
+            meta.digitalDelivery = {
+              kind: data.digitalKind === "commission" ? "commission" : "ready",
+              status: "held",
+            };
+          }
+          return meta as Prisma.InputJsonValue;
+        })(),
         restrictedKind: restricted,
         region: data.region.trim(),
         meetPlace: meetPlaceTrim,
@@ -211,7 +227,10 @@ export async function createMobileUsedListing(
         saleType: isAuction ? "AUCTION" : "FIXED",
         ...(isAuction
           ? {
-              auctionEndsAt: standardAuctionEndsAt(),
+              auctionEndsAt:
+                data.auctionHours && data.auctionHours >= 1 && data.auctionHours <= 168
+                  ? computeAuctionEndsAt(data.auctionHours)
+                  : standardAuctionEndsAt(),
               bidIncrement,
               buyNowPrice,
               reservePrice,
@@ -482,6 +501,7 @@ const hubListingSelect = {
   isNsfw: true,
   viewCount: true,
   sellerId: true,
+  winningBidderId: true,
   auctionEndsAt: true,
   currentBidAmount: true,
   bidCount: true,
@@ -512,6 +532,7 @@ function mapHubListing(
     bidCount: l.bidCount ?? null,
     workTitle: l.workTitle ?? null,
     productType: l.productType ?? null,
+    category: l.category,
     characterName: l.characterName ?? null,
     conditionGrade: l.conditionGrade ?? null,
     limitedKind: l.limitedKind ?? null,
@@ -519,6 +540,7 @@ function mapHubListing(
     subcultureMeta: l.subcultureMeta ?? null,
     isNsfw: l.isNsfw,
     sellerId: l.sellerId,
+    winningBidderId: l.winningBidderId ?? null,
     seller: l.seller
       ? { id: l.seller.id, username: l.seller.username, image: l.seller.image }
       : null,
@@ -567,16 +589,21 @@ export async function listMobileMyActiveBids(userId: string, take = 48) {
   const rows = await db.usedListing.findMany({
     where: {
       saleType: "AUCTION",
-      status: "SELLING",
-      auctionEndsAt: { gt: new Date() },
-      OR: [{ auctionState: "LIVE" }, { auctionState: null }],
       auctionBids: { some: { bidderId: userId } },
     },
-    orderBy: { auctionEndsAt: "asc" },
+    orderBy: { auctionEndsAt: "desc" },
     take: Math.min(take, 48),
     select: hubListingSelect,
   });
-  return rows.map((l) => mapHubListing(l));
+  const now = Date.now();
+  return rows.map((l) => {
+    const live = l.status === "SELLING" && !!l.auctionEndsAt && l.auctionEndsAt.getTime() > now;
+    const won = l.winningBidderId === userId && !live;
+    return {
+      ...mapHubListing(l),
+      bidResult: live ? ("live" as const) : won ? ("won" as const) : ("lost" as const),
+    };
+  });
 }
 
 export async function listMobileLiveAuctions(userId: string, take = 48) {

@@ -108,6 +108,14 @@ export function usedBrowseCategoryWhere(category: string): Prisma.UsedListingWhe
   if (category === "COSPLAY_FASHION") {
     return { category: { in: ["COSPLAY", "FASHION"] } };
   }
+  if (category === "FIGURE") {
+    return {
+      OR: [
+        { category: "FIGURE" },
+        { productType: { in: ["FIGURE", "PLAMODEL", "STATUE", "PLUSH"] } },
+      ],
+    };
+  }
   const known = USED_CATEGORIES.some((c) => c.id === category);
   if (known) return { category: category as UsedListingCategory };
   return null;

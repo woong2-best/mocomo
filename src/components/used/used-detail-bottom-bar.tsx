@@ -32,6 +32,7 @@ export function UsedDetailBottomBar({
   initialBuyerRoomId,
   restrictedKind = "NONE",
   viewerAdultVerified = false,
+  digital = false,
 }: {
   listingId: string;
   isSeller: boolean;
@@ -44,6 +45,7 @@ export function UsedDetailBottomBar({
   reservedTradeParticipant?: boolean;
   restrictedKind?: UsedRestrictedKind | string;
   viewerAdultVerified?: boolean;
+  digital?: boolean;
 }) {
   const { locale, t } = useLocale();
   const needsAdult =
@@ -54,6 +56,8 @@ export function UsedDetailBottomBar({
     null
   );
   const [barError, setBarError] = useState("");
+  const [digitalConsent, setDigitalConsent] = useState(false);
+  const payLocked = digital && !isSeller && !digitalConsent;
 
   async function openChat() {
     setBarError("");
@@ -181,10 +185,21 @@ export function UsedDetailBottomBar({
       {barError && (
         <p className="px-3 pt-2 text-xs text-destructive text-center">{barError}</p>
       )}
-      <div className="p-3 pb-safe">
+      <div className="p-3 pb-safe space-y-2">
+      {digital && !isSeller ? (
+        <label className="flex items-start gap-2 text-xs leading-snug">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={digitalConsent}
+            onChange={(event) => setDigitalConsent(event.target.checked)}
+          />
+          <span>{t("market.track.digitalConsent")}</span>
+        </label>
+      ) : null}
       {existingRoom ? (
-        <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
-          <Link href={`/messages/${existingRoom}`}>
+        <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90" disabled={payLocked}>
+          <Link href={payLocked ? "#" : `/messages/${existingRoom}`} aria-disabled={payLocked} onClick={(event) => { if (payLocked) event.preventDefault(); }}>
             {t("ui.message_seller")}
           </Link>
         </Button>
@@ -193,7 +208,7 @@ export function UsedDetailBottomBar({
           type="button"
           size="lg"
           className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90"
-          disabled={loading}
+          disabled={loading || payLocked}
           onClick={() => void openChat()}
         >
           {loading

@@ -62,6 +62,7 @@ export function UsedSubcultureFormSection({
   paper,
   muted,
   line,
+  productIds,
 }: {
   value: MobileSubcultureFormState;
   onChange: (next: MobileSubcultureFormState) => void;
@@ -69,6 +70,7 @@ export function UsedSubcultureFormSection({
   paper: string;
   muted: string;
   line: string;
+  productIds?: readonly string[];
 }) {
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(ink, paper, muted, line), [ink, paper, muted, line]);
@@ -133,7 +135,10 @@ export function UsedSubcultureFormSection({
       <View>
         <Text style={styles.label}>{t("m.common.product_type")}</Text>
         <View style={styles.checkWrap}>
-          {MARKET_SELL_OPTIONS.map((p) => (
+          {(productIds
+            ? MARKET_SELL_OPTIONS.filter((p) => productIds.includes(p.id))
+            : MARKET_SELL_OPTIONS
+          ).map((p) => (
             <MarketCheckOption
               key={p.id}
               label={usedCatalogLabel(p.id, t)}

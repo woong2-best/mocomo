@@ -1,68 +1,49 @@
-/** Hub menu (slide panel) and the horizontal shelf on the used market list. */
+/** Physical Market vs Digital Studio browse sets for the mobile app. */
+
+export type MarketTrack = "physical" | "digital";
 
 export type HubCategory = {
   id: string;
   labelKey: string;
-  /** Passed as the listings `category` query. */
   category?: string;
-  /** Passed as the listings `product` query. */
   product?: string;
 };
 
-export type MarketShelfItem = {
-  id: string;
-  labelKey?: string;
-  category?: string;
-  product?: string;
-  sale?: "fixed" | "auction";
-};
-
-/** Broad categories that used to sit on the list chips. One row each in the hub. */
-export const HUB_CATEGORIES: HubCategory[] = [
-  { id: "ALL", labelKey: "m.common.all" },
-  { id: "FIGURE", labelKey: "m.used.catalog.FIGURE", category: "FIGURE" },
+export const PHYSICAL_HUB: HubCategory[] = [
+  { id: "ALL", labelKey: "m.market.track.all" },
+  { id: "FIGURE", labelKey: "m.market.track.figures_models", category: "FIGURE" },
   { id: "TCG", labelKey: "m.marketplace.tcg", category: "TCG" },
-  { id: "CARDS", labelKey: "m.market.hub.cards", category: "CARDS" },
   { id: "GOODS", labelKey: "m.used.catalog.GOODS", category: "GOODS" },
   { id: "BOOKS", labelKey: "m.marketplace.books", category: "BOOK" },
-  { id: "MEDIA", labelKey: "m.market.hub.media", product: "MEDIA" },
   { id: "COSPLAY", labelKey: "m.events.cosplay", category: "COSPLAY" },
-  { id: "DIGITAL", labelKey: "m.marketplace.digital", category: "DIGITAL" },
-  { id: "ELECTRONICS", labelKey: "m.market.hub.electronics", product: "ELECTRONICS" },
 ];
 
-/**
- * Top shelf. Used and Auction come first, then the long product rail
- * the buyer swipes through.
- */
-export const MARKET_SHELF: MarketShelfItem[] = [
-  { id: "USED", labelKey: "m.marketplace.used", sale: "fixed" },
-  { id: "AUCTION", labelKey: "m.marketplace.auction", sale: "auction" },
-  { id: "PLAMODEL", product: "PLAMODEL" },
-  { id: "PLUSH", product: "PLUSH" },
-  { id: "STATUE", product: "STATUE" },
-  { id: "ACRYLIC_STAND", product: "ACRYLIC_STAND" },
-  { id: "CAN_BADGE", product: "CAN_BADGE" },
-  { id: "KEYRING", product: "KEYRING" },
-  { id: "COSPLAY_COSTUME", product: "COSPLAY_COSTUME" },
-  { id: "WIG", product: "WIG" },
-  { id: "FASHION", labelKey: "m.used.catalog.FASHION", category: "FASHION" },
-  { id: "TCG_CARD", product: "TCG_CARD" },
-  { id: "TCG_POKEMON", product: "TCG_POKEMON" },
-  { id: "TCG_YGO", product: "TCG_YGO" },
-  { id: "TCG_MTG", product: "TCG_MTG" },
-  { id: "TCG_ONEPIECE", product: "TCG_ONEPIECE" },
-  { id: "TCG_OTHER", product: "TCG_OTHER" },
-  { id: "PHOTOCARD", product: "PHOTOCARD" },
-  { id: "DOUJIN", product: "DOUJIN" },
-  { id: "ARTBOOK", product: "ARTBOOK" },
-  { id: "BOARDGAME", product: "BOARDGAME" },
-  { id: "VTUBER_GOODS", product: "VTUBER_GOODS" },
-  { id: "EVENT_GOODS", product: "EVENT_GOODS" },
-  { id: "BOOK", product: "BOOK" },
-  { id: "MEDIA", product: "MEDIA" },
-  { id: "ELECTRONICS", product: "ELECTRONICS" },
-  { id: "CUSTOM_COMMISSION", product: "CUSTOM_COMMISSION" },
-  { id: "STREAMER_ASSET", product: "STREAMER_ASSET" },
-  { id: "OTHER", product: "OTHER" },
+export const DIGITAL_HUB: HubCategory[] = [
+  { id: "ALL", labelKey: "m.market.track.all" },
+  { id: "VTUBER_3D", labelKey: "m.market.track.vtuber_3d", product: "VTUBER_3D" },
+  { id: "STREAMER_ASSET", labelKey: "m.market.track.streamer_assets", product: "STREAMER_ASSET" },
+  { id: "EMOTES_BADGES", labelKey: "m.market.track.emotes_badges", product: "EMOTES_BADGES" },
+  { id: "ILLUSTRATION", labelKey: "m.market.track.illustration", product: "ILLUSTRATION" },
+  { id: "AUDIO_MUSIC", labelKey: "m.market.track.audio_music", product: "AUDIO_MUSIC" },
+  { id: "CREATOR_RESOURCES", labelKey: "m.market.track.creator_resources", product: "CREATOR_RESOURCES" },
 ];
+
+export const DIGITAL_PRODUCT_IDS = [
+  "VTUBER_3D",
+  "STREAMER_ASSET",
+  "EMOTES_BADGES",
+  "ILLUSTRATION",
+  "AUDIO_MUSIC",
+  "CREATOR_RESOURCES",
+] as const;
+
+export function hubForTrack(track: MarketTrack): HubCategory[] {
+  return track === "digital" ? DIGITAL_HUB : PHYSICAL_HUB;
+}
+
+export function isDigitalListing(input: {
+  category?: string | null;
+  productType?: string | null;
+}): boolean {
+  return input.category === "DIGITAL" || (!!input.productType && (DIGITAL_PRODUCT_IDS as readonly string[]).includes(input.productType));
+}

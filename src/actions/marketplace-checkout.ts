@@ -1063,6 +1063,13 @@ export async function openMarketplaceDispute(
   if (!order || (order.buyerId !== user.id && order.sellerId !== user.id)) {
     return { error: "lib.subculture-commerce.st3onev" };
   }
+  const usedItem = await db.marketplaceOrderItem.findFirst({
+    where: { orderId, usedListingId: { not: null } },
+    select: { usedListing: { select: { subcultureMeta: true } } },
+  });
+  const { assertDigitalDisputeOpen } = await import("@/lib/digital-delivery");
+  const blocked = await assertDigitalDisputeOpen(usedItem?.usedListing?.subcultureMeta);
+  if (blocked) return { error: blocked };
   if (["SETTLED", "REFUNDED", "CANCELLED", "AWAITING_PAYMENT"].includes(order.status)) {
     return { error: "actions.marketplace_checkout.s8be9d2e6ff" };
   }

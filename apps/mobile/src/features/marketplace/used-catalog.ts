@@ -60,6 +60,11 @@ const CATALOG_LABEL_EN: Record<string, string> = {
   ELECTRONICS: "Electronics",
   CUSTOM_COMMISSION: "Custom commission",
   STREAMER_ASSET: "Streamer assets",
+  VTUBER_3D: "VTuber & 3D",
+  EMOTES_BADGES: "Emotes & badges",
+  ILLUSTRATION: "Illustration",
+  AUDIO_MUSIC: "Audio & music",
+  CREATOR_RESOURCES: "Creator resources",
   FASHION: "Fashion",
   OTHER: "Other",
   COSPLAY_FASHION: "Cosplay / fashion",
@@ -294,6 +299,11 @@ const LISTING_CATEGORY_FOR_PRODUCT: Record<string, string> = {
   ELECTRONICS: "DIGITAL",
   STREAMER_ASSET: "DIGITAL",
   CUSTOM_COMMISSION: "GOODS",
+  VTUBER_3D: "DIGITAL",
+  EMOTES_BADGES: "DIGITAL",
+  ILLUSTRATION: "DIGITAL",
+  AUDIO_MUSIC: "DIGITAL",
+  CREATOR_RESOURCES: "DIGITAL",
   OTHER: "GOODS",
 };
 

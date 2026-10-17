@@ -35,6 +35,8 @@ import {
 } from "@/features/marketplace/UsedListingOverflowMenu";
 import { ApiError } from "@/api/client";
 import { UsedMeetMapCard } from "@/features/marketplace/UsedMeetMapCard";
+import { DigitalDeliveryCard } from "@/features/marketplace/DigitalDeliveryCard";
+import { isDigitalListing } from "@/features/marketplace/market-browse";
 import {
   SubcultureMetaChips,
   UsedSaleStatsCard,
@@ -100,6 +102,7 @@ export function MarketplaceDetailScreen() {
   const { status: authStatus } = useAuth();
   const screenWidth = Dimensions.get("window").width;
   const [msg, setMsg] = useState<string | null>(null);
+  const [digitalConsent, setDigitalConsent] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -396,7 +399,7 @@ export function MarketplaceDetailScreen() {
               characterName={item.characterName}
             />
 
-            {item.saleType !== "AUCTION" && item.map && Number.isFinite(item.map.lat) && Number.isFinite(item.map.lng) ? (
+            {item.saleType !== "AUCTION" && !isDigitalListing(item) && item.map && Number.isFinite(item.map.lat) && Number.isFinite(item.map.lng) ? (
               <UsedMeetMapCard
                 map={item.map}
                 region={item.region}
@@ -416,9 +419,19 @@ export function MarketplaceDetailScreen() {
                 </View>
               ) : item.status !== "SOLD" ? (
                 <View style={styles.actions}>
+                  {isDigitalListing(item) ? (
+                    <Pressable style={styles.consentRow} onPress={() => setDigitalConsent((v) => !v)}>
+                      <Ionicons
+                        name={digitalConsent ? "checkbox" : "square-outline"}
+                        size={20}
+                        color={colors.text}
+                      />
+                      <Text style={styles.consentText}>{t("m.market.track.digital_consent")}</Text>
+                    </Pressable>
+                  ) : null}
                   <Pressable
-                    style={styles.btn}
-                    disabled={trade.isPending}
+                    style={[styles.btn, isDigitalListing(item) && !digitalConsent && styles.btnDisabled]}
+                    disabled={trade.isPending || (isDigitalListing(item) && !digitalConsent)}
                     onPress={() => {
                       if (item.buyerChatRoomId) {
                         navigation.navigate("MessageRoom", {
@@ -435,6 +448,8 @@ export function MarketplaceDetailScreen() {
                 </View>
               ) : null
             ) : null}
+
+            {isDigitalListing(item) ? <DigitalDeliveryCard listingId={item.id} /> : null}
 
             {msg && !(item.auctionLive && !item.isOwner) ? (
               <Text style={styles.note}>{msg}</Text>
@@ -558,6 +573,8 @@ function createThemedStyles(colors: ThemeColors) {
     alignItems: "center",
   },
   btnDisabled: { backgroundColor: "#9ca3af", opacity: 0.6 },
+  consentRow: { flexDirection: "row", gap: 8, alignItems: "flex-start", marginBottom: 8 },
+  consentText: { flex: 1, fontSize: 12, lineHeight: 17 },
   btnText: { color: "#fff", fontWeight: "700" },
   btnTextMuted: { color: "#f3f4f6", fontWeight: "700" },
   btnSecondary: {

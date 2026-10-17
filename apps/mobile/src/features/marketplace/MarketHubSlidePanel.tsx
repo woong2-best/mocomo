@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MarketHomeScreen } from "@/features/marketplace/MarketHomeScreen";
+import type { HubCategory } from "@/features/marketplace/market-browse";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 
@@ -21,9 +22,16 @@ type Props = {
   onClose: () => void;
   onSelectCategory: (id: string) => void;
   selectedCategoryId?: string | null;
+  categories: HubCategory[];
 };
 
-export function MarketHubSlidePanel({ visible, onClose, onSelectCategory, selectedCategoryId }: Props) {
+export function MarketHubSlidePanel({
+  visible,
+  onClose,
+  onSelectCategory,
+  selectedCategoryId,
+  categories,
+}: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const { width: screenW } = useWindowDimensions();
@@ -89,6 +97,7 @@ export function MarketHubSlidePanel({ visible, onClose, onSelectCategory, select
             onClose={onClose}
             onSelectCategory={onSelectCategory}
             selectedCategoryId={selectedCategoryId}
+            categories={categories}
           />
         </Animated.View>
       </View>

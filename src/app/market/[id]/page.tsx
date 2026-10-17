@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import { getUsedListing } from "@/actions/used-market";
 
 import { UsedDetailBottomBar } from "@/components/used/used-detail-bottom-bar";
+import { DigitalDeliveryRoom } from "@/components/used/digital-delivery-room";
+import { isDigitalListing } from "@/lib/market-tracks";
 
 import { UsedAuctionBottomBar } from "@/components/used/used-auction-bottom-bar";
 
@@ -530,7 +532,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
         />
 
       ) : (
-
+        <>
+        <DigitalDeliveryRoom listingId={listing.id} />
         <UsedDetailBottomBar
 
           listingId={listing.id}
@@ -553,8 +556,10 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
           viewerAdultVerified={viewerAdultVerified}
 
-        />
+          digital={isDigitalListing(listing)}
 
+        />
+        </>
       )}
 
     </div>

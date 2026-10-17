@@ -20,7 +20,7 @@ import {
   formatUsedTimeAgo,
   usedStatusLabel,
 } from "@/features/marketplace/used-catalog";
-import { AppHeader } from "@/ui/AppHeader";
+import { isDigitalListing } from "@/features/marketplace/market-browse";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -28,6 +28,21 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
+
+function digitalSalesStep(meta: unknown, t: (key: string) => string) {
+  const status =
+    meta && typeof meta === "object" && !Array.isArray(meta)
+      ? (meta as { digitalDelivery?: { status?: string } }).digitalDelivery?.status
+      : undefined;
+  const steps = [
+    t("m.market.track.payment_held"),
+    t("m.market.track.in_progress"),
+    t("m.market.track.file_uploaded"),
+    t("m.market.track.completed"),
+  ];
+  const index = status === "progress" ? 1 : status === "uploaded" ? 2 : status === "completed" ? 3 : 0;
+  return steps.slice(0, index + 1).join(" → ");
+}
 
 export function UsedMyScreen() {
   const { t } = useI18n();
@@ -72,6 +87,9 @@ export function UsedMyScreen() {
             {item.title}
           </Text>
           <Text style={styles.price}>{formatUsedPrice(item.price, item.currency, t)}</Text>
+          {isDigitalListing(item) ? (
+            <Text style={styles.sub}>{digitalSalesStep(item.subcultureMeta, t)}</Text>
+          ) : null}
           <Text style={styles.sub}>
             {displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd")} ·{" "}
             {formatUsedTimeAgo(item.createdAt, t)}

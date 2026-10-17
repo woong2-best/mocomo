@@ -19,6 +19,9 @@ export type MarketplaceListItem = {
   bidCount: number | null;
   workTitle: string | null;
   productType: string | null;
+  category?: string | null;
+  subcultureMeta?: unknown;
+  bidResult?: "live" | "won" | "lost";
   isNsfw?: boolean;
   sellerHidden?: boolean;
   sellerId?: string;
@@ -86,6 +89,7 @@ export type MarketplaceListQuery = {
   limited?: string;
   trade?: string;
   mode?: "auction" | "fixed";
+  track?: "physical" | "digital";
   lane?: "all" | "recommend" | "purchased" | "favorites" | "live-auctions" | "my-bids" | "disputes";
   ids?: string[];
   mine?: boolean;
@@ -107,6 +111,7 @@ export async function fetchMarketplaceList(query: MarketplaceListQuery | string 
     if (query.limited) params.set("limited", query.limited);
     if (query.trade) params.set("trade", query.trade);
     if (query.mode === "auction" || query.mode === "fixed") params.set("mode", query.mode);
+    if (query.track) params.set("track", query.track);
     if (query.lane) params.set("lane", query.lane);
     if (query.ids?.length) params.set("ids", query.ids.slice(0, 24).join(","));
     if (query.mine) params.set("mine", "1");
@@ -145,6 +150,7 @@ export async function createMarketplaceListing(body: {
   images: string[];
   saleType?: "FIXED" | "AUCTION";
   auctionHours?: number;
+  digitalKind?: "ready" | "commission";
   workTitle?: string;
   animeSlug?: string;
   productType?: string;
@@ -159,6 +165,36 @@ export async function createMarketplaceListing(body: {
     method: "POST",
     body,
   });
+}
+
+export type DigitalDeliveryView = {
+  status: "held" | "progress" | "uploaded" | "completed";
+  fileUrl?: string;
+  fileName?: string;
+  previewUrl?: string;
+};
+
+export async function fetchDigitalDelivery(listingId: string) {
+  return apiRequest<{
+    digital: boolean;
+    role?: "buyer" | "seller" | "other";
+    delivery: DigitalDeliveryView | null;
+  }>(`${MobileApi.marketplace}/${listingId}/digital-delivery`, { auth: true });
+}
+
+export async function postDigitalDelivery(
+  listingId: string,
+  body: {
+    action: "start" | "upload" | "approve";
+    fileUrl?: string;
+    fileName?: string;
+    previewUrl?: string;
+  }
+) {
+  return apiRequest<{ delivery: DigitalDeliveryView | null; error?: string }>(
+    `${MobileApi.marketplace}/${listingId}/digital-delivery`,
+    { method: "POST", auth: true, body }
+  );
 }
 
 export async function fetchStarMarketMine() {

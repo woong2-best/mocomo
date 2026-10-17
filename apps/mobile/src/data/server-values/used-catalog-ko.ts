@@ -47,6 +47,11 @@ export const USED_PRODUCT_TYPES = [
   { id: "ELECTRONICS", label: "가전" },
   { id: "CUSTOM_COMMISSION", label: "커스텀 커미션" },
   { id: "STREAMER_ASSET", label: "스트리머 에셋" },
+  { id: "VTUBER_3D", label: "버튜버·3D" },
+  { id: "EMOTES_BADGES", label: "이모트·뱃지" },
+  { id: "ILLUSTRATION", label: "일러스트" },
+  { id: "AUDIO_MUSIC", label: "오디오·음악" },
+  { id: "CREATOR_RESOURCES", label: "크리에이터 자료" },
   { id: "OTHER", label: "기타" },
 ] as const;
 

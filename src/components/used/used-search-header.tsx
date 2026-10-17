@@ -3,10 +3,26 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { USED_MARKET_BROWSE_CATEGORIES } from "@/lib/used-market";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
 import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters";
 import { useLocale } from "@/components/providers/locale-provider";
+
+const PHYSICAL = [
+  { id: "FIGURE", key: "market.track.figures" },
+  { id: "TCG", key: "market.track.tcg" },
+  { id: "GOODS", key: "market.track.goods" },
+  { id: "BOOK", key: "market.track.books" },
+  { id: "COSPLAY", key: "market.track.cosplay" },
+] as const;
+
+const DIGITAL = [
+  { id: "VTUBER_3D", key: "market.track.vtuber" },
+  { id: "STREAMER_ASSET", key: "market.track.streamer" },
+  { id: "EMOTES_BADGES", key: "market.track.emotes" },
+  { id: "ILLUSTRATION", key: "market.track.illustration" },
+  { id: "AUDIO_MUSIC", key: "market.track.audio" },
+  { id: "CREATOR_RESOURCES", key: "market.track.resources" },
+] as const;
 
 type UsedSearchHeaderProps = {
   viewerCountryCode: string;
@@ -34,6 +50,7 @@ export function UsedSearchHeader({
   }
 
   const activeQ = searchParams.get("q");
+  const track = searchParams.get("track") === "digital" ? "digital" : "physical";
 
   return (
     <div
@@ -42,6 +59,28 @@ export function UsedSearchHeader({
         isPending && "opacity-60"
       )}
     >
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => apply({ track: "physical", category: null, product: null })}
+          className={cn(
+            "min-h-12 rounded-2xl border-[1.5px] px-3 text-sm font-extrabold",
+            track === "physical" ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
+          )}
+        >
+          {t("market.track.physical")}
+        </button>
+        <button
+          type="button"
+          onClick={() => apply({ track: "digital", category: null, product: null })}
+          className={cn(
+            "min-h-12 rounded-2xl border-[1.5px] px-3 text-sm font-extrabold",
+            track === "digital" ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
+          )}
+        >
+          {t("market.track.digital")}
+        </button>
+      </div>
       {activeQ ? (
         <div className="flex items-center justify-between gap-2 pt-0.5">
           <p className="text-[10px] text-muted-foreground">
@@ -62,39 +101,57 @@ export function UsedSearchHeader({
         <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
           <button
             type="button"
-            onClick={() => apply({ category: null })}
+            onClick={() => apply({ category: null, product: null, track })}
             className={cn(
               "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
-              !searchParams.get("category")
+              !(track === "digital" ? searchParams.get("product") : searchParams.get("category"))
                 ? "border-folk-cobalt bg-folk-cobalt text-white"
                 : "border-border bg-card text-folk-cobalt"
             )}
           >
-            {t("anime.genreAll")}
+            {t("market.track.all")}
           </button>
-          {USED_MARKET_BROWSE_CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => apply({ category: c.id, mode: null })}
-              className={cn(
-                "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
-                searchParams.get("category") === c.id
-                  ? "border-folk-cobalt bg-folk-cobalt text-white"
-                  : "border-border bg-card text-folk-cobalt"
-              )}
-            >
-              {c.label.split(" / ")[0]}
-            </button>
-          ))}
+          {track === "digital"
+            ? DIGITAL.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => apply({ product: c.id, category: null, track: "digital", mode: null })}
+                  className={cn(
+                    "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
+                    searchParams.get("product") === c.id
+                      ? "border-folk-cobalt bg-folk-cobalt text-white"
+                      : "border-border bg-card text-folk-cobalt"
+                  )}
+                >
+                  {t(c.key)}
+                </button>
+              ))
+            : PHYSICAL.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => apply({ category: c.id, product: null, track: "physical", mode: null })}
+                  className={cn(
+                    "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
+                    searchParams.get("category") === c.id
+                      ? "border-folk-cobalt bg-folk-cobalt text-white"
+                      : "border-border bg-card text-folk-cobalt"
+                  )}
+                >
+                  {t(c.key)}
+                </button>
+              ))}
         </div>
-        <UsedRegionFilter
-          className="min-w-[8rem] flex-1"
-          viewerCountryCode={viewerCountryCode}
-          viewerServiceRegion={viewerServiceRegion}
-          onNavigate={apply}
-          isPending={isPending}
-        />
+        {track === "physical" ? (
+          <UsedRegionFilter
+            className="min-w-[8rem] flex-1"
+            viewerCountryCode={viewerCountryCode}
+            viewerServiceRegion={viewerServiceRegion}
+            onNavigate={apply}
+            isPending={isPending}
+          />
+        ) : null}
       </div>
 
       <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />

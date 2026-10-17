@@ -120,6 +120,7 @@ export async function GET(
       workTitle: listing.workTitle ?? null,
       animeSlug: listing.animeSlug ?? null,
       productType: listing.productType ?? null,
+      category: listing.category,
       characterName: listing.characterName ?? null,
       conditionGrade: listing.conditionGrade ?? null,
       limitedKind: listing.limitedKind ?? null,

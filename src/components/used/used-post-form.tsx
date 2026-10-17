@@ -191,6 +191,12 @@ export function UsedPostForm({
   );
   const [isNsfw, setIsNsfw] = useState(!!editListing?.isNsfw);
   const [auction, setAuction] = useState(editListing?.saleType === "AUCTION");
+  const [auctionHours, setAuctionHours] = useState(48);
+  const [itemTrack, setItemTrack] = useState<"physical" | "digital">(
+    editListing?.category === "DIGITAL" ? "digital" : "physical"
+  );
+  const [digitalKind, setDigitalKind] = useState<"ready" | "commission">("ready");
+  const [digitalProduct, setDigitalProduct] = useState(editListing?.productType || "VTUBER_3D");
   const [images, setImages] = useState<string[]>(
     editListing ? listingImages(editListing.images) : []
   );
@@ -223,7 +229,8 @@ export function UsedPostForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!sellKind) {
+    const digital = itemTrack === "digital";
+    if (!digital && !sellKind) {
       setError(t("ui.choose_a_product_type"));
       return;
     }
@@ -247,11 +254,11 @@ export function UsedPostForm({
       setError(t("ui.enter_a_price"));
       return;
     }
-    if (!auction && !meetCoords) {
+    if (!digital && !auction && !meetCoords) {
       setError(t("ui.choose_a_trade_region"));
       return;
     }
-    const submitRegion = auction ? "Shipping" : region.trim();
+    const submitRegion = digital || auction ? "Shipping" : region.trim();
     if (!submitRegion) {
       setError(t("ui.choose_a_trade_region"));
       return;
@@ -264,14 +271,14 @@ export function UsedPostForm({
       price: submitPrice,
       currency,
       region: submitRegion,
-      meetPlace: auction ? undefined : meetPlace.trim() || undefined,
-      meetLat: auction ? undefined : meetCoords?.lat,
-      meetLng: auction ? undefined : meetCoords?.lng,
+      meetPlace: digital || auction ? undefined : meetPlace.trim() || undefined,
+      meetLat: digital || auction ? undefined : meetCoords?.lat,
+      meetLng: digital || auction ? undefined : meetCoords?.lng,
       meetCountry: sellerCountry,
       images,
       workTitle: workTitle.trim() || undefined,
       animeSlug: animeSlug ?? undefined,
-      productType: productTypeForSellKind(sellKind),
+      productType: digital ? digitalProduct : productTypeForSellKind(sellKind),
       ...coerceSubcultureListingFields({
         conditionGrade,
         tradeMode: isTrade ? "TRADE" : "SELL",
@@ -282,9 +289,11 @@ export function UsedPostForm({
       ? await updateUsedListing(editListing.id, payload)
       : await createUsedListing({
           ...payload,
-          category: sellKind,
-          categories: [sellKind],
-          saleType: auction ? "AUCTION" : "FIXED",
+          category: digital ? "DIGITAL" : sellKind,
+          categories: [digital ? "DIGITAL" : sellKind],
+          saleType: !digital && auction ? "AUCTION" : "FIXED",
+          auctionHours: !digital && auction ? auctionHours : undefined,
+          digitalKind: digital ? digitalKind : undefined,
         });
     setLoading(false);
     if ("error" in res && res.error) {
@@ -333,47 +342,70 @@ export function UsedPostForm({
         <p className="text-[15px] font-bold">{t("ui.listing_type")}</p>
         <div className="flex flex-wrap">
           <MarketCheckOption
-            label={t("ui.sell")}
-            checked={!giveaway && !isTrade && !auction}
-            onPress={() => {
-              setGiveaway(false);
-              setAuction(false);
-              setTradeMode("SELL");
-            }}
+            label={t("market.track.physicalItem")}
+            checked={itemTrack === "physical"}
+            onPress={() => setItemTrack("physical")}
           />
           <MarketCheckOption
-            label={t("ui.give_away")}
-            checked={giveaway}
+            label={t("market.track.digitalAsset")}
+            checked={itemTrack === "digital"}
             onPress={() => {
-              setGiveaway(true);
+              setItemTrack("digital");
               setAuction(false);
-              setTradeMode("SELL");
-              setPrice("0");
-            }}
-          />
-          <MarketCheckOption
-            label={t("ui.trade")}
-            checked={isTrade}
-            onPress={() => {
               setGiveaway(false);
-              setAuction(false);
-              setTradeMode("TRADE");
-              setPrice("0");
             }}
           />
-          {!editing || auction ? (
+        </div>
+        {itemTrack === "digital" ? (
+          <div className="flex flex-wrap">
             <MarketCheckOption
-              label={t("ui.auction")}
-              checked={auction}
+              label={t("market.track.ready")}
+              checked={digitalKind === "ready"}
+              onPress={() => setDigitalKind("ready")}
+            />
+            <MarketCheckOption
+              label={t("market.track.commission")}
+              checked={digitalKind === "commission"}
+              onPress={() => setDigitalKind("commission")}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-wrap">
+            <MarketCheckOption
+              label={t("market.track.fixedPrice")}
+              checked={!giveaway && !isTrade && !auction}
               onPress={() => {
-                if (editing) return;
-                setAuction(true);
                 setGiveaway(false);
+                setAuction(false);
                 setTradeMode("SELL");
               }}
             />
-          ) : null}
-        </div>
+            {!editing || auction ? (
+              <MarketCheckOption
+                label={t("ui.auction")}
+                checked={auction}
+                onPress={() => {
+                  if (editing) return;
+                  setAuction(true);
+                  setGiveaway(false);
+                  setTradeMode("SELL");
+                }}
+              />
+            ) : null}
+          </div>
+        )}
+        {itemTrack === "physical" && auction ? (
+          <div className="flex flex-wrap">
+            {[24, 48, 72].map((hours) => (
+              <MarketCheckOption
+                key={hours}
+                label={`${t("market.track.deadline")} ${hours}h`}
+                checked={auctionHours === hours}
+                onPress={() => setAuctionHours(hours)}
+              />
+            ))}
+          </div>
+        ) : null}
         {!giveaway && !isTrade ? (
           <div className="space-y-2 pt-1">
             <p className="text-[15px] font-bold">{auction ? t("ui.starting_bid") : t("ui.price")}</p>
@@ -427,12 +459,25 @@ export function UsedPostForm({
       <div className="space-y-2">
         <p className="text-[15px] font-bold">{t("ui.product_type")}</p>
         <div className="flex flex-wrap">
-          {USED_SELL_KINDS.map((p) => (
+          {(itemTrack === "digital"
+            ? [
+                { id: "VTUBER_3D", key: "market.track.vtuber" },
+                { id: "STREAMER_ASSET", key: "market.track.streamer" },
+                { id: "EMOTES_BADGES", key: "market.track.emotes" },
+                { id: "ILLUSTRATION", key: "market.track.illustration" },
+                { id: "AUDIO_MUSIC", key: "market.track.audio" },
+                { id: "CREATOR_RESOURCES", key: "market.track.resources" },
+              ]
+            : USED_SELL_KINDS.filter((p) => p.id !== "DIGITAL").map((p) => ({ id: p.id, key: "" }))
+          ).map((p) => (
             <MarketCheckOption
               key={p.id}
-              label={sellKindLabel(p.id)}
-              checked={sellKind === p.id}
-              onPress={() => setSellKind(p.id)}
+              label={p.key ? t(p.key) : sellKindLabel(p.id)}
+              checked={itemTrack === "digital" ? digitalProduct === p.id : sellKind === p.id}
+              onPress={() => {
+                if (itemTrack === "digital") setDigitalProduct(p.id);
+                else setSellKind(p.id);
+              }}
             />
           ))}
         </div>
@@ -452,7 +497,7 @@ export function UsedPostForm({
         </div>
       </div>
 
-      {auction ? null : (
+      {itemTrack === "digital" || auction ? null : (
       <div className="space-y-3">
         <p className="text-[15px] font-bold">{t("ui.local_meetup_city")}</p>
         <UsedMeetMapPicker

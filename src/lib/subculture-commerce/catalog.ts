@@ -27,6 +27,11 @@ export type SubcultureProductTypeId =
   | "ELECTRONICS"
   | "CUSTOM_COMMISSION"
   | "STREAMER_ASSET"
+  | "VTUBER_3D"
+  | "EMOTES_BADGES"
+  | "ILLUSTRATION"
+  | "AUDIO_MUSIC"
+  | "CREATOR_RESOURCES"
   | "OTHER";
 
 export type SubcultureProductFamily =
@@ -70,6 +75,11 @@ export const SUBCULTURE_PRODUCT_TYPES: {
   { id: "ELECTRONICS", label: "Electronics", family: "other" },
   { id: "CUSTOM_COMMISSION", label: "Custom commission", family: "other" },
   { id: "STREAMER_ASSET", label: "Streamer assets", family: "other" },
+  { id: "VTUBER_3D", label: "VTuber & 3D", family: "other" },
+  { id: "EMOTES_BADGES", label: "Emotes & badges", family: "other" },
+  { id: "ILLUSTRATION", label: "Illustration", family: "other" },
+  { id: "AUDIO_MUSIC", label: "Audio & music", family: "other" },
+  { id: "CREATOR_RESOURCES", label: "Creator resources", family: "other" },
   { id: "OTHER", label: "Other", family: "other" },
 ];
 

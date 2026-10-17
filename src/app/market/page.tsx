@@ -34,6 +34,7 @@ type MarketSearch = {
   limited?: string;
   trade?: string;
   anime?: string;
+  track?: string;
 };
 
 function categoryRedirectHref(search: MarketSearch): string | null {
@@ -66,11 +67,13 @@ async function UsedFeed({
     limited?: string;
     trade?: string;
     anime?: string;
+    track?: string;
   }>;
 }) {
-  const { q, category, region, sido, mode, work, product, condition, limited, trade, anime } =
+  const { q, category, region, sido, mode, work, product, condition, limited, trade, anime, track: trackParam } =
     await searchParams;
   const query = q?.trim() || "";
+  const track = trackParam === "digital" ? "digital" : "physical";
 
   const session = await auth();
   const listParams = {
@@ -83,6 +86,7 @@ async function UsedFeed({
     limited,
     trade,
     anime,
+    track,
     status: "SELLING" as const,
     liveAuctionOnly: false,
     take: query ? 80 : 48,
@@ -93,7 +97,15 @@ async function UsedFeed({
   };
   const [dbReady, pool] = await Promise.all([
     isUsedDbReady(),
-    getUsedListings(query ? listParams : { ...listParams, category }, viewer),
+    getUsedListings(
+      {
+        ...listParams,
+        category: track === "digital" ? undefined : category,
+        product: track === "physical" ? undefined : product,
+        track,
+      },
+      viewer
+    ),
   ]);
   const facets = query ? usedQueryFacets(pool) : [];
   const listings =

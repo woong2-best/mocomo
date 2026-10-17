@@ -606,6 +606,13 @@ export async function verifyDirectArrival(
 }
 
 export async function reportDirectNoShow(userId: string, listingId: string): Promise<DirectTradeResult> {
+  const listing = await db.usedListing.findUnique({
+    where: { id: listingId },
+    select: { subcultureMeta: true },
+  });
+  const { assertDigitalDisputeOpen } = await import("@/lib/digital-delivery");
+  const blocked = await assertDigitalDisputeOpen(listing?.subcultureMeta);
+  if (blocked) return { view: emptyFallback(listingId), error: blocked };
   const loaded = await requireParty(listingId, userId);
   if ("error" in loaded) return { view: emptyFallback(listingId), error: loaded.error };
   const role = loaded.role;

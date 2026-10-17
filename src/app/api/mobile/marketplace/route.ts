@@ -100,6 +100,8 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const trackParam = req.nextUrl.searchParams.get("track")?.trim();
+  const track = trackParam === "physical" || trackParam === "digital" ? trackParam : undefined;
   const q = req.nextUrl.searchParams.get("q")?.trim() || undefined;
   const category = req.nextUrl.searchParams.get("category")?.trim() || undefined;
   const sido = req.nextUrl.searchParams.get("sido")?.trim() || undefined;
@@ -139,6 +141,7 @@ export async function GET(req: NextRequest) {
         work: work || undefined,
         anime: anime || undefined,
         product: product || undefined,
+        track,
         condition: condition || undefined,
         limited: limitedKind || undefined,
         trade: trade || undefined,
@@ -215,6 +218,7 @@ export async function GET(req: NextRequest) {
             limited: limitedKind || undefined,
             trade: trade || undefined,
             anime: anime || undefined,
+            track,
             saleType:
               mode === "auction" && !USED_AUCTION_RETIRED
                 ? "AUCTION"
@@ -290,6 +294,7 @@ const createSchema = z.object({
   images: z.array(z.string().min(1).max(2000)).max(10).default([]),
   saleType: z.enum(["FIXED", "AUCTION"]).optional(),
   auctionHours: z.number().int().positive().optional(),
+  digitalKind: z.enum(["ready", "commission"]).optional(),
   workTitle: z.string().max(120).optional(),
   animeSlug: z.string().max(120).optional(),
   productType: z.string().max(40).optional(),
