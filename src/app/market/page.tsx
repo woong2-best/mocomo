@@ -5,8 +5,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Package } from "lucide-react";
-import { getUsedListings, getViewerUsedListingStarIds, isUsedDbReady } from "@/actions/used-market";
+import {
+  getMyUsedHubLane,
+  getUsedListings,
+  getViewerUsedListingStarIds,
+  isUsedDbReady,
+} from "@/actions/used-market";
 import { listCreatorStudios } from "@/lib/creator-studio";
+import { parseMarketLane, parseMarketTrack } from "@/lib/market-browse";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveUsedMarketScope } from "@/lib/used-market-locale-scope";
@@ -36,6 +42,7 @@ type MarketSearch = {
   trade?: string;
   anime?: string;
   track?: string;
+  lane?: string;
 };
 
 function categoryRedirectHref(search: MarketSearch): string | null {
@@ -69,14 +76,86 @@ async function UsedFeed({
     trade?: string;
     anime?: string;
     track?: string;
+    lane?: string;
   }>;
 }) {
-  const { q, category, region, sido, mode, work, product, condition, limited, trade, anime, track: trackParam } =
-    await searchParams;
+  const {
+    q,
+    category,
+    region,
+    sido,
+    mode,
+    work,
+    product,
+    condition,
+    limited,
+    trade,
+    anime,
+    track: trackParam,
+    lane: laneParam,
+  } = await searchParams;
   const query = q?.trim() || "";
-  const track = trackParam === "digital" || trackParam === "physical" ? trackParam : undefined;
+  const lane = parseMarketLane(laneParam);
+  const track = lane ? undefined : parseMarketTrack(trackParam);
 
   const session = await auth();
+
+  if (lane && !session?.user?.id) {
+    return (
+      <div className="py-16 text-center space-y-3">
+        <p className="text-sm text-muted-foreground">{t("market.sign_in_to_view_trades")}</p>
+        <Button variant="secondary" asChild>
+          <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(`/market?lane=${lane}`)}`}>
+            {t("auth.signInRequired")}
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (lane && session?.user?.id) {
+    const dbReady = await isUsedDbReady();
+    if (!dbReady) {
+      return <DbSetupBanner title={t("app.market.sodwy3p")} />;
+    }
+    const hub = await getMyUsedHubLane(lane);
+    const listings = hub.items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      price: item.price,
+      currency: item.currency,
+      region: item.region ?? "",
+      status: item.status,
+      images: item.thumbnailUrl ? [item.thumbnailUrl] : [],
+      createdAt: new Date(item.createdAt),
+      saleType: item.saleType,
+      auctionEndsAt: item.auctionEndsAt,
+      currentBidAmount: item.currentBidAmount,
+      bidCount: item.bidCount ?? undefined,
+      sellerId: item.sellerId,
+      favorited: "favorited" in item ? item.favorited : false,
+      isNsfw: "isNsfw" in item ? item.isNsfw : false,
+    }));
+    if (listings.length === 0) {
+      const emptyKey =
+        lane === "purchased"
+          ? "ui.no_purchases_yet"
+          : lane === "sales"
+            ? "ui.no_completed_sales"
+            : lane === "my"
+              ? "ui.no_listings_yet"
+              : "ui.no_favorites_yet";
+      return <p className="py-16 text-center text-sm text-muted-foreground">{t(emptyKey)}</p>;
+    }
+    return (
+      <UsedListingGrid
+        listings={listings}
+        viewerUserId={session.user.id}
+        viewerShowNsfw={false}
+      />
+    );
+  }
+
   const listParams = {
     q: query || undefined,
     region,

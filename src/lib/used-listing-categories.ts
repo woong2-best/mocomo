@@ -5,6 +5,7 @@ export const USED_SELL_CATEGORY_IDS = [
   "TCG",
   "GOODS",
   "BOOK",
+  "GAMES",
   "COSPLAY",
   "DIGITAL",
   "FASHION",
@@ -61,6 +62,7 @@ export function listingCategoryTags(input: {
   if (input.category) tags.add(input.category);
   for (const extra of extraCategoriesFromMeta(input.subcultureMeta)) tags.add(extra);
   if (input.productType?.toUpperCase().startsWith("TCG")) tags.add("TCG");
+  if (input.productType === "BOARDGAME") tags.add("GAMES");
   return [...tags];
 }
 

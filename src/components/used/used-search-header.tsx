@@ -6,24 +6,13 @@ import { cn } from "@/lib/utils";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
 import { UsedSubcultureFilters } from "@/components/used/used-subculture-filters";
 import { useLocale } from "@/components/providers/locale-provider";
-
-const PHYSICAL = [
-  { id: "FIGURE", key: "market.track.figures" },
-  { id: "TCG", key: "market.track.tcg" },
-  { id: "GOODS", key: "market.track.goods" },
-  { id: "BOOK", key: "market.track.books" },
-  { id: "GAMES", key: "market.track.games" },
-  { id: "COSPLAY", key: "market.track.cosplay" },
-] as const;
-
-const DIGITAL = [
-  { id: "VTUBER_3D", key: "market.track.vtuber" },
-  { id: "STREAMER_ASSET", key: "market.track.streamer" },
-  { id: "EMOTES_BADGES", key: "market.track.emotes" },
-  { id: "ILLUSTRATION", key: "market.track.illustration" },
-  { id: "AUDIO_MUSIC", key: "market.track.audio" },
-  { id: "CREATOR_RESOURCES", key: "market.track.resources" },
-] as const;
+import {
+  DIGITAL_MARKET_CATEGORIES,
+  MARKET_LANE_CHIPS,
+  PHYSICAL_MARKET_CATEGORIES,
+  parseMarketLane,
+  parseMarketTrack,
+} from "@/lib/market-browse";
 
 type UsedSearchHeaderProps = {
   viewerCountryCode: string;
@@ -51,8 +40,10 @@ export function UsedSearchHeader({
   }
 
   const activeQ = searchParams.get("q");
-  const trackParam = searchParams.get("track");
-  const scope = trackParam === "digital" || trackParam === "physical" ? trackParam : "all";
+  const lane = parseMarketLane(searchParams.get("lane"));
+  const track = parseMarketTrack(searchParams.get("track"));
+  const categories = track === "digital" ? DIGITAL_MARKET_CATEGORIES : PHYSICAL_MARKET_CATEGORIES;
+  const personal = !!lane;
 
   return (
     <div
@@ -62,23 +53,51 @@ export function UsedSearchHeader({
       )}
     >
       <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-        {([
-          ["all", "market.track.all"],
-          ["physical", "market.scope.physical"],
-          ["digital", "market.scope.digital"],
-        ] as const).map(([id, key]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => apply({ track: id === "all" ? null : id, category: null, product: null })}
-            className={cn(
-              "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
-              scope === id ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
-            )}
-          >
-            {t(key)}
-          </button>
-        ))}
+        {(["physical", "digital"] as const).map((id) => {
+          const active = !personal && track === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() =>
+                apply({
+                  track: id,
+                  lane: null,
+                  category: null,
+                  product: null,
+                })
+              }
+              className={cn(
+                "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
+                active ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
+              )}
+            >
+              {t(id === "physical" ? "market.scope.physical" : "market.scope.digital")}
+            </button>
+          );
+        })}
+        {MARKET_LANE_CHIPS.map((item) => {
+          const active = lane === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() =>
+                apply({
+                  lane: active ? null : item.id,
+                  category: null,
+                  product: null,
+                })
+              }
+              className={cn(
+                "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
+                active ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
+              )}
+            >
+              {t(item.key)}
+            </button>
+          );
+        })}
       </div>
       {activeQ ? (
         <div className="flex items-center justify-between gap-2 pt-0.5">
@@ -96,54 +115,52 @@ export function UsedSearchHeader({
         </div>
       ) : null}
 
-      <div className="flex items-center gap-2">
-        <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-          <button
-            type="button"
-            onClick={() => apply({ category: null, product: null, track: scope === "all" ? null : scope })}
-            className={cn(
-              "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
-              !searchParams.get("product") && !searchParams.get("category")
-                ? "border-folk-cobalt bg-folk-cobalt text-white"
-                : "border-border bg-card text-folk-cobalt"
-            )}
-          >
-            {t("market.track.all")}
-          </button>
-          {(scope === "digital" ? DIGITAL : scope === "physical" ? PHYSICAL : [...PHYSICAL, ...DIGITAL]).map((c) => (
+      {personal ? null : (
+        <div className="flex items-center gap-2">
+          <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+            {categories.map((c) => {
+              const selected =
+                track === "digital"
+                  ? searchParams.get("product") === c.id
+                  : searchParams.get("category") === c.id;
+              return (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() =>
                     apply(
-                      "id" in c && DIGITAL.some((item) => item.id === c.id)
-                        ? { product: c.id, category: null, track: "digital", mode: null }
-                        : { category: c.id, product: null, track: "physical", mode: null }
+                      selected
+                        ? { category: null, product: null, track }
+                        : track === "digital"
+                          ? { product: c.id, category: null, track: "digital", mode: null }
+                          : { category: c.id, product: null, track: "physical", mode: null }
                     )
                   }
                   className={cn(
                     "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
-                    searchParams.get("product") === c.id || searchParams.get("category") === c.id
+                    selected
                       ? "border-folk-cobalt bg-folk-cobalt text-white"
                       : "border-border bg-card text-folk-cobalt"
                   )}
                 >
                   {t(c.key)}
                 </button>
-              ))}
+              );
+            })}
+          </div>
+          {track !== "digital" ? (
+            <UsedRegionFilter
+              className="min-w-[8rem] flex-1"
+              viewerCountryCode={viewerCountryCode}
+              viewerServiceRegion={viewerServiceRegion}
+              onNavigate={apply}
+              isPending={isPending}
+            />
+          ) : null}
         </div>
-        {scope !== "digital" ? (
-          <UsedRegionFilter
-            className="min-w-[8rem] flex-1"
-            viewerCountryCode={viewerCountryCode}
-            viewerServiceRegion={viewerServiceRegion}
-            onNavigate={apply}
-            isPending={isPending}
-          />
-        ) : null}
-      </div>
+      )}
 
-      <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />
+      {personal ? null : <UsedSubcultureFilters onNavigate={apply} isPending={isPending} />}
     </div>
   );
 }

@@ -22,8 +22,8 @@ import {
   sellKindFromListing,
   usedPriceInputValue,
   USED_CONDITION_OPTIONS,
-  USED_SELL_KINDS,
 } from "@/lib/used-catalog";
+import { DIGITAL_MARKET_CATEGORIES, PHYSICAL_MARKET_CATEGORIES } from "@/lib/market-browse";
 import { listingImages } from "@/lib/used-market";
 import {
   parseUsdDollarsToCents,
@@ -67,14 +67,14 @@ function listingCurrencyChoices(country: string): { id: UsedCurrency; label: str
 function sellKindLabel(id: string): string {
   const map: Record<string, string> = {
     FIGURE: "used.sellKind.figure",
+    TCG: "used.sellKind.tcg",
     GOODS: "used.sellKind.goods",
     BOOK: "used.sellKind.book",
+    GAMES: "used.sellKind.games",
     COSPLAY: "used.sellKind.cosplay",
     DIGITAL: "used.sellKind.digital",
   };
-  const key = map[id];
-  if (key) return t(key);
-  return USED_SELL_KINDS.find((p) => p.id === id)?.label ?? id;
+  return t(map[id] ?? "used.sellKind.goods");
 }
 
 function MarketCheckOption({
@@ -459,20 +459,10 @@ export function UsedPostForm({
       <div className="space-y-2">
         <p className="text-[15px] font-bold">{t("ui.product_type")}</p>
         <div className="flex flex-wrap">
-          {(itemTrack === "digital"
-            ? [
-                { id: "VTUBER_3D", key: "market.track.vtuber" },
-                { id: "STREAMER_ASSET", key: "market.track.streamer" },
-                { id: "EMOTES_BADGES", key: "market.track.emotes" },
-                { id: "ILLUSTRATION", key: "market.track.illustration" },
-                { id: "AUDIO_MUSIC", key: "market.track.audio" },
-                { id: "CREATOR_RESOURCES", key: "market.track.resources" },
-              ]
-            : USED_SELL_KINDS.filter((p) => p.id !== "DIGITAL").map((p) => ({ id: p.id, key: "" }))
-          ).map((p) => (
+          {(itemTrack === "digital" ? DIGITAL_MARKET_CATEGORIES : PHYSICAL_MARKET_CATEGORIES).map((p) => (
             <MarketCheckOption
               key={p.id}
-              label={p.key ? t(p.key) : sellKindLabel(p.id)}
+              label={itemTrack === "digital" ? t(p.key) : sellKindLabel(p.id)}
               checked={itemTrack === "digital" ? digitalProduct === p.id : sellKind === p.id}
               onPress={() => {
                 if (itemTrack === "digital") setDigitalProduct(p.id);

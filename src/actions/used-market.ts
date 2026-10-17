@@ -902,21 +902,31 @@ export async function getMyUsedDashboard(userId: string) {
   }
 }
 
-export type UsedHubLane = "purchased" | "selling" | "live-auctions" | "my-bids" | "favorites" | "disputes";
+export type UsedHubLane =
+  | "purchased"
+  | "sales"
+  | "my"
+  | "selling"
+  | "live-auctions"
+  | "my-bids"
+  | "favorites"
+  | "disputes";
 
 export async function getMyUsedHubLane(lane: UsedHubLane) {
   const user = await requireAuth();
   const {
-    listMobileMyUsedListings,
     listMobileUsedDisputes,
     listMobileUsedFavorites,
     listMobileUsedPurchases,
+    listMobileUsedSales,
+    listMobileUsedSelling,
     listMobileLiveAuctions,
     listMobileMyActiveBids,
   } = await import("@/lib/used-market-mobile");
   try {
     if (lane === "purchased") return { items: await listMobileUsedPurchases(user.id) };
-    if (lane === "selling") return { items: await listMobileMyUsedListings(user.id) };
+    if (lane === "sales") return { items: await listMobileUsedSales(user.id) };
+    if (lane === "my" || lane === "selling") return { items: await listMobileUsedSelling(user.id) };
     if (lane === "my-bids") return { items: USED_AUCTION_RETIRED ? [] : await listMobileMyActiveBids(user.id) };
     if (lane === "live-auctions") return { items: USED_AUCTION_RETIRED ? [] : await listMobileLiveAuctions(user.id) };
     if (lane === "favorites") return { items: await listMobileUsedFavorites(user.id) };
