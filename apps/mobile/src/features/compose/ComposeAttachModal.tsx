@@ -1,5 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, Modal, StyleSheet, View, useWindowDimensions } from "react-native";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AttachBottomModal } from "@/features/compose/AttachBottomModal";
 import { AttachImageCard, type ComposeAttachPreview } from "@/features/compose/AttachImageCard";
@@ -108,20 +117,63 @@ export function ComposeAttachModal({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const keyboardHeight = useKeyboardBottomInset();
   const scrollX = useRef(new Animated.Value(0)).current;
+  const listRef = useRef<ScrollView>(null);
+  const pageRef = useRef(0);
+  const pendingPageRef = useRef<number | null>(null);
   const [sheetHeight, setSheetHeight] = useState(280);
   const keyboardOpen = keyboardHeight > 0;
   const hasPreviews = previews.length > 0;
   const bottomInset = keyboardOpen ? spacing.sm : Math.max(insets.bottom, spacing.sm);
-
-  useEffect(() => {
-    if (visible) scrollX.setValue(0);
-  }, [scrollX, visible]);
   const sheetBottom = keyboardOpen ? keyboardHeight : 0;
   const sheetBlock = sheetHeight + sheetBottom;
   const maxCardHeight = Math.max(160, windowHeight - insets.top - 36 - sheetBlock - 28);
   const card = portraitCardSize(Math.round(windowWidth * 0.66), maxCardHeight);
   const interval = card.width + CARD_GAP;
   const sidePad = Math.max(0, (windowWidth - card.width) / 2);
+
+  function snapToPage(page: number, animated: boolean) {
+    const next = Math.max(0, Math.min(page, Math.max(0, previews.length - 1)));
+    pageRef.current = next;
+    const x = next * interval;
+    scrollX.setValue(x);
+    const node = listRef.current as unknown as {
+      scrollTo?: (opts: { x: number; y?: number; animated?: boolean }) => void;
+    } | null;
+    node?.scrollTo?.({ x, y: 0, animated });
+  }
+
+  useEffect(() => {
+    if (!visible) return;
+    pendingPageRef.current = null;
+    pageRef.current = 0;
+    scrollX.setValue(0);
+  }, [scrollX, visible]);
+
+  useLayoutEffect(() => {
+    if (!visible || previews.length === 0) return;
+    const pending = pendingPageRef.current;
+    pendingPageRef.current = null;
+    const next =
+      pending == null
+        ? Math.min(pageRef.current, previews.length - 1)
+        : Math.max(0, Math.min(pending, previews.length - 1));
+    requestAnimationFrame(() => snapToPage(next, false));
+  }, [interval, previews.length, visible]);
+
+  function rememberPage(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    if (interval <= 0) return;
+    const next = Math.round(event.nativeEvent.contentOffset.x / interval);
+    pageRef.current = Math.max(0, Math.min(previews.length - 1, next));
+  }
+
+  function removeAt(index: number) {
+    const focused = pageRef.current;
+    let nextPage = focused;
+    if (index === focused) nextPage = Math.max(0, focused - 1);
+    else if (index < focused) nextPage = Math.max(0, focused - 1);
+    pendingPageRef.current = nextPage;
+    onRemovePreview(index);
+  }
   const sheetMaxHeight = keyboardOpen
     ? Math.max(220, windowHeight - keyboardHeight - insets.top - 48)
     : undefined;
@@ -148,6 +200,7 @@ export function ComposeAttachModal({
             ]}
           >
             <Animated.ScrollView
+              ref={listRef}
               horizontal
               scrollEnabled={previews.length > 1}
               showsHorizontalScrollIndicator={false}
@@ -156,6 +209,8 @@ export function ComposeAttachModal({
               disableIntervalMomentum
               keyboardShouldPersistTaps="handled"
               scrollEventThrottle={16}
+              onMomentumScrollEnd={rememberPage}
+              onScrollEndDrag={rememberPage}
               onScroll={Animated.event(
                 [{ nativeEvent: { contentOffset: { x: scrollX } } }],
                 { useNativeDriver: true }
@@ -178,7 +233,7 @@ export function ComposeAttachModal({
                   marginRight={index < previews.length - 1 ? CARD_GAP : 0}
                   previewLabel={t("m.common.preview")}
                   removeLabel={t("m.compose.remove_attachment")}
-                  onRemove={() => onRemovePreview(index)}
+                  onRemove={() => removeAt(index)}
                 />
               ))}
             </Animated.ScrollView>
