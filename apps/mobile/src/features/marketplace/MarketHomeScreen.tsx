@@ -25,7 +25,15 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
-export type MarketHubLane = "all" | "recommend" | "purchased" | "favorites" | "disputes" | "my-bids";
+export type MarketHubLane =
+  | "all"
+  | "recommend"
+  | "purchased"
+  | "sales"
+  | "my"
+  | "favorites"
+  | "disputes"
+  | "my-bids";
 
 type MarketHomeProps = {
   /** Right-side slide hub above the list. */

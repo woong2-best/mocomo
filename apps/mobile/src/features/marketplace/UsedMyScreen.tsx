@@ -12,8 +12,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fetchMarketplaceList, type MarketplaceListItem } from "@/api/marketplace";
-import { fetchMyWtbAlerts } from "@/api/subculture";
-import { UsedWtbAlertList } from "@/features/marketplace/UsedWtbAlertList";
 import {
   displayUsedRegion,
   formatUsedPrice,
@@ -51,17 +49,8 @@ export function UsedMyScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const query = useQuery({
-    queryKey: ["mobile-marketplace-mine", "sales"],
-    queryFn: () =>
-      fetchMarketplaceList({
-        mine: true,
-        take: 48,
-      }),
-  });
-
-  const wtbQuery = useQuery({
-    queryKey: ["mobile-wtb-alerts"],
-    queryFn: fetchMyWtbAlerts,
+    queryKey: ["mobile-marketplace", "my"],
+    queryFn: () => fetchMarketplaceList({ lane: "my", take: 48 }),
   });
 
   const items = query.data?.items ?? [];
@@ -104,7 +93,7 @@ export function UsedMyScreen() {
   return (
     <Screen>
       <AppHeader
-        title={t("m.marketplace.sales_history")}
+        title={t("m.marketplace.my_tab")}
         leftLabel={t("common.back")}
         onLeftPress={() => navigation.goBack()}
         rightSlot={
@@ -131,27 +120,8 @@ export function UsedMyScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ padding: spacing.md, paddingBottom: 40 }}
-          ListHeaderComponent={
-            <View style={{ marginBottom: spacing.md }}>
-              <>
-                <Text style={styles.sectionTitle}>
-                  {t("m.marketplace.wtb_alerts")} ({wtbQuery.data?.items.length ?? 0})
-                </Text>
-                {wtbQuery.isLoading ? (
-                  <ActivityIndicator color={colors.terracotta} style={{ marginVertical: 12 }} />
-                ) : (
-                  <UsedWtbAlertList items={wtbQuery.data?.items ?? []} />
-                )}
-              </>
-              <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>
-                {t("m.marketplace.my_listings")} ({items.length})
-              </Text>
-            </View>
-          }
           ListEmptyComponent={
-            <Text style={styles.muted}>
-              {t("m.marketplace.you_have_no_used_market_listings")}
-            </Text>
+            <Text style={styles.muted}>{t("m.marketplace.you_have_no_used_market_listings")}</Text>
           }
         />
       )}
@@ -192,11 +162,5 @@ function createStyles(colors: ThemeColors) {
     muted: { color: colors.textMuted, padding: spacing.lg },
     error: { color: colors.danger, marginBottom: 12, fontWeight: "600" },
     center: { padding: spacing.lg, alignItems: "center" },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: "800",
-      color: colors.textMuted,
-      marginBottom: spacing.sm,
-    },
   });
 }

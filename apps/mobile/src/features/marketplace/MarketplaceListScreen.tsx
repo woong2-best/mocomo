@@ -63,6 +63,7 @@ type BrowsePick = { source: "hub" | "shelf"; id: string };
 const LANE_PILLS = [
   { id: "purchased" as const, labelKey: "m.marketplace.purchases" },
   { id: "sales" as const, labelKey: "m.marketplace.sales" },
+  { id: "my" as const, labelKey: "m.marketplace.my_tab" },
   { id: "favorites" as const, labelKey: "m.marketplace.favorites" },
 ];
 
@@ -81,6 +82,8 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const hubLane = isTab ? hubLaneLocal : routeParams.lane;
   const isCombined =
     hubLane !== "purchased" &&
+    hubLane !== "sales" &&
+    hubLane !== "my" &&
     hubLane !== "favorites" &&
     hubLane !== "disputes" &&
     hubLane !== "my-bids";
@@ -132,6 +135,8 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       track: personalLane || scope === "all" ? undefined : scope,
       lane: hubLane === "recommend" ||
             hubLane === "purchased" ||
+            hubLane === "sales" ||
+            hubLane === "my" ||
             hubLane === "favorites" ||
             hubLane === "disputes" ||
             hubLane === "my-bids"
@@ -251,8 +256,8 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
 
   const onLanePill = useCallback(
     (id: (typeof LANE_PILLS)[number]["id"]) => {
-      if (id === "sales") {
-        navigation.navigate("UsedMy");
+      if (authStatus !== "signedIn" && (id === "purchased" || id === "sales" || id === "my" || id === "favorites")) {
+        showIslandError(t("m.common.sign_in_required"), t("m.marketplace.sign_in_to_view_trades"));
         return;
       }
       if (hubLane === id) {
@@ -261,7 +266,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       }
       applyHubLane(id);
     },
-    [applyHubLane, hubLane, navigation]
+    [applyHubLane, authStatus, hubLane, t]
   );
 
   const openItem = useCallback(
@@ -431,7 +436,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         );
       })}
       {LANE_PILLS.map((item) => {
-        const active = item.id !== "sales" && hubLane === item.id;
+        const active = hubLane === item.id;
         return (
           <Pressable
             key={item.id}
@@ -460,7 +465,15 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       <Text style={styles.empty}>
         {hubLane === "my-bids"
           ? t("m.marketplace.no_active_bids")
-          : t("m.marketplace.no_listings_match_your_filters")}
+          : hubLane === "purchased"
+            ? t("m.marketplace.no_purchases_yet")
+            : hubLane === "sales"
+              ? t("m.marketplace.no_completed_sales")
+              : hubLane === "my"
+                ? t("m.marketplace.you_have_no_used_market_listings")
+                : hubLane === "favorites"
+                  ? t("m.marketplace.no_favorites_yet")
+                  : t("m.marketplace.no_listings_match_your_filters")}
       </Text>
     );
 

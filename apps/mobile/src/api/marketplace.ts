@@ -90,7 +90,7 @@ export type MarketplaceListQuery = {
   trade?: string;
   mode?: "auction" | "fixed";
   track?: "physical" | "digital";
-  lane?: "all" | "recommend" | "purchased" | "favorites" | "live-auctions" | "my-bids" | "disputes";
+  lane?: "all" | "recommend" | "purchased" | "sales" | "my" | "favorites" | "live-auctions" | "my-bids" | "disputes";
   ids?: string[];
   mine?: boolean;
   take?: number;

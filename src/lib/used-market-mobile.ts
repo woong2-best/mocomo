@@ -569,6 +569,31 @@ export async function listMobileUsedFavorites(userId: string, take = 48) {
   return rows.map((row) => mapHubListing(row.listing, { favorited: true }));
 }
 
+export async function listMobileUsedSales(userId: string, take = 48) {
+  const listings = await db.usedListing.findMany({
+    where: { sellerId: userId, status: "SOLD", removedAt: null },
+    orderBy: { updatedAt: "desc" },
+    take: Math.min(take, 48),
+    select: hubListingSelect,
+  });
+  return listings.map((l) => mapHubListing(l));
+}
+
+/** Seller listings still on the market (fixed price or live auction). */
+export async function listMobileUsedSelling(userId: string, take = 48) {
+  const listings = await db.usedListing.findMany({
+    where: {
+      sellerId: userId,
+      removedAt: null,
+      status: { in: ["SELLING", "RESERVED"] },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: Math.min(take, 48),
+    select: hubListingSelect,
+  });
+  return listings.map((l) => mapHubListing(l));
+}
+
 export async function listMobileUsedPurchases(userId: string, take = 48) {
   const listings = await db.usedListing.findMany({
     where: {

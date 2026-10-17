@@ -16,6 +16,8 @@ import {
   listMobileUsedDisputes,
   listMobileUsedFavorites,
   listMobileUsedPurchases,
+  listMobileUsedSales,
+  listMobileUsedSelling,
 } from "@/lib/used-market-mobile";
 import { filterNsfwItems, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { coerceSubcultureListingFields } from "@/lib/subculture-commerce/types";
@@ -58,6 +60,8 @@ export async function GET(req: NextRequest) {
   if (
     lane === "favorites" ||
     lane === "purchased" ||
+    lane === "sales" ||
+    lane === "my" ||
     lane === "live-auctions" ||
     lane === "my-bids" ||
     lane === "disputes"
@@ -71,11 +75,15 @@ export async function GET(req: NextRequest) {
           ? await listMobileUsedFavorites(auth.user.id, takeLane)
           : lane === "purchased"
             ? await listMobileUsedPurchases(auth.user.id, takeLane)
-            : lane === "live-auctions"
-              ? await listMobileLiveAuctions(auth.user.id, takeLane)
-              : lane === "my-bids"
-                ? await listMobileMyActiveBids(auth.user.id, takeLane)
-                : await listMobileUsedDisputes(auth.user.id, takeLane);
+            : lane === "sales"
+              ? await listMobileUsedSales(auth.user.id, takeLane)
+              : lane === "my"
+                ? await listMobileUsedSelling(auth.user.id, takeLane)
+                : lane === "live-auctions"
+                  ? await listMobileLiveAuctions(auth.user.id, takeLane)
+                  : lane === "my-bids"
+                    ? await listMobileMyActiveBids(auth.user.id, takeLane)
+                    : await listMobileUsedDisputes(auth.user.id, takeLane);
       return NextResponse.json({ items, lane });
     } catch {
       return NextResponse.json({ error: "Not found.", items: [] }, { status: 500 });
