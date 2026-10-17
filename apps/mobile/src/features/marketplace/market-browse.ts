@@ -1,7 +1,8 @@
 /** Physical Market vs Digital Studio browse sets for the mobile app. */
 
 export type MarketTrack = "physical" | "digital";
-export type MarketScope = "all" | MarketTrack;
+/** Physical vs digital scope chips (no combined “all” track). */
+export type MarketScope = MarketTrack;
 
 export type HubCategory = {
   id: string;
@@ -10,8 +11,10 @@ export type HubCategory = {
   product?: string;
 };
 
+/** No category filter — all items in the current physical/digital track. */
+export const HUB_BROWSE_ALL_ID = "ALL";
+
 export const PHYSICAL_HUB: HubCategory[] = [
-  { id: "ALL", labelKey: "m.market.track.all" },
   { id: "FIGURE", labelKey: "m.market.track.figures_models", category: "FIGURE" },
   { id: "TCG", labelKey: "m.marketplace.tcg", category: "TCG" },
   { id: "GOODS", labelKey: "m.used.catalog.GOODS", category: "GOODS" },
@@ -21,7 +24,6 @@ export const PHYSICAL_HUB: HubCategory[] = [
 ];
 
 export const DIGITAL_HUB: HubCategory[] = [
-  { id: "ALL", labelKey: "m.market.track.all" },
   { id: "VTUBER_3D", labelKey: "m.market.track.vtuber_3d", product: "VTUBER_3D" },
   { id: "STREAMER_ASSET", labelKey: "m.market.track.streamer_assets", product: "STREAMER_ASSET" },
   { id: "EMOTES_BADGES", labelKey: "m.market.track.emotes_badges", product: "EMOTES_BADGES" },
@@ -45,6 +47,10 @@ export function hubForTrack(track: MarketTrack): HubCategory[] {
 
 /** Side menu — physical used-goods categories only (digital uses scope chips). */
 export const MENU_CATEGORIES: HubCategory[] = PHYSICAL_HUB;
+
+export function findHubCategory(id: string): HubCategory | undefined {
+  return PHYSICAL_HUB.find((item) => item.id === id) ?? DIGITAL_HUB.find((item) => item.id === id);
+}
 
 export function isDigitalListing(input: {
   category?: string | null;

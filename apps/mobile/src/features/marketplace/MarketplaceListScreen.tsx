@@ -22,7 +22,13 @@ import {
   formatUsedPrice,
   formatUsedTimeAgo,
 } from "@/features/marketplace/used-catalog";
-import { isDigitalListing, MENU_CATEGORIES, type MarketScope } from "@/features/marketplace/market-browse";
+import {
+  findHubCategory,
+  HUB_BROWSE_ALL_ID,
+  isDigitalListing,
+  MENU_CATEGORIES,
+  type MarketScope,
+} from "@/features/marketplace/market-browse";
 import { useI18n } from "@/i18n/I18nProvider";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { showIslandError } from "@/ui/IslandToast";
@@ -94,8 +100,8 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const [q, setQ] = useState(routeParams.q ?? "");
   const [recentQ, setRecentQ] = useState<string[]>([]);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [browse, setBrowse] = useState<BrowsePick>({ source: "hub", id: "ALL" });
-  const [scope, setScope] = useState<MarketScope>("all");
+  const [browse, setBrowse] = useState<BrowsePick>({ source: "hub", id: HUB_BROWSE_ALL_ID });
+  const [scope, setScope] = useState<MarketScope>("physical");
   const [hubOpen, setHubOpen] = useState(false);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -126,13 +132,14 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   );
 
   const listQuery = useMemo(() => {
-    const hub = browse.source === "hub" ? MENU_CATEGORIES.find((item) => item.id === browse.id) : undefined;
+    const hub =
+      browse.source === "hub" && browse.id !== HUB_BROWSE_ALL_ID ? findHubCategory(browse.id) : undefined;
     const personalLane = !isCombined;
     return {
       q: q || undefined,
       category: personalLane ? undefined : hub?.category,
       product: personalLane ? undefined : hub?.product,
-      track: personalLane || scope === "all" ? undefined : scope,
+      track: personalLane ? undefined : scope,
       lane: hubLane === "recommend" ||
             hubLane === "purchased" ||
             hubLane === "sales" ||
@@ -247,7 +254,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       setBrowse({ source: "hub", id });
       if (picked?.product) setScope("digital");
       else if (picked?.category) setScope("physical");
-      else setScope("all");
+      else setScope("physical");
       clearPersonalLane();
       setHubOpen(false);
     },
@@ -404,14 +411,14 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     [colors.terracotta, navigation, styles, t]
   );
 
-  const hubActiveId = isCombined && browse.source === "hub" ? browse.id : null;
+  const hubActiveId =
+    isCombined && browse.source === "hub" && browse.id !== HUB_BROWSE_ALL_ID ? browse.id : null;
   const visibleItems = items;
   const recentTerms = recentQ.slice(0, 3);
   const scopeActive = isCombined ? scope : null;
   const filterBar = (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.catRow}>
       {([
-        ["all", "m.market.track.all"],
         ["physical", "m.market.scope.physical"],
         ["digital", "m.market.scope.digital"],
       ] as const).map(([id, key]) => {
@@ -421,11 +428,11 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
             key={id}
             onPress={() => {
               setScope(id);
-              if (id === "all") setBrowse({ source: "hub", id: "ALL" });
-              else if (id === "physical" && MENU_CATEGORIES.find((item) => item.id === browse.id)?.product) {
-                setBrowse({ source: "hub", id: "ALL" });
-              } else if (id === "digital" && MENU_CATEGORIES.find((item) => item.id === browse.id)?.category) {
-                setBrowse({ source: "hub", id: "ALL" });
+              const picked = findHubCategory(browse.id);
+              if (id === "physical" && picked?.product) {
+                setBrowse({ source: "hub", id: HUB_BROWSE_ALL_ID });
+              } else if (id === "digital" && picked?.category) {
+                setBrowse({ source: "hub", id: HUB_BROWSE_ALL_ID });
               }
               clearPersonalLane();
             }}
