@@ -37,14 +37,6 @@ export function SellChoiceSheet({
               onPress={onDigital}
             />
           </View>
-          <Pressable
-            style={[styles.close, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-          >
-            <Ionicons name="close" size={22} color={colors.text} />
-          </Pressable>
         </View>
       </Pressable>
     </Modal>
@@ -76,19 +68,11 @@ function Choice({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.28)" },
-  dock: { position: "absolute", right: 18, alignItems: "flex-end", gap: 10 },
+  dock: { position: "absolute", right: 18, alignItems: "flex-end" },
   card: { width: 260, borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   choice: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
   choiceText: { flex: 1, gap: 2 },
   label: { fontSize: 16, fontWeight: "800" },
   hint: { fontSize: 12, fontWeight: "600" },
   line: { height: StyleSheet.hairlineWidth, marginLeft: 48 },
-  close: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });

@@ -545,11 +545,11 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           styles.fab,
           { bottom: (isTab ? floatingTabClearance(insets.bottom) : insets.bottom) + 12 },
         ]}
-        onPress={() => setSellOpen(true)}
+        onPress={() => setSellOpen((open) => !open)}
         accessibilityRole="button"
-        accessibilityLabel={t("m.studio.sell")}
+        accessibilityLabel={sellOpen ? t("common.back") : t("m.studio.sell")}
       >
-        <Ionicons name="add" size={30} color="#fff" />
+        <Ionicons name={sellOpen ? "close" : "add"} size={30} color="#fff" />
       </Pressable>
       <SellChoiceSheet
         visible={sellOpen}
