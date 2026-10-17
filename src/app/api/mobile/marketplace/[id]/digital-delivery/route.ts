@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
-import { mutateDigitalDelivery } from "@/lib/digital-delivery";
+import { maybeAutoApproveDigitalDelivery, mutateDigitalDelivery } from "@/lib/digital-delivery";
 import { isDigitalListing, publicDigitalDelivery, readDigitalDelivery } from "@/lib/market-tracks";
 import { db } from "@/lib/db";
 
 const bodySchema = z.object({
-  action: z.enum(["start", "upload", "approve"]),
+  action: z.enum(["start", "upload", "approve", "dispute"]),
   fileUrl: z.string().max(2000).optional(),
   fileName: z.string().max(180).optional(),
   previewUrl: z.string().max(2000).optional(),
+  disputeReason: z.string().max(500).optional(),
 });
 
 export async function GET(
@@ -36,7 +37,9 @@ export async function GET(
     select: { id: true },
   });
   const role = listing.sellerId === auth.user.id ? "seller" : buyerChat || orderItem ? "buyer" : "other";
+  const refreshed = await maybeAutoApproveDigitalDelivery(id, auth.user.id);
   const state =
+    refreshed ??
     readDigitalDelivery(listing.subcultureMeta) ??
     ({ kind: "commission" as const, status: "held" as const });
   const view = publicDigitalDelivery(state, role === "seller" ? "seller" : "buyer");

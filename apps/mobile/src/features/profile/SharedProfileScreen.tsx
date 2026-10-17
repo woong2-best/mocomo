@@ -31,6 +31,7 @@ import {
 import { ProfileCalendarSheet } from "@/features/profile/ProfileCalendarSheet";
 import { ProfileOptionsSheet } from "@/features/profile/ProfileOptionsSheet";
 import { ProfileFollowListSheet } from "@/features/profile/ProfileFollowListSheet";
+import { CommissionRequestSheet } from "@/features/marketplace/CommissionRequestSheet";
 import type { FollowListTab } from "@/api/social";
 import {
   USER_PROFILE_STALE_MS,
@@ -114,6 +115,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [followListTab, setFollowListTab] = useState<FollowListTab | null>(null);
+  const [requestOpen, setRequestOpen] = useState(false);
 
   const query = useQuery({
     queryKey: userProfileQueryKey(handle),
@@ -253,6 +255,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                         })
                     : undefined
                 }
+                onRequestCommission={user && !user.isSelf ? () => setRequestOpen(true) : undefined}
                 onOpenFollowList={
                   user ? (tab) => setFollowListTab(tab) : undefined
                 }
@@ -322,6 +325,9 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                 username={user.username}
                 onClose={() => setFollowListTab(null)}
               />
+            ) : null}
+            {user && !user.isSelf ? (
+              <CommissionRequestSheet visible={requestOpen} sellerId={user.id} onClose={() => setRequestOpen(false)} />
             ) : null}
 
             {isSelf ? (

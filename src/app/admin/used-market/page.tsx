@@ -10,6 +10,8 @@ import { AdminPageChrome } from "@/components/admin/admin-page-chrome";
 import { AdminAccessDenied } from "@/components/admin/admin-access-denied";
 import { isAdminForbiddenError } from "@/lib/admin-access";
 import { Button } from "@/components/ui/button";
+import { listDisputedDigitalCommissions } from "@/lib/digital-commission";
+import { AdminDigitalDisputes } from "@/components/admin/admin-digital-disputes";
 import { Gavel, Shield } from "lucide-react";
 
 export default async function AdminUsedMarketPage() {
@@ -17,16 +19,19 @@ export default async function AdminUsedMarketPage() {
   let config = null;
   let bannedUsers: Awaited<ReturnType<typeof searchUsedMarketBannedUsers>>["users"] = [];
   let appeals: Awaited<ReturnType<typeof getAdminUsedMarketAppeals>> = [];
+  let disputes: Awaited<ReturnType<typeof listDisputedDigitalCommissions>> = [];
 
   try {
-    const [cfgRes, bannedRes, appealsRes] = await Promise.all([
+    const [cfgRes, bannedRes, appealsRes, disputeRes] = await Promise.all([
       getUsedAuctionAdminConfig(),
       searchUsedMarketBannedUsers(""),
       getAdminUsedMarketAppeals("OPEN"),
+      listDisputedDigitalCommissions().catch(() => []),
     ]);
     config = cfgRes.config;
     bannedUsers = bannedRes.users ?? [];
     appeals = appealsRes;
+    disputes = disputeRes;
   } catch (e) {
     if (isAdminForbiddenError(e)) authorized = false;
     else throw e;
@@ -51,6 +56,7 @@ export default async function AdminUsedMarketPage() {
         </Link>
       </Button>
 
+      <AdminDigitalDisputes items={disputes} />
       <AdminUsedMarketAppealsPanel initialAppeals={appeals} />
       <AdminUsedMarketPanel initialConfig={config} initialBannedUsers={bannedUsers} />
     </AdminPageChrome>

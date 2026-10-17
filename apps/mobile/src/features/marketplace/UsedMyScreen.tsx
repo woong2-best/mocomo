@@ -21,6 +21,7 @@ import {
   usedStatusLabel,
 } from "@/features/marketplace/used-catalog";
 import { isDigitalListing } from "@/features/marketplace/market-browse";
+import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
@@ -107,9 +108,14 @@ export function UsedMyScreen() {
         leftLabel={t("common.back")}
         onLeftPress={() => navigation.goBack()}
         rightSlot={
-          <Pressable onPress={() => navigation.navigate("UsedCreate")}>
-            <Text style={{ fontWeight: "800", color: colors.brand }}>{t("m.common.new_listing")}</Text>
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <Pressable onPress={() => navigation.navigate("CommissionInbox")}>
+              <Text style={{ fontWeight: "800", color: colors.brand }}>{t("m.commission.inbox")}</Text>
+            </Pressable>
+            <Pressable onPress={() => navigation.navigate("UsedCreate")}>
+              <Text style={{ fontWeight: "800", color: colors.brand }}>{t("m.common.new_listing")}</Text>
+            </Pressable>
+          </View>
         }
       />
       {query.isLoading ? (

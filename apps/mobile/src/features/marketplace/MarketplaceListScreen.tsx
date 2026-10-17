@@ -21,11 +21,12 @@ import {
   formatUsedPrice,
   formatUsedTimeAgo,
 } from "@/features/marketplace/used-catalog";
-import { hubForTrack, isDigitalListing, type MarketTrack } from "@/features/marketplace/market-browse";
+import { isDigitalListing, MENU_CATEGORIES, type MarketScope } from "@/features/marketplace/market-browse";
 import { useI18n } from "@/i18n/I18nProvider";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { showIslandError } from "@/ui/IslandToast";
 import { Screen } from "@/ui/Screen";
+import { SearchField } from "@/ui/SearchField";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { IMAGE_CACHE_POLICY } from "@/perf/image";
 import { useTheme } from "@/theme/ThemeContext";
@@ -34,6 +35,7 @@ import type { RootStackParamList } from "@/navigation/types";
 import { useAuth } from "@/auth/AuthContext";
 import { MarketHubSlidePanel } from "@/features/marketplace/MarketHubSlidePanel";
 import type { MarketHubLane } from "@/features/marketplace/MarketHomeScreen";
+import { loadRecentSearches, rememberSearch } from "@/features/marketplace/market-memory";
 import {
   UsedListingOverflowMenu,
   type MenuAnchor,
@@ -85,9 +87,10 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const { user, status: authStatus } = useAuth();
 
   const [q, setQ] = useState(routeParams.q ?? "");
+  const [recentQ, setRecentQ] = useState<string[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [browse, setBrowse] = useState<BrowsePick>({ source: "hub", id: "ALL" });
-  const [track, setTrack] = useState<MarketTrack>("physical");
-  const [purchaseTab, setPurchaseTab] = useState<"physical" | "digital" | "bids">("physical");
+  const [scope, setScope] = useState<MarketScope>("all");
   const [hubOpen, setHubOpen] = useState(false);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -97,21 +100,34 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   useEffect(() => {
     void loadDismissedUsedListingIds().then(setDismissedIds);
   }, []);
+  useEffect(() => {
+    void loadRecentSearches().then((terms) => setRecentQ(terms.slice(0, 3)));
+  }, []);
+
+  const saveSearch = useCallback((term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+    void rememberSearch(trimmed).then((terms) => setRecentQ(terms.slice(0, 3)));
+  }, []);
+
+  const applySearch = useCallback(
+    (term: string) => {
+      setQ(term);
+      saveSearch(term);
+      setSearchFocused(false);
+    },
+    [saveSearch]
+  );
 
   const listQuery = useMemo(() => {
-    const hubCategories = hubForTrack(track);
-    const hub = browse.source === "hub" ? hubCategories.find((item) => item.id === browse.id) : undefined;
+    const hub = browse.source === "hub" ? MENU_CATEGORIES.find((item) => item.id === browse.id) : undefined;
     const personalLane = !isCombined;
-    const bidsLane = personalLane && hubLane === "purchased" && purchaseTab === "bids";
     return {
       q: q || undefined,
       category: personalLane ? undefined : hub?.category,
       product: personalLane ? undefined : hub?.product,
-      track: personalLane ? undefined : track,
-      mode: personalLane ? ("fixed" as const) : undefined,
-      lane: bidsLane
-        ? ("my-bids" as const)
-        : hubLane === "recommend" ||
+      track: personalLane || scope === "all" ? undefined : scope,
+      lane: hubLane === "recommend" ||
             hubLane === "purchased" ||
             hubLane === "favorites" ||
             hubLane === "disputes" ||
@@ -120,7 +136,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           : undefined,
       take: 48,
     };
-  }, [q, browse, isCombined, hubLane, track, purchaseTab]);
+  }, [q, browse, isCombined, hubLane, scope]);
 
   const query = useQuery({
     queryKey: ["mobile-marketplace", hubLane ?? "used", listQuery],
@@ -203,7 +219,11 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
 
   const selectHubCategory = useCallback(
     (id: string) => {
+      const picked = MENU_CATEGORIES.find((item) => item.id === id);
       setBrowse({ source: "hub", id });
+      if (picked?.product) setScope("digital");
+      else if (picked?.category) setScope("physical");
+      else setScope("all");
       clearPersonalLane();
       setHubOpen(false);
     },
@@ -332,91 +352,52 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     [colors.like, liked, muted, openItem, styles, t, toggleFavorite, t, user?.id]
   );
 
-  const hubCategories = hubForTrack(track);
   const hubActiveId = isCombined && browse.source === "hub" ? browse.id : null;
-  const visibleItems = items.filter((item) => {
-    if (hubLane !== "purchased" || purchaseTab === "bids") return true;
-    const digital = isDigitalListing(item);
-    return purchaseTab === "digital" ? digital : !digital;
-  });
+  const visibleItems = items;
+  const recentTerms = recentQ.slice(0, 3);
+  const scopeActive = isCombined ? scope : null;
   const filterBar = (
-    <View>
-      <View style={styles.trackRow}>
-        {([
-          ["physical", "m.market.track.physical"],
-          ["digital", "m.market.track.digital"],
-        ] as const).map(([id, key]) => {
-          const active = track === id;
-          return (
-            <Pressable
-              key={id}
-              onPress={() => {
-                setTrack(id);
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.catRow}>
+      {([
+        ["all", "m.market.track.all"],
+        ["physical", "m.market.scope.physical"],
+        ["digital", "m.market.scope.digital"],
+      ] as const).map(([id, key]) => {
+        const active = scopeActive === id;
+        return (
+          <Pressable
+            key={id}
+            onPress={() => {
+              setScope(id);
+              if (id === "all") setBrowse({ source: "hub", id: "ALL" });
+              else if (id === "physical" && MENU_CATEGORIES.find((item) => item.id === browse.id)?.product) {
                 setBrowse({ source: "hub", id: "ALL" });
-                clearPersonalLane();
-              }}
-              style={[styles.trackTab, active && styles.trackTabOn]}
-            >
-              <Text style={[styles.trackText, active && styles.trackTextOn]}>{t(key)}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      {hubLane === "purchased" ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.catRow}>
-          {([
-            ["physical", "m.market.track.physical_orders"],
-            ["digital", "m.market.track.digital_requests"],
-            ["bids", "m.market.track.my_bids"],
-          ] as const).map(([id, key]) => {
-            const active = purchaseTab === id;
-            return (
-              <Pressable
-                key={id}
-                onPress={() => setPurchaseTab(id)}
-                style={[styles.cat, { backgroundColor: active ? colors.brand : colors.surfaceRaised, borderColor: active ? colors.brand : colors.border }]}
-              >
-                <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>{t(key)}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.catRow}>
-          {hubCategories.map((item) => {
-            const active = hubActiveId === item.id;
-            return (
-              <Pressable
-                key={item.id}
-                onPress={() => {
-                  setBrowse({ source: "hub", id: item.id });
-                  clearPersonalLane();
-                }}
-                style={[styles.cat, { backgroundColor: active ? colors.brand : colors.surfaceRaised, borderColor: active ? colors.brand : colors.border }]}
-              >
-                <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>{t(item.labelKey)}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      )}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.catRow}>
-        {LANE_PILLS.map((item) => {
-          const active = item.id !== "sales" && hubLane === item.id;
-          return (
-            <Pressable
-              key={item.id}
-              onPress={() => onLanePill(item.id)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              style={[styles.cat, { backgroundColor: active ? colors.brand : colors.surfaceRaised, borderColor: active ? colors.brand : colors.border }]}
-            >
-              <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>{t(item.labelKey)}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
+              } else if (id === "digital" && MENU_CATEGORIES.find((item) => item.id === browse.id)?.category) {
+                setBrowse({ source: "hub", id: "ALL" });
+              }
+              clearPersonalLane();
+            }}
+            style={[styles.cat, { backgroundColor: active ? colors.brand : colors.surfaceRaised, borderColor: active ? colors.brand : colors.border }]}
+          >
+            <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>{t(key)}</Text>
+          </Pressable>
+        );
+      })}
+      {LANE_PILLS.map((item) => {
+        const active = item.id !== "sales" && hubLane === item.id;
+        return (
+          <Pressable
+            key={item.id}
+            onPress={() => onLanePill(item.id)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            style={[styles.cat, { backgroundColor: active ? colors.brand : colors.surfaceRaised, borderColor: active ? colors.brand : colors.border }]}
+          >
+            <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>{t(item.labelKey)}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 
   const listEmpty =
@@ -450,7 +431,20 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         >
           <Ionicons name="chevron-back" size={26} color={ink} />
         </Pressable>
-        <View style={{ flex: 1 }} />
+        <SearchField
+          variant="pill"
+          value={q}
+          onChangeText={setQ}
+          onClear={() => setQ("")}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => {
+            saveSearch(q);
+            setTimeout(() => setSearchFocused(false), 180);
+          }}
+          onSubmitEditing={() => saveSearch(q)}
+          placeholder={t("common.search")}
+          containerStyle={{ flex: 1 }}
+        />
         <Pressable
           onPress={() => setHubOpen(true)}
           hitSlop={10}
@@ -476,6 +470,27 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         refreshing={refreshing}
         onRefresh={() => void onRefresh()}
       />
+      {searchFocused && recentTerms.length > 0 ? (
+        <View style={styles.searchPopup}>
+          <Pressable style={styles.searchBackdrop} onPress={() => setSearchFocused(false)} />
+          <View style={[styles.searchPanel, { backgroundColor: colors.surfaceRaised, borderColor: colors.hairline }]}>
+            <View style={[styles.recentHead, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.recentRank, { color: colors.textMuted }]}>#</Text>
+              <Text style={[styles.recentHeadTitle, { color: colors.text }]}>{t("m.marketplace.recent_searches")}</Text>
+            </View>
+            {recentTerms.map((term, index) => (
+              <Pressable
+                key={term}
+                onPressIn={() => applySearch(term)}
+                style={[styles.recentRow, { borderTopColor: colors.hairline }]}
+              >
+                <Text style={[styles.recentRank, { color: index === 0 ? "#d63a3a" : colors.textMuted }]}>{index + 1}</Text>
+                <Text style={styles.recentTerm} numberOfLines={1}>{term}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
       </View>
 
       <Pressable
@@ -495,7 +510,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         onClose={() => setHubOpen(false)}
         onSelectCategory={selectHubCategory}
         selectedCategoryId={hubActiveId}
-        categories={hubCategories}
+        categories={MENU_CATEGORIES}
       />
 
       {menuItem ? (

@@ -149,6 +149,10 @@ export function RootNavigator() {
               getComponent={() => require("@/features/marketplace/UsedMyScreen").UsedMyScreen}
             />
             <Stack.Screen
+              name="CommissionInbox"
+              getComponent={() => require("@/features/marketplace/CommissionInboxScreen").CommissionInboxScreen}
+            />
+            <Stack.Screen
               name="AuctionMy"
               getComponent={() => require("@/features/marketplace/UsedMyScreen").UsedMyScreen}
             />

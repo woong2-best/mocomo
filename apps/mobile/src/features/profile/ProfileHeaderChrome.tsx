@@ -75,6 +75,7 @@ type Props = {
   followLoading?: boolean;
   following?: boolean;
   onOpenChat?: (roomId: string) => void;
+  onRequestCommission?: () => void;
   onOpenFollowList?: (tab: "followers" | "following") => void;
   /** Header identity is known; bio, counts, follow, and banner are still loading. */
   pending?: boolean;
@@ -93,6 +94,7 @@ export function ProfileHeaderChrome({
   followLoading,
   following,
   onOpenChat,
+  onRequestCommission,
   onOpenFollowList,
   pending = false,
   bannerTopInset = 0,
@@ -160,6 +162,11 @@ export function ProfileHeaderChrome({
                     {following ? t("m.common.following") : t("m.common.follow")}
                   </Text>
                 </Pressable>
+                {onRequestCommission ? (
+                  <Pressable style={styles.outlineBtn} onPress={onRequestCommission}>
+                    <Text style={styles.outlineBtnText}>{t("m.commission.request")}</Text>
+                  </Pressable>
+                ) : null}
                 {onOpenChat && user.canMessage !== false ? (
                   <Pressable
                     style={styles.chatBtn}

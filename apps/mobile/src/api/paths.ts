@@ -58,6 +58,7 @@ export const MobileApi = {
   callEnd: (id: string) => `/api/mobile/calls/${id}/end`,
   live: "/api/mobile/live",
   marketplace: "/api/mobile/marketplace",
+  commissions: "/api/mobile/commissions",
   marketplaceShareCard: (id: string) => `/api/mobile/marketplace/${id}/share-card`,
   marketplaceTradeComplete: (id: string) => `/api/mobile/marketplace/${id}/trade-complete`,
   marketplaceBump: (id: string) => `/api/mobile/marketplace/${id}/bump`,

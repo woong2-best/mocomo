@@ -2,6 +2,7 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
+import { CommissionRequestButton } from "@/components/profile/commission-request-button";
 import { StartDmButton } from "@/components/messages/start-dm-button";
 
 export function ProfileHeaderActionBar({
@@ -31,6 +32,7 @@ export function ProfileHeaderActionBar({
         syncFollowingOnMount
       />
       {canMessage ? <StartDmButton userId={userId} variant="profile" /> : null}
+      <CommissionRequestButton sellerId={userId} />
     </div>
   );
 }

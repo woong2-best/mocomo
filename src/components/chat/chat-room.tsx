@@ -19,6 +19,7 @@ import { ChatMessageReplyQuote } from "@/components/chat/chat-message-reply-quot
 import { ChatReplyComposerBar } from "@/components/chat/chat-reply-composer-bar";
 import { ChatSharedPostCard } from "@/components/chat/chat-shared-post-card";
 import { ChatUsedListingCard } from "@/components/chat/chat-used-listing-card";
+import { DigitalDeliveryRoom } from "@/components/used/digital-delivery-room";
 import {
   parseUsedTradeRequestMarker,
   stripUsedTradeRequestMarker,
@@ -89,6 +90,7 @@ export function ChatRoomClient({
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
   const [error, setError] = useState("");
   const [listingSold, setListingSold] = useState(false);
+  const [digitalListingId, setDigitalListingId] = useState<string | null>(null);
   const [filterWarning, setFilterWarning] = useState("");
   const { socket, socketReady, realtimeOff, subscribeMessages } = useChatSocket();
   const router = useRouter();
@@ -165,8 +167,11 @@ export function ChatRoomClient({
       try {
         const res = await fetch(`/api/used/trade-room/${encodeURIComponent(roomId)}`);
         if (!res.ok) return;
-        const body = (await res.json()) as { usedTrade?: { listingStatus?: string } | null };
-        if (!cancelled) setListingSold(body.usedTrade?.listingStatus === "SOLD");
+        const body = (await res.json()) as { usedTrade?: { listingStatus?: string; listingId?: string; digital?: boolean } | null };
+        if (!cancelled) {
+          setListingSold(body.usedTrade?.listingStatus === "SOLD");
+          setDigitalListingId(body.usedTrade?.digital ? body.usedTrade.listingId ?? null : null);
+        }
       } catch {
         if (!cancelled) setListingSold(false);
       }
@@ -508,6 +513,7 @@ export function ChatRoomClient({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-muted/20">
+      {digitalListingId ? <DigitalDeliveryRoom listingId={digitalListingId} /> : null}
       <div
         ref={scrollRef}
         onScroll={onScroll}

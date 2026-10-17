@@ -70,6 +70,7 @@ export type RootStackParamList = {
   UsedCreate: { editId?: string } | undefined;
   AuctionCreate: undefined;
   UsedMy: undefined;
+  CommissionInbox: undefined;
   AuctionMy: undefined;
   Market: undefined;
   StarMarketDetail: { id: string };

@@ -20,6 +20,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ChatMessage } from "@/api/messages";
 import { uploadLocalFile } from "@/api/upload-file";
+import { DigitalDeliveryCard } from "@/features/marketplace/DigitalDeliveryCard";
 import { useAuth } from "@/auth/AuthContext";
 import { shouldShowMessageTime } from "@/features/messages/chat-display";
 import { ChatReplyComposerBar } from "@/features/messages/ChatReplyComposerBar";
@@ -422,6 +423,7 @@ export function MessageRoomScreen() {
           ) : null}
         </View>
       </View>
+      {usedTrade?.listingId ? <DigitalDeliveryCard listingId={usedTrade.listingId} /> : null}
 
       {!isGroup && peerId ? (
         <PostReportSheet

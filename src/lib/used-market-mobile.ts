@@ -1,4 +1,4 @@
-import { isDigitalProductType } from "@/lib/market-tracks";
+import { isDigitalListing, isDigitalProductType } from "@/lib/market-tracks";
 import { Prisma, type UsedRestrictedKind } from "@prisma/client";
 import { db } from "@/lib/db";
 import { assertAuctionPostAccess, assertUsedMarketAccess } from "@/lib/used-market-access";
@@ -963,6 +963,8 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
           price: true,
           currency: true,
           currentBidAmount: true,
+          category: true,
+          productType: true,
           seller: { select: { username: true } },
         },
       },
@@ -1039,6 +1041,7 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
 
   return {
     listingId: listing.id,
+    digital: isDigitalListing(listing),
     listingTitle: listing.title,
     listingStatus: listing.status,
     saleType: listing.saleType,

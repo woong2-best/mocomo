@@ -1,6 +1,7 @@
 /** Physical Market vs Digital Studio browse sets for the mobile app. */
 
 export type MarketTrack = "physical" | "digital";
+export type MarketScope = "all" | MarketTrack;
 
 export type HubCategory = {
   id: string;
@@ -40,6 +41,13 @@ export const DIGITAL_PRODUCT_IDS = [
 export function hubForTrack(track: MarketTrack): HubCategory[] {
   return track === "digital" ? DIGITAL_HUB : PHYSICAL_HUB;
 }
+
+/** Side-menu categories for the combined market. */
+export const MENU_CATEGORIES: HubCategory[] = [
+  { id: "ALL", labelKey: "m.market.track.all" },
+  ...PHYSICAL_HUB.filter((item) => item.id !== "ALL"),
+  ...DIGITAL_HUB.filter((item) => item.id !== "ALL"),
+];
 
 export function isDigitalListing(input: {
   category?: string | null;

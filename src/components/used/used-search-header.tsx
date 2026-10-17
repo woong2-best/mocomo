@@ -50,7 +50,8 @@ export function UsedSearchHeader({
   }
 
   const activeQ = searchParams.get("q");
-  const track = searchParams.get("track") === "digital" ? "digital" : "physical";
+  const trackParam = searchParams.get("track");
+  const scope = trackParam === "digital" || trackParam === "physical" ? trackParam : "all";
 
   return (
     <div
@@ -59,27 +60,24 @@ export function UsedSearchHeader({
         isPending && "opacity-60"
       )}
     >
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => apply({ track: "physical", category: null, product: null })}
-          className={cn(
-            "min-h-12 rounded-2xl border-[1.5px] px-3 text-sm font-extrabold",
-            track === "physical" ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
-          )}
-        >
-          {t("market.track.physical")}
-        </button>
-        <button
-          type="button"
-          onClick={() => apply({ track: "digital", category: null, product: null })}
-          className={cn(
-            "min-h-12 rounded-2xl border-[1.5px] px-3 text-sm font-extrabold",
-            track === "digital" ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
-          )}
-        >
-          {t("market.track.digital")}
-        </button>
+      <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+        {([
+          ["all", "market.track.all"],
+          ["physical", "market.scope.physical"],
+          ["digital", "market.scope.digital"],
+        ] as const).map(([id, key]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => apply({ track: id === "all" ? null : id, category: null, product: null })}
+            className={cn(
+              "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
+              scope === id ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
+            )}
+          >
+            {t(key)}
+          </button>
+        ))}
       </div>
       {activeQ ? (
         <div className="flex items-center justify-between gap-2 pt-0.5">
@@ -101,40 +99,30 @@ export function UsedSearchHeader({
         <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
           <button
             type="button"
-            onClick={() => apply({ category: null, product: null, track })}
+            onClick={() => apply({ category: null, product: null, track: scope === "all" ? null : scope })}
             className={cn(
               "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold",
-              !(track === "digital" ? searchParams.get("product") : searchParams.get("category"))
+              !searchParams.get("product") && !searchParams.get("category")
                 ? "border-folk-cobalt bg-folk-cobalt text-white"
                 : "border-border bg-card text-folk-cobalt"
             )}
           >
             {t("market.track.all")}
           </button>
-          {track === "digital"
-            ? DIGITAL.map((c) => (
+          {(scope === "digital" ? DIGITAL : scope === "physical" ? PHYSICAL : [...PHYSICAL, ...DIGITAL]).map((c) => (
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => apply({ product: c.id, category: null, track: "digital", mode: null })}
+                  onClick={() =>
+                    apply(
+                      "id" in c && DIGITAL.some((item) => item.id === c.id)
+                        ? { product: c.id, category: null, track: "digital", mode: null }
+                        : { category: c.id, product: null, track: "physical", mode: null }
+                    )
+                  }
                   className={cn(
                     "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
-                    searchParams.get("product") === c.id
-                      ? "border-folk-cobalt bg-folk-cobalt text-white"
-                      : "border-border bg-card text-folk-cobalt"
-                  )}
-                >
-                  {t(c.key)}
-                </button>
-              ))
-            : PHYSICAL.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => apply({ category: c.id, product: null, track: "physical", mode: null })}
-                  className={cn(
-                    "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
-                    searchParams.get("category") === c.id
+                    searchParams.get("product") === c.id || searchParams.get("category") === c.id
                       ? "border-folk-cobalt bg-folk-cobalt text-white"
                       : "border-border bg-card text-folk-cobalt"
                   )}
@@ -143,7 +131,7 @@ export function UsedSearchHeader({
                 </button>
               ))}
         </div>
-        {track === "physical" ? (
+        {scope !== "digital" ? (
           <UsedRegionFilter
             className="min-w-[8rem] flex-1"
             viewerCountryCode={viewerCountryCode}

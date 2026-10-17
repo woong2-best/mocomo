@@ -1,23 +1,30 @@
 "use server";
 
-import { auth, requireAuth } from "@/lib/auth";
-import { mutateDigitalDelivery } from "@/lib/digital-delivery";
+import { auth, requireAdmin, requireAuth } from "@/lib/auth";
+import { maybeAutoApproveDigitalDelivery, mutateDigitalDelivery } from "@/lib/digital-delivery";
 import { publicDigitalDelivery, readDigitalDelivery, isDigitalListing } from "@/lib/market-tracks";
 import { db } from "@/lib/db";
 
 export async function updateDigitalDelivery(input: {
   listingId: string;
-  action: "start" | "upload" | "approve";
+  action: "start" | "upload" | "approve" | "dispute";
   fileUrl?: string;
   fileName?: string;
   previewUrl?: string;
+  disputeReason?: string;
 }) {
   const user = await requireAuth();
   return mutateDigitalDelivery(user.id, input.listingId, input.action, {
     fileUrl: input.fileUrl,
     fileName: input.fileName,
     previewUrl: input.previewUrl,
+    disputeReason: input.disputeReason,
   });
+}
+
+export async function forceApproveDigitalDelivery(listingId: string) {
+  const admin = await requireAdmin({ action: "digital_delivery.force_approve", targetId: listingId });
+  return mutateDigitalDelivery(admin.id, listingId, "force", undefined, { asAdmin: true });
 }
 
 export async function getDigitalDelivery(listingId: string) {
@@ -40,7 +47,8 @@ export async function getDigitalDelivery(listingId: string) {
     select: { id: true },
   });
   const role = listing.sellerId === userId ? "seller" : buyerChat || orderItem ? "buyer" : "other";
-  const view = publicDigitalDelivery(state, role === "seller" ? "seller" : "buyer");
+  const refreshed = digital ? await maybeAutoApproveDigitalDelivery(listingId, userId) : state;
+  const view = publicDigitalDelivery(refreshed ?? state, role === "seller" ? "seller" : "buyer");
   return {
     delivery: role === "other" && view ? { ...view, fileUrl: undefined, previewUrl: undefined } : view,
     role,

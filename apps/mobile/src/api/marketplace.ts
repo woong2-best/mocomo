@@ -185,10 +185,11 @@ export async function fetchDigitalDelivery(listingId: string) {
 export async function postDigitalDelivery(
   listingId: string,
   body: {
-    action: "start" | "upload" | "approve";
+    action: "start" | "upload" | "approve" | "dispute";
     fileUrl?: string;
     fileName?: string;
     previewUrl?: string;
+    disputeReason?: string;
   }
 ) {
   return apiRequest<{ delivery: DigitalDeliveryView | null; error?: string }>(

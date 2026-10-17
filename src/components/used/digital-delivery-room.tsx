@@ -34,7 +34,7 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
 
   if (!digital || !delivery) return null;
 
-  async function run(action: "start" | "upload" | "approve", file?: { fileUrl?: string; fileName?: string; previewUrl?: string }) {
+  async function run(action: "start" | "upload" | "approve" | "dispute", file?: { fileUrl?: string; fileName?: string; previewUrl?: string; disputeReason?: string }) {
     setBusy(true);
     setNote("");
     const res = await updateDigitalDelivery({ listingId, action, ...file });
@@ -55,7 +55,7 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
       let previewUrl: string | undefined;
       if (file.type.startsWith("image/")) {
         original = await uploadImageBlob(file, file.name);
-        const marked = await applyImageWatermarkBlob(file, "PREVIEW", { diagonal: true, corner: false });
+        const marked = await applyImageWatermarkBlob(file, "MoCoMo", { diagonal: true, corner: true });
         previewUrl = await uploadImageBlob(marked, `preview-${file.name}`);
       } else if (file.type.startsWith("video/")) {
         original = await uploadVideoBlob(file, file.name);
@@ -114,6 +114,12 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
           {t("market.track.approveDownload")}
         </button>
       ) : null}
+      {role === "buyer" && delivery.status === "uploaded" ? (
+        <button type="button" className="rounded-xl border px-3 py-2 text-sm font-bold" disabled={busy} onClick={() => void run("dispute", { disputeReason: "Requirements do not match" })}>
+          {t("market.commission.dispute")}
+        </button>
+      ) : null}
+      <p className="text-xs text-muted-foreground">{t("market.commission.autoNote")}</p>
       {role === "buyer" && delivery.status === "completed" && delivery.fileUrl ? (
         <a className="text-sm font-bold text-folk-cobalt underline" href={delivery.fileUrl}>
           {delivery.fileName || t("market.track.approveDownload")}

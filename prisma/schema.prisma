@@ -463,6 +463,8 @@ model User {
   usedListingChats UsedListingChat[] @relation("UsedListingChatBuyer")
   usedTradeRequestsAsBuyer  UsedTradeRequest[] @relation("UsedTradeRequestBuyer")
   usedTradeRequestsAsSeller UsedTradeRequest[] @relation("UsedTradeRequestSeller")
+  digitalCommissionsBought DigitalCommission[] @relation("DigitalCommissionBuyer")
+  digitalCommissionsSold   DigitalCommission[] @relation("DigitalCommissionSeller")
   directTradesAsBuyer UsedDirectTrade[] @relation("UsedDirectTradeBuyer")
   directTradesAsSeller UsedDirectTrade[] @relation("UsedDirectTradeSeller")
   usedAuctionBids  UsedAuctionBid[]
@@ -3246,6 +3248,7 @@ model UsedListing {
   stars       UsedListingStar[]
   tradeChats  UsedListingChat[]
   tradeRequests UsedTradeRequest[]
+  digitalCommissions DigitalCommission[]
   directTrade UsedDirectTrade?
   auctionBids UsedAuctionBid[]
   auctionDeposits AuctionDeposit[]
@@ -3546,6 +3549,31 @@ model UsedTradeRequest {
   @@index([listingId, status])
   @@index([roomId, createdAt(sort: Desc)])
   @@index([buyerId, listingId])
+}
+
+model DigitalCommission {
+  id            String    @id @default(cuid())
+  buyerId       String
+  sellerId      String
+  brief         String    @db.Text
+  purpose       String    @db.VarChar(20)
+  referenceUrls Json      @default("[]")
+  status        String    @default("REQUESTED") @db.VarChar(20)
+  price         Int?
+  currency      String    @default("krw") @db.VarChar(3)
+  estimatedDays Int?
+  listingId     String?
+  roomId        String?
+  disputeReason String?   @db.VarChar(500)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  buyer         User      @relation("DigitalCommissionBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller        User      @relation("DigitalCommissionSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  listing       UsedListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  @@index([sellerId, status])
+  @@index([buyerId, status])
+  @@index([listingId])
 }
 
 /** 경매 직거래 도착 인증. 좌표는 저장하지 않고 판정 결과만 남긴다. */

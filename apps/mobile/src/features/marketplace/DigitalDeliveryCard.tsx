@@ -30,7 +30,7 @@ export function DigitalDeliveryCard({ listingId }: { listingId: string }) {
 
   if (!digital || !delivery) return null;
 
-  async function run(action: "start" | "upload" | "approve", file?: { fileUrl: string; fileName: string }) {
+  async function run(action: "start" | "upload" | "approve" | "dispute", file?: { fileUrl: string; fileName: string }) {
     setBusy(true);
     setNote("");
     try {
@@ -95,6 +95,12 @@ export function DigitalDeliveryCard({ listingId }: { listingId: string }) {
           <Text style={styles.btnText}>{t("m.market.track.approve_download")}</Text>
         </Pressable>
       ) : null}
+      {role === "buyer" && delivery.status === "uploaded" ? (
+        <Pressable style={styles.btn} disabled={busy} onPress={() => void run("dispute")}>
+          <Text style={styles.btnText}>{t("m.commission.dispute")}</Text>
+        </Pressable>
+      ) : null}
+      <Text style={styles.locked}>{t("m.commission.auto_note")}</Text>
       {role === "buyer" && delivery.status === "completed" && delivery.fileUrl ? (
         <Text style={styles.locked}>{delivery.fileUrl}</Text>
       ) : null}

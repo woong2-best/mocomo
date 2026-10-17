@@ -22,7 +22,11 @@ export type DigitalDeliveryState = {
   fileName?: string;
   previewUrl?: string;
   approvedAt?: string;
+  uploadedAt?: string;
+  disputed?: boolean;
 };
+
+export const DIGITAL_AUTO_APPROVE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const DIGITAL_SET = new Set<string>(DIGITAL_PRODUCT_TYPES);
 
@@ -61,6 +65,8 @@ export function readDigitalDelivery(meta: unknown): DigitalDeliveryState | null 
     fileName: typeof row.fileName === "string" ? row.fileName : undefined,
     previewUrl: typeof row.previewUrl === "string" ? row.previewUrl : undefined,
     approvedAt: typeof row.approvedAt === "string" ? row.approvedAt : undefined,
+    uploadedAt: typeof row.uploadedAt === "string" ? row.uploadedAt : undefined,
+    disputed: row.disputed === true,
   };
 }
 

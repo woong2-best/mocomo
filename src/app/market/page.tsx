@@ -73,7 +73,7 @@ async function UsedFeed({
   const { q, category, region, sido, mode, work, product, condition, limited, trade, anime, track: trackParam } =
     await searchParams;
   const query = q?.trim() || "";
-  const track = trackParam === "digital" ? "digital" : "physical";
+  const track = trackParam === "digital" || trackParam === "physical" ? trackParam : undefined;
 
   const session = await auth();
   const listParams = {
