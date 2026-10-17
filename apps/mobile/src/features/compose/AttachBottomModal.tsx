@@ -16,6 +16,7 @@ export function AttachBottomModal({
   hasMedia,
   pickedLabel,
   maxHeight,
+  bottomInset = 0,
   onClose,
   onPick,
   onConfirm,
@@ -27,6 +28,8 @@ export function AttachBottomModal({
   hasMedia: boolean;
   pickedLabel: string | null;
   maxHeight?: number;
+  /** Extra padding so the sheet sits on the screen bottom, above the home indicator. */
+  bottomInset?: number;
   onClose: () => void;
   onPick: () => void;
   onConfirm: (priceKrw: number) => void;
@@ -75,6 +78,7 @@ export function AttachBottomModal({
           backgroundColor: colors.surface,
           borderColor: colors.hairline,
           maxHeight,
+          paddingBottom: 18 + bottomInset,
         },
       ]}
       onPress={() => undefined}
