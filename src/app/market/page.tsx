@@ -98,6 +98,61 @@ async function UsedFeed({
   const lane = parseMarketLane(laneParam);
   const track = lane ? undefined : parseMarketTrack(trackParam);
 
+  try {
+    return await renderUsedFeed({
+      q: query,
+      category,
+      region,
+      sido,
+      mode,
+      work,
+      product,
+      condition,
+      limited,
+      trade,
+      anime,
+      track,
+      lane,
+    });
+  } catch (error) {
+    return (
+      <p className="p-6 text-sm text-destructive">
+        {error instanceof Error ? error.message : "Market failed to load."}
+      </p>
+    );
+  }
+}
+
+async function renderUsedFeed(input: {
+  q: string;
+  category?: string;
+  region?: string;
+  sido?: string;
+  mode?: string;
+  work?: string;
+  product?: string;
+  condition?: string;
+  limited?: string;
+  trade?: string;
+  anime?: string;
+  track?: "physical" | "digital";
+  lane?: ReturnType<typeof parseMarketLane>;
+}) {
+  const {
+    q: query,
+    category,
+    region,
+    sido,
+    mode,
+    work,
+    product,
+    condition,
+    limited,
+    trade,
+    anime,
+    track,
+    lane,
+  } = input;
   const session = await auth();
 
   if (lane && !session?.user?.id) {
@@ -299,27 +354,40 @@ export default async function UsedHomePage({
 }: {
   searchParams: Promise<MarketSearch>;
 }) {
-  const search = await searchParams;
-  const categoryHref = categoryRedirectHref(search);
-  if (categoryHref) redirect(categoryHref);
+  try {
+    const search = await searchParams;
+    const categoryHref = categoryRedirectHref(search);
+    if (categoryHref) redirect(categoryHref);
 
-  const session = await auth();
-  const scope = await resolveUsedMarketScope({
-    userId: session?.user?.id,
-    sessionCountry: session?.user?.countryCode,
-  });
+    const session = await auth();
+    const scope = await resolveUsedMarketScope({
+      userId: session?.user?.id,
+      sessionCountry: session?.user?.countryCode,
+    });
 
-  return (
-    <div className="space-y-2">
-      <Suspense fallback={null}>
-        <UsedSearchHeader
-          viewerCountryCode={scope.countryCode}
-          viewerServiceRegion={scope.serviceRegion}
-        />
-      </Suspense>
-      <Suspense fallback={<UsedFeedSkeleton />}>
-        <UsedFeed searchParams={searchParams} />
-      </Suspense>
-    </div>
-  );
+    return (
+      <div className="space-y-2">
+        <Suspense fallback={null}>
+          <UsedSearchHeader
+            viewerCountryCode={scope.countryCode}
+            viewerServiceRegion={scope.serviceRegion}
+            track={parseMarketTrack(search.track)}
+            lane={parseMarketLane(search.lane) ?? null}
+            category={search.category ?? null}
+            product={search.product ?? null}
+            activeQ={search.q ?? null}
+          />
+        </Suspense>
+        <Suspense fallback={<UsedFeedSkeleton />}>
+          <UsedFeed searchParams={searchParams} />
+        </Suspense>
+      </div>
+    );
+  } catch (error) {
+    return (
+      <p className="p-6 text-sm text-destructive">
+        {error instanceof Error ? error.message : "Market failed to load."}
+      </p>
+    );
+  }
 }

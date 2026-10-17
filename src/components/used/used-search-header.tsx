@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { UsedRegionFilter } from "@/components/used/used-region-filter";
@@ -10,38 +10,48 @@ import {
   DIGITAL_MARKET_CATEGORIES,
   MARKET_LANE_CHIPS,
   PHYSICAL_MARKET_CATEGORIES,
-  parseMarketLane,
-  parseMarketTrack,
 } from "@/lib/market-browse";
 
 type UsedSearchHeaderProps = {
   viewerCountryCode: string;
   viewerServiceRegion?: string | null;
+  track: "physical" | "digital";
+  lane?: string | null;
+  category?: string | null;
+  product?: string | null;
+  activeQ?: string | null;
 };
 
 export function UsedSearchHeader({
   viewerCountryCode,
   viewerServiceRegion,
+  track,
+  lane,
+  category,
+  product,
+  activeQ,
 }: UsedSearchHeaderProps) {
   const { t } = useLocale();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
   function apply(updates: Record<string, string | null>) {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v) params.set(k, v);
-      else params.delete(k);
-    });
+    const params = new URLSearchParams();
+    const seed: Record<string, string | null | undefined> = {
+      track,
+      lane,
+      category,
+      product,
+      q: activeQ,
+    };
+    for (const [key, value] of Object.entries({ ...seed, ...updates })) {
+      if (value) params.set(key, value);
+    }
     startTransition(() => {
       router.replace(`/market?${params.toString()}`);
     });
   }
 
-  const activeQ = searchParams.get("q");
-  const lane = parseMarketLane(searchParams.get("lane"));
-  const track = parseMarketTrack(searchParams.get("track"));
   const categories = track === "digital" ? DIGITAL_MARKET_CATEGORIES : PHYSICAL_MARKET_CATEGORIES;
   const personal = !!lane;
 
@@ -119,10 +129,7 @@ export function UsedSearchHeader({
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
             {categories.map((c) => {
-              const selected =
-                track === "digital"
-                  ? searchParams.get("product") === c.id
-                  : searchParams.get("category") === c.id;
+                  const selected = track === "digital" ? product === c.id : category === c.id;
               return (
                 <button
                   key={c.id}
