@@ -6,8 +6,8 @@ import { updatePostTranslateInto } from "@/actions/post-translate-settings";
 import { useLocale } from "@/components/providers/locale-provider";
 import { usePostTranslate } from "@/components/providers/post-translate-provider";
 import {
-  POST_TRANSLATE_LANGS,
   POST_TRANSLATE_OFF,
+  postTranslateLanguageChoices,
   postTranslateLanguageLabel,
   type PostTranslateInto,
 } from "@/lib/client-translate/opus-mt-pairs";
@@ -34,7 +34,7 @@ export function PostTranslateSettingsForm({
 
   const options = useMemo(
     () =>
-      POST_TRANSLATE_LANGS.map((code) => ({
+      postTranslateLanguageChoices().map((code) => ({
         code,
         label: postTranslateLanguageLabel(code, locale),
       })).sort((a, b) => a.label.localeCompare(b.label, locale)),

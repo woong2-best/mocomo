@@ -1,5 +1,4 @@
 import { unstable_cache } from "next/cache";
-import type { Locale } from "@/lib/i18n/config";
 import { targetLanguageForLocale } from "@/lib/i18n/target-language";
 
 const MAX_CHARS = 2000;
@@ -36,14 +35,14 @@ function openaiKey() {
   return process.env.OPENAI_API_KEY?.trim() || "";
 }
 
-function buildPrompt(text: string, targetLocale: Locale): string {
+function buildPrompt(text: string, targetLocale: string): string {
   const target = targetLanguageForLocale(targetLocale);
   return `Translate this social media post to natural ${target}. Keep hashtags (#word), @mentions, URLs, and line breaks exactly as in the original. Return ONLY the translated text with no quotes or explanation.
 
 ${text}`;
 }
 
-async function translateWithGemini(text: string, targetLocale: Locale): Promise<string | null> {
+async function translateWithGemini(text: string, targetLocale: string): Promise<string | null> {
   const key = geminiKey();
   if (!key) return null;
 
@@ -82,7 +81,7 @@ async function translateWithGemini(text: string, targetLocale: Locale): Promise<
   return null;
 }
 
-async function translateWithOpenAI(text: string, targetLocale: Locale): Promise<string | null> {
+async function translateWithOpenAI(text: string, targetLocale: string): Promise<string | null> {
   const key = openaiKey();
   if (!key) return null;
 
@@ -111,7 +110,7 @@ async function translateWithOpenAI(text: string, targetLocale: Locale): Promise<
 }
 
 const cachedTranslate = unstable_cache(
-  async (text: string, targetLocale: Locale) => {
+  async (text: string, targetLocale: string) => {
     const gemini = await translateWithGemini(text, targetLocale);
     if (gemini) return gemini;
     const openai = await translateWithOpenAI(text, targetLocale);
@@ -123,7 +122,7 @@ const cachedTranslate = unstable_cache(
 
 export async function translatePostContent(
   text: string,
-  targetLocale: Locale
+  targetLocale: string
 ): Promise<string | null> {
   const trimmed = text.trim();
   if (!trimmed) return trimmed;

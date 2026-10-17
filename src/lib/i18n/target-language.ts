@@ -1,5 +1,3 @@
-import type { Locale } from "@/lib/i18n/config";
-
 const SPECIAL: Record<string, string> = {
   ko: "Korean",
   en: "American English",
@@ -11,7 +9,7 @@ const SPECIAL: Record<string, string> = {
   fil: "Filipino",
 };
 
-export function targetLanguageForLocale(locale: Locale): string {
+export function targetLanguageForLocale(locale: string): string {
   if (SPECIAL[locale]) return SPECIAL[locale]!;
   try {
     const dn = new Intl.DisplayNames(["en"], { type: "language" });

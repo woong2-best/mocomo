@@ -1,9 +1,11 @@
+import { COUNTRY_TO_LANGUAGE, languageForCountry } from "@/lib/client-translate/country-language";
+
 /**
  * Helsinki-NLP Opus-MT pairs that exist as Transformers.js ONNX conversions.
  * Only these directions run in the browser. No English pivot.
  *
- * Korean has no browser-ready Opus pair (no opus-mt-en-ko). Korean targets
- * use the server translator when the viewer clicks View translation.
+ * Pairs that exist run in the browser. Every other direction, including Korean
+ * and any country language, translates on the server when View translation is clicked.
  */
 
 export const POST_TRANSLATE_OFF = "off";
@@ -35,7 +37,8 @@ export const POST_TRANSLATE_LANGS = [
 ] as const;
 
 export type PostTranslateLang = (typeof POST_TRANSLATE_LANGS)[number];
-export type PostTranslateInto = typeof POST_TRANSLATE_OFF | PostTranslateLang;
+/** "off", or an ISO 639 language code for the viewer's country. */
+export type PostTranslateInto = string;
 
 export const OPUS_MUL_EN = "Xenova/opus-mt-mul-en";
 
@@ -105,14 +108,19 @@ export const OPUS_PAIR_MODELS: Record<string, string> = {
   "nl:fr": "Xenova/opus-mt-nl-fr",
 };
 
-const LANG_SET = new Set<string>(POST_TRANSLATE_LANGS);
+const LANGUAGE_CODE = /^[a-z]{2,3}$/;
 
-export function isPostTranslateLang(value: string): value is PostTranslateLang {
-  return LANG_SET.has(value);
+export function isLanguageCode(value: string): boolean {
+  return LANGUAGE_CODE.test(value);
 }
 
+export function isPostTranslateLang(value: string): value is PostTranslateLang {
+  return (POST_TRANSLATE_LANGS as readonly string[]).includes(value);
+}
+
+/** "off", or any ISO 639 language. Country languages are not limited to Opus pairs. */
 export function isPostTranslateInto(value: string): value is PostTranslateInto {
-  return value === POST_TRANSLATE_OFF || isPostTranslateLang(value);
+  return value === POST_TRANSLATE_OFF || isLanguageCode(value);
 }
 
 export function resolveOpusModel(sourceLang: string | null, targetLang: string): string | null {
@@ -126,9 +134,13 @@ export function resolveOpusModel(sourceLang: string | null, targetLang: string):
   return null;
 }
 
-/** No in-browser model. View translation calls /api/translate for this target. */
+/**
+ * Any target language can be translated on the server when no Opus pair exists.
+ * A Korean viewer can read Japanese, Chinese, or English. A Japanese viewer can
+ * read any source the same way.
+ */
 export function usesServerPostTranslation(targetLang: string): boolean {
-  return targetLang === "ko";
+  return isLanguageCode(targetLang);
 }
 
 /** Most common incoming pair for this viewer, used to start the download early. */
@@ -138,7 +150,7 @@ export function likelyWarmupModel(targetLang: string): string | null {
   return resolveOpusModel("en", targetLang);
 }
 
-export function postTranslateLanguageLabel(code: PostTranslateLang, uiLocale = "en"): string {
+export function postTranslateLanguageLabel(code: string, uiLocale = "en"): string {
   try {
     return new Intl.DisplayNames([uiLocale, "en"], { type: "language" }).of(code) ?? code;
   } catch {
@@ -146,70 +158,33 @@ export function postTranslateLanguageLabel(code: PostTranslateLang, uiLocale = "
   }
 }
 
-/** navigator.language → a listed target, or Don't translate when no model exists. */
+/** Browser language, used only when the profile has no country language. */
 export function defaultPostTranslateFromBrowser(language = ""): PostTranslateInto {
   const raw = language.trim().toLowerCase();
   if (!raw) return POST_TRANSLATE_OFF;
   const primary = raw.split("-")[0] ?? raw;
-  const mapped = primary === "zh" ? "zh" : primary;
-  return isPostTranslateLang(mapped) ? mapped : POST_TRANSLATE_OFF;
+  return isLanguageCode(primary) ? primary : POST_TRANSLATE_OFF;
 }
-
-/** Profile country → a listed target, used when the browser language has no model. */
-const COUNTRY_TO_POST_TRANSLATE: Record<string, PostTranslateLang> = {
-  KR: "ko",
-  US: "en",
-  GB: "en",
-  AU: "en",
-  NZ: "en",
-  IE: "en",
-  CA: "en",
-  SG: "en",
-  JP: "ja",
-  CN: "zh",
-  TW: "zh",
-  HK: "zh",
-  DE: "de",
-  AT: "de",
-  CH: "de",
-  FR: "fr",
-  BE: "fr",
-  ES: "es",
-  MX: "es",
-  AR: "es",
-  CL: "es",
-  CO: "es",
-  PE: "es",
-  IT: "it",
-  RU: "ru",
-  SA: "ar",
-  AE: "ar",
-  EG: "ar",
-  VN: "vi",
-  ID: "id",
-  IN: "hi",
-  NL: "nl",
-  UA: "uk",
-  TR: "tr",
-  SE: "sv",
-  DK: "da",
-  FI: "fi",
-  CZ: "cs",
-  HU: "hu",
-  RO: "ro",
-};
 
 export function defaultPostTranslateFromCountry(countryCode = ""): PostTranslateInto | null {
-  const mapped = COUNTRY_TO_POST_TRANSLATE[countryCode.trim().toUpperCase()];
-  return mapped ?? null;
+  return languageForCountry(countryCode);
 }
 
-/** Browser language if we can translate into it, otherwise country, otherwise off. */
+/**
+ * Country picks the language posts translate into.
+ * Browser language is only a fallback when the country is unset.
+ */
 export function inferPostTranslateInto(
   browserLanguage = "",
   countryCode = ""
 ): PostTranslateInto {
-  const fromBrowser = defaultPostTranslateFromBrowser(browserLanguage);
-  if (fromBrowser !== POST_TRANSLATE_OFF) return fromBrowser;
-  return defaultPostTranslateFromCountry(countryCode) ?? POST_TRANSLATE_OFF;
+  return (
+    defaultPostTranslateFromCountry(countryCode) ??
+    defaultPostTranslateFromBrowser(browserLanguage)
+  );
+}
+
+/** Languages offered in settings: Opus targets plus every country language. */
+export function postTranslateLanguageChoices(): string[] {
+  return [...new Set<string>([...POST_TRANSLATE_LANGS, ...Object.values(COUNTRY_TO_LANGUAGE)])];
 }

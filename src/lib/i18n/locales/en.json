@@ -709,7 +709,7 @@
   "settings.translatePostsTitle": "Translate posts into",
   "settings.translatePostsDesc": "Only other people’s posts and comments. This does not change the site language.",
   "settings.translatePostsOff": "Don’t translate",
-  "settings.translatePostsHint": "A post is translated only when you click View translation, and only if its language differs from this choice. Until you pick one, we use your browser language, or your country when that language has no model (Korea → Korean, United States → English).",
+  "settings.translatePostsHint": "Click View translation on the posts you want. Your country picks the language: Korea translates Japanese, Chinese, English, or any other original into Korean, and Japan does the same into Japanese. Every country works this way.",
   "settings.saving": "Saving…",
   "legal.englishOnlyBanner": "Legal terms are provided in English only.",
   "settings.country": "Country",

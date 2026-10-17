@@ -2,23 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { translatePostContent } from "@/lib/content-translate";
-import type { Locale } from "@/lib/i18n/config";
+import { isLanguageCode } from "@/lib/client-translate/opus-mt-pairs";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { detectTextLanguage } from "@/lib/text-language";
 import { isTextWorthTranslating } from "@/lib/translate-text-filter";
 
-/** UI locale is English-only. Post translation still targets the viewer's language. */
-const TRANSLATE_LOCALES = ["en", "ko", "ja", "zh", "zh-TW", "pt-BR"] as const;
-type TranslateLocale = (typeof TRANSLATE_LOCALES)[number];
-
 const bodySchema = z.object({
   text: z.string().min(1).max(2000),
-  targetLocale: z.enum(TRANSLATE_LOCALES).optional(),
+  targetLocale: z
+    .string()
+    .regex(/^[a-z]{2,3}$/)
+    .optional(),
 });
 
-function resolveTargetLocale(requested: TranslateLocale | undefined, viewer: Locale): TranslateLocale {
-  if (requested) return requested;
-  return (TRANSLATE_LOCALES as readonly string[]).includes(viewer) ? (viewer as TranslateLocale) : "en";
+function resolveTargetLocale(requested: string | undefined, viewer: string): string {
+  if (requested && isLanguageCode(requested)) return requested;
+  const primary = viewer.toLowerCase().split("-")[0] ?? "";
+  return isLanguageCode(primary) ? primary : "en";
 }
 
 export async function POST(req: NextRequest) {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     const sourceLang = detectTextLanguage(text);
 
-    if (!sourceLang || sourceLang === targetLocale) {
+    if (sourceLang && sourceLang === targetLocale) {
       return NextResponse.json(
         { ok: true, translated: text, sourceLang },
         { headers: { "Cache-Control": "private, max-age=3600" } }

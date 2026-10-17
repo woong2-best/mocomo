@@ -31,7 +31,8 @@ export function detectSourceNllb(text: string): NllbCode | null {
   if (sample.length < 2) return null;
 
   const heuristicLocale = detectTextLanguage(text);
-  if (heuristicLocale) {
+  // Hangul, kana, and han are reliable. Latin "en" is not — franc distinguishes German, French, and the rest.
+  if (heuristicLocale && heuristicLocale !== "en") {
     return localeToNllb(heuristicLocale);
   }
 
@@ -42,6 +43,8 @@ export function detectSourceNllb(text: string): NllbCode | null {
       if (fromFranc) return fromFranc;
     }
   }
+
+  if (heuristicLocale === "en") return localeToNllb("en");
 
   const latin = (sample.match(/[A-Za-z]/g) || []).length;
   const letters = sample.replace(/[^\p{L}]/gu, "").length;
