@@ -19,6 +19,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { uploadLocalFile } from "@/api/upload-file";
 import { fetchStudio, joinStudioWaitlist, lateCancelStudio, orderStudio, type StudioCard } from "@/api/studios";
 import { formatUsedPrice } from "@/features/marketplace/used-catalog";
+import { studioCategoryDisplay } from "@/features/marketplace/studio-categories";
 import { useAuth } from "@/auth/AuthContext";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { RootStackParamList } from "@/navigation/types";
@@ -170,6 +171,9 @@ export function StudioDetailScreen() {
         </ScrollView>
 
         <Text style={[styles.title, { color: colors.text }]}>{studio.title}</Text>
+        {studio.category ? (
+          <Text style={[styles.meta, { color: colors.brand }]}>{studioCategoryDisplay(studio.category)}</Text>
+        ) : null}
         <Text style={[styles.meta, { color: colors.textMuted }]}>@{studio.seller.username}</Text>
         <Text style={[styles.about, { color: colors.text }]}>{studio.about}</Text>
         <Text style={[styles.slot, { color: studio.accepting ? "#1f8a4c" : colors.terracotta }]}>

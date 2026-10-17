@@ -3586,6 +3586,7 @@ model DigitalCommission {
 model CreatorStudio {
   id           String   @id @default(cuid())
   sellerId     String   @unique
+  category     String   @default("illustration:character") @db.VarChar(64)
   title        String   @db.VarChar(80)
   about        String   @default("") @db.Text
   open         Boolean  @default(true)

@@ -9,6 +9,7 @@ export type StudioField = { id: string; label: string; kind: "text" | "image"; r
 export type StudioCard = {
   id: string;
   sellerId: string;
+  category: string;
   title: string;
   about: string;
   open: boolean;
@@ -27,6 +28,7 @@ export type StudioCard = {
 };
 
 export type StudioDraft = {
+  category: string;
   title: string;
   about: string;
   open: boolean;

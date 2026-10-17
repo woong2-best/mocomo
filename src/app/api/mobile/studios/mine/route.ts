@@ -26,6 +26,7 @@ const field = z.object({
   required: z.boolean(),
 });
 const bodySchema = z.object({
+  category: z.string().max(64),
   title: z.string().max(80),
   about: z.string().max(2000),
   open: z.boolean(),

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { readDigitalDelivery } from "@/lib/market-tracks";
 import { createMobileUsedListing } from "@/lib/used-market-mobile";
 import { watermarkPortfolioUrl } from "@/lib/portfolio-watermark";
+import { DEFAULT_STUDIO_CATEGORY_ID, isValidStudioCategoryId } from "@/lib/creator-studio-categories";
 
 const ACTIVE_SLOT = ["ACCEPTED", "DISPUTED"];
 const CLOSED_ORDER = ["APPROVED", "AUTO_APPROVED", "DECLINED", "LATE_CANCEL"];
@@ -13,6 +14,7 @@ export type StudioAddon = { id: string; name: string; mode: "fixed" | "percent";
 export type StudioField = { id: string; label: string; kind: "text" | "image"; required: boolean };
 
 export type StudioInput = {
+  category: string;
   title: string;
   about: string;
   open: boolean;
@@ -37,12 +39,14 @@ function cleanId(value: unknown, fallback: string) {
 }
 
 export function parseStudioInput(raw: StudioInput): { value: StudioInput } | { error: string } {
+  const category = typeof raw.category === "string" ? raw.category.trim() : "";
   const title = raw.title.trim().slice(0, 80);
   const about = raw.about.trim().slice(0, 2000);
   const revisionNote = raw.revisionNote.trim().slice(0, 1000);
   const currency = raw.currency === "usd" ? "usd" : "krw";
   const slotCap = Math.floor(raw.slotCap);
   const deliveryDays = Math.floor(raw.deliveryDays);
+  if (!isValidStudioCategoryId(category)) return { error: "Choose a studio category." };
   if (title.length < 2) return { error: "Add a studio title." };
   if (revisionNote.length < 8) return { error: "Write the revision rules buyers must accept." };
   if (slotCap < 1 || slotCap > 20) return { error: "Slots must be between 1 and 20." };
@@ -98,6 +102,7 @@ export function parseStudioInput(raw: StudioInput): { value: StudioInput } | { e
 
   return {
     value: {
+      category,
       title,
       about,
       open: raw.open !== false,
@@ -127,6 +132,7 @@ export function quoteStudio(tiers: StudioTier[], addons: StudioAddon[], tierId: 
 type StudioRow = {
   id: string;
   sellerId: string;
+  category: string;
   title: string;
   about: string;
   open: boolean;
@@ -143,6 +149,7 @@ type StudioRow = {
 
 function publicStudio(row: StudioRow, slotsUsed: number) {
   const parsed = parseStudioInput({
+    category: row.category || DEFAULT_STUDIO_CATEGORY_ID,
     title: row.title,
     about: row.about,
     open: row.open,
@@ -160,6 +167,7 @@ function publicStudio(row: StudioRow, slotsUsed: number) {
   return {
     id: row.id,
     sellerId: row.sellerId,
+    category: value?.category ?? (row.category || DEFAULT_STUDIO_CATEGORY_ID),
     title: row.title,
     about: row.about,
     open: row.open,
@@ -191,6 +199,7 @@ async function slotCounts(sellerIds: string[]) {
 const studioSelect = {
   id: true,
   sellerId: true,
+  category: true,
   title: true,
   about: true,
   open: true,
