@@ -16,6 +16,7 @@ export const USED_SELL_KINDS = [
   { id: "TCG", label: "TCG" },
   { id: "GOODS", label: "굿즈" },
   { id: "BOOK", label: "도서" },
+  { id: "GAMES", label: "게임" },
   { id: "COSPLAY", label: "코스프레" },
   { id: "DIGITAL", label: "디지털" },
 ] as const;

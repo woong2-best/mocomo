@@ -49,7 +49,7 @@ import {
   inferUsedRegionFromGeocodeLabel,
   homeCurrencyForCountry,
   KOREA_SIDO,
-  MARKET_SELL_OPTIONS,
+  PHYSICAL_MARKET_SELL_KIND_IDS,
   KOREA_SIGUNGU_BY_SIDO,
   DEFAULT_SIGUNGU,
   DEFAULT_SIDO_SHORT,
@@ -585,13 +585,7 @@ export function UsedCreateScreen() {
               paper={paper}
               muted={muted}
               line={line}
-              productIds={
-                itemTrack === "digital"
-                  ? DIGITAL_PRODUCT_IDS
-                  : MARKET_SELL_OPTIONS.map((p) => p.id).filter(
-                      (id) => !(DIGITAL_PRODUCT_IDS as readonly string[]).includes(id)
-                    )
-              }
+              productIds={itemTrack === "digital" ? DIGITAL_PRODUCT_IDS : PHYSICAL_MARKET_SELL_KIND_IDS}
             />
 
             {itemTrack === "digital" || auction ? null : (

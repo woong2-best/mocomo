@@ -8,10 +8,11 @@ export {
 
 /** 글쓰기 상품 종류 — 앱 UsedCreateScreen과 동일. */
 export const USED_SELL_KINDS = [
-  { id: "FIGURE", label: "Figures" },
+  { id: "FIGURE", label: "Figures & Models" },
   { id: "TCG", label: "TCG" },
-  { id: "GOODS", label: "Goods" },
+  { id: "GOODS", label: "Character goods" },
   { id: "BOOK", label: "Books" },
+  { id: "GAMES", label: "Games" },
   { id: "COSPLAY", label: "Cosplay" },
   { id: "DIGITAL", label: "Digital" },
 ] as const;
@@ -30,6 +31,7 @@ export function productTypeForSellKind(kind: string): string | undefined {
   if (id === "FIGURE") return "FIGURE";
   if (id === "TCG") return "TCG_CARD";
   if (id === "BOOK") return "BOOK";
+  if (id === "GAMES") return "BOARDGAME";
   if (id === "COSPLAY") return "COSPLAY_COSTUME";
   if (id === "GOODS" || id === "DIGITAL") return "OTHER";
   return undefined;
@@ -43,6 +45,7 @@ export function sellKindFromListing(category?: string | null, productType?: stri
   if (productType === "FIGURE") return "FIGURE";
   if (productType === "TCG_CARD") return "TCG";
   if (productType === "BOOK") return "BOOK";
+  if (productType === "BOARDGAME") return "GAMES";
   if (productType === "COSPLAY_COSTUME") return "COSPLAY";
   if (category === "DIGITAL") return "DIGITAL";
   return "GOODS";

@@ -30,10 +30,11 @@ export type UsedUiText = TFn;
 
 /** English labels for catalog ids (KO labels stay on const arrays for storage parity). */
 const CATALOG_LABEL_EN: Record<string, string> = {
-  FIGURE: "Figures",
+  FIGURE: "Figures & Models",
   TCG: "TCG",
-  GOODS: "Goods",
+  GOODS: "Character goods",
   BOOK: "Books",
+  GAMES: "Games",
   COSPLAY: "Cosplay",
   DIGITAL: "Digital",
   PLAMODEL: "Plastic models",
@@ -261,6 +262,7 @@ export function productTypeForSellKind(kind: string): string | undefined {
   if (id === "FIGURE") return "FIGURE";
   if (id === "TCG") return "TCG_CARD";
   if (id === "BOOK") return "BOOK";
+  if (id === "GAMES") return "BOARDGAME";
   if (id === "COSPLAY") return "COSPLAY_COSTUME";
   if (id === "GOODS" || id === "DIGITAL") return "OTHER";
   return undefined;
@@ -307,7 +309,7 @@ const LISTING_CATEGORY_FOR_PRODUCT: Record<string, string> = {
   OTHER: "GOODS",
 };
 
-const COARSE_SELL_KINDS = new Set(["FIGURE", "TCG", "GOODS", "BOOK", "COSPLAY", "DIGITAL"]);
+const COARSE_SELL_KINDS = new Set(["FIGURE", "TCG", "GOODS", "BOOK", "GAMES", "COSPLAY", "DIGITAL"]);
 
 export function listingCategoryForProduct(kind: string): string {
   return LISTING_CATEGORY_FOR_PRODUCT[kind.toUpperCase()] ?? "GOODS";
@@ -319,13 +321,20 @@ export function storedProductType(kind: string): string {
   return id;
 }
 
-/** Sell-form choices: broad kinds, then every specific product type. */
-export const MARKET_SELL_OPTIONS = [
-  ...USED_SELL_KINDS,
-  ...USED_PRODUCT_TYPES.filter(
-    (product) => !USED_SELL_KINDS.some((kind) => kind.id === product.id)
-  ),
-];
+/** Physical used-goods listing — matches market browse chips (no fine-grained product types). */
+export const PHYSICAL_MARKET_SELL_KIND_IDS = [
+  "FIGURE",
+  "TCG",
+  "GOODS",
+  "BOOK",
+  "GAMES",
+  "COSPLAY",
+] as const;
+
+export const MARKET_SELL_OPTIONS = PHYSICAL_MARKET_SELL_KIND_IDS.map((id) => {
+  const row = USED_SELL_KINDS.find((kind) => kind.id === id);
+  return row ?? { id, label: id };
+});
 
 export type UsedListingMediaKind = "image" | "video";
 
