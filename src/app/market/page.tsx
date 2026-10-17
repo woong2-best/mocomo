@@ -356,32 +356,6 @@ export default async function UsedHomePage({
 }: {
   searchParams: Promise<MarketSearch>;
 }) {
-  const search = await searchParams;
-  const categoryHref = categoryRedirectHref(search);
-  if (categoryHref) redirect(categoryHref);
-
-  const session = await auth();
-  const scope = await resolveUsedMarketScope({
-    userId: session?.user?.id,
-    sessionCountry: session?.user?.countryCode,
-  });
-
-  return (
-    <div className="space-y-2">
-      <Suspense fallback={null}>
-        <UsedSearchHeader
-          viewerCountryCode={scope.countryCode}
-          viewerServiceRegion={scope.serviceRegion}
-          track={parseMarketTrack(search.track)}
-          lane={parseMarketLane(search.lane) ?? null}
-          category={search.category ?? null}
-          product={search.product ?? null}
-          activeQ={search.q ?? null}
-        />
-      </Suspense>
-      <Suspense fallback={<UsedFeedSkeleton />}>
-        <UsedFeed searchParams={searchParams} />
-      </Suspense>
-    </div>
-  );
+  void searchParams;
+  return <p className="p-6 text-sm">Market probe</p>;
 }
