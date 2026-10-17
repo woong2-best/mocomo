@@ -11,6 +11,7 @@ import {
   likelyWarmupModel,
   POST_TRANSLATE_OFF,
   resolveOpusModel,
+  usesServerPostTranslation,
 } from "@/lib/client-translate/opus-mt-pairs";
 import {
   joinTranslatedSegments,
@@ -177,7 +178,15 @@ function getPipeline(modelId: string): Promise<TranslationPipeline> {
   return pending;
 }
 
-function resolveJob(text: string, targetLang: string) {
+type TranslationRequest = {
+  slice: string;
+  sourceNllb: NllbCode;
+  sourceLang: string;
+  targetLang: string;
+  modelId: string | null;
+};
+
+function resolveRequest(text: string, targetLang: string): TranslationRequest | null {
   const trimmed = text.trim();
   if (!trimmed || !isTextWorthTranslating(trimmed)) return null;
   if (!targetLang || targetLang === POST_TRANSLATE_OFF) return null;
@@ -188,26 +197,59 @@ function resolveJob(text: string, targetLang: string) {
   if (!sourceNllb || !sourceLang || sourceLang === targetLang) return null;
 
   const modelId = resolveOpusModel(sourceLang, targetLang);
-  if (!modelId) return null;
-
+  if (!modelId && !usesServerPostTranslation(targetLang)) return null;
   return { slice, sourceNllb, sourceLang, modelId, targetLang };
+}
+
+function resolveJob(text: string, targetLang: string) {
+  const request = resolveRequest(text, targetLang);
+  if (!request?.modelId) return null;
+  return { ...request, modelId: request.modelId };
+}
+
+async function readFullCache(request: TranslationRequest): Promise<ClientTranslateResult | null> {
+  const cached =
+    getCachedFullTranslation(request.sourceNllb, request.targetLang, request.slice) ??
+    (await getCachedFullTranslationAsync(request.sourceNllb, request.targetLang, request.slice));
+  if (!cached) return null;
+  return {
+    translated: cached.translated,
+    sourceLang: cached.sourceLang ?? request.sourceLang,
+    sourceNllb: cached.sourceNllb || request.sourceNllb,
+  };
+}
+
+/** Korean (and any future server target) has no browser model. Click translates via the API. */
+async function translateWithServer(request: TranslationRequest): Promise<ClientTranslateResult | null> {
+  const cached = await readFullCache(request);
+  if (cached) return cached;
+
+  const res = await fetch("/api/translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: request.slice, targetLocale: request.targetLang }),
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { ok?: boolean; translated?: string; sourceLang?: string | null };
+  const translated = data.translated?.trim();
+  if (!data.ok || !translated) return null;
+
+  const result: ClientTranslateResult = {
+    translated,
+    sourceLang: data.sourceLang ?? request.sourceLang,
+    sourceNllb: request.sourceNllb,
+  };
+  setCachedFullTranslation(request.sourceNllb, request.targetLang, request.slice, result);
+  return result;
 }
 
 export async function lookupCachedClientTranslation(
   text: string,
   targetLang: string
 ): Promise<ClientTranslateResult | null> {
-  const job = resolveJob(text, targetLang);
-  if (!job) return null;
-  const cached =
-    getCachedFullTranslation(job.sourceNllb, job.targetLang, job.slice) ??
-    (await getCachedFullTranslationAsync(job.sourceNllb, job.targetLang, job.slice));
-  if (!cached) return null;
-  return {
-    translated: cached.translated,
-    sourceLang: cached.sourceLang ?? job.sourceLang,
-    sourceNllb: cached.sourceNllb || job.sourceNllb,
-  };
+  const request = resolveRequest(text, targetLang);
+  if (!request) return null;
+  return readFullCache(request);
 }
 
 export async function prefetchClientTranslationModel(
@@ -283,8 +325,22 @@ export async function translateTextClientSide(
   targetLang: string,
   options: TranslateTextOptions = {}
 ): Promise<ClientTranslateResult | null> {
-  const job = resolveJob(text, targetLang);
-  if (!job) return null;
+  const request = resolveRequest(text, targetLang);
+  if (!request) return null;
+  if (!request.modelId) {
+    const inflightKey = `${request.sourceNllb}:${request.targetLang}:${request.slice}`;
+    const existing = inflight.get(inflightKey);
+    if (existing) return existing;
+    const pending = translateWithServer(request);
+    inflight.set(inflightKey, pending);
+    try {
+      return await pending;
+    } finally {
+      inflight.delete(inflightKey);
+    }
+  }
+
+  const job = { ...request, modelId: request.modelId };
 
   const cached = await lookupCachedClientTranslation(text, targetLang);
   if (cached) return cached;

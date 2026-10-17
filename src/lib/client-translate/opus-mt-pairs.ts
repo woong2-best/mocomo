@@ -1,16 +1,17 @@
 /**
  * Helsinki-NLP Opus-MT pairs that exist as Transformers.js ONNX conversions.
- * Only these directions are offered. No English pivot.
+ * Only these directions run in the browser. No English pivot.
  *
- * Verified 2026-10-11 on Hugging Face (Xenova / onnx-community).
- * There is no browser-ready opus-mt-en-ko, so Korean is not a target.
+ * Korean has no browser-ready Opus pair (no opus-mt-en-ko). Korean targets
+ * use the server translator when the viewer clicks View translation.
  */
 
 export const POST_TRANSLATE_OFF = "off";
 
-/** Languages we can translate *into* with a dedicated incoming model. */
+/** Languages we can translate *into*. Korean is server-backed; the rest are Opus-MT. */
 export const POST_TRANSLATE_LANGS = [
   "en",
+  "ko",
   "ja",
   "zh",
   "de",
@@ -125,6 +126,11 @@ export function resolveOpusModel(sourceLang: string | null, targetLang: string):
   return null;
 }
 
+/** No in-browser model. View translation calls /api/translate for this target. */
+export function usesServerPostTranslation(targetLang: string): boolean {
+  return targetLang === "ko";
+}
+
 /** Most common incoming pair for this viewer, used to start the download early. */
 export function likelyWarmupModel(targetLang: string): string | null {
   if (!targetLang || targetLang === POST_TRANSLATE_OFF) return null;
@@ -149,11 +155,9 @@ export function defaultPostTranslateFromBrowser(language = ""): PostTranslateInt
   return isPostTranslateLang(mapped) ? mapped : POST_TRANSLATE_OFF;
 }
 
-/**
- * Profile country → a listed target. Korea/countries without a target model
- * are omitted so we can fall through (e.g. US + Korean browser → English).
- */
+/** Profile country → a listed target, used when the browser language has no model. */
 const COUNTRY_TO_POST_TRANSLATE: Record<string, PostTranslateLang> = {
+  KR: "ko",
   US: "en",
   GB: "en",
   AU: "en",

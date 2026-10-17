@@ -10,6 +10,7 @@ import {
 import {
   POST_TRANSLATE_OFF,
   resolveOpusModel,
+  usesServerPostTranslation,
   type PostTranslateInto,
 } from "@/lib/client-translate/opus-mt-pairs";
 import { isTextWorthTranslating } from "@/lib/translate-text-filter";
@@ -71,5 +72,6 @@ export function needsClientTranslation(text: string, target: PostTranslateInto):
   if (target === POST_TRANSLATE_OFF) return false;
   const source = detectSourceOpusLang(text);
   if (!source || source === target) return false;
-  return Boolean(resolveOpusModel(source, target));
+  if (resolveOpusModel(source, target)) return true;
+  return usesServerPostTranslation(target);
 }

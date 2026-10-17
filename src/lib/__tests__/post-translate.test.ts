@@ -8,14 +8,15 @@ import {
   resolveOpusModel,
 } from "@/lib/client-translate/opus-mt-pairs";
 
-test("browser Korean has no Opus-MT target so defaults to Don't translate", () => {
-  assert.equal(defaultPostTranslateFromBrowser("ko-KR"), "off");
-  assert.equal(defaultPostTranslateFromBrowser("ko"), "off");
+test("browser Korean translates posts into Korean", () => {
+  assert.equal(defaultPostTranslateFromBrowser("ko-KR"), "ko");
+  assert.equal(defaultPostTranslateFromBrowser("ko"), "ko");
 });
 
-test("US country infers English when the browser language has no target model", () => {
-  assert.equal(inferPostTranslateInto("ko-KR", "US"), "en");
-  assert.equal(inferPostTranslateInto("ko", "KR"), "off");
+test("country fills in only when the browser language has no target", () => {
+  assert.equal(inferPostTranslateInto("ko-KR", "US"), "ko");
+  assert.equal(inferPostTranslateInto("ko", "KR"), "ko");
+  assert.equal(inferPostTranslateInto("th", "KR"), "ko");
   assert.equal(inferPostTranslateInto("ja-JP", "US"), "ja");
 });
 
@@ -44,4 +45,7 @@ test("translation is needed when post language differs and a pair exists", () =>
   assert.equal(needsClientTranslation("신발팔아요", "ja"), false);
   assert.equal(needsClientTranslation("신발팔아요", "off"), false);
   assert.equal(needsClientTranslation("Selling shoes today", "en"), false);
+  assert.equal(needsClientTranslation("Selling shoes today", "ko"), true);
+  assert.equal(needsClientTranslation("愛という感情は言葉だけでは足りない。", "ko"), true);
+  assert.equal(needsClientTranslation("신발팔아요", "ko"), false);
 });
