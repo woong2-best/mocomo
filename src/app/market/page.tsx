@@ -311,10 +311,12 @@ export default async function UsedHomePage({
 
   return (
     <div className="space-y-2">
-      <UsedSearchHeader
-        viewerCountryCode={scope.countryCode}
-        viewerServiceRegion={scope.serviceRegion}
-      />
+      <Suspense fallback={null}>
+        <UsedSearchHeader
+          viewerCountryCode={scope.countryCode}
+          viewerServiceRegion={scope.serviceRegion}
+        />
+      </Suspense>
       <Suspense fallback={<UsedFeedSkeleton />}>
         <UsedFeed searchParams={searchParams} />
       </Suspense>
