@@ -354,40 +354,32 @@ export default async function UsedHomePage({
 }: {
   searchParams: Promise<MarketSearch>;
 }) {
-  try {
-    const search = await searchParams;
-    const categoryHref = categoryRedirectHref(search);
-    if (categoryHref) redirect(categoryHref);
+  const search = await searchParams;
+  const categoryHref = categoryRedirectHref(search);
+  if (categoryHref) redirect(categoryHref);
 
-    const session = await auth();
-    const scope = await resolveUsedMarketScope({
-      userId: session?.user?.id,
-      sessionCountry: session?.user?.countryCode,
-    });
+  const session = await auth();
+  const scope = await resolveUsedMarketScope({
+    userId: session?.user?.id,
+    sessionCountry: session?.user?.countryCode,
+  });
 
-    return (
-      <div className="space-y-2">
-        <Suspense fallback={null}>
-          <UsedSearchHeader
-            viewerCountryCode={scope.countryCode}
-            viewerServiceRegion={scope.serviceRegion}
-            track={parseMarketTrack(search.track)}
-            lane={parseMarketLane(search.lane) ?? null}
-            category={search.category ?? null}
-            product={search.product ?? null}
-            activeQ={search.q ?? null}
-          />
-        </Suspense>
-        <Suspense fallback={<UsedFeedSkeleton />}>
-          <UsedFeed searchParams={searchParams} />
-        </Suspense>
-      </div>
-    );
-  } catch (error) {
-    return (
-      <p className="p-6 text-sm text-destructive">
-        {error instanceof Error ? error.message : "Market failed to load."}
-      </p>
-    );
-  }
+  return (
+    <div className="space-y-2">
+      <Suspense fallback={null}>
+        <UsedSearchHeader
+          viewerCountryCode={scope.countryCode}
+          viewerServiceRegion={scope.serviceRegion}
+          track={parseMarketTrack(search.track)}
+          lane={parseMarketLane(search.lane) ?? null}
+          category={search.category ?? null}
+          product={search.product ?? null}
+          activeQ={search.q ?? null}
+        />
+      </Suspense>
+      <Suspense fallback={<UsedFeedSkeleton />}>
+        <UsedFeed searchParams={searchParams} />
+      </Suspense>
+    </div>
+  );
 }
