@@ -24,9 +24,9 @@ import {
 } from "@/features/marketplace/used-catalog";
 import {
   findHubCategory,
+  hubForTrack,
   HUB_BROWSE_ALL_ID,
   isDigitalListing,
-  MENU_CATEGORIES,
   type MarketScope,
 } from "@/features/marketplace/market-browse";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -248,9 +248,11 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     else navigation.setParams({ lane: undefined });
   }, [hubLane, isTab, navigation]);
 
+  const hubMenuCategories = useMemo(() => hubForTrack(scope), [scope]);
+
   const selectHubCategory = useCallback(
     (id: string) => {
-      const picked = MENU_CATEGORIES.find((item) => item.id === id);
+      const picked = findHubCategory(id);
       setBrowse({ source: "hub", id });
       if (picked?.product) setScope("digital");
       else if (picked?.category) setScope("physical");
@@ -590,7 +592,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         onClose={() => setHubOpen(false)}
         onSelectCategory={selectHubCategory}
         selectedCategoryId={hubActiveId}
-        categories={MENU_CATEGORIES}
+        categories={hubMenuCategories}
       />
 
       {menuItem ? (

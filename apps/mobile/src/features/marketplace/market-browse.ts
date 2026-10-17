@@ -26,7 +26,6 @@ export const PHYSICAL_HUB: HubCategory[] = [
 export const DIGITAL_HUB: HubCategory[] = [
   { id: "VTUBER_3D", labelKey: "m.market.track.vtuber_3d", product: "VTUBER_3D" },
   { id: "STREAMER_ASSET", labelKey: "m.market.track.streamer_assets", product: "STREAMER_ASSET" },
-  { id: "EMOTES_BADGES", labelKey: "m.market.track.emotes_badges", product: "EMOTES_BADGES" },
   { id: "ILLUSTRATION", labelKey: "m.market.track.illustration", product: "ILLUSTRATION" },
   { id: "AUDIO_MUSIC", labelKey: "m.market.track.audio_music", product: "AUDIO_MUSIC" },
   { id: "CREATOR_RESOURCES", labelKey: "m.market.track.creator_resources", product: "CREATOR_RESOURCES" },
