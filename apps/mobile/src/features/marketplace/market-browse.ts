@@ -15,8 +15,9 @@ export const PHYSICAL_HUB: HubCategory[] = [
   { id: "FIGURE", labelKey: "m.market.track.figures_models", category: "FIGURE" },
   { id: "TCG", labelKey: "m.marketplace.tcg", category: "TCG" },
   { id: "GOODS", labelKey: "m.used.catalog.GOODS", category: "GOODS" },
-  { id: "BOOKS", labelKey: "m.marketplace.books", category: "BOOK" },
-  { id: "COSPLAY", labelKey: "m.events.cosplay", category: "COSPLAY" },
+  { id: "BOOK", labelKey: "m.marketplace.books", category: "BOOK" },
+  { id: "GAMES", labelKey: "m.market.track.games", category: "GAMES" },
+  { id: "COSPLAY", labelKey: "m.market.track.cosplay", category: "COSPLAY" },
 ];
 
 export const DIGITAL_HUB: HubCategory[] = [
@@ -42,12 +43,8 @@ export function hubForTrack(track: MarketTrack): HubCategory[] {
   return track === "digital" ? DIGITAL_HUB : PHYSICAL_HUB;
 }
 
-/** Side-menu categories for the combined market. */
-export const MENU_CATEGORIES: HubCategory[] = [
-  { id: "ALL", labelKey: "m.market.track.all" },
-  ...PHYSICAL_HUB.filter((item) => item.id !== "ALL"),
-  ...DIGITAL_HUB.filter((item) => item.id !== "ALL"),
-];
+/** Side menu — physical used-goods categories only (digital uses scope chips). */
+export const MENU_CATEGORIES: HubCategory[] = PHYSICAL_HUB;
 
 export function isDigitalListing(input: {
   category?: string | null;

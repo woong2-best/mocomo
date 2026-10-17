@@ -57,7 +57,7 @@ export function matchUsedBrowseCategory(raw: string): string | null {
 
   for (const category of USED_CATEGORIES) {
     if (normalizeUsedQuery(category.label) !== q && category.id.toLowerCase() !== q) continue;
-    if (category.id === "COSPLAY" || category.id === "FASHION") return "COSPLAY_FASHION";
+    if (category.id === "COSPLAY" || category.id === "FASHION") return "COSPLAY";
     if (USED_MARKET_BROWSE_CATEGORIES.some((browse) => browse.id === category.id)) {
       return category.id;
     }
@@ -112,8 +112,11 @@ export function listingMatchesBrowseCategory(listing: TaggedListing, categoryId:
   if (categoryId === "TCG") {
     return isTcgProductType(listing.productType) || isPhotocardProductType(listing.productType);
   }
-  if (categoryId === "COSPLAY_FASHION") {
-    return listing.category === "COSPLAY" || listing.category === "FASHION";
+  if (categoryId === "GAMES") {
+    return listing.productType === "BOARDGAME";
+  }
+  if (categoryId === "COSPLAY" || categoryId === "COSPLAY_FASHION") {
+    return listing.category === "COSPLAY";
   }
   return listing.category === categoryId;
 }
@@ -123,8 +126,11 @@ function listingBrowseIds(listing: TaggedListing): string[] {
   if (isTcgProductType(listing.productType) || isPhotocardProductType(listing.productType)) {
     ids.add("TCG");
   }
-  if (listing.category === "COSPLAY" || listing.category === "FASHION") {
-    ids.add("COSPLAY_FASHION");
+  if (listing.productType === "BOARDGAME") {
+    ids.add("GAMES");
+  }
+  if (listing.category === "COSPLAY") {
+    ids.add("COSPLAY");
   } else if (USED_MARKET_BROWSE_CATEGORIES.some((category) => category.id === listing.category)) {
     ids.add(listing.category);
   }

@@ -12,6 +12,7 @@ const PHYSICAL = [
   { id: "TCG", key: "market.track.tcg" },
   { id: "GOODS", key: "market.track.goods" },
   { id: "BOOK", key: "market.track.books" },
+  { id: "GAMES", key: "market.track.games" },
   { id: "COSPLAY", key: "market.track.cosplay" },
 ] as const;
 

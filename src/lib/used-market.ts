@@ -77,12 +77,12 @@ export const USED_CATEGORIES = [
 
 /** /market 목록 필터 pill (6종) */
 export const USED_MARKET_BROWSE_CATEGORIES = [
-  { id: "FIGURE", label: "Figures / dolls" },
-  { id: "TCG", label: "TCG / cards" },
-  { id: "GOODS", label: "Character goods" },
-  { id: "BOOK", label: "Books / media" },
-  { id: "COSPLAY_FASHION", label: "Cosplay / fashion" },
-  { id: "DIGITAL", label: "Digital / electronics" },
+  { id: "FIGURE", label: "Figures & Models" },
+  { id: "TCG", label: "TCG" },
+  { id: "GOODS", label: "Character Goods" },
+  { id: "BOOK", label: "Books" },
+  { id: "GAMES", label: "Games" },
+  { id: "COSPLAY", label: "Cosplay" },
 ] as const;
 
 const TCG_BROWSE_PRODUCT_TYPES = [
@@ -105,8 +105,11 @@ export function usedBrowseCategoryWhere(category: string): Prisma.UsedListingWhe
   if (category === "CARDS") {
     return { productType: { in: [...CARD_BROWSE_PRODUCT_TYPES] } };
   }
-  if (category === "COSPLAY_FASHION") {
-    return { category: { in: ["COSPLAY", "FASHION"] } };
+  if (category === "GAMES") {
+    return { productType: "BOARDGAME" };
+  }
+  if (category === "COSPLAY" || category === "COSPLAY_FASHION") {
+    return { category: "COSPLAY" };
   }
   if (category === "FIGURE") {
     return {

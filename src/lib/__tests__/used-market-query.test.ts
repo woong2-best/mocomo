@@ -10,11 +10,11 @@ import {
 
 describe("used market query routing", () => {
   it("opens the category page when the query is exactly a category name", () => {
-    expect(matchUsedBrowseCategory("Figures / dolls")).toBe("FIGURE");
-    expect(matchUsedBrowseCategory("  figures  ")).toBe("FIGURE");
+    expect(matchUsedBrowseCategory("Figures & Models")).toBe("FIGURE");
+    expect(matchUsedBrowseCategory("  figures & models  ")).toBe("FIGURE");
     expect(matchUsedBrowseCategory("TCG")).toBe("TCG");
-    expect(matchUsedBrowseCategory("Fashion")).toBe("COSPLAY_FASHION");
-    expect(matchUsedBrowseCategory("Cosplay / fashion")).toBe("COSPLAY_FASHION");
+    expect(matchUsedBrowseCategory("Fashion")).toBe("COSPLAY");
+    expect(matchUsedBrowseCategory("Cosplay")).toBe("COSPLAY");
   });
 
   it("does not treat a partial name as an exact category", () => {
@@ -23,9 +23,9 @@ describe("used market query routing", () => {
   });
 
   it("matches product tags that contain the term", () => {
-    expect(labelContainsTerm("Figures / dolls", "dolls")).toBe(true);
-    expect(labelContainsTerm("Books / media", "me")).toBe(false);
-    expect(browseCategoriesForTag("dolls")).toEqual(["FIGURE"]);
+    expect(labelContainsTerm("Figures & Models", "models")).toBe(true);
+    expect(labelContainsTerm("Books", "me")).toBe(false);
+    expect(browseCategoriesForTag("models")).toEqual(["FIGURE"]);
     expect(productTypeIdsForTag("pokemon")).toContain("TCG_POKEMON");
   });
 
