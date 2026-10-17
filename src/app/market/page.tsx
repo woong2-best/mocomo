@@ -28,6 +28,8 @@ import { UsedSearchHeader } from "@/components/used/used-search-header";
 import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = "force-dynamic";
+
 type MarketSearch = {
   q?: string;
   category?: string;
