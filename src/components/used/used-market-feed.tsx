@@ -29,6 +29,7 @@ export async function UsedMarketFeed({
   region?: string;
   sido?: string;
 }) {
+  try {
   const query = q?.trim() || "";
   const lane = parseMarketLane(laneParam);
   const track = lane ? undefined : parseMarketTrack(trackParam);
@@ -168,4 +169,11 @@ export async function UsedMarketFeed({
       ) : null}
     </div>
   );
+  } catch (error) {
+    return (
+      <p className="p-6 text-sm text-destructive">
+        {error instanceof Error ? error.message : "Could not load listings."}
+      </p>
+    );
+  }
 }
