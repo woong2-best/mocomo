@@ -20,11 +20,15 @@ export function SensitiveContentGate({ enabled, children, style }: Props) {
   const [revealed, setRevealed] = useState(false);
 
   if (!enabled || revealed) {
-    return <View style={style}>{children}</View>;
+    return (
+      <View collapsable={false} style={style}>
+        {children}
+      </View>
+    );
   }
 
   return (
-    <View style={[styles.root, style]}>
+    <View collapsable={false} style={[styles.root, style]}>
       <View style={styles.blurred} pointerEvents="none">
         {children}
       </View>

@@ -21,6 +21,7 @@ import { useTheme } from "@/theme/ThemeContext";
 import type { ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
+  FEED_MEDIA_GRID_GAP,
   FEED_MEDIA_GRID_RADIUS,
   feedMediaFrame,
   feedMediaGridCellRadii,
@@ -208,7 +209,7 @@ function FeedPostMediaCarouselInner({
 
     if (item.locked && item.type === "VIDEO") {
       return wrapGate(
-        <View style={[styles.singleMedia, styles.lockedCell, size]}>
+        <View collapsable={false} style={[styles.singleMedia, styles.lockedCell, size]}>
           <LockedMediaTile media={item} monetization={monetization} />
         </View>
       );
@@ -216,7 +217,7 @@ function FeedPostMediaCarouselInner({
 
     if (item.type === "VIDEO" && !item.locked) {
       return wrapGate(
-        <View style={[styles.singleMedia, size]}>
+        <View collapsable={false} style={[styles.singleMedia, size]}>
           <LazyFeedVideoPreview
             media={item}
             active={previewActive}
@@ -231,7 +232,7 @@ function FeedPostMediaCarouselInner({
 
     if (item.locked) {
       return wrapGate(
-        <View style={[styles.singleMedia, size]}>
+        <View collapsable={false} style={[styles.singleMedia, size]}>
           {renderImageCell(item)}
         </View>
       );
@@ -239,6 +240,7 @@ function FeedPostMediaCarouselInner({
 
     return wrapGate(
       <Pressable
+        collapsable={false}
         style={[styles.singleMedia, size]}
         onPress={() => openMedia(item)}
         accessibilityRole="button"
@@ -259,40 +261,67 @@ function FeedPostMediaCarouselInner({
 
   const grid = feedMediaGridLayout(layoutWidth, windowHeight, items.length);
   const gridSize = { width: grid.width, height: grid.height };
+  const gap = FEED_MEDIA_GRID_GAP;
+
+  const renderGridCell = (index: number) => {
+    const item = items[index];
+    const cell = grid.cells[index];
+    if (!item || !cell) return null;
+    const media = resolveMedia(item);
+    const showMore = grid.overflow > 0 && index === 3;
+    const cellRadii = feedMediaGridCellRadii(index, items.length);
+    return (
+      <View
+        key={item.id ?? `${post.id}:media:${item.index}`}
+        style={[
+          styles.gridCell,
+          cellRadii,
+          { width: cell.width, height: cell.height },
+        ]}
+      >
+        {renderMediaCell(media, false, cellRadii)}
+        {showMore ? (
+          <View style={styles.moreBadge} pointerEvents="none">
+            <Text style={styles.moreText}>+{grid.overflow}</Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  const n = Math.min(items.length, 4);
+  const gridBody =
+    n === 2 ? (
+      <View style={[styles.gridClip, { flexDirection: "row", gap }]}>
+        {renderGridCell(0)}
+        {renderGridCell(1)}
+      </View>
+    ) : n === 3 ? (
+      <View style={[styles.gridClip, { flexDirection: "row", gap }]}>
+        {renderGridCell(0)}
+        <View style={{ width: grid.cells[1]?.width, height: grid.height, gap }}>
+          {renderGridCell(1)}
+          {renderGridCell(2)}
+        </View>
+      </View>
+    ) : (
+      <View style={[styles.gridClip, { gap }]}>
+        <View style={{ flexDirection: "row", gap, height: grid.cells[0]?.height }}>
+          {renderGridCell(0)}
+          {renderGridCell(1)}
+        </View>
+        <View style={{ flexDirection: "row", gap, height: grid.cells[2]?.height }}>
+          {renderGridCell(2)}
+          {renderGridCell(3)}
+        </View>
+      </View>
+    );
 
   return wrapGate(
-    <View style={gridSize}>
-      {grid.cells.map((cell) => {
-        const item = items[cell.index];
-        if (!item) return null;
-        const media = resolveMedia(item);
-        const showMore = grid.overflow > 0 && cell.index === 3;
-        const cellRadii = feedMediaGridCellRadii(cell.index, items.length);
-        return (
-          <View
-            key={item.id ?? `${post.id}:media:${item.index}`}
-            style={[
-              styles.gridCell,
-              cellRadii,
-              {
-                left: cell.x,
-                top: cell.y,
-                width: cell.width,
-                height: cell.height,
-              },
-            ]}
-          >
-            {renderMediaCell(media, false, cellRadii)}
-            {showMore ? (
-              <View style={styles.moreBadge} pointerEvents="none">
-                <Text style={styles.moreText}>+{grid.overflow}</Text>
-              </View>
-            ) : null}
-          </View>
-        );
-      })}
+    <View collapsable={false} style={gridSize}>
+      {gridBody}
     </View>,
-    [styles.grid, gridSize]
+    styles.gridMeasure
   );
 }
 
@@ -300,15 +329,16 @@ export const FeedPostMediaCarousel = memo(FeedPostMediaCarouselInner);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    grid: {
+    gridMeasure: {
       alignSelf: "flex-start",
-      borderRadius: FEED_MEDIA_GRID_RADIUS,
-      overflow: "hidden",
-      backgroundColor: "transparent",
       marginBottom: 10,
     },
+    gridClip: {
+      flex: 1,
+      borderRadius: FEED_MEDIA_GRID_RADIUS,
+      overflow: "hidden",
+    },
     gridCell: {
-      position: "absolute",
       overflow: "hidden",
       backgroundColor: colors.muted,
     },

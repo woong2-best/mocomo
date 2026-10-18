@@ -450,7 +450,7 @@ function FeedPostCardInner({
           style={styles.content}
           numberOfLines={expandBody ? undefined : 8}
           onBackgroundPress={onPressPost ? openPost : undefined}
-          translateActive={viewTrackActive}
+          translateActive
         />
       ) : post.title ? (
         <Pressable onPress={openPost} disabled={!onPressPost}>
@@ -678,6 +678,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       paddingHorizontal: spacing.md,
       paddingTop: 12,
       paddingBottom: 12,
+      overflow: "visible",
     },
     cardPinned: {
       backgroundColor: isDark ? colors.muted : "rgba(197, 82, 42, 0.06)",

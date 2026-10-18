@@ -25,7 +25,7 @@ type Props = {
   mentionStyle?: StyleProp<TextStyle>;
   lightLinks?: boolean;
   onBackgroundPress?: () => void;
-  /** Feed cards pass false until scrolled into view. */
+  /** Kept for callers; translation only runs after the reader taps. */
   translateActive?: boolean;
 };
 
@@ -55,6 +55,7 @@ export function TranslatableText({
     failed,
     showOriginal,
     setShowOriginal,
+    requestTranslation,
   } = useAutoClientTranslation(text, locale, showTranslate);
 
   if (!showTranslate) {
@@ -95,9 +96,14 @@ export function TranslatableText({
           </Pressable>
         ) : loading ? (
           <Text style={styles.metaText}>{t("translate.loading")}</Text>
-        ) : failed ? (
-          <Text style={styles.failed}>{t("translate.failed")}</Text>
-        ) : null}
+        ) : (
+          <>
+            {failed ? <Text style={styles.failed}>{t("translate.failed")}</Text> : null}
+            <Pressable onPress={requestTranslation} hitSlop={8} disabled={loading}>
+              <Text style={styles.metaAction}>{t("translate.viewTranslation")}</Text>
+            </Pressable>
+          </>
+        )}
       </View>
       <LinkifiedText
         text={displayText}

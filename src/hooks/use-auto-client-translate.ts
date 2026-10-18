@@ -7,7 +7,6 @@ import type { PostTranslateInto } from "@/lib/client-translate/opus-mt-pairs";
 
 export function useAutoClientTranslation(text: string, target: PostTranslateInto) {
   const clientTranslation = useClientTranslationOptional();
-  const lookup = clientTranslation?.lookup;
   const prefetch = clientTranslation?.prefetch;
   const translate = clientTranslation?.translate;
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -53,23 +52,6 @@ export function useAutoClientTranslation(text: string, target: PostTranslateInto
     observer.observe(el);
     return () => observer.disconnect();
   }, [shouldTranslate, text]);
-
-  useEffect(() => {
-    if (!shouldTranslate || !lookup) return;
-
-    let cancelled = false;
-    void lookup(text, target).then((result) => {
-      if (cancelled || !result?.translated) return;
-      setTranslated(result.translated);
-      setSourceLang(result.sourceLang);
-      setRequested(true);
-      setShowOriginal(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [shouldTranslate, lookup, text, target]);
 
   useEffect(() => {
     if (!visible || !shouldTranslate || !prefetch || translated) return;

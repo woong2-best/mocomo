@@ -466,22 +466,24 @@ export function FeedScreen() {
       const post = item.data;
       if (!post?.id || !post.author?.id) return null;
       return (
-        <FeedPostCard
-          post={post}
-          previewActive={
-            isFocused &&
-            previewArmed &&
-            !isFeedScrolling &&
-            activePreviewIdRef.current === post.id
-          }
-          viewTrackActive={isFocused && visiblePostIds.includes(post.id)}
-          paymentsEnabled={paymentsEnabled}
-          onPurchaseSuccess={onPurchaseSuccess}
-          onPressPost={onPressPost}
-          onPressAuthor={onPressAuthor}
-          onPressVideo={onPressVideo}
-          onBlockedAuthor={onBlockedAuthor}
-        />
+        <View collapsable={false}>
+          <FeedPostCard
+            post={post}
+            previewActive={
+              isFocused &&
+              previewArmed &&
+              !isFeedScrolling &&
+              activePreviewIdRef.current === post.id
+            }
+            viewTrackActive={isFocused && visiblePostIds.includes(post.id)}
+            paymentsEnabled={paymentsEnabled}
+            onPurchaseSuccess={onPurchaseSuccess}
+            onPressPost={onPressPost}
+            onPressAuthor={onPressAuthor}
+            onPressVideo={onPressVideo}
+            onBlockedAuthor={onBlockedAuthor}
+          />
+        </View>
       );
     },
     [

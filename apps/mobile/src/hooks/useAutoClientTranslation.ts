@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Locale } from "@/i18n";
 import { needsClientTranslation } from "@/lib/translate/detect-source";
 import { useClientTranslation } from "@/providers/ClientTranslationProvider";
@@ -9,8 +9,7 @@ export function useAutoClientTranslation(
   enabled = true
 ) {
   const { translate } = useClientTranslation();
-  const rootRef = useRef<unknown>(null);
-  const [active, setActive] = useState(false);
+  const [requested, setRequested] = useState(false);
   const [translated, setTranslated] = useState<string | null>(null);
   const [sourceLang, setSourceLang] = useState<Locale | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,15 +18,23 @@ export function useAutoClientTranslation(
 
   const shouldTranslate = enabled && needsClientTranslation(text, locale);
 
-  useEffect(() => {
+  const requestTranslation = useCallback(() => {
     if (!shouldTranslate) return;
-    const timer = setTimeout(() => setActive(true), 0);
-    return () => clearTimeout(timer);
-  }, [shouldTranslate, text]);
+    setFailed(false);
+    setRequested(true);
+  }, [shouldTranslate]);
 
   useEffect(() => {
-    if (!shouldTranslate || !active) return;
-    if (translated || loading || failed) return;
+    setTranslated(null);
+    setSourceLang(null);
+    setLoading(false);
+    setFailed(false);
+    setShowOriginal(false);
+    setRequested(false);
+  }, [text, locale]);
+
+  useEffect(() => {
+    if (!shouldTranslate || !requested || translated) return;
 
     let cancelled = false;
     setLoading(true);
@@ -38,13 +45,18 @@ export function useAutoClientTranslation(
         if (cancelled) return;
         if (!result?.translated) {
           setFailed(true);
+          setRequested(false);
           return;
         }
         setTranslated(result.translated);
         setSourceLang(result.sourceLang);
+        setShowOriginal(false);
       })
       .catch(() => {
-        if (!cancelled) setFailed(true);
+        if (!cancelled) {
+          setFailed(true);
+          setRequested(false);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -53,22 +65,12 @@ export function useAutoClientTranslation(
     return () => {
       cancelled = true;
     };
-  }, [shouldTranslate, active, translate, text, locale, translated, loading, failed]);
-
-  useEffect(() => {
-    setTranslated(null);
-    setSourceLang(null);
-    setLoading(false);
-    setFailed(false);
-    setShowOriginal(false);
-    setActive(false);
-  }, [text, locale]);
+  }, [shouldTranslate, requested, translate, text, locale, translated]);
 
   const displayText =
     shouldTranslate && translated && !showOriginal ? translated : text;
 
   return {
-    rootRef,
     shouldTranslate,
     displayText,
     translated,
@@ -77,5 +79,6 @@ export function useAutoClientTranslation(
     failed,
     showOriginal,
     setShowOriginal,
+    requestTranslation,
   };
 }

@@ -21,6 +21,26 @@ const ClientTranslationContext = createContext<ClientTranslationContextValue | n
 export function ClientTranslationProvider({ children }: { children: ReactNode }) {
   const translate = useCallback(async (text: string, targetLocale: Locale) => {
     try {
+      const { apiRequest } = await import("@/api/client");
+      const res = await apiRequest<{
+        ok?: boolean;
+        translated?: string;
+        sourceLang?: string | null;
+      }>("/api/translate", {
+        method: "POST",
+        body: { text, targetLocale: targetLocale.split("-")[0] },
+        auth: false,
+      });
+      if (res.translated && res.translated !== text) {
+        return {
+          translated: res.translated,
+          sourceLang: (res.sourceLang as Locale | null) ?? null,
+        };
+      }
+    } catch {
+      /* fall through to on-device */
+    }
+    try {
       const { translateTextOnDevice } = await import("@/lib/translate/engine");
       return await translateTextOnDevice(text, targetLocale);
     } catch {
