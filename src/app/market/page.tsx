@@ -1,9 +1,8 @@
 ﻿import { Suspense } from "react";
-import { auth } from "@/lib/auth";
-import { resolveUsedMarketScope } from "@/lib/used-market-locale-scope";
-import { UsedSearchHeader } from "@/components/used/used-search-header";
+import { UsedMarketChips } from "@/components/used/used-market-chips";
 import { UsedMarketFeed } from "@/components/used/used-market-feed";
 import { UsedFeedSkeleton } from "@/components/used/used-loading-skeletons";
+import { USED_SHIPPING_REGION } from "@/lib/korea-regions";
 
 export const dynamic = "force-dynamic";
 
@@ -22,52 +21,30 @@ type MarketSearch = {
   lane?: string;
 };
 
-async function MarketHeader(search: MarketSearch) {
-  let country = "US";
-  let serviceRegion: string | null = null;
-  try {
-    const session = await auth();
-    const scope = await resolveUsedMarketScope({
-      userId: session?.user?.id,
-      sessionCountry: session?.user?.countryCode,
-    });
-    country = scope.countryCode;
-    serviceRegion = scope.serviceRegion;
-  } catch {
-    // Header still renders if locale scope is unavailable.
-  }
-  return (
-    <UsedSearchHeader
-      viewerCountryCode={country}
-      viewerServiceRegion={serviceRegion}
-      track={search.track}
-      lane={search.lane}
-      category={search.category}
-      product={search.product}
-      activeQ={search.q}
-      region={search.region}
-      sido={search.sido}
-      condition={search.condition}
-      limited={search.limited}
-      trade={search.trade}
-      work={search.work}
-      anime={search.anime}
-    />
-  );
-}
-
 export default async function UsedHomePage({
   searchParams,
 }: {
   searchParams: Promise<MarketSearch>;
 }) {
   const search = await searchParams;
+  const shipping = search.sido === "__shipping__";
+  const region = shipping ? USED_SHIPPING_REGION : search.region;
+  const sido = shipping ? undefined : search.sido;
 
   return (
     <div className="space-y-2">
-      <Suspense fallback={null}>
-        <MarketHeader {...search} />
-      </Suspense>
+      <UsedMarketChips
+        track={search.track}
+        lane={search.lane}
+        category={search.category}
+        product={search.product}
+        q={search.q}
+        region={search.region}
+        sido={search.sido}
+        condition={search.condition}
+        limited={search.limited}
+        trade={search.trade}
+      />
       <Suspense fallback={<UsedFeedSkeleton />}>
         <UsedMarketFeed
           q={search.q}
@@ -75,8 +52,8 @@ export default async function UsedHomePage({
           lane={search.lane}
           category={search.category}
           product={search.product}
-          region={search.region}
-          sido={search.sido}
+          region={region}
+          sido={sido}
           condition={search.condition}
           limited={search.limited}
           trade={search.trade}
