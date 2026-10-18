@@ -71,12 +71,11 @@ export const COMMUNITY_CATEGORY_OPTIONS: {
   };
 });
 
-/** QnA feed horizontal tabs — preset categories + NSFW (age-gated in UI). */
+/** QnA feed horizontal tabs — preset categories + NSFW (age-gated in UI). "My" is a header action, not a scroll tab. */
 export const QNA_FEED_CATEGORY_TABS = [
   { id: "ALL" as const, label: "All", shortLabel: "All", emoji: "" },
   ...COMMUNITY_CATEGORY_OPTIONS,
   { id: QNA_NSFW_CATEGORY_ID, label: "NSFW", shortLabel: "NSFW", emoji: "🔞" },
-  { id: QNA_MY_CATEGORY_ID, label: "My", shortLabel: "My", emoji: "👤" },
 ];
 
 export type QnaFeedTabId =
@@ -84,6 +83,11 @@ export type QnaFeedTabId =
   | CommunityCategory
   | typeof QNA_NSFW_CATEGORY_ID
   | typeof QNA_MY_CATEGORY_ID;
+
+export function isQnaFeedTabId(value: string): value is QnaFeedTabId {
+  if (value === "ALL" || value === QNA_NSFW_CATEGORY_ID || value === QNA_MY_CATEGORY_ID) return true;
+  return isCommunityCategory(value);
+}
 
 export type QnaCreateCategorySelection = CommunityCategory | typeof QNA_NSFW_CATEGORY_ID;
 

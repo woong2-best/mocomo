@@ -8,7 +8,7 @@ import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativePageTitle } from "@/components/layout/app-page-chrome";
 import {
@@ -19,6 +19,8 @@ import {
   QNA_FEED_CATEGORY_TABS,
   QNA_MY_CATEGORY_ID,
   QNA_NSFW_CATEGORY_ID,
+  isQnaFeedTabId,
+  qnaFeedTabDisplay,
   type QnaFeedTabId,
 } from "@/lib/community-labels";
 import { useSession } from "next-auth/react";
@@ -50,9 +52,8 @@ export function QnaHubClient() {
   const searchParams = useSearchParams();
   const qFromUrl = searchParams.get("q")?.trim() ?? "";
   const categoryFromUrl = (searchParams.get("category")?.trim() || "ALL") as QnaFeedTabId;
-  const tab: QnaFeedTabId = QNA_FEED_CATEGORY_TABS.some((opt) => opt.id === categoryFromUrl)
-    ? categoryFromUrl
-    : "ALL";
+  const tab: QnaFeedTabId = isQnaFeedTabId(categoryFromUrl) ? categoryFromUrl : "ALL";
+  const myTabLabel = qnaFeedTabDisplay(QNA_MY_CATEGORY_ID).shortLabel;
 
   const { blockedOpen, setBlockedOpen, guardCategoryNav, checking } = useQnaNsfwGate();
   const sessionState = useSession();
@@ -209,12 +210,24 @@ export function QnaHubClient() {
         <NativePageTitle>
           <h1 className="text-2xl font-bold tracking-tight">QnA</h1>
         </NativePageTitle>
-        <Link href="/communities/new">
-          <Button size="sm">
-            <Plus className="h-4 w-4" />
-            {t("communities.qna_3")}
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            disabled={checking}
+            aria-pressed={tab === QNA_MY_CATEGORY_ID}
+            onClick={() => setTab(QNA_MY_CATEGORY_ID)}
+          >
+            <User className="h-4 w-4" />
+            {myTabLabel}
           </Button>
-        </Link>
+          <Link href="/communities/new">
+            <Button size="sm">
+              <Plus className="h-4 w-4" />
+              {t("communities.qna_3")}
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin">
