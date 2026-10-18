@@ -108,7 +108,6 @@ type Props = {
   onPinchZoomChange?: (zooming: boolean) => void;
   /** Comments sheet is driving a push-scale; keep the decoder, hide chrome, yield gestures. */
   commentsOpen?: boolean;
-  onBindPlayback?: (bind: { togglePause: () => void } | null) => void;
 };
 
 function NativeVideoCell({
@@ -352,7 +351,6 @@ function FeedVideoPostSlideInner({
   onFastForwardChange,
   onPinchZoomChange,
   commentsOpen = false,
-  onBindPlayback,
 }: Props) {
   const stageWidth = stageWidthProp ?? width;
   const stageLeft = stageLeftProp ?? 0;
@@ -408,11 +406,15 @@ function FeedVideoPostSlideInner({
   );
 
   const startFastForward = useCallback(() => {
-    if (!active || !isFocused || pausedByUser) return;
+    if (!active || !isFocused || pausedByUser || commentsOpen) return;
     setFastForward(true);
     onFastForwardChange?.(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [active, isFocused, onFastForwardChange, pausedByUser]);
+  }, [active, commentsOpen, isFocused, onFastForwardChange, pausedByUser]);
+
+  useEffect(() => {
+    if (commentsOpen) stopFastForward();
+  }, [commentsOpen, stopFastForward]);
 
   useEffect(() => {
     if (!active || !isFocused) stopFastForward();
@@ -483,16 +485,10 @@ function FeedVideoPostSlideInner({
   }, [videoIndex, group.postId]);
 
   const togglePause = useCallback(() => {
-    if (!active) return;
+    if (!active || commentsOpen) return;
     setPausedByUser((p) => !p);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [active]);
-
-  useEffect(() => {
-    if (!active || !onBindPlayback) return;
-    onBindPlayback({ togglePause });
-    return () => onBindPlayback(null);
-  }, [active, onBindPlayback, togglePause]);
+  }, [active, commentsOpen]);
 
   const onHScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -638,7 +634,7 @@ function FeedVideoPostSlideInner({
         }}
         renderItem={({ item, index }) => {
           const isCurrent = active && index === videoIndex;
-          const isPlaying = isCurrent && isFocused;
+          const isPlaying = isCurrent && (isFocused || commentsOpen);
           return (
             <View
               style={{
@@ -666,7 +662,11 @@ function FeedVideoPostSlideInner({
                 )}
                 onZoomChange={isCurrent ? handlePinchZoomChange : undefined}
                 overlay={
-                  isCurrent && pausedByUser && !fastForward && item.mediaType !== "IMAGE" ? (
+                  isCurrent &&
+                  !commentsOpen &&
+                  pausedByUser &&
+                  !fastForward &&
+                  item.mediaType !== "IMAGE" ? (
                     <View style={styles.pauseBadge} pointerEvents="none">
                       <Ionicons name="play" size={56} color="rgba(255,255,255,0.9)" />
                     </View>

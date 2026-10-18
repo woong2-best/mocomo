@@ -144,7 +144,6 @@ export function ReelsScreen() {
   const [chromeHidden, setChromeHidden] = useState(false);
   const [pinchZooming, setPinchZooming] = useState(false);
   const commentProgress = useSharedValue(0);
-  const playbackRef = useRef<{ togglePause: () => void } | null>(null);
   const liveSheetHeight = useMemo(
     () => reelsCommentSheetHeight(height, insets.bottom),
     [height, insets.bottom]
@@ -432,6 +431,16 @@ export function ReelsScreen() {
     setCommentDraft("");
   }, []);
 
+  const requestCloseComments = useCallback(() => {
+    commentProgress.value = withTiming(
+      0,
+      { duration: REELS_COMMENT_DURATION_MS, easing: Easing.out(Easing.cubic) },
+      (finished) => {
+        if (finished) runOnJS(closeComments)();
+      }
+    );
+  }, [closeComments, commentProgress]);
+
   const openComments = useCallback(
     (postId: string, commentCount: number) => {
       setCommentsPostId(postId);
@@ -446,14 +455,6 @@ export function ReelsScreen() {
     },
     [commentProgress, queryClient]
   );
-
-  const bindPlayback = useCallback((bind: { togglePause: () => void } | null) => {
-    playbackRef.current = bind;
-  }, []);
-
-  const onVideoHitboxPress = useCallback(() => {
-    playbackRef.current?.togglePause();
-  }, []);
 
   const pagerAnimStyle = useAnimatedStyle(() => {
     const v = reelsCommentVideoAtProgress(
@@ -528,13 +529,11 @@ export function ReelsScreen() {
           onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
           onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
           commentsOpen={index === activeSlot && commentsUiOpen}
-          onBindPlayback={index === activeSlot ? bindPlayback : undefined}
         />
       );
     },
     [
       activeSlot,
-      bindPlayback,
       chrome.stageLeft,
       chrome.stageWidth,
       commentsUiOpen,
@@ -574,17 +573,11 @@ export function ReelsScreen() {
   useEffect(() => {
     if (!commentsUiOpen) return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      commentProgress.value = withTiming(
-        0,
-        { duration: REELS_COMMENT_DURATION_MS, easing: Easing.out(Easing.cubic) },
-        (finished) => {
-          if (finished) runOnJS(closeComments)();
-        }
-      );
+      requestCloseComments();
       return true;
     });
     return () => sub.remove();
-  }, [closeComments, commentProgress, commentsUiOpen]);
+  }, [commentsUiOpen, requestCloseComments]);
 
   const hideChrome = chromeHidden || pinchZooming || commentsUiOpen;
 
@@ -686,9 +679,9 @@ export function ReelsScreen() {
       {commentsUiOpen ? (
         <Pressable
           style={[styles.videoHitbox, { height: Math.max(80, height - sheetHeight) }]}
-          onPress={onVideoHitboxPress}
+          onPress={requestCloseComments}
           accessibilityRole="button"
-          accessibilityLabel={t("m.reels.toggle_playback")}
+          accessibilityLabel={t("m.common.close")}
         />
       ) : null}
 
