@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { StudioOrderForm } from "@/components/used/studio-order-form";
 import { auth } from "@/lib/auth";
 import { getCreatorStudio } from "@/lib/creator-studio";
@@ -9,6 +9,7 @@ const t = createTranslator("en");
 
 export default async function StudioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (id === "edit") redirect("/market/new/digital");
   let studio: Awaited<ReturnType<typeof getCreatorStudio>> = null;
   try {
     studio = await getCreatorStudio(id);
