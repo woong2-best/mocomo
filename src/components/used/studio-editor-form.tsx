@@ -51,6 +51,7 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [dragField, setDragField] = useState<string | null>(null);
 
   const canNext = useMemo(() => {
     if (step === 1) return step1Valid(draft);
@@ -77,6 +78,17 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
       ...prev,
       formFields: prev.formFields.map((field) => (field.id === id ? { ...field, ...patch } : field)),
     }));
+  }
+
+  function moveField(index: number, delta: number) {
+    setDraft((prev) => {
+      const to = index + delta;
+      if (to < 0 || to >= prev.formFields.length) return prev;
+      const next = [...prev.formFields];
+      const [item] = next.splice(index, 1);
+      next.splice(to, 0, item);
+      return { ...prev, formFields: next };
+    });
   }
 
 
@@ -111,6 +123,7 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
 
   return (
     <div className="space-y-5 pb-24">
+      <p className="text-xs font-semibold leading-5 text-muted-foreground">{t("market.studio.watermarkNote")}</p>
       <div className="flex gap-2">
         {steps.map((item) => (
           <div
@@ -340,21 +353,78 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
 
           <section className="space-y-2">
             <p className="text-[15px] font-bold">{t("market.studio.form")}</p>
-            {draft.formFields.map((field) => (
-              <div key={field.id} className="flex gap-2">
-                <input
-                  value={field.label}
-                  onChange={(e) => patchField(field.id, { label: e.target.value })}
-                  placeholder={t("market.studio.fieldName")}
-                  className={`${inputClass} flex-1`}
-                />
-                <button
-                  type="button"
-                  className="rounded-xl border border-border px-3 text-xs font-extrabold"
-                  onClick={() => patchField(field.id, { kind: field.kind === "image" ? "text" : "image" })}
-                >
-                  {field.kind === "image" ? t("market.studio.image") : t("market.studio.text")}
-                </button>
+            <p className="text-xs text-muted-foreground">{t("market.studio.formHint")}</p>
+            {draft.formFields.map((field, index) => (
+              <div
+                key={field.id}
+                draggable
+                onDragStart={() => setDragField(field.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (!dragField || dragField === field.id) return;
+                  setDraft((prev) => {
+                    const from = prev.formFields.findIndex((item) => item.id === dragField);
+                    const to = prev.formFields.findIndex((item) => item.id === field.id);
+                    if (from < 0 || to < 0) return prev;
+                    const next = [...prev.formFields];
+                    const [item] = next.splice(from, 1);
+                    next.splice(to, 0, item);
+                    return { ...prev, formFields: next };
+                  });
+                  setDragField(null);
+                }}
+                className="space-y-2 rounded-2xl border border-border p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-center text-xs font-extrabold text-folk-terracotta">
+                    <button type="button" onClick={() => moveField(index, -1)} disabled={index === 0}>
+                      ↑
+                    </button>
+                    <span className="cursor-grab select-none text-muted-foreground">☰</span>
+                    <button type="button" onClick={() => moveField(index, 1)} disabled={index === draft.formFields.length - 1}>
+                      ↓
+                    </button>
+                  </div>
+                  <input
+                    value={field.label}
+                    onChange={(e) => patchField(field.id, { label: e.target.value })}
+                    placeholder={t("market.studio.fieldName")}
+                    className={`${inputClass} flex-1`}
+                  />
+                  <button
+                    type="button"
+                    disabled={draft.formFields.length < 2}
+                    className="text-sm font-extrabold text-folk-terracotta disabled:opacity-30"
+                    onClick={() =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        formFields:
+                          prev.formFields.length > 1
+                            ? prev.formFields.filter((item) => item.id !== field.id)
+                            : prev.formFields,
+                      }))
+                    }
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    className="rounded-xl border border-border px-3 py-1.5 text-xs font-extrabold"
+                    onClick={() => patchField(field.id, { kind: field.kind === "image" ? "text" : "image" })}
+                  >
+                    {field.kind === "image" ? t("market.studio.image") : t("market.studio.text")}
+                  </button>
+                  <label className="flex items-center gap-2 text-xs font-bold">
+                    <input
+                      type="checkbox"
+                      checked={field.required}
+                      onChange={(e) => patchField(field.id, { required: e.target.checked })}
+                    />
+                    {t("market.studio.required")}
+                  </label>
+                </div>
               </div>
             ))}
             <button
@@ -373,15 +443,6 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
               {t("market.studio.addField")}
             </button>
           </section>
-
-          <button
-            type="button"
-            disabled={busy || !canNext}
-            onClick={() => void save()}
-            className="h-12 w-full rounded-full bg-folk-terracotta text-base font-extrabold text-white disabled:opacity-45"
-          >
-            {busy ? t("ui.publishing") : t("market.studio.save")}
-          </button>
         </>
       ) : null}
 
@@ -392,7 +453,9 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
           <button
             type="button"
             onClick={() => setStep((n) => Math.max(1, n - 1))}
-            className="h-11 flex-1 rounded-full border border-border text-sm font-extrabold"
+            className={`h-11 rounded-full border border-border text-sm font-extrabold ${
+              step === 3 ? "w-[30%]" : "flex-1"
+            }`}
           >
             {t("market.studio.back")}
           </button>
@@ -409,7 +472,14 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
             {t("market.studio.next")}
           </button>
         ) : (
-          <div className="flex-1" />
+          <button
+            type="button"
+            disabled={busy || !canNext}
+            onClick={() => void save()}
+            className="h-12 w-[70%] rounded-full bg-folk-terracotta text-base font-extrabold text-white disabled:opacity-45"
+          >
+            {busy ? t("ui.publishing") : t("market.studio.save")}
+          </button>
         )}
       </div>
     </div>

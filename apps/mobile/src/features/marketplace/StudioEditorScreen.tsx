@@ -149,6 +149,17 @@ export function StudioEditorScreen() {
     }));
   }
 
+  function moveField(index: number, delta: number) {
+    setDraft((prev) => {
+      const to = index + delta;
+      if (to < 0 || to >= prev.formFields.length) return prev;
+      const next = [...prev.formFields];
+      const [item] = next.splice(index, 1);
+      next.splice(to, 0, item);
+      return { ...prev, formFields: next };
+    });
+  }
+
   if (mine.isLoading && !ready) {
     return (
       <Screen>
@@ -358,23 +369,72 @@ export function StudioEditorScreen() {
             </SectionCard>
 
             <SectionCard title={t("m.studio.form")} colors={colors}>
-              {draft.formFields.map((field) => (
-                <View key={field.id} style={styles.row}>
-                  <KeyboardAwareTextInput
-                    value={field.label}
-                    onChangeText={(label) => patchField(field.id, { label })}
-                    style={[styles.input, styles.grow, inputStyle(colors)]}
-                    placeholder={t("m.studio.field_name")}
-                    placeholderTextColor={colors.textMuted}
-                  />
-                  <Pressable
-                    onPress={() => patchField(field.id, { kind: field.kind === "image" ? "text" : "image" })}
-                    style={[styles.mode, { borderColor: colors.border }]}
-                  >
-                    <Text style={{ color: colors.brand, fontWeight: "800", fontSize: 11 }}>
-                      {field.kind === "image" ? t("m.studio.image") : t("m.studio.text")}
-                    </Text>
-                  </Pressable>
+              <Text style={[styles.hint, { color: colors.textMuted }]}>{t("m.studio.form_hint")}</Text>
+              {draft.formFields.map((field, index) => (
+                <View key={field.id} style={[styles.fieldCard, { borderColor: colors.border }]}>
+                  <View style={styles.row}>
+                    <View style={styles.handleCol}>
+                      <Pressable onPress={() => moveField(index, -1)} hitSlop={6} disabled={index === 0}>
+                        <Ionicons name="chevron-up" size={16} color={index === 0 ? colors.border : colors.brand} />
+                      </Pressable>
+                      <Ionicons name="menu" size={16} color={colors.textMuted} />
+                      <Pressable
+                        onPress={() => moveField(index, 1)}
+                        hitSlop={6}
+                        disabled={index === draft.formFields.length - 1}
+                      >
+                        <Ionicons
+                          name="chevron-down"
+                          size={16}
+                          color={index === draft.formFields.length - 1 ? colors.border : colors.brand}
+                        />
+                      </Pressable>
+                    </View>
+                    <KeyboardAwareTextInput
+                      value={field.label}
+                      onChangeText={(label) => patchField(field.id, { label })}
+                      style={[styles.input, styles.grow, inputStyle(colors)]}
+                      placeholder={t("m.studio.field_name")}
+                      placeholderTextColor={colors.textMuted}
+                    />
+                    <Pressable
+                      onPress={() =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          formFields: prev.formFields.length > 1 ? prev.formFields.filter((item) => item.id !== field.id) : prev.formFields,
+                        }))
+                      }
+                      hitSlop={8}
+                      disabled={draft.formFields.length < 2}
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={18}
+                        color={draft.formFields.length < 2 ? colors.border : colors.terracotta}
+                      />
+                    </Pressable>
+                  </View>
+                  <View style={styles.row}>
+                    <Pressable
+                      onPress={() => patchField(field.id, { kind: field.kind === "image" ? "text" : "image" })}
+                      style={[styles.mode, { borderColor: colors.border }]}
+                    >
+                      <Text style={{ color: colors.brand, fontWeight: "800", fontSize: 11 }}>
+                        {field.kind === "image" ? t("m.studio.image") : t("m.studio.text")}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => patchField(field.id, { required: !field.required })}
+                      style={styles.requiredRow}
+                    >
+                      <Ionicons
+                        name={field.required ? "checkbox" : "square-outline"}
+                        size={18}
+                        color={field.required ? colors.terracotta : colors.textMuted}
+                      />
+                      <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>{t("m.studio.required")}</Text>
+                    </Pressable>
+                  </View>
                 </View>
               ))}
               <TextButton
@@ -387,21 +447,13 @@ export function StudioEditorScreen() {
                 }
               />
             </SectionCard>
-
-            <Pressable
-              style={[styles.save, { backgroundColor: colors.terracotta, opacity: canNext && !busy ? 1 : 0.45 }]}
-              disabled={busy || !canNext}
-              onPress={() => void save()}
-            >
-              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>{t("m.studio.save")}</Text>}
-            </Pressable>
           </>
         ) : null}
 
         <View style={styles.navRow}>
           {step > 1 ? (
             <Pressable
-              style={[styles.navBtn, { borderColor: colors.border }]}
+              style={[styles.navBtn, step === 3 ? styles.navBack : null, { borderColor: colors.border }]}
               onPress={() => {
                 setStep((s) => Math.max(1, s - 1));
               }}
@@ -426,7 +478,17 @@ export function StudioEditorScreen() {
               <Text style={{ color: "#fff", fontWeight: "800" }}>{t("m.studio.next")}</Text>
             </Pressable>
           ) : (
-            <View style={styles.navSpacer} />
+            <Pressable
+              style={[
+                styles.navBtn,
+                styles.navPublish,
+                { backgroundColor: colors.terracotta, opacity: canNext && !busy ? 1 : 0.45 },
+              ]}
+              disabled={busy || !canNext}
+              onPress={() => void save()}
+            >
+              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>{t("m.studio.save")}</Text>}
+            </Pressable>
           )}
         </View>
       </KeyboardAwareScrollView>
@@ -587,6 +649,9 @@ const styles = StyleSheet.create({
   thumbActions: { flexDirection: "row", gap: 10, alignItems: "center" },
   add: { borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
   row: { flexDirection: "row", gap: 8, alignItems: "center" },
+  fieldCard: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 8 },
+  handleCol: { alignItems: "center", gap: 2, paddingRight: 2 },
+  requiredRow: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1 },
   grow: { flex: 1 },
   price: { width: 96 },
   mode: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 10 },
@@ -602,6 +667,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  navBack: { flex: 3 },
+  navPublish: { flex: 7, borderWidth: 0 },
   navPrimary: { borderWidth: 0 },
   navSpacer: { flex: 1 },
   modalRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" },

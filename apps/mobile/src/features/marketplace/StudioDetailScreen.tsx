@@ -206,7 +206,10 @@ export function StudioDetailScreen() {
             <Text style={[styles.section, { color: colors.text }]}>{t("m.studio.form")}</Text>
             {studio.formFields.map((field) => (
               <View key={field.id} style={styles.field}>
-                <Text style={[styles.label, { color: colors.textMuted }]}>{field.label}</Text>
+                <Text style={[styles.label, { color: colors.textMuted }]}>
+                  {field.label}
+                  {field.required ? " *" : ""}
+                </Text>
                 {field.kind === "image" ? (
                   <Pressable style={[styles.choice, { borderColor: colors.border }]} onPress={() => void attach(field.id)}>
                     <Text style={{ color: colors.brand, fontWeight: "800" }}>

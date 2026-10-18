@@ -110,7 +110,10 @@ export function StudioOrderForm({
       <p className="text-sm font-bold">{labels.form}</p>
       {studio.formFields.map((field) => (
         <label key={field.id} className="block text-sm">
-          <span className="font-semibold">{field.label}</span>
+          <span className="font-semibold">
+            {field.label}
+            {field.required ? " *" : ""}
+          </span>
           {field.kind === "image" ? (
             <input
               className="mt-1 w-full rounded-xl border bg-background px-3 py-2"
