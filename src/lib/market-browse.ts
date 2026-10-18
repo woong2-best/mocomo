@@ -24,7 +24,6 @@ export const PHYSICAL_SELL_KIND_IDS = PHYSICAL_MARKET_CATEGORIES.map((item) => i
 export const MARKET_LANE_CHIPS = [
   { id: "purchased", key: "market.purchases" },
   { id: "sales", key: "market.sales" },
-  { id: "my", key: "market.my_tab" },
   { id: "favorites", key: "market.favorites" },
 ] as const;
 
@@ -44,7 +43,7 @@ export function listingTrackFilter(
 }
 
 export function parseMarketLane(raw: string | undefined | null): MarketLaneChip | undefined {
-  if (raw === "purchased" || raw === "sales" || raw === "my" || raw === "favorites") return raw;
-  if (raw === "selling") return "my";
+  if (raw === "purchased" || raw === "sales" || raw === "favorites") return raw;
+  if (raw === "my" || raw === "selling") return "sales";
   return undefined;
 }

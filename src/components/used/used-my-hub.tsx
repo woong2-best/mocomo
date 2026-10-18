@@ -83,6 +83,8 @@ export function UsedMyHub({
     switch (hubLane) {
       case "purchased":
         return t("ui.no_purchases_yet");
+      case "sales":
+      case "my":
       case "selling":
         return t("ui.no_listings_yet");
       case "live-auctions":

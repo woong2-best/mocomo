@@ -571,7 +571,11 @@ export async function listMobileUsedFavorites(userId: string, take = 48) {
 
 export async function listMobileUsedSales(userId: string, take = 48) {
   const listings = await db.usedListing.findMany({
-    where: { sellerId: userId, status: "SOLD", removedAt: null },
+    where: {
+      sellerId: userId,
+      removedAt: null,
+      status: { in: ["SELLING", "RESERVED", "SOLD"] },
+    },
     orderBy: { updatedAt: "desc" },
     take: Math.min(take, 48),
     select: hubListingSelect,
@@ -597,10 +601,18 @@ export async function listMobileUsedSelling(userId: string, take = 48) {
 export async function listMobileUsedPurchases(userId: string, take = 48) {
   const listings = await db.usedListing.findMany({
     where: {
+      sellerId: { not: userId },
+      removedAt: null,
       OR: [
         { winningBidderId: userId, status: { in: ["SOLD", "RESERVED"] } },
+        { currentBidderId: userId, status: { in: ["SELLING", "RESERVED"] } },
         { marketplaceOrder: { buyerId: userId } },
-        { tradeChats: { some: { buyerId: userId } }, status: "SOLD" },
+        { tradeChats: { some: { buyerId: userId } } },
+        {
+          saleType: "AUCTION",
+          status: "SELLING",
+          auctionBids: { some: { bidderId: userId } },
+        },
       ],
     },
     orderBy: { updatedAt: "desc" },

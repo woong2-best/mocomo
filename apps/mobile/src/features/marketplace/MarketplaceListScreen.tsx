@@ -69,7 +69,6 @@ type BrowsePick = { source: "hub" | "shelf"; id: string };
 const LANE_PILLS = [
   { id: "purchased" as const, labelKey: "m.marketplace.purchases" },
   { id: "sales" as const, labelKey: "m.marketplace.sales" },
-  { id: "my" as const, labelKey: "m.marketplace.my_tab" },
   { id: "favorites" as const, labelKey: "m.marketplace.favorites" },
 ];
 
@@ -89,7 +88,6 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
   const isCombined =
     hubLane !== "purchased" &&
     hubLane !== "sales" &&
-    hubLane !== "my" &&
     hubLane !== "favorites" &&
     hubLane !== "disputes" &&
     hubLane !== "my-bids";
@@ -143,7 +141,6 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
       lane: hubLane === "recommend" ||
             hubLane === "purchased" ||
             hubLane === "sales" ||
-            hubLane === "my" ||
             hubLane === "favorites" ||
             hubLane === "disputes" ||
             hubLane === "my-bids"
@@ -265,7 +262,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
 
   const onLanePill = useCallback(
     (id: (typeof LANE_PILLS)[number]["id"]) => {
-      if (authStatus !== "signedIn" && (id === "purchased" || id === "sales" || id === "my" || id === "favorites")) {
+      if (authStatus !== "signedIn" && (id === "purchased" || id === "sales" || id === "favorites")) {
         showIslandError(t("m.common.sign_in_required"), t("m.marketplace.sign_in_to_view_trades"));
         return;
       }
@@ -477,9 +474,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
           : hubLane === "purchased"
             ? t("m.marketplace.no_purchases_yet")
             : hubLane === "sales"
-              ? t("m.marketplace.no_completed_sales")
-              : hubLane === "my"
-                ? t("m.marketplace.you_have_no_used_market_listings")
+              ? t("m.marketplace.you_have_no_used_market_listings")
                 : hubLane === "favorites"
                   ? t("m.marketplace.no_favorites_yet")
                   : t("m.marketplace.no_listings_match_your_filters")}

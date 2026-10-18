@@ -82,9 +82,7 @@ export async function UsedMarketFeed({
         lane === "purchased"
           ? "ui.no_purchases_yet"
           : lane === "sales"
-            ? "ui.no_completed_sales"
-            : lane === "my"
-              ? "ui.no_listings_yet"
+            ? "ui.no_listings_yet"
               : "ui.no_favorites_yet";
       return <p className="py-16 text-center text-sm text-muted-foreground">{t(emptyKey)}</p>;
     }
