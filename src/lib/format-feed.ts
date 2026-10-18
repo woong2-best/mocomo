@@ -67,7 +67,15 @@ export function feedMediaFrameStyle(media: {
   width?: number | null;
   height?: number | null;
   type?: string;
-}): { width: string; height?: string; maxHeight?: string; maxWidth?: string; aspectRatio?: string } {
+}): {
+  width: string;
+  height?: string;
+  minHeight?: number;
+  maxHeight?: string;
+  maxWidth?: string;
+  aspectRatio?: string;
+  flexShrink?: number;
+} {
   if (isPortraitMedia(media) && media.width && media.height) {
     const aspect = media.width / media.height;
     const maxH = `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`;
@@ -81,8 +89,10 @@ export function feedMediaFrameStyle(media: {
   return {
     width: "100%",
     height: "auto",
+    minHeight: 200,
     aspectRatio: String(aspect),
     maxHeight: `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`,
+    flexShrink: 0,
   };
 }
 
@@ -131,10 +141,12 @@ export function feedCarouselMediaStyle(media: {
   width?: number | null;
   height?: number | null;
   type?: string;
-}): { width: string; height: string } {
+}): { width: string; height: string; minHeight?: number; flexShrink?: number } {
   const aspect = feedMediaNativeAspect(media.width, media.height, media.type);
   return {
     height: `min(${FEED_MEDIA_MAX_HEIGHT_CSS})`,
+    minHeight: 220,
+    flexShrink: 0,
     width: `min(calc(510px * ${aspect}), calc(56vh * ${aspect}))`,
   };
 }

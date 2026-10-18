@@ -7,7 +7,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
   type SyntheticEvent,
@@ -27,7 +26,7 @@ import {
 import { useFeedVideoViewerOptional } from "@/components/feed/feed-video-viewer-provider";
 import { useFeedPhotoLightboxOptional } from "@/components/media/feed-photo-lightbox-provider";
 import { shouldBlockFeedVideoImmersive } from "@/components/media/feed-video-player";
-import { feedCarouselMediaStyle, feedMediaFrameStyle } from "@/lib/format-feed";
+import { feedMediaFrameStyle } from "@/lib/format-feed";
 
 type Props = {
   media: ProfilePostMediaItem[];
@@ -223,8 +222,7 @@ export function FeedPostMediaCarousel({
   className,
   onDoubleTapLike,
 }: Props) {
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const activeIndex = 0;
   const [localMedia, setLocalMedia] = useState(media);
   const [opening, setOpening] = useState(false);
   const [intrinsic, setIntrinsic] = useState<Record<string, { width: number; height: number }>>({});
@@ -340,31 +338,6 @@ export function FeedPostMediaCarousel({
     }
   }
 
-  const syncFromScroll = useCallback(() => {
-    const root = scrollerRef.current;
-    if (!root || items.length === 0) return;
-    const slides = root.querySelectorAll<HTMLElement>("[data-feed-carousel-slide]");
-    const mid = root.scrollLeft + root.clientWidth / 2;
-    let best = 0;
-    let bestDist = Infinity;
-    slides.forEach((el, i) => {
-      const center = el.offsetLeft + el.offsetWidth / 2;
-      const dist = Math.abs(center - mid);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = i;
-      }
-    });
-    setActiveIndex(best);
-  }, [items.length]);
-
-  useEffect(() => {
-    const root = scrollerRef.current;
-    if (!root || !multi) return;
-    root.addEventListener("scroll", syncFromScroll, { passive: true });
-    return () => root.removeEventListener("scroll", syncFromScroll);
-  }, [multi, syncFromScroll]);
-
   const withIntrinsic = useCallback(
     (m: ProfilePostMediaItem): ProfilePostMediaItem => {
       const hit = m.id ? intrinsic[m.id] : undefined;
@@ -449,51 +422,50 @@ export function FeedPostMediaCarousel({
     );
   }
 
+  const preview = items.slice(0, 4);
+  const overflow = Math.max(0, items.length - preview.length);
+  const aspect =
+    preview.length === 2 ? "16 / 9" : preview.length === 3 ? "4 / 3" : "1 / 1";
+
   return (
     <div
-      className={cn("mt-3 max-w-full", className, opening && "opacity-80")}
+      className={cn("mt-3 max-w-full shrink-0", className, opening && "opacity-80")}
       onPointerEnter={warmFullMedia}
       onFocusCapture={warmFullMedia}
     >
-        <div className="mb-2 flex items-center justify-center gap-1.5" aria-hidden>
-          {items.map((item, i) => (
-            <span
-              key={item.id ?? `${postId}:${i}`}
-              className={cn(
-                "rounded-full transition-all",
-                i === activeIndex
-                  ? "h-1.5 w-1.5 bg-primary"
-                  : "h-1.5 w-1.5 bg-muted-foreground/35"
-              )}
-            />
-          ))}
-        </div>
-
-        <div
-          ref={scrollerRef}
-          className={cn(
-            "flex w-full snap-x snap-mandatory items-stretch gap-2 overflow-x-auto overscroll-x-contain",
-            "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          )}
-          role="list"
-          aria-label={t("feed.svtcyuc")}
-        >
-          {items.map((m, i) => {
-            return (
-              <div
-                key={m.id ?? `${postId}:${i}`}
-                data-feed-carousel-slide={i}
-                role="listitem"
-                className="shrink-0 snap-start overflow-hidden rounded-2xl"
-                style={feedCarouselMediaStyle(withIntrinsic(m))}
-                onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
-                onLoadCapture={(event) => rememberIntrinsic(m, event)}
-              >
-                {renderTile(withIntrinsic(m), i, i === activeIndex)}
-              </div>
-            );
-          })}
-        </div>
+      <div
+        className="grid w-full gap-[2px] overflow-hidden rounded-2xl border border-border/50 bg-muted/20"
+        style={{
+          aspectRatio: aspect,
+          maxHeight: "min(510px, 56dvh)",
+          minHeight: 220,
+          gridTemplateColumns: "1fr 1fr",
+          gridTemplateRows: preview.length === 2 ? "1fr" : "1fr 1fr",
+        }}
+        role="list"
+        aria-label={t("feed.svtcyuc")}
+      >
+        {preview.map((m, i) => (
+          <div
+            key={m.id ?? `${postId}:${i}`}
+            data-feed-carousel-slide={i}
+            role="listitem"
+            className={cn(
+              "relative min-h-0 overflow-hidden bg-muted/30",
+              preview.length === 3 && i === 0 ? "row-span-2" : undefined
+            )}
+            onLoadedMetadataCapture={(event) => rememberIntrinsic(m, event)}
+            onLoadCapture={(event) => rememberIntrinsic(m, event)}
+          >
+            {renderTile(withIntrinsic(m), i, i === activeIndex)}
+            {overflow > 0 && i === 3 ? (
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 text-2xl font-semibold text-white">
+                +{overflow}
+              </span>
+            ) : null}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

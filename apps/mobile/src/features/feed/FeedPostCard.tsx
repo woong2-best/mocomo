@@ -94,7 +94,15 @@ function FeedPostCardInner({
   const postIdRef = useRef(post.id);
   postIdRef.current = post.id;
   const showLikeCounts = useShowLikeCounts();
-  const mediaLayout = Math.min(windowWidth - spacing.md * 2, PerformanceBudgets.feedMediaLayoutMax);
+  const mediaLayoutFallback = Math.max(
+    200,
+    Math.min(
+      windowWidth > 0 ? windowWidth - spacing.md * 2 : PerformanceBudgets.feedMediaLayoutMax,
+      PerformanceBudgets.feedMediaLayoutMax
+    )
+  );
+  const [mediaRowWidth, setMediaRowWidth] = useState(0);
+  const mediaLayout = mediaRowWidth > 0 ? mediaRowWidth : mediaLayoutFallback;
 
   const [liked, setLiked] = useState(!!post.liked);
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
@@ -510,15 +518,23 @@ function FeedPostCardInner({
       ) : null}
 
       {hideQnaBody ? null : (
-      <FeedPostMediaCarousel
-        post={post}
-        layoutWidth={mediaLayout}
-        previewActive={previewActive}
-        isOwner={isSelf}
-        paymentsEnabled={paymentsEnabled}
-        onPurchaseSuccess={onPurchaseSuccess}
-        onPressVideo={isQna ? undefined : onPressVideo}
-      />
+      <View
+        collapsable={false}
+        onLayout={(e) => {
+          const w = Math.round(e.nativeEvent.layout.width);
+          if (w > 0 && w !== mediaRowWidth) setMediaRowWidth(w);
+        }}
+      >
+        <FeedPostMediaCarousel
+          post={post}
+          layoutWidth={mediaLayout}
+          previewActive={previewActive}
+          isOwner={isSelf}
+          paymentsEnabled={paymentsEnabled}
+          onPurchaseSuccess={onPurchaseSuccess}
+          onPressVideo={isQna ? undefined : onPressVideo}
+        />
+      </View>
       )}
 
       {hideQnaBody || !post.poll ? null : (
