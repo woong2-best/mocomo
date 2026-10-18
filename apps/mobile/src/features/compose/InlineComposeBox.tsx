@@ -25,11 +25,6 @@ import {
   type PollDraft,
 } from "@/features/compose/compose-types";
 import { publishComposePost } from "@/features/compose/publish-post";
-import {
-  isSettlementAccountRequiredError,
-  showPayoutAccountRequiredWarning,
-  warnIfPayoutAccountMissing,
-} from "@/features/compose/payout-account-warning";
 import { resetFeedPostOffset } from "@/features/feed/feed-post-offset";
 import { normalizeMediaDurationSec } from "@/features/feed/feedMediaDuration";
 import type {
@@ -299,9 +294,6 @@ export function InlineComposeBox({
       setAttachPicked([]);
       setAttachOpen(false);
       focusInput();
-      if (priceKrw > 0) {
-        void warnIfPayoutAccountMissing();
-      }
     },
     [attachPicked, focusInput]
   );
@@ -435,10 +427,6 @@ export function InlineComposeBox({
         showIslandToast("Posted", res.warning);
       }
     } catch (e) {
-      if (isSettlementAccountRequiredError(e)) {
-        showPayoutAccountRequiredWarning();
-        return;
-      }
       const msg =
         e instanceof ApiError && e.body && typeof e.body === "object" && "error" in e.body
           ? String((e.body as { error: string }).error)

@@ -16,7 +16,6 @@ import {
 } from "@/lib/post-poll";
 import { enqueuePostMediaHlsPackaging } from "@/lib/post-media-hls";
 import { clampMediaInt } from "@/lib/video-metadata";
-import { assertSettlementAccount, settlementRequiredResult } from "@/lib/settlement-account";
 import { validateSaleMediaPricing } from "@/lib/money";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { extractHashtagNames } from "@/lib/linkify";
@@ -141,19 +140,6 @@ export async function createPostForUser(
 
   const pricingErr = validateSaleMediaPricing(maxMediaPrice, instantPrice);
   if (pricingErr) return { error: pricingErr };
-
-  const paidMediaInput = mediaPrices.some((p) => p > 0);
-  if (instantPrice > 0 || paidMediaInput) {
-    const seller = await db.user.findUnique({
-      where: { id: user.id },
-      select: { stripeOnboardingCompleted: true, stripeConnectOnboardedAt: true, phoneVerified: true, username: true },
-    });
-    const settlementErr = assertSettlementAccount(seller);
-    if (settlementErr) {
-      const back = seller?.username ? `/u/${seller.username}` : "/";
-      return settlementRequiredResult(back);
-    }
-  }
 
   try {
     let communityId: string | undefined = requestedCommunityId;

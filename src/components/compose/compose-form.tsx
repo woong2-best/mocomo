@@ -7,7 +7,7 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { ContentVisibility } from "@prisma/client";
 import { PostMediaComposer, type PostMediaComposerHandle, type PostMediaItem } from "@/components/media/post-media-composer";
@@ -17,7 +17,6 @@ import {
   type CollabPickerUser,
 } from "@/components/compose/compose-collaborator-picker";
 import { ContentVisibilitySelect } from "@/components/monetization/content-visibility-select";
-import { getBankVerificationStatus } from "@/actions/bank-verification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CreatePostPollInput } from "@/lib/post-poll";
@@ -29,10 +28,8 @@ import {
   pushErrorToast,
   pushPublishedToast,
   pushPublishingToast,
-  syncSettlementAccountToast,
   syncPaidMediaRequiredToast,
 } from "@/lib/published-toast-store";
-import { SETTLEMENT_ACCOUNT_REQUIRED_CODE, walletSettlementPath } from "@/lib/settlement-account";
 import {
   parseUsdDollarsToCents,
   sanitizeUsdDollarInput,
@@ -90,7 +87,6 @@ export function ComposeForm({
   onNeedSignIn?: () => void;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useLocale();
   const publishedToast = usePublishedToastOptional();
@@ -108,7 +104,6 @@ export function ComposeForm({
   const [collaborators, setCollaborators] = useState<CollabPickerUser[]>([]);
   const [visibility, setVisibility] = useState<ContentVisibility>("PUBLIC");
   const [instantPriceUsd, setInstantPriceUsd] = useState("");
-  const [payoutAccountRegistered, setPayoutAccountRegistered] = useState(true);
   const [paidMediaWarned, setPaidMediaWarned] = useState(false);
   const [contentRating, setContentRating] = useState<ContentRating>("GENERAL");
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -139,13 +134,6 @@ export function ComposeForm({
     !adultBlocksPaid &&
     (instantPriceCents > 0 || instantPriceUsd.trim().length > 0 || paidMediaCents > 0);
   const showPaidMediaRequired = paidPriceIntent && media.length === 0 && paidMediaCents === 0;
-  const sellingIntent = paidPriceIntent || visibility !== "PUBLIC";
-  const showSettlementBanner = !payoutAccountRegistered && sellingIntent;
-  const walletCallbackUrl = useMemo(
-    () => (pathname?.startsWith("/") ? pathname : undefined),
-    [pathname]
-  );
-
   useEffect(() => {
     if (contentRating !== "ADULT") return;
     setInstantPriceUsd("");
@@ -153,38 +141,15 @@ export function ComposeForm({
   }, [contentRating, visibility]);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const status = await getBankVerificationStatus();
-      if (cancelled || !status.signedIn) {
-        if (!cancelled) setPayoutAccountRegistered(false);
-        return;
-      }
-      setPayoutAccountRegistered(status.payoutAccountRegistered);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    syncSettlementAccountToast(
-      showSettlementBanner,
-      showSettlementBanner ? walletSettlementPath(walletCallbackUrl) : undefined
-    );
-  }, [showSettlementBanner, walletCallbackUrl]);
-
-  useEffect(() => {
     if (!showPaidMediaRequired) setPaidMediaWarned(false);
   }, [showPaidMediaRequired]);
 
   useEffect(() => {
-    syncPaidMediaRequiredToast(paidMediaWarned && showPaidMediaRequired && !showSettlementBanner);
-  }, [paidMediaWarned, showPaidMediaRequired, showSettlementBanner]);
+    syncPaidMediaRequiredToast(paidMediaWarned && showPaidMediaRequired);
+  }, [paidMediaWarned, showPaidMediaRequired]);
 
   useEffect(() => {
     return () => {
-      syncSettlementAccountToast(false);
       syncPaidMediaRequiredToast(false);
     };
   }, []);
@@ -211,11 +176,6 @@ export function ComposeForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    if (showSettlementBanner) {
-      router.push(walletSettlementPath(walletCallbackUrl));
-      return;
-    }
 
     if (showPaidMediaRequired) {
       setPaidMediaWarned(true);
@@ -334,10 +294,6 @@ export function ComposeForm({
       };
 
       if (!res.ok) {
-        if (result.code === SETTLEMENT_ACCOUNT_REQUIRED_CODE && result.redirectTo) {
-          router.push(String(result.redirectTo));
-          return;
-        }
         const msg = result.error ?? t("toast.publishFailed");
         setError(msg);
         (publishedToast?.showErrorToast ?? pushErrorToast)({
