@@ -9,7 +9,14 @@ const t = createTranslator("en");
 
 export default async function StudioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const studio = await getCreatorStudio(id);
+  let studio: Awaited<ReturnType<typeof getCreatorStudio>> = null;
+  try {
+    studio = await getCreatorStudio(id);
+  } catch (err) {
+    const digest =
+      err && typeof err === "object" && "digest" in err ? String((err as { digest?: string }).digest) : "";
+    if (digest.startsWith("NEXT_REDIRECT") || digest.startsWith("NEXT_NOT_FOUND")) throw err;
+  }
   if (!studio) notFound();
   const session = await auth();
   const owner = session?.user?.id === studio.sellerId;
@@ -38,7 +45,7 @@ export default async function StudioPage({ params }: { params: Promise<{ id: str
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">{t("market.studio.rules")}</p>
           <Link
-            href="/market/studio/edit"
+            href="/market/new/digital"
             className="inline-flex rounded-full bg-folk-terracotta px-4 py-2 text-sm font-extrabold text-white"
           >
             {t("market.studio.edit")}

@@ -8,11 +8,18 @@ import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { StudioEditorForm } from "@/components/used/studio-editor-form";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
-export default async function MarketStudioEditPage() {
+export default async function MarketDigitalSellPage() {
   const user = await getCachedCurrentUser();
-  if (!user) redirect("/auth/signin?callbackUrl=/market/studio/edit");
+  if (!user) redirect("/auth/signin?callbackUrl=/market/new/digital");
   const { t } = await getServerTranslator();
-  const studio = await getMyCreatorStudio(user.id);
+  let studio: Awaited<ReturnType<typeof getMyCreatorStudio>> = null;
+  try {
+    studio = await getMyCreatorStudio(user.id);
+  } catch (err) {
+    const digest =
+      err && typeof err === "object" && "digest" in err ? String((err as { digest?: string }).digest) : "";
+    if (digest.startsWith("NEXT_REDIRECT") || digest.startsWith("NEXT_NOT_FOUND")) throw err;
+  }
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">

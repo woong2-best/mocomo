@@ -34,7 +34,7 @@ export default async function MarketSellChoicePage() {
             <span className="text-sm font-semibold text-muted-foreground">{t("market.sell.physicalHint")}</span>
           </Link>
           <Link
-            href="/market/studio/edit"
+            href="/market/new/digital"
             className="flex flex-col items-center gap-3 rounded-3xl border border-border bg-card px-4 py-10 text-center shadow-sm transition hover:border-folk-terracotta/50 hover:shadow-md"
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-folk-terracotta/10 text-folk-terracotta">
