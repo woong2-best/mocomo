@@ -5,13 +5,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { ACCOUNT_DELETE_CONFIRM_TEXT } from "@/constants/account-deletion";
 import { requestAccountDeletion } from "@/api/account";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
+import { KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
@@ -101,7 +101,7 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
 
               <Text style={styles.label}>{t("m.settings.confirm_your_id")}</Text>
               <Text style={styles.hint}>@{username}</Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={styles.input}
                 value={confirmUsername}
                 onChangeText={setConfirmUsername}
@@ -114,7 +114,7 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
               {hasPassword ? (
                 <>
                   <Text style={styles.label}>{t("auth.passwordSimple")}</Text>
-                  <TextInput
+                  <KeyboardAwareTextInput
                     style={styles.input}
                     value={password}
                     onChangeText={setPassword}
@@ -132,7 +132,7 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
               <Text style={styles.label}>
                 {t("m.settings.type_confirm_to_proceed", { text: ACCOUNT_DELETE_CONFIRM_TEXT })}
               </Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={styles.input}
                 value={confirmDelete}
                 onChangeText={setConfirmDelete}
@@ -143,7 +143,7 @@ export function AccountDeletionCard({ username, hasPassword }: Props) {
               />
 
               <Text style={styles.label}>{t("m.settings.reason_for_leaving_optional")}</Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={[styles.input, styles.reasonInput]}
                 value={reason}
                 onChangeText={setReason}

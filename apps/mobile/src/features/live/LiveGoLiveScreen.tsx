@@ -3,10 +3,8 @@ import {
   ActivityIndicator,
   Linking,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,6 +26,7 @@ import {
 import { useI18n } from "@/i18n/I18nProvider";
 import { liveUi } from "@/features/live/live-ui";
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { Screen } from "@/ui/Screen";
@@ -88,7 +87,7 @@ export function LiveGoLiveScreen() {
   return (
     <Screen>
       <AppHeader title={copy.goLiveTitle} leftLabel={copy.back} onLeftPress={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView contentContainerStyle={styles.body}>
         <Text style={styles.lead}>{copy.goLiveLead}</Text>
 
         {accountsQuery.isLoading ? (
@@ -118,7 +117,7 @@ export function LiveGoLiveScreen() {
         ) : (
           <View style={styles.form}>
             <Text style={styles.label}>{copy.streamTitleLabel}</Text>
-            <TextInput
+            <KeyboardAwareTextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
@@ -195,7 +194,7 @@ export function LiveGoLiveScreen() {
             </Pressable>
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

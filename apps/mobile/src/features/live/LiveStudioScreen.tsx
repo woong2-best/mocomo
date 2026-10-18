@@ -4,11 +4,9 @@ import {
   Alert,
   Linking,
   Pressable,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,6 +44,7 @@ import type { TFn } from "@/i18n/types";
 import type { RootStackParamList } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { Screen } from "@/ui/Screen";
@@ -289,7 +288,7 @@ export function LiveStudioScreen() {
         title={t("m.live.studio.title")}
         onLeftPress={() => navigation.goBack()}
       />
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView contentContainerStyle={styles.body}>
         <Text style={styles.kicker}>{t("m.live.studio.tag")}</Text>
         <Text style={styles.lead}>{t("m.live.studio.desc")}</Text>
         <Pressable onPress={() => navigation.navigate("LiveList")}>
@@ -437,7 +436,7 @@ export function LiveStudioScreen() {
               </View>
 
               <Text style={styles.label}>{t("m.live.studio.pinned")}</Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={[styles.input, styles.area]}
                 value={announcement}
                 onChangeText={setAnnouncement}
@@ -447,7 +446,7 @@ export function LiveStudioScreen() {
                 multiline
               />
               <Text style={styles.label}>{t("m.live.studio.bio")}</Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={[styles.input, styles.area]}
                 value={bio}
                 onChangeText={setBio}
@@ -478,7 +477,7 @@ export function LiveStudioScreen() {
                 })}
               </View>
               <Text style={styles.label}>{t("m.live.studio.start_time")}</Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={[styles.input, { maxWidth: 120 }]}
                 value={scheduleTime}
                 onChangeText={setScheduleTime}
@@ -488,7 +487,7 @@ export function LiveStudioScreen() {
                 keyboardType="numbers-and-punctuation"
               />
               <Text style={styles.label}>{t("m.live.studio.schedule_memo")}</Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={[styles.input, styles.area]}
                 value={scheduleNote}
                 onChangeText={setScheduleNote}
@@ -519,7 +518,7 @@ export function LiveStudioScreen() {
               <Text style={styles.cardTitle}>{t("m.live.studio.staff_title")}</Text>
               <Text style={styles.hint}>{t("m.live.studio.staff_desc")}</Text>
               <View style={styles.searchRow}>
-                <TextInput
+                <KeyboardAwareTextInput
                   style={[styles.input, { flex: 1 }]}
                   value={staffQuery}
                   onChangeText={setStaffQuery}
@@ -567,7 +566,7 @@ export function LiveStudioScreen() {
               <Text style={styles.cardTitle}>{t("m.live.studio.bans_title")}</Text>
               <Text style={styles.hint}>{t("m.live.studio.bans_desc")}</Text>
               <View style={styles.searchRow}>
-                <TextInput
+                <KeyboardAwareTextInput
                   style={[styles.input, { flex: 1 }]}
                   value={banQuery}
                   onChangeText={setBanQuery}
@@ -617,7 +616,7 @@ export function LiveStudioScreen() {
             </View>
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

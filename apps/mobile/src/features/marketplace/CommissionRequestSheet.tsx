@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { sendCommission } from "@/api/commissions";
 import { useI18n } from "@/i18n/I18nProvider";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
@@ -34,7 +34,10 @@ export function CommissionRequestSheet({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+      >
         <View style={styles.sheet}>
           <Text style={styles.title}>{t("m.commission.request")}</Text>
           <TextInput
@@ -60,7 +63,7 @@ export function CommissionRequestSheet({
             <Text style={styles.cancel}>{t("common.back")}</Text>
           </Pressable>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -113,9 +115,11 @@ export function MarketCartScreen() {
         <Text style={[styles.disclaimer, blocked && { color: colors.terracotta }]}>{disclaimer}</Text>
       ) : null}
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <FlatList
         data={items}
         keyExtractor={(item) => item.listingId}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 24, gap: 12 }}
         ListEmptyComponent={<Text style={styles.empty}>{t("m.market.your_cart_is_empty")}</Text>}
         ListFooterComponent={
@@ -198,6 +202,7 @@ export function MarketCartScreen() {
           </View>
         )}
       />
+      </KeyboardAvoidingView>
 
       {payGroup && checkoutListingId ? (
           <MarketplacePaymentSheet

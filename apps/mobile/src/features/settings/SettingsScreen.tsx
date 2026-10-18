@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -22,6 +19,7 @@ import { FeedDisplaySettingsCard } from "@/features/settings/FeedDisplaySettings
 import { PostsLockSettingsCard } from "@/features/settings/PostsLockSettingsCard";
 import { WatermarkSettingsCard } from "@/features/settings/WatermarkSettingsCard";
 import { AccountDeletionCard } from "@/features/settings/AccountDeletionCard";
+import { KeyboardAwareScrollView } from "@/ui/KeyboardAwareScrollView";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { FolkCard } from "@/ui/FolkCard";
@@ -74,11 +72,7 @@ export function SettingsScreen() {
         leftLabel={t("common.back")}
         onLeftPress={() => navigation.goBack()}
       />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView contentContainerStyle={styles.body}>
           <LocaleRegionCrtCard
             locale={locale}
             countryCode={countryCode}
@@ -141,8 +135,7 @@ export function SettingsScreen() {
             variant="secondary"
             onPress={() => navigation.navigate("LegalPolicies" as never)}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

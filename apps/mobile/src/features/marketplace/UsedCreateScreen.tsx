@@ -29,6 +29,7 @@ import { MeetMap } from "@/maps/MeetMap";
 import type { MeetCoords } from "@/maps/types";
 import { MarketCheckOption } from "@/features/marketplace/MarketCheckOption";
 import { DIGITAL_PRODUCT_IDS } from "@/features/marketplace/market-browse";
+import { KeyboardAwareFocusProvider, KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { Screen } from "@/ui/Screen";
 import {
   showIslandError,
@@ -367,6 +368,7 @@ export function UsedCreateScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={{ flex: 1 }}>
             <View ref={frameRef} style={{ flex: 1, marginBottom: keyboardLift }}>
+              <KeyboardAwareFocusProvider onInputFocus={onInputFocus}>
               <ScrollView
                 ref={scrollRef}
                 style={{ flex: 1 }}
@@ -431,7 +433,7 @@ export function UsedCreateScreen() {
 
             <View style={styles.block}>
               <Text style={styles.label}>{t("m.common.title")}</Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={styles.input}
                 value={title}
                 onChangeText={setTitle}
@@ -442,7 +444,7 @@ export function UsedCreateScreen() {
 
             <View style={styles.block}>
               <Text style={styles.label}>{t("m.common.description")}</Text>
-              <TextInput
+              <KeyboardAwareTextInput
                 style={[styles.input, styles.multi]}
                 value={description}
                 onChangeText={setDescription}
@@ -565,7 +567,7 @@ export function UsedCreateScreen() {
                     <Text style={styles.pricePrefix}>
                       {(USED_CURRENCY_META[currency] ?? USED_CURRENCY_META.krw).symbol}
                     </Text>
-                    <TextInput
+                    <KeyboardAwareTextInput
                       style={styles.priceInput}
                       value={price}
                       onChangeText={setPrice}
@@ -600,14 +602,13 @@ export function UsedCreateScreen() {
                 onGeocodeLabel={syncRegionFromMapLabel}
                 height={220}
               />
-              <TextInput
+              <KeyboardAwareTextInput
                 ref={meetPlaceRef}
                 style={[styles.input, { marginTop: 10 }]}
                 value={meetPlace}
                 onChangeText={setMeetPlace}
                 placeholder={t("m.marketplace.meetup_details_e_g_in_front")}
                 placeholderTextColor={muted}
-                onFocus={() => onInputFocus(meetPlaceRef.current)}
               />
             </View>
             )}
@@ -623,6 +624,7 @@ export function UsedCreateScreen() {
               />
             </View>
               </ScrollView>
+              </KeyboardAwareFocusProvider>
             </View>
           <View style={styles.bottomBar}>
             <Pressable

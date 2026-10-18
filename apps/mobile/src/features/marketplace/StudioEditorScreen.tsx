@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -37,6 +36,7 @@ import { normalizeDraft, step1Valid, step2Valid, step3Valid } from "@/features/m
 import { useI18n } from "@/i18n/I18nProvider";
 import type { RootStackParamList } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { Screen } from "@/ui/Screen";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 
@@ -242,7 +242,7 @@ export function StudioEditorScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView contentContainerStyle={styles.page}>
         <Text style={[styles.title, { color: colors.text }]}>{t("m.studio.editor")}</Text>
         <Text style={[styles.note, { color: colors.textMuted }]}>{t("m.studio.watermark_note")}</Text>
 
@@ -291,7 +291,7 @@ export function StudioEditorScreen() {
                 </Pressable>
               </Field>
               <Field label={t("m.studio.title")} colors={colors} required>
-                <TextInput
+                <KeyboardAwareTextInput
                   value={draft.title}
                   onChangeText={(title) => setDraft((prev) => ({ ...prev, title }))}
                   style={[styles.input, inputStyle(colors)]}
@@ -300,7 +300,7 @@ export function StudioEditorScreen() {
                 />
               </Field>
               <Field label={t("m.studio.about")} colors={colors}>
-                <TextInput
+                <KeyboardAwareTextInput
                   value={draft.about}
                   onChangeText={(about) => setDraft((prev) => ({ ...prev, about }))}
                   style={[styles.input, styles.multi, inputStyle(colors)]}
@@ -376,14 +376,14 @@ export function StudioEditorScreen() {
             <SectionCard title={t("m.studio.tiers")} colors={colors}>
               {draft.tiers.map((tier) => (
                 <View key={tier.id} style={styles.row}>
-                  <TextInput
+                  <KeyboardAwareTextInput
                     value={tier.name}
                     onChangeText={(name) => patchTier(tier.id, { name })}
                     style={[styles.input, styles.grow, inputStyle(colors)]}
                     placeholder={t("m.studio.tier_name")}
                     placeholderTextColor={colors.textMuted}
                   />
-                  <TextInput
+                  <KeyboardAwareTextInput
                     value={String(tier.price || "")}
                     onChangeText={(value) => patchTier(tier.id, { price: Number(value.replace(/[^0-9]/g, "")) || 0 })}
                     keyboardType="number-pad"
@@ -407,7 +407,7 @@ export function StudioEditorScreen() {
             <SectionCard title={t("m.studio.addons")} colors={colors}>
               {draft.addons.map((addon) => (
                 <View key={addon.id} style={styles.row}>
-                  <TextInput
+                  <KeyboardAwareTextInput
                     value={addon.name}
                     onChangeText={(name) => patchAddon(addon.id, { name })}
                     style={[styles.input, styles.grow, inputStyle(colors)]}
@@ -420,7 +420,7 @@ export function StudioEditorScreen() {
                   >
                     <Text style={{ color: colors.brand, fontWeight: "800" }}>{addon.mode === "percent" ? "%" : "+"}</Text>
                   </Pressable>
-                  <TextInput
+                  <KeyboardAwareTextInput
                     value={String(addon.amount || "")}
                     onChangeText={(value) => patchAddon(addon.id, { amount: Number(value.replace(/[^0-9]/g, "")) || 0 })}
                     keyboardType="number-pad"
@@ -444,7 +444,7 @@ export function StudioEditorScreen() {
             <SectionCard title={t("m.studio.rules")} colors={colors}>
               <View style={styles.row}>
                 <Text style={[styles.inline, { color: colors.text }]}>{t("m.studio.days")}</Text>
-                <TextInput
+                <KeyboardAwareTextInput
                   value={String(draft.deliveryDays)}
                   onChangeText={(value) =>
                     setDraft((prev) => ({ ...prev, deliveryDays: Number(value.replace(/[^0-9]/g, "")) || 0 }))
@@ -454,7 +454,7 @@ export function StudioEditorScreen() {
                 />
               </View>
               <Field label={t("m.studio.revisions")} colors={colors} hint={t("m.studio.revisions_tooltip")}>
-                <TextInput
+                <KeyboardAwareTextInput
                   value={draft.revisionNote}
                   onChangeText={(revisionNote) => setDraft((prev) => ({ ...prev, revisionNote }))}
                   style={[styles.input, styles.multi, inputStyle(colors)]}
@@ -475,7 +475,7 @@ export function StudioEditorScreen() {
                   {draft.open ? t("m.studio.open") : t("m.studio.closed")}
                 </Text>
                 <Switch value={draft.open} onValueChange={(open) => setDraft((prev) => ({ ...prev, open }))} />
-                <TextInput
+                <KeyboardAwareTextInput
                   value={String(draft.slotCap)}
                   onChangeText={(value) =>
                     setDraft((prev) => ({ ...prev, slotCap: Number(value.replace(/[^0-9]/g, "")) || 0 }))
@@ -489,7 +489,7 @@ export function StudioEditorScreen() {
             <SectionCard title={t("m.studio.form")} colors={colors}>
               {draft.formFields.map((field) => (
                 <View key={field.id} style={styles.row}>
-                  <TextInput
+                  <KeyboardAwareTextInput
                     value={field.label}
                     onChangeText={(label) => patchField(field.id, { label })}
                     style={[styles.input, styles.grow, inputStyle(colors)]}
@@ -560,7 +560,7 @@ export function StudioEditorScreen() {
             <View style={styles.navSpacer} />
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Modal visible={categoryOpen} animationType="slide" transparent onRequestClose={() => setCategoryOpen(false)}>
         <View style={styles.modalRoot}>

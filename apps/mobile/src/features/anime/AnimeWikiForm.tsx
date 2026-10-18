@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -36,7 +35,7 @@ import { WikiInfoboxField } from "@/features/anime/WikiInfoboxField";
 import { extractYoutubeId } from "@/features/anime/wiki-youtube";
 import { characterNames } from "@/features/anime/wiki-article";
 import { cultureWikiEnglishOnlyViolation } from "@/lib/culture-wiki-english-only";
-import { useKeyboardLift } from "@/lib/use-keyboard-inset";
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
@@ -94,7 +93,6 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
-  const { keyboardLift } = useKeyboardLift();
   const queryClient = useQueryClient();
 
   const initialGenre: MobileAnimeGenreId =
@@ -242,25 +240,21 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
         onLeftPress={() => navigation.goBack()}
         leftLabel={copy.back}
       />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.flex}
         contentContainerStyle={[
           styles.scroll,
           {
-            paddingBottom:
-              insets.bottom + 24 + (Platform.OS === "android" ? keyboardLift : 0),
+            paddingBottom: insets.bottom + 24,
           },
         ]}
-        keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-        automaticallyAdjustsScrollIndicatorInsets={Platform.OS === "ios"}
       >
           <Text style={styles.lead}>{copy.formIntro}</Text>
           <Text style={styles.englishOnlyNotice}>{copy.englishOnlyNotice}</Text>
 
           <Label text={copy.titleLabel} colors={colors} />
-          <TextInput
+          <KeyboardAwareTextInput
             style={styles.input}
             value={title}
             onChangeText={setTitle}
@@ -270,7 +264,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
           />
 
           <Label text={copy.titleEnLabel} colors={colors} />
-          <TextInput
+          <KeyboardAwareTextInput
             style={styles.input}
             value={titleEn}
             onChangeText={setTitleEn}
@@ -349,7 +343,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
           </Pressable>
 
           <Label text={copy.studioLabel} colors={colors} />
-          <TextInput
+          <KeyboardAwareTextInput
             style={styles.input}
             value={studio}
             onChangeText={setStudio}
@@ -372,7 +366,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             </Pressable>
           </View>
           <View style={styles.videoRow}>
-            <TextInput
+            <KeyboardAwareTextInput
               style={[styles.input, styles.videoInput]}
               value={videoUrl}
               onChangeText={setVideoUrl}
@@ -386,7 +380,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
               <Text style={styles.toolBtnText}>{copy.insertBtn}</Text>
             </Pressable>
           </View>
-          <TextInput
+          <KeyboardAwareTextInput
             style={[styles.input, styles.textArea]}
             value={synopsis}
             onChangeText={setSynopsis}
@@ -408,7 +402,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
           ) : null}
 
           <Label text={copy.worldLabel} colors={colors} />
-          <TextInput
+          <KeyboardAwareTextInput
             style={[styles.input, styles.textArea]}
             value={worldInfo}
             onChangeText={setWorldInfo}
@@ -424,7 +418,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
           />
 
           <Label text={copy.castLabel} colors={colors} />
-          <TextInput
+          <KeyboardAwareTextInput
             style={[styles.input, styles.textAreaSm]}
             value={charactersText}
             onChangeText={setCharactersText}
@@ -440,7 +434,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
           />
 
           <Label text={copy.tagsLabel} colors={colors} />
-          <TextInput
+          <KeyboardAwareTextInput
             style={styles.input}
             value={tags}
             onChangeText={setTags}
@@ -451,7 +445,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
           {mode === "edit" ? (
             <>
               <Label text={copy.summaryLabel} colors={colors} />
-              <TextInput
+              <KeyboardAwareTextInput
                 style={styles.input}
                 value={editSummary}
                 onChangeText={setEditSummary}
@@ -471,7 +465,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             onPress={onSubmit}
             disabled={busy}
           />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

@@ -14,6 +14,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchMarketOrderDetail, submitMarketOrderDispute } from "@/api/commerce-market";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
+import { KeyboardAwareScrollView } from "@/ui/KeyboardAwareScrollView";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/theme/ThemeContext";
@@ -157,7 +158,7 @@ export function MarketOrderDetailScreen() {
       ) : !order ? (
         <Text style={styles.muted}>{t("m.market.could_not_load_order")}</Text>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 24, gap: 14 }}>
+        <KeyboardAwareScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 24, gap: 14 }}>
           <Text style={styles.status}>{orderStatusLabel(order.status, t)}</Text>
           <Text style={styles.total}>
             {formatUsd(order.subtotalAmount + order.shippingAmount)}
@@ -221,7 +222,7 @@ export function MarketOrderDetailScreen() {
             </View>
           ) : null}
 
-        </ScrollView>
+        </KeyboardAwareScrollView>
       )}
     </Screen>
   );

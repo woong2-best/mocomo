@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -24,6 +23,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { RootStackParamList } from "@/navigation/types";
 import { useTheme } from "@/theme/ThemeContext";
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { Screen } from "@/ui/Screen";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 
@@ -150,7 +150,7 @@ export function StudioDetailScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.page}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.page}>
         {media?.kind === "video" ? (
           <StudioClip uri={media.url} />
         ) : media ? (
@@ -236,7 +236,7 @@ export function StudioDetailScreen() {
                     </Text>
                   </Pressable>
                 ) : (
-                  <TextInput
+                  <KeyboardAwareTextInput
                     value={answers[field.id] || ""}
                     onChangeText={(value) => setAnswers((prev) => ({ ...prev, [field.id]: value }))}
                     style={[styles.input, { borderColor: colors.border, color: colors.text }]}
@@ -289,7 +289,7 @@ export function StudioDetailScreen() {
             <Text style={styles.primaryText}>{t("m.studio.edit")}</Text>
           </Pressable>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

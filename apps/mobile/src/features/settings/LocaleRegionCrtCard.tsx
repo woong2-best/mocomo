@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { CrtFrame, PhosphorText, PHOSPHOR, PHOSPHOR_FAINT, CRT_MONO } from "@/ui/CrtTerminal";
 import { detectDeviceTimeZone } from "@/lib/device-timezone";
 import { filterSettingCountries, settingCountryLabel } from "@/lib/setting-countries";
@@ -39,7 +40,7 @@ export function LocaleRegionCrtCard({
         </PhosphorText>
 
         <PhosphorText style={styles.heading}>LANGUAGE</PhosphorText>
-        <TextInput
+        <KeyboardAwareTextInput
           value={langQuery}
           onChangeText={setLangQuery}
           placeholder="search language"
@@ -63,7 +64,7 @@ export function LocaleRegionCrtCard({
         </ScrollView>
 
         <PhosphorText style={styles.heading}>COUNTRY</PhosphorText>
-        <TextInput
+        <KeyboardAwareTextInput
           value={countryQuery}
           onChangeText={setCountryQuery}
           placeholder="search country"

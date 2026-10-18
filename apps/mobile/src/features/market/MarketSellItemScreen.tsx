@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -13,6 +11,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createCommerceListing, fetchMarketSellAccess } from "@/api/commerce-market";
 import { openMarketSellerWebFlow } from "@/lib/open-market-seller-web";
+import { KeyboardAwareScrollView, KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
@@ -123,13 +122,12 @@ export function MarketSellItemScreen() {
   return (
     <Screen>
       <AppHeader title={t("m.common.new_listing")} leftLabel={t("common.back")} onLeftPress={() => navigation.goBack()} />
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={{
           padding: spacing.md,
           paddingBottom: insets.bottom + 32,
           gap: 12,
         }}
-        keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.label}>{t("m.common.product_type")}</Text>
         <View style={styles.typeRow}>
@@ -145,10 +143,10 @@ export function MarketSellItemScreen() {
         </View>
 
         <Text style={styles.label}>{t("m.common.title")}</Text>
-        <TextInput style={styles.input} value={title} onChangeText={setTitle} maxLength={120} />
+        <KeyboardAwareTextInput style={styles.input} value={title} onChangeText={setTitle} maxLength={120} />
 
         <Text style={styles.label}>{t("m.common.description")}</Text>
-        <TextInput
+        <KeyboardAwareTextInput
           style={[styles.input, styles.multiline]}
           value={description}
           onChangeText={setDescription}
@@ -157,10 +155,10 @@ export function MarketSellItemScreen() {
         />
 
         <Text style={styles.label}>{t("m.common.category")}</Text>
-        <TextInput style={styles.input} value={category} onChangeText={setCategory} />
+        <KeyboardAwareTextInput style={styles.input} value={category} onChangeText={setCategory} />
 
         <Text style={styles.label}>{t("m.market.price_usd")}</Text>
-        <TextInput
+        <KeyboardAwareTextInput
           style={styles.input}
           value={price}
           onChangeText={setPrice}
@@ -170,7 +168,7 @@ export function MarketSellItemScreen() {
         {type !== "CUSTOM_ORDER" ? (
           <>
             <Text style={styles.label}>{t("m.market.stock")}</Text>
-            <TextInput
+            <KeyboardAwareTextInput
               style={styles.input}
               value={stock}
               onChangeText={setStock}
@@ -180,7 +178,7 @@ export function MarketSellItemScreen() {
         ) : (
           <>
             <Text style={styles.label}>{t("m.market.production_days")}</Text>
-            <TextInput
+            <KeyboardAwareTextInput
               style={styles.input}
               value={productionDays}
               onChangeText={setProductionDays}
@@ -213,7 +211,7 @@ export function MarketSellItemScreen() {
         <Text style={styles.hint}>
           {t("m.market.edit_images_shipping_and_more_in")}
         </Text>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

@@ -5,9 +5,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { parseWikiInfobox, WIKI_INFOBOX_HELP } from "@/features/anime/wiki-infobox";
 import { WikiInline } from "@/features/anime/WikiInline";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -88,7 +88,7 @@ export function WikiInfoboxField({ label, value, onChange, placeholder }: Props)
       </View>
       <Text style={styles.help}>{WIKI_INFOBOX_HELP}</Text>
       <View style={styles.box}>
-        <TextInput
+        <KeyboardAwareTextInput
           style={styles.input}
           value={local}
           onChangeText={handleChange}

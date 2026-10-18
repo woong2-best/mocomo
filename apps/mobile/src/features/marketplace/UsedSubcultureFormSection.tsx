@@ -5,7 +5,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { API_BASE_URL } from "@/config/env";
@@ -14,6 +13,7 @@ import {
   usedCatalogLabel,
   MARKET_SELL_OPTIONS,
 } from "@/features/marketplace/used-catalog";
+import { KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { useI18n } from "@/i18n/I18nProvider";
 import { spacing } from "@/theme/tokens";
 
@@ -99,7 +99,7 @@ export function UsedSubcultureFormSection({
     <View style={{ gap: 18 }}>
       <View>
         <Text style={styles.label}>{t("m.marketplace.work_title")}</Text>
-        <TextInput
+        <KeyboardAwareTextInput
           style={styles.input}
           value={value.workTitle}
           onChangeText={(t) => patch({ workTitle: t, animeSlug: null })}
