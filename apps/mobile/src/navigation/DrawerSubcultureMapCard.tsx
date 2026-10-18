@@ -13,6 +13,7 @@ import { spacing } from "@/theme/tokens";
 type Props = {
   active: boolean;
   showGlobe: boolean;
+  interactive?: boolean;
   height: number;
   onExpand: () => void;
   onExpandPressIn?: () => void;
@@ -21,6 +22,7 @@ type Props = {
 export function DrawerSubcultureMapCard({
   active,
   showGlobe,
+  interactive = true,
   height,
   onExpand,
   onExpandPressIn,
@@ -39,7 +41,7 @@ export function DrawerSubcultureMapCard({
     queryKey: ["mobile-events-map", true],
     queryFn: () => fetchEventsMap({ global: true }),
     staleTime: 60_000,
-    enabled: active && !!user?.id,
+    enabled: !!user?.id,
   });
 
   const pins = useMemo(() => (query.data?.pins ?? []) as MapEventPin[], [query.data?.pins]);
@@ -51,22 +53,28 @@ export function DrawerSubcultureMapCard({
       collapsable={false}
       onLayout={(event) => {
         const { width, height: layoutH } = event.nativeEvent.layout;
+        if (width < 2 || layoutH < 2) return;
         setBox((prev) => (prev.w === width && prev.h === layoutH ? prev : { w: width, h: layoutH }));
       }}
       style={[styles.card, { height: mapH, backgroundColor }]}
     >
       {mapReady ? (
         <>
-          <DrawerMapLibreGlobe
-            pins={pins}
-            backgroundColor={backgroundColor}
-            width={box.w}
-            height={box.h}
-            center={center}
-            locale={locale}
-            onOpen={onExpand}
-            onOpenPressIn={onExpandPressIn}
-          />
+          <View
+            pointerEvents={interactive ? "auto" : "none"}
+            style={[StyleSheet.absoluteFill, !active && { opacity: 0 }]}
+          >
+            <DrawerMapLibreGlobe
+              pins={pins}
+              backgroundColor={backgroundColor}
+              width={box.w}
+              height={box.h}
+              center={center}
+              locale={locale}
+              onOpen={onExpand}
+              onOpenPressIn={onExpandPressIn}
+            />
+          </View>
           <View style={styles.attribWrap} pointerEvents="box-none">
             <Pressable
               style={[styles.attribBtn, { borderColor: isDark ? "rgba(255,255,255,0.28)" : colors.hairline }]}

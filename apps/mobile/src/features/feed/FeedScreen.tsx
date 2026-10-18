@@ -103,6 +103,7 @@ function FeedMessagesDrawerHost(props: MessagesDrawerHostProps) {
 
 function FeedSideDrawerHost(props: DrawerHostProps) {
   const [Drawer, setDrawer] = useState<ComponentType<DrawerHostProps> | null>(null);
+  const [Warmup, setWarmup] = useState<ComponentType | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -111,13 +112,22 @@ function FeedSideDrawerHost(props: DrawerHostProps) {
         if (alive) setDrawer(() => mod.SideDrawer);
       })
       .catch(() => undefined);
+    void import("@/navigation/DrawerMapLibreGlobe")
+      .then((mod) => {
+        if (alive) setWarmup(() => mod.DrawerGlobeEngineWarmup);
+      })
+      .catch(() => undefined);
     return () => {
       alive = false;
     };
   }, []);
 
-  if (!Drawer) return null;
-  return <Drawer {...props} />;
+  return (
+    <>
+      {!props.visible && Warmup ? <Warmup /> : null}
+      {Drawer ? <Drawer {...props} /> : null}
+    </>
+  );
 }
 
 function feedItemType(item: FeedPost): string {
@@ -147,6 +157,11 @@ export function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerReady, setDrawerReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDrawerReady(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [messagesReady, setMessagesReady] = useState(false);
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);

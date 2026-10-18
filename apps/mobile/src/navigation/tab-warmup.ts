@@ -40,6 +40,14 @@ let queriesWarmed = false;
 let drawerBundlesWarmed = false;
 let drawerQueriesWarmed = false;
 
+function staggerImports(loaders: Array<() => Promise<unknown>>, gapMs = 180, startMs = 0) {
+  loaders.forEach((load, index) => {
+    setTimeout(() => {
+      void load();
+    }, startMs + index * gapMs);
+  });
+}
+
 export function resetTabWarmup(): void {
   bundlesWarmed = false;
   queriesWarmed = false;
@@ -51,25 +59,86 @@ export function resetTabWarmup(): void {
 export function warmTabBundles(): void {
   if (bundlesWarmed) return;
   bundlesWarmed = true;
-  void import("@/features/messages/MessagesInboxScreen");
-  void import("@/features/marketplace/MarketHomeScreen");
-  void import("@/features/marketplace/MarketplaceListScreen");
-  void import("@/features/messages/MessagesNewScreen");
-  void import("@/features/messages/ChatSettingsScreen");
+  staggerImports(
+    [
+      () => import("@/features/marketplace/MarketplaceListScreen"),
+      () => import("@/features/marketplace/MarketHomeScreen"),
+      () => import("@/features/messages/MessagesInboxScreen"),
+      () => import("@/features/messages/MessagesNewScreen"),
+      () => import("@/features/messages/ChatSettingsScreen"),
+    ],
+    140,
+    0
+  );
 }
 
 /** Parse drawer stack screens in the background — same delay as first sidebar tap without this. */
 export function warmDrawerBundles(): void {
   if (drawerBundlesWarmed) return;
   drawerBundlesWarmed = true;
-  void import("@/features/star/StarListScreen");
-  void import("@/features/community/CommunityListScreen");
-  void import("@/features/anime/AnimeListScreen");
-  void import("@/features/events/EventsListScreen");
-  void import("@/features/events/EventsMapScreen");
-  void import("@/features/settings/SettingsScreen");
-  void import("@/features/live/LiveStudioScreen");
-  void import("@/features/legal/LegalPoliciesScreen");
+  staggerImports(
+    [
+      () => import("@/features/live/LiveListScreen"),
+      () => import("@/features/star/StarListScreen"),
+      () => import("@/features/community/CommunityListScreen"),
+      () => import("@/features/anime/AnimeListScreen"),
+      () => import("@/features/wallet/WalletScreen"),
+      () => import("@/features/live/LiveStudioScreen"),
+      () => import("@/features/events/EventsMapScreen"),
+      () => import("@/features/events/EventsListScreen"),
+      () => import("@/features/settings/SettingsScreen"),
+      () => import("@/features/legal/LegalPoliciesScreen"),
+    ],
+    180,
+    220
+  );
+}
+
+function importDrawerRoute(route: DrawerRoute): void {
+  switch (route) {
+    case "Used":
+      void import("@/features/marketplace/MarketplaceListScreen");
+      void import("@/features/marketplace/MarketHomeScreen");
+      return;
+    case "LiveList":
+      void import("@/features/live/LiveListScreen");
+      return;
+    case "StarList":
+      void import("@/features/star/StarListScreen");
+      return;
+    case "CommunityList":
+      void import("@/features/community/CommunityListScreen");
+      return;
+    case "AnimeList":
+      void import("@/features/anime/AnimeListScreen");
+      return;
+    case "EventsList":
+      void import("@/features/events/EventsListScreen");
+      return;
+    case "EventsMap":
+      void import("@/features/events/EventsMapScreen");
+      return;
+    case "LiveStudio":
+      void import("@/features/live/LiveStudioScreen");
+      return;
+    case "Wallet":
+      void import("@/features/wallet/WalletScreen");
+      return;
+    case "Settings":
+      void import("@/features/settings/SettingsScreen");
+      return;
+    case "ProfileEdit":
+      void import("@/features/profile/ProfileEditScreen");
+      return;
+    case "LegalPolicies":
+      void import("@/features/legal/LegalPoliciesScreen");
+      return;
+    case "Messages":
+      void import("@/features/messages/MessagesInboxScreen");
+      return;
+    default:
+      return;
+  }
 }
 
 export function prefetchTabQueries(queryClient: QueryClient): void {
@@ -148,12 +217,14 @@ export function prefetchDrawerQueries(queryClient: QueryClient): void {
 
 /** Run after feed is interactive — keeps cold start lean, navigation opens in ~1s. */
 export function scheduleTabWarmup(queryClient: QueryClient): void {
-  InteractionManager.runAfterInteractions(() => {
+  const run = () => {
     warmTabBundles();
     warmDrawerBundles();
     prefetchTabQueries(queryClient);
     prefetchDrawerQueries(queryClient);
-  });
+  };
+  InteractionManager.runAfterInteractions(run);
+  setTimeout(run, 700);
 }
 
 export function prefetchTabForRoute(
@@ -184,10 +255,16 @@ export function prefetchTabForRoute(
 
 /** Call on drawer row press-in so data + JS are ready before navigation completes. */
 export function prefetchDrawerRoute(queryClient: QueryClient, route: DrawerRoute): void {
-  warmDrawerBundles();
-  warmTabBundles();
+  importDrawerRoute(route);
 
   switch (route) {
+    case "Used":
+      void queryClient.prefetchQuery({
+        queryKey: ["mobile-marketplace", "recommend"],
+        queryFn: () => fetchMarketplaceList(DEFAULT_RECOMMEND_QUERY),
+        staleTime: STALE_MS,
+      });
+      return;
     case "Home":
     case "LiveList":
       prefetchLiveHubInfinite(queryClient, "ALL");

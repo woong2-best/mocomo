@@ -106,8 +106,8 @@ function safeColor(color: string) {
   return /^#[0-9A-Fa-f]{6}$/.test(color) ? color : "#0F1524";
 }
 
-/** Matches API `getSubcultureMapPins(520)` cap for global drawer globe. */
-const GLOBE_PIN_CAP = 520;
+/** Drawer globe only needs a regional scatter — full 520 pins stall first paint. */
+const GLOBE_PIN_CAP = 180;
 
 function globePins(pins: MapEventPin[]) {
   return pins
@@ -159,6 +159,8 @@ function globeHtml(backgroundColor: string, lat: number, lng: number, labels: Gl
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css" />
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.mjs" />
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl-worker.mjs" as="script" />
 <style>
   html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: ${bg}; overflow: hidden; }
   .maplibregl-map { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: ${bg}; }
@@ -185,13 +187,14 @@ const UI = ${uiLabels};
 const sources = ${sources};
 let maplibregl = null;
 let loadedFrom = "";
-for (const url of sources) {
-  try {
-    maplibregl = await import(url);
-    loadedFrom = url;
-    break;
-  } catch (err) {}
-}
+try {
+  const loaded = await Promise.any(sources.map(async (url) => {
+    const mod = await import(url);
+    return { mod, url };
+  }));
+  maplibregl = loaded.mod;
+  loadedFrom = loaded.url;
+} catch (err) {}
 if (!maplibregl) {
   post({ type: "error" });
 } else {
@@ -684,6 +687,7 @@ export function DrawerMapLibreGlobe({
         domStorageEnabled
         mixedContentMode="always"
         androidLayerType="hardware"
+        cacheMode="LOAD_CACHE_ELSE_NETWORK"
         scrollEnabled={false}
         bounces={false}
         overScrollMode="never"
@@ -704,8 +708,41 @@ export function DrawerMapLibreGlobe({
   );
 }
 
+const GLOBE_ENGINE_WARMUP_HTML = `<!DOCTYPE html><html><head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css" />
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.mjs" />
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl-worker.mjs" as="script" />
+</head><body>
+<script type="module">
+Promise.any(${JSON.stringify(MAPLIBRE_SOURCES)}.map((url) => import(url))).catch(() => {});
+</script>
+</body></html>`;
+
+/** Pull MapLibre into the WebView HTTP cache before the drawer opens. */
+export function DrawerGlobeEngineWarmup() {
+  return (
+    <WebView
+      source={{ html: GLOBE_ENGINE_WARMUP_HTML, baseUrl: "https://cdn.jsdelivr.net/" }}
+      style={styles.warmup}
+      pointerEvents="none"
+      originWhitelist={["*"]}
+      javaScriptEnabled
+      cacheEnabled
+      cacheMode="LOAD_CACHE_ELSE_NETWORK"
+      androidLayerType="software"
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   fill: { overflow: "visible" },
+  warmup: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
   haze: {
     position: "absolute",
     left: 0,

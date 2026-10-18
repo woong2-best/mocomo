@@ -27,7 +27,7 @@ import { prefetchDrawerRoute, warmDrawerBundles } from "@/navigation/tab-warmup"
 import type { DrawerRoute } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
-import { FOLK_EXPLORE_ACCENT, radii, spacing, type ThemeColors } from "@/theme/tokens";
+import { FOLK_EXPLORE_COLORS, radii, spacing, type ThemeColors } from "@/theme/tokens";
 
 export type { DrawerRoute } from "@/navigation/types";
 
@@ -42,17 +42,22 @@ type ExploreItem = {
   route: DrawerRoute;
   labelKey: string;
   icon: keyof typeof Ionicons.glyphMap;
-  accent?: boolean;
+  color: string;
 };
 
 const EXPLORE: ExploreItem[] = [
-  { route: "Used", labelKey: "nav.market", icon: "cart-outline", accent: true },
-  { route: "LiveList", labelKey: "nav.live", icon: "radio-outline", accent: true },
-  { route: "StarList", labelKey: "nav.star", icon: "star-outline" },
-  { route: "CommunityList", labelKey: "nav.communities", icon: "people-outline" },
-  { route: "AnimeList", labelKey: "nav.anime", icon: "book-outline" },
-  { route: "Wallet", labelKey: "nav.wallet", icon: "wallet-outline" },
-  { route: "LiveStudio", labelKey: "nav.studio", icon: "tv-outline", accent: true },
+  { route: "Used", labelKey: "nav.market", icon: "cart-outline", color: FOLK_EXPLORE_COLORS.market },
+  { route: "LiveList", labelKey: "nav.live", icon: "radio-outline", color: FOLK_EXPLORE_COLORS.live },
+  { route: "StarList", labelKey: "nav.star", icon: "star-outline", color: FOLK_EXPLORE_COLORS.star },
+  {
+    route: "CommunityList",
+    labelKey: "nav.communities",
+    icon: "people-outline",
+    color: FOLK_EXPLORE_COLORS.qna,
+  },
+  { route: "AnimeList", labelKey: "nav.anime", icon: "book-outline", color: FOLK_EXPLORE_COLORS.cultureWiki },
+  { route: "Wallet", labelKey: "nav.wallet", icon: "wallet-outline", color: FOLK_EXPLORE_COLORS.wallet },
+  { route: "LiveStudio", labelKey: "nav.studio", icon: "tv-outline", color: FOLK_EXPLORE_COLORS.studio },
 ];
 
 const OPEN_MS = 280;
@@ -139,8 +144,9 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   const [followListTab, setFollowListTab] = useState<FollowListTab | null>(null);
 
   const [presented, setPresented] = useState(false);
-  /** Globe mounts after the slide, so it is not created on the home screen. */
-  const [drawerSettled, setDrawerSettled] = useState(false);
+  /** Stay in the tree after the first open so the globe WebView is not rebuilt. */
+  const [modalOn, setModalOn] = useState(false);
+  const [globeMounted, setGlobeMounted] = useState(false);
   const slideX = useRef(new Animated.Value(-360)).current;
   const presentedRef = useRef(false);
   const visibleRef = useRef(visible);
@@ -162,9 +168,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
   const hideDrawerChrome = () => {
     if (visibleRef.current) return;
-    presentedRef.current = false;
-    setPresented(false);
-    setDrawerSettled(false);
+    setModalOn(false);
     setAccountSheetOpen(false);
     setFollowListTab(null);
   };
@@ -175,7 +179,6 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
     } else {
       setAccountSheetOpen(false);
       setFollowListTab(null);
-      setDrawerSettled(false);
     }
   }, [visible]);
 
@@ -198,7 +201,8 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
     if (visible) {
       presentedRef.current = true;
       setPresented(true);
-      setDrawerSettled(false);
+      setModalOn(true);
+      setGlobeMounted(true);
       slideX.setValue(-panelWidthRef.current);
       anim = Animated.timing(slideX, {
         toValue: 0,
@@ -206,11 +210,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       });
-      anim.start(({ finished }) => {
-        if (finished && visibleRef.current) {
-          setDrawerSettled(true);
-        }
-      });
+      anim.start();
       return () => {
         anim?.stop();
       };
@@ -218,8 +218,6 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
     if (!presentedRef.current) return;
 
-    // Drop native globe/video immediately so iOS cannot leave a ghost hit layer.
-    setDrawerSettled(false);
     setAccountSheetOpen(false);
     setFollowListTab(null);
 
@@ -258,8 +256,6 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
     onClose();
   };
 
-  const rowLabel = colors.text;
-  const rowIcon = colors.text;
   const rowChevron = colors.textMuted;
 
   if (!presented) return null;
@@ -267,7 +263,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   return (
     <>
     <Modal
-      visible
+      visible={modalOn}
       animationType="none"
       transparent
       onRequestClose={handleDrawerClose}
@@ -420,8 +416,8 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
                   key={item.route}
                   label={t(item.labelKey)}
                   icon={item.icon}
-                  iconColor={item.accent ? FOLK_EXPLORE_ACCENT : rowIcon}
-                  labelColor={item.accent ? FOLK_EXPLORE_ACCENT : rowLabel}
+                  iconColor={item.color}
+                  labelColor={item.color}
                   chevronColor={rowChevron}
                   rowHeight={layout.rowH}
                   onPressIn={() => prefetch(item.route)}
@@ -432,7 +428,8 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
             <DrawerSubcultureMapCard
               active={visible && !accountSheetOpen}
-              showGlobe={drawerSettled && !accountSheetOpen}
+              showGlobe={globeMounted}
+              interactive={visible && !accountSheetOpen}
               height={layout.mapH}
               onExpandPressIn={() => prefetch("EventsMap")}
               onExpand={() => go("EventsMap")}
