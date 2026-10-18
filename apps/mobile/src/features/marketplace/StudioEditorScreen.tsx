@@ -8,8 +8,10 @@ import {
   Switch,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -76,6 +78,9 @@ function mediaKind(asset: ImagePicker.ImagePickerAsset): StudioMedia["kind"] | "
 export function StudioEditorScreen() {
   const { t } = useI18n();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const categoryListHeight = Math.round(Math.min(windowHeight * 0.58, 460));
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const mine = useQuery({ queryKey: ["my-studio"], queryFn: fetchMyStudio });
@@ -558,10 +563,28 @@ export function StudioEditorScreen() {
       </ScrollView>
 
       <Modal visible={categoryOpen} animationType="slide" transparent onRequestClose={() => setCategoryOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setCategoryOpen(false)}>
-          <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.modalRoot}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setCategoryOpen(false)}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.close")}
+          />
+          <View
+            style={[
+              styles.modalSheet,
+              { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, 16) },
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t("m.studio.category")}</Text>
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView
+              style={{ height: categoryListHeight }}
+              contentContainerStyle={styles.modalScrollContent}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator
+              bounces
+            >
               {studioCategoryGroups().map(([group, items]) => (
                 <View key={group} style={styles.modalGroup}>
                   <Text style={[styles.modalGroupTitle, { color: colors.textMuted }]}>{group}</Text>
@@ -584,8 +607,8 @@ export function StudioEditorScreen() {
                 </View>
               ))}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </Screen>
   );
@@ -712,10 +735,10 @@ const styles = StyleSheet.create({
   },
   navPrimary: { borderWidth: 0 },
   navSpacer: { flex: 1 },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  modalSheet: { maxHeight: "78%", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16 },
+  modalRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.45)" },
+  modalSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 16 },
   modalTitle: { fontSize: 18, fontWeight: "800", marginBottom: 8 },
-  modalScroll: { maxHeight: 480 },
+  modalScrollContent: { paddingBottom: 12 },
   modalGroup: { marginBottom: 12 },
   modalGroupTitle: { fontSize: 12, fontWeight: "800", marginBottom: 6, textTransform: "uppercase" },
   modalOption: {
