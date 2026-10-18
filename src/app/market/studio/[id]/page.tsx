@@ -35,7 +35,15 @@ export default async function StudioPage({ params }: { params: Promise<{ id: str
         </p>
       </div>
       {owner ? (
-        <p className="text-sm text-muted-foreground">{t("market.studio.rules")}</p>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">{t("market.studio.rules")}</p>
+          <Link
+            href="/market/studio/edit"
+            className="inline-flex rounded-full bg-folk-terracotta px-4 py-2 text-sm font-extrabold text-white"
+          >
+            {t("market.studio.edit")}
+          </Link>
+        </div>
       ) : (
         <StudioOrderForm
           studio={{

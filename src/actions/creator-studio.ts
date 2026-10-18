@@ -1,7 +1,12 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { joinStudioWaitlist, placeStudioOrder } from "@/lib/creator-studio";
+import {
+  joinStudioWaitlist,
+  placeStudioOrder,
+  saveCreatorStudio,
+  type StudioInput,
+} from "@/lib/creator-studio";
 
 export async function orderCreatorStudio(input: {
   studioId: string;
@@ -17,4 +22,9 @@ export async function orderCreatorStudio(input: {
 export async function waitlistCreatorStudio(studioId: string) {
   const user = await requireAuth({ writeKind: "default" });
   return joinStudioWaitlist(user.id, studioId);
+}
+
+export async function saveMyCreatorStudio(input: StudioInput) {
+  const user = await requireAuth({ writeKind: "default" });
+  return saveCreatorStudio(user.id, user.username || "seller", input);
 }

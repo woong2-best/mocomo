@@ -1,48 +1,50 @@
-import { errorText } from "@/lib/i18n/error-text";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { Box, ChevronLeft, Palette } from "lucide-react";
 import { getCachedCurrentUser } from "@/lib/auth";
-import { defaultUsedRegionForCountry } from "@/lib/used-regions-global";
-import { UsedPostForm } from "@/components/used/used-post-form";
-import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
-import { assertUsedMarketCountryAllowed } from "@/lib/used-regions-global";
-import { usedMarketBlockedRegionMsg } from "@/lib/used-bank-auth";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
-export default async function UsedNewPage() {
+export default async function MarketSellChoicePage() {
   const user = await getCachedCurrentUser();
   if (!user) redirect("/auth/signin?callbackUrl=/market/new");
-  const { locale } = await getServerTranslator();
-
-  const regionErr = assertUsedMarketCountryAllowed(user.countryCode);
-  if (regionErr) {
-    return (
-      <AppPageChrome maxWidth="lg" spacing="sm" className="py-8 text-center">
-        <p className="text-muted-foreground">{errorText(usedMarketBlockedRegionMsg())}</p>
-        <Link href="/market" className="text-primary underline text-sm">
-          {`Back to ${MARKET_BRAND_NAME}`}
-        </Link>
-      </AppPageChrome>
-    );
-  }
+  const { t } = await getServerTranslator();
 
   return (
     <AppPageChrome maxWidth="lg" spacing="sm">
       <Link
         href="/market"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-medium"
+        className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         <ChevronLeft className="h-4 w-4" />
         {MARKET_BRAND_NAME}
       </Link>
-      <UsedPostForm
-        defaultRegion={defaultUsedRegionForCountry(user.countryCode)}
-        sellerAdultVerified={isUsedAdultVerified(user)}
-        sellerCountryCode={user.countryCode}
-      />
+
+      <div className="flex min-h-[58vh] items-center justify-center px-2">
+        <div className="grid w-full max-w-xl grid-cols-2 gap-3 sm:gap-5">
+          <Link
+            href="/market/new/physical"
+            className="flex flex-col items-center gap-3 rounded-3xl border border-border bg-card px-4 py-10 text-center shadow-sm transition hover:border-folk-terracotta/50 hover:shadow-md"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-folk-terracotta/10 text-folk-terracotta">
+              <Box className="h-7 w-7" strokeWidth={2.2} />
+            </span>
+            <span className="text-xl font-extrabold">{t("market.sell.physical")}</span>
+            <span className="text-sm font-semibold text-muted-foreground">{t("market.sell.physicalHint")}</span>
+          </Link>
+          <Link
+            href="/market/studio/edit"
+            className="flex flex-col items-center gap-3 rounded-3xl border border-border bg-card px-4 py-10 text-center shadow-sm transition hover:border-folk-terracotta/50 hover:shadow-md"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-folk-terracotta/10 text-folk-terracotta">
+              <Palette className="h-7 w-7" strokeWidth={2.2} />
+            </span>
+            <span className="text-xl font-extrabold">{t("market.sell.digital")}</span>
+            <span className="text-sm font-semibold text-muted-foreground">{t("market.sell.digitalHint")}</span>
+          </Link>
+        </div>
+      </div>
     </AppPageChrome>
   );
 }

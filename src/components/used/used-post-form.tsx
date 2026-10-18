@@ -120,10 +120,12 @@ export function UsedPostForm({
   defaultRegion,
   sellerCountryCode = "KR",
   editListing,
+  forcedTrack,
 }: {
   defaultRegion?: string;
   sellerAdultVerified?: boolean;
   sellerCountryCode?: string;
+  forcedTrack?: "physical";
   editListing?: {
     id: string;
     title: string;
@@ -193,7 +195,11 @@ export function UsedPostForm({
   const [auction, setAuction] = useState(editListing?.saleType === "AUCTION");
   const [auctionHours, setAuctionHours] = useState(48);
   const [itemTrack, setItemTrack] = useState<"physical" | "digital">(
-    editListing?.category === "DIGITAL" ? "digital" : "physical"
+    forcedTrack === "physical"
+      ? "physical"
+      : editListing?.category === "DIGITAL"
+        ? "digital"
+        : "physical"
   );
   const [digitalKind, setDigitalKind] = useState<"ready" | "commission">("ready");
   const [digitalProduct, setDigitalProduct] = useState(editListing?.productType || "VTUBER_3D");
@@ -340,6 +346,7 @@ export function UsedPostForm({
 
       <div className="space-y-2">
         <p className="text-[15px] font-bold">{t("ui.listing_type")}</p>
+        {forcedTrack === "physical" ? null : (
         <div className="flex flex-wrap">
           <MarketCheckOption
             label={t("market.track.physicalItem")}
@@ -356,6 +363,7 @@ export function UsedPostForm({
             }}
           />
         </div>
+        )}
         {itemTrack === "digital" ? (
           <div className="flex flex-wrap">
             <MarketCheckOption

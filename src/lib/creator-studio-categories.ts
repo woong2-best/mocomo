@@ -35,3 +35,13 @@ export function studioCategoryLabel(id: string) {
 }
 
 export const DEFAULT_STUDIO_CATEGORY_ID = "illustration:character";
+
+export function studioCategoryGroups() {
+  const groups = new Map<string, StudioCategoryOption[]>();
+  for (const item of CREATOR_STUDIO_CATEGORIES) {
+    const list = groups.get(item.group) ?? [];
+    list.push(item);
+    groups.set(item.group, list);
+  }
+  return [...groups.entries()];
+}
