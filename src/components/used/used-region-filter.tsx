@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
 import { usedShippingRegionLabel } from "@/lib/used-regions-global";
 import { isKoreaUsedMarketCountry, isUsedShippingRegion } from "@/lib/used-regions-global";
@@ -11,24 +10,26 @@ import { cn } from "@/lib/utils";
 type UsedRegionFilterProps = {
   viewerCountryCode: string;
   viewerServiceRegion?: string | null;
-  onNavigate?: (updates: Record<string, string | null>) => void;
+  region?: string | null;
+  sido?: string | null;
+  onNavigate: (updates: Record<string, string | null>) => void;
   isPending?: boolean;
   className?: string;
 };
 
 export function UsedRegionFilter({
   viewerCountryCode,
+  region,
+  sido,
   onNavigate,
   isPending,
   className,
 }: UsedRegionFilterProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { locale, t } = useLocale();
   const viewerCountry = viewerCountryCode.toUpperCase();
   const korea = isKoreaUsedMarketCountry(viewerCountry);
-  const currentRegion = searchParams.get("region") ?? "";
-  const currentSido = searchParams.get("sido") ?? "";
+  const currentRegion = region ?? "";
+  const currentSido = sido ?? "";
   const cities = listUsedCityOptions(viewerCountry);
 
   const selected = (() => {
@@ -47,17 +48,7 @@ export function UsedRegionFilter({
   })();
 
   function apply(updates: Record<string, string | null>) {
-    const withCountry = { ...updates, country: viewerCountry };
-    if (onNavigate) {
-      onNavigate(withCountry);
-      return;
-    }
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(withCountry).forEach(([k, v]) => {
-      if (v) params.set(k, v);
-      else params.delete(k);
-    });
-    router.replace(`/market?${params.toString()}`);
+    onNavigate({ ...updates, country: viewerCountry });
   }
 
   const extraCurrent =

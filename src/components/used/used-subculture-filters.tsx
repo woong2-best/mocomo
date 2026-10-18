@@ -3,7 +3,6 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
-import { useSearchParams } from "next/navigation";
 import {
   SUBCULTURE_CONDITION_GRADES,
   SUBCULTURE_LIMITED_KINDS,
@@ -11,18 +10,26 @@ import {
 } from "@/lib/subculture-commerce/types";
 
 type Props = {
-  onNavigate?: (updates: Record<string, string | null>) => void;
+  condition?: string | null;
+  limited?: string | null;
+  trade?: string | null;
+  onNavigate: (updates: Record<string, string | null>) => void;
   isPending?: boolean;
 };
 
-export function UsedSubcultureFilters({ onNavigate, isPending }: Props) {
-  const searchParams = useSearchParams();
-  const condition = searchParams.get("condition") ?? "";
-  const limited = searchParams.get("limited") ?? "";
-  const trade = searchParams.get("trade") ?? "";
+export function UsedSubcultureFilters({
+  condition: conditionProp,
+  limited: limitedProp,
+  trade: tradeProp,
+  onNavigate,
+  isPending,
+}: Props) {
+  const condition = conditionProp ?? "";
+  const limited = limitedProp ?? "";
+  const trade = tradeProp ?? "";
 
   function apply(updates: Record<string, string | null>) {
-    onNavigate?.(updates);
+    onNavigate(updates);
   }
 
   function clearAll() {

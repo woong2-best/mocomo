@@ -264,11 +264,21 @@ export function UsedSearchHeader({
               className="min-w-[8rem]"
               viewerCountryCode={viewerCountryCode}
               viewerServiceRegion={viewerServiceRegion}
+              region={region}
+              sido={sido}
               onNavigate={apply}
               isPending={isPending}
             />
           ) : null}
-          {track !== "digital" ? <UsedSubcultureFilters onNavigate={apply} isPending={isPending} /> : null}
+          {track !== "digital" ? (
+            <UsedSubcultureFilters
+              condition={condition}
+              limited={limited}
+              trade={trade}
+              onNavigate={apply}
+              isPending={isPending}
+            />
+          ) : null}
         </>
       )}
     </div>
