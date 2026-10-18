@@ -15,10 +15,18 @@ export function UsedLayoutChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={cn("max-w-5xl mx-auto p-4 lg:pb-8 space-y-2.5 min-w-0", !isNativeApp && "pb-nav")}>
-      <Suspense fallback={null}>
-        <UsedSectionHeader />
-      </Suspense>
+    <div
+      className={cn(
+        "mx-auto p-4 lg:pb-8 space-y-2.5 min-w-0",
+        pathname === "/market" ? "max-w-6xl" : "max-w-5xl",
+        !isNativeApp && "pb-nav"
+      )}
+    >
+      {pathname === "/market" ? null : (
+        <Suspense fallback={null}>
+          <UsedSectionHeader />
+        </Suspense>
+      )}
       {children}
     </div>
   );

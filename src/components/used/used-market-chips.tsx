@@ -8,6 +8,7 @@ import {
   parseMarketTrack,
 } from "@/lib/market-browse";
 import { cn } from "@/lib/utils";
+import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 import { createTranslator } from "@/lib/i18n/messages";
 import { AutoSubmitSelect } from "@/components/used/auto-submit-select";
 import { KOREA_SIDO, USED_SHIPPING_REGION } from "@/lib/korea-regions";
@@ -69,10 +70,12 @@ export function UsedMarketChips({
       "shrink-0 rounded-full border-[1.5px] px-3.5 py-2 text-[13px] font-extrabold whitespace-nowrap",
       active ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border bg-card text-folk-cobalt"
     );
+  const filter = "h-9 min-w-0 rounded-full border-[1.5px] border-border bg-card px-3 text-[13px] font-extrabold text-folk-cobalt";
 
   return (
     <div className="space-y-2 pb-2 -mx-4 px-4 pt-0 border-b border-border/60">
       <div className="flex min-w-0 items-center gap-2">
+        <h1 className="shrink-0 text-xl font-extrabold whitespace-nowrap">{MARKET_BRAND_NAME}</h1>
         <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 scrollbar-none">
           <Link href={href({ ...keep, track: null, lane: null, category: null, product: null })} className={chip(!personal && track === "all")}>
             {t("market.track.all")}
@@ -139,18 +142,50 @@ export function UsedMarketChips({
             </div>
           </details>
         )}
+        <Link
+          href="/market/new"
+          className="shrink-0 rounded-full bg-folk-terracotta px-4 py-2 text-[13px] font-extrabold text-white hover:bg-folk-terracotta/90"
+        >
+          {t("ui.sell")}
+        </Link>
       </div>
 
       {personal || track === "digital" ? null : (
-        <form action="/market" method="get" className="space-y-2">
+        <form action="/market" method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {track !== "all" ? <input type="hidden" name="track" value={track} /> : null}
           {category ? <input type="hidden" name="category" value={category} /> : null}
           {product ? <input type="hidden" name="product" value={product} /> : null}
           {q ? <input type="hidden" name="q" value={q} /> : null}
+          <div className="grid min-w-0 flex-1 grid-cols-3 gap-2">
+            <AutoSubmitSelect name="condition" defaultValue={condition ?? ""} className={filter}>
+              <option value="">{t("used.s1xg4kgm")}</option>
+              {SUBCULTURE_CONDITION_GRADES.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </AutoSubmitSelect>
+            <AutoSubmitSelect name="limited" defaultValue={limited ?? ""} className={filter}>
+              <option value="">{t("used.s13opco")}</option>
+              {SUBCULTURE_LIMITED_KINDS.filter((o) => o.id !== "STANDARD").map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </AutoSubmitSelect>
+            <AutoSubmitSelect name="trade" defaultValue={trade ?? ""} className={filter}>
+              <option value="">{t("used.s9vvetl")}</option>
+              {SUBCULTURE_TRADE_MODES.filter((o) => o.id !== "SELL").map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </AutoSubmitSelect>
+          </div>
           <AutoSubmitSelect
             name="sido"
             defaultValue={sido || (region === USED_SHIPPING_REGION ? "__shipping__" : "")}
-            className="h-[38px] w-full rounded-full border-[1.5px] border-border bg-card px-3 text-[13px] font-extrabold text-folk-cobalt"
+            className={cn(filter, "w-full sm:w-56 sm:shrink-0")}
             aria-label={t("used.s2dzhae")}
           >
             <option value="">{t("used.s2dzhae")}</option>
@@ -161,44 +196,6 @@ export function UsedMarketChips({
             ))}
             <option value="__shipping__">{usedShippingRegionLabel("en")}</option>
           </AutoSubmitSelect>
-          <div className="grid grid-cols-3 gap-1.5">
-            <AutoSubmitSelect
-              name="condition"
-              defaultValue={condition ?? ""}
-              className="h-9 min-w-0 rounded-lg border border-border bg-background px-1.5 text-[11px]"
-            >
-              <option value="">{t("used.s1xg4kgm")}</option>
-              {SUBCULTURE_CONDITION_GRADES.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </AutoSubmitSelect>
-            <AutoSubmitSelect
-              name="limited"
-              defaultValue={limited ?? ""}
-              className="h-9 min-w-0 rounded-lg border border-border bg-background px-1.5 text-[11px]"
-            >
-              <option value="">{t("used.s13opco")}</option>
-              {SUBCULTURE_LIMITED_KINDS.filter((o) => o.id !== "STANDARD").map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </AutoSubmitSelect>
-            <AutoSubmitSelect
-              name="trade"
-              defaultValue={trade ?? ""}
-              className="h-9 min-w-0 rounded-lg border border-border bg-background px-1.5 text-[11px]"
-            >
-              <option value="">{t("used.s9vvetl")}</option>
-              {SUBCULTURE_TRADE_MODES.filter((o) => o.id !== "SELL").map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </AutoSubmitSelect>
-          </div>
           <noscript>
             <button type="submit" className="text-xs font-extrabold text-folk-cobalt">
               Apply
