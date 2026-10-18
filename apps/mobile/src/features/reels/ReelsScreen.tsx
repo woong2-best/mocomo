@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
+  BackHandler,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
   type LayoutChangeEvent,
   type NativeScrollEvent,
@@ -14,6 +13,13 @@ import {
   type ViewToken,
   useWindowDimensions,
 } from "react-native";
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -22,9 +28,8 @@ import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchFeedPage, type FeedPost } from "@/api/feed";
 import { fetchReelsAds } from "@/api/ads";
-import { createPostComment, pinPostComment } from "@/api/social";
+import { createPostComment } from "@/api/social";
 import {
-  moveCommentPin,
   parseCommentBuckets,
   postCommentsQueryKey,
   postCommentsQueryOptions,
@@ -32,6 +37,12 @@ import {
   withOptimisticComment,
   type PostCommentsResponse,
 } from "@/api/post-comments-query";
+import { ReelsCommentsSheet } from "@/features/reels/ReelsCommentsSheet";
+import {
+  REELS_COMMENT_DURATION_MS,
+  reelsCommentSheetHeight,
+  reelsCommentVideoAtProgress,
+} from "@/features/reels/reels-comment-layout";
 import { useAuth } from "@/auth/AuthContext";
 import {
   buildFeedVideoGroups,
@@ -58,7 +69,6 @@ import {
   type ReelsSlot,
 } from "@/features/reels/reels-slots";
 import { PerformanceBudgets } from "@/perf/budgets";
-import { TranslatableText } from "@/ui/TranslatableText";
 import { useI18n } from "@/i18n/I18nProvider";
 import { reelsUi } from "@/features/reels/reels-ui";
 import type { RootStackParamList } from "@/navigation/types";
@@ -127,11 +137,23 @@ export function ReelsScreen() {
   const [seedVideoByGroup, setSeedVideoByGroup] = useState<Record<string, number>>({});
   const [didSeed, setDidSeed] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
+  const [commentsUiOpen, setCommentsUiOpen] = useState(false);
   const [headerCommentCount, setHeaderCommentCount] = useState(0);
   const [commentDraft, setCommentDraft] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [chromeHidden, setChromeHidden] = useState(false);
   const [pinchZooming, setPinchZooming] = useState(false);
+  const commentProgress = useSharedValue(0);
+  const playbackRef = useRef<{ togglePause: () => void } | null>(null);
+  const liveSheetHeight = useMemo(
+    () => reelsCommentSheetHeight(height, insets.bottom),
+    [height, insets.bottom]
+  );
+  const [sheetHeight, setSheetHeight] = useState(liveSheetHeight);
+  const screenHSv = useSharedValue(height);
+  const sheetHSv = useSharedValue(sheetHeight);
+  screenHSv.value = height;
+  sheetHSv.value = sheetHeight;
 
   const commentsQuery = useQuery({
     ...postCommentsQueryOptions(commentsPostId ?? ""),
@@ -404,15 +426,45 @@ export function ReelsScreen() {
     minimumViewTime: 120,
   }).current;
 
+  const closeComments = useCallback(() => {
+    setCommentsPostId(null);
+    setCommentsUiOpen(false);
+    setCommentDraft("");
+  }, []);
+
   const openComments = useCallback(
     (postId: string, commentCount: number) => {
       setCommentsPostId(postId);
+      setCommentsUiOpen(true);
       setHeaderCommentCount(commentCount);
       setCommentDraft("");
+      commentProgress.value = withTiming(1, {
+        duration: REELS_COMMENT_DURATION_MS,
+        easing: Easing.out(Easing.cubic),
+      });
       void queryClient.ensureQueryData(postCommentsQueryOptions(postId));
     },
-    [queryClient]
+    [commentProgress, queryClient]
   );
+
+  const bindPlayback = useCallback((bind: { togglePause: () => void } | null) => {
+    playbackRef.current = bind;
+  }, []);
+
+  const onVideoHitboxPress = useCallback(() => {
+    playbackRef.current?.togglePause();
+  }, []);
+
+  const pagerAnimStyle = useAnimatedStyle(() => {
+    const v = reelsCommentVideoAtProgress(
+      commentProgress.value,
+      screenHSv.value,
+      sheetHSv.value
+    );
+    return {
+      transform: [{ translateY: v.translateY }, { scale: v.scale }],
+    };
+  });
 
   const prefetchComments = useCallback(
     (postId: string) => {
@@ -475,13 +527,17 @@ export function ReelsScreen() {
           onPrefetchComments={prefetchComments}
           onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
           onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
+          commentsOpen={index === activeSlot && commentsUiOpen}
+          onBindPlayback={index === activeSlot ? bindPlayback : undefined}
         />
       );
     },
     [
       activeSlot,
+      bindPlayback,
       chrome.stageLeft,
       chrome.stageWidth,
+      commentsUiOpen,
       height,
       onFastForwardChange,
       onPinchZoomChange,
@@ -511,7 +567,26 @@ export function ReelsScreen() {
     setPinchZooming(false);
   }, [activeSlot]);
 
-  const hideChrome = chromeHidden || pinchZooming;
+  useEffect(() => {
+    if (!commentsUiOpen) setSheetHeight(liveSheetHeight);
+  }, [commentsUiOpen, liveSheetHeight]);
+
+  useEffect(() => {
+    if (!commentsUiOpen) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      commentProgress.value = withTiming(
+        0,
+        { duration: REELS_COMMENT_DURATION_MS, easing: Easing.out(Easing.cubic) },
+        (finished) => {
+          if (finished) runOnJS(closeComments)();
+        }
+      );
+      return true;
+    });
+    return () => sub.remove();
+  }, [closeComments, commentProgress, commentsUiOpen]);
+
+  const hideChrome = chromeHidden || pinchZooming || commentsUiOpen;
 
   if (feedQuery.isLoading && groups.length === 0) {
     return (
@@ -539,11 +614,17 @@ export function ReelsScreen() {
         />
       ) : null}
 
+      <Animated.View
+        collapsable={false}
+        renderToHardwareTextureAndroid
+        pointerEvents={commentsUiOpen ? "none" : "auto"}
+        style={[styles.pager, pagerAnimStyle]}
+      >
       <FlatList
         ref={listRef}
-        style={styles.pager}
+        style={styles.pagerFill}
         data={slots}
-        extraData={`${activeSlot}:${chrome.stageWidth}:${chrome.stageLeft}:${height}`}
+        extraData={`${activeSlot}:${chrome.stageWidth}:${chrome.stageLeft}:${height}:${commentsUiOpen ? 1 : 0}`}
         keyExtractor={(s) => s.key}
         renderItem={renderItem}
         pagingEnabled={Platform.OS === "ios"}
@@ -557,7 +638,7 @@ export function ReelsScreen() {
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
-        scrollEnabled={!pinchZooming && !chromeHidden}
+        scrollEnabled={!pinchZooming && !chromeHidden && !commentsUiOpen}
         onLayout={onListLayout}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
@@ -600,97 +681,47 @@ export function ReelsScreen() {
           </View>
         }
       />
+      </Animated.View>
 
-      <Modal
-        visible={!!commentsPostId}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setCommentsPostId(null)}
-      >
-        <View style={styles.sheetRoot}>
-          <Pressable style={styles.sheetScrim} onPress={() => setCommentsPostId(null)} />
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 10 }]}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{copy.comments(commentTotal)}</Text>
-              <Pressable onPress={() => setCommentsPostId(null)} hitSlop={10}>
-                <Ionicons name="close" size={22} color="#fff" />
-              </Pressable>
-            </View>
-            <Text style={styles.sheetSort}>{copy.sortNewest}</Text>
-            {showCommentsSpinner ? (
-              <ActivityIndicator color="#fff" style={{ marginVertical: 24 }} />
-            ) : (
-              <FlatList
-                data={comments}
-                keyExtractor={(c) => c.id}
-                style={{ maxHeight: height * 0.42 }}
-                renderItem={({ item }) => (
-                  <View style={styles.commentRow}>
-                    <View style={{ flex: 1 }}>
-                    <Text style={styles.commentUser}>
-                      {item.author.username}
-                      {item.isPinned ? (
-                        <Text style={styles.commentMeta}> · {t("m.feed.pinned_comments")}</Text>
-                      ) : null}
-                    </Text>
-                    <TranslatableText text={item.content} style={styles.commentBody} lightLinks />
-                    </View>
-                    {canPinReels ? (
-                      <Pressable
-                        onPress={() => {
-                          const next = !item.isPinned;
-                          queryClient.setQueryData<PostCommentsResponse>(
-                            postCommentsQueryKey(commentsPostId!),
-                            (old) => moveCommentPin(old, item.id, next)
-                          );
-                          void pinPostComment(item.id, next).catch(() => {
-                            queryClient.setQueryData<PostCommentsResponse>(
-                              postCommentsQueryKey(commentsPostId!),
-                              (old) => moveCommentPin(old, item.id, !next)
-                            );
-                          });
-                        }}
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={item.isPinned ? "pin" : "pin-outline"}
-                          size={16}
-                          color="rgba(255,255,255,0.55)"
-                        />
-                      </Pressable>
-                    ) : null}
-                  </View>
-                )}
-                ListEmptyComponent={
-                  <Text style={styles.muted}>{copy.noComments}</Text>
-                }
-              />
-            )}
-            <View style={styles.commentInputRow}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder={copy.commentPh}
-                placeholderTextColor="rgba(255,255,255,0.45)"
-                value={commentDraft}
-                onChangeText={setCommentDraft}
-                onSubmitEditing={() => void submitComment()}
-                returnKeyType="send"
-              />
-              <Pressable onPress={() => void submitComment()} disabled={commentBusy}>
-                <Text style={styles.commentSend}>{copy.postComment}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {commentsUiOpen ? (
+        <Pressable
+          style={[styles.videoHitbox, { height: Math.max(80, height - sheetHeight) }]}
+          onPress={onVideoHitboxPress}
+          accessibilityRole="button"
+          accessibilityLabel={t("m.reels.toggle_playback")}
+        />
+      ) : null}
+
+      <ReelsCommentsSheet
+        progress={commentProgress}
+        sheetHeight={sheetHeight}
+        commentsPostId={commentsPostId}
+        comments={comments}
+        commentTotal={commentTotal}
+        showSpinner={showCommentsSpinner}
+        draft={commentDraft}
+        busy={commentBusy}
+        canPin={canPinReels}
+        copy={copy}
+        onDraftChange={setCommentDraft}
+        onSubmit={() => void submitComment()}
+        onClosed={closeComments}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#000" },
+  root: { flex: 1, backgroundColor: "#000", overflow: "hidden" },
   pager: { flex: 1, overflow: "hidden" },
+  pagerFill: { flex: 1 },
+  videoHitbox: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 30,
+  },
   center: {
     flex: 1,
     backgroundColor: "#000",
@@ -711,51 +742,4 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   backBtn: { width: 44, height: 40, alignItems: "center", justifyContent: "center" },
-  sheetRoot: { flex: 1, justifyContent: "flex-end" },
-  sheetScrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
-  sheet: {
-    backgroundColor: "#1A1A1A",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    maxHeight: "70%",
-  },
-  sheetHandle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    marginBottom: 10,
-  },
-  sheetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  sheetTitle: { color: "#fff", fontSize: 16, fontWeight: "800" },
-  sheetSort: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 4, marginBottom: 8 },
-  commentRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
-  commentUser: { color: "#fff", fontWeight: "800", marginBottom: 4 },
-  commentMeta: { color: "rgba(255,255,255,0.45)", fontWeight: "600" },
-  commentBody: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 20 },
-  commentInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(255,255,255,0.1)",
-    paddingTop: 10,
-  },
-  commentInput: {
-    flex: 1,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: "#fff",
-  },
-  commentSend: { color: "#6BA3E8", fontWeight: "800" },
 });

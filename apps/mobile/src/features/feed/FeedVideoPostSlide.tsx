@@ -106,6 +106,9 @@ type Props = {
   onFastForwardChange?: (active: boolean) => void;
   /** Lock the vertical pager while a two-finger pinch is active. */
   onPinchZoomChange?: (zooming: boolean) => void;
+  /** Comments sheet is driving a push-scale; keep the decoder, hide chrome, yield gestures. */
+  commentsOpen?: boolean;
+  onBindPlayback?: (bind: { togglePause: () => void } | null) => void;
 };
 
 function NativeVideoCell({
@@ -348,6 +351,8 @@ function FeedVideoPostSlideInner({
   onChangeVideoIndex,
   onFastForwardChange,
   onPinchZoomChange,
+  commentsOpen = false,
+  onBindPlayback,
 }: Props) {
   const stageWidth = stageWidthProp ?? width;
   const stageLeft = stageLeftProp ?? 0;
@@ -384,7 +389,7 @@ function FeedVideoPostSlideInner({
     () => buildVideoCaptionText(current?.title, current?.content ?? ""),
     [current?.content, current?.title]
   );
-  const chromeHidden = fastForward || pinchZooming;
+  const chromeHidden = fastForward || pinchZooming || commentsOpen;
 
   const stopFastForward = useCallback(() => {
     setFastForward((prev) => {
@@ -482,6 +487,12 @@ function FeedVideoPostSlideInner({
     setPausedByUser((p) => !p);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [active]);
+
+  useEffect(() => {
+    if (!active || !onBindPlayback) return;
+    onBindPlayback({ togglePause });
+    return () => onBindPlayback(null);
+  }, [active, onBindPlayback, togglePause]);
 
   const onHScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -609,13 +620,13 @@ function FeedVideoPostSlideInner({
         nestedScrollEnabled
         directionalLockEnabled
         removeClippedSubviews={false}
-        scrollEnabled={active && !pinchZooming && !fastForward}
+        scrollEnabled={active && !pinchZooming && !fastForward && !commentsOpen}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         bounces={false}
         overScrollMode="never"
         onMomentumScrollEnd={onHScroll}
-        extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${fastForward ? 1 : 0}:${pinchZooming ? 1 : 0}`}
+        extraData={`${videoIndex}:${active ? 1 : 0}:${loadPlayer ? 1 : 0}:${isFocused ? 1 : 0}:${pausedByUser ? 1 : 0}:${fastForward ? 1 : 0}:${pinchZooming ? 1 : 0}:${commentsOpen ? 1 : 0}`}
         getItemLayout={(_, index) => ({
           length: stageWidth,
           offset: stageWidth * index,
@@ -638,9 +649,9 @@ function FeedVideoPostSlideInner({
               }}
             >
               <ReelPinchZoom
-                enabled={isCurrent}
-                tapEnabled={isCurrent && item.mediaType !== "IMAGE"}
-                holdEnabled={isCurrent && item.mediaType !== "IMAGE" && !pausedByUser}
+                enabled={isCurrent && !commentsOpen}
+                tapEnabled={isCurrent && !commentsOpen && item.mediaType !== "IMAGE"}
+                holdEnabled={isCurrent && !commentsOpen && item.mediaType !== "IMAGE" && !pausedByUser}
                 onTap={togglePause}
                 onHoldStart={startFastForward}
                 onHoldEnd={stopFastForward}
@@ -834,7 +845,8 @@ function slideEqual(a: Props, b: Props) {
     a.stageWidth === b.stageWidth &&
     a.stageLeft === b.stageLeft &&
     a.initialVideoIndex === b.initialVideoIndex &&
-    a.group.videos.length === b.group.videos.length
+    a.group.videos.length === b.group.videos.length &&
+    a.commentsOpen === b.commentsOpen
   );
 }
 
