@@ -213,7 +213,7 @@ export function ProfileCalendar() {
 
   return (
     <div className="shrink-0 w-full bg-card border-b border-border overflow-hidden">
-      <div className="px-1.5 pt-3 pb-1 text-center">
+      <div className="px-1.5 pt-4 pb-2 text-center sm:pt-5">
         <button
           type="button"
           onClick={() => {
@@ -225,14 +225,14 @@ export function ProfileCalendar() {
         >
           {month}
         </button>
-        <p className="mt-0.5 text-[11px] font-semibold tracking-[0.12em] text-foreground/80">
+        <p className="mt-1 text-[11px] font-semibold tracking-[0.12em] text-foreground/80">
           {year} {monthEn(month)}{" "}
           <span className="font-serif tracking-normal text-muted-foreground">{sexagenaryYear(year)}</span>
         </p>
-        <p className="mt-0.5 text-[9px] font-medium text-muted-foreground/80 tabular-nums" title={timeZone}>
+        <p className="mt-1 text-[9px] font-medium text-muted-foreground/80 tabular-nums" title={timeZone}>
           {timeZone}
         </p>
-        <div className="mt-1.5 flex items-center justify-center gap-2">
+        <div className="mt-2.5 flex items-center justify-center gap-2 pb-0.5">
           <button
             type="button"
             onClick={() => {

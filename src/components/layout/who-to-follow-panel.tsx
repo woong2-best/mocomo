@@ -47,7 +47,7 @@ export function WhoToFollowPanel() {
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch("/api/follow-recommendations?limit=4", {
+      const res = await fetch("/api/follow-recommendations?limit=3", {
         credentials: "same-origin",
       });
       if (!res.ok) {
@@ -79,7 +79,7 @@ export function WhoToFollowPanel() {
   if (sessionPending || !signedIn) return null;
 
   return (
-    <section className="flex h-full min-h-0 w-full flex-col bg-card">
+    <section className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-card">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5">
         <h2 className="text-sm font-bold tracking-tight truncate">
           {t("whoToFollow.title")}
@@ -94,9 +94,9 @@ export function WhoToFollowPanel() {
       </header>
 
       {loading && items.length === 0 ? (
-        <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto overscroll-contain">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <li key={i} className="flex items-center gap-2.5 px-3 py-2.5">
+        <ul className="flex min-h-0 flex-1 flex-col divide-y divide-border overflow-hidden">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li key={i} className="flex min-h-0 flex-1 items-center gap-2.5 px-3 py-2">
               <div className="h-9 w-9 rounded-full bg-muted/60 animate-pulse shrink-0" />
               <div className="flex-1 space-y-1.5 min-w-0">
                 <div className="h-3 w-24 bg-muted/60 animate-pulse rounded" />
@@ -110,14 +110,14 @@ export function WhoToFollowPanel() {
       ) : items.length === 0 ? (
         <p className="px-3 py-4 text-xs text-muted-foreground">{t("whoToFollow.empty")}</p>
       ) : (
-        <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto overscroll-contain">
-          {items.map((item) => {
+        <ul className="flex min-h-0 flex-1 flex-col divide-y divide-border overflow-hidden">
+          {items.slice(0, 3).map((item) => {
             const displayName = userDisplayName(item);
             return (
               <li
                 key={item.id}
                 className={cn(
-                  "flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted/40 transition-colors"
+                  "flex min-h-0 flex-1 items-center gap-2.5 px-3 py-2 hover:bg-muted/40 transition-colors"
                 )}
               >
                 <Link
