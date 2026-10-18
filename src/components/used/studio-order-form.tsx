@@ -83,7 +83,7 @@ export function StudioOrderForm({
             onClick={() => setTierId(tier.id)}
             className={`rounded-full border px-3 py-2 text-sm font-extrabold ${tierId === tier.id ? "border-folk-cobalt bg-folk-cobalt text-white" : "border-border"}`}
           >
-            {tier.name} · {tier.price.toLocaleString()}
+            {tier.name} · {tier.price.toLocaleString()} MOCO
           </button>
         ))}
       </div>
@@ -99,7 +99,7 @@ export function StudioOrderForm({
               )
             }
           />
-          {addon.name} · {addon.mode === "percent" ? `+${addon.amount}%` : `+${addon.amount.toLocaleString()}`}
+          {addon.name} · {addon.mode === "percent" ? `+${addon.amount}%` : `+${addon.amount.toLocaleString()} MOCO`}
         </label>
       ))}
       <p className="text-sm font-bold">{labels.rules}</p>
@@ -131,7 +131,7 @@ export function StudioOrderForm({
         <input type="checkbox" className="mt-0.5" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} />
         <span>{labels.agree}</span>
       </label>
-      <p className="text-lg font-extrabold">{total.toLocaleString()} {studio.currency.toUpperCase()}</p>
+      <p className="text-lg font-extrabold">{total.toLocaleString()} MOCO</p>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <button
         type="submit"

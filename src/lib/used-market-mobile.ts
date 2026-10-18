@@ -106,10 +106,11 @@ export async function createMobileUsedListing(
     if (adultErr) return { error: USED_ADULT_SELLER_MSG };
   }
   if (!data.title.trim()) return { error: "Enter a title." as const };
-  const currency = normalizeUsedCurrency(data.currency);
+  const rawCurrency = (data.currency ?? "").toLowerCase();
+  const currency = rawCurrency === "moco" || rawCurrency === "moc" ? "moc" : normalizeUsedCurrency(data.currency);
   const price = Math.floor(Number(data.price) || 0);
   if (data.price < 0 || price < 0) return { error: "Invalid price." as const };
-  const maxPrice = maxUsedListingPrice(currency);
+  const maxPrice = currency === "moc" ? 1_000_000 : maxUsedListingPrice(currency);
   if (price > maxPrice) {
     return { error: `가격은 ${maxUsedListingPriceLabel(currency)} 이하로 입력해 주세요.` as const };
   }

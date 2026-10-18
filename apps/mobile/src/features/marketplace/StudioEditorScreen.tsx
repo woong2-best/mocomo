@@ -49,10 +49,10 @@ const EMPTY: StudioDraft = {
   slotCap: 3,
   deliveryDays: 14,
   revisionNote: "Rough sketch: 1 revision. Flat color: 1 revision. No changes after coloring is finished.",
-  currency: "krw",
+  currency: "moco",
   coverUrl: "",
   blocks: [],
-  tiers: [{ id: "tier1", name: "Half body", price: 80000 }],
+  tiers: [{ id: "tier1", name: "Half body", price: 80 }],
   addons: [],
   formFields: [
     { id: "look", label: "Character appearance", kind: "text", required: true },
@@ -258,9 +258,10 @@ export function StudioEditorScreen() {
                     onChangeText={(value) => patchTier(tier.id, { price: Number(value.replace(/[^0-9]/g, "")) || 0 })}
                     keyboardType="number-pad"
                     style={[styles.input, styles.price, inputStyle(colors)]}
-                    placeholder="80000"
+                    placeholder="80"
                     placeholderTextColor={colors.textMuted}
                   />
+                  <Text style={[styles.inline, { color: colors.textMuted }]}>{t("m.studio.moco")}</Text>
                 </View>
               ))}
               <TextButton
@@ -288,14 +289,14 @@ export function StudioEditorScreen() {
                     onPress={() => patchAddon(addon.id, { mode: addon.mode === "percent" ? "fixed" : "percent" })}
                     style={[styles.mode, { borderColor: colors.border }]}
                   >
-                    <Text style={{ color: colors.brand, fontWeight: "800" }}>{addon.mode === "percent" ? "%" : "+"}</Text>
+                    <Text style={{ color: colors.brand, fontWeight: "800" }}>{addon.mode === "percent" ? "%" : t("m.studio.moco")}</Text>
                   </Pressable>
                   <KeyboardAwareTextInput
                     value={String(addon.amount || "")}
                     onChangeText={(value) => patchAddon(addon.id, { amount: Number(value.replace(/[^0-9]/g, "")) || 0 })}
                     keyboardType="number-pad"
                     style={[styles.input, styles.price, inputStyle(colors)]}
-                    placeholder={addon.mode === "percent" ? "100" : "30000"}
+                    placeholder={addon.mode === "percent" ? "100" : "10"}
                     placeholderTextColor={colors.textMuted}
                   />
                 </View>

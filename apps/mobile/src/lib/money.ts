@@ -20,8 +20,13 @@ export function formatKrw(won: number): string {
   }).format(won);
 }
 
+export function formatMoco(amount: number): string {
+  return `${Math.max(0, Math.floor(amount)).toLocaleString()} MOCO`;
+}
+
 export function formatPrice(amount: number, currency?: string | null): string {
   const c = (currency ?? "krw").toLowerCase();
+  if (c === "moco" || c === "moc") return formatMoco(amount);
   if (c === "usd") return formatUsd(amount);
   if (c === "krw") return formatKrw(amount);
   try {

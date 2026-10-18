@@ -157,6 +157,9 @@ export function usedCategoryLabel(id: string) {
 
 export function formatUsedPrice(price: number, currency?: string | null) {
   if (price === 0) return "Free";
+  if ((currency ?? "").toLowerCase() === "moco" || (currency ?? "").toLowerCase() === "moc") {
+    return formatPrice(price, "moco");
+  }
   return formatPrice(price, normalizeUsedCurrency(currency));
 }
 

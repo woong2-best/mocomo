@@ -1647,6 +1647,7 @@
   "m.studio.block_text_ph": "Describe the work, process, or what buyers get",
   "m.studio.watermark_note": "Still images get a light MoCoMo watermark. GIF and short MP4 (up to 20 seconds) stay as motion samples.",
   "m.studio.video_limit": "Videos must be 20 seconds or shorter.",
+  "m.studio.moco": "MOCO",
   "m.studio.tiers": "Price tiers",
   "m.studio.tier_name": "Half body",
   "m.studio.add_tier": "Add a tier",

@@ -54,7 +54,7 @@ export function parseStudioInput(raw: StudioInput): { value: StudioInput } | { e
   const title = raw.title.trim().slice(0, 80);
   const about = raw.about.trim().slice(0, 2000);
   const revisionNote = raw.revisionNote.trim().slice(0, 1000);
-  const currency = raw.currency === "usd" ? "usd" : "krw";
+  const currency = "moc";
   const slotCap = Math.floor(raw.slotCap);
   const deliveryDays = Math.floor(raw.deliveryDays);
   if (!isValidStudioCategoryId(category)) return { error: "Choose a studio category." };
@@ -78,7 +78,7 @@ export function parseStudioInput(raw: StudioInput): { value: StudioInput } | { e
     if (!row || typeof row !== "object") continue;
     const name = typeof (row as { name?: unknown }).name === "string" ? (row as { name: string }).name.trim().slice(0, 40) : "";
     const price = Math.floor(Number((row as { price?: unknown }).price) || 0);
-    if (!name || price < 1000 || price > 50_000_000) continue;
+    if (!name || price < 1 || price > 1_000_000) continue;
     tiers.push({ id: cleanId((row as { id?: unknown }).id, `tier${index + 1}`), name, price });
   }
   if (tiers.length < 1) return { error: "Add at least one price tier." };
@@ -89,7 +89,7 @@ export function parseStudioInput(raw: StudioInput): { value: StudioInput } | { e
     const name = typeof (row as { name?: unknown }).name === "string" ? (row as { name: string }).name.trim().slice(0, 40) : "";
     const mode = (row as { mode?: unknown }).mode === "percent" ? "percent" : "fixed";
     const amount = Math.floor(Number((row as { amount?: unknown }).amount) || 0);
-    const max = mode === "percent" ? 300 : 50_000_000;
+    const max = mode === "percent" ? 300 : 1_000_000;
     if (!name || amount < 1 || amount > max) continue;
     addons.push({ id: cleanId((row as { id?: unknown }).id, `addon${index + 1}`), name, mode, amount });
   }
@@ -191,7 +191,7 @@ function publicStudio(row: StudioRow, slotsUsed: number) {
     accepting: row.open && slotsUsed < row.slotCap,
     deliveryDays: row.deliveryDays,
     revisionNote: row.revisionNote,
-    currency: row.currency,
+    currency: "moc",
     coverUrl,
     blocks,
     portfolio: feedMediaFromDoc({ version: 2, coverUrl, blocks }),

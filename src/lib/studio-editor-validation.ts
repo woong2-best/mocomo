@@ -23,7 +23,7 @@ export type StudioDraft = {
 function tierValid(tier: StudioTier) {
   const name = tier.name.trim();
   const price = Math.floor(tier.price);
-  return name.length > 0 && price >= 1000 && price <= 50_000_000;
+  return name.length > 0 && price >= 1 && price <= 1_000_000;
 }
 
 function fieldValid(field: StudioField) {
@@ -58,5 +58,6 @@ export function normalizeDraft(draft: StudioDraft): StudioDraft {
   return {
     ...draft,
     category: VALID_CATEGORY.has(draft.category) ? draft.category : DEFAULT_STUDIO_CATEGORY_ID,
+    currency: "moco",
   };
 }

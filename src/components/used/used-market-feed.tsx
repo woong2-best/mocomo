@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Package } from "lucide-react";
 import { getUsedListings, getViewerUsedListingStarIds, isUsedDbReady } from "@/actions/used-market";
 import { listCreatorStudios } from "@/lib/creator-studio";
+import { formatMoco } from "@/lib/money";
 import { listingTrackFilter, parseMarketLane, parseMarketTrack } from "@/lib/market-browse";
 import { auth } from "@/lib/auth";
 import { listingImages } from "@/lib/used-market";
@@ -171,6 +172,7 @@ export async function UsedMarketFeed({
                 )}
                 <div className="space-y-1 p-2">
                   <p className="line-clamp-2 text-sm font-extrabold">{studio.title}</p>
+                  <p className="text-xs font-extrabold">{formatMoco(studio.fromPrice)}</p>
                   <p className="text-xs text-muted-foreground">@{studio.seller.username}</p>
                 </div>
               </Link>

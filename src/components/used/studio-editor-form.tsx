@@ -27,10 +27,10 @@ const EMPTY: StudioDraft = {
   slotCap: 3,
   deliveryDays: 14,
   revisionNote: "Rough sketch: 1 revision. Flat color: 1 revision. No changes after coloring is finished.",
-  currency: "krw",
+  currency: "moco",
   coverUrl: "",
   blocks: [],
-  tiers: [{ id: "tier1", name: "Half body", price: 80000 }],
+  tiers: [{ id: "tier1", name: "Half body", price: 80 }],
   addons: [],
   formFields: [
     { id: "look", label: "Character appearance", kind: "text", required: true },
@@ -209,14 +209,18 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
                   placeholder={t("market.studio.tierName")}
                   className={`${inputClass} flex-1`}
                 />
-                <input
-                  value={tier.price || ""}
-                  onChange={(e) =>
-                    patchTier(tier.id, { price: Number(e.target.value.replace(/[^0-9]/g, "")) || 0 })
-                  }
-                  inputMode="numeric"
-                  className={`${inputClass} w-28`}
-                />
+                <label className="flex w-40 items-center gap-2">
+                  <input
+                    value={tier.price || ""}
+                    onChange={(e) =>
+                      patchTier(tier.id, { price: Number(e.target.value.replace(/[^0-9]/g, "")) || 0 })
+                    }
+                    inputMode="numeric"
+                    placeholder="80"
+                    className={`${inputClass} min-w-0 flex-1`}
+                  />
+                  <span className="shrink-0 text-xs font-extrabold text-muted-foreground">{t("market.studio.moco")}</span>
+                </label>
               </div>
             ))}
             <button
@@ -250,7 +254,7 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
                     patchAddon(addon.id, { mode: addon.mode === "fixed" ? "percent" : "fixed" })
                   }
                 >
-                  {addon.mode === "percent" ? "%" : "₩"}
+                  {addon.mode === "percent" ? "%" : t("market.studio.moco")}
                 </button>
                 <input
                   value={addon.amount || ""}

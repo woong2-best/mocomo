@@ -5,6 +5,7 @@ import { StudioPortfolioView } from "@/components/used/studio-portfolio-view";
 import { auth } from "@/lib/auth";
 import { getCreatorStudio } from "@/lib/creator-studio";
 import { createTranslator } from "@/lib/i18n/messages";
+import { formatMoco } from "@/lib/money";
 
 const t = createTranslator("en");
 
@@ -29,6 +30,7 @@ export default async function StudioPage({ params }: { params: Promise<{ id: str
       <StudioPortfolioView coverUrl={studio.coverUrl} blocks={studio.blocks} />
       <div>
         <h1 className="text-2xl font-extrabold">{studio.title}</h1>
+        <p className="text-sm font-extrabold">{t("market.studio.from")} {formatMoco(studio.fromPrice)}</p>
         <p className="text-sm text-muted-foreground">@{studio.seller.username}</p>
         <p className="mt-2 whitespace-pre-wrap text-sm">{studio.about}</p>
         <p className={`mt-2 text-sm font-extrabold ${studio.accepting ? "text-emerald-500" : "text-folk-terracotta"}`}>
