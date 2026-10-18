@@ -7,7 +7,7 @@ export function reelsUi(t: TFn) {
     title: t("m.reels.videos"),
     noVideos: t("m.reels.no_videos_to_play"),
     comments: (n: number) => t("m.reels.n_comments", { n: String(n) }),
-    sortNewest: t("m.reels.newest"),
+    sortNewest: t("m.reels.top_comments"),
     noComments: t("m.common.no_comments_yet"),
     commentPh: t("m.reels.add_a_comment"),
     postComment: t("m.common.post"),

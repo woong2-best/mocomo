@@ -54,7 +54,7 @@ import {
 } from "@/lib/comments-prefetch-cache";
 import { cn, formatNumber } from "@/lib/utils";
 
-type SortId = "popular" | "newest" | "oldest";
+type SortId = "ranked" | "popular" | "newest" | "oldest";
 
 type PanelComment = SerializedComment & {
   pending?: boolean;
@@ -70,7 +70,7 @@ type Props = {
 };
 
 const SORT_OPTIONS: { id: SortId; label: string }[] = [
-  { id: "popular", label: i18n("reels.skkmnjp") },
+  { id: "ranked", label: i18n("comments.sortRanked") },
   { id: "newest", label: i18n("reels.sv12fs") },
   { id: "oldest", label: i18n("reels.sprgayc") },
 ];
@@ -480,7 +480,7 @@ function CommentRow({
             {isPinned && (
               <p className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-white/45">
                 <Pin className="h-3 w-3" />
-                Pinned
+                {i18n("comments.pinned")}
               </p>
             )}
             <p className="text-[13px] leading-snug">
@@ -696,9 +696,10 @@ export function ReelsCommentsPanel({
   const viewerId = user?.id ?? null;
   const isAdmin = !!user?.isOperator || user?.role === "ADMIN";
 
-  const [sort, setSort] = useState<SortId>("popular");
+  const [sort, setSort] = useState<SortId>("ranked");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [pinned, setPinned] = useState<PanelComment[]>([]);
+  const [top, setTop] = useState<PanelComment[]>([]);
   const [comments, setComments] = useState<PanelComment[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [total, setTotal] = useState(initialCount);
@@ -753,6 +754,7 @@ export function ReelsCommentsPanel({
         );
         const body = (await res.json().catch(() => ({}))) as {
           pinned?: PanelComment[];
+          top?: PanelComment[];
           comments?: PanelComment[];
           nextCursor?: string | null;
           total?: number;
@@ -766,6 +768,7 @@ export function ReelsCommentsPanel({
         }
         if (opts.reset) {
           setPinned(body.pinned ?? []);
+          setTop(body.top ?? []);
           setComments(body.comments ?? []);
           setPrefetchedComments(postId, sort, body);
         } else {
@@ -793,6 +796,7 @@ export function ReelsCommentsPanel({
         setPostAuthorId(cached.postAuthorId);
       }
       setPinned((cached.pinned as PanelComment[] | undefined) ?? []);
+      setTop((cached.top as PanelComment[] | undefined) ?? []);
       setComments((cached.comments as PanelComment[] | undefined) ?? []);
       setNextCursor(cached.nextCursor ?? null);
       if (typeof cached.total === "number") notifyCount(cached.total);
@@ -817,6 +821,7 @@ export function ReelsCommentsPanel({
     }
 
     setPinned([]);
+    setTop([]);
     setComments([]);
     void loadPage({ reset: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -860,13 +865,13 @@ export function ReelsCommentsPanel({
 
     setPinned((prev) => {
       const next = apply(prev);
-      // Move between pinned/unpinned buckets when pin flag changes
       if ("isPinned" in patch) {
-        const target = [...prev, ...comments].find((c) => c.id === id);
+        const target = [...prev, ...top, ...comments].find((c) => c.id === id);
         if (target) {
           if (patch.isPinned) {
             const row = { ...target, ...patch, isPinned: true };
             setComments((cs) => cs.filter((c) => c.id !== id));
+            setTop((ts) => ts.filter((c) => c.id !== id));
             return mergeUnique(
               next.filter((c) => c.id !== id),
               [row]
@@ -879,12 +884,14 @@ export function ReelsCommentsPanel({
       }
       return next;
     });
+    setTop((prev) => apply(prev));
     setComments((prev) => apply(prev));
-  }, [comments, mergeUnique]);
+  }, [comments, mergeUnique, top]);
 
   const removeComment = useCallback(
     (id: string) => {
       setPinned((prev) => prev.filter((c) => c.id !== id));
+      setTop((prev) => prev.filter((c) => c.id !== id));
       setComments((prev) =>
         prev
           .filter((c) => c.id !== id)
@@ -943,6 +950,7 @@ export function ReelsCommentsPanel({
               : row
           );
         setPinned(bump);
+        setTop(bump);
         setComments(bump);
       } else {
         const row: PanelComment = {
@@ -963,7 +971,7 @@ export function ReelsCommentsPanel({
           replies: [],
         };
         setComments((prev) =>
-          sort === "newest" ? [row, ...prev] : [...prev, row]
+          sort === "oldest" ? [...prev, row] : [row, ...prev]
         );
       }
       notifyCount(totalRef.current + 1);
@@ -989,6 +997,7 @@ export function ReelsCommentsPanel({
           };
         });
       setPinned(swap);
+      setTop(swap);
       setComments(swap);
     }
 
@@ -1051,8 +1060,25 @@ export function ReelsCommentsPanel({
 
   const sortLabel =
     SORT_OPTIONS.find((o) => o.id === sort)?.label ?? i18n("reels.skkmnjp");
-  const allComments = [...pinned, ...comments];
+  const allComments = [...pinned, ...top, ...comments];
   const empty = !loading && !error && allComments.length === 0;
+  const ranked = sort === "ranked";
+
+  function renderRow(c: PanelComment) {
+    return (
+      <CommentRow
+        key={c.id}
+        comment={c}
+        postId={postId}
+        viewerId={viewerId}
+        postAuthorId={postAuthorId}
+        isPostOwner={isPostOwner}
+        isAdmin={isAdmin}
+        onPatch={patchComment}
+        onRemove={removeComment}
+      />
+    );
+  }
 
   const panelBody: ReactNode = (
     <>
@@ -1103,7 +1129,9 @@ export function ReelsCommentsPanel({
         </div>
       </header>
 
-      <p className="shrink-0 px-4 pb-2 text-[12px] text-white/40">{sortLabel}</p>
+      {ranked ? null : (
+        <p className="shrink-0 px-4 pb-2 text-[12px] text-white/40">{sortLabel}</p>
+      )}
 
       <div
         ref={listRef}
@@ -1119,19 +1147,25 @@ export function ReelsCommentsPanel({
           </p>
         ) : (
           <ul className="space-y-5 pb-4">
-            {allComments.map((c) => (
-              <CommentRow
-                key={c.id}
-                comment={c}
-                postId={postId}
-                viewerId={viewerId}
-                postAuthorId={postAuthorId}
-                isPostOwner={isPostOwner}
-                isAdmin={isAdmin}
-                onPatch={patchComment}
-                onRemove={removeComment}
-              />
-            ))}
+            {ranked ? (
+              <>
+                {pinned.map(renderRow)}
+                {top.length > 0 ? (
+                  <li className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-white/35">
+                    {i18n("comments.top")}
+                  </li>
+                ) : null}
+                {top.map(renderRow)}
+                {comments.length > 0 ? (
+                  <li className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-white/35">
+                    {i18n("comments.recent")}
+                  </li>
+                ) : null}
+                {comments.map(renderRow)}
+              </>
+            ) : (
+              allComments.map(renderRow)
+            )}
             <div ref={sentinelRef} className="h-4" />
             {loadingMore && (
               <div className="flex justify-center py-3">

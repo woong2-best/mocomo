@@ -8,10 +8,17 @@ import {
   countVisibleCommentsForPost,
   getBlockedUserIdSet,
 } from "@/lib/user-block";
+import {
+  RANKED_CANDIDATE_LIMIT,
+  RANKED_TOP_COUNT,
+  pickRankedTopIds,
+  usesFeedCommentRanking,
+} from "@/lib/comment-rank";
 
 export const MAX_PINNED_COMMENTS = 3;
 export const COMMENT_PAGE_SIZE = 20;
 export const COMMENT_REPLY_PAGE_SIZE = 20;
+export { RANKED_TOP_COUNT, usesFeedCommentRanking };
 
 const visibleWhere = {
   deletedAt: null,
@@ -105,6 +112,7 @@ function encodeCursor(payload: {
   createdAt: string;
   id: string;
   likeCount?: number;
+  excludeIds?: string[];
 }) {
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
 }
@@ -114,6 +122,7 @@ function decodeCursor(raw: string | null): {
   createdAt: string;
   id: string;
   likeCount?: number;
+  excludeIds?: string[];
 } | null {
   if (!raw) return null;
   try {
@@ -124,21 +133,29 @@ function decodeCursor(raw: string | null): {
       createdAt?: string;
       id?: string;
       likeCount?: number;
+      excludeIds?: unknown;
     };
     if (
       !parsed?.id ||
       !parsed.createdAt ||
       (parsed.sort !== "newest" &&
         parsed.sort !== "oldest" &&
-        parsed.sort !== "popular")
+        parsed.sort !== "popular" &&
+        parsed.sort !== "ranked")
     ) {
       return null;
     }
+    const excludeIds = Array.isArray(parsed.excludeIds)
+      ? parsed.excludeIds.filter(
+          (id): id is string => typeof id === "string" && id.length > 0 && id.length <= 64
+        ).slice(0, 24)
+      : undefined;
     return {
       sort: parsed.sort,
       createdAt: parsed.createdAt,
       id: parsed.id,
       likeCount: parsed.likeCount,
+      excludeIds,
     };
   } catch {
     return null;
@@ -264,6 +281,272 @@ async function mapComments(
   });
 }
 
+type CommentRow = Parameters<typeof mapComments>[0][number];
+
+async function loadRankedSignals(
+  rows: CommentRow[],
+  postAuthorId: string,
+  viewerId: string | null
+) {
+  const ids = rows.map((r) => r.id);
+  const authorIds = [...new Set(rows.map((r) => r.authorId))];
+  const [authorReplies, authorLikes, follows] = await Promise.all([
+    ids.length
+      ? db.comment.groupBy({
+          by: ["parentId"],
+          where: {
+            parentId: { in: ids },
+            authorId: postAuthorId,
+            deletedAt: null,
+            hiddenAt: null,
+          },
+          _count: { _all: true },
+        })
+      : Promise.resolve([] as { parentId: string | null }[]),
+    ids.length
+      ? db.commentLike.findMany({
+          where: { userId: postAuthorId, commentId: { in: ids } },
+          select: { commentId: true },
+        })
+      : Promise.resolve([] as { commentId: string }[]),
+    viewerId && authorIds.length
+      ? db.follow.findMany({
+          where: { followerId: viewerId, followingId: { in: authorIds } },
+          select: { followingId: true },
+        })
+      : Promise.resolve([] as { followingId: string }[]),
+  ]);
+  const authorReplied = new Set(
+    authorReplies.map((r) => r.parentId).filter((id): id is string => !!id)
+  );
+  const likedByAuthor = new Set(authorLikes.map((l) => l.commentId));
+  const followed = new Set(follows.map((f) => f.followingId));
+  return { authorReplied, likedByAuthor, followed };
+}
+
+async function getRankedCommentsPage(params: {
+  postId: string;
+  postAuthorId: string;
+  sort: PostCommentSort;
+  limit: number;
+  cursor: ReturnType<typeof decodeCursor>;
+  viewerId?: string | null;
+  includePinned: boolean;
+  anonymous?: boolean;
+}) {
+  const blockedSet = params.viewerId
+    ? await getBlockedUserIdSet(params.viewerId)
+    : new Set<string>();
+  const blockedAuthors = blockedIdList(blockedSet);
+  const authorVisibleWhere =
+    blockedAuthors.length > 0
+      ? {
+          ...visibleWhere,
+          authorId: { notIn: blockedAuthors },
+        }
+      : visibleWhere;
+
+  const replyInclude = {
+    take: 3,
+    where: { ...authorVisibleWhere },
+    orderBy: { createdAt: "asc" as const },
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+      likeCount: true,
+      authorId: true,
+      author: { select: userPublicSelect },
+    },
+  };
+
+  const selectWithReplies = {
+    ...commentSelectBase,
+    replies: replyInclude,
+  };
+
+  let pinned: Awaited<ReturnType<typeof mapComments>> = [];
+  if (params.includePinned) {
+    const pinnedRows = await db.comment.findMany({
+      where: {
+        postId: params.postId,
+        parentId: null,
+        pinnedAt: { not: null },
+        ...authorVisibleWhere,
+      },
+      orderBy: [{ pinnedAt: "asc" }, { createdAt: "asc" }],
+      take: MAX_PINNED_COMMENTS,
+      select: selectWithReplies,
+    });
+    pinned = await mapComments(
+      pinnedRows,
+      params.postAuthorId,
+      params.viewerId ?? null,
+      params.anonymous,
+      blockedAuthors
+    );
+  }
+
+  const pinnedIds = pinned.map((p) => p.id);
+  const cursorExclude = params.cursor?.excludeIds ?? [];
+
+  let top: Awaited<ReturnType<typeof mapComments>> = [];
+  if (!params.cursor) {
+    const candidateWhere = {
+      postId: params.postId,
+      parentId: null,
+      pinnedAt: null,
+      ...authorVisibleWhere,
+      ...(pinnedIds.length ? { id: { notIn: pinnedIds } } : {}),
+    };
+    const [byLikes, byReplies] = await Promise.all([
+      db.comment.findMany({
+        where: candidateWhere,
+        orderBy: [
+          { likeCount: "desc" },
+          { createdAt: "desc" },
+          { id: "desc" },
+        ],
+        take: RANKED_CANDIDATE_LIMIT,
+        select: selectWithReplies,
+      }),
+      db.comment.findMany({
+        where: candidateWhere,
+        orderBy: [
+          { replies: { _count: "desc" } },
+          { createdAt: "desc" },
+          { id: "desc" },
+        ],
+        take: RANKED_CANDIDATE_LIMIT,
+        select: selectWithReplies,
+      }),
+    ]);
+    const byId = new Map<string, CommentRow>();
+    for (const row of [...byLikes, ...byReplies]) {
+      if (!byId.has(row.id)) byId.set(row.id, row);
+    }
+    const candidates = [...byId.values()];
+    const signals = await loadRankedSignals(
+      candidates,
+      params.postAuthorId,
+      params.viewerId ?? null
+    );
+    const nowMs = Date.now();
+    const topIds = pickRankedTopIds(
+      candidates,
+      (row) => ({
+        likeCount: row.likeCount,
+        replyCount: row._count.replies,
+        likedByAuthor: signals.likedByAuthor.has(row.id),
+        authorReplied: signals.authorReplied.has(row.id),
+        followedAuthor: signals.followed.has(row.authorId),
+        createdAtMs: row.createdAt.getTime(),
+        nowMs,
+      }),
+      RANKED_TOP_COUNT
+    );
+    const topRows = topIds
+      .map((id) => byId.get(id))
+      .filter((row): row is CommentRow => !!row);
+    top = await mapComments(
+      topRows,
+      params.postAuthorId,
+      params.viewerId ?? null,
+      params.anonymous,
+      blockedAuthors
+    );
+  }
+
+  const excludeIds = [
+    ...new Set([...pinnedIds, ...top.map((c) => c.id), ...cursorExclude]),
+  ];
+
+  const recentWhere = {
+    postId: params.postId,
+    parentId: null,
+    pinnedAt: null,
+    ...authorVisibleWhere,
+    ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
+  };
+
+  let cursorWhere: Record<string, unknown> | undefined;
+  if (params.cursor && params.cursor.sort === "ranked") {
+    const createdAt = new Date(params.cursor.createdAt);
+    cursorWhere = {
+      OR: [
+        { createdAt: { lt: createdAt } },
+        { createdAt, id: { lt: params.cursor.id } },
+      ],
+    };
+  }
+
+  const rows = await db.comment.findMany({
+    where: cursorWhere ? { AND: [recentWhere, cursorWhere] } : recentWhere,
+    take: params.limit + 1,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: selectWithReplies,
+  });
+
+  const hasMore = rows.length > params.limit;
+  const pageRows = hasMore ? rows.slice(0, params.limit) : rows;
+  const parentIds = pageRows.map((r) => r.id);
+  const hiddenRepliesByParent = new Map<string, number>();
+  if (blockedAuthors.length && parentIds.length) {
+    const grouped = await db.comment.groupBy({
+      by: ["parentId"],
+      where: {
+        parentId: { in: parentIds },
+        authorId: { in: blockedAuthors },
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      _count: { _all: true },
+    });
+    for (const row of grouped) {
+      if (row.parentId) hiddenRepliesByParent.set(row.parentId, row._count._all);
+    }
+  }
+
+  const page = await mapComments(
+    pageRows,
+    params.postAuthorId,
+    params.viewerId ?? null,
+    params.anonymous,
+    blockedAuthors,
+    hiddenRepliesByParent
+  );
+
+  const last = pageRows[pageRows.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({
+          sort: "ranked",
+          createdAt: last.createdAt.toISOString(),
+          id: last.id,
+          excludeIds: (params.cursor?.excludeIds?.length
+            ? params.cursor.excludeIds
+            : top.map((c) => c.id)
+          ).slice(0, 24),
+        })
+      : null;
+
+  const total = await countVisibleCommentsForPost(
+    params.postId,
+    params.viewerId ?? null,
+    blockedSet
+  );
+
+  return {
+    pinned,
+    top,
+    comments: page,
+    nextCursor,
+    total,
+    sort: "ranked" as const,
+  };
+}
+
 export async function getPostCommentsPage(params: {
   postId: string;
   postAuthorId: string;
@@ -273,13 +556,30 @@ export async function getPostCommentsPage(params: {
   viewerId?: string | null;
   includePinned?: boolean;
   anonymous?: boolean;
+  /** QnA / community threads stay chronological — never ranked or pinned. */
+  communityId?: string | null;
 }) {
+  const feedRanking = usesFeedCommentRanking(params.communityId);
+  const sort: PostCommentSort =
+    feedRanking ? params.sort : params.sort === "ranked" ? "oldest" : params.sort;
+
   const limit = Math.min(
     50,
     Math.max(1, params.limit ?? COMMENT_PAGE_SIZE)
   );
   const cursor = decodeCursor(params.cursor ?? null);
-  const includePinned = params.includePinned !== false && !cursor;
+  const includePinned =
+    feedRanking && params.includePinned !== false && !cursor;
+
+  if (sort === "ranked" && feedRanking) {
+    return getRankedCommentsPage({
+      ...params,
+      sort,
+      limit,
+      cursor,
+      includePinned,
+    });
+  }
   const blockedSet = params.viewerId
     ? await getBlockedUserIdSet(params.viewerId)
     : new Set<string>();
@@ -337,22 +637,22 @@ export async function getPostCommentsPage(params: {
   const baseWhere = {
     postId: params.postId,
     parentId: null,
-    pinnedAt: null,
+    ...(feedRanking ? { pinnedAt: null } : {}),
     ...authorVisibleWhere,
     ...(pinnedIds.length ? { id: { notIn: pinnedIds } } : {}),
   };
 
   let cursorWhere: Record<string, unknown> | undefined;
-  if (cursor && cursor.sort === params.sort) {
+  if (cursor && cursor.sort === sort) {
     const createdAt = new Date(cursor.createdAt);
-    if (params.sort === "newest") {
+    if (sort === "newest") {
       cursorWhere = {
         OR: [
           { createdAt: { lt: createdAt } },
           { createdAt, id: { lt: cursor.id } },
         ],
       };
-    } else if (params.sort === "oldest") {
+    } else if (sort === "oldest") {
       cursorWhere = {
         OR: [
           { createdAt: { gt: createdAt } },
@@ -377,13 +677,13 @@ export async function getPostCommentsPage(params: {
   }
 
   const orderBy =
-    params.sort === "popular"
+    sort === "popular"
       ? ([
           { likeCount: "desc" as const },
           { createdAt: "desc" as const },
           { id: "desc" as const },
         ] as const)
-      : params.sort === "newest"
+      : sort === "newest"
         ? ([{ createdAt: "desc" as const }, { id: "desc" as const }] as const)
         : ([{ createdAt: "asc" as const }, { id: "asc" as const }] as const);
 
@@ -430,7 +730,7 @@ export async function getPostCommentsPage(params: {
   const nextCursor =
     hasMore && last
       ? encodeCursor({
-          sort: params.sort,
+          sort,
           createdAt: last.createdAt.toISOString(),
           id: last.id,
           likeCount: last.likeCount,
@@ -445,10 +745,11 @@ export async function getPostCommentsPage(params: {
 
   return {
     pinned,
+    top: [] as SerializedComment[],
     comments: page,
     nextCursor,
     total,
-    sort: params.sort,
+    sort,
   };
 }
 

@@ -10,9 +10,15 @@ import { getPostCommentsPage } from "@/lib/comment-service";
 import type { PostCommentSort } from "@/lib/post-queries";
 import { assertUserBlockInteractionAllowed } from "@/lib/user-block";
 
-function parseSort(raw: string | null): PostCommentSort {
-  if (raw === "newest" || raw === "popular" || raw === "oldest") return raw;
-  return "popular";
+function parseSort(raw: string | null, isQna: boolean): PostCommentSort {
+  if (isQna) {
+    if (raw === "newest" || raw === "popular" || raw === "oldest") return raw;
+    return "oldest";
+  }
+  if (raw === "newest" || raw === "popular" || raw === "oldest" || raw === "ranked") {
+    return raw;
+  }
+  return "ranked";
 }
 
 export async function GET(
@@ -27,7 +33,7 @@ export async function GET(
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const sort = parseSort(req.nextUrl.searchParams.get("sort"));
+  const sortParam = req.nextUrl.searchParams.get("sort");
   const limitRaw = Number(req.nextUrl.searchParams.get("limit") ?? "20");
   const limit = Number.isFinite(limitRaw)
     ? Math.min(50, Math.max(1, Math.floor(limitRaw)))
@@ -43,6 +49,8 @@ export async function GET(
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
+    const isQna = Boolean(post.communityId);
+    const sort = parseSort(sortParam, isQna);
     const viewerId = await getMobileUserId(req);
     const page = await getPostCommentsPage({
       postId,
@@ -51,7 +59,8 @@ export async function GET(
       limit,
       cursor,
       viewerId,
-      includePinned: true,
+      includePinned: !isQna,
+      communityId: post.communityId,
     });
 
     return NextResponse.json({

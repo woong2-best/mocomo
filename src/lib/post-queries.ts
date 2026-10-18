@@ -242,7 +242,7 @@ async function attachPollView<T extends { poll: Parameters<typeof mapPostPollRow
   };
 }
 
-export type PostCommentSort = "newest" | "popular" | "oldest";
+export type PostCommentSort = "newest" | "popular" | "oldest" | "ranked";
 
 /** @deprecated Prefer getPostCommentsPage from comment-service for reels/API. */
 export async function getPostComments(

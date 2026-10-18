@@ -25,9 +25,11 @@ import {
 import { PostCommentOverflowMenu } from "@/features/feed/PostCommentOverflowMenu";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  parsePostComments,
+  mapCommentBuckets,
+  parseCommentBuckets,
   postCommentsQueryKey,
   postCommentsQueryOptions,
+  withOptimisticComment,
   type PostCommentsResponse,
 } from "@/api/post-comments-query";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
@@ -71,11 +73,55 @@ export function PostDetailScreen() {
     queryFn: () => fetchPostDetail(postId),
   });
 
+  const post = postQuery.data?.post;
+  const isQnaPost = Boolean(post?.community?.slug);
+
   const commentsQuery = useQuery({
-    ...postCommentsQueryOptions(postId),
+    ...postCommentsQueryOptions(postId, isQnaPost),
+    enabled: !!post,
   });
 
-  const comments = useMemo(() => parsePostComments(commentsQuery.data), [commentsQuery.data]);
+  const buckets = useMemo(
+    () => parseCommentBuckets(commentsQuery.data),
+    [commentsQuery.data]
+  );
+
+  type CommentRow =
+    | { kind: "header"; id: string; title: string }
+    | { kind: "comment"; id: string; comment: CommentItem };
+
+  const commentRows = useMemo<CommentRow[]>(() => {
+    if (isQnaPost) {
+      return buckets.recent.map((comment) => ({
+        kind: "comment" as const,
+        id: comment.id,
+        comment,
+      }));
+    }
+    const rows: CommentRow[] = [];
+    if (buckets.pinned.length) {
+      rows.push({ kind: "header", id: "h-pinned", title: t("m.feed.pinned_comments") });
+      for (const comment of buckets.pinned) {
+        rows.push({ kind: "comment", id: comment.id, comment });
+      }
+    }
+    if (buckets.top.length) {
+      rows.push({ kind: "header", id: "h-top", title: t("m.feed.top_comments") });
+      for (const comment of buckets.top) {
+        rows.push({ kind: "comment", id: comment.id, comment });
+      }
+    }
+    if (buckets.recent.length) {
+      rows.push({ kind: "header", id: "h-recent", title: t("m.feed.latest_comments") });
+      for (const comment of buckets.recent) {
+        rows.push({ kind: "comment", id: comment.id, comment });
+      }
+    }
+    return rows;
+  }, [buckets, isQnaPost, t]);
+
+  const commentsEmpty = buckets.pinned.length + buckets.top.length + buckets.recent.length === 0;
+  const canPinComments = !isQnaPost && !!user?.id && user.id === post?.author?.id;
 
   const commentMut = useMutation({
     mutationFn: (content: string) => createPostComment(postId, content),
@@ -95,12 +141,10 @@ export function PostDetailScreen() {
           image: user?.image ?? null,
         },
       };
-      const prevList = parsePostComments(previous);
-      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), {
-        ...(previous ?? {}),
-        comments: [optimistic, ...prevList],
-        items: [optimistic, ...prevList],
-      });
+      queryClient.setQueryData<PostCommentsResponse>(
+        postCommentsQueryKey(postId),
+        withOptimisticComment(previous, optimistic, isQnaPost ? "append" : "prepend")
+      );
       setDraft("");
       return { previous, tempId: optimistic.id };
     },
@@ -112,23 +156,19 @@ export function PostDetailScreen() {
     },
     onSuccess: (res, _content, ctx) => {
       queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
-        const list = parsePostComments(old).filter(
+        const cleaned = mapCommentBuckets(old, (c) => c);
+        const recent = (cleaned.comments ?? []).filter(
           (c) => c.id !== ctx?.tempId && c.id !== res.comment.id
         );
-        const next = [res.comment, ...list];
         return {
-          ...(old ?? {}),
-          comments: next,
-          items: next,
+          ...cleaned,
+          comments: isQnaPost ? [...recent, res.comment] : [res.comment, ...recent],
         };
       });
       void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-post", postId] });
     },
   });
-
-  const post = postQuery.data?.post;
-  const isQnaPost = Boolean(post?.community?.slug);
   const headerTitle = isQnaPost ? "QnA" : t("m.common.post");
   const composerBottomPad =
     keyboardLift > 0 ? spacing.sm : Math.max(spacing.md, insets.bottom);
@@ -151,29 +191,18 @@ export function PostDetailScreen() {
     const nextLiked = !liked;
     const nextCount = Math.max(0, prevCount + (nextLiked ? 1 : -1));
     setLikeBusyId(item.id);
-    queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
-      const list = parsePostComments(old).map((c) =>
-        c.id === item.id ? { ...c, liked: nextLiked, likeCount: nextCount } : c
+    const patch = (likedVal: boolean, count: number) =>
+      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) =>
+        mapCommentBuckets(old, (c) =>
+          c.id === item.id ? { ...c, liked: likedVal, likeCount: count } : c
+        )
       );
-      return { ...(old ?? {}), comments: list, items: list };
-    });
+    patch(nextLiked, nextCount);
     try {
       const res = await toggleCommentLike(item.id, liked);
-      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
-        const list = parsePostComments(old).map((c) =>
-          c.id === item.id
-            ? { ...c, liked: res.liked, likeCount: res.likeCount }
-            : c
-        );
-        return { ...(old ?? {}), comments: list, items: list };
-      });
+      patch(res.liked, res.likeCount);
     } catch (err) {
-      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
-        const list = parsePostComments(old).map((c) =>
-          c.id === item.id ? { ...c, liked, likeCount: prevCount } : c
-        );
-        return { ...(old ?? {}), comments: list, items: list };
-      });
+      patch(liked, prevCount);
       showIslandError(t("m.common.error"), err instanceof Error ? err.message : t("m.feed.could_not_like_comment"));
     } finally {
       setLikeBusyId(null);
@@ -194,7 +223,7 @@ export function PostDetailScreen() {
           keyboardVerticalOffset={0}
         >
           <FlatList
-            data={comments}
+            data={commentRows}
             keyExtractor={(item) => item.id}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 24 }}
@@ -225,11 +254,15 @@ export function PostDetailScreen() {
                   color={colors.terracotta}
                   style={{ marginVertical: spacing.md }}
                 />
-              ) : (
+              ) : commentsEmpty ? (
                 <Text style={styles.muted}>{t("m.common.no_comments_yet")}</Text>
-              )
+              ) : null
             }
-            renderItem={({ item }) => {
+            renderItem={({ item: row }) => {
+              if (row.kind === "header") {
+                return <Text style={styles.section}>{row.title}</Text>;
+              }
+              const item = row.comment;
               const authorSeed: UserProfileSeed = {
                 username: item.author.username,
                 name: item.author.name,
@@ -258,10 +291,13 @@ export function PostDetailScreen() {
                           {displayName}
                           <Text style={styles.commentHandle}> @{item.author.username}</Text>
                         </Text>
+                        {item.isPinned ? (
+                          <Text style={styles.commentHandle}>{t("m.feed.pinned_comments")}</Text>
+                        ) : null}
                       </View>
                     </Pressable>
                     <View style={styles.commentActions}>
-                      {user && !isOwn ? (
+                      {user && (!isOwn || canPinComments) ? (
                         <Pressable
                           style={styles.iconBtn}
                           onPress={() => setMenuComment(item)}
@@ -332,6 +368,8 @@ export function PostDetailScreen() {
           authorId={menuComment.author.id}
           authorUsername={menuComment.author.username}
           isOwnComment={user?.id === menuComment.author.id}
+          canPin={canPinComments}
+          isPinned={!!menuComment.isPinned}
         />
       ) : null}
     </Screen>

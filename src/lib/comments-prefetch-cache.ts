@@ -2,6 +2,7 @@ import type { SerializedComment } from "@/lib/comment-service";
 
 export type PrefetchedCommentPage = {
   pinned?: SerializedComment[];
+  top?: SerializedComment[];
   comments?: SerializedComment[];
   nextCursor?: string | null;
   total?: number;
@@ -18,7 +19,7 @@ function cacheKey(postId: string, sort: string) {
 
 export function getPrefetchedComments(
   postId: string,
-  sort = "popular"
+  sort = "ranked"
 ): PrefetchedCommentPage | null {
   const entry = cache.get(cacheKey(postId, sort));
   if (!entry || Date.now() - entry.fetchedAt > TTL_MS) return null;
@@ -39,7 +40,7 @@ export function invalidatePostComments(postId: string) {
   }
 }
 
-export function prefetchPostComments(postId: string, sort = "popular") {
+export function prefetchPostComments(postId: string, sort = "ranked") {
   if (!postId) return;
   const key = cacheKey(postId, sort);
   const cached = cache.get(key);

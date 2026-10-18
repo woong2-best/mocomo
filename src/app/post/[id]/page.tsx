@@ -187,6 +187,8 @@ export default async function PostPage({
       <Suspense fallback={<PostCommentsSkeleton />}>
         <PostCommentsSection
           postId={post.id}
+          postAuthorId={realAuthorId}
+          qna={Boolean(post.communityId)}
           showIdHandle={!displayPost.isAnonymous}
         />
       </Suspense>

@@ -9,7 +9,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
-import { blockUser, submitCommentReport } from "@/api/social";
+import { blockUser, pinPostComment, submitCommentReport } from "@/api/social";
+import {
+  moveCommentPin,
+  postCommentsQueryKey,
+  type PostCommentsResponse,
+} from "@/api/post-comments-query";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -23,6 +28,8 @@ type Props = {
   authorId: string;
   authorUsername: string;
   isOwnComment?: boolean;
+  canPin?: boolean;
+  isPinned?: boolean;
 };
 
 export function PostCommentOverflowMenu({
@@ -33,12 +40,14 @@ export function PostCommentOverflowMenu({
   authorId,
   authorUsername,
   isOwnComment = false,
+  canPin = false,
+  isPinned = false,
 }: Props) {
   const queryClient = useQueryClient();
   const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [busy, setBusy] = useState<"report" | "block" | null>(null);
+  const [busy, setBusy] = useState<"report" | "block" | "pin" | null>(null);
   const [confirmBlock, setConfirmBlock] = useState(false);
 
   const closeAll = useCallback(() => {
@@ -81,7 +90,30 @@ export function PostCommentOverflowMenu({
     }
   }
 
-  if (isOwnComment) return null;
+  async function onPin() {
+    if (busy) return;
+    setBusy("pin");
+    const next = !isPinned;
+    queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) =>
+      moveCommentPin(old, commentId, next)
+    );
+    try {
+      await pinPostComment(commentId, next);
+      closeAll();
+    } catch (err) {
+      queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) =>
+        moveCommentPin(old, commentId, isPinned)
+      );
+      showIslandError(
+        t("m.common.error"),
+        err instanceof Error ? err.message : t("toast.retry")
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (isOwnComment && !canPin) return null;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={closeAll}>
@@ -106,6 +138,26 @@ export function PostCommentOverflowMenu({
             </>
           ) : (
             <>
+              {canPin ? (
+                <Pressable
+                  style={styles.menuRow}
+                  onPress={() => void onPin()}
+                  disabled={!!busy}
+                >
+                  {busy === "pin" ? (
+                    <ActivityIndicator color={colors.text} />
+                  ) : (
+                    <>
+                      <Ionicons name="pin-outline" size={20} color={colors.text} />
+                      <Text style={styles.menuLabel}>
+                        {isPinned ? t("m.feed.unpin_comment") : t("m.feed.pin_comment")}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              ) : null}
+              {!isOwnComment ? (
+                <>
               <Pressable
                 style={styles.menuRow}
                 onPress={() => void onReport()}
@@ -128,6 +180,8 @@ export function PostCommentOverflowMenu({
                 <Ionicons name="ban-outline" size={20} color={colors.danger} />
                 <Text style={[styles.menuLabel, { color: colors.danger }]}>{t("m.common.block")}</Text>
               </Pressable>
+                </>
+              ) : null}
               <Pressable style={styles.cancelRow} onPress={closeAll}>
                 <Text style={styles.cancelLabel}>{t("common.close")}</Text>
               </Pressable>

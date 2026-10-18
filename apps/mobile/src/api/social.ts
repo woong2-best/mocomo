@@ -45,6 +45,8 @@ export type CommentItem = {
   createdAt: string;
   likeCount?: number;
   liked?: boolean;
+  likedByMe?: boolean;
+  isPinned?: boolean;
   author: {
     id: string;
     username: string;
@@ -53,12 +55,24 @@ export type CommentItem = {
   };
 };
 
-export async function fetchPostComments(postId: string) {
+export async function fetchPostComments(postId: string, isQna = false) {
+  const sort = isQna ? "oldest" : "ranked";
   return apiRequest<{
     comments?: CommentItem[];
     items?: CommentItem[];
+    pinned?: CommentItem[];
+    top?: CommentItem[];
     total?: number;
-  }>(`${MobileApi.postComments(postId)}?sort=newest&limit=40`, { auth: true });
+    postAuthorId?: string | null;
+    nextCursor?: string | null;
+    sort?: string;
+  }>(`${MobileApi.postComments(postId)}?sort=${sort}&limit=40`, { auth: true });
+}
+
+export async function pinPostComment(commentId: string, pinned: boolean) {
+  return apiRequest<{ ok: boolean; pinned: boolean }>(MobileApi.commentPin(commentId), {
+    method: pinned ? "POST" : "DELETE",
+  });
 }
 
 export async function createPostComment(postId: string, content: string) {

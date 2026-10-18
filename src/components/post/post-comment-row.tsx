@@ -49,13 +49,19 @@ export function PostCommentRow({
   postId,
   showIdHandle = true,
   isReply = false,
+  canPin = false,
+  isPinned = false,
   onLikeChange,
+  onPinnedChange,
 }: {
   comment: PostCommentRowData;
   postId: string;
   showIdHandle?: boolean;
   isReply?: boolean;
+  canPin?: boolean;
+  isPinned?: boolean;
   onLikeChange?: (commentId: string, liked: boolean, likeCount: number) => void;
+  onPinnedChange?: (commentId: string, pinned: boolean) => void;
 }) {
   const { locale, t } = useLocale();
   const session = useSession();
@@ -106,6 +112,19 @@ export function PostCommentRow({
     } finally {
       setLikeBusy(false);
     }
+  }
+
+  async function pin(next: boolean) {
+    const res = await fetch(`/api/comments/${comment.id}/pin`, {
+      method: next ? "POST" : "DELETE",
+      credentials: "include",
+    });
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) {
+      window.alert(body.error || t("ui.failed"));
+      return;
+    }
+    onPinnedChange?.(comment.id, next);
   }
 
   async function copyLink() {
@@ -175,6 +194,11 @@ export function PostCommentRow({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[10rem]">
+              {canPin && !isReply ? (
+                <DropdownMenuItem onClick={() => void pin(!isPinned)}>
+                  {isPinned ? t("comments.unpin") : t("comments.pin")}
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem onClick={() => void copyLink()}>{t("toast.copyLink")}</DropdownMenuItem>
               {!isMine ? (
                 <>

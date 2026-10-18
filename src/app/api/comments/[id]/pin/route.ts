@@ -50,7 +50,7 @@ export async function POST(
       postId: true,
       parentId: true,
       pinnedAt: true,
-      post: { select: { authorId: true } },
+      post: { select: { authorId: true, communityId: true } },
     },
   });
   if (!comment) {
@@ -58,6 +58,12 @@ export async function POST(
   }
   if (comment.parentId) {
     return NextResponse.json({ error: "Not found." }, { status: 400 });
+  }
+  if (comment.post.communityId) {
+    return NextResponse.json(
+      { error: "Pinning is only available on feed posts and videos." },
+      { status: 400 }
+    );
   }
   if (!canPinComment(viewer, comment.post.authorId)) {
     return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });
@@ -76,7 +82,7 @@ export async function POST(
   });
   if (pinnedCount >= MAX_PINNED_COMMENTS) {
     return NextResponse.json(
-      { error: `고정 댓글은 최대 ${MAX_PINNED_COMMENTS}개까지 가능합니다.` },
+      { error: `You can pin up to ${MAX_PINNED_COMMENTS} comments.` },
       { status: 400 }
     );
   }
@@ -123,11 +129,17 @@ export async function DELETE(
       id: true,
       postId: true,
       pinnedAt: true,
-      post: { select: { authorId: true } },
+      post: { select: { authorId: true, communityId: true } },
     },
   });
   if (!comment) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+  if (comment.post.communityId) {
+    return NextResponse.json(
+      { error: "Pinning is only available on feed posts and videos." },
+      { status: 400 }
+    );
   }
   if (!canPinComment(viewer, comment.post.authorId)) {
     return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });

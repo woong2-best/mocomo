@@ -22,14 +22,17 @@ import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchFeedPage, type FeedPost } from "@/api/feed";
 import { fetchReelsAds } from "@/api/ads";
-import { createPostComment } from "@/api/social";
+import { createPostComment, pinPostComment } from "@/api/social";
 import {
-  parsePostComments,
+  moveCommentPin,
+  parseCommentBuckets,
   postCommentsQueryKey,
   postCommentsQueryOptions,
   prefetchPostComments,
+  withOptimisticComment,
   type PostCommentsResponse,
 } from "@/api/post-comments-query";
+import { useAuth } from "@/auth/AuthContext";
 import {
   buildFeedVideoGroups,
   findGroupOpenPosition,
@@ -62,6 +65,7 @@ import type { RootStackParamList } from "@/navigation/types";
 
 export function ReelsScreen() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const copy = useMemo(() => reelsUi(t), [t]);
   const insets = useSafeAreaInsets();
   const { width, height: windowHeight } = useWindowDimensions();
@@ -139,10 +143,18 @@ export function ReelsScreen() {
         : undefined),
   });
 
-  const comments = useMemo(
-    () => parsePostComments(commentsQuery.data),
+  const commentBuckets = useMemo(
+    () => parseCommentBuckets(commentsQuery.data),
     [commentsQuery.data]
   );
+  const comments = useMemo(
+    () => [...commentBuckets.pinned, ...commentBuckets.top, ...commentBuckets.recent],
+    [commentBuckets]
+  );
+  const canPinReels =
+    !!user?.id &&
+    !!commentsQuery.data?.postAuthorId &&
+    user.id === commentsQuery.data.postAuthorId;
 
   const commentTotal =
     typeof commentsQuery.data?.total === "number"
@@ -416,14 +428,7 @@ export function ReelsScreen() {
       const res = await createPostComment(commentsPostId, commentDraft.trim());
       queryClient.setQueryData<PostCommentsResponse>(
         postCommentsQueryKey(commentsPostId),
-        (old) => {
-          const prev = parsePostComments(old);
-          return {
-            ...(old ?? {}),
-            comments: [res.comment, ...prev],
-            total: (old?.total ?? prev.length) + 1,
-          };
-        }
+        (old) => withOptimisticComment(old, res.comment, "prepend")
       );
       setCommentDraft("");
       setHeaderCommentCount((n) => n + 1);
@@ -622,11 +627,39 @@ export function ReelsScreen() {
                 style={{ maxHeight: height * 0.42 }}
                 renderItem={({ item }) => (
                   <View style={styles.commentRow}>
+                    <View style={{ flex: 1 }}>
                     <Text style={styles.commentUser}>
                       {item.author.username}
-                      <Text style={styles.commentMeta}> · </Text>
+                      {item.isPinned ? (
+                        <Text style={styles.commentMeta}> · {t("m.feed.pinned_comments")}</Text>
+                      ) : null}
                     </Text>
                     <TranslatableText text={item.content} style={styles.commentBody} lightLinks />
+                    </View>
+                    {canPinReels ? (
+                      <Pressable
+                        onPress={() => {
+                          const next = !item.isPinned;
+                          queryClient.setQueryData<PostCommentsResponse>(
+                            postCommentsQueryKey(commentsPostId!),
+                            (old) => moveCommentPin(old, item.id, next)
+                          );
+                          void pinPostComment(item.id, next).catch(() => {
+                            queryClient.setQueryData<PostCommentsResponse>(
+                              postCommentsQueryKey(commentsPostId!),
+                              (old) => moveCommentPin(old, item.id, !next)
+                            );
+                          });
+                        }}
+                        hitSlop={8}
+                      >
+                        <Ionicons
+                          name={item.isPinned ? "pin" : "pin-outline"}
+                          size={16}
+                          color="rgba(255,255,255,0.55)"
+                        />
+                      </Pressable>
+                    ) : null}
                   </View>
                 )}
                 ListEmptyComponent={
@@ -703,7 +736,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: { color: "#fff", fontSize: 16, fontWeight: "800" },
   sheetSort: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 4, marginBottom: 8 },
-  commentRow: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
+  commentRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
   commentUser: { color: "#fff", fontWeight: "800", marginBottom: 4 },
   commentMeta: { color: "rgba(255,255,255,0.45)", fontWeight: "600" },
   commentBody: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 20 },

@@ -6,25 +6,117 @@ export type PostCommentsResponse = Awaited<ReturnType<typeof fetchPostComments>>
 export const postCommentsQueryKey = (postId: string) =>
   ["mobile-post-comments", postId] as const;
 
-export function parsePostComments(data: PostCommentsResponse | undefined): CommentItem[] {
-  const list = (data?.items ?? data?.comments ?? []) as (CommentItem & {
-    likedByMe?: boolean;
-  })[];
-  return list.map((c) => ({
+function normalizeComment(c: CommentItem & { likedByMe?: boolean; isPinned?: boolean }): CommentItem {
+  return {
     ...c,
     liked: c.liked ?? c.likedByMe ?? false,
     likeCount: c.likeCount ?? 0,
+    isPinned: Boolean(c.isPinned),
     createdAt:
       typeof c.createdAt === "string"
         ? c.createdAt
         : new Date(c.createdAt as unknown as string).toISOString(),
-  }));
+  };
 }
 
-export function postCommentsQueryOptions(postId: string) {
+export function parsePostComments(data: PostCommentsResponse | undefined): CommentItem[] {
+  const pinned = ((data?.pinned ?? []) as CommentItem[]).map(normalizeComment);
+  const top = ((data?.top ?? []) as CommentItem[]).map(normalizeComment);
+  const rest = ((data?.comments ?? data?.items ?? []) as CommentItem[]).map(normalizeComment);
+  const seen = new Set<string>();
+  const out: CommentItem[] = [];
+  for (const row of [...pinned, ...top, ...rest]) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    out.push(row);
+  }
+  return out;
+}
+
+export function parseCommentBuckets(data: PostCommentsResponse | undefined): {
+  pinned: CommentItem[];
+  top: CommentItem[];
+  recent: CommentItem[];
+} {
+  const pinned = ((data?.pinned ?? []) as CommentItem[]).map(normalizeComment);
+  const top = ((data?.top ?? []) as CommentItem[]).map(normalizeComment);
+  const recent = ((data?.comments ?? []) as CommentItem[]).map(normalizeComment);
+  if (pinned.length === 0 && top.length === 0 && recent.length === 0) {
+    return {
+      pinned: [],
+      top: [],
+      recent: ((data?.items ?? []) as CommentItem[]).map(normalizeComment),
+    };
+  }
+  const skip = new Set([...pinned, ...top].map((c) => c.id));
+  return { pinned, top, recent: recent.filter((c) => !skip.has(c.id)) };
+}
+
+export function mapCommentBuckets(
+  data: PostCommentsResponse | undefined,
+  mapper: (c: CommentItem) => CommentItem
+): PostCommentsResponse {
+  const buckets = parseCommentBuckets(data);
+  return {
+    ...(data ?? {}),
+    pinned: buckets.pinned.map(mapper),
+    top: buckets.top.map(mapper),
+    comments: buckets.recent.map(mapper),
+    items: undefined,
+  };
+}
+
+export function withOptimisticComment(
+  old: PostCommentsResponse | undefined,
+  comment: CommentItem,
+  mode: "prepend" | "append"
+): PostCommentsResponse {
+  const buckets = parseCommentBuckets(old);
+  const recent = buckets.recent.filter((c) => c.id !== comment.id);
+  return {
+    ...(old ?? {}),
+    pinned: buckets.pinned,
+    top: buckets.top,
+    comments: mode === "append" ? [...recent, comment] : [comment, ...recent],
+    items: undefined,
+    total: (old?.total ?? buckets.pinned.length + buckets.top.length + recent.length) + 1,
+  };
+}
+
+export function moveCommentPin(
+  old: PostCommentsResponse | undefined,
+  commentId: string,
+  pinned: boolean
+): PostCommentsResponse {
+  const buckets = parseCommentBuckets(old);
+  const all = [...buckets.pinned, ...buckets.top, ...buckets.recent];
+  const target = all.find((c) => c.id === commentId);
+  if (!target) return old ?? {};
+  const restPinned = buckets.pinned.filter((c) => c.id !== commentId);
+  const restTop = buckets.top.filter((c) => c.id !== commentId);
+  const restRecent = buckets.recent.filter((c) => c.id !== commentId);
+  if (pinned) {
+    return {
+      ...(old ?? {}),
+      pinned: [...restPinned, { ...target, isPinned: true }].slice(0, 3),
+      top: restTop,
+      comments: restRecent,
+      items: undefined,
+    };
+  }
+  return {
+    ...(old ?? {}),
+    pinned: restPinned,
+    top: restTop,
+    comments: [{ ...target, isPinned: false }, ...restRecent],
+    items: undefined,
+  };
+}
+
+export function postCommentsQueryOptions(postId: string, isQna = false) {
   return {
     queryKey: postCommentsQueryKey(postId),
-    queryFn: () => fetchPostComments(postId),
+    queryFn: () => fetchPostComments(postId, isQna),
     staleTime: 120_000,
     gcTime: 10 * 60_000,
   };
