@@ -94,6 +94,7 @@ const nextConfig: NextConfig = {
       { source: "/contribution-tower", destination: "/fortune-cookies", permanent: true },
       { source: "/api/contribution-tower", destination: "/api/fortune-cookies", permanent: true },
       { source: "/events", destination: "/events/new", permanent: false },
+      { source: "/market/studio/edit", destination: "/market/new/digital", permanent: false },
       { source: "/market/storage", destination: "/support?tab=storage", permanent: true },
       { source: "/market/received", destination: "/support?tab=gifts", permanent: true },
       {
