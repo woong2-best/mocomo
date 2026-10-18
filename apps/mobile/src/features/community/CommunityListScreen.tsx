@@ -232,6 +232,7 @@ export function CommunityListScreen() {
           item.type === "post" ? item.data.id : `qna-${index}`
         }
         renderItem={renderItem}
+        maintainVisibleContentPosition={{ disabled: true }}
         ListHeaderComponent={listHeader}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         refreshControl={

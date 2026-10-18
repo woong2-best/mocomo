@@ -52,6 +52,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { InlineComposeBox } from "@/features/compose/InlineComposeBox";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import { resetFeedPostOffset } from "@/features/feed/feed-post-offset";
+import { recordPostViewOnce } from "@/lib/post-view";
 import { warmDrawerBundles, warmTabBundles } from "@/navigation/tab-warmup";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { PerformanceBudgets } from "@/perf/budgets";
@@ -154,6 +155,8 @@ export function FeedScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const isFocused = useIsFocused();
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
   const [refreshing, setRefreshing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerReady, setDrawerReady] = useState(false);
@@ -165,7 +168,6 @@ export function FeedScreen() {
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [messagesReady, setMessagesReady] = useState(false);
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
-  const [visiblePostIds, setVisiblePostIds] = useState<string[]>([]);
   const [previewArmed, setPreviewArmed] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQ, setSearchQ] = useState("");
@@ -418,7 +420,11 @@ export function FeedScreen() {
         (v.item!.data as FeedPost).media?.some((m) => m.type === "VIDEO" && (m.url || m.locked))
       );
       setActivePreviewId(firstVideo ? (firstVideo.item!.data as FeedPost).id : null);
-      setVisiblePostIds(visible.map((v) => (v.item!.data as FeedPost).id));
+      if (isFocusedRef.current) {
+        for (const v of visible) {
+          void recordPostViewOnce((v.item!.data as FeedPost).id);
+        }
+      }
     }
   ).current;
 
@@ -466,24 +472,21 @@ export function FeedScreen() {
       const post = item.data;
       if (!post?.id || !post.author?.id) return null;
       return (
-        <View collapsable={false}>
-          <FeedPostCard
-            post={post}
-            previewActive={
-              isFocused &&
-              previewArmed &&
-              !isFeedScrolling &&
-              activePreviewIdRef.current === post.id
-            }
-            viewTrackActive={isFocused && visiblePostIds.includes(post.id)}
-            paymentsEnabled={paymentsEnabled}
-            onPurchaseSuccess={onPurchaseSuccess}
-            onPressPost={onPressPost}
-            onPressAuthor={onPressAuthor}
-            onPressVideo={onPressVideo}
-            onBlockedAuthor={onBlockedAuthor}
-          />
-        </View>
+        <FeedPostCard
+          post={post}
+          previewActive={
+            isFocused &&
+            previewArmed &&
+            !isFeedScrolling &&
+            activePreviewIdRef.current === post.id
+          }
+          paymentsEnabled={paymentsEnabled}
+          onPurchaseSuccess={onPurchaseSuccess}
+          onPressPost={onPressPost}
+          onPressAuthor={onPressAuthor}
+          onPressVideo={onPressVideo}
+          onBlockedAuthor={onBlockedAuthor}
+        />
       );
     },
     [
@@ -496,7 +499,6 @@ export function FeedScreen() {
       onPurchaseSuccess,
       paymentsEnabled,
       previewArmed,
-      visiblePostIds,
     ]
   );
 
@@ -637,8 +639,8 @@ export function FeedScreen() {
             item.type === "ad" ? `ad-${item.data.id}` : (item.data.activityKey ?? item.data.id)
           }
           getItemType={getItemType}
-          extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${isFeedScrolling ? 1 : 0}:${visiblePostIds.join(",")}`}
-          maintainVisibleContentPosition={{ autoscrollToTopThreshold: 80 }}
+          extraData={`${activePreviewId}:${isFocused ? 1 : 0}:${previewArmed ? 1 : 0}:${isFeedScrolling ? 1 : 0}`}
+          maintainVisibleContentPosition={{ disabled: true }}
           drawDistance={PerformanceBudgets.feedDrawDistance}
           ListHeaderComponent={composeHeader}
           keyboardShouldPersistTaps="handled"
@@ -905,9 +907,11 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     },
     feedWrap: {
       flex: 1,
+      overflow: "hidden",
     },
     feedList: {
       flex: 1,
+      overflow: "hidden",
     },
     scrollTopWrap: {
       position: "absolute",

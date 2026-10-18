@@ -94,15 +94,13 @@ function FeedPostCardInner({
   const postIdRef = useRef(post.id);
   postIdRef.current = post.id;
   const showLikeCounts = useShowLikeCounts();
-  const mediaLayoutFallback = Math.max(
+  const mediaLayout = Math.max(
     200,
     Math.min(
       windowWidth > 0 ? windowWidth - spacing.md * 2 : PerformanceBudgets.feedMediaLayoutMax,
       PerformanceBudgets.feedMediaLayoutMax
     )
   );
-  const [mediaRowWidth, setMediaRowWidth] = useState(0);
-  const mediaLayout = mediaRowWidth > 0 ? mediaRowWidth : mediaLayoutFallback;
 
   const [liked, setLiked] = useState(!!post.liked);
   const [likeCount, setLikeCount] = useState(post._count?.likes ?? 0);
@@ -518,13 +516,6 @@ function FeedPostCardInner({
       ) : null}
 
       {hideQnaBody ? null : (
-      <View
-        collapsable={false}
-        onLayout={(e) => {
-          const w = Math.round(e.nativeEvent.layout.width);
-          if (w > 0 && w !== mediaRowWidth) setMediaRowWidth(w);
-        }}
-      >
         <FeedPostMediaCarousel
           post={post}
           layoutWidth={mediaLayout}
@@ -534,7 +525,6 @@ function FeedPostCardInner({
           onPurchaseSuccess={onPurchaseSuccess}
           onPressVideo={isQna ? undefined : onPressVideo}
         />
-      </View>
       )}
 
       {hideQnaBody || !post.poll ? null : (
@@ -694,7 +684,7 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       paddingHorizontal: spacing.md,
       paddingTop: 12,
       paddingBottom: 12,
-      overflow: "visible",
+      overflow: "hidden",
     },
     cardPinned: {
       backgroundColor: isDark ? colors.muted : "rgba(197, 82, 42, 0.06)",

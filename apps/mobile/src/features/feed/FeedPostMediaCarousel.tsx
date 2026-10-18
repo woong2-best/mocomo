@@ -113,9 +113,7 @@ function FeedPostMediaCarouselInner({
         (width, height) => {
           if (cancelled || width <= 0 || height <= 0) return;
           setMeasured((prev) =>
-            prev[key]?.width === width && prev[key]?.height === height
-              ? prev
-              : { ...prev, [key]: { width, height } }
+            prev[key] ? prev : { ...prev, [key]: { width, height } }
           );
         },
         () => {}
@@ -149,11 +147,7 @@ function FeedPostMediaCarouselInner({
     if (!width || !height || width <= 0 || height <= 0) return;
     const key = item.id ?? item.url;
     if (!key) return;
-    setMeasured((prev) =>
-      prev[key]?.width === width && prev[key]?.height === height
-        ? prev
-        : { ...prev, [key]: { width, height } }
-    );
+    setMeasured((prev) => (prev[key] ? prev : { ...prev, [key]: { width, height } }));
   };
 
   const renderImageCell = (item: VisualItem, imageStyle?: StyleProp<ViewStyle>) => (

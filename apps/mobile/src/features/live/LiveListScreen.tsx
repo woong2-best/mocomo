@@ -150,6 +150,7 @@ export function LiveListScreen() {
             data={hasHubPages ? rows : []}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
+            maintainVisibleContentPosition={{ disabled: true }}
             ListHeaderComponent={
               <View style={{ paddingTop: insets.top, backgroundColor: "#000" }}>
                 {hero ? (
