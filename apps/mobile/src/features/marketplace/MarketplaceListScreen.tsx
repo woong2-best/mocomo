@@ -384,7 +384,9 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
 
   const renderStudio = useCallback(
     (studio: StudioCard) => {
-      const cover = studio.portfolio.find((item) => item.kind !== "video") ?? studio.portfolio[0];
+      const cover = studio.coverUrl
+        ? { url: studio.coverUrl, kind: "image" as const }
+        : studio.portfolio.find((item) => item.kind !== "video") ?? studio.portfolio[0];
       return (
         <Pressable style={styles.row} onPress={() => navigation.navigate("StudioDetail", { id: studio.id })}>
           <View style={styles.thumbWrap}>

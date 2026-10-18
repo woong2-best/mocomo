@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveMyCreatorStudio } from "@/actions/creator-studio";
 import { useLocale } from "@/components/providers/locale-provider";
-import type { StudioAddon, StudioField, StudioMedia, StudioTier } from "@/lib/creator-studio";
+import type { StudioAddon, StudioField, StudioTier } from "@/lib/creator-studio";
 import { studioCategoryGroups, studioCategoryLabel } from "@/lib/creator-studio-categories";
-import { uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
+import { StudioPortfolioEditor } from "@/components/used/studio-portfolio-editor";
 import {
   normalizeDraft,
   step1Valid,
@@ -28,7 +28,8 @@ const EMPTY: StudioDraft = {
   deliveryDays: 14,
   revisionNote: "Rough sketch: 1 revision. Flat color: 1 revision. No changes after coloring is finished.",
   currency: "krw",
-  portfolio: [],
+  coverUrl: "",
+  blocks: [],
   tiers: [{ id: "tier1", name: "Half body", price: 80000 }],
   addons: [],
   formFields: [
@@ -41,23 +42,6 @@ const EMPTY: StudioDraft = {
 
 const inputClass =
   "w-full rounded-xl border border-border bg-background p-3.5 text-[15px] outline-none focus:border-folk-terracotta";
-
-function videoDurationSeconds(file: File) {
-  return new Promise<number>((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(url);
-      resolve(video.duration || 0);
-    };
-    video.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("video"));
-    };
-    video.src = url;
-  });
-}
 
 export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
   const router = useRouter();
@@ -95,56 +79,17 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
     }));
   }
 
-  function movePortfolio(index: number, delta: number) {
-    setDraft((prev) => {
-      const next = [...prev.portfolio];
-      const to = index + delta;
-      if (to < 0 || to >= next.length) return prev;
-      const [item] = next.splice(index, 1);
-      next.splice(to, 0, item);
-      return { ...prev, portfolio: next };
-    });
-  }
-
-  async function addMedia(files: FileList | null) {
-    if (!files?.length) return;
-    setBusy(true);
-    setError("");
-    try {
-      const added: StudioMedia[] = [];
-      for (const file of Array.from(files)) {
-        if (draft.portfolio.length + added.length >= 8) break;
-        const name = file.name.toLowerCase();
-        const mime = file.type.toLowerCase();
-        if (mime.startsWith("video") || /\.(mp4|mov|webm|m4v)$/.test(name)) {
-          const seconds = await videoDurationSeconds(file);
-          if (seconds > 20) {
-            setError(t("market.studio.videoLimit"));
-            continue;
-          }
-          const url = await uploadVideoBlob(file, file.name);
-          added.push({ url, kind: "video" });
-          continue;
-        }
-        const url = await uploadImageBlob(file, file.name);
-        added.push({ url, kind: mime === "image/gif" || name.endsWith(".gif") ? "gif" : "image" });
-      }
-      if (added.length) {
-        setDraft((prev) => ({ ...prev, portfolio: [...prev.portfolio, ...added].slice(0, 8) }));
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("validation.invalidInput"));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function save() {
     if (!step3Valid(draft)) return;
     setBusy(true);
     setError("");
     try {
-      const result = await saveMyCreatorStudio(normalizeDraft(draft));
+      const result = await saveMyCreatorStudio({
+        ...normalizeDraft(draft),
+        coverUrl: draft.coverUrl,
+        blocks: draft.blocks,
+      });
       if ("error" in result) {
         setError(result.error);
         return;
@@ -240,52 +185,15 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
             />
           </label>
 
-          <div className="space-y-2">
-            <p className="text-[15px] font-bold">{t("market.studio.gallery")}</p>
-            <p className="text-xs text-muted-foreground">{t("market.studio.watermarkNote")}</p>
-            <div className="flex flex-wrap gap-2">
-              {draft.portfolio.map((item, index) => (
-                <div key={`${item.url}-${index}`} className="w-24 space-y-1">
-                  {item.kind === "video" ? (
-                    <video src={item.url} className="aspect-square w-full rounded-xl bg-black object-cover" muted />
-                  ) : (
-                    <img src={item.url} alt="" className="aspect-square w-full rounded-xl object-cover" />
-                  )}
-                  <div className="flex justify-between text-xs font-bold text-folk-terracotta">
-                    <button type="button" onClick={() => movePortfolio(index, -1)}>
-                      ←
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDraft((prev) => ({
-                          ...prev,
-                          portfolio: prev.portfolio.filter((_, i) => i !== index),
-                        }))
-                      }
-                    >
-                      ✕
-                    </button>
-                    <button type="button" onClick={() => movePortfolio(index, 1)}>
-                      →
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {draft.portfolio.length < 8 ? (
-                <label className="flex aspect-square w-24 cursor-pointer items-center justify-center rounded-xl border border-dashed border-folk-terracotta text-2xl font-extrabold text-folk-terracotta">
-                  {busy ? "…" : "+"}
-                  <input
-                    type="file"
-                    accept="image/*,video/mp4,video/webm,image/gif"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => void addMedia(e.target.files)}
-                  />
-                </label>
-              ) : null}
-            </div>
-          </div>
+          <StudioPortfolioEditor
+            coverUrl={draft.coverUrl}
+            blocks={draft.blocks}
+            busy={busy}
+            onCover={(coverUrl) => setDraft((prev) => ({ ...prev, coverUrl }))}
+            onBlocks={(blocks) => setDraft((prev) => ({ ...prev, blocks }))}
+            onBusy={setBusy}
+            onError={setError}
+          />
         </>
       ) : null}
 

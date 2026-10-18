@@ -1,5 +1,6 @@
 import { CREATOR_STUDIO_CATEGORIES, DEFAULT_STUDIO_CATEGORY_ID } from "@/lib/creator-studio-categories";
-import type { StudioAddon, StudioField, StudioMedia, StudioTier } from "@/lib/creator-studio";
+import type { StudioAddon, StudioField, StudioTier } from "@/lib/creator-studio";
+import { blockHasContent, isHttpsMediaUrl, type StudioPortfolioBlock } from "@/lib/studio-portfolio";
 
 const VALID_CATEGORY = new Set(CREATOR_STUDIO_CATEGORIES.map((item) => item.id));
 
@@ -12,7 +13,8 @@ export type StudioDraft = {
   deliveryDays: number;
   revisionNote: string;
   currency: string;
-  portfolio: StudioMedia[];
+  coverUrl: string;
+  blocks: StudioPortfolioBlock[];
   tiers: StudioTier[];
   addons: StudioAddon[];
   formFields: StudioField[];
@@ -32,7 +34,8 @@ export function step1Valid(draft: StudioDraft) {
   return (
     VALID_CATEGORY.has(draft.category?.trim() || "") &&
     draft.title.trim().length >= 2 &&
-    draft.portfolio.length >= 1
+    isHttpsMediaUrl(draft.coverUrl) &&
+    draft.blocks.some(blockHasContent)
   );
 }
 

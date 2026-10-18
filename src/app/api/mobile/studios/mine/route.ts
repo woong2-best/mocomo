@@ -8,6 +8,14 @@ const media = z.object({
   url: z.string().max(2000),
   kind: z.enum(["image", "gif", "video"]),
 });
+const block = z.object({
+  id: z.string().max(40),
+  type: z.enum(["text", "image", "embed"]),
+  text: z.string().max(4000).optional(),
+  url: z.string().max(2000).optional(),
+  provider: z.enum(["youtube", "vimeo"]).optional(),
+  videoId: z.string().max(40).optional(),
+});
 const tier = z.object({
   id: z.string().max(40),
   name: z.string().max(40),
@@ -34,7 +42,9 @@ const bodySchema = z.object({
   deliveryDays: z.number().int(),
   revisionNote: z.string().max(1000),
   currency: z.string().max(8),
-  portfolio: z.array(media).max(8),
+  coverUrl: z.string().max(2000).optional(),
+  blocks: z.array(block).max(24).optional(),
+  portfolio: z.union([z.array(media).max(24), z.record(z.unknown())]).optional(),
   tiers: z.array(tier).max(8),
   addons: z.array(addon).max(12),
   formFields: z.array(field).max(8),

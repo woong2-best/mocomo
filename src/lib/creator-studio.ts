@@ -4,6 +4,15 @@ import { readDigitalDelivery } from "@/lib/market-tracks";
 import { createMobileUsedListing } from "@/lib/used-market-mobile";
 import { watermarkPortfolioUrl } from "@/lib/portfolio-watermark";
 import { DEFAULT_STUDIO_CATEGORY_ID, isValidStudioCategoryId } from "@/lib/creator-studio-categories";
+import {
+  blockHasContent,
+  feedMediaFromDoc,
+  isHttpsMediaUrl,
+  parseStudioPortfolio,
+  storeStudioPortfolio,
+  type StudioPortfolioBlock,
+  type StudioPortfolioDoc,
+} from "@/lib/studio-portfolio";
 
 const ACTIVE_SLOT = ["ACCEPTED", "DISPUTED"];
 const CLOSED_ORDER = ["APPROVED", "AUTO_APPROVED", "DECLINED", "LATE_CANCEL"];
@@ -22,7 +31,9 @@ export type StudioInput = {
   deliveryDays: number;
   revisionNote: string;
   currency: string;
-  portfolio: StudioMedia[];
+  coverUrl?: string;
+  blocks?: StudioPortfolioBlock[];
+  portfolio?: unknown;
   tiers: StudioTier[];
   addons: StudioAddon[];
   formFields: StudioField[];
@@ -52,18 +63,15 @@ export function parseStudioInput(raw: StudioInput): { value: StudioInput } | { e
   if (slotCap < 1 || slotCap > 20) return { error: "Slots must be between 1 and 20." };
   if (deliveryDays < 1 || deliveryDays > 90) return { error: "Delivery days must be between 1 and 90." };
 
-  const portfolio: StudioMedia[] = [];
-  for (const row of asRows(raw.portfolio).slice(0, 8)) {
-    if (!row || typeof row !== "object") continue;
-    const url = typeof (row as { url?: unknown }).url === "string" ? (row as { url: string }).url.trim() : "";
-    const kind = (row as { kind?: unknown }).kind;
-    if (!url.startsWith("https://") || url.length > 2000) continue;
-    portfolio.push({
-      url,
-      kind: kind === "gif" || kind === "video" ? kind : "image",
-    });
-  }
-  if (portfolio.length < 1) return { error: "Add at least one portfolio image, GIF, or short video." };
+  const doc = parseStudioPortfolio({
+    coverUrl: raw.coverUrl,
+    blocks: raw.blocks,
+    portfolio: raw.portfolio,
+  });
+  if (!isHttpsMediaUrl(doc.coverUrl)) return { error: "Add a cover image for the market list." };
+  if (!doc.blocks.some(blockHasContent)) return { error: "Add text, an image, or a YouTube/Vimeo embed to the portfolio." };
+  const stored = storeStudioPortfolio(doc);
+  const portfolio = feedMediaFromDoc(stored);
 
   const tiers: StudioTier[] = [];
   for (const [index, row] of asRows(raw.tiers).slice(0, 8).entries()) {
@@ -110,6 +118,8 @@ export function parseStudioInput(raw: StudioInput): { value: StudioInput } | { e
       deliveryDays,
       revisionNote,
       currency,
+      coverUrl: stored.coverUrl,
+      blocks: stored.blocks,
       portfolio,
       tiers,
       addons,
@@ -148,6 +158,7 @@ type StudioRow = {
 };
 
 function publicStudio(row: StudioRow, slotsUsed: number) {
+  const doc = parseStudioPortfolio(row.portfolio);
   const parsed = parseStudioInput({
     category: row.category || DEFAULT_STUDIO_CATEGORY_ID,
     title: row.title,
@@ -157,13 +168,17 @@ function publicStudio(row: StudioRow, slotsUsed: number) {
     deliveryDays: row.deliveryDays,
     revisionNote: row.revisionNote,
     currency: row.currency,
-    portfolio: asRows(row.portfolio) as StudioMedia[],
+    coverUrl: doc.coverUrl,
+    blocks: doc.blocks,
+    portfolio: row.portfolio,
     tiers: asRows(row.tiers) as StudioTier[],
     addons: asRows(row.addons) as StudioAddon[],
     formFields: asRows(row.formFields) as StudioField[],
   });
   const value = "value" in parsed ? parsed.value : null;
   const tiers = value?.tiers ?? [];
+  const coverUrl = value?.coverUrl || doc.coverUrl;
+  const blocks = value?.blocks ?? doc.blocks;
   return {
     id: row.id,
     sellerId: row.sellerId,
@@ -177,7 +192,9 @@ function publicStudio(row: StudioRow, slotsUsed: number) {
     deliveryDays: row.deliveryDays,
     revisionNote: row.revisionNote,
     currency: row.currency,
-    portfolio: value?.portfolio ?? [],
+    coverUrl,
+    blocks,
+    portfolio: feedMediaFromDoc({ version: 2, coverUrl, blocks }),
     tiers,
     addons: value?.addons ?? [],
     formFields: value?.formFields ?? [],
@@ -246,18 +263,29 @@ export async function saveCreatorStudio(sellerId: string, username: string, raw:
   const parsed = parseStudioInput(raw);
   if ("error" in parsed) return parsed;
   const label = `MoCoMo · ${username}`.slice(0, 48);
-  const portfolio: StudioMedia[] = [];
-  for (const item of parsed.value.portfolio) {
-    if (item.kind === "image") {
-      const url = await watermarkPortfolioUrl(item.url, label, sellerId).catch(() => item.url);
-      portfolio.push({ ...item, url });
+  const coverUrl = await watermarkPortfolioUrl(parsed.value.coverUrl || "", label, sellerId).catch(
+    () => parsed.value.coverUrl || ""
+  );
+  const blocks: StudioPortfolioBlock[] = [];
+  for (const block of parsed.value.blocks ?? []) {
+    if (block.type === "image") {
+      const url = await watermarkPortfolioUrl(block.url, label, sellerId).catch(() => block.url);
+      blocks.push({ ...block, url });
     } else {
-      portfolio.push(item);
+      blocks.push(block);
     }
   }
+  const stored: StudioPortfolioDoc = storeStudioPortfolio({ version: 2, coverUrl, blocks });
   const data = {
-    ...parsed.value,
-    portfolio: portfolio as unknown as Prisma.InputJsonValue,
+    category: parsed.value.category,
+    title: parsed.value.title,
+    about: parsed.value.about,
+    open: parsed.value.open,
+    slotCap: parsed.value.slotCap,
+    deliveryDays: parsed.value.deliveryDays,
+    revisionNote: parsed.value.revisionNote,
+    currency: parsed.value.currency,
+    portfolio: stored as unknown as Prisma.InputJsonValue,
     tiers: parsed.value.tiers as unknown as Prisma.InputJsonValue,
     addons: parsed.value.addons as unknown as Prisma.InputJsonValue,
     formFields: parsed.value.formFields as unknown as Prisma.InputJsonValue,
@@ -333,7 +361,9 @@ export async function placeStudioOrder(
     category: "DIGITAL",
     categories: ["DIGITAL"],
     region: "Shipping",
-    images: studio.portfolio.filter((item) => item.kind !== "video").map((item) => item.url).slice(0, 6),
+    images: [studio.coverUrl, ...studio.blocks.filter((block) => block.type === "image").map((block) => block.url)]
+      .filter(Boolean)
+      .slice(0, 6),
     saleType: "FIXED",
     productType: "ILLUSTRATION",
     digitalKind: "commission",

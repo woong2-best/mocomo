@@ -161,7 +161,7 @@ export async function UsedMarketFeed({
       {studios.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {studios.map((studio) => {
-            const cover = studio.portfolio.find((item) => item.kind !== "video");
+            const cover = studio.coverUrl ? { url: studio.coverUrl } : null;
             return (
               <Link key={studio.id} href={`/market/studio/${studio.id}`} className="overflow-hidden rounded-xl border bg-card">
                 {cover ? (

@@ -2,14 +2,11 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Image } from "expo-image";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
@@ -17,6 +14,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { uploadLocalFile } from "@/api/upload-file";
 import { fetchStudio, joinStudioWaitlist, lateCancelStudio, orderStudio, type StudioCard } from "@/api/studios";
+import { parseStudioPortfolio } from "@/features/marketplace/studio-portfolio";
+import { StudioPortfolioView } from "@/features/marketplace/StudioPortfolioView";
 import { formatUsedPrice } from "@/features/marketplace/used-catalog";
 import { studioCategoryDisplay } from "@/features/marketplace/studio-categories";
 import { useAuth } from "@/auth/AuthContext";
@@ -38,14 +37,6 @@ function quoteTotal(studio: StudioCard, tierId: string, addonIds: string[]) {
   return { tier, total };
 }
 
-function StudioClip({ uri }: { uri: string }) {
-  const player = useVideoPlayer(uri, (item) => {
-    item.loop = true;
-    item.muted = true;
-  });
-  return <VideoView player={player} style={styles.hero} contentFit="cover" nativeControls />;
-}
-
 export function StudioDetailScreen() {
   const { t } = useI18n();
   const { colors } = useTheme();
@@ -61,15 +52,19 @@ export function StudioDetailScreen() {
   const [agreedRules, setAgreedRules] = useState(false);
   const [agreedPay, setAgreedPay] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [slide, setSlide] = useState(0);
-
   const selectedTier = tierId || studio?.tiers[0]?.id || "";
   const quote = useMemo(
     () => (studio ? quoteTotal(studio, selectedTier, addonIds) : { tier: null, total: 0 }),
     [studio, selectedTier, addonIds]
   );
   const owner = !!studio && studio.sellerId === user?.id;
-  const media = studio?.portfolio[slide] ?? studio?.portfolio[0];
+  const portfolio = studio
+    ? parseStudioPortfolio({
+        coverUrl: studio.coverUrl,
+        blocks: studio.blocks,
+        portfolio: studio.portfolio,
+      })
+    : null;
 
   async function attach(fieldId: string) {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -151,24 +146,7 @@ export function StudioDetailScreen() {
   return (
     <Screen>
       <KeyboardAwareScrollView contentContainerStyle={styles.page}>
-        {media?.kind === "video" ? (
-          <StudioClip uri={media.url} />
-        ) : media ? (
-          <Image source={{ uri: media.url }} style={styles.hero} contentFit="cover" />
-        ) : null}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbs}>
-          {studio.portfolio.map((item, index) => (
-            <Pressable key={item.url} onPress={() => setSlide(index)}>
-              {item.kind === "video" ? (
-                <View style={[styles.mini, { backgroundColor: colors.brand }]}>
-                  <Text style={styles.miniTag}>MP4</Text>
-                </View>
-              ) : (
-                <Image source={{ uri: item.url }} style={styles.mini} />
-              )}
-            </Pressable>
-          ))}
-        </ScrollView>
+        <StudioPortfolioView coverUrl={portfolio?.coverUrl} blocks={portfolio?.blocks} />
 
         <Text style={[styles.title, { color: colors.text }]}>{studio.title}</Text>
         {studio.category ? (

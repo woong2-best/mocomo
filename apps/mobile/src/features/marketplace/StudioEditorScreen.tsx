@@ -11,23 +11,20 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
-import * as Haptics from "expo-haptics";
-import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { uploadLocalFile } from "@/api/upload-file";
 import {
   fetchMyStudio,
   saveStudio,
   type StudioAddon,
   type StudioDraft,
   type StudioField,
-  type StudioMedia,
   type StudioTier,
 } from "@/api/studios";
+import { parseStudioPortfolio } from "@/features/marketplace/studio-portfolio";
+import { StudioPortfolioEditor } from "@/features/marketplace/StudioPortfolioEditor";
 import {
   studioCategoryDisplay,
   studioCategoryGroups,
@@ -53,7 +50,8 @@ const EMPTY: StudioDraft = {
   deliveryDays: 14,
   revisionNote: "Rough sketch: 1 revision. Flat color: 1 revision. No changes after coloring is finished.",
   currency: "krw",
-  portfolio: [],
+  coverUrl: "",
+  blocks: [],
   tiers: [{ id: "tier1", name: "Half body", price: 80000 }],
   addons: [],
   formFields: [
@@ -63,17 +61,6 @@ const EMPTY: StudioDraft = {
     { id: "ref", label: "Reference image", kind: "image", required: true },
   ],
 };
-
-function mediaKind(asset: ImagePicker.ImagePickerAsset): StudioMedia["kind"] | "long" {
-  const mime = asset.mimeType?.toLowerCase() || "";
-  const name = `${asset.fileName || ""} ${asset.uri}`.toLowerCase();
-  const seconds = !asset.duration ? 0 : asset.duration > 1000 ? asset.duration / 1000 : asset.duration;
-  if (mime.startsWith("video") || /\.(mp4|mov|webm|m4v)$/.test(name)) {
-    return seconds > 20 ? "long" : "video";
-  }
-  if (mime === "image/gif" || name.endsWith(".gif")) return "gif";
-  return "image";
-}
 
 export function StudioEditorScreen() {
   const { t } = useI18n();
@@ -89,12 +76,16 @@ export function StudioEditorScreen() {
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
-  const [reorderFrom, setReorderFrom] = useState<number | null>(null);
 
   useEffect(() => {
     if (!mine.data || ready) return;
     if (mine.data.studio) {
       const studio = mine.data.studio;
+      const doc = parseStudioPortfolio({
+        coverUrl: studio.coverUrl,
+        blocks: studio.blocks,
+        portfolio: studio.portfolio,
+      });
       setDraft(
         normalizeDraft({
           category: studio.category,
@@ -105,7 +96,8 @@ export function StudioEditorScreen() {
           deliveryDays: studio.deliveryDays,
           revisionNote: studio.revisionNote,
           currency: studio.currency,
-          portfolio: studio.portfolio,
+          coverUrl: doc.coverUrl,
+          blocks: doc.blocks,
           tiers: studio.tiers,
           addons: studio.addons,
           formFields: studio.formFields,
@@ -121,81 +113,6 @@ export function StudioEditorScreen() {
     () => [t("m.studio.step_basic"), t("m.studio.step_pricing"), t("m.studio.step_slots")],
     [t]
   );
-
-  async function addMedia() {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      showIslandError(t("m.studio.digital"), t("m.marketplace.allow_access_to_your_photo_library"));
-      return;
-    }
-    const remaining = Math.max(0, 8 - draft.portfolio.length);
-    if (remaining < 1) return;
-    const picked = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"],
-      quality: 0.85,
-      videoMaxDuration: 20,
-      allowsMultipleSelection: remaining > 1,
-      selectionLimit: remaining,
-    });
-    if (picked.canceled || !picked.assets.length) return;
-
-    const assets = picked.assets;
-    for (const asset of assets) {
-      const kind = mediaKind(asset);
-      if (kind === "long") {
-        showIslandError(t("m.studio.gallery"), t("m.studio.video_limit"));
-        continue;
-      }
-      setBusy(true);
-      try {
-        const url = await uploadLocalFile({
-          uri: asset.uri,
-          filename: asset.fileName || (kind === "video" ? "studio.mp4" : kind === "gif" ? "studio.gif" : "studio.jpg"),
-          contentType: asset.mimeType || (kind === "video" ? "video/mp4" : kind === "gif" ? "image/gif" : "image/jpeg"),
-          category: kind === "video" ? "video" : "image",
-        });
-        setDraft((prev) => ({ ...prev, portfolio: [...prev.portfolio, { url, kind }].slice(0, 8) }));
-      } catch (error) {
-        showIslandError(t("m.studio.gallery"), error instanceof Error ? error.message : t("m.common.request_failed"));
-        break;
-      } finally {
-        setBusy(false);
-      }
-    }
-  }
-
-  function onPortfolioPress(index: number) {
-    if (reorderFrom === null) return;
-    if (reorderFrom === index) {
-      setReorderFrom(null);
-      return;
-    }
-    setDraft((prev) => {
-      const next = [...prev.portfolio];
-      const [moved] = next.splice(reorderFrom, 1);
-      next.splice(index, 0, moved);
-      return { ...prev, portfolio: next };
-    });
-    setReorderFrom(null);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }
-
-  function onPortfolioLongPress(index: number) {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setReorderFrom(index);
-  }
-
-  function movePortfolio(index: number, delta: number) {
-    const target = index + delta;
-    if (target < 0 || target >= draft.portfolio.length) return;
-    setDraft((prev) => {
-      const next = [...prev.portfolio];
-      const tmp = next[index];
-      next[index] = next[target];
-      next[target] = tmp;
-      return { ...prev, portfolio: next };
-    });
-  }
 
   async function save() {
     if (!step3Valid(draft)) return;
@@ -311,62 +228,15 @@ export function StudioEditorScreen() {
               </Field>
             </SectionCard>
 
-            <SectionCard title={t("m.studio.gallery")} colors={colors}>
-              <Text style={[styles.hint, { color: colors.textMuted }]}>{t("m.studio.gallery_reorder_hint")}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
-                {draft.portfolio.map((item, index) => {
-                  const selected = reorderFrom === index;
-                  return (
-                    <View key={`${item.url}-${index}`} style={styles.thumbWrap}>
-                      <Pressable
-                        onPress={() => {
-                          if (reorderFrom !== null) onPortfolioPress(index);
-                        }}
-                        onLongPress={() => onPortfolioLongPress(index)}
-                        style={[styles.thumbPress, selected && { borderColor: colors.brand, borderWidth: 2 }]}
-                      >
-                        {item.kind === "video" ? (
-                          <View style={[styles.thumb, { backgroundColor: colors.brand }]}>
-                            <Text style={styles.thumbTag}>MP4</Text>
-                          </View>
-                        ) : (
-                          <Image source={{ uri: item.url }} style={styles.thumb} />
-                        )}
-                      </Pressable>
-                      <View style={styles.thumbActions}>
-                        <Pressable onPress={() => movePortfolio(index, -1)} hitSlop={6}>
-                          <Ionicons name="chevron-back" size={16} color={colors.brand} />
-                        </Pressable>
-                        <Pressable
-                          onPress={() =>
-                            setDraft((prev) => ({
-                              ...prev,
-                              portfolio: prev.portfolio.filter((_, i) => i !== index),
-                            }))
-                          }
-                          hitSlop={6}
-                        >
-                          <Ionicons name="close-circle" size={16} color={colors.textMuted} />
-                        </Pressable>
-                        <Pressable onPress={() => movePortfolio(index, 1)} hitSlop={6}>
-                          <Ionicons name="chevron-forward" size={16} color={colors.brand} />
-                        </Pressable>
-                      </View>
-                    </View>
-                  );
-                })}
-                <Pressable
-                  style={[styles.thumb, styles.add, { borderColor: colors.border }]}
-                  onPress={() => void addMedia()}
-                  disabled={busy || draft.portfolio.length >= 8}
-                >
-                  {busy ? (
-                    <ActivityIndicator color={colors.brand} />
-                  ) : (
-                    <Text style={{ color: colors.brand, fontWeight: "800" }}>+</Text>
-                  )}
-                </Pressable>
-              </ScrollView>
+            <SectionCard title={t("m.studio.blocks")} colors={colors}>
+              <StudioPortfolioEditor
+                coverUrl={draft.coverUrl}
+                blocks={draft.blocks}
+                busy={busy}
+                onCover={(coverUrl) => setDraft((prev) => ({ ...prev, coverUrl }))}
+                onBlocks={(blocks) => setDraft((prev) => ({ ...prev, blocks }))}
+                onBusy={setBusy}
+              />
             </SectionCard>
           </>
         ) : null}
@@ -532,7 +402,6 @@ export function StudioEditorScreen() {
             <Pressable
               style={[styles.navBtn, { borderColor: colors.border }]}
               onPress={() => {
-                setReorderFrom(null);
                 setStep((s) => Math.max(1, s - 1));
               }}
             >
@@ -550,7 +419,6 @@ export function StudioEditorScreen() {
               ]}
               disabled={!canNext}
               onPress={() => {
-                setReorderFrom(null);
                 setStep((s) => Math.min(3, s + 1));
               }}
             >

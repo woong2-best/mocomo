@@ -22,7 +22,7 @@ const PORTONE_FRAME_SRC = "https://checkout.portone.io https://api.portone.io";
 
 /** External live embeds (YouTube / Twitch / CHZZK) + payment widgets */
 const EMBED_FRAME_SRC =
-  "https://challenges.cloudflare.com https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.twitch.tv https://chzzk.naver.com";
+  "https://challenges.cloudflare.com https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://player.twitch.tv https://chzzk.naver.com";
 
 export const SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "X-DNS-Prefetch-Control", value: "on" },

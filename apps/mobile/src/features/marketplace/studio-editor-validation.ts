@@ -1,5 +1,6 @@
 import type { StudioDraft } from "@/api/studios";
 import { DEFAULT_STUDIO_CATEGORY_ID, STUDIO_CATEGORY_OPTIONS } from "@/features/marketplace/studio-categories";
+import { blockHasContent, isHttpsMediaUrl } from "@/features/marketplace/studio-portfolio";
 
 const VALID_CATEGORY = new Set(STUDIO_CATEGORY_OPTIONS.map((item) => item.id));
 
@@ -18,7 +19,8 @@ export function step1Valid(draft: StudioDraft) {
   return (
     VALID_CATEGORY.has(category) &&
     draft.title.trim().length >= 2 &&
-    draft.portfolio.length >= 1
+    isHttpsMediaUrl(draft.coverUrl) &&
+    draft.blocks.some(blockHasContent)
   );
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { StudioOrderForm } from "@/components/used/studio-order-form";
+import { StudioPortfolioView } from "@/components/used/studio-portfolio-view";
 import { auth } from "@/lib/auth";
 import { getCreatorStudio } from "@/lib/creator-studio";
 import { createTranslator } from "@/lib/i18n/messages";
@@ -21,19 +22,11 @@ export default async function StudioPage({ params }: { params: Promise<{ id: str
   if (!studio) notFound();
   const session = await auth();
   const owner = session?.user?.id === studio.sellerId;
-  const cover = studio.portfolio.filter((item) => item.kind !== "video");
+  const cover = studio.coverUrl || "";
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 px-4 py-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {studio.portfolio.map((item) =>
-          item.kind === "video" ? (
-            <video key={item.url} src={item.url} className="aspect-square w-full rounded-xl bg-black object-cover" controls muted playsInline />
-          ) : (
-            <img key={item.url} src={item.url} alt="" className="aspect-square w-full rounded-xl object-cover" />
-          )
-        )}
-      </div>
+      <StudioPortfolioView coverUrl={studio.coverUrl} blocks={studio.blocks} />
       <div>
         <h1 className="text-2xl font-extrabold">{studio.title}</h1>
         <p className="text-sm text-muted-foreground">@{studio.seller.username}</p>

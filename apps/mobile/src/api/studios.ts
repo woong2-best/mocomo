@@ -1,7 +1,9 @@
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
+import type { StudioPortfolioBlock } from "@/features/marketplace/studio-portfolio";
 
 export type StudioMedia = { url: string; kind: "image" | "gif" | "video" };
+export type { StudioPortfolioBlock };
 export type StudioTier = { id: string; name: string; price: number };
 export type StudioAddon = { id: string; name: string; mode: "fixed" | "percent"; amount: number };
 export type StudioField = { id: string; label: string; kind: "text" | "image"; required: boolean };
@@ -19,6 +21,8 @@ export type StudioCard = {
   deliveryDays: number;
   revisionNote: string;
   currency: string;
+  coverUrl?: string;
+  blocks?: StudioPortfolioBlock[];
   portfolio: StudioMedia[];
   tiers: StudioTier[];
   addons: StudioAddon[];
@@ -36,7 +40,9 @@ export type StudioDraft = {
   deliveryDays: number;
   revisionNote: string;
   currency: string;
-  portfolio: StudioMedia[];
+  coverUrl: string;
+  blocks: StudioPortfolioBlock[];
+  portfolio?: StudioMedia[];
   tiers: StudioTier[];
   addons: StudioAddon[];
   formFields: StudioField[];
