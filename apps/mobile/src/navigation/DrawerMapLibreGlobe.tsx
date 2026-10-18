@@ -239,6 +239,11 @@ if (!maplibregl) {
   let popup = null;
   let openPinId = null;
   let outStreak = 0;
+  const dismissPopup = () => {
+    if (popup) popup.remove();
+    popup = null;
+    openPinId = null;
+  };
   let allPins = [];
   const pinIndex = new Map();
   let visibleKey = "";
@@ -320,9 +325,7 @@ if (!maplibregl) {
       src.setData({ type: "FeatureCollection", features: visible.map(toFeature) });
     }
     if (openPinId && !visible.some((pin) => pin.id === openPinId)) {
-      if (popup) popup.remove();
-      popup = null;
-      openPinId = null;
+      dismissPopup();
     }
   };
   const scheduleCull = () => {
@@ -385,6 +388,10 @@ if (!maplibregl) {
       .setLngLat([pin.lng, pin.lat])
       .setHTML(html)
       .addTo(map);
+    popup.on("close", () => {
+      popup = null;
+      openPinId = null;
+    });
     popup.getElement().querySelectorAll("a[data-url]").forEach((anchor) => {
       anchor.addEventListener("click", (event) => {
         event.preventDefault();
@@ -532,8 +539,14 @@ if (!maplibregl) {
     return Math.hypot(dx, dy);
   };
   const gestureEl = map.getCanvasContainer();
+  let panStartX = 0;
+  let panStartY = 0;
   gestureEl.addEventListener("touchstart", (event) => {
     fingers = event.touches.length;
+    if (event.touches.length === 1) {
+      panStartX = event.touches[0].clientX;
+      panStartY = event.touches[0].clientY;
+    }
     if (event.touches.length >= 2) {
       pinchDist = touchDist(event.touches);
       pinchZoom = map.getZoom();
@@ -545,6 +558,11 @@ if (!maplibregl) {
       event.preventDefault();
       event.stopPropagation();
       return;
+    }
+    if (event.touches.length === 1 && (openPinId || popup)) {
+      const dx = event.touches[0].clientX - panStartX;
+      const dy = event.touches[0].clientY - panStartY;
+      if (Math.hypot(dx, dy) > 28) dismissPopup();
     }
     if (event.touches.length < 2 || pinchDist <= 0) return;
     const dist = touchDist(event.touches);
@@ -564,6 +582,9 @@ if (!maplibregl) {
   gestureEl.addEventListener("touchcancel", onTouchEnd, { capture: true, passive: true });
   map.on("zoomend", restoreGlobe);
   map.on("moveend", restoreGlobe);
+  map.on("dragstart", () => {
+    if (openPinId || popup) dismissPopup();
+  });
   map.on("move", scheduleCull);
   map.on("zoom", scheduleCull);
   map.on("pitch", scheduleCull);
