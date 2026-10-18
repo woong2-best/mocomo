@@ -1,6 +1,6 @@
 /** Web market chips — keep in sync with apps/mobile/src/features/marketplace/market-browse.ts */
 
-export type MarketTrack = "physical" | "digital";
+export type MarketTrack = "all" | "physical" | "digital";
 
 export const PHYSICAL_MARKET_CATEGORIES = [
   { id: "FIGURE", key: "market.track.figures" },
@@ -31,7 +31,16 @@ export const MARKET_LANE_CHIPS = [
 export type MarketLaneChip = (typeof MARKET_LANE_CHIPS)[number]["id"];
 
 export function parseMarketTrack(raw: string | undefined | null): MarketTrack {
-  return raw === "digital" ? "digital" : "physical";
+  if (raw === "digital") return "digital";
+  if (raw === "physical") return "physical";
+  return "all";
+}
+
+export function listingTrackFilter(
+  raw: string | undefined | null
+): "physical" | "digital" | undefined {
+  const track = parseMarketTrack(raw);
+  return track === "all" ? undefined : track;
 }
 
 export function parseMarketLane(raw: string | undefined | null): MarketLaneChip | undefined {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Package } from "lucide-react";
 import { getUsedListings, getViewerUsedListingStarIds, isUsedDbReady } from "@/actions/used-market";
 import { listCreatorStudios } from "@/lib/creator-studio";
-import { parseMarketLane, parseMarketTrack } from "@/lib/market-browse";
+import { listingTrackFilter, parseMarketLane, parseMarketTrack } from "@/lib/market-browse";
 import { auth } from "@/lib/auth";
 import { listingImages } from "@/lib/used-market";
 import { UsedListingGrid } from "@/components/used/used-listing-grid";
@@ -20,6 +20,11 @@ export async function UsedMarketFeed({
   lane: laneParam,
   region,
   sido,
+  condition,
+  limited,
+  trade,
+  work,
+  anime,
 }: {
   q?: string;
   category?: string;
@@ -28,11 +33,17 @@ export async function UsedMarketFeed({
   lane?: string;
   region?: string;
   sido?: string;
+  condition?: string;
+  limited?: string;
+  trade?: string;
+  work?: string;
+  anime?: string;
 }) {
   try {
   const query = q?.trim() || "";
   const lane = parseMarketLane(laneParam);
-  const track = lane ? undefined : parseMarketTrack(trackParam);
+  const track = lane ? undefined : listingTrackFilter(trackParam);
+  const browseTrack = parseMarketTrack(trackParam);
   const session = await auth();
 
   if (lane && !session?.user?.id) {
@@ -91,6 +102,11 @@ export async function UsedMarketFeed({
       category: track === "digital" ? undefined : category,
       product: track === "physical" ? undefined : product,
       track,
+      condition,
+      limited,
+      trade,
+      work,
+      anime,
       status: "SELLING",
       take: query ? 80 : 48,
     },
@@ -126,7 +142,7 @@ export async function UsedMarketFeed({
   }));
 
   const studios =
-    track === "digital" ? await listCreatorStudios(query || undefined).catch(() => []) : [];
+    browseTrack === "physical" ? [] : await listCreatorStudios(query || undefined).catch(() => []);
 
   if (listings.length === 0 && studios.length === 0) {
     return (
@@ -170,6 +186,14 @@ export async function UsedMarketFeed({
     </div>
   );
   } catch (error) {
+    if (
+      typeof error === "object" &&
+      error &&
+      "digest" in error &&
+      String((error as { digest?: unknown }).digest).includes("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
     return (
       <p className="p-6 text-sm text-destructive">
         {error instanceof Error ? error.message : "Could not load listings."}
