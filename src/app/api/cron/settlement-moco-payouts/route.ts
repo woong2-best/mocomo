@@ -5,7 +5,7 @@ import { processMonthlySettlementCron } from "@/lib/settlement-moco/payout";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-/** MonthlySettlementCron — 매월 25일(KST) Lock + Reward 지급 (그 외 날은 보류 배치 재시도·PROCESSING 지급만) */
+/** Retired. Monthly Reward lock no longer runs. Wallet tier payouts are requested by the creator. */
 export async function GET(req: NextRequest) {
   if (isProduction() && !verifyInternalSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

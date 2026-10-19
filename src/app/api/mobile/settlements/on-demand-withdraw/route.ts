@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { handleOnDemandWithdrawPost } from "@/lib/settlement-moco/on-demand-withdraw-route";
-
-const bodySchema = z.object({
-  withdrawMoco: z.number().int().positive(),
-});
 
 export async function POST(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-settlement-on-demand-withdraw", 8);
@@ -15,21 +10,5 @@ export async function POST(req: NextRequest) {
   const authResult = await requireMobileApiUser(req);
   if ("error" in authResult) return authResult.error;
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-  }
-
-  const parsed = bodySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Check the MOCO amount to withdraw." }, { status: 400 });
-  }
-
-  return handleOnDemandWithdrawPost(
-    authResult.user.id,
-    parsed.data.withdrawMoco,
-    req.headers.get("X-Idempotency-Key"),
-  );
+  return handleOnDemandWithdrawPost(authResult.user.id, req.headers.get("X-Idempotency-Key"));
 }

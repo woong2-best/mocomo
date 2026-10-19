@@ -5,6 +5,7 @@ import {
   isRewardTierDowngrade,
   netUsdCentsFromRewardMatrix,
   passThroughCentsForWithdrawMoco,
+  quoteAchievedTierWithdrawal,
   quoteOnDemandWithdrawal,
   uiPlatformFeePercentForTier,
 } from "@/lib/settlement-moco/dynamic-tier-engine";
@@ -76,5 +77,37 @@ describe("dynamic tier engine", () => {
     expect(q.ok).toBe(false);
     if (q.ok) return;
     expect(q.code).toBe("BELOW_MIN_TIER");
+  });
+
+  it("pays only the achieved tier and leaves the remainder", () => {
+    const nexus = quoteAchievedTierWithdrawal({ balanceBeforeMoco: 19 });
+    expect(nexus.ok).toBe(true);
+    if (!nexus.ok) return;
+    expect(nexus.payoutTier.label).toBe("Nexus");
+    expect(nexus.withdrawMoco).toBe(15);
+    expect(nexus.balanceAfterMoco).toBe(4);
+    expect(nexus.netTransferCents).toBe(7_091);
+    expect(nexus.transfer.currency).toBe("usd");
+    expect(nexus.transfer.netMinor).toBe(7_091);
+
+    const below = quoteAchievedTierWithdrawal({ balanceBeforeMoco: 9 });
+    expect(below.ok).toBe(false);
+    if (below.ok) return;
+    expect(below.code).toBe("BELOW_MIN_TIER");
+
+    const pulse = quoteAchievedTierWithdrawal({ balanceBeforeMoco: 10 });
+    expect(pulse.ok).toBe(true);
+    if (!pulse.ok) return;
+    expect(pulse.withdrawMoco).toBe(10);
+    expect(pulse.balanceAfterMoco).toBe(0);
+    expect(pulse.netTransferCents).toBe(4_725);
+
+    const genesis = quoteAchievedTierWithdrawal({ balanceBeforeMoco: 100 });
+    expect(genesis.ok).toBe(true);
+    if (!genesis.ok) return;
+    expect(genesis.payoutTier.label).toBe("Genesis");
+    expect(genesis.withdrawMoco).toBe(90);
+    expect(genesis.balanceAfterMoco).toBe(10);
+    expect(genesis.netTransferCents).toBe(43_020);
   });
 });

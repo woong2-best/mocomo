@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { assertManualPayoutReady } from "@/lib/creator-payout/readiness";
 import { syncEarnedMocoDisplayTier } from "@/lib/settlement-moco/balance";
-import { quoteOnDemandWithdrawal } from "@/lib/settlement-moco/dynamic-tier-engine";
+import { quoteAchievedTierWithdrawal } from "@/lib/settlement-moco/dynamic-tier-engine";
 import { REWARD_BATCH_STATUS } from "@/lib/settlement-moco/payout-status";
 import type { OnDemandWithdrawalQuoteResult } from "@/lib/settlement-moco/dynamic-tier-engine";
 
@@ -24,25 +24,13 @@ async function lockPlatformWalletRow(tx: Prisma.TransactionClient, userId: strin
 
 export async function getOnDemandWithdrawalQuoteForUser(
   userId: string,
-  withdrawMoco: number,
 ): Promise<OnDemandWithdrawalQuoteResult> {
-  const [wallet, profile, user] = await Promise.all([
-    db.platformWallet.findUnique({
-      where: { userId },
-      select: { settlementMocoPoints: true },
-    }),
-    db.creatorSettlementProfile.findUnique({
-      where: { userId },
-      select: { countryCode: true },
-    }),
-    db.user.findUnique({ where: { id: userId }, select: { countryCode: true } }),
-  ]);
-
-  const countryCode = profile?.countryCode ?? user?.countryCode ?? "US";
-  return quoteOnDemandWithdrawal({
+  const wallet = await db.platformWallet.findUnique({
+    where: { userId },
+    select: { settlementMocoPoints: true },
+  });
+  return quoteAchievedTierWithdrawal({
     balanceBeforeMoco: wallet?.settlementMocoPoints ?? 0,
-    withdrawMoco,
-    countryCode,
   });
 }
 
@@ -60,7 +48,7 @@ export type ExecuteOnDemandWithdrawalOptions = {
  */
 export async function executeOnDemandWithdrawal(
   userId: string,
-  withdrawMoco: number,
+  _withdrawMoco: number,
   opts?: ExecuteOnDemandWithdrawalOptions,
 ): Promise<ExecuteOnDemandWithdrawalResult> {
   const idempotencyKey = opts?.idempotencyKey?.trim();
@@ -110,17 +98,6 @@ export async function executeOnDemandWithdrawal(
     }
   }
 
-  const quote = await getOnDemandWithdrawalQuoteForUser(userId, withdrawMoco);
-  if (!quote.ok) {
-    const status =
-      quote.code === "INSUFFICIENT_BALANCE"
-        ? 402
-        : quote.code === "BELOW_MIN_TIER" || quote.code === "BELOW_MIN_PAYOUT"
-          ? 400
-          : 400;
-    return { ok: false, code: quote.code, message: quote.message, status };
-  }
-
   const ready = await assertManualPayoutReady(userId);
   if (!ready.ok) return ready;
 
@@ -133,9 +110,11 @@ export async function executeOnDemandWithdrawal(
       if (pending > 0) throw new Error("PENDING_EXISTS");
 
       const locked = await lockPlatformWalletRow(tx, userId);
-      if (!locked || locked.settlementMocoPoints < quote.withdrawMoco) {
-        throw new Error("INSUFFICIENT_BALANCE");
-      }
+      if (!locked) throw new Error("BELOW_MIN_TIER");
+      const quote = quoteAchievedTierWithdrawal({
+        balanceBeforeMoco: locked.settlementMocoPoints,
+      });
+      if (!quote.ok) throw new Error(quote.code);
 
       const updated = await tx.platformWallet.update({
         where: { id: locked.id },
@@ -195,12 +174,15 @@ export async function executeOnDemandWithdrawal(
       return { withdrawalId: withdrawal.id, payoutRequestId: request.id };
     }, TX_OPTIONS);
   } catch (e) {
-    if (e instanceof Error && e.message === "INSUFFICIENT_BALANCE") {
+    if (e instanceof Error && (e.message === "INSUFFICIENT_BALANCE" || e.message === "BELOW_MIN_TIER")) {
       return {
         ok: false,
-        code: "INSUFFICIENT_BALANCE",
-        message: "Insufficient settlement MOCO balance.",
-        status: 402,
+        code: e.message,
+        message:
+          e.message === "BELOW_MIN_TIER"
+            ? "Reward payout starts at Pulse (10 MOCO, $47.25)."
+            : "Insufficient settlement MOCO balance.",
+        status: e.message === "BELOW_MIN_TIER" ? 400 : 402,
       };
     }
     if (e instanceof Error && e.message === "PENDING_EXISTS") {

@@ -764,7 +764,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       type: "p",
-      text: "② 이용자는 구매 MOCO를 회사의 사전 승낙 없이 타인에게 양도, 매매, 증여, 담보 제공할 수 없으며, 현금 환불·인출·환전을 요구할 수 없습니다. 다만, Section X (MOCO Transfers)에 따른 ATM 전송은 회사가 제공하는 후원(Support) 기능으로서 허용됩니다. 크리에이터의 정산 MOCO는 성과 스코어이며, 월말 Reward(크리에이터 활동 성과 보수) 지급은 별도 크리에이터 약관에 따릅니다.",
+      text: "② 이용자는 구매 MOCO를 회사의 사전 승낙 없이 타인에게 양도, 매매, 증여, 담보 제공할 수 없으며, 현금 환불·인출·환전을 요구할 수 없습니다. 다만, Section X (MOCO Transfers)에 따른 ATM 전송은 회사가 제공하는 후원(Support) 기능으로서 허용됩니다. 크리에이터의 정산 MOCO는 성과 스코어이며, Reward(크리에이터 활동 성과 보수)는 지갑에서 현재 정산 등급의 기준 수량만 신청할 때 지급됩니다.",
     },
     {
       type: "p",
@@ -1229,7 +1229,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
 export const CREATOR_TERMS: LegalDocument = {
   slug: "creator-terms",
   title: "MoCoMo 크리에이터 약관",
-  updatedAt: "2026년 10월 4일",
+  updatedAt: "2026년 10월 19일",
   intro:
     '본 약관은 MoCoMo LLC(이하 "회사")가 제공하는 크리에이터·구독·후원·디지털 판매 기능의 이용 조건을 규정합니다. 일반 이용약관과 함께 적용되며, 충돌 시 본 약관이 크리에이터 기능에 우선합니다.',
   blocks: [
@@ -1258,7 +1258,7 @@ export const CREATOR_TERMS: LegalDocument = {
     },
     {
       type: "p",
-      text: "② 회사는 매월 말 정산 MOCO에 정산 요율을 적용하여, 크리에이터에게 '크리에이터 활동 성과 보수(Reward)'를 현지 통화로 지급합니다. Reward 지급이 완료되면 해당 기간의 정산 MOCO는 0으로 리셋됩니다.",
+      text: "② 크리에이터는 지갑에서 현재 earned MOCO로 달성한 Reward 정산 등급의 기준 수량만 신청할 수 있습니다. 회사는 그 등급의 확정 정산금(Reward, USD)을 수동으로 지급하고, 기준을 넘는 잔액은 지갑에 남깁니다. 월 단위 자동 정산은 하지 않습니다. Pulse(10 MOCO) 미만은 지급 대상이 아닙니다.",
     },
     {
       type: "p",
@@ -1270,17 +1270,17 @@ export const CREATOR_TERMS: LegalDocument = {
     },
     {
       type: "p",
-      text: "⑤ Reward 지급은 Stripe Connect Express를 통해 크리에이터가 Stripe 온보딩에서 등록한 본인 명의 은행 계좌로 이루어집니다. 본인 확인·계좌·세무 정보는 Stripe Hosted Onboarding에서 수집·보관됩니다.",
+      text: "⑤ Reward는 크리에이터가 W-9 또는 W-8BEN과 수취 정보(Payoneer, Wise 또는 은행)를 등록하고 회사가 세무 서류를 확인한 뒤, 회사가 Payoneer, Wise 또는 은행 송금으로 수동 지급합니다. Stripe Connect는 Reward 지급에 사용하지 않습니다. Stripe는 구매 MOCO 결제에 사용됩니다.",
     },
     { type: "h3", text: "(수취인 대리인 — Agent of Payee)" },
     {
       type: "p",
-      text: "크리에이터는 Stripe Express 온보딩을 완료하고 Reward 수령 의사를 표시함으로써, MoCoMo가 크리에이터를 대리하여 Reward 대금을 수취하는 '수취인 대리인(Agent of Payee)'임에 동의합니다. Stripe 온보딩 완료 시점에 대금 수령 준비가 완료된 것으로 간주됩니다.",
+      text: "크리에이터는 세무 서류와 수취 정보를 등록하고 Reward를 신청함으로써, 회사가 확인 후 등록된 수취처로 Reward를 수동 송금하는 데 동의합니다.",
     },
     { type: "h3", text: "(세무 및 W-8BEN / W-9 · 1099)" },
     {
       type: "p",
-      text: "미국 세법상 필요한 W-9 / W-8BEN 등 세무 정보는 Stripe Connect Express 온보딩을 통해 수집되며, 해당 세무 보고(예: 1099-NEC)는 Stripe Connect Tax Reporting에 위임합니다. 세무·온보딩 정보가 미비한 경우 Reward 지급이 보류될 수 있습니다.",
+      text: "미국 세법상 필요한 W-9 / W-8BEN은 지갑의 정산 화면에서 제출합니다. 서류가 확인되기 전에는 Reward 신청이 열리지 않습니다. 세무 신고와 납부 의무는 크리에이터 본인에게 있습니다.",
     },
     { type: "hr" },
     { type: "h2", text: "제5조 (금지 행위)" },
@@ -2264,7 +2264,7 @@ export const MODERATION_POLICY: LegalDocument = {
 export const CREATOR_SETTLEMENT_QNA: LegalDocument = {
   slug: "qna",
   title: "MOCO 정산 QnA",
-  updatedAt: "2026년 10월 4일",
+  updatedAt: "2026년 10월 19일",
   intro:
     "구매 MOCO 충전·사용, 크리에이터 Reward 정산, 세무 및 제재 국가에 관한 자주 묻는 질문입니다. 자세한 법적 조건은 이용약관·크리에이터 약관·결제 및 환불 정책을 함께 확인해 주세요.",
   blocks: [
@@ -2293,11 +2293,11 @@ export const CREATOR_SETTLEMENT_QNA: LegalDocument = {
     },
     {
       type: "p",
-      text: "월말 정산 시 건별로 계산하는 방식이 아닌, 한 달 동안 모은 earned MOCO로 달성한 'Reward 정산 등급'(Novice/Pulse 등)에 따라 확정 정산금(Reward)이 지급됩니다. 이 등급은 후원 광석(Seed/Stone 등) 등급과 별개입니다. Reward 금액에는 플랫폼 수수료가 이미 반영되어 있습니다. Stripe Connect 송금 시 Express 계정 유지비·해외 송금 수수료 등은 Stripe 정책에 따라 크리에이터 Connect 계정에서 실비 차감될 수 있습니다.",
+      text: "건별로 계산하는 방식이 아닌, 현재 지갑의 earned MOCO로 달성한 Reward 정산 등급(Novice/Pulse 등)의 기준 수량만 확정 정산금(Reward)으로 지급됩니다. 예: earned MOCO가 19이면 Nexus(15 MOCO, $70.91)만 지급하고 4 MOCO는 지갑에 남습니다. 이 등급은 후원 광석(Seed/Stone 등) 등급과 별개입니다. Reward 금액에는 플랫폼 수수료가 이미 반영되어 있습니다. Stripe Connect는 Reward 지급에 사용하지 않습니다.",
     },
     {
       type: "p",
-      text: "이월 안내: 등급 기준을 초과하고 남은 MOCO는 사라지지 않고 다음 달 정산으로 자동 이월됩니다. (예: 이번 달 2,203 MOCO 수령 시 → Dimension 등급(2,200 MOCO) 정산금 $10,659.00 지급 + 남은 3 MOCO는 다음 달로 이월)",
+      text: "남은 MOCO는 사라지지 않고 지갑 잔액에 남습니다. 다음 신청은 그때의 잔액으로 다시 달성한 등급의 기준 수량만 지급합니다. (예: 2,203 MOCO이면 Dimension(2,200 MOCO) 정산금 $10,659.00를 신청하고, 남은 3 MOCO는 지갑에 남습니다.)",
     },
     { type: "hr" },
     { type: "h2", text: "Q. 이번 달 정산 예상 금액은 어디서 확인할 수 있나요?" },
@@ -2309,31 +2309,31 @@ export const CREATOR_SETTLEMENT_QNA: LegalDocument = {
     { type: "h2", text: "Q. 정산금을 받을 은행 계좌는 어디서 등록하나요?" },
     {
       type: "p",
-      text: "지갑(/wallet) → Reward 정산 등록에서 Stripe Connect 본인 확인 및 은행 계좌 등록을 진행합니다. 등록이 완료되면 동일 화면에서 계좌 끝자리 등 등록 상태를 확인할 수 있고, 필요 시 Stripe 대시보드에서 계좌 정보를 수정할 수 있습니다.",
+      text: "지갑(/wallet) 수익 화면에서 W-9 또는 W-8BEN을 올리고, Payoneer, Wise 또는 은행 수취 정보를 등록합니다. 회사가 세무 서류를 확인한 뒤에 출금 신청이 열립니다.",
     },
     { type: "hr" },
     { type: "h2", text: "Q. 정산금은 신청 없이 지정된 날짜에 자동으로 입금되나요?" },
     {
       type: "p",
-      text: "네. 정산 계좌 등록(Stripe Connect)이 완료되고 최소 지급 기준·정산 등급 조건을 충족하면, 별도 출금 신청 없이 매월 지정 일정(매월 1일 정산 배치)에 따라 Reward가 자동 지급됩니다. 계좌 미등록, 본인 확인 미완료, 최소 금액 미달, 분쟁·약관 위반 등으로 정산이 보류된 경우에는 해당 회차 지급이 스킵되거나 지연될 수 있으며, 조건 충족 시 이후 회차에 반영됩니다.",
+      text: "아니요. 월 단위 자동 입금은 없습니다. Pulse(10 MOCO, $47.25) 이상이면 지갑에서 현재 등급의 기준 수량만 신청합니다. 세무 서류가 확인되고 수취 정보가 있어야 신청할 수 있으며, 회사는 확인 후 Payoneer, Wise 또는 은행으로 수동 송금합니다.",
     },
     { type: "hr" },
     { type: "h2", text: "Q. 정산받기 위한 최소 금액(최소 MOCO) 기준이 있나요?" },
     {
       type: "p",
-      text: "있습니다. 해당 월 earned MOCO가 최소 정산 등급(Pulse, 10 MOCO) 이상이어야 Reward 대상이 되며, Novice(0)는 지급 대상이 아닙니다. 또한 순지급액이 최소 지급 기준(현재 정책: 약 ₩10,000 또는 $10) 이상이어야 입금됩니다. 미달 분은 정책에 따라 이월되거나 다음 정산 회차에 합산될 수 있습니다.",
+      text: "있습니다. earned MOCO가 Pulse(10 MOCO, $47.25) 이상이어야 합니다. Novice(0)는 지급 대상이 아닙니다. 신청하면 그 등급의 기준 수량만 빠지고, 나머지는 지갑에 남습니다.",
     },
     { type: "hr" },
     { type: "h2", text: "Q. 해외 계좌나 본국 통화로도 정산금을 받을 수 있나요?" },
     {
       type: "p",
-      text: "가능합니다. Stripe Connect가 지원하는 국가·통화 범위 내에서 본국(또는 거주국) 은행 계좌·현지 통화로 Reward를 받을 수 있습니다. 지원 국가·통화·세금 서류(W-8BEN / W-9 등)는 정산 등록 과정에서 안내되며, 미지원·제재 국가는 계좌 등록이 제한될 수 있습니다.",
+      text: "가능합니다. 수취 정보는 Payoneer, Wise 또는 은행으로 등록합니다. 지급 금액은 정산표의 USD입니다. W-8BEN 또는 W-9가 확인되어야 신청할 수 있습니다.",
     },
     { type: "hr" },
     { type: "h2", text: "Q. 정산 등급과 등급별 정산금(Reward) 기준이 궁금해요." },
     {
       type: "p",
-      text: "Reward 정산 등급은 후원 광석 등급과 별개입니다. 매월 모은 earned MOCO 기준으로 등급이 산정되며, 등급별 지급 금액은 아래 정산표와 같습니다. 표의 Reward에는 플랫폼 수수료가 이미 반영되어 있습니다.",
+      text: "Reward 정산 등급은 후원 광석 등급과 별개입니다. 지금 지갑에 있는 earned MOCO로 등급이 정해지며, 그 등급의 기준 수량과 정산표 금액만 지급됩니다. 표의 Reward에는 플랫폼 수수료가 이미 반영되어 있습니다.",
     },
     {
       type: "table",

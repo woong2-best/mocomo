@@ -72,10 +72,6 @@
       "schedule": "0 2 * * *"
     },
     {
-      "path": "/api/cron/settlement-moco-payouts",
-      "schedule": "0 0 1 * *"
-    },
-    {
       "path": "/api/cron/legal-publish",
       "schedule": "15 * * * *"
     }
@@ -136,9 +132,6 @@
       "maxDuration": 60
     },
     "src/app/api/cron/creator-gem-payouts/route.ts": {
-      "maxDuration": 120
-    },
-    "src/app/api/cron/settlement-moco-payouts/route.ts": {
       "maxDuration": 120
     },
     "src/app/api/studio/upload/route.ts": {

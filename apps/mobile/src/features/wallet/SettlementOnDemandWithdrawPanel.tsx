@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, View, Modal, Pressable } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   fetchOnDemandWithdrawQuote,
@@ -8,7 +8,7 @@ import {
 } from "@/api/settlement-on-demand";
 import { FolkButton } from "@/ui/FolkButton";
 import { useTheme } from "@/theme/ThemeContext";
-import { spacing, type ThemeColors } from "@/theme/tokens";
+import { spacing } from "@/theme/tokens";
 import { showIslandError, showIslandSuccess } from "@/ui/IslandToast";
 
 function newIdempotencyKey() {
@@ -25,42 +25,22 @@ function formatUsd(cents: number) {
 
 type Props = {
   settlementMoco: number;
-  bankReady: boolean;
 };
 
-export function SettlementOnDemandWithdrawPanel({ settlementMoco, bankReady }: Props) {
+export function SettlementOnDemandWithdrawPanel({ settlementMoco }: Props) {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(), []);
   const queryClient = useQueryClient();
-  const [amount, setAmount] = useState("");
-  const [debouncedMoco, setDebouncedMoco] = useState(0);
   const [quote, setQuote] = useState<OnDemandWithdrawQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [tierConfirm, setTierConfirm] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-
-  const requestedMoco = useMemo(() => {
-    const n = Number(amount.replace(/\D/g, ""));
-    return Number.isFinite(n) ? Math.floor(n) : 0;
-  }, [amount]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedMoco(requestedMoco), 300);
-    return () => clearTimeout(t);
-  }, [requestedMoco]);
-
-  useEffect(() => {
-    setTierConfirm(false);
-    if (debouncedMoco <= 0) {
-      setQuote(null);
-      setQuoteError(null);
-      return;
-    }
     let cancelled = false;
     setLoadingQuote(true);
-    void fetchOnDemandWithdrawQuote(debouncedMoco)
+    void fetchOnDemandWithdrawQuote()
       .then((q) => {
         if (!cancelled) {
           setQuote(q);
@@ -79,20 +59,16 @@ export function SettlementOnDemandWithdrawPanel({ settlementMoco, bankReady }: P
     return () => {
       cancelled = true;
     };
-  }, [debouncedMoco]);
+  }, [settlementMoco, refreshKey]);
 
   async function executeWithdraw() {
-    if (requestedMoco <= 0 || !quote) return;
+    if (!quote) return;
     setBusy(true);
     try {
       const key = newIdempotencyKey();
-      const result = await submitOnDemandWithdraw(requestedMoco, key);
-      showIslandSuccess(
-        "Withdrawal submitted",
-        `Transfer ${result.stripeTransferId.slice(0, 12)}…`,
-      );
-      setAmount("");
-      setQuote(null);
+      const result = await submitOnDemandWithdraw(key);
+      showIslandSuccess("Payout requested", result.payoutRequestId);
+      setRefreshKey((n) => n + 1);
       void queryClient.invalidateQueries({ queryKey: ["mobile-settlement-status"] });
       void queryClient.invalidateQueries({ queryKey: ["mobile-wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["settlement-history"] });
@@ -100,89 +76,47 @@ export function SettlementOnDemandWithdrawPanel({ settlementMoco, bankReady }: P
       showIslandError("Withdrawal failed", e instanceof Error ? e.message : "Could not withdraw");
     } finally {
       setBusy(false);
-      setShowModal(false);
     }
   }
 
-  function onPressSubmit() {
-    if (!quote || !bankReady) return;
-    if (quote.tierDowngrade && !tierConfirm) {
-      setShowModal(true);
-      return;
-    }
-    void executeWithdraw();
-  }
+  const payoutCents = quote?.transfer.currency === "usd" ? quote.transfer.netMinor : quote?.netTransferCents;
 
   return (
     <View style={[styles.box, { borderColor: colors.hairline, backgroundColor: colors.surfaceRaised }]}>
-      <Text style={[styles.heading, { color: colors.text }]}>Reward on-demand withdraw</Text>
+      <Text style={[styles.heading, { color: colors.text }]}>On-demand Reward withdrawal</Text>
       <Text style={[styles.body, { color: colors.textMuted }]}>
-        {settlementMoco.toLocaleString()} MOCO available
+        Available {settlementMoco.toLocaleString()} MOCO
       </Text>
-      <TextInput
-        value={amount}
-        onChangeText={setAmount}
-        placeholder="MOCO amount"
-        keyboardType="number-pad"
-        placeholderTextColor={colors.textMuted}
-        style={[styles.input, { borderColor: colors.hairline, color: colors.text }]}
-      />
       {loadingQuote ? <Text style={[styles.body, { color: colors.textMuted }]}>Calculating…</Text> : null}
       {quoteError ? <Text style={[styles.body, { color: colors.danger }]}>{quoteError}</Text> : null}
-      {quote ? (
+      {quote && payoutCents != null ? (
         <View style={[styles.quoteBox, { borderColor: colors.hairline }]}>
+          <Text style={[styles.quoteLine, { color: colors.text }]}>{quote.payoutTier}</Text>
           <Text style={[styles.quoteLine, { color: colors.textMuted }]}>
-            Gross {formatUsd(quote.faceValueCents)}
-          </Text>
-          <Text style={[styles.quoteLine, { color: colors.textMuted }]}>
-            Platform fee −{quote.platformFeePercent}%
+            Cash out {quote.withdrawMoco.toLocaleString()} MOCO
           </Text>
           <Text style={[styles.quoteLine, { color: colors.text, fontWeight: "800" }]}>
-            Net {formatUsd(quote.transfer.netMinor)}
+            Payout {formatUsd(payoutCents)}
+          </Text>
+          <Text style={[styles.quoteLine, { color: colors.textMuted }]}>
+            {quote.balanceAfterMoco.toLocaleString()} MOCO stays in your balance
           </Text>
         </View>
       ) : null}
-      {!bankReady ? (
-        <Text style={[styles.body, { color: colors.danger }]}>Complete Stripe Connect first.</Text>
-      ) : (
-        <FolkButton
-          label={busy ? "Processing…" : "Withdraw"}
-          onPress={onPressSubmit}
-          loading={busy}
-          disabled={!quote || requestedMoco <= 0}
-        />
-      )}
-
-      <Modal visible={showModal && !!quote?.tierDowngrade} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { backgroundColor: colors.surfaceRaised, borderColor: colors.hairline }]}>
-            <Text style={[styles.modalTitle, { color: colors.danger }]}>Tier downgrade warning</Text>
-            <Text style={[styles.body, { color: colors.text }]}>
-              Withdrawing {quote?.withdrawMoco.toLocaleString()} MOCO lowers balance to{" "}
-              {quote?.balanceAfterMoco.toLocaleString()} MOCO ({quote?.activeTierBefore} →{" "}
-              {quote?.activeTierAfter}). Future payout fee {quote?.activeTierBeforeFeePercent}% →{" "}
-              {quote?.activeTierAfterFeePercent}%.
-            </Text>
-            <Pressable onPress={() => setTierConfirm((v) => !v)} style={styles.checkRow}>
-              <Text style={{ color: colors.text }}>{tierConfirm ? "☑" : "☐"} I understand my tier will downgrade</Text>
-            </Pressable>
-            <View style={styles.modalActions}>
-              <FolkButton label="Cancel" variant="ghost" onPress={() => setShowModal(false)} />
-              <FolkButton
-                label="Confirm"
-                onPress={() => void executeWithdraw()}
-                disabled={!tierConfirm || busy}
-                loading={busy}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <FolkButton
+        label={busy ? "Processing…" : "Request payout"}
+        onPress={() => void executeWithdraw()}
+        loading={busy}
+        disabled={!quote}
+      />
+      <Text style={[styles.body, { color: colors.textMuted }]}>
+        Pulse (10 MOCO, $47.25) is the minimum. Payouts are sent manually after your tax form is verified.
+      </Text>
     </View>
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles() {
   return StyleSheet.create({
     box: {
       borderWidth: 1,
@@ -194,25 +128,7 @@ function createStyles(colors: ThemeColors) {
     },
     heading: { fontSize: 16, fontWeight: "900" },
     body: { fontSize: 12, fontWeight: "600" },
-    input: {
-      borderWidth: 1,
-      borderRadius: 12,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      fontSize: 15,
-      fontWeight: "600",
-    },
     quoteBox: { borderWidth: 1, borderRadius: 12, padding: spacing.sm, gap: 4 },
     quoteLine: { fontSize: 12, fontWeight: "600" },
-    modalBackdrop: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.45)",
-      justifyContent: "center",
-      padding: spacing.lg,
-    },
-    modalCard: { borderWidth: 1, borderRadius: 16, padding: spacing.md, gap: spacing.sm },
-    modalTitle: { fontSize: 15, fontWeight: "900" },
-    checkRow: { paddingVertical: spacing.xs },
-    modalActions: { flexDirection: "row", justifyContent: "flex-end", gap: spacing.sm },
   });
 }

@@ -105,9 +105,7 @@ export function RevenueSettlementPanel({
           {t("wallet.settlement.supportBadgeLine", { tier: settlement.earnedMocoTier ?? "SEED" })}
         </p>
         <p className="text-xs text-muted-foreground">
-          {settlement.onDemandPayoutEnabled
-            ? t("wallet.settlement.onDemandBody", { rewardLabel: REWARD_TERMS_LABEL })
-            : t("wallet.settlement.monthlyBody", { rewardLabel: REWARD_TERMS_LABEL })}{" "}
+          {t("wallet.settlement.onDemandBody", { rewardLabel: REWARD_TERMS_LABEL })}{" "}
           {t("wallet.settlement.purchasedMocoNote", {
             amount: settlement.purchasedMocoPoints.toLocaleString(),
           })}

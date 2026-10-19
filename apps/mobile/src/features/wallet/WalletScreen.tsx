@@ -23,7 +23,6 @@ import { WalletMembershipStrip } from "@/features/wallet/WalletMembershipStrip";
 import { SupportTiersPanel } from "@/features/support/SupportTiersPanel";
 import { WalletEarningsExport } from "@/features/wallet/WalletEarningsExport";
 import { StripeConnectPanel } from "@/features/wallet/StripeConnectPanel";
-import { RevenuePayoutPanel } from "@/features/wallet/RevenuePayoutPanel";
 import { SettlementOnDemandWithdrawPanel } from "@/features/wallet/SettlementOnDemandWithdrawPanel";
 import { UnifiedSettlementHistoryPanel } from "@/features/wallet/UnifiedSettlementHistoryPanel";
 import { FolkButton } from "@/ui/FolkButton";
@@ -112,7 +111,6 @@ export function WalletScreen() {
 
   const data = walletQuery.data;
   const earnings = earningsQuery.data;
-  const withdrawable = data ? Math.max(0, data.availableBalance - data.pendingPayout) : 0;
 
   const earningsLoading = tab === "earnings" && earningsQuery.isLoading && !earningsQuery.data;
 
@@ -184,17 +182,9 @@ export function WalletScreen() {
             />
 
             <StripeConnectPanel onConnected={handleStripeConnected} />
-            {settlementQuery.data?.onDemandPayoutEnabled ? (
-              <SettlementOnDemandWithdrawPanel
-                settlementMoco={settlementQuery.data.settlementMocoPoints ?? 0}
-                bankReady={!!stripeConnectQuery.data?.stripeOnboardingCompleted}
-              />
-            ) : (
-              <RevenuePayoutPanel
-                withdrawable={withdrawable}
-                bankReady={!!stripeConnectQuery.data?.stripeOnboardingCompleted}
-              />
-            )}
+            <SettlementOnDemandWithdrawPanel
+              settlementMoco={settlementQuery.data?.settlementMocoPoints ?? 0}
+            />
 
             <UnifiedSettlementHistoryPanel />
 

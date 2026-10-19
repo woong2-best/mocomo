@@ -4,11 +4,6 @@ import {
   MAX_REWARD_TRANSFER_RETRIES,
   REWARD_RETRYABLE_STATUSES,
 } from "@/lib/settlement-moco/payout-status";
-import { deprecateOpenSettlementCyclesForOnDemand } from "@/lib/settlement-moco/cycle-deprecation";
-import { lockAllCreatorSettlementCycles } from "@/lib/settlement-moco/cycle-lock";
-import { isMocoSettlementLockDay } from "@/lib/settlement-moco/cycle-period";
-import { processLockedSettlementCycles } from "@/lib/settlement-moco/cycle-run";
-import { isOnDemandPayoutEnabled } from "@/lib/settlement-moco/feature-flags";
 import { executeRewardTransfer } from "@/lib/settlement-moco/reward-transfer";
 
 export { executeRewardTransfer } from "@/lib/settlement-moco/reward-transfer";
@@ -93,14 +88,15 @@ export type RunMocoSettlementOptions = {
 };
 
 /**
- * 매월 25일(KST) — 전월 earned MOCO Lock → Reward Transfer.
- * Lock 이후 적립분은 settlementMocoPoints(Available)에만 쌓여 다음 25일 주기에 포함.
+ * Monthly settlement cycles are retired.
+ * Creators cash out the Reward tier they have reached from the wallet.
+ * This no longer locks balances or queues payouts.
  */
 export async function processMonthlySettlementCron(
-  now = new Date(),
-  opts?: RunMocoSettlementOptions,
+  _now = new Date(),
+  _opts?: RunMocoSettlementOptions,
 ): Promise<MonthlySettlementResult> {
-  const result: MonthlySettlementResult = {
+  return {
     processed: 0,
     skipped: 0,
     failed: 0,
@@ -110,42 +106,9 @@ export async function processMonthlySettlementCron(
     lockSkippedDuplicate: 0,
     lockSkippedZero: 0,
     lockFailed: 0,
-    onDemandMode: isOnDemandPayoutEnabled(),
+    onDemandMode: true,
     deprecatedCyclesReleased: 0,
   };
-
-  if (isOnDemandPayoutEnabled()) {
-    const released = await deprecateOpenSettlementCyclesForOnDemand();
-    result.deprecatedCyclesReleased = released.released;
-    const held = await reprocessHeldRewardBatches();
-    result.retried = held.retried;
-    result.processed += held.processed;
-    result.failed += held.failed;
-    result.skipped += held.skipped;
-    return result;
-  }
-
-  const held = await reprocessHeldRewardBatches();
-  result.retried = held.retried;
-  result.processed += held.processed;
-  result.failed += held.failed;
-  result.skipped += held.skipped;
-
-  if (!opts?.payoutOnly && isMocoSettlementLockDay(now, opts?.forceLock)) {
-    const lockSummary = await lockAllCreatorSettlementCycles(now);
-    result.locked = lockSummary.locked;
-    result.lockSkippedDuplicate = lockSummary.skippedDuplicate;
-    result.lockSkippedZero = lockSummary.skippedZero;
-    result.lockFailed = lockSummary.failed;
-  }
-
-  const payout = await processLockedSettlementCycles();
-  result.processed += payout.processed;
-  result.skipped += payout.skipped;
-  result.failed += payout.failed;
-  result.tierSkipped += payout.tierSkipped;
-
-  return result;
 }
 
 /** @deprecated processMonthlySettlementCron 사용 */

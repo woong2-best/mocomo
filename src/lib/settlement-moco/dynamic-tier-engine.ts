@@ -128,6 +128,48 @@ function meetsMinimumTransfer(amount: RewardAmountBreakdown): boolean {
   return amount.netMinor >= 100;
 }
 
+/**
+ * Cash out the published Reward tier the balance already reached.
+ * 19 MOCO is Nexus: pay 15 MOCO for $70.91 and leave 4.
+ * Amounts below Pulse (10 MOCO) cannot be withdrawn.
+ */
+export function quoteAchievedTierWithdrawal(input: {
+  balanceBeforeMoco: number;
+}): OnDemandWithdrawalQuoteResult {
+  const balanceBeforeMoco = Math.max(0, Math.floor(input.balanceBeforeMoco));
+  const tier = achievedCreatorRewardTier(balanceBeforeMoco);
+  if (tier.requiredMoco < MIN_REWARD_WITHDRAW_MOCO || tier.rewardUsd <= 0) {
+    return {
+      ok: false,
+      code: "BELOW_MIN_TIER",
+      message: `Reward payout starts at Pulse (${MIN_REWARD_WITHDRAW_MOCO} MOCO, $47.25).`,
+    };
+  }
+
+  const withdrawMoco = tier.requiredMoco;
+  const usdCents = Math.round(tier.rewardUsd * 100);
+  const transfer = calcTierRewardAmount({
+    rewardUsd: tier.rewardUsd,
+    countryCode: "US",
+  });
+  const activeTierAfter = activeRewardTierForBalance(balanceBeforeMoco - withdrawMoco);
+
+  return {
+    ok: true,
+    withdrawMoco,
+    balanceBeforeMoco,
+    balanceAfterMoco: balanceBeforeMoco - withdrawMoco,
+    activeTierBefore: tier,
+    activeTierAfter,
+    payoutTier: tier,
+    faceValueCents: usdCents,
+    platformMarginCents: 0,
+    netTransferCents: usdCents,
+    netRewardUsd: tier.rewardUsd,
+    transfer,
+  };
+}
+
 export function quoteOnDemandWithdrawal(input: {
   balanceBeforeMoco: number;
   withdrawMoco: number;

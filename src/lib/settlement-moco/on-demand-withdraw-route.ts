@@ -10,7 +10,6 @@ export const ON_DEMAND_WITHDRAW_IDEMPOTENCY_SCOPE = "settlement_on_demand_withdr
 
 export async function handleOnDemandWithdrawPost(
   userId: string,
-  withdrawMoco: number,
   idempotencyKey: string | null,
 ) {
   const key = idempotencyKey?.trim();
@@ -37,7 +36,7 @@ export async function handleOnDemandWithdrawPost(
     return NextResponse.json(begin.body, { status: begin.statusCode });
   }
 
-  const result = await executeOnDemandWithdrawal(userId, withdrawMoco, { idempotencyKey: key });
+  const result = await executeOnDemandWithdrawal(userId, 0, { idempotencyKey: key });
 
   if (!result.ok) {
     await failIdempotentRequest(begin.recordId);

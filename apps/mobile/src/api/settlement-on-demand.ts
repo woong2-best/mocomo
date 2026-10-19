@@ -23,20 +23,20 @@ export type OnDemandWithdrawQuote = {
   };
 };
 
-export async function fetchOnDemandWithdrawQuote(withdrawMoco: number) {
+export async function fetchOnDemandWithdrawQuote() {
   return apiRequest<OnDemandWithdrawQuote>(MobileApi.settlementOnDemandQuote, {
     method: "POST",
-    body: { withdrawMoco },
+    body: {},
     auth: true,
   });
 }
 
-export async function submitOnDemandWithdraw(withdrawMoco: number, idempotencyKey: string) {
-  return apiRequest<{ withdrawalId: string; stripeTransferId: string }>(
+export async function submitOnDemandWithdraw(idempotencyKey: string) {
+  return apiRequest<{ withdrawalId: string; payoutRequestId: string; stripeTransferId: string | null }>(
     MobileApi.settlementOnDemandWithdraw,
     {
       method: "POST",
-      body: { withdrawMoco },
+      body: {},
       auth: true,
       headers: { "X-Idempotency-Key": idempotencyKey },
     },
