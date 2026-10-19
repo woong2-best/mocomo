@@ -21,7 +21,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { FlatList } from "react-native-gesture-handler";
@@ -138,12 +138,14 @@ export function ReelsScreen() {
   const [didSeed, setDidSeed] = useState(false);
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
   const [commentsUiOpen, setCommentsUiOpen] = useState(false);
+  const isCommentOpen = commentsUiOpen;
   const [headerCommentCount, setHeaderCommentCount] = useState(0);
   const [commentDraft, setCommentDraft] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [chromeHidden, setChromeHidden] = useState(false);
   const [pinchZooming, setPinchZooming] = useState(false);
   const commentProgress = useSharedValue(0);
+  const commentLayerSv = useSharedValue(0);
   const liveSheetHeight = useMemo(
     () => reelsCommentSheetHeight(height, insets.bottom),
     [height, insets.bottom]
@@ -426,10 +428,12 @@ export function ReelsScreen() {
   }).current;
 
   const closeComments = useCallback(() => {
+    commentLayerSv.value = 0;
+    commentProgress.value = 0;
     setCommentsPostId(null);
     setCommentsUiOpen(false);
     setCommentDraft("");
-  }, []);
+  }, [commentLayerSv, commentProgress]);
 
   const requestCloseComments = useCallback(() => {
     commentProgress.value = withTiming(
@@ -447,16 +451,20 @@ export function ReelsScreen() {
       setCommentsUiOpen(true);
       setHeaderCommentCount(commentCount);
       setCommentDraft("");
+      commentLayerSv.value = 1;
       commentProgress.value = withTiming(1, {
         duration: REELS_COMMENT_DURATION_MS,
         easing: Easing.out(Easing.cubic),
       });
       void queryClient.ensureQueryData(postCommentsQueryOptions(postId));
     },
-    [commentProgress, queryClient]
+    [commentLayerSv, commentProgress, queryClient]
   );
 
   const pagerAnimStyle = useAnimatedStyle(() => {
+    if (commentLayerSv.value < 0.5) {
+      return { transform: [{ translateY: 0 }, { scale: 1 }] };
+    }
     const v = reelsCommentVideoAtProgress(
       commentProgress.value,
       screenHSv.value,
@@ -528,7 +536,7 @@ export function ReelsScreen() {
           onPrefetchComments={prefetchComments}
           onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
           onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
-          commentsOpen={index === activeSlot && commentsUiOpen}
+          commentsOpen={index === activeSlot && isCommentOpen}
         />
       );
     },
@@ -536,7 +544,7 @@ export function ReelsScreen() {
       activeSlot,
       chrome.stageLeft,
       chrome.stageWidth,
-      commentsUiOpen,
+      isCommentOpen,
       height,
       onFastForwardChange,
       onPinchZoomChange,
@@ -567,19 +575,31 @@ export function ReelsScreen() {
   }, [activeSlot]);
 
   useEffect(() => {
-    if (!commentsUiOpen) setSheetHeight(liveSheetHeight);
-  }, [commentsUiOpen, liveSheetHeight]);
+    if (!isCommentOpen) setSheetHeight(liveSheetHeight);
+  }, [isCommentOpen, liveSheetHeight]);
 
   useEffect(() => {
-    if (!commentsUiOpen) return;
+    if (!isCommentOpen) return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       requestCloseComments();
       return true;
     });
     return () => sub.remove();
-  }, [commentsUiOpen, requestCloseComments]);
+  }, [isCommentOpen, requestCloseComments]);
 
-  const hideChrome = chromeHidden || pinchZooming || commentsUiOpen;
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        commentLayerSv.value = 0;
+        commentProgress.value = 0;
+        setCommentsPostId(null);
+        setCommentsUiOpen(false);
+        setCommentDraft("");
+      };
+    }, [commentLayerSv, commentProgress])
+  );
+
+  const hideChrome = chromeHidden || pinchZooming || isCommentOpen;
 
   if (feedQuery.isLoading && groups.length === 0) {
     return (
@@ -609,15 +629,14 @@ export function ReelsScreen() {
 
       <Animated.View
         collapsable={false}
-        renderToHardwareTextureAndroid
-        pointerEvents={commentsUiOpen ? "none" : "auto"}
+        pointerEvents={isCommentOpen ? "none" : "auto"}
         style={[styles.pager, pagerAnimStyle]}
       >
       <FlatList
         ref={listRef}
         style={styles.pagerFill}
         data={slots}
-        extraData={`${activeSlot}:${chrome.stageWidth}:${chrome.stageLeft}:${height}:${commentsUiOpen ? 1 : 0}`}
+        extraData={`${activeSlot}:${chrome.stageWidth}:${chrome.stageLeft}:${height}:${isCommentOpen ? 1 : 0}`}
         keyExtractor={(s) => s.key}
         renderItem={renderItem}
         pagingEnabled={Platform.OS === "ios"}
@@ -631,7 +650,7 @@ export function ReelsScreen() {
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
-        scrollEnabled={!pinchZooming && !chromeHidden && !commentsUiOpen}
+        scrollEnabled={!pinchZooming && !chromeHidden && !isCommentOpen}
         onLayout={onListLayout}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
@@ -676,30 +695,31 @@ export function ReelsScreen() {
       />
       </Animated.View>
 
-      {commentsUiOpen ? (
-        <Pressable
-          style={[styles.videoHitbox, { height: Math.max(80, height - sheetHeight) }]}
-          onPress={requestCloseComments}
-          accessibilityRole="button"
-          accessibilityLabel={t("m.common.close")}
-        />
+      {isCommentOpen ? (
+        <View style={styles.commentLayer} pointerEvents="box-none">
+          <Pressable
+            style={[styles.videoHitbox, { height: Math.max(80, height - sheetHeight) }]}
+            onPress={requestCloseComments}
+            accessibilityRole="button"
+            accessibilityLabel={t("m.common.close")}
+          />
+          <ReelsCommentsSheet
+            progress={commentProgress}
+            sheetHeight={sheetHeight}
+            commentsPostId={commentsPostId}
+            comments={comments}
+            commentTotal={commentTotal}
+            showSpinner={showCommentsSpinner}
+            draft={commentDraft}
+            busy={commentBusy}
+            canPin={canPinReels}
+            copy={copy}
+            onDraftChange={setCommentDraft}
+            onSubmit={() => void submitComment()}
+            onClosed={closeComments}
+          />
+        </View>
       ) : null}
-
-      <ReelsCommentsSheet
-        progress={commentProgress}
-        sheetHeight={sheetHeight}
-        commentsPostId={commentsPostId}
-        comments={comments}
-        commentTotal={commentTotal}
-        showSpinner={showCommentsSpinner}
-        draft={commentDraft}
-        busy={commentBusy}
-        canPin={canPinReels}
-        copy={copy}
-        onDraftChange={setCommentDraft}
-        onSubmit={() => void submitComment()}
-        onClosed={closeComments}
-      />
     </View>
   );
 }
@@ -708,12 +728,17 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#000", overflow: "hidden" },
   pager: { flex: 1, overflow: "hidden" },
   pagerFill: { flex: 1 },
+  commentLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 40,
+    elevation: 40,
+  },
   videoHitbox: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 30,
+    zIndex: 1,
   },
   center: {
     flex: 1,

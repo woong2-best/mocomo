@@ -592,16 +592,16 @@ function FeedVideoPostSlideInner({
   }
 
   return (
-    <View style={{ width, height, backgroundColor: "#000", overflow: "hidden" }}>
+    <View style={{ width, height, backgroundColor: "#000", overflow: "hidden", zIndex: 0 }}>
       <View
         style={{
           position: "absolute",
           left: stageLeft,
           width: stageWidth,
           height,
-          overflow: pinchZooming ? "visible" : "hidden",
-          borderRadius: pinchZooming ? 0 : isWide ? REELS_WIDE_CARD_RADIUS : 0,
-          zIndex: pinchZooming ? 12 : 0,
+          overflow: pinchZooming && !commentsOpen ? "visible" : "hidden",
+          borderRadius: pinchZooming && !commentsOpen ? 0 : isWide ? REELS_WIDE_CARD_RADIUS : 0,
+          zIndex: pinchZooming && !commentsOpen ? 12 : 0,
         }}
       >
       <FlatList

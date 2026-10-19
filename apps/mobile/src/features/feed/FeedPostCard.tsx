@@ -678,6 +678,9 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
   const avatarRing = isDark ? "rgba(107, 163, 232, 0.45)" : "rgba(168, 180, 200, 0.95)";
   return StyleSheet.create({
     card: {
+      position: "relative",
+      zIndex: 0,
+      elevation: 0,
       backgroundColor: colors.background,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.hairline,
@@ -763,7 +766,15 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     quoteName: { fontSize: 13, fontWeight: "700", color: colors.text },
     quoteHandle: { fontSize: 13, fontWeight: "400", color: colors.textMuted },
     quoteBody: { marginTop: 4, fontSize: 14, lineHeight: 19, color: colors.textMuted },
-    header: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+    header: {
+      position: "relative",
+      zIndex: 2,
+      elevation: 2,
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 6,
+      backgroundColor: colors.background,
+    },
     headerMain: { flex: 1, alignSelf: "stretch", justifyContent: "center" },
     headerRow: {
       flexDirection: "row",
