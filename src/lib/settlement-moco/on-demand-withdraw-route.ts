@@ -46,6 +46,8 @@ export async function handleOnDemandWithdrawPost(
 
   const payload = {
     withdrawalId: result.withdrawalId,
+    payoutRequestId: result.payoutRequestId,
+    status: "PENDING",
     stripeTransferId: result.stripeTransferId,
   };
 

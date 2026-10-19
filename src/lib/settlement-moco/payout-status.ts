@@ -14,6 +14,8 @@ export const REWARD_BATCH_STATUS = {
   SKIPPED_BELOW_MINIMUM: "SKIPPED_BELOW_MINIMUM",
   /** 레거시 포괄 스킵 */
   SKIPPED: "SKIPPED",
+  /** Stripe Connect transfer removed — waiting for manual payout */
+  MANUAL_QUEUED: "MANUAL_QUEUED",
 } as const;
 
 export type RewardBatchStatus =

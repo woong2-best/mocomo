@@ -15,6 +15,17 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
+  if (body?.audience !== "marketplace") {
+    return NextResponse.json(
+      {
+        error:
+          "Creator payouts are sent manually. Upload a W-9 or W-8BEN and a Payoneer, Wise, or bank destination in your wallet.",
+        code: "CONNECT_PAYOUT_RETIRED",
+      },
+      { status: 410 },
+    );
+  }
+
   const requestCardPayments = body?.requestCardPayments === true;
   const payoutCountry = typeof body?.payoutCountry === "string" ? body.payoutCountry : undefined;
 

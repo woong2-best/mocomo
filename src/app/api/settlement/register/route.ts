@@ -3,12 +3,11 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 
 const DEPRECATED_BODY = {
   error:
-    "Direct in-app bank registration (Custom Connect) is no longer supported. Use Stripe Express onboarding.",
-  code: "CUSTOM_CONNECT_DEPRECATED",
-  redirect: "/api/settlements/connect-account",
+    "Creator payouts are sent manually. Upload a W-9 or W-8BEN and a Payoneer, Wise, or bank destination in your wallet.",
+  code: "CONNECT_PAYOUT_RETIRED",
 } as const;
 
-/** @deprecated Custom Connect 제거 — POST /api/settlements/connect-account (Express) 사용 */
+/** Creator payout registration no longer creates a Stripe Connect account. */
 export async function POST(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "settlement-register", 5);
   if (limited) return limited;

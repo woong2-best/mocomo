@@ -8,12 +8,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
 import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
-import { SettlementRegistrationPanel } from "@/components/wallet/settlement-registration-panel";
 import { LEDGER_LABELS } from "@/lib/wallet-labels";
 import { REWARD_TERMS_LABEL } from "@/lib/settlement-moco/constants";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { CreatorRewardTierTable } from "@/components/wallet/creator-reward-tier-table";
 import { OnDemandWithdrawalPanel } from "@/components/wallet/on-demand-withdrawal-panel";
+import { ManualPayoutSetup } from "@/components/wallet/manual-payout-setup";
 import { UnifiedSettlementHistoryPanel } from "@/components/wallet/unified-settlement-history-panel";
 import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
 import {
@@ -114,16 +114,13 @@ export function RevenueSettlementPanel({
         </p>
       </div>
 
-      {settlement.onDemandPayoutEnabled ? (
-        <OnDemandWithdrawalPanel
-          settlementMoco={earned}
-          payoutsEnabled={settlement.payoutsEnabled}
-          onSuccess={() => {
-            router.refresh();
-            setHistoryRefreshKey((k) => k + 1);
-          }}
-        />
-      ) : null}
+      <OnDemandWithdrawalPanel
+        settlementMoco={earned}
+        onSuccess={() => {
+          router.refresh();
+          setHistoryRefreshKey((k) => k + 1);
+        }}
+      />
 
       <UnifiedSettlementHistoryPanel refreshKey={historyRefreshKey} />
 
@@ -157,17 +154,7 @@ export function RevenueSettlementPanel({
         </div>
       ) : null}
 
-      <SettlementRegistrationPanel
-        registered={settlement.registered}
-        payoutsEnabled={settlement.payoutsEnabled}
-        hasConnectAccount={settlement.hasConnectAccount}
-        needsExpressMigration={settlement.needsExpressMigration}
-        taxReportingReady={settlement.taxReportingReady}
-        taxRequirementsDue={settlement.taxRequirementsDue}
-        profile={settlement.profile}
-        detailsSubmitted={settlement.payoutDashboard?.detailsSubmitted}
-        notReadyReasons={settlement.payoutDashboard?.reasons}
-      />
+      <ManualPayoutSetup />
 
       <div className={cn("space-y-4 pt-2 border-t border-border/50", pending && "opacity-70 pointer-events-none")}>
         <p className="text-sm font-bold px-1">{t("wallet.s10el2q8")}</p>

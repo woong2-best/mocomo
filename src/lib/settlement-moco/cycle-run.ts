@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { createNotification } from "@/lib/notifications";
 import { isOnDemandPayoutEnabled } from "@/lib/settlement-moco/feature-flags";
 import { achievedSettlementRewardTier } from "@/lib/settlement-moco/tier-config";
 import { checkCreatorRewardPayoutGate } from "@/lib/settlement-moco/payout-gate";
@@ -13,16 +12,6 @@ import {
   markSettlementCyclePaid,
 } from "@/lib/settlement-moco/cycle-payout";
 import { executeRewardTransfer } from "@/lib/settlement-moco/reward-transfer";
-
-async function notifyRewardGateSkip(userId: string, skipReason: string) {
-  await createNotification({
-    userId,
-    type: "system",
-    title: "Reward settlement is on hold",
-    body: skipReason,
-    link: "/wallet",
-  }).catch(() => null);
-}
 
 async function processOneLockedCycle(cycleId: string): Promise<"processed" | "skipped" | "failed" | "tierSkipped"> {
   const cycle = await db.creatorMocoSettlementCycle.findUnique({
@@ -125,18 +114,10 @@ async function processOneLockedCycle(cycleId: string): Promise<"processed" | "sk
     data: { rewardPayoutBatchId: batch.id },
   });
 
-  if (!gate.ok || !gate.accountId) {
-    await notifyRewardGateSkip(
-      plan.userId,
-      gate.skipReason ?? "Reward payout is on hold because settlement registration is incomplete.",
-    );
-    return "skipped";
-  }
-
   const outcome = await executeRewardTransfer({
     batchId: batch.id,
     userId: plan.userId,
-    accountId: gate.accountId,
+    accountId: gate.accountId ?? "manual",
     netMinor: plan.amount.netMinor,
     currency: plan.amount.currency,
     year: cycle.periodYear,
@@ -147,7 +128,7 @@ async function processOneLockedCycle(cycleId: string): Promise<"processed" | "sk
   });
 
   if (outcome === "processed") return "processed";
-  await markSettlementCycleFailed(cycleId, "Stripe Transfer failed");
+  await markSettlementCycleFailed(cycleId, "Could not queue manual payout");
   return "failed";
 }
 

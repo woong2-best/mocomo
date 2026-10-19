@@ -8,6 +8,7 @@ export default defineConfig({
     include: [
       "src/lib/marketplace/__tests__/**/*.test.ts",
       "src/lib/settlement-moco/__tests__/**/*.test.ts",
+      "src/lib/creator-payout/__tests__/**/*.test.ts",
       "src/lib/__tests__/api-idempotency.test.ts",
       "src/lib/__tests__/error-text.test.ts",
       "src/lib/__tests__/used-market-query.test.ts",

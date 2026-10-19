@@ -1,9 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { getStripe } from "@/lib/stripe";
+import { assertManualPayoutReady } from "@/lib/creator-payout/readiness";
 import { syncEarnedMocoDisplayTier } from "@/lib/settlement-moco/balance";
 import { quoteOnDemandWithdrawal } from "@/lib/settlement-moco/dynamic-tier-engine";
-import { checkCreatorRewardPayoutGate } from "@/lib/settlement-moco/payout-gate";
 import { REWARD_BATCH_STATUS } from "@/lib/settlement-moco/payout-status";
 import type { OnDemandWithdrawalQuoteResult } from "@/lib/settlement-moco/dynamic-tier-engine";
 
@@ -48,7 +47,7 @@ export async function getOnDemandWithdrawalQuoteForUser(
 }
 
 export type ExecuteOnDemandWithdrawalResult =
-  | { ok: true; withdrawalId: string; stripeTransferId: string }
+  | { ok: true; withdrawalId: string; payoutRequestId: string; stripeTransferId: string | null }
   | { ok: false; code: string; message: string; status: number };
 
 export type ExecuteOnDemandWithdrawalOptions = {
@@ -56,8 +55,8 @@ export type ExecuteOnDemandWithdrawalOptions = {
 };
 
 /**
- * Real-time on-demand payout: debit settlement MOCO, Stripe Connect transfer (net after platform margin).
- * Stripe payout/transfer fees apply on the connected account (pass-through).
+ * Debits settlement MOCO and records a PENDING manual payout.
+ * Stripe Connect transfers are not created. Ops pays Payoneer / Wise / bank later.
  */
 export async function executeOnDemandWithdrawal(
   userId: string,
@@ -69,12 +68,7 @@ export async function executeOnDemandWithdrawal(
   if (idempotencyKey) {
     const existing = await db.creatorMocoOnDemandWithdrawal.findUnique({
       where: { idempotencyKey },
-      select: {
-        id: true,
-        userId: true,
-        status: true,
-        stripeTransferId: true,
-      },
+      select: { id: true, userId: true, status: true, stripeTransferId: true },
     });
     if (existing) {
       if (existing.userId !== userId) {
@@ -85,10 +79,23 @@ export async function executeOnDemandWithdrawal(
           status: 409,
         };
       }
+      const linked = await db.creatorPayoutRequest.findUnique({
+        where: { withdrawalId: existing.id },
+        select: { id: true },
+      });
+      if (linked) {
+        return {
+          ok: true,
+          withdrawalId: existing.id,
+          payoutRequestId: linked.id,
+          stripeTransferId: existing.stripeTransferId,
+        };
+      }
       if (existing.status === REWARD_BATCH_STATUS.COMPLETED && existing.stripeTransferId) {
         return {
           ok: true,
           withdrawalId: existing.id,
+          payoutRequestId: existing.id,
           stripeTransferId: existing.stripeTransferId,
         };
       }
@@ -114,19 +121,17 @@ export async function executeOnDemandWithdrawal(
     return { ok: false, code: quote.code, message: quote.message, status };
   }
 
-  const gate = await checkCreatorRewardPayoutGate(userId);
-  if (!gate.ok || !gate.accountId) {
-    return {
-      ok: false,
-      code: gate.skipStatus ?? "PAYOUT_GATE",
-      message: gate.skipReason ?? "Complete payout account setup.",
-      status: 403,
-    };
-  }
+  const ready = await assertManualPayoutReady(userId);
+  if (!ready.ok) return ready;
 
-  let withdrawal: { id: string };
+  let created: { withdrawalId: string; payoutRequestId: string };
   try {
-    withdrawal = await db.$transaction(async (tx) => {
+    created = await db.$transaction(async (tx) => {
+      const pending = await tx.creatorPayoutRequest.count({
+        where: { userId, status: "PENDING", source: "ON_DEMAND" },
+      });
+      if (pending > 0) throw new Error("PENDING_EXISTS");
+
       const locked = await lockPlatformWalletRow(tx, userId);
       if (!locked || locked.settlementMocoPoints < quote.withdrawMoco) {
         throw new Error("INSUFFICIENT_BALANCE");
@@ -136,10 +141,9 @@ export async function executeOnDemandWithdrawal(
         where: { id: locked.id },
         data: { settlementMocoPoints: { decrement: quote.withdrawMoco } },
       });
-
       await syncEarnedMocoDisplayTier(userId, updated.settlementMocoPoints, tx);
 
-      const row = await tx.creatorMocoOnDemandWithdrawal.create({
+      const withdrawal = await tx.creatorMocoOnDemandWithdrawal.create({
         data: {
           userId,
           withdrawMoco: quote.withdrawMoco,
@@ -160,19 +164,35 @@ export async function executeOnDemandWithdrawal(
         },
       });
 
+      const request = await tx.creatorPayoutRequest.create({
+        data: {
+          userId,
+          mocoAmount: quote.withdrawMoco,
+          usdCents: quote.netTransferCents,
+          amountMinor: quote.transfer.netMinor,
+          currency: quote.transfer.currency,
+          status: "PENDING",
+          payoutMethodKind: ready.method.kind,
+          payoutMethodHint: ready.method.hint,
+          source: "ON_DEMAND",
+          withdrawalId: withdrawal.id,
+          idempotencyKey: idempotencyKey || null,
+        },
+      });
+
       await tx.platformWalletLedger.create({
         data: {
           walletId: locked.id,
           bucket: "SETTLEMENT_MOCO",
           delta: -quote.withdrawMoco,
           balanceAfter: updated.settlementMocoPoints,
-          reason: "Reward on-demand withdrawal",
-          referenceType: "moco_on_demand_withdrawal",
-          referenceId: row.id,
+          reason: "Manual reward payout request",
+          referenceType: "creator_payout_request",
+          referenceId: request.id,
         },
       });
 
-      return row;
+      return { withdrawalId: withdrawal.id, payoutRequestId: request.id };
     }, TX_OPTIONS);
   } catch (e) {
     if (e instanceof Error && e.message === "INSUFFICIENT_BALANCE") {
@@ -183,18 +203,38 @@ export async function executeOnDemandWithdrawal(
         status: 402,
       };
     }
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002" &&
-      idempotencyKey
-    ) {
+    if (e instanceof Error && e.message === "PENDING_EXISTS") {
+      return {
+        ok: false,
+        code: "PAYOUT_ALREADY_PENDING",
+        message: "You already have a payout waiting for manual payment.",
+        status: 409,
+      };
+    }
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2034") {
+      return {
+        ok: false,
+        code: "PAYOUT_ALREADY_PENDING",
+        message: "You already have a payout waiting for manual payment.",
+        status: 409,
+      };
+    }
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" && idempotencyKey) {
       const raced = await db.creatorMocoOnDemandWithdrawal.findUnique({
         where: { idempotencyKey },
+        select: { id: true, stripeTransferId: true },
       });
-      if (raced?.status === REWARD_BATCH_STATUS.COMPLETED && raced.stripeTransferId) {
+      const linked = raced
+        ? await db.creatorPayoutRequest.findUnique({
+            where: { withdrawalId: raced.id },
+            select: { id: true },
+          })
+        : null;
+      if (raced && linked) {
         return {
           ok: true,
           withdrawalId: raced.id,
+          payoutRequestId: linked.id,
           stripeTransferId: raced.stripeTransferId,
         };
       }
@@ -208,80 +248,10 @@ export async function executeOnDemandWithdrawal(
     throw e;
   }
 
-  const stripe = getStripe();
-  try {
-    const transfer = await stripe.transfers.create(
-      {
-        amount: quote.transfer.netMinor,
-        currency: quote.transfer.currency,
-        destination: gate.accountId,
-        metadata: {
-          mocomoUserId: userId,
-          withdrawalId: withdrawal.id,
-          type: "creator_reward_on_demand",
-          withdrawMoco: String(quote.withdrawMoco),
-          payoutTier: quote.payoutTier.label,
-          activeTierAfter: quote.activeTierAfter.label,
-          ...(idempotencyKey ? { idempotencyKey } : {}),
-        },
-      },
-      idempotencyKey ? { idempotencyKey: `moco_wd_${idempotencyKey}` } : undefined,
-    );
-
-    await db.creatorMocoOnDemandWithdrawal.update({
-      where: { id: withdrawal.id },
-      data: {
-        status: REWARD_BATCH_STATUS.COMPLETED,
-        stripeTransferId: transfer.id,
-        completedAt: new Date(),
-      },
-    });
-
-    await db.creatorBalance
-      .update({
-        where: { creatorId: userId },
-        data: {
-          accumulatedAllocationCents: { decrement: quote.netTransferCents },
-          withdrawnCents: { increment: quote.transfer.netMinor },
-        },
-      })
-      .catch(() => null);
-
-    return { ok: true, withdrawalId: withdrawal.id, stripeTransferId: transfer.id };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Transfer failed";
-    await db.$transaction(async (tx) => {
-      await tx.creatorMocoOnDemandWithdrawal.update({
-        where: { id: withdrawal.id },
-        data: {
-          status: REWARD_BATCH_STATUS.FAILED,
-          errorMessage: msg,
-        },
-      });
-
-      const locked = await lockPlatformWalletRow(tx, userId);
-      if (!locked) return;
-
-      const restored = await tx.platformWallet.update({
-        where: { id: locked.id },
-        data: { settlementMocoPoints: { increment: quote.withdrawMoco } },
-      });
-
-      await tx.platformWalletLedger.create({
-        data: {
-          walletId: locked.id,
-          bucket: "SETTLEMENT_MOCO",
-          delta: quote.withdrawMoco,
-          balanceAfter: restored.settlementMocoPoints,
-          reason: "Reward on-demand withdrawal failure reversal",
-          referenceType: "moco_on_demand_withdrawal_reversal",
-          referenceId: withdrawal.id,
-        },
-      });
-
-      await syncEarnedMocoDisplayTier(userId, restored.settlementMocoPoints, tx);
-    }, TX_OPTIONS);
-
-    return { ok: false, code: "TRANSFER_FAILED", message: msg, status: 502 };
-  }
+  return {
+    ok: true,
+    withdrawalId: created.withdrawalId,
+    payoutRequestId: created.payoutRequestId,
+    stripeTransferId: null,
+  };
 }

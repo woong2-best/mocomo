@@ -594,6 +594,11 @@ model User {
   payoutRequests   PayoutRequest[]
   ledgerEntries    LedgerEntry[]
   payoutsProcessed PayoutRequest[] @relation("PayoutProcessor")
+  creatorTaxInfo   CreatorTaxInfo?
+  payoutMethod     PayoutMethod?
+  creatorPayoutRequests CreatorPayoutRequest[]
+  creatorPayoutRequestsProcessed CreatorPayoutRequest[] @relation("CreatorPayoutRequestProcessor")
+  creatorTaxReviews CreatorTaxInfo[] @relation("CreatorTaxInfoReviewer")
 
   gemPurchases                 GemPurchase[]              @relation("GemPurchaseFan")
   mocoFortuneCookies           MocoFortuneCookie[]
@@ -5240,6 +5245,110 @@ model CreatorMocoOnDemandWithdrawal {
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([stripeTransferId])
+}
+
+/** W-9 (US person) or W-8BEN (non-US person). File lives in private storage. */
+enum CreatorTaxFormType {
+  W9
+  W8BEN
+}
+
+enum CreatorTaxReviewStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CreatorPayoutDestinationKind {
+  PAYONEER
+  WISE
+  BANK
+  /** Historical queue row created before a destination was registered. */
+  UNSPECIFIED
+}
+
+enum CreatorPayoutRequestStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
+enum CreatorPayoutRequestSource {
+  ON_DEMAND
+  REWARD_BATCH
+  LEGACY_GIFT
+}
+
+/**
+ * Creator tax form. `tax_form_url` stores a private object key, never a public URL.
+ * W-9 / W-8BEN contain TINs, so the object is not world-readable.
+ */
+model CreatorTaxInfo {
+  id            String                 @id @default(cuid())
+  userId        String                 @unique
+  taxFormType   CreatorTaxFormType
+  taxFormUrl    String                 @map("tax_form_url")
+  status        CreatorTaxReviewStatus @default(PENDING)
+  rejectionNote String?                @db.Text
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("CreatorTaxInfoReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+/** Encrypted Payoneer / Wise / bank destination for manual creator payouts. */
+model PayoutMethod {
+  id                String                       @id @default(cuid())
+  userId            String                       @unique
+  kind              CreatorPayoutDestinationKind
+  destinationCipher String                       @db.Text
+  destinationKeyId  String
+  destinationHint   String
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * Manual creator reward payout ledger.
+ * The older `PayoutRequest` model remains the marketplace bank ledger.
+ */
+model CreatorPayoutRequest {
+  id               String                       @id @default(cuid())
+  userId           String
+  mocoAmount       Int
+  /** USD cents after the reward quote. 0 when the send currency is not USD. */
+  usdCents         Int
+  /** Amount ops should send, in `currency` minor units. */
+  amountMinor      Int
+  currency         String                       @default("usd")
+  status           CreatorPayoutRequestStatus   @default(PENDING)
+  completedAt      DateTime?                    @map("completed_at")
+  txReference      String?                      @map("tx_reference")
+  adminNote        String?                      @db.Text
+  processedById    String?
+  rejectedAt       DateTime?
+  payoutMethodKind CreatorPayoutDestinationKind
+  payoutMethodHint String
+  source           CreatorPayoutRequestSource   @default(ON_DEMAND)
+  rewardBatchId    String?                      @unique
+  giftBatchId      String?                      @unique
+  withdrawalId     String?                      @unique
+  idempotencyKey   String?                      @unique
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processedBy User? @relation("CreatorPayoutRequestProcessor", fields: [processedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId, status, createdAt])
 }
 
 model ApiIdempotencyKey {

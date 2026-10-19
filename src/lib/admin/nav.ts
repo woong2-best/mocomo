@@ -42,6 +42,7 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin/birth-dates", label: "생년월일 이력", icon: CalendarDays, permission: "users.birthDate" },
   { href: "/admin/creators", label: "Creators", icon: Drama, permission: "creators" },
   { href: "/admin/settlements", label: "Settlements", icon: CreditCard, permission: "settlements" },
+  { href: "/admin/settlements/manual", label: "Manual payouts", icon: Landmark, permission: "settlements" },
   { href: "/admin/products", label: "Products", icon: ShoppingBag, permission: "products" },
   { href: "/admin/communities", label: "Communities", icon: MessagesSquare, permission: "communities" },
   { href: "/admin/live", label: "Live", icon: Radio, permission: "live" },

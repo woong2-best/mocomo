@@ -42,7 +42,7 @@ export function SettlementAccountBanner({
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-bold text-red-700 dark:text-red-300">{message}</span>
         <span className="block text-xs text-red-700/75 dark:text-red-300/75">
-          지갑 → 수익 탭에서 Stripe Connect 연동
+          Wallet, Earnings tab: upload a tax form and payout destination
         </span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-red-600/70 dark:text-red-400/70" aria-hidden />

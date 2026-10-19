@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-/** @deprecated Custom Connect 제거 — POST /api/mobile/settlements/connect-account 사용 */
+/** Creator payouts no longer create a Stripe Connect account. */
 export async function POST(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-stripe-connect-onboard", 10);
   if (limited) return limited;
@@ -29,9 +29,8 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(
     {
       error:
-        "Direct in-app bank registration (Custom Connect) is no longer supported. Use Stripe Express onboarding.",
-      code: "CUSTOM_CONNECT_DEPRECATED",
-      redirect: "/api/mobile/settlements/connect-account",
+        "Creator payouts are sent manually. Upload a W-9 or W-8BEN and a Payoneer, Wise, or bank destination in your wallet.",
+      code: "CONNECT_PAYOUT_RETIRED",
     },
     { status: 410 }
   );

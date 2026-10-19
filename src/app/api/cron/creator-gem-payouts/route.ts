@@ -5,7 +5,7 @@ import { processCreatorPayouts } from "@/lib/gems/payout";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-/** Cron — aggregate GiftEvents → CreatorPayoutBatch → Stripe Transfer (batch, not per-event) */
+/** Cron — aggregate legacy GiftEvents into a manual payout request. Stripe is not called. */
 export async function GET(req: NextRequest) {
   if (isProduction() && !verifyInternalSecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

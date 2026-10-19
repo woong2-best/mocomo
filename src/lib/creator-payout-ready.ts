@@ -27,13 +27,10 @@ export type StripeAccountNotReady = {
   error: typeof STRIPE_ACCOUNT_NOT_READY_MESSAGE;
 };
 
-/** Stripe Connect payouts_enabled 스냅샷. 프로필 거주 국가는 보지 않는다. */
-export async function isCreatorPayoutsEnabled(userId: string): Promise<boolean> {
-  const profile = await db.creatorSettlementProfile.findUnique({
-    where: { userId },
-    select: { payoutsEnabled: true },
-  });
-  return profile?.payoutsEnabled === true;
+/** Stripe Connect payouts_enabled is no longer required to receive tips.
+ * Cash-out is gated by a verified tax form and payout destination. */
+export async function isCreatorPayoutsEnabled(_userId: string): Promise<boolean> {
+  return true;
 }
 
 export async function assertCreatorPayoutsEnabled(

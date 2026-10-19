@@ -26,20 +26,22 @@ function formatUsdFromCents(cents: number) {
 
 type Props = {
   settlementMoco: number;
-  payoutsEnabled: boolean;
+  /** @deprecated Stripe Connect is no longer required for creator payouts. */
+  payoutsEnabled?: boolean;
   onSuccess?: () => void;
 };
 
-export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSuccess }: Props) {
+export function OnDemandWithdrawalPanel({ settlementMoco, onSuccess }: Props) {
   const [amount, setAmount] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [successTransferId, setSuccessTransferId] = useState<string | null>(null);
+  const [successRequestId, setSuccessRequestId] = useState<string | null>(null);
   const [tierConfirm, setTierConfirm] = useState(false);
   const [showTierModal, setShowTierModal] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
 
   const requestedMoco = useMemo(() => {
     const n = Number(amount.replace(/\D/g, ""));
@@ -49,7 +51,7 @@ export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSucc
   const debouncedMoco = useDebouncedValue(requestedMoco, 300);
 
   useEffect(() => {
-    setSuccessTransferId(null);
+    setSuccessRequestId(null);
     if (debouncedMoco <= 0) {
       setQuote(null);
       setQuoteError(null);
@@ -102,12 +104,26 @@ export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSucc
         },
         body: JSON.stringify({ withdrawMoco: requestedMoco }),
       });
-      const data = (await res.json()) as { stripeTransferId?: string; error?: string };
+      const data = (await res.json()) as {
+        payoutRequestId?: string;
+        error?: string;
+        code?: string;
+      };
       if (!res.ok) {
+        if (
+          data.code === "TAX_FORM_REQUIRED" ||
+          data.code === "TAX_FORM_PENDING" ||
+          data.code === "TAX_FORM_REJECTED" ||
+          data.code === "PAYOUT_METHOD_REQUIRED"
+        ) {
+          setShowSetupModal(true);
+          setSubmitError(null);
+          return;
+        }
         setSubmitError(data.error ?? "Withdrawal failed");
         return;
       }
-      setSuccessTransferId(data.stripeTransferId ?? null);
+      setSuccessRequestId(data.payoutRequestId ?? null);
       setAmount("");
       setQuote(null);
       onSuccess?.();
@@ -120,7 +136,7 @@ export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSucc
   }, [requestedMoco, onSuccess]);
 
   function onSubmitClick() {
-    if (!quote || !payoutsEnabled) return;
+    if (!quote) return;
     if (quote.tierDowngrade && !tierConfirm) {
       setShowTierModal(true);
       return;
@@ -162,7 +178,7 @@ export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSucc
             </span>
           </div>
           <div className="flex justify-between gap-2 font-bold">
-            <span>Net to Connect</span>
+            <span>Net payout</span>
             <span>
               {quote.transfer.currency === "usd"
                 ? formatUsdFromCents(quote.transfer.netMinor)
@@ -177,9 +193,9 @@ export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSucc
         </div>
       ) : null}
 
-      {successTransferId ? (
+      {successRequestId ? (
         <p className="text-xs text-emerald-700 dark:text-emerald-400">
-          Payout submitted · Transfer {successTransferId}
+          Payout request received. MoCoMo will send it manually. Reference {successRequestId}
         </p>
       ) : null}
       {submitError ? <p className="text-xs text-destructive">{submitError}</p> : null}
@@ -187,15 +203,15 @@ export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSucc
       <Button
         type="button"
         className="w-full"
-        disabled={!quote || submitting || !payoutsEnabled || requestedMoco <= 0}
+        disabled={!quote || submitting || requestedMoco <= 0}
         onClick={onSubmitClick}
       >
-        {submitting ? "Processing…" : "Withdraw to Connect"}
+        {submitting ? "Processing…" : "Request payout"}
       </Button>
 
-      {!payoutsEnabled ? (
-        <p className="text-xs text-muted-foreground">Complete Stripe Connect setup to withdraw.</p>
-      ) : null}
+      <p className="text-xs text-muted-foreground">
+        Payouts are sent manually after your tax form is verified. Stripe Connect is not used.
+      </p>
 
       {showTierModal && quote?.tierDowngrade ? (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4">
@@ -227,6 +243,31 @@ export function OnDemandWithdrawalPanel({ settlementMoco, payoutsEnabled, onSucc
                 onClick={() => void runWithdraw()}
               >
                 Confirm withdrawal
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showSetupModal ? (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4">
+          <div className="max-w-md w-full rounded-2xl bg-card border border-border p-4 space-y-3 shadow-xl">
+            <p className="font-bold">Payout details required</p>
+            <p className="text-sm leading-relaxed">
+              To request a payout, upload a tax form (W-9 or W-8BEN) and register a payout email (Payoneer, Wise, or bank). Requests open after the form is verified.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="ghost" onClick={() => setShowSetupModal(false)}>
+                Close
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setShowSetupModal(false);
+                  document.getElementById("manual-payout-setup")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                Add details
               </Button>
             </div>
           </div>

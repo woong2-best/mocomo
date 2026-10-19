@@ -1,9 +1,7 @@
 import { db } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
-import { checkCreatorRewardPayoutGate } from "@/lib/settlement-moco/payout-gate";
 import {
   MAX_REWARD_TRANSFER_RETRIES,
-  REWARD_BATCH_STATUS,
   REWARD_RETRYABLE_STATUSES,
 } from "@/lib/settlement-moco/payout-status";
 import { deprecateOpenSettlementCyclesForOnDemand } from "@/lib/settlement-moco/cycle-deprecation";
@@ -62,25 +60,10 @@ export async function reprocessHeldRewardBatches(opts?: {
 
   for (const batch of batches) {
     result.retried++;
-    const gate = await checkCreatorRewardPayoutGate(batch.userId);
-    if (!gate.ok || !gate.accountId) {
-      result.skipped++;
-      await db.creatorRewardPayoutBatch.update({
-        where: { id: batch.id },
-        data: {
-          status: gate.skipStatus ?? REWARD_BATCH_STATUS.SKIPPED_UNONBOARDED,
-          skipReason: gate.skipReason,
-          errorMessage: gate.skipReason,
-          lastRetryAt: new Date(),
-        },
-      });
-      continue;
-    }
-
     const outcome = await executeRewardTransfer({
       batchId: batch.id,
       userId: batch.userId,
-      accountId: gate.accountId,
+      accountId: "manual",
       netMinor: batch.netAmountMinor,
       currency: batch.currency,
       year: batch.periodYear,

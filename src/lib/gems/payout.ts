@@ -1,9 +1,7 @@
 import { db } from "@/lib/db";
-import { getStripe } from "@/lib/stripe";
 import {
   GEMS_RATE_VERSION,
   GEM_TO_USD_RATE,
-  PAYOUT_INSTANT_FROM_USD,
   PAYOUT_SKIP_BELOW_USD,
   PLATFORM_MARGIN_RATE,
   usdToStripeCents,
@@ -46,7 +44,7 @@ export type CreatorPayoutBatchResult = {
   failed: number;
 };
 
-/** @deprecated MOCO 후원은 정산 MOCO 적립 → 월말 Reward 지급. 레거시 GiftEvent만 처리 */
+/** Legacy GiftEvents that were never credited as settlement MOCO. Queues a manual payout. */
 export async function processCreatorPayouts(): Promise<CreatorPayoutBatchResult> {
   const unpayoutEvents = await db.giftEvent.findMany({
     where: { payoutBatchId: null },
@@ -82,17 +80,17 @@ export async function processCreatorPayouts(): Promise<CreatorPayoutBatchResult>
 
     const creator = await db.user.findUnique({
       where: { id: creatorId },
-      select: { stripeConnectAccountId: true },
+      select: { id: true },
     });
-    if (!creator?.stripeConnectAccountId?.trim()) {
+    if (!creator) {
       result.skipped++;
       continue;
     }
 
     const isSuspicious = await checkFraud(creatorId, totalUsd, events.length);
-    const batchStatus = isSuspicious ? "held_for_review" : "pending";
+    const batchStatus = isSuspicious ? "held_for_review" : "manual_pending";
     const netPayoutUsd = totalUsd * (1 - PLATFORM_MARGIN_RATE);
-    const payoutMethod = netPayoutUsd >= PAYOUT_INSTANT_FROM_USD ? "instant" : "standard";
+    const payoutMethod = "manual";
 
     const batch = await db.creatorPayoutBatch.create({
       data: {
@@ -115,32 +113,23 @@ export async function processCreatorPayouts(): Promise<CreatorPayoutBatchResult>
     }
 
     try {
-      const stripe = getStripe();
-      const connectAccountId = creator.stripeConnectAccountId.trim();
-
-      const transfer = await stripe.transfers.create({
-        amount: usdToStripeCents(netPayoutUsd),
-        currency: "usd",
-        destination: connectAccountId,
-        transfer_group: batch.id,
+      const method = await db.payoutMethod.findUnique({
+        where: { userId: creatorId },
+        select: { kind: true, destinationHint: true },
       });
-
-      const payout = await stripe.payouts.create(
-        {
-          amount: usdToStripeCents(netPayoutUsd),
-          currency: "usd",
-          method: payoutMethod,
-        },
-        { stripeAccount: connectAccountId }
-      );
-
       await db.$transaction([
-        db.creatorPayoutBatch.update({
-          where: { id: batch.id },
+        db.creatorPayoutRequest.create({
           data: {
-            status: "completed",
-            stripeTransferId: transfer.id,
-            stripePayoutId: payout.id,
+            userId: creatorId,
+            mocoAmount: totalGems,
+            usdCents: usdToStripeCents(netPayoutUsd),
+            amountMinor: usdToStripeCents(netPayoutUsd),
+            currency: "usd",
+            status: "PENDING",
+            payoutMethodKind: method && method.kind !== "UNSPECIFIED" ? method.kind : "UNSPECIFIED",
+            payoutMethodHint: method?.destinationHint ?? "No payout method on file",
+            source: "LEGACY_GIFT",
+            giftBatchId: batch.id,
           },
         }),
         db.giftEvent.updateMany({

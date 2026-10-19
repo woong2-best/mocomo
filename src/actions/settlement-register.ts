@@ -3,12 +3,13 @@
 import { requireAuth } from "@/lib/auth";
 import { getCreatorSettlementStatusForUser } from "@/lib/settlement-register-service";
 
-/** @deprecated Custom Connect 제거 — POST /api/settlements/connect-account 사용 */
+/** Creator payout registration no longer creates a Stripe Connect account. */
 export async function registerCreatorSettlement(_raw: unknown) {
   void _raw;
   return {
-    error: "actions.custom_connect_stripe_express",
-    code: "CUSTOM_CONNECT_DEPRECATED" as const,
+    error:
+      "Creator payouts are sent manually. Upload a W-9 or W-8BEN and a Payoneer, Wise, or bank destination in your wallet.",
+    code: "CONNECT_PAYOUT_RETIRED" as const,
   };
 }
 

@@ -13,7 +13,6 @@ import {
   assessFlowerRedeemRisk,
 } from "@/lib/flower/risk";
 import { creditSellerEarning, recordPlatformFee } from "@/lib/settlement";
-import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { createNotification } from "@/lib/notifications";
 
 /** Mint assets after Stripe FLOWER payment (idempotent on paymentIntentId) */
@@ -298,7 +297,7 @@ export async function requestFlowerRedeem(input: {
   };
 }
 
-/** Admin or auto-approve path — pay via Connect Transfer or wallet */
+/** Admin or auto-approve path — credit the seller wallet. Stripe Connect is not used. */
 export async function payFlowerRedeem(
   redeemId: string,
   opts: { actorId?: string | null; force?: boolean }
@@ -309,8 +308,6 @@ export async function payFlowerRedeem(
       user: {
         select: {
           id: true,
-          stripeConnectAccountId: true,
-          stripeConnectOnboardedAt: true,
         },
       },
       asset: true,
@@ -325,33 +322,12 @@ export async function payFlowerRedeem(
     return { error: "Admin approval is required due to risk score.", needsAdmin: true };
   }
 
-  let transferId: string | undefined;
-  const connectReady = Boolean(
-    redeem.user.stripeConnectAccountId && redeem.user.stripeConnectOnboardedAt
-  );
-
-  if (connectReady && isStripeConfigured() && redeem.user.stripeConnectAccountId) {
-    try {
-      const stripe = getStripe();
-      const transfer = await stripe.transfers.create({
-        amount: redeem.netAmountKrw,
-        currency: "krw",
-        destination: redeem.user.stripeConnectAccountId,
-        transfer_group: redeem.id,
-        metadata: { flowerRedeemId: redeem.id, type: "flower_redeem" },
-      }, { idempotencyKey: `flower_redeem_${redeem.id}` });
-      transferId = transfer.id;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "transfer failed";
-      return { error: `Stripe payout failed: {v0} ${msg}` };
-    }
-  } else {
-    await creditSellerEarning(redeem.userId, redeem.netAmountKrw, {
-      referenceType: "flower_redeem",
-      referenceId: redeem.id,
-      memo: `Flower Gift Reward #${redeem.id.slice(0, 8)}`,
-    });
-  }
+  await creditSellerEarning(redeem.userId, redeem.netAmountKrw, {
+    referenceType: "flower_redeem",
+    referenceId: redeem.id,
+    memo: `Flower Gift Reward #${redeem.id.slice(0, 8)}`,
+  });
+  const transferId: string | undefined = undefined;
 
   await recordPlatformFee(redeem.feeAmountKrw, {
     referenceType: "flower_redeem_fee",

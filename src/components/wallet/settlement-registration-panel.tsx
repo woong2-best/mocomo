@@ -75,6 +75,7 @@ export function SettlementRegistrationPanel({
     startTransition(async () => {
       try {
         const url = await postSettlementJson("/api/settlements/connect-account", {
+          audience: "marketplace",
           requestCardPayments,
           ...(creatingAccount ? { payoutCountry } : {}),
         });
