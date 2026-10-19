@@ -26,6 +26,7 @@ function ShellSwitch({
   if (
     pathname?.startsWith("/studio") ||
     pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/settlement") ||
     isObsOverlayPath(pathname) ||
     isStudioHost
   ) {

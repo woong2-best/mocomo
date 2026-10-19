@@ -1,44 +1,72 @@
 import { db } from "@/lib/db";
 
+export type TaxReviewStatus = "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRED";
+
 export type PayoutReadiness = {
-  tax: { formType: "W9" | "W8BEN"; status: "PENDING" | "VERIFIED" | "REJECTED" } | null;
-  method: { kind: string; hint: string } | null;
+  tax: {
+    formType: "W9" | "W8BEN";
+    status: TaxReviewStatus;
+    expiresAt: string | null;
+    countryCode: string | null;
+  } | null;
+  method: { kind: string; hint: string; countryCode: string | null } | null;
   canRequest: boolean;
   code: string | null;
 };
 
 const BLOCK_COPY: Record<string, string> = {
-  TAX_FORM_REQUIRED:
-    "Upload a tax form (W-9 or W-8BEN) and register a payout email (Payoneer, Wise, or bank).",
+  TAX_FORM_REQUIRED: "Complete a W-9 or W-8BEN and save where the payout should be sent.",
   TAX_FORM_PENDING: "Your tax form is waiting for review. Payout requests open after it is verified.",
-  TAX_FORM_REJECTED: "Your tax form was rejected. Upload a corrected W-9 or W-8BEN.",
-  PAYOUT_METHOD_REQUIRED: "Register a payout email (Payoneer, Wise) or bank account before requesting a payout.",
+  TAX_FORM_REJECTED: "Your tax form was rejected. Submit a corrected W-9 or W-8BEN.",
+  TAX_FORM_EXPIRED: "Your tax form has expired. Submit a new W-9 or W-8BEN before requesting a payout.",
+  PAYOUT_METHOD_REQUIRED: "Save a Payoneer, Wise, or bank destination before requesting a payout.",
 };
 
 export async function getPayoutReadiness(userId: string): Promise<PayoutReadiness> {
   const [tax, method] = await Promise.all([
     db.creatorTaxInfo.findUnique({
       where: { userId },
-      select: { taxFormType: true, status: true },
+      select: { taxFormType: true, status: true, expiresAt: true, countryCode: true },
     }),
     db.payoutMethod.findUnique({
       where: { userId },
-      select: { kind: true, destinationHint: true },
+      select: { kind: true, destinationHint: true, countryCode: true },
     }),
   ]);
 
-  const taxView = tax
-    ? { formType: tax.taxFormType, status: tax.status }
+  let status: TaxReviewStatus | null = tax?.status ?? null;
+  const now = new Date();
+  const countryMismatch = Boolean(
+    tax?.countryCode && method?.countryCode && tax.countryCode !== method.countryCode,
+  );
+  const pastExpiry = Boolean(tax?.expiresAt && tax.expiresAt.getTime() <= now.getTime());
+  if (tax && status === "VERIFIED" && (pastExpiry || countryMismatch)) {
+    await db.creatorTaxInfo.update({
+      where: { userId },
+      data: { status: "EXPIRED" },
+    });
+    status = "EXPIRED";
+  }
+
+  const taxView = tax && status
+    ? {
+        formType: tax.taxFormType,
+        status,
+        expiresAt: tax.expiresAt?.toISOString() ?? null,
+        countryCode: tax.countryCode,
+      }
     : null;
   const methodView =
     method && method.kind !== "UNSPECIFIED"
-      ? { kind: method.kind, hint: method.destinationHint }
+      ? { kind: method.kind, hint: method.destinationHint, countryCode: method.countryCode }
       : null;
 
   let code: string | null = null;
   if (!taxView) code = "TAX_FORM_REQUIRED";
   else if (taxView.status === "PENDING") code = "TAX_FORM_PENDING";
   else if (taxView.status === "REJECTED") code = "TAX_FORM_REJECTED";
+  else if (taxView.status === "EXPIRED") code = "TAX_FORM_EXPIRED";
+  else if (taxView.status !== "VERIFIED") code = "TAX_FORM_REQUIRED";
   else if (!methodView) code = "PAYOUT_METHOD_REQUIRED";
 
   return {
@@ -54,7 +82,7 @@ export async function assertManualPayoutReady(userId: string): Promise<
   | { ok: false; code: string; message: string; status: number }
 > {
   const readiness = await getPayoutReadiness(userId);
-  if (!readiness.canRequest || !readiness.method) {
+  if (!readiness.canRequest || !readiness.method || readiness.tax?.status !== "VERIFIED") {
     const code = readiness.code ?? "TAX_FORM_REQUIRED";
     return {
       ok: false,

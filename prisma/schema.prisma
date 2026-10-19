@@ -5257,6 +5257,7 @@ enum CreatorTaxReviewStatus {
   PENDING
   VERIFIED
   REJECTED
+  EXPIRED
 }
 
 enum CreatorPayoutDestinationKind {
@@ -5289,6 +5290,10 @@ model CreatorTaxInfo {
   taxFormType   CreatorTaxFormType
   taxFormUrl    String                 @map("tax_form_url")
   status        CreatorTaxReviewStatus @default(PENDING)
+  /** ISO country on the form. A different payout country expires the form. */
+  countryCode   String?                @db.VarChar(2)
+  /** W-8BEN ends 31 Dec three years after signing. W-9 stays null. */
+  expiresAt     DateTime?
   rejectionNote String?                @db.Text
   reviewedById  String?
   reviewedAt    DateTime?
@@ -5309,6 +5314,8 @@ model PayoutMethod {
   destinationCipher String                       @db.Text
   destinationKeyId  String
   destinationHint   String
+  /** ISO country for the payout. Compared with the tax form country. */
+  countryCode       String?                      @db.VarChar(2)
   createdAt         DateTime                     @default(now())
   updatedAt         DateTime                     @updatedAt
 

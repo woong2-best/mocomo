@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
-import { TAX_FORM_MAX_BYTES, uploadTaxFormBuffer } from "@/lib/creator-payout/tax-storage";
+import { safeLogWarn } from "@/lib/safe-log";
+import { parseTaxFormPayload, w8benExpiresAt } from "@/lib/creator-payout/tax-form-input";
+import { generateTaxFormPdf } from "@/lib/creator-payout/tax-pdf";
+import { uploadTaxFormBuffer } from "@/lib/creator-payout/tax-storage";
+
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "creator-tax-form", 5);
@@ -16,52 +21,69 @@ export async function POST(req: NextRequest) {
     if (code === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Sign-in required." }, { status: 401 });
     }
-    return NextResponse.json({ error: "This account cannot upload a tax form." }, { status: 403 });
+    return NextResponse.json({ error: "This account cannot submit a tax form." }, { status: 403 });
   }
 
-  const form = await req.formData().catch(() => null);
-  if (!form) return NextResponse.json({ error: "Invalid upload." }, { status: 400 });
-
-  const taxFormType = form.get("taxFormType");
-  if (taxFormType !== "W9" && taxFormType !== "W8BEN") {
-    return NextResponse.json({ error: "Choose W-9 or W-8BEN." }, { status: 400 });
+  const body = await req.json().catch(() => null);
+  const signedOn = new Date();
+  const prepared = parseTaxFormPayload(body, signedOn);
+  if (!prepared) {
+    return NextResponse.json(
+      { error: "Complete every required field and sign the form." },
+      { status: 400 },
+    );
   }
 
-  const file = form.get("file");
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Choose a tax form file." }, { status: 400 });
-  }
-  if (file.size <= 0 || file.size > TAX_FORM_MAX_BYTES) {
-    return NextResponse.json({ error: "Tax form must be under 4 MB." }, { status: 400 });
+  let pdf: Uint8Array;
+  try {
+    pdf = await generateTaxFormPdf(prepared);
+  } catch (error) {
+    safeLogWarn("tax-form-pdf", {
+      userId,
+      kind: prepared.kind,
+      name: error instanceof Error ? error.name : "Error",
+    });
+    return NextResponse.json({ error: "Could not prepare the tax form." }, { status: 500 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
   const stored = await uploadTaxFormBuffer({
     userId,
-    buffer,
-    contentType: file.type || "application/octet-stream",
+    buffer: Buffer.from(pdf),
+    contentType: "application/pdf",
   });
   if ("error" in stored) {
     return NextResponse.json({ error: stored.error }, { status: 400 });
   }
 
+  const expiresAt = prepared.kind === "W8BEN" ? w8benExpiresAt(signedOn) : null;
   await db.creatorTaxInfo.upsert({
     where: { userId },
     create: {
       userId,
-      taxFormType,
+      taxFormType: prepared.kind,
       taxFormUrl: stored.documentKey,
-      status: "PENDING",
+      status: "VERIFIED",
+      countryCode: prepared.countryCode,
+      expiresAt,
+      reviewedAt: signedOn,
     },
     update: {
-      taxFormType,
+      taxFormType: prepared.kind,
       taxFormUrl: stored.documentKey,
-      status: "PENDING",
+      status: "VERIFIED",
+      countryCode: prepared.countryCode,
+      expiresAt,
       rejectionNote: null,
       reviewedById: null,
-      reviewedAt: null,
+      reviewedAt: signedOn,
     },
   });
 
-  return NextResponse.json({ ok: true, status: "PENDING", taxFormType });
+  return NextResponse.json({
+    ok: true,
+    status: "VERIFIED",
+    taxFormType: prepared.kind,
+    expiresAt: expiresAt?.toISOString() ?? null,
+    countryCode: prepared.countryCode,
+  });
 }

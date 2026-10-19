@@ -120,6 +120,9 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "localhost" },
     ],
   },
+  outputFileTracingIncludes: {
+    "/api/settlements/tax-form": ["./src/lib/creator-payout/templates/**/*"],
+  },
   experimental: {
     serverActions: { bodySizeLimit: "50mb" },
     staleTimes: {

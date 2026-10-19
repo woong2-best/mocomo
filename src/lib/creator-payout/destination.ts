@@ -1,10 +1,11 @@
 import { decryptAes256Gcm, encryptAes256Gcm, type EncryptedBlob } from "@/lib/encryption";
+import { isSelectableCountryCode } from "@/lib/i18n/countries";
 
 export const PAYOUT_DESTINATION_KINDS = ["PAYONEER", "WISE", "BANK"] as const;
 export type PayoutDestinationKind = (typeof PAYOUT_DESTINATION_KINDS)[number];
 
 export type PayoutDestination =
-  | { kind: "PAYONEER" | "WISE"; email: string }
+  | { kind: "PAYONEER" | "WISE"; email: string; countryCode?: string }
   | {
       kind: "BANK";
       accountHolder: string;
@@ -32,14 +33,29 @@ export function maskAccount(accountNumber: string): string {
   return `····${tail}`;
 }
 
-export function parsePayoutDestination(input: unknown): PayoutDestination | null {
+export function payoutCountryCode(destination: PayoutDestination): string | null {
+  const code = destination.countryCode?.trim().toUpperCase() ?? "";
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}
+
+export function parsePayoutDestination(
+  input: unknown,
+  options?: { requireCountry?: boolean },
+): PayoutDestination | null {
   if (!input || typeof input !== "object") return null;
+  const requireCountry = options?.requireCountry !== false;
   const raw = input as Record<string, unknown>;
   const kind = raw.kind;
   if (kind === "PAYONEER" || kind === "WISE") {
     const email = clean(raw.email, 254).toLowerCase();
+    const countryCode = clean(raw.countryCode, 2).toUpperCase();
     if (!EMAIL_RE.test(email)) return null;
-    return { kind, email };
+    if (requireCountry) {
+      if (!isSelectableCountryCode(countryCode)) return null;
+      return { kind, email, countryCode };
+    }
+    if (countryCode && !/^[A-Z]{2}$/.test(countryCode)) return null;
+    return countryCode ? { kind, email, countryCode } : { kind, email };
   }
   if (kind === "BANK") {
     const accountHolder = clean(raw.accountHolder, 80);
@@ -49,7 +65,7 @@ export function parsePayoutDestination(input: unknown): PayoutDestination | null
     const routingNumber = clean(raw.routingNumber, 20) || undefined;
     if (accountHolder.length < 2 || bankName.length < 2) return null;
     if (!/^[A-Za-z0-9]{4,34}$/.test(accountNumber)) return null;
-    if (!/^[A-Z]{2}$/.test(countryCode)) return null;
+    if (requireCountry ? !isSelectableCountryCode(countryCode) : !/^[A-Z]{2}$/.test(countryCode)) return null;
     if (routingNumber && !/^[A-Za-z0-9]{4,20}$/.test(routingNumber)) return null;
     return { kind, accountHolder, bankName, accountNumber, countryCode, routingNumber };
   }
@@ -57,11 +73,13 @@ export function parsePayoutDestination(input: unknown): PayoutDestination | null
 }
 
 export function payoutDestinationHint(destination: PayoutDestination): string {
+  const country = payoutCountryCode(destination);
   if (destination.kind === "BANK") {
-    return `Bank · ${destination.bankName} · ${maskAccount(destination.accountNumber)}`;
+    const place = country ? `${country} · ` : "";
+    return `Bank · ${place}${destination.bankName} · ${maskAccount(destination.accountNumber)}`;
   }
   const label = destination.kind === "PAYONEER" ? "Payoneer" : "Wise";
-  return `${label} · ${maskEmail(destination.email)}`;
+  return country ? `${label} · ${country} · ${maskEmail(destination.email)}` : `${label} · ${maskEmail(destination.email)}`;
 }
 
 export function sealPayoutDestination(destination: PayoutDestination): {
@@ -83,7 +101,7 @@ export function openPayoutDestination(destinationCipher: string): PayoutDestinat
     throw new Error("PAYOUT_DESTINATION_CORRUPT");
   }
   const parsed = JSON.parse(decryptAes256Gcm(blob)) as unknown;
-  const destination = parsePayoutDestination(parsed);
+  const destination = parsePayoutDestination(parsed, { requireCountry: false });
   if (!destination) throw new Error("PAYOUT_DESTINATION_CORRUPT");
   return destination;
 }

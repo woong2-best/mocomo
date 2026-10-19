@@ -4,9 +4,10 @@ import { inspectTaxFormUpload, isTaxFormKeyOwnedByUser } from "@/lib/creator-pay
 
 describe("manual payout destination", () => {
   it("accepts a Payoneer email and rejects junk", () => {
-    const ok = parsePayoutDestination({ kind: "PAYONEER", email: "Creator@Payoneer.com" });
-    expect(ok).toEqual({ kind: "PAYONEER", email: "creator@payoneer.com" });
-    expect(parsePayoutDestination({ kind: "PAYONEER", email: "not-an-email" })).toBeNull();
+    const ok = parsePayoutDestination({ kind: "PAYONEER", email: "Creator@Payoneer.com", countryCode: "US" });
+    expect(ok).toEqual({ kind: "PAYONEER", email: "creator@payoneer.com", countryCode: "US" });
+    expect(parsePayoutDestination({ kind: "PAYONEER", email: "Creator@Payoneer.com" })).toBeNull();
+    expect(parsePayoutDestination({ kind: "PAYONEER", email: "not-an-email", countryCode: "US" })).toBeNull();
     expect(parsePayoutDestination({ kind: "BANK", accountNumber: "12" })).toBeNull();
   });
 
