@@ -49,6 +49,7 @@ const protectedRoutes = [
   "/star",
   "/my-page",
   "/wallet",
+  "/settlement",
   "/market/new",
   "/market/my",
   "/market/verify",
