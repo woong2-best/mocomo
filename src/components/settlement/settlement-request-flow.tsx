@@ -262,7 +262,7 @@ export function SettlementRequestFlow() {
   if (receipt) {
     return (
       <PageFrame>
-        <h1 className="mt-8 font-display text-4xl font-bold">Payout requested</h1>
+        <h1 className="mt-6 font-display text-4xl font-bold">Payout requested</h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-600">
           MoCoMo will send this manually. The amount has been moved out of your earned balance.
         </p>
@@ -273,12 +273,6 @@ export function SettlementRequestFlow() {
           <Line label="Stays in balance" value={`${receipt.balanceAfterMoco.toLocaleString()} MOCO`} />
           <Line label="Reference" value={receipt.payoutRequestId} />
         </dl>
-        <Link
-          href="/wallet?tab=earnings"
-          className="mt-8 inline-flex h-12 items-center justify-center rounded-lg bg-black px-6 text-sm font-bold text-white"
-        >
-          Back to earnings
-        </Link>
       </PageFrame>
     );
   }
@@ -287,18 +281,25 @@ export function SettlementRequestFlow() {
 
   return (
     <PageFrame>
-      <div className="mt-8">
+      <div className="mt-6">
         <h1 className="font-display text-4xl font-bold tracking-tight">Reward payout</h1>
         <p className="mt-2 text-sm text-neutral-600">
           Your current tier sets the amount. Nothing is typed in by hand.
         </p>
       </div>
 
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-2">
-        <div className="space-y-8">
-          <section>
-            <h2 className="text-lg font-bold">1 Payout summary</h2>
-            <div className="mt-3 divide-y divide-neutral-200 border border-neutral-300">
+      {renewalNotice ? (
+        <p className="mt-6 rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm leading-relaxed">
+          Your tax form no longer matches this payout, or its term has ended. Submit a new form before requesting a payout.
+        </p>
+      ) : null}
+      {notice ? <p className="mt-4 text-sm">{notice}</p> : null}
+      {error ? <p className="mt-4 text-sm">{error}</p> : null}
+
+      <div className="mt-8 grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+        <div className="min-w-0 space-y-6">
+          <Panel title="1 Payout summary">
+            <div className="divide-y divide-neutral-200">
               {loading ? <p className="px-4 py-3 text-sm text-neutral-500">Calculating…</p> : null}
               {quoteError ? <p className="px-4 py-3 text-sm">{quoteError}</p> : null}
               {quote ? (
@@ -310,11 +311,10 @@ export function SettlementRequestFlow() {
                 </>
               ) : null}
             </div>
-          </section>
+          </Panel>
 
-          <section>
-            <h2 className="text-lg font-bold">Section status</h2>
-            <div className="mt-3 divide-y divide-neutral-200 border border-neutral-300">
+          <Panel title="Section status">
+            <div className="divide-y divide-neutral-200">
               <Line
                 label="Tax form"
                 value={
@@ -327,129 +327,129 @@ export function SettlementRequestFlow() {
               />
               <Line label="Destination" value={loading ? "…" : (readiness?.method?.hint ?? "Not saved")} />
             </div>
-          </section>
+          </Panel>
 
-          <section className="border border-neutral-300 p-5">
-            <h2 className="text-lg font-bold">3 Submit request</h2>
-            {notice ? <p className="mt-3 text-sm">{notice}</p> : null}
-            {error ? <p className="mt-3 text-sm">{error}</p> : null}
-            <button
-              type="button"
-              disabled={!quote || !readiness?.canRequest || busy}
-              onClick={() => void submitRequest()}
-              className={`mt-4 inline-flex h-12 w-full items-center justify-center rounded-lg text-sm font-bold disabled:cursor-not-allowed ${
-                quote && readiness?.canRequest ? "bg-black text-white" : "bg-neutral-200 text-neutral-500"
-              }`}
-            >
-              {busy ? "Working…" : "Submit request"}
-            </button>
-            <p className="mt-3 text-center text-xs leading-relaxed text-neutral-500">
-              Pulse (10 MOCO, $47.25) is the minimum. The button stays off until the tax form is verified and a destination is saved.
-            </p>
-          </section>
+          <Panel title="3 Submit request">
+            <div className="p-4">
+              <button
+                type="button"
+                disabled={!quote || !readiness?.canRequest || busy}
+                onClick={() => void submitRequest()}
+                className={`inline-flex h-12 w-full items-center justify-center rounded-lg text-sm font-bold disabled:cursor-not-allowed ${
+                  quote && readiness?.canRequest ? "bg-black text-white" : "bg-neutral-200 text-neutral-500"
+                }`}
+              >
+                {busy ? "Working…" : "Submit request"}
+              </button>
+              <p className="mt-3 text-center text-xs leading-relaxed text-neutral-500">
+                Pulse (10 MOCO, $47.25) is the minimum. The button stays off until the tax form is verified and a destination is saved.
+              </p>
+            </div>
+          </Panel>
         </div>
 
-        <div className="space-y-8">
-          <section className="space-y-4">
-            <h2 className="text-lg font-bold">2 Tax form and destination</h2>
-            {renewalNotice ? (
-              <p className="rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm leading-relaxed">
-                Your tax form no longer matches this payout, or its term has ended. Submit a new form before requesting a payout.
-              </p>
-            ) : null}
-
-            {taxReady ? (
-              <div className="space-y-3 border border-neutral-300 p-4">
-                <p className="text-sm font-semibold">Verified tax form on file.</p>
-                <p className="text-sm text-neutral-600">
-                  {readiness?.tax?.formType === "W8BEN" ? "W-8BEN" : "W-9"}
-                  {readiness?.tax?.expiresAt
-                    ? ` · valid through ${readiness.tax.expiresAt.slice(0, 10)}`
-                    : " · no expiry"}
-                </p>
-                <button
-                  type="button"
-                  className="inline-flex h-11 items-center justify-center rounded-lg border border-black px-4 text-sm font-bold"
-                  onClick={() => setEditingTax(true)}
-                >
-                  Update tax form
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <Choice label="W-9 (US person)" selected={formType === "W9"} onClick={() => setFormType("W9")} />
-                  <Choice
-                    label="W-8BEN (Non-US person)"
-                    selected={formType === "W8BEN"}
-                    onClick={() => setFormType("W8BEN")}
-                  />
-                </div>
-                <label className="block space-y-1 text-sm">
-                  <span className="font-semibold">{formType === "W9" ? "Full name" : "Full legal name"}</span>
-                  <input className={fieldClass} value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
-                </label>
-                {formType === "W9" ? (
+        <div className="min-w-0">
+          <Panel title="2 Tax form">
+            <div className="space-y-3 p-4">
+              {taxReady ? (
+                <>
+                  <p className="text-sm font-semibold">Verified tax form on file.</p>
+                  <p className="text-sm text-neutral-600">
+                    {readiness?.tax?.formType === "W8BEN" ? "W-8BEN" : "W-9"}
+                    {readiness?.tax?.expiresAt
+                      ? ` · valid through ${readiness.tax.expiresAt.slice(0, 10)}`
+                      : " · no expiry"}
+                  </p>
+                  <button
+                    type="button"
+                    className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-black px-4 text-sm font-bold"
+                    onClick={() => setEditingTax(true)}
+                  >
+                    Update tax form
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Choice label="W-9 (US person)" selected={formType === "W9"} onClick={() => setFormType("W9")} />
+                    <Choice
+                      label="W-8BEN (Non-US person)"
+                      selected={formType === "W8BEN"}
+                      onClick={() => setFormType("W8BEN")}
+                    />
+                  </div>
                   <label className="block space-y-1 text-sm">
-                    <span className="font-semibold">Business name (optional)</span>
-                    <input className={fieldClass} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+                    <span className="font-semibold">{formType === "W9" ? "Full name" : "Full legal name"}</span>
+                    <input className={fieldClass} value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
                   </label>
-                ) : (
-                  <label className="block space-y-1 text-sm">
-                    <span className="font-semibold">Country of citizenship</span>
-                    <CountrySelect value={citizenshipCode} onChange={setCitizenshipCode} />
-                  </label>
-                )}
-                <label className="block space-y-1 text-sm">
-                  <span className="font-semibold">
-                    {formType === "W9" ? "Address" : "Permanent residence address"}
-                  </span>
-                  <input className={fieldClass} value={street} onChange={(e) => setStreet(e.target.value)} autoComplete="address-line1" />
-                </label>
-                <label className="block space-y-1 text-sm">
-                  <span className="font-semibold">City, state, postal code</span>
-                  <input className={fieldClass} value={cityLine} onChange={(e) => setCityLine(e.target.value)} autoComplete="address-level2" />
-                </label>
-                {formType === "W8BEN" ? (
-                  <label className="block space-y-1 text-sm">
-                    <span className="font-semibold">Country of residence</span>
-                    <CountrySelect value={residenceCountryCode} onChange={setResidenceCountryCode} />
-                  </label>
-                ) : null}
-                {formType === "W9" ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Choice label="SSN" selected={tinKind === "SSN"} onClick={() => setTinKind("SSN")} />
-                      <Choice label="EIN" selected={tinKind === "EIN"} onClick={() => setTinKind("EIN")} />
-                    </div>
+                  {formType === "W9" ? (
                     <label className="block space-y-1 text-sm">
-                      <span className="font-semibold">SSN or EIN</span>
+                      <span className="font-semibold">Business name (optional)</span>
+                      <input className={fieldClass} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+                    </label>
+                  ) : (
+                    <label className="block space-y-1 text-sm">
+                      <span className="font-semibold">Country of citizenship</span>
+                      <CountrySelect value={citizenshipCode} onChange={setCitizenshipCode} />
+                    </label>
+                  )}
+                  <label className="block space-y-1 text-sm">
+                    <span className="font-semibold">
+                      {formType === "W9" ? "Address" : "Permanent residence address"}
+                    </span>
+                    <input className={fieldClass} value={street} onChange={(e) => setStreet(e.target.value)} autoComplete="address-line1" />
+                  </label>
+                  <label className="block space-y-1 text-sm">
+                    <span className="font-semibold">City, state, postal code</span>
+                    <input className={fieldClass} value={cityLine} onChange={(e) => setCityLine(e.target.value)} autoComplete="address-level2" />
+                  </label>
+                  {formType === "W8BEN" ? (
+                    <label className="block space-y-1 text-sm">
+                      <span className="font-semibold">Country of residence</span>
+                      <CountrySelect value={residenceCountryCode} onChange={setResidenceCountryCode} />
+                    </label>
+                  ) : null}
+                  {formType === "W9" ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Choice label="SSN" selected={tinKind === "SSN"} onClick={() => setTinKind("SSN")} />
+                        <Choice label="EIN" selected={tinKind === "EIN"} onClick={() => setTinKind("EIN")} />
+                      </div>
+                      <label className="block space-y-1 text-sm">
+                        <span className="font-semibold">SSN or EIN</span>
+                        <input
+                          className={fieldClass}
+                          inputMode="numeric"
+                          autoComplete="off"
+                          value={tin}
+                          onChange={(e) => setTin(e.target.value)}
+                          placeholder="9 digits"
+                        />
+                      </label>
+                    </>
+                  ) : (
+                    <label className="block space-y-1 text-sm">
+                      <span className="font-semibold">Foreign TIN</span>
                       <input
                         className={fieldClass}
-                        inputMode="numeric"
                         autoComplete="off"
-                        value={tin}
-                        onChange={(e) => setTin(e.target.value)}
-                        placeholder="9 digits"
+                        value={foreignTin}
+                        onChange={(e) => setForeignTin(e.target.value)}
+                        placeholder="Taxpayer number in your country"
                       />
                     </label>
-                  </>
-                ) : (
-                  <label className="block space-y-1 text-sm">
-                    <span className="font-semibold">Foreign TIN</span>
-                    <input
-                      className={fieldClass}
-                      autoComplete="off"
-                      value={foreignTin}
-                      onChange={(e) => setForeignTin(e.target.value)}
-                      placeholder="Taxpayer number in your country"
-                    />
-                  </label>
-                )}
-                <div className="space-y-1 text-sm">
-                  <p className="font-semibold">Signature</p>
-                  <SignatureCanvas key={signatureKey} onChange={setSignaturePng} />
-                </div>
+                  )}
+                </>
+              )}
+            </div>
+          </Panel>
+        </div>
+
+        <div className="min-w-0 space-y-6">
+          {!taxReady ? (
+            <Panel title="Signature">
+              <div className="space-y-3 p-4">
+                <SignatureCanvas key={signatureKey} onChange={setSignaturePng} />
                 <label className="block space-y-1 text-sm">
                   <span className="font-semibold">Signature date</span>
                   <input className={fieldClass} value={signatureDate} readOnly />
@@ -462,47 +462,51 @@ export function SettlementRequestFlow() {
                 >
                   Save tax form
                 </button>
+                <p className="text-xs leading-relaxed text-neutral-500">
+                  Draw a signature to turn the save button on.
+                </p>
               </div>
-            )}
-          </section>
+            </Panel>
+          ) : null}
 
-          <section className="space-y-3">
-            <h2 className="text-base font-bold">Where to send it</h2>
-            <div className="grid grid-cols-3 gap-2">
-              <Choice label="Payoneer" selected={kind === "PAYONEER"} onClick={() => setKind("PAYONEER")} />
-              <Choice label="Wise" selected={kind === "WISE"} onClick={() => setKind("WISE")} />
-              <Choice label="Bank" selected={kind === "BANK"} onClick={() => setKind("BANK")} />
-            </div>
-            <label className="block space-y-1 text-sm">
-              <span className="font-semibold">Payout country</span>
-              <CountrySelect value={countryCode} onChange={setCountryCode} />
-            </label>
-            {kind === "BANK" ? (
-              <div className="grid gap-2">
-                <input className={fieldClass} placeholder="Account holder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} />
-                <input className={fieldClass} placeholder="Bank name" value={bankName} onChange={(e) => setBankName(e.target.value)} />
-                <input className={fieldClass} placeholder="Account number" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} autoComplete="off" />
-                <input className={fieldClass} placeholder="Routing or SWIFT (optional)" value={routingNumber} onChange={(e) => setRoutingNumber(e.target.value)} />
+          <Panel title="Where to send it">
+            <div className="space-y-3 p-4">
+              <div className="grid grid-cols-3 gap-2">
+                <Choice label="Payoneer" selected={kind === "PAYONEER"} onClick={() => setKind("PAYONEER")} />
+                <Choice label="Wise" selected={kind === "WISE"} onClick={() => setKind("WISE")} />
+                <Choice label="Bank" selected={kind === "BANK"} onClick={() => setKind("BANK")} />
               </div>
-            ) : (
-              <input
-                type="email"
-                className={fieldClass}
-                placeholder={kind === "PAYONEER" ? "Payoneer email" : "Wise email"}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="off"
-              />
-            )}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void saveMethod()}
-              className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-black text-sm font-bold disabled:opacity-40"
-            >
-              Save destination
-            </button>
-          </section>
+              <label className="block space-y-1 text-sm">
+                <span className="font-semibold">Payout country</span>
+                <CountrySelect value={countryCode} onChange={setCountryCode} />
+              </label>
+              {kind === "BANK" ? (
+                <div className="grid gap-2">
+                  <input className={fieldClass} placeholder="Account holder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} />
+                  <input className={fieldClass} placeholder="Bank name" value={bankName} onChange={(e) => setBankName(e.target.value)} />
+                  <input className={fieldClass} placeholder="Account number" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} autoComplete="off" />
+                  <input className={fieldClass} placeholder="Routing or SWIFT (optional)" value={routingNumber} onChange={(e) => setRoutingNumber(e.target.value)} />
+                </div>
+              ) : (
+                <input
+                  type="email"
+                  className={fieldClass}
+                  placeholder={kind === "PAYONEER" ? "Payoneer email" : "Wise email"}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="off"
+                />
+              )}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void saveMethod()}
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-black text-sm font-bold disabled:opacity-40"
+              >
+                Save destination
+              </button>
+            </div>
+          </Panel>
         </div>
       </div>
     </PageFrame>
@@ -512,16 +516,28 @@ export function SettlementRequestFlow() {
 function PageFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-white text-black" style={{ colorScheme: "light" }}>
-      <div className="mx-auto max-w-5xl px-5 py-6 sm:px-8 sm:py-8">
-        <header className="flex items-end justify-between border-b border-neutral-200 pb-3">
-          <p className="font-display text-2xl font-bold leading-none text-black">MoCoMo</p>
-          <Link href="/wallet?tab=earnings" className="border-b-2 border-black pb-1 text-sm font-semibold">
+      <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 sm:py-8">
+        <header className="flex items-center justify-between">
+          <Link href="/wallet?tab=earnings" className="text-sm font-semibold text-black">
+            Back
+          </Link>
+          <Link href="/wallet?tab=earnings" className="border-b-2 border-black pb-0.5 text-sm font-semibold">
             Earnings
           </Link>
         </header>
+        <p className="mt-5 font-display text-2xl font-bold leading-none text-black">MoCoMo</p>
         {children}
       </div>
     </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="overflow-hidden rounded-none border border-neutral-300">
+      <h2 className="border-b border-neutral-300 px-4 py-3 text-base font-bold">{title}</h2>
+      {children}
+    </section>
   );
 }
 
