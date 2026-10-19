@@ -5,15 +5,12 @@ const t = createTranslator("en");
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
 import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
 import { LEDGER_LABELS } from "@/lib/wallet-labels";
 import { REWARD_TERMS_LABEL } from "@/lib/settlement-moco/constants";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { CreatorRewardTierTable } from "@/components/wallet/creator-reward-tier-table";
-import { OnDemandWithdrawalPanel } from "@/components/wallet/on-demand-withdrawal-panel";
-import { ManualPayoutSetup } from "@/components/wallet/manual-payout-setup";
 import { UnifiedSettlementHistoryPanel } from "@/components/wallet/unified-settlement-history-panel";
 import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
 import {
@@ -50,8 +47,6 @@ export function RevenueSettlementPanel({
   const [earnings, setEarnings] = useState(initialEarnings);
   const [year, setYear] = useState(initialEarnings.year);
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
-  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const earned = settlement.settlementMocoPoints;
   const progress = rewardTierProgress(earned);
@@ -112,15 +107,18 @@ export function RevenueSettlementPanel({
         </p>
       </div>
 
-      <OnDemandWithdrawalPanel
-        settlementMoco={earned}
-        onSuccess={() => {
-          router.refresh();
-          setHistoryRefreshKey((k) => k + 1);
-        }}
-      />
+      <Link
+        href="/settlement/request"
+        className="block rounded-2xl border border-black bg-white p-4 text-black dark:border-white dark:bg-black dark:text-white"
+      >
+        <p className="inline-block bg-white px-1 font-display text-lg font-bold leading-none text-black">MoCoMo</p>
+        <p className="mt-3 text-base font-bold">Request payout</p>
+        <p className="mt-1 text-sm leading-relaxed text-black/70 dark:text-white/70">
+          Opens the payout page. Your current Reward tier, tax form, and destination are handled there.
+        </p>
+      </Link>
 
-      <UnifiedSettlementHistoryPanel refreshKey={historyRefreshKey} />
+      <UnifiedSettlementHistoryPanel />
 
       <div className="space-y-2">
         {data.recent.slice(0, 6).map((e) => (
@@ -151,8 +149,6 @@ export function RevenueSettlementPanel({
           </Link>
         </div>
       ) : null}
-
-      <ManualPayoutSetup />
 
       <div className={cn("space-y-4 pt-2 border-t border-border/50", pending && "opacity-70 pointer-events-none")}>
         <p className="text-sm font-bold px-1">{t("wallet.s10el2q8")}</p>
