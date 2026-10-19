@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parseTaxFormPayload, w8benExpiresAt } from "@/lib/creator-payout/tax-form-input";
+import {
+  isValidForeignTin,
+  isW8benEligibleCountry,
+  normalizeForeignTin,
+  parseTaxFormPayload,
+  prepareForeignTinForPdf,
+  w8benExpiresAt,
+} from "@/lib/creator-payout/tax-form-input";
 import { generateTaxFormPdf } from "@/lib/creator-payout/tax-pdf";
 
 const ONE_PIXEL_PNG = Buffer.from(
@@ -30,6 +37,14 @@ describe("tax form dates and input", () => {
       ),
     ).toBeNull();
     expect(parseTaxFormPayload({ formType: "W8BEN", fullName: "Kim", street: "Road", cityLine: "Seoul" }, signedOn)).toBeNull();
+  });
+
+  it("normalizes foreign TIN and rejects U.S. countries on W-8BEN", () => {
+    expect(normalizeForeignTin(" 900101-1234567 ")).toBe("900101-1234567");
+    expect(isValidForeignTin("900101-1234567")).toBe(true);
+    expect(prepareForeignTinForPdf("900101-1234567")).toBe("9001011234567");
+    expect(isW8benEligibleCountry("US")).toBe(false);
+    expect(isW8benEligibleCountry("KR")).toBe(true);
   });
 });
 

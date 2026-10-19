@@ -50,6 +50,35 @@ function country(value: unknown): string | null {
   return code;
 }
 
+/** W-8BEN is for non-U.S. persons only. */
+function w8benCountry(value: unknown): string | null {
+  const code = country(value);
+  if (!code || !isW8benEligibleCountry(code)) return null;
+  return code;
+}
+
+export function normalizeForeignTin(value: string): string {
+  return clean(value, 40).replace(/\s+/g, "");
+}
+
+export function isValidForeignTin(value: string): boolean {
+  const compact = normalizeForeignTin(value);
+  const core = compact.replace(/-/g, "");
+  if (core.length < 4 || core.length > 30) return false;
+  return /^[A-Za-z0-9]+$/.test(core);
+}
+
+export function prepareForeignTinForPdf(value: unknown): string | null {
+  const compact = normalizeForeignTin(typeof value === "string" ? value : "");
+  if (!isValidForeignTin(compact)) return null;
+  return compact.replace(/-/g, "");
+}
+
+export function isW8benEligibleCountry(code: string): boolean {
+  const upper = code.trim().toUpperCase();
+  return isSelectableCountryCode(upper) && upper !== "US";
+}
+
 export function w8benExpiresAt(signedOn: Date): Date {
   return new Date(Date.UTC(signedOn.getUTCFullYear() + 3, 11, 31, 23, 59, 59));
 }
@@ -146,11 +175,10 @@ export function parseTaxFormPayload(input: unknown, signedOn = new Date()): Prep
     };
   }
 
-  const citizenshipCode = country(raw.citizenshipCode);
-  const residenceCountryCode = country(raw.residenceCountryCode);
-  const foreignTin = clean(raw.foreignTin, 30);
-  if (!citizenshipCode || !residenceCountryCode) return null;
-  if (!/^[A-Za-z0-9][A-Za-z0-9-]{3,28}$/.test(foreignTin)) return null;
+  const citizenshipCode = w8benCountry(raw.citizenshipCode);
+  const residenceCountryCode = w8benCountry(raw.residenceCountryCode);
+  const foreignTin = prepareForeignTinForPdf(raw.foreignTin);
+  if (!citizenshipCode || !residenceCountryCode || !foreignTin) return null;
   return {
     kind,
     fullName,

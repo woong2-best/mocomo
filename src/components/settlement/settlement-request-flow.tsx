@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isValidForeignTin } from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
 
@@ -37,6 +38,31 @@ type Receipt = {
 };
 
 const COUNTRY_OPTIONS = [...ALLOWED_COUNTRIES].sort((a, b) => a.nameEn.localeCompare(b.nameEn));
+const W8BEN_COUNTRY_OPTIONS = COUNTRY_OPTIONS.filter((country) => country.code !== "US");
+
+const FOREIGN_TIN_INFO =
+  "Your home-country taxpayer ID is required for IRS withholding and treaty relief on U.S. payments.";
+
+type ForeignTinKind = "INDIVIDUAL" | "BUSINESS";
+
+function foreignTinCopy(kind: ForeignTinKind) {
+  if (kind === "BUSINESS") {
+    return {
+      label: "Foreign TIN (business registration no.)",
+      placeholder: "e.g. 000-00-00000",
+      helper: "Enter your business or corporate registration number.",
+    };
+  }
+  return {
+    label: "Foreign TIN (national ID / resident ID)",
+    placeholder: "National ID for non-U.S. residents",
+    helper: "Enter your national ID or resident registration number from your country of residence.",
+  };
+}
+
+function pickW8benCountry(code: string): string {
+  return code === "US" ? "KR" : code;
+}
 
 function formatUsdFromCents(cents: number) {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -74,6 +100,7 @@ export function SettlementRequestFlow() {
   const [tin, setTin] = useState("");
   const [citizenshipCode, setCitizenshipCode] = useState("KR");
   const [residenceCountryCode, setResidenceCountryCode] = useState("KR");
+  const [foreignTinKind, setForeignTinKind] = useState<ForeignTinKind>("INDIVIDUAL");
   const [foreignTin, setForeignTin] = useState("");
   const [signaturePng, setSignaturePng] = useState<string | null>(null);
   const [signatureKey, setSignatureKey] = useState(0);
@@ -132,6 +159,12 @@ export function SettlementRequestFlow() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (formType !== "W8BEN") return;
+    if (citizenshipCode === "US") setCitizenshipCode("KR");
+    if (residenceCountryCode === "US") setResidenceCountryCode("KR");
+  }, [formType, citizenshipCode, residenceCountryCode]);
+
   const taxReady = readiness?.tax?.status === "VERIFIED" && !editingTax;
   const canSubmitTax = useMemo(() => {
     const base =
@@ -144,9 +177,11 @@ export function SettlementRequestFlow() {
     if (!base) return false;
     if (formType === "W9") return tin.replace(/\D/g, "").length === 9;
     return (
+      citizenshipCode !== "US" &&
+      residenceCountryCode !== "US" &&
       citizenshipCode.length === 2 &&
       residenceCountryCode.length === 2 &&
-      /^[A-Za-z0-9][A-Za-z0-9-]{3,28}$/.test(foreignTin.trim())
+      isValidForeignTin(foreignTin)
     );
   }, [citizenshipCode, city, foreignTin, formType, fullName, postalCode, residenceCountryCode, signaturePng, state, street, tin]);
 
@@ -382,7 +417,11 @@ export function SettlementRequestFlow() {
                     <Choice
                       label="W-8BEN (Non-US person)"
                       selected={formType === "W8BEN"}
-                      onClick={() => setFormType("W8BEN")}
+                      onClick={() => {
+                        setFormType("W8BEN");
+                        setCitizenshipCode((code) => pickW8benCountry(code));
+                        setResidenceCountryCode((code) => pickW8benCountry(code));
+                      }}
                     />
                   </div>
                   <label className="block space-y-1 text-sm">
@@ -397,7 +436,7 @@ export function SettlementRequestFlow() {
                   ) : (
                     <label className="block space-y-1 text-sm">
                       <span className="font-semibold">Country of citizenship</span>
-                      <CountrySelect value={citizenshipCode} onChange={setCitizenshipCode} />
+                      <CountrySelect value={citizenshipCode} onChange={setCitizenshipCode} w8benOnly />
                     </label>
                   )}
                   <label className="block space-y-1 text-sm">
@@ -406,16 +445,16 @@ export function SettlementRequestFlow() {
                     </span>
                     <input className={fieldClass} value={street} onChange={(e) => setStreet(e.target.value)} autoComplete="address-line1" />
                   </label>
-                  <div className="grid grid-cols-6 gap-2">
-                    <label className="col-span-6 space-y-1 text-sm sm:col-span-3">
-                      <span className="font-semibold">City</span>
-                      <input className={fieldClass} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
-                    </label>
-                    <label className="col-span-6 space-y-1 text-sm sm:col-span-2">
+                  <label className="block space-y-1 text-sm">
+                    <span className="font-semibold">City</span>
+                    <input className={fieldClass} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="space-y-1 text-sm">
                       <span className="font-semibold">{formType === "W9" ? "State" : "State / province"}</span>
                       <input className={fieldClass} value={state} onChange={(e) => setState(e.target.value)} autoComplete="address-level1" />
                     </label>
-                    <label className="col-span-6 space-y-1 text-sm sm:col-span-1">
+                    <label className="space-y-1 text-sm">
                       <span className="font-semibold">{formType === "W9" ? "ZIP" : "Postal"}</span>
                       <input className={fieldClass} value={postalCode} onChange={(e) => setPostalCode(e.target.value)} autoComplete="postal-code" />
                     </label>
@@ -423,7 +462,7 @@ export function SettlementRequestFlow() {
                   {formType === "W8BEN" ? (
                     <label className="block space-y-1 text-sm">
                       <span className="font-semibold">Country of residence</span>
-                      <CountrySelect value={residenceCountryCode} onChange={setResidenceCountryCode} />
+                      <CountrySelect value={residenceCountryCode} onChange={setResidenceCountryCode} w8benOnly />
                     </label>
                   ) : null}
                   {formType === "W9" ? (
@@ -445,16 +484,12 @@ export function SettlementRequestFlow() {
                       </label>
                     </>
                   ) : (
-                    <label className="block space-y-1 text-sm">
-                      <span className="font-semibold">Foreign TIN</span>
-                      <input
-                        className={fieldClass}
-                        autoComplete="off"
-                        value={foreignTin}
-                        onChange={(e) => setForeignTin(e.target.value)}
-                        placeholder="Taxpayer number in your country"
-                      />
-                    </label>
+                    <ForeignTinFields
+                      kind={foreignTinKind}
+                      value={foreignTin}
+                      onKindChange={setForeignTinKind}
+                      onChange={setForeignTin}
+                    />
                   )}
                 </>
               )}
@@ -607,14 +642,67 @@ function Choice({ label, selected, onClick }: { label: string; selected: boolean
   );
 }
 
-function CountrySelect({ value, onChange }: { value: string; onChange: (code: string) => void }) {
+function CountrySelect({
+  value,
+  onChange,
+  w8benOnly = false,
+}: {
+  value: string;
+  onChange: (code: string) => void;
+  w8benOnly?: boolean;
+}) {
+  const options = w8benOnly ? W8BEN_COUNTRY_OPTIONS : COUNTRY_OPTIONS;
+  const safeValue = w8benOnly && value === "US" ? "KR" : value;
   return (
-    <select className={fieldClass} value={value} onChange={(e) => onChange(e.target.value)}>
-      {COUNTRY_OPTIONS.map((country) => (
+    <select className={fieldClass} value={safeValue} onChange={(e) => onChange(e.target.value)}>
+      {options.map((country) => (
         <option key={country.code} value={country.code}>
           {country.nameEn}
         </option>
       ))}
     </select>
+  );
+}
+
+function ForeignTinFields({
+  kind,
+  value,
+  onKindChange,
+  onChange,
+}: {
+  kind: ForeignTinKind;
+  value: string;
+  onKindChange: (kind: ForeignTinKind) => void;
+  onChange: (value: string) => void;
+}) {
+  const copy = foreignTinCopy(kind);
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <Choice label="Individual" selected={kind === "INDIVIDUAL"} onClick={() => onKindChange("INDIVIDUAL")} />
+        <Choice label="Business / entity" selected={kind === "BUSINESS"} onClick={() => onKindChange("BUSINESS")} />
+      </div>
+      <label className="block space-y-1 text-sm">
+        <span className="inline-flex items-center gap-2 font-semibold">
+          {copy.label}
+          <button
+            type="button"
+            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-neutral-400 text-[11px] font-bold leading-none text-neutral-600"
+            title={FOREIGN_TIN_INFO}
+            aria-label={FOREIGN_TIN_INFO}
+          >
+            i
+          </button>
+        </span>
+        <input
+          className={fieldClass}
+          autoComplete="off"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={copy.placeholder}
+        />
+        <p className="text-xs leading-relaxed text-neutral-500">{copy.helper}</p>
+      </label>
+    </div>
   );
 }
