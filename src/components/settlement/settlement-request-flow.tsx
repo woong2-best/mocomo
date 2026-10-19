@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
-import { SignatureCanvas } from "@/components/settlement/signature-canvas";
+import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
 
 type Quote = {
   withdrawMoco: number;
@@ -67,7 +67,9 @@ export function SettlementRequestFlow() {
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [street, setStreet] = useState("");
-  const [cityLine, setCityLine] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [tinKind, setTinKind] = useState<"SSN" | "EIN">("SSN");
   const [tin, setTin] = useState("");
   const [citizenshipCode, setCitizenshipCode] = useState("KR");
@@ -75,6 +77,7 @@ export function SettlementRequestFlow() {
   const [foreignTin, setForeignTin] = useState("");
   const [signaturePng, setSignaturePng] = useState<string | null>(null);
   const [signatureKey, setSignatureKey] = useState(0);
+  const signatureRef = useRef<SignatureCanvasHandle>(null);
   const [kind, setKind] = useState<"PAYONEER" | "WISE" | "BANK">("PAYONEER");
   const [email, setEmail] = useState("");
   const [accountHolder, setAccountHolder] = useState("");
@@ -134,7 +137,9 @@ export function SettlementRequestFlow() {
     const base =
       fullName.trim().length >= 2 &&
       street.trim().length >= 3 &&
-      cityLine.trim().length >= 2 &&
+      city.trim().length >= 2 &&
+      state.trim().length >= 1 &&
+      postalCode.trim().length >= 3 &&
       Boolean(signaturePng);
     if (!base) return false;
     if (formType === "W9") return tin.replace(/\D/g, "").length === 9;
@@ -143,7 +148,7 @@ export function SettlementRequestFlow() {
       residenceCountryCode.length === 2 &&
       /^[A-Za-z0-9][A-Za-z0-9-]{3,28}$/.test(foreignTin.trim())
     );
-  }, [citizenshipCode, cityLine, foreignTin, formType, fullName, residenceCountryCode, signaturePng, street, tin]);
+  }, [citizenshipCode, city, foreignTin, formType, fullName, postalCode, residenceCountryCode, signaturePng, state, street, tin]);
 
   const signatureDate = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -159,12 +164,14 @@ export function SettlementRequestFlow() {
     setNotice(null);
     const payload =
       formType === "W9"
-        ? { formType, fullName, businessName, street, cityLine, tinKind, tin, signaturePng }
+        ? { formType, fullName, businessName, street, city, state, postalCode, tinKind, tin, signaturePng }
         : {
             formType,
             fullName,
             street,
-            cityLine,
+            city,
+            state,
+            postalCode,
             citizenshipCode,
             residenceCountryCode,
             foreignTin,
@@ -399,10 +406,20 @@ export function SettlementRequestFlow() {
                     </span>
                     <input className={fieldClass} value={street} onChange={(e) => setStreet(e.target.value)} autoComplete="address-line1" />
                   </label>
-                  <label className="block space-y-1 text-sm">
-                    <span className="font-semibold">City, state, postal code</span>
-                    <input className={fieldClass} value={cityLine} onChange={(e) => setCityLine(e.target.value)} autoComplete="address-level2" />
-                  </label>
+                  <div className="grid grid-cols-6 gap-2">
+                    <label className="col-span-6 space-y-1 text-sm sm:col-span-3">
+                      <span className="font-semibold">City</span>
+                      <input className={fieldClass} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
+                    </label>
+                    <label className="col-span-6 space-y-1 text-sm sm:col-span-2">
+                      <span className="font-semibold">{formType === "W9" ? "State" : "State / province"}</span>
+                      <input className={fieldClass} value={state} onChange={(e) => setState(e.target.value)} autoComplete="address-level1" />
+                    </label>
+                    <label className="col-span-6 space-y-1 text-sm sm:col-span-1">
+                      <span className="font-semibold">{formType === "W9" ? "ZIP" : "Postal"}</span>
+                      <input className={fieldClass} value={postalCode} onChange={(e) => setPostalCode(e.target.value)} autoComplete="postal-code" />
+                    </label>
+                  </div>
                   {formType === "W8BEN" ? (
                     <label className="block space-y-1 text-sm">
                       <span className="font-semibold">Country of residence</span>
@@ -447,9 +464,20 @@ export function SettlementRequestFlow() {
 
         <div className="min-w-0 space-y-6">
           {!taxReady ? (
-            <Panel title="Signature">
+            <Panel
+              title="Signature"
+              action={
+                <button
+                  type="button"
+                  className="text-sm font-semibold underline underline-offset-4"
+                  onClick={() => signatureRef.current?.clear()}
+                >
+                  Clear
+                </button>
+              }
+            >
               <div className="space-y-3 p-4">
-                <SignatureCanvas key={signatureKey} onChange={setSignaturePng} />
+                <SignatureCanvas key={signatureKey} ref={signatureRef} onChange={setSignaturePng} />
                 <label className="block space-y-1 text-sm">
                   <span className="font-semibold">Signature date</span>
                   <input className={fieldClass} value={signatureDate} readOnly />
@@ -532,10 +560,21 @@ function PageFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <section className="overflow-hidden rounded-none border border-neutral-300">
-      <h2 className="border-b border-neutral-300 px-4 py-3 text-base font-bold">{title}</h2>
+      <div className="flex items-center justify-between gap-3 border-b border-neutral-300 px-4 py-3">
+        <h2 className="text-base font-bold">{title}</h2>
+        {action}
+      </div>
       {children}
     </section>
   );

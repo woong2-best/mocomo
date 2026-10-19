@@ -34,6 +34,16 @@ function clean(value: unknown, max: number): string {
   return value.replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
 }
 
+export function composeCityLine(raw: Record<string, unknown>): string {
+  const city = clean(raw.city, 50);
+  const state = clean(raw.state, 40);
+  const postalCode = clean(raw.postalCode, 16);
+  if (city.length >= 2 && state.length >= 1 && postalCode.length >= 3) {
+    return `${city}, ${state} ${postalCode}`;
+  }
+  return clean(raw.cityLine, 80);
+}
+
 function country(value: unknown): string | null {
   const code = clean(value, 2).toUpperCase();
   if (!isSelectableCountryCode(code)) return null;
@@ -114,7 +124,7 @@ export function parseTaxFormPayload(input: unknown, signedOn = new Date()): Prep
   if (!kind) return null;
   const fullName = clean(raw.fullName, 80);
   const street = clean(raw.street, 100);
-  const cityLine = clean(raw.cityLine, 80);
+  const cityLine = composeCityLine(raw);
   const signaturePng = signaturePngFromPayload(raw.signaturePng);
   if (fullName.length < 2 || street.length < 3 || cityLine.length < 2 || !signaturePng) return null;
 
