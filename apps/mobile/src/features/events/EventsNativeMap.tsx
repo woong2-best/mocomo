@@ -12,8 +12,92 @@ import { globeCenterForCountry } from "@/navigation/DrawerMapLibreGlobe";
 
 type ViewConfig = { lat: number; lng: number; zoom: number };
 
+/** Finger-sized tap padding around each pin (MapLibre v11 ViewPadding). */
+const PIN_HITBOX = { top: 28, right: 28, bottom: 28, left: 28 };
+
 function validPins(pins: MapEventPin[]) {
   return pins.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+}
+
+function pressFeatures(event: unknown): Feature[] {
+  const root = event as {
+    features?: Feature[];
+    nativeEvent?: { features?: Feature[]; payload?: { features?: Feature[] } };
+  };
+  return (
+    root.nativeEvent?.features ??
+    root.nativeEvent?.payload?.features ??
+    root.features ??
+    []
+  );
+}
+
+function pinFromPressEvent(event: unknown, pins: MapEventPin[]): MapEventPin | null {
+  const features = pressFeatures(event);
+  const tap = coordsFromPressEvent(event);
+  let best: MapEventPin | null = null;
+  let bestDist = Infinity;
+  for (const feature of features) {
+    const raw = feature.properties?.id ?? feature.id;
+    const id = raw == null ? "" : String(raw);
+    if (!id) continue;
+    const pin = pins.find((p) => p.id === id);
+    if (!pin) continue;
+    if (!tap) return pin;
+    const dist = Math.hypot(pin.lat - tap.lat, pin.lng - tap.lng);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = pin;
+    }
+  }
+  return best;
+}
+
+/** If MapLibre misses the circle layer, still accept a tap near the pin. */
+function nearestPinAtCoords(
+  coords: { lat: number; lng: number } | null,
+  pins: MapEventPin[],
+  zoom: number
+): MapEventPin | null {
+  if (!coords || pins.length === 0) return null;
+  const maxDeg = (360 / (256 * 2 ** Math.max(zoom, 1))) * 44;
+  const cos = Math.cos((coords.lat * Math.PI) / 180);
+  let best: MapEventPin | null = null;
+  let bestDist = Infinity;
+  for (const pin of pins) {
+    const dist = Math.hypot(pin.lat - coords.lat, (pin.lng - coords.lng) * cos);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = pin;
+    }
+  }
+  return best && bestDist <= maxDeg ? best : null;
+}
+
+function coordsFromPressEvent(event: unknown): { lat: number; lng: number } | null {
+  const root = event as {
+    coordinates?: unknown;
+    nativeEvent?: {
+      lngLat?: [number, number];
+      coordinates?: unknown;
+      payload?: { lngLat?: [number, number]; coordinates?: unknown };
+    };
+  };
+  const native = root.nativeEvent;
+  const payload = native?.payload;
+  const candidates = [native?.lngLat, payload?.lngLat, native?.coordinates, payload?.coordinates, root.coordinates];
+  for (const coords of candidates) {
+    if (Array.isArray(coords) && coords.length >= 2 && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+      return { lng: coords[0]!, lat: coords[1]! };
+    }
+    if (coords && typeof coords === "object") {
+      const c = coords as { longitude?: number; latitude?: number; lng?: number; lat?: number };
+      const lng = c.longitude ?? c.lng;
+      const lat = c.latitude ?? c.lat;
+      if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng: lng as number, lat: lat as number };
+    }
+  }
+  return null;
 }
 
 export function viewForEventPins(
@@ -154,12 +238,19 @@ export function EventsNativeMap({
         pitchEnabled={!preview}
         doubleTouchZoomEnabled={!preview}
         onPress={
-          preview || !pickMode || !onMapPick
+          preview
             ? undefined
-            : (e: { nativeEvent?: { lngLat?: [number, number] } }) => {
-                const lngLat = e.nativeEvent?.lngLat;
-                if (!lngLat || lngLat.length < 2) return;
-                onMapPick({ lng: lngLat[0]!, lat: lngLat[1]! });
+            : (event: unknown) => {
+                const coords = coordsFromPressEvent(event);
+                const pin =
+                  pinFromPressEvent(event, usablePins) ??
+                  nearestPinAtCoords(coords, usablePins, view.zoom);
+                if (pin) {
+                  onSelectPin(pin);
+                  return;
+                }
+                if (!pickMode || !onMapPick || !coords) return;
+                onMapPick(coords);
               }
         }
       >
@@ -172,35 +263,52 @@ export function EventsNativeMap({
         <GeoJSONSource
           id="event-pins"
           data={geojson}
+          hitbox={PIN_HITBOX}
           onPress={
             preview
               ? undefined
-              : (event: { nativeEvent?: { features?: Feature[] } }) => {
-                  const feature = event.nativeEvent?.features?.[0];
-                  const id = feature?.properties?.id;
-                  if (typeof id !== "string") return;
-                  const pin = usablePins.find((p) => p.id === id);
-                  if (pin) onSelectPin(pin);
+              : (event: { stopPropagation?: () => void }) => {
+                  const pin =
+                    pinFromPressEvent(event, usablePins) ??
+                    nearestPinAtCoords(coordsFromPressEvent(event), usablePins, view.zoom);
+                  if (!pin) return;
+                  event.stopPropagation?.();
+                  onSelectPin(pin);
                 }
           }
         >
           <Layer
+            id="event-pins-hit"
+            type="circle"
+            paint={{
+              "circle-radius": 22,
+              "circle-color": "#ffffff",
+              "circle-opacity": 0.04,
+              "circle-pitch-alignment": "viewport",
+              "circle-pitch-scale": "viewport",
+            }}
+          />
+          <Layer
             id="event-pins-halo"
             type="circle"
             paint={{
-              "circle-radius": ["case", ["==", ["get", "selected"], 1], 16, 12],
+              "circle-radius": ["case", ["==", ["get", "selected"], 1], 18, 14],
               "circle-color": ["get", "color"],
               "circle-opacity": 0.28,
+              "circle-pitch-alignment": "viewport",
+              "circle-pitch-scale": "viewport",
             }}
           />
           <Layer
             id="event-pins-circle"
             type="circle"
             paint={{
-              "circle-radius": ["case", ["==", ["get", "selected"], 1], 9, 7],
+              "circle-radius": ["case", ["==", ["get", "selected"], 1], 10, 8],
               "circle-color": ["get", "color"],
               "circle-stroke-width": 2,
               "circle-stroke-color": "#ffffff",
+              "circle-pitch-alignment": "viewport",
+              "circle-pitch-scale": "viewport",
             }}
           />
         </GeoJSONSource>

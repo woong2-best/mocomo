@@ -248,6 +248,7 @@ if (!maplibregl) {
     openPinId = null;
   };
   let allPins = [];
+  let visiblePins = [];
   const pinIndex = new Map();
   let visibleKey = "";
   let cullRaf = 0;
@@ -323,6 +324,7 @@ if (!maplibregl) {
     }
     let key = "";
     for (const pin of visible) key += pin.id + "|";
+    visiblePins = visible;
     if (key !== visibleKey) {
       visibleKey = key;
       src.setData({ type: "FeatureCollection", features: visible.map(toFeature) });
@@ -441,14 +443,43 @@ if (!maplibregl) {
     map.setProjection({ type: "globe" });
     map.resize();
   };
-  const onPinClick = (event) => {
-    const feature = event.features && event.features[0];
-    const id = feature && feature.properties && feature.properties.id;
-    const pin = id ? pinIndex.get(id) : null;
-    if (!pin || isBackSide(pin.lng, pin.lat)) return;
+  const PIN_HIT_PX = 28;
+  const circlePitch = {
+    "circle-pitch-alignment": "viewport",
+    "circle-pitch-scale": "viewport"
+  };
+  const nearestPinFromPoint = (point) => {
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
+    let best = null;
+    let bestDist = Infinity;
+    for (const pin of visiblePins) {
+      let projected;
+      try { projected = map.project([pin.lng, pin.lat]); } catch (e) { continue; }
+      if (!projected || !Number.isFinite(projected.x) || !Number.isFinite(projected.y)) continue;
+      const dist = Math.hypot(projected.x - point.x, projected.y - point.y);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = pin;
+      }
+    }
+    return best && bestDist <= PIN_HIT_PX ? best : null;
+  };
+  const canvasPoint = (touch) => {
+    const canvas = map.getCanvas();
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: touch.clientX - rect.left - (canvas.clientLeft || 0),
+      y: touch.clientY - rect.top - (canvas.clientTop || 0)
+    };
+  };
+  const selectPinAtPoint = (point) => {
+    const pin = nearestPinFromPoint(point);
+    if (!pin) return false;
+    if (openPinId === pin.id && Date.now() - pinTapAt < 400) return true;
     pinTapAt = Date.now();
     lastEmptyTap = 0;
     showPin(pin);
+    return true;
   };
   map.on("load", () => {
     frame();
@@ -457,17 +488,26 @@ if (!maplibregl) {
       data: { type: "FeatureCollection", features: [] }
     });
     map.addLayer({
+      id: "event-pins-hit",
+      type: "circle",
+      source: "event-pins",
+      paint: Object.assign({
+        "circle-radius": PIN_HIT_PX,
+        "circle-color": "#ffffff",
+        "circle-opacity": 0.04
+      }, circlePitch)
+    });
+    map.addLayer({
       id: "event-pins-dot",
       type: "circle",
       source: "event-pins",
-      paint: {
-        "circle-radius": 6,
+      paint: Object.assign({
+        "circle-radius": 8,
         "circle-color": ["get", "color"],
         "circle-stroke-width": 2,
         "circle-stroke-color": "#ffffff"
-      }
+      }, circlePitch)
     });
-    map.on("click", "event-pins-dot", onPinClick);
     visibleKey = "";
     publishVisible();
     post({ type: "ready" });
@@ -544,11 +584,13 @@ if (!maplibregl) {
   const gestureEl = map.getCanvasContainer();
   let panStartX = 0;
   let panStartY = 0;
+  let tapStartAt = 0;
   gestureEl.addEventListener("touchstart", (event) => {
     fingers = event.touches.length;
     if (event.touches.length === 1) {
       panStartX = event.touches[0].clientX;
       panStartY = event.touches[0].clientY;
+      tapStartAt = Date.now();
     }
     if (event.touches.length >= 2) {
       pinchDist = touchDist(event.touches);
@@ -580,6 +622,11 @@ if (!maplibregl) {
     fingers = event.touches.length;
     if (event.touches.length < 2) pinchDist = 0;
     if (fingers === 0 && !steppingOut) enableTouchZoom();
+    if (event.touches.length !== 0 || event.changedTouches.length !== 1) return;
+    const t = event.changedTouches[0];
+    if (Date.now() - tapStartAt > 400) return;
+    if (Math.hypot(t.clientX - panStartX, t.clientY - panStartY) > 14) return;
+    selectPinAtPoint(canvasPoint(t));
   };
   gestureEl.addEventListener("touchend", onTouchEnd, { capture: true, passive: true });
   gestureEl.addEventListener("touchcancel", onTouchEnd, { capture: true, passive: true });
@@ -591,7 +638,8 @@ if (!maplibregl) {
   map.on("move", scheduleCull);
   map.on("zoom", scheduleCull);
   map.on("pitch", scheduleCull);
-  map.on("click", () => {
+  map.on("click", (event) => {
+    if (selectPinAtPoint(event.point)) return;
     if (Date.now() - pinTapAt < 400) return;
     const now = Date.now();
     if (now - lastEmptyTap < 320) {
@@ -608,6 +656,7 @@ if (!maplibregl) {
       if (!Number.isFinite(pin.lat) || !Number.isFinite(pin.lng)) continue;
       allPins.push(pin);
       pinIndex.set(pin.id, pin);
+      pinIndex.set(String(pin.id), pin);
     }
     visibleKey = "";
     publishVisible();
