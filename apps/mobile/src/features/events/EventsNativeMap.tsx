@@ -5,6 +5,7 @@ import type { Feature } from "geojson";
 import type { MapEventPin } from "@/api/events";
 import { eventPinColor } from "@/features/events/event-map-colors";
 import {
+  ESRI_SATELLITE_MAX_ZOOM,
   ESRI_SATELLITE_STYLE,
   SUBCULTURE_MAP_GLOBAL_VIEW,
 } from "@/maps/map-styles";
@@ -256,7 +257,8 @@ export function EventsNativeMap({
       >
         <Camera
           center={[view.lng, view.lat]}
-          zoom={view.zoom}
+          zoom={Math.min(view.zoom, ESRI_SATELLITE_MAX_ZOOM)}
+          maxZoom={ESRI_SATELLITE_MAX_ZOOM}
           duration={focused ? 700 : 350}
           easing="fly"
         />

@@ -4,6 +4,7 @@ import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import * as Haptics from "expo-haptics";
 
 const MAPLIBRE_VERSION = "6.1.0";
+const ESRI_SATELLITE_MAX_ZOOM = 19;
 
 const MAPLIBRE_SOURCES = [
   `https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.mjs`,
@@ -48,7 +49,10 @@ function mapHtml(
   const sources = JSON.stringify(MAPLIBRE_SOURCES);
   const safeLat = Number.isFinite(lat) ? lat : 37.5665;
   const safeLng = Number.isFinite(lng) ? lng : 126.978;
-  const safeZoom = Number.isFinite(zoom) ? zoom : 14;
+  const safeZoom = Math.min(
+    ESRI_SATELLITE_MAX_ZOOM,
+    Number.isFinite(zoom) ? zoom : 14
+  );
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -112,7 +116,8 @@ if (!maplibregl) {
         type: "raster",
         tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
         tileSize: 256,
-        attribution: "Tiles © Esri"
+        attribution: "Tiles © Esri",
+        maxzoom: ${ESRI_SATELLITE_MAX_ZOOM}
       }
     },
     layers: [
@@ -126,7 +131,7 @@ if (!maplibregl) {
     center: [${safeLng}, ${safeLat}],
     zoom: ${safeZoom},
     minZoom: 3,
-    maxZoom: 18,
+    maxZoom: ${ESRI_SATELLITE_MAX_ZOOM},
     pitch: 0,
     bearing: 0,
     attributionControl: false,
@@ -195,7 +200,7 @@ if (!maplibregl) {
     }
   };
   window.__focus = (lng, lat, z) => {
-    try { map.jumpTo({ center: [lng, lat], zoom: z, pitch: 0, bearing: 0 }); } catch (e) {}
+    try { map.jumpTo({ center: [lng, lat], zoom: Math.min(${ESRI_SATELLITE_MAX_ZOOM}, z), pitch: 0, bearing: 0 }); } catch (e) {}
   };
   ${
     pick

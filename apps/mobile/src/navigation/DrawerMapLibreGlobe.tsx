@@ -85,6 +85,8 @@ const COUNTRY_GLOBE_CENTER: Record<string, { lat: number; lng: number }> = {
 const GLOBE_ZOOM = 4.12;
 const GLOBE_PITCH = 40;
 const PIN_FOCUS_ZOOM = 16;
+/** Same Esri cap as EventsNativeMap — z20+ is the gray "not yet available" tile. */
+const ESRI_SATELLITE_MAX_ZOOM = 19;
 
 export function globeCenterForCountry(countryCode?: string | null) {
   const key = (countryCode ?? "").trim().toLowerCase();
@@ -208,7 +210,8 @@ if (!maplibregl) {
         type: "raster",
         tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
         tileSize: 256,
-        attribution: "Tiles © Esri"
+        attribution: "Tiles © Esri",
+        maxzoom: ${ESRI_SATELLITE_MAX_ZOOM}
       }
     },
     layers: [
@@ -222,7 +225,7 @@ if (!maplibregl) {
     center: [${safeLng}, ${safeLat}],
     zoom: ${GLOBE_ZOOM},
     minZoom: ${GLOBE_ZOOM},
-    maxZoom: 17,
+    maxZoom: ${ESRI_SATELLITE_MAX_ZOOM},
     pitch: ${GLOBE_PITCH},
     bearing: 0,
     attributionControl: false,

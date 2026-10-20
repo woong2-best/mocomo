@@ -7,6 +7,10 @@ import { useEffect, useRef } from "react";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, Popup as MapLibrePopup, StyleSpecification } from "maplibre-gl";
 import { collapseMapLibreAttribution } from "@/lib/maps/maplibre-attribution";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
+import {
+  ESRI_SATELLITE_MAX_ZOOM,
+  ESRI_WORLD_IMAGERY_TILES,
+} from "@/lib/maps/esri-satellite";
 import type { MeetCoords } from "@/lib/maps/types";
 import { cn } from "@/lib/utils";
 
@@ -33,11 +37,10 @@ const ESRI_SATELLITE_STYLE = {
   sources: {
     "satellite-tiles": {
       type: "raster" as const,
-      tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      ],
+      tiles: [ESRI_WORLD_IMAGERY_TILES],
       tileSize: 256,
       attribution: "Tiles © Esri",
+      maxzoom: ESRI_SATELLITE_MAX_ZOOM,
     },
   },
   layers: [
@@ -107,7 +110,8 @@ export function MapLibreMeetMapCanvas({
           container: containerRef.current,
           style: ESRI_SATELLITE_STYLE,
           center: [center.lng, center.lat],
-          zoom,
+          zoom: Math.min(zoom, ESRI_SATELLITE_MAX_ZOOM),
+          maxZoom: ESRI_SATELLITE_MAX_ZOOM,
           attributionControl: { compact: true },
           fadeDuration: 0,
         });
@@ -169,7 +173,10 @@ export function MapLibreMeetMapCanvas({
   }, []);
 
   useEffect(() => {
-    mapRef.current?.easeTo({ center: [center.lng, center.lat], zoom });
+    mapRef.current?.easeTo({
+      center: [center.lng, center.lat],
+      zoom: Math.min(zoom, ESRI_SATELLITE_MAX_ZOOM),
+    });
   }, [center.lat, center.lng, zoom]);
 
   useEffect(() => {

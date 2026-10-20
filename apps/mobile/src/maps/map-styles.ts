@@ -9,6 +9,13 @@ export const OSM_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 export const ESRI_ATTRIBUTION = "Tiles © Esri";
 export const ESRI_ATTRIBUTION_URL = "https://www.esri.com/";
 
+/**
+ * Last Esri World Imagery zoom with real tiles. z20+ is the gray
+ * "Map data not yet available" placeholder (except a few US cities).
+ * Put this on the Map/Camera and the raster *source* — not the layer.
+ */
+export const ESRI_SATELLITE_MAX_ZOOM = 19;
+
 /** Raster style matching web `subculture-events-map.tsx` SATELLITE_STYLE */
 export const ESRI_SATELLITE_STYLE = {
   version: 8 as const,
@@ -20,6 +27,7 @@ export const ESRI_SATELLITE_STYLE = {
       ],
       tileSize: 256,
       attribution: "Tiles © Esri",
+      maxzoom: ESRI_SATELLITE_MAX_ZOOM,
     },
   },
   layers: [

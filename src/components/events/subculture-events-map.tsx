@@ -15,6 +15,10 @@ import { eventCountryFlag } from "@/lib/subculture-event-countries";
 import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
 import { collapseMapLibreAttribution } from "@/lib/maps/maplibre-attribution";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
+import {
+  ESRI_SATELLITE_MAX_ZOOM,
+  ESRI_WORLD_IMAGERY_TILES,
+} from "@/lib/maps/esri-satellite";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -32,11 +36,10 @@ const SATELLITE_STYLE = {
   sources: {
     "satellite-tiles": {
       type: "raster" as const,
-      tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      ],
+      tiles: [ESRI_WORLD_IMAGERY_TILES],
       tileSize: 256,
       attribution: "Tiles &copy; Esri",
+      maxzoom: ESRI_SATELLITE_MAX_ZOOM,
     },
   },
   layers: [
@@ -239,6 +242,7 @@ export function SubcultureEventsMap({
           ? [defaultView.lng, defaultView.lat]
           : [135, 28],
         zoom: defaultView?.zoom ?? 3,
+        maxZoom: ESRI_SATELLITE_MAX_ZOOM,
         attributionControl: false,
         // Site CSS disables transitions globally; skip canvas fade-in.
         fadeDuration: 0,
@@ -331,7 +335,10 @@ export function SubcultureEventsMap({
         marker.getElement().addEventListener("click", () => {
           map.flyTo({
             center: [pin.lng, pin.lat],
-            zoom: Math.max(map.getZoom(), PIN_FOCUS_ZOOM),
+            zoom: Math.min(
+              ESRI_SATELLITE_MAX_ZOOM,
+              Math.max(map.getZoom(), PIN_FOCUS_ZOOM)
+            ),
             duration: 700,
             essential: true,
           });

@@ -7,6 +7,10 @@ export type {
   MeetMapPayload,
   MapProviderCapabilities,
 } from "@/lib/maps/types";
+export {
+  ESRI_SATELLITE_MAX_ZOOM,
+  ESRI_WORLD_IMAGERY_TILES,
+} from "@/lib/maps/esri-satellite";
 export { normalizeMeetCountry, selectMapEngine } from "@/lib/maps/select-engine";
 export {
   googleSearchUrlForMeet,
