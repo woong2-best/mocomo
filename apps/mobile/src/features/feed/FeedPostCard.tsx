@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { showIslandError } from "@/ui/IslandToast";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -35,6 +35,8 @@ import { profileDisplayTier } from "@/lib/support-tier-display";
 import { useUserProfileNav, type UserProfileSeed, userProfileQueryKey } from "@/features/profile/user-profile-nav";
 import { useI18n } from "@/i18n/I18nProvider";
 import { qnaListTitle } from "@/features/community/qna-list-title";
+import { PostShareSheet } from "@/features/share/PostShareSheet";
+import { storyPostFromFeedPost } from "@/features/share/instagram-story-post";
 
 type Props = {
   post: FeedPost;
@@ -116,6 +118,7 @@ function FeedPostCardInner({
   const [repostBusy, setRepostBusy] = useState(false);
   const repostAnchorRef = useRef<View>(null);
   const [viewCount, setViewCount] = useState(post.viewCount ?? 0);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const isQna = Boolean(post.community?.slug);
   const hideQnaBody = isQna && !expandBody;
@@ -222,11 +225,14 @@ function FeedPostCardInner({
   }, []);
 
   const onShare = useCallback(() => {
-    void Share.share({
-      message: `https://mocomo.net/post/${post.id}`,
-      url: `https://mocomo.net/post/${post.id}`,
-    });
-  }, [post.id]);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShareOpen(true);
+  }, []);
+
+  const storyPost = useMemo(
+    () => storyPostFromFeedPost(post, { hideIdentity }),
+    [hideIdentity, post]
+  );
 
   const openPost = useCallback(() => {
     onPressPost?.(post.id);
@@ -283,6 +289,7 @@ function FeedPostCardInner({
     : null;
 
   return (
+    <>
     <Pressable
       style={({ pressed }) => [
         styles.card,
@@ -633,6 +640,12 @@ function FeedPostCardInner({
         />
       ) : null}
     </Pressable>
+    <PostShareSheet
+      visible={shareOpen}
+      onClose={() => setShareOpen(false)}
+      post={storyPost}
+    />
+    </>
   );
 }
 

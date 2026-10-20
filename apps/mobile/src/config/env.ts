@@ -4,6 +4,7 @@ type Extra = {
   apiBaseUrl?: string;
   socketUrl?: string;
   googleWebClientId?: string;
+  facebookAppId?: string;
 };
 
 const extra = (Constants.expoConfig?.extra ?? {}) as Extra;
@@ -22,3 +23,8 @@ export const GOOGLE_WEB_CLIENT_ID =
   process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ??
   extra.googleWebClientId ??
   null;
+
+/** Meta app id for Instagram Stories attribution. Falls back to the package id. */
+export const FACEBOOK_APP_ID =
+  (process.env.EXPO_PUBLIC_FACEBOOK_APP_ID ?? extra.facebookAppId ?? "").trim() ||
+  APP_PACKAGE_ID;

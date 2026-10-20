@@ -57,6 +57,10 @@
         "NSCameraUsageDescription": "MoCoMo uses the camera for video calls and photos.",
         "NSMicrophoneUsageDescription": "MoCoMo uses the microphone for voice and video calls.",
         "NSLocationWhenInUseUsageDescription": "MoCoMo uses your location once while the app is open to confirm arrival at a meetup place.",
+        "LSApplicationQueriesSchemes": [
+          "instagram-stories",
+          "instagram"
+        ],
         "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationLandscapeLeft",
@@ -102,7 +106,8 @@
       },
       "apiBaseUrl": "https://mocomo.net",
       "socketUrl": "https://mocomo.net",
-      "googleWebClientId": "105871724562-4kfgodg2c21c5tat84nqim1daj2ipnok.apps.googleusercontent.com"
+      "googleWebClientId": "105871724562-4kfgodg2c21c5tat84nqim1daj2ipnok.apps.googleusercontent.com",
+      "facebookAppId": ""
     },
     "owner": "replace-with-expo-username"
   }

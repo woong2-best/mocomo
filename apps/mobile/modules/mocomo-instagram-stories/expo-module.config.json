@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "ios"],
+  "android": {
+    "modules": ["net.mocomo.instagramstories.MocomoInstagramStoriesModule"]
+  },
+  "ios": {
+    "modules": ["MocomoInstagramStoriesModule"]
+  }
+}

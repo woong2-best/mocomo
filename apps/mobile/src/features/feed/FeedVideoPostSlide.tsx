@@ -4,7 +4,6 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -47,6 +46,8 @@ import {
   enablePitchPreservingPlayback,
   setPitchPreservingPlaybackRate,
 } from "@/lib/video-preserve-pitch";
+import { PostShareSheet } from "@/features/share/PostShareSheet";
+import { storyPostFromReel } from "@/features/share/instagram-story-post";
 
 const FAST_PLAYBACK_RATE = 2;
 
@@ -381,6 +382,7 @@ function FeedVideoPostSlideInner({
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [pinchZooming, setPinchZooming] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const current = group.videos[videoIndex] ?? group.videos[0];
   const captionText = useMemo(
@@ -568,11 +570,14 @@ function FeedVideoPostSlideInner({
 
   const onShare = useCallback(() => {
     if (!current) return;
-    void Share.share({
-      message: `https://mocomo.net/post/${current.postId}`,
-      url: `https://mocomo.net/post/${current.postId}`,
-    });
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShareOpen(true);
   }, [current]);
+
+  const storyPost = useMemo(
+    () => (current ? storyPostFromReel(current) : null),
+    [current]
+  );
 
 
   const onReportPress = useCallback(() => {
@@ -812,6 +817,11 @@ function FeedVideoPostSlideInner({
         onClose={() => setReportOpen(false)}
         postId={current.postId}
         authorId={current.author.id}
+      />
+      <PostShareSheet
+        visible={shareOpen}
+        onClose={() => setShareOpen(false)}
+        post={storyPost}
       />
       <FeedPostRepostMenu
         visible={repostMenuOpen}

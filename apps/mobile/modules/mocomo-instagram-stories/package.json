@@ -1,0 +1,15 @@
+{
+  "name": "mocomo-instagram-stories",
+  "version": "1.0.0",
+  "description": "Share a sticker card into Instagram Stories",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {},
+  "keywords": ["react-native", "expo", "mocomo", "instagram", "stories"],
+  "license": "UNLICENSED",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

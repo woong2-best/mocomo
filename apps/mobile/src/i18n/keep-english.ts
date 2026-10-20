@@ -18,7 +18,8 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "nav.studio",
   "m.star.clear_all",
   "m.star.clear_all_saves",
+  "m.feed.instagram_stories",
 ]);
 
 export const KEEP_ENGLISH_TOKENS_RE =
-  /\b(Following|Followers|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos)\b/g;
+  /\b(Following|Followers|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories)\b/g;
