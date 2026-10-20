@@ -117,6 +117,13 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
     if (postId) prefetchPostComments(postId);
   }, [activeIndex, items]);
 
+  useEffect(() => {
+    const activePostId = items[activeIndex]?.postId;
+    if (commentsPanel && activePostId && commentsPanel.postId !== activePostId) {
+      setCommentsPanel(null);
+    }
+  }, [activeIndex, commentsPanel, items]);
+
   // Jump to deep-linked post once — never again when loadMore appends items
   useEffect(() => {
     if (jumpedToStartRef.current || !startPostId || items.length === 0) return;
@@ -316,7 +323,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   const canNext = activeIndex < items.length - 1;
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden bg-black lg:bg-transparent">
+    <div className="absolute inset-0 flex overflow-hidden bg-black lg:overflow-visible lg:bg-transparent">
       <div
         className={cn(
           "absolute inset-0 min-h-0 min-w-0 select-none"
@@ -336,6 +343,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         ref={scrollerRef}
         className={cn(
           "absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain",
+          "lg:overflow-x-visible",
           "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
@@ -358,6 +366,25 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
               commentsPanel?.postId === reel.postId
                 ? commentsPanel.count
                 : undefined
+            }
+            commentsOpen={
+              !!commentsPanel && commentsPanel.postId === reel.postId
+            }
+            commentsPanel={
+              commentsPanel?.postId === reel.postId ? (
+                <ReelsCommentsPanel
+                  layout="inline"
+                  open
+                  postId={commentsPanel.postId}
+                  initialCount={commentsPanel.count}
+                  onClose={() => setCommentsPanel(null)}
+                  onCountChange={(count) =>
+                    setCommentsPanel((prev) =>
+                      prev && prev.count !== count ? { ...prev, count } : prev
+                    )
+                  }
+                />
+              ) : undefined
             }
           />
         ))}
@@ -415,18 +442,6 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         />
       )}
       </div>
-
-      <ReelsCommentsPanel
-        open={!!commentsPanel}
-        postId={commentsPanel?.postId ?? ""}
-        initialCount={commentsPanel?.count ?? 0}
-        onClose={() => setCommentsPanel(null)}
-        onCountChange={(count) =>
-          setCommentsPanel((prev) =>
-            prev && prev.count !== count ? { ...prev, count } : prev
-          )
-        }
-      />
     </div>
   );
 }

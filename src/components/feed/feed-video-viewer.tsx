@@ -234,6 +234,13 @@ export function FeedVideoViewer({
     if (postId) prefetchPostComments(postId);
   }, [activeIndex, groups]);
 
+  useEffect(() => {
+    const activePostId = groups[activeIndex]?.postId;
+    if (commentsPanel && activePostId && commentsPanel.postId !== activePostId) {
+      setCommentsPanel(null);
+    }
+  }, [activeIndex, commentsPanel, groups]);
+
   const syncActiveFromScroll = useCallback(() => {
     const root = scrollerRef.current;
     if (!root) return;
@@ -425,7 +432,7 @@ export function FeedVideoViewer({
       aria-modal={column ? "false" : "true"}
       aria-label={t("feed.szady4c")}
       className={cn(
-        "fixed z-[160] flex overflow-hidden",
+        "fixed z-[160] flex overflow-hidden lg:overflow-visible",
         column ? "bg-background" : "inset-0 bg-black"
       )}
       style={
@@ -464,6 +471,7 @@ export function FeedVideoViewer({
         ref={scrollerRef}
         className={cn(
           "absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain",
+          "lg:overflow-x-visible",
           "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
@@ -493,7 +501,6 @@ export function FeedVideoViewer({
             onActiveVideoChange={(videoIndex) => {
               videoIndexByGroupRef.current[index] = videoIndex;
             }}
-            horizontalNavEnabled={!commentsPanel}
             onComment={(postId, count) =>
               setCommentsPanel({ postId, count })
             }
@@ -501,6 +508,25 @@ export function FeedVideoViewer({
               commentsPanel?.postId === group.postId
                 ? commentsPanel.count
                 : undefined
+            }
+            commentsOpen={
+              !!commentsPanel && commentsPanel.postId === group.postId
+            }
+            commentsPanel={
+              commentsPanel?.postId === group.postId ? (
+                <ReelsCommentsPanel
+                  layout="inline"
+                  open
+                  postId={commentsPanel.postId}
+                  initialCount={commentsPanel.count}
+                  onClose={() => setCommentsPanel(null)}
+                  onCountChange={(count) =>
+                    setCommentsPanel((prev) =>
+                      prev && prev.count !== count ? { ...prev, count } : prev
+                    )
+                  }
+                />
+              ) : undefined
             }
           />
         ))}
@@ -559,18 +585,6 @@ export function FeedVideoViewer({
       )}
 
       </div>
-
-      <ReelsCommentsPanel
-        open={!!commentsPanel}
-        postId={commentsPanel?.postId ?? ""}
-        initialCount={commentsPanel?.count ?? 0}
-        onClose={() => setCommentsPanel(null)}
-        onCountChange={(count) =>
-          setCommentsPanel((prev) =>
-            prev && prev.count !== count ? { ...prev, count } : prev
-          )
-        }
-      />
     </div>,
     document.body
   );

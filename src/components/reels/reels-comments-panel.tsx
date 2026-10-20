@@ -67,6 +67,11 @@ type Props = {
   initialCount?: number;
   onClose: () => void;
   onCountChange?: (count: number) => void;
+  /**
+   * overlay — dock to the viewer column right edge (legacy).
+   * inline — flex sibling beside the video inside the centered stage (desktop).
+   */
+  layout?: "overlay" | "inline";
 };
 
 const SORT_OPTIONS: { id: SortId; label: string }[] = [
@@ -690,6 +695,7 @@ export function ReelsCommentsPanel({
   initialCount = 0,
   onClose,
   onCountChange,
+  layout = "overlay",
 }: Props) {
   const session = useSession();
   const user = session?.data?.user;
@@ -1196,8 +1202,23 @@ export function ReelsCommentsPanel({
     </>
   );
 
-  return (
-    <>
+  const desktopAside =
+    layout === "inline" ? (
+      <aside
+        className={cn(
+          "pointer-events-auto hidden h-full shrink-0 flex-col overflow-hidden border-l border-white/10 bg-[#121212] text-white transition-[width,opacity] duration-300 ease-out lg:flex",
+          open
+            ? "w-[min(100%,24rem)] opacity-100"
+            : "w-0 min-w-0 border-0 opacity-0 pointer-events-none"
+        )}
+        aria-hidden={!open}
+        aria-label={i18n("lib.notifications.s6d4e9bd3a9")}
+      >
+        {open ? (
+          <div className="flex h-full w-[min(100vw,24rem)] flex-col">{panelBody}</div>
+        ) : null}
+      </aside>
+    ) : (
       <aside
         className={cn(
           "pointer-events-auto absolute inset-y-0 right-0 z-[230] hidden h-full flex-col overflow-hidden border-l border-white/10 bg-[#121212] text-white shadow-2xl transition-[width,opacity,transform] duration-150 ease-out lg:flex",
@@ -1212,6 +1233,11 @@ export function ReelsCommentsPanel({
           <div className="flex h-full w-[min(100vw,24rem)] flex-col">{panelBody}</div>
         ) : null}
       </aside>
+    );
+
+  return (
+    <>
+      {desktopAside}
 
       <div
         className={cn(

@@ -8,6 +8,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -22,12 +23,14 @@ import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
 import { cn } from "@/lib/utils";
 import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
-/** Desktop stage width — one card in the center column, no neighbor peek. */
-const DESKTOP_CARD_CLASS =
-  "lg:h-[min(100%,920px)] lg:w-[min(420px,calc(100%-15rem))]";
-
-/** Half of the desktop card, used to park prev/next just outside the frame. */
-const DESKTOP_CARD_HALF = "min(210px, 50% - 7.5rem)";
+/** Desktop stage — fixed video width; wrapper grows when comments are inline. */
+const DESKTOP_STAGE_HEIGHT = "lg:h-[min(100%,920px)]";
+const DESKTOP_VIDEO_WIDTH =
+  "lg:w-[min(420px,calc(100%-15rem))] lg:max-w-[420px] lg:shrink-0";
+const DESKTOP_STAGE_WRAPPER_CLOSED =
+  "lg:w-[min(420px,calc(100%-15rem))] lg:max-w-[420px]";
+const DESKTOP_STAGE_WRAPPER_OPEN =
+  "lg:w-[min(calc(420px+24rem),100%)] lg:max-w-[calc(420px+24rem)]";
 
 type Props = {
   group: FeedVideoGroup;
@@ -47,6 +50,8 @@ type Props = {
   horizontalNavEnabled?: boolean;
   onComment?: (postId: string, commentCount: number) => void;
   commentCountOverride?: number;
+  commentsOpen?: boolean;
+  commentsPanel?: ReactNode;
 };
 
 export function FeedVideoPostSlide({
@@ -67,6 +72,8 @@ export function FeedVideoPostSlide({
   horizontalNavEnabled = true,
   onComment,
   commentCountOverride,
+  commentsOpen = false,
+  commentsPanel,
 }: Props) {
   const hScrollerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<Array<ReelsPlayerHandle | null>>([]);
@@ -235,8 +242,8 @@ export function FeedVideoPostSlide({
     onEnded?.();
   }, [goH, group.videos.length, onEnded, videoIndex]);
 
-  const sideNavBtnClass = cn(
-    "pointer-events-auto absolute top-1/2 z-40 hidden -translate-y-1/2",
+  const sideNavBtnBase = cn(
+    "pointer-events-auto absolute top-1/2 z-40 hidden",
     "h-11 w-11 items-center justify-center rounded-full",
     "border border-white/15 bg-white/20 text-white shadow-lg backdrop-blur-md transition",
     "hover:bg-white/35 hover:scale-105 active:scale-95",
@@ -245,11 +252,20 @@ export function FeedVideoPostSlide({
     "lg:flex"
   );
 
+  const sideNavLeftClass = cn(
+    sideNavBtnBase,
+    "left-0 -translate-x-[calc(100%+0.75rem)] -translate-y-1/2"
+  );
+  const sideNavRightClass = cn(
+    sideNavBtnBase,
+    "right-0 translate-x-[calc(100%+0.75rem)] -translate-y-1/2"
+  );
+
   return (
     <section
       data-reel-index={index}
       data-reel-id={group.postId}
-      className="relative flex h-full w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none bg-black lg:bg-transparent"
+      className="relative flex h-full w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none bg-black lg:overflow-visible lg:bg-transparent"
       aria-label={`Videos by ${userDisplayName(activeReel.author)}`}
       onClick={
         onBackgroundClick
@@ -261,31 +277,52 @@ export function FeedVideoPostSlide({
     >
       <div
         className={cn(
-          "relative h-full w-full overflow-hidden bg-black",
-          DESKTOP_CARD_CLASS,
-          "lg:rounded-2xl"
+          "relative mx-auto flex w-full min-w-0 items-stretch transition-[width,max-width] duration-300 ease-out",
+          DESKTOP_STAGE_HEIGHT,
+          commentsOpen ? DESKTOP_STAGE_WRAPPER_OPEN : DESKTOP_STAGE_WRAPPER_CLOSED,
+          commentsOpen && "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
         )}
-        onClick={(e) => e.stopPropagation()}
       >
+        {showSideNav ? (
+          <button
+            type="button"
+            disabled={!canHPrev || animating}
+            onClick={() => goH(videoIndex - 1)}
+            className={sideNavLeftClass}
+            aria-label={t("feed.snrsq28")}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        ) : null}
+
         <div
-          ref={hScrollerRef}
-          data-reels-scroller="x"
           className={cn(
-            "flex h-full w-full overflow-x-auto overflow-y-hidden overscroll-x-contain",
-            "snap-x snap-mandatory [overflow-anchor:none]",
-            "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            "relative h-full w-full shrink-0 overflow-hidden bg-black",
+            DESKTOP_STAGE_HEIGHT,
+            DESKTOP_VIDEO_WIDTH,
+            commentsOpen ? "lg:rounded-none" : "lg:rounded-2xl"
           )}
-          style={
-            multiVideo
-              ? {
-                  scrollBehavior: animating ? "smooth" : undefined,
-                }
-              : undefined
-          }
-          role="list"
-          aria-label={t("feed.s1508wel")}
+          onClick={(e) => e.stopPropagation()}
         >
-          {group.videos.map((reel, vi) => {
+          <div
+            ref={hScrollerRef}
+            data-reels-scroller="x"
+            className={cn(
+              "flex h-full w-full overflow-x-auto overflow-y-hidden overscroll-x-contain",
+              "snap-x snap-mandatory [overflow-anchor:none]",
+              "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            )}
+            style={
+              multiVideo
+                ? {
+                    scrollBehavior: animating ? "smooth" : undefined,
+                  }
+                : undefined
+            }
+            role="list"
+            aria-label={t("feed.s1508wel")}
+          >
+            {group.videos.map((reel, vi) => {
             const d = isActive ? Math.abs(vi - videoIndex) : distance + 1;
             const isCurrent = vi === videoIndex;
             return (
@@ -378,37 +415,23 @@ export function FeedVideoPostSlide({
               </div>
             );
           })}
+          </div>
         </div>
 
-      </div>
-      {showSideNav ? (
-        <>
-          <button
-            type="button"
-            disabled={!canHPrev || animating}
-            onClick={() => goH(videoIndex - 1)}
-            className={sideNavBtnClass}
-            style={{
-              left: `max(0.75rem, calc(50% - ${DESKTOP_CARD_HALF} - 3.25rem))`,
-            }}
-            aria-label={t("feed.snrsq28")}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
+        {commentsOpen && commentsPanel ? commentsPanel : null}
+
+        {showSideNav ? (
           <button
             type="button"
             disabled={!canHNext || animating}
             onClick={() => goH(videoIndex + 1)}
-            className={sideNavBtnClass}
-            style={{
-              right: `max(4.75rem, calc(50% - ${DESKTOP_CARD_HALF} - 3.25rem))`,
-            }}
+            className={sideNavRightClass}
             aria-label={t("feed.sebaazc")}
           >
             <ChevronRight className="h-5 w-5" />
           </button>
-        </>
-      ) : null}
+        ) : null}
+      </div>
     </section>
   );
 }
