@@ -686,7 +686,7 @@ export function DrawerMapLibreGlobe({
         javaScriptEnabled
         domStorageEnabled
         mixedContentMode="always"
-        androidLayerType="hardware"
+        androidLayerType="software"
         cacheMode="LOAD_CACHE_ELSE_NETWORK"
         scrollEnabled={false}
         bounces={false}
@@ -708,41 +708,8 @@ export function DrawerMapLibreGlobe({
   );
 }
 
-const GLOBE_ENGINE_WARMUP_HTML = `<!DOCTYPE html><html><head>
-<meta charset="utf-8" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css" />
-<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.mjs" />
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl-worker.mjs" as="script" />
-</head><body>
-<script type="module">
-Promise.any(${JSON.stringify(MAPLIBRE_SOURCES)}.map((url) => import(url))).catch(() => {});
-</script>
-</body></html>`;
-
-/** Pull MapLibre into the WebView HTTP cache before the drawer opens. */
-export function DrawerGlobeEngineWarmup() {
-  return (
-    <WebView
-      source={{ html: GLOBE_ENGINE_WARMUP_HTML, baseUrl: "https://cdn.jsdelivr.net/" }}
-      style={styles.warmup}
-      pointerEvents="none"
-      originWhitelist={["*"]}
-      javaScriptEnabled
-      cacheEnabled
-      cacheMode="LOAD_CACHE_ELSE_NETWORK"
-      androidLayerType="software"
-    />
-  );
-}
-
 const styles = StyleSheet.create({
-  fill: { overflow: "visible" },
-  warmup: {
-    position: "absolute",
-    width: 1,
-    height: 1,
-    opacity: 0,
-  },
+  fill: { overflow: "hidden" },
   haze: {
     position: "absolute",
     left: 0,

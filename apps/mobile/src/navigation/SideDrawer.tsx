@@ -144,7 +144,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   const [followListTab, setFollowListTab] = useState<FollowListTab | null>(null);
 
   const [presented, setPresented] = useState(false);
-  /** Stay in the tree after the first open so the globe WebView is not rebuilt. */
+  /** Unmount with the drawer. A hidden map WebView was covering the home feed. */
   const [modalOn, setModalOn] = useState(false);
   const [globeMounted, setGlobeMounted] = useState(false);
   const slideX = useRef(new Animated.Value(-360)).current;
@@ -168,7 +168,10 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
   const hideDrawerChrome = () => {
     if (visibleRef.current) return;
+    presentedRef.current = false;
+    setPresented(false);
     setModalOn(false);
+    setGlobeMounted(false);
     setAccountSheetOpen(false);
     setFollowListTab(null);
   };

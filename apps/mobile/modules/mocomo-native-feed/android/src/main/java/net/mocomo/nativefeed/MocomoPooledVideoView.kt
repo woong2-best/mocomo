@@ -2,6 +2,7 @@ package net.mocomo.nativefeed
 
 import android.content.Context
 import android.graphics.Color
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageView
 import androidx.media3.common.MediaItem
@@ -29,7 +30,9 @@ class MocomoPooledVideoView(context: Context, appContext: AppContext) : ExpoView
   private val onError by EventDispatcher()
   private val onFirstFrame by EventDispatcher()
 
-  private val playerView = PlayerView(context).apply {
+  private val playerView = (
+    LayoutInflater.from(context).inflate(R.layout.mocomo_pooled_player, null) as PlayerView
+  ).apply {
     layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
     useController = false
     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
@@ -56,6 +59,8 @@ class MocomoPooledVideoView(context: Context, appContext: AppContext) : ExpoView
   private var thumbGeneration = 0
 
   init {
+    clipChildren = true
+    clipToPadding = true
     // Player under thumbnail so black surface never shows before first frame.
     addView(playerView)
     addView(thumbnailView)

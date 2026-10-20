@@ -1,4 +1,5 @@
 import {
+  forwardRef,
   useCallback,
   useEffect,
   useMemo,
@@ -17,6 +18,7 @@ import {
   Text,
   TextInput,
   View,
+  type ViewProps,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
@@ -104,7 +106,6 @@ function FeedMessagesDrawerHost(props: MessagesDrawerHostProps) {
 
 function FeedSideDrawerHost(props: DrawerHostProps) {
   const [Drawer, setDrawer] = useState<ComponentType<DrawerHostProps> | null>(null);
-  const [Warmup, setWarmup] = useState<ComponentType | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -113,23 +114,22 @@ function FeedSideDrawerHost(props: DrawerHostProps) {
         if (alive) setDrawer(() => mod.SideDrawer);
       })
       .catch(() => undefined);
-    void import("@/navigation/DrawerMapLibreGlobe")
-      .then((mod) => {
-        if (alive) setWarmup(() => mod.DrawerGlobeEngineWarmup);
-      })
-      .catch(() => undefined);
     return () => {
       alive = false;
     };
   }, []);
 
-  return (
-    <>
-      {!props.visible && Warmup ? <Warmup /> : null}
-      {Drawer ? <Drawer {...props} /> : null}
-    </>
-  );
+  if (!Drawer) return null;
+  return <Drawer {...props} />;
 }
+
+/** Clip each absolute FlashList cell so one post cannot paint over the next. */
+const FeedListCell = forwardRef<View, ViewProps & { index?: number }>(function FeedListCell(
+  { style, index: _index, ...rest },
+  ref
+) {
+  return <View ref={ref} {...rest} collapsable={false} style={[style, { overflow: "hidden" }]} />;
+});
 
 function feedItemType(item: FeedPost): string {
   const media = item.media ?? [];
@@ -633,6 +633,7 @@ export function FeedScreen() {
         <FlashList
           ref={feedListRef}
           style={styles.feedList}
+          CellRendererComponent={FeedListCell}
           data={feedItems}
           renderItem={renderItem}
           keyExtractor={(item) =>
