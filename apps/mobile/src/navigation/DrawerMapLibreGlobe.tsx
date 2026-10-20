@@ -686,7 +686,7 @@ export function DrawerMapLibreGlobe({
         javaScriptEnabled
         domStorageEnabled
         mixedContentMode="always"
-        androidLayerType="software"
+        androidLayerType="hardware"
         cacheMode="LOAD_CACHE_ELSE_NETWORK"
         scrollEnabled={false}
         bounces={false}
