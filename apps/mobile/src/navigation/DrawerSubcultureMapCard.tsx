@@ -58,12 +58,9 @@ export function DrawerSubcultureMapCard({
       }}
       style={[styles.card, { height: mapH, backgroundColor }]}
     >
-      {mapReady ? (
+      {mapReady && active ? (
         <>
-          <View
-            pointerEvents={interactive ? "auto" : "none"}
-            style={[StyleSheet.absoluteFill, !active && { opacity: 0 }]}
-          >
+          <View pointerEvents={interactive ? "auto" : "none"} style={styles.mapClip}>
             <DrawerMapLibreGlobe
               pins={pins}
               backgroundColor={backgroundColor}
@@ -107,6 +104,10 @@ const styles = StyleSheet.create({
   card: {
     flexShrink: 0,
     marginHorizontal: -spacing.md,
+    overflow: "hidden",
+  },
+  mapClip: {
+    ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
   },
   attribWrap: {

@@ -1,5 +1,4 @@
 import {
-  forwardRef,
   useCallback,
   useEffect,
   useMemo,
@@ -18,7 +17,6 @@ import {
   Text,
   TextInput,
   View,
-  type ViewProps,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
@@ -122,14 +120,6 @@ function FeedSideDrawerHost(props: DrawerHostProps) {
   if (!Drawer) return null;
   return <Drawer {...props} />;
 }
-
-/** Clip each absolute FlashList cell so one post cannot paint over the next. */
-const FeedListCell = forwardRef<View, ViewProps & { index?: number }>(function FeedListCell(
-  { style, index: _index, ...rest },
-  ref
-) {
-  return <View ref={ref} {...rest} collapsable={false} style={[style, { overflow: "hidden" }]} />;
-});
 
 function feedItemType(item: FeedPost): string {
   const media = item.media ?? [];
@@ -633,7 +623,6 @@ export function FeedScreen() {
         <FlashList
           ref={feedListRef}
           style={styles.feedList}
-          CellRendererComponent={FeedListCell}
           data={feedItems}
           renderItem={renderItem}
           keyExtractor={(item) =>
@@ -645,6 +634,7 @@ export function FeedScreen() {
           drawDistance={PerformanceBudgets.feedDrawDistance}
           ListHeaderComponent={composeHeader}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={false}
           onScroll={onFeedScroll}
           scrollEventThrottle={16}
           onViewableItemsChanged={onViewableItemsChanged}

@@ -221,7 +221,6 @@ function FeedInlineVideoPreviewInner({
           player={player}
           contentFit={contentFit}
           nativeControls={false}
-          surfaceType="textureView"
           pointerEvents="none"
         />
       ) : null}
@@ -309,6 +308,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,
+    elevation: 3,
   },
   playCircle: {
     width: 48,

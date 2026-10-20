@@ -54,7 +54,6 @@ function BannerVideo({ uri, active }: { uri: string; active: boolean }) {
       style={StyleSheet.absoluteFill}
       contentFit="cover"
       nativeControls={false}
-      surfaceType="textureView"
       allowsPictureInPicture={false}
       pointerEvents="none"
     />

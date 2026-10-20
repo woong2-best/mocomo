@@ -431,7 +431,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
             <DrawerSubcultureMapCard
               active={visible && !accountSheetOpen}
-              showGlobe={globeMounted}
+              showGlobe={visible && globeMounted && !accountSheetOpen}
               interactive={visible && !accountSheetOpen}
               height={layout.mapH}
               onExpandPressIn={() => prefetch("EventsMap")}

@@ -456,13 +456,6 @@ export function InlineComposeBox({
 
   return (
     <View style={styles.wrap}>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        nestedScrollEnabled
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="interactive"
-      >
       <View style={styles.topRow}>
         <Pressable
           onPress={() => {
@@ -648,7 +641,6 @@ export function InlineComposeBox({
           )}
         </Pressable>
       </View>
-      </ScrollView>
 
       <CollaboratorModal
         visible={collabOpen}
