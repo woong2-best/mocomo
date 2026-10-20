@@ -249,11 +249,12 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
 
   const selectHubCategory = useCallback(
     (id: string) => {
-      const picked = findHubCategory(id);
       setBrowse({ source: "hub", id });
-      if (picked?.product) setScope("digital");
-      else if (picked?.category) setScope("physical");
-      else setScope("physical");
+      if (id !== HUB_BROWSE_ALL_ID) {
+        const picked = findHubCategory(id);
+        if (picked?.product) setScope("digital");
+        else if (picked?.category) setScope("physical");
+      }
       clearPersonalLane();
       setHubOpen(false);
     },
@@ -412,8 +413,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
     [colors.terracotta, navigation, styles, t]
   );
 
-  const hubActiveId =
-    isCombined && browse.source === "hub" && browse.id !== HUB_BROWSE_ALL_ID ? browse.id : null;
+  const hubActiveId = isCombined && browse.source === "hub" ? browse.id : null;
   const visibleItems = items;
   const recentTerms = recentQ.slice(0, 3);
   const scopeActive = isCombined ? scope : null;

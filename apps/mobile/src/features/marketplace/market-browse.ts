@@ -14,6 +14,11 @@ export type HubCategory = {
 /** No category filter — all items in the current physical/digital track. */
 export const HUB_BROWSE_ALL_ID = "ALL";
 
+export const HUB_BROWSE_ALL: HubCategory = {
+  id: HUB_BROWSE_ALL_ID,
+  labelKey: "m.common.all",
+};
+
 export const PHYSICAL_HUB: HubCategory[] = [
   { id: "FIGURE", labelKey: "m.market.track.figures_models", category: "FIGURE" },
   { id: "TCG", labelKey: "m.marketplace.tcg", category: "TCG" },
@@ -41,13 +46,15 @@ export const DIGITAL_PRODUCT_IDS = [
 ] as const;
 
 export function hubForTrack(track: MarketTrack): HubCategory[] {
-  return track === "digital" ? DIGITAL_HUB : PHYSICAL_HUB;
+  const items = track === "digital" ? DIGITAL_HUB : PHYSICAL_HUB;
+  return [HUB_BROWSE_ALL, ...items];
 }
 
 /** Side menu — physical used-goods categories only (digital uses scope chips). */
 export const MENU_CATEGORIES: HubCategory[] = PHYSICAL_HUB;
 
 export function findHubCategory(id: string): HubCategory | undefined {
+  if (id === HUB_BROWSE_ALL_ID) return HUB_BROWSE_ALL;
   return PHYSICAL_HUB.find((item) => item.id === id) ?? DIGITAL_HUB.find((item) => item.id === id);
 }
 
