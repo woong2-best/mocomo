@@ -1153,7 +1153,7 @@ html[data-client="app"] .native-live-pad {
 
   .folk-hero-banner {
     @apply relative overflow-hidden rounded-2xl border border-white/10 p-6 sm:p-8 mb-6;
-    background-image: url("/home/guest-hero-bg.png");
+    background-image: var(--home-hero-image, url("/home/guest-hero-bg.png"));
     background-size: cover;
     background-position: center;
     min-height: 18rem;
@@ -1250,7 +1250,7 @@ html[data-client="app"] .native-live-pad {
 
   .folk-sidebar-panel {
     @apply relative overflow-hidden overscroll-none;
-    background-image: url("/home/sidebar-bg.png");
+    background-image: var(--home-sidebar-image, url("/home/sidebar-bg.png"));
     /* 363×1024 crop — height-fit only; panel clips the right, no horizontal stretch */
     background-size: auto 100%;
     background-position: left bottom;

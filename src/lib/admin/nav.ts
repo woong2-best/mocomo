@@ -25,6 +25,7 @@ import {
   Fingerprint,
   MapPin,
   FileText,
+  Images,
 } from "lucide-react";
 import type { AdminPermission } from "@/lib/admin/permissions";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
@@ -59,6 +60,7 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin/security/access", label: "Access log", icon: Globe, permission: "audit" },
   { href: "/admin/settings/security", label: "Security settings", icon: Lock, permission: "settings" },
   { href: "/admin/legal", label: "Legal documents", icon: FileText, permission: "settings" },
+  { href: "/admin/home-chrome", label: "홈 배경 사진", icon: Images, permission: "settings" },
   { href: "/admin/settings", label: "System settings", icon: Settings, permission: "settings" },
 ];
 

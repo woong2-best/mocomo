@@ -79,3 +79,37 @@ export async function createSupabaseSignedUpload(
     token: data.token,
   };
 }
+
+/** Object key for a public URL in this project's bucket, or null if it is not ours. */
+export function publicUrlToObjectKey(url: string): string | null {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  if (!base) return null;
+  let parsed: URL;
+  let allowed: URL;
+  try {
+    parsed = new URL(url);
+    allowed = new URL(base);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" || parsed.host !== allowed.host) return null;
+  const prefix = `/storage/v1/object/public/${BUCKET}/`;
+  if (!parsed.pathname.startsWith(prefix)) return null;
+  let key = "";
+  try {
+    key = decodeURIComponent(parsed.pathname.slice(prefix.length));
+  } catch {
+    return null;
+  }
+  if (!key || key.includes("..") || key.startsWith("/")) return null;
+  return key;
+}
+
+export async function deletePublicStorageUrl(url: string): Promise<void> {
+  const key = publicUrlToObjectKey(url);
+  if (!key) return;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  const { error } = await supabase.storage.from(BUCKET).remove([key]);
+  if (error) throw new Error(error.message || "Storage delete failed.");
+}

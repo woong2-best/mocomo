@@ -3,6 +3,8 @@ import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AppProviders } from "@/components/providers/app-providers";
 import { ShellRouter } from "@/components/layout/shell-router";
+import { HomeChromeStyle } from "@/components/home/home-chrome-style";
+import { HomeChromeSync } from "@/components/home/home-chrome-sync";
 import { RightPanelHydrated } from "@/components/layout/right-panel-hydrated";
 import { BRAND } from "@/lib/brand";
 import { getPublicSiteOrigin } from "@/lib/site-url";
@@ -72,6 +74,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mocomo-build-id" content={buildId} />
       </head>
       <body className={`${folkDisplay.variable} ${geistSans.variable} ${geistMono.variable} font-sans folk-canvas`}>
+        <HomeChromeStyle />
+        <HomeChromeSync />
         <div className="folk-app-shell">
           <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
             <AppProviders>

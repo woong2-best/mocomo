@@ -105,7 +105,11 @@ export function pathPermission(pathname: string): AdminPermission | null {
   if (pathname.startsWith("/admin/ads")) return "ads";
   if (pathname.startsWith("/admin/statistics")) return "statistics";
   if (pathname.startsWith("/admin/search")) return "statistics";
-  if (pathname.startsWith("/admin/settings") || pathname.startsWith("/admin/legal")) {
+  if (
+    pathname.startsWith("/admin/settings") ||
+    pathname.startsWith("/admin/legal") ||
+    pathname.startsWith("/admin/home-chrome")
+  ) {
     return "settings";
   }
   if (pathname.startsWith("/admin/security")) return "audit";
