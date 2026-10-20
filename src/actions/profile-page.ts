@@ -26,6 +26,7 @@ import {
 import { isPaymentsConfigured } from "@/lib/payments";
 import { getPurchasedPostMediaIds } from "@/lib/post-paid-media";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
+import { attachSponsoredAdFlags } from "@/lib/sponsored-ad/post-disclosure";
 import { getUserWikiContributions } from "@/actions/anime";
 import {
   attachProfilePostAuthor,
@@ -414,10 +415,12 @@ export async function getProfileTimeline(
     const timelineRows = excludePinnedId
       ? rows.filter((row) => row.post.id !== excludePinnedId)
       : rows;
-    const enriched = await enrichPostsWithMediaAccess(
-      timelineRows.map((row) => row.post),
-      viewerId,
-      author
+    const enriched = await attachSponsoredAdFlags(
+      await enrichPostsWithMediaAccess(
+        timelineRows.map((row) => row.post),
+        viewerId,
+        author
+      )
     );
     return {
       items: enriched.map((post, index) => {
@@ -447,7 +450,9 @@ export async function getProfileTimeline(
       },
     });
     const posts = comments.map((c) => c.post);
-    const enrichedPosts = await enrichPostsWithMediaAccess(posts, viewerId, author);
+    const enrichedPosts = await attachSponsoredAdFlags(
+      await enrichPostsWithMediaAccess(posts, viewerId, author)
+    );
     const postById = new Map(enrichedPosts.map((p) => [p.id, p]));
     return {
       items: comments.map((c) => {
@@ -485,7 +490,9 @@ export async function getProfileTimeline(
               mediaKind === "photo" ? m.type === "IMAGE" : m.type === "VIDEO"
             ),
           }));
-    const enriched = await enrichPostsWithMediaAccess(filtered, viewerId, author);
+    const enriched = await attachSponsoredAdFlags(
+      await enrichPostsWithMediaAccess(filtered, viewerId, author)
+    );
     return {
       items: enriched.map((p) => ({ type: "post" as const, post: p })),
       nextCursor: posts.length === PAGE_SIZE ? posts[posts.length - 1]?.id : null,
@@ -500,7 +507,9 @@ export async function getProfileTimeline(
     include: { post: { include: profilePostIncludeLight } },
   });
   const posts = likes.map((l) => l.post);
-  const enrichedPosts = await enrichPostsWithMediaAccess(posts, viewerId, author);
+  const enrichedPosts = await attachSponsoredAdFlags(
+    await enrichPostsWithMediaAccess(posts, viewerId, author)
+  );
   const postById = new Map(enrichedPosts.map((p) => [p.id, p]));
   return {
     items: likes.map((l) => {

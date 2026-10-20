@@ -16,6 +16,7 @@ import { BlockedQuotedPostCard } from "@/components/post/blocked-quoted-post-car
 import { readQuotedPost } from "@/lib/quoted-post";
 import { createTranslator } from "@/lib/i18n/messages";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
+import { PostSponsoredAdBadge } from "@/components/post/post-sponsored-ad-badge";
 
 const t = createTranslator("en");
 
@@ -29,9 +30,11 @@ export function PostDetailCard({
   viewerCollabStatus = null,
   viewerShowNsfw = false,
   quotedPostBlocked = false,
+  sponsoredAdActive = false,
 }: {
   post: PostDetailOk;
   quotedPostBlocked?: boolean;
+  sponsoredAdActive?: boolean;
   locale: Locale;
   isOwner?: boolean;
   paymentsEnabled?: boolean;
@@ -82,7 +85,9 @@ export function PostDetailCard({
               }
             />
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {sponsoredAdActive ? <PostSponsoredAdBadge /> : null}
+            <div className="flex items-center gap-1">
             <PostOwnerMenu
               postId={post.id}
               isPinned={post.isPinned}
@@ -94,6 +99,7 @@ export function PostDetailCard({
               size="md"
               canBoost={isOwner && isBoostableImageMedia(post.media)}
             />
+            </div>
           </div>
         </div>
         <PostCollabActions

@@ -30,6 +30,7 @@ import { dateFnsLocale } from "@/lib/i18n/date-locale";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 import { qnaListTitle } from "@/lib/qna-list-title";
 import { PostCardNavigate } from "@/components/feed/post-card-navigate";
+import { PostSponsoredAdBadge } from "@/components/post/post-sponsored-ad-badge";
 
 export function FeedTimelinePostCard({
   post,
@@ -186,7 +187,9 @@ export function FeedTimelinePostCard({
                 </div>
               )}
             </div>
-            <div className="flex shrink-0 items-center">
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              {post.sponsoredAdActive ? <PostSponsoredAdBadge className="mr-1" /> : null}
+              <div className="flex items-center">
               <AdminContentActionMenu
                 targetType="POST"
                 targetId={post.id}
@@ -202,6 +205,7 @@ export function FeedTimelinePostCard({
                 qna={qna}
                 canBoost={isOwner && isBoostableImageMedia(post.media)}
               />
+              </div>
             </div>
           </div>
         </div>

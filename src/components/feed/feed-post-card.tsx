@@ -90,6 +90,8 @@ export type GridPost = {
   quotedPostBlocked?: boolean;
   activityKey?: string;
   activityAt?: string;
+  /** Active MOCO sponsored-ad (boost) campaign */
+  sponsoredAdActive?: boolean;
 };
 
 const typeLabels: Record<string, string> = {

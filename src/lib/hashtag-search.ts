@@ -10,6 +10,7 @@ import {
   trimFeedPostContent,
 } from "@/lib/feed-query";
 import { withPlatformPostsOnly } from "@/lib/post-scope";
+import { attachSponsoredAdFlags } from "@/lib/sponsored-ad/post-disclosure";
 
 export type HashtagSort = "top" | "latest";
 
@@ -56,7 +57,7 @@ export async function fetchHashtagPosts(tag: string, sort: HashtagSort, limit = 
       orderBy,
       select: feedPostListSelect,
     });
-    return posts.map(mapFeedPost);
+    return attachSponsoredAdFlags(posts.map(mapFeedPost));
   } catch (e) {
     console.error("[hashtag-search] primary", e);
     try {
@@ -66,13 +67,15 @@ export async function fetchHashtagPosts(tag: string, sort: HashtagSort, limit = 
         orderBy: { createdAt: "desc" },
         select: feedPostListSelectNoReposts,
       });
-      return posts.map((p) =>
-        mapFeedPost({
-          ...p,
-          quotedPost: null,
-          poll: null,
-          _count: { ...p._count, reposts: 0 },
-        })
+      return attachSponsoredAdFlags(
+        posts.map((p) =>
+          mapFeedPost({
+            ...p,
+            quotedPost: null,
+            poll: null,
+            _count: { ...p._count, reposts: 0 },
+          })
+        )
       );
     } catch (e2) {
       console.error("[hashtag-search] fallback", e2);
@@ -82,7 +85,9 @@ export async function fetchHashtagPosts(tag: string, sort: HashtagSort, limit = 
         orderBy: { createdAt: "desc" },
         select: feedPostListSelectNoPoll,
       });
-      return posts.map((p) => trimFeedPostContent({ ...p, quotedPost: null, poll: null }));
+      return attachSponsoredAdFlags(
+        posts.map((p) => trimFeedPostContent({ ...p, quotedPost: null, poll: null }))
+      );
     }
   }
 }

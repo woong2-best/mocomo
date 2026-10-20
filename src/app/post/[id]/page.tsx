@@ -23,6 +23,7 @@ import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { redactQnaPublicPost } from "@/lib/anonymous-post";
 import { db } from "@/lib/db";
 import { isPaymentsConfigured } from "@/lib/payments";
+import { isPostSponsoredAdActive } from "@/lib/sponsored-ad/post-disclosure";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,8 @@ export default async function PostPage({
   );
   const visibleCounts = blockPolicyPost._count ?? post._count;
 
-  const [engagement, creator, viewerSub, viewerCollab, viewerPrefs] = await Promise.all([
+  const [engagement, creator, viewerSub, viewerCollab, viewerPrefs, sponsoredAdActive] =
+    await Promise.all([
     session?.user?.id
       ? getPostEngagementForUser(session.user.id, [post.id])
       : Promise.resolve({ likedIds: [] as string[], starredIds: [] as string[], repostedIds: [] as string[] }),
@@ -125,6 +127,7 @@ export default async function PostPage({
           select: { showNsfw: true },
         })
       : Promise.resolve(null),
+    isPostSponsoredAdActive(post.id),
   ]);
 
   const isStaff =
@@ -160,6 +163,7 @@ export default async function PostPage({
         <PostDetailCard
           post={cardPost}
           quotedPostBlocked={quotedPostBlocked}
+          sponsoredAdActive={sponsoredAdActive}
           locale={locale}
           isOwner={session?.user?.id === realAuthorId}
           paymentsEnabled={isPaymentsConfigured()}

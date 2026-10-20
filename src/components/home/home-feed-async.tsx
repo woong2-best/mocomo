@@ -11,6 +11,7 @@ import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { withRepostActivities } from "@/lib/repost-timeline";
 import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { attachSponsoredAdFlags } from "@/lib/sponsored-ad/post-disclosure";
 
 function serializeCreatedAt<T extends { createdAt: Date | string }>(rows: T[]): T[] {
   return rows.map((row) => ({
@@ -43,7 +44,7 @@ export async function HomeFeedAsync() {
     const postIds = visible.map((p) => p.id);
     const viewerUserId = session?.user?.id;
 
-    const [posts, engagement] = await Promise.all([
+    const [posts, engagement, withAdFlags] = await Promise.all([
       attachWebPaidMediaPlayback(visible, viewerId),
       viewerUserId && postIds.length > 0
         ? getPostEngagementForUser(viewerUserId, postIds).catch((e) => {
@@ -55,8 +56,12 @@ export async function HomeFeedAsync() {
             starredIds: [] as string[],
             repostedIds: [] as string[],
           }),
+      attachSponsoredAdFlags(visible),
     ]);
-    const serialized = serializeCreatedAt(posts);
+    const adFlagById = new Map(withAdFlags.map((p) => [p.id, p.sponsoredAdActive]));
+    const serialized = serializeCreatedAt(
+      posts.map((p) => ({ ...p, sponsoredAdActive: adFlagById.get(p.id) ?? false }))
+    );
     const isLoggedIn = !!session?.user;
     const isPremium = session?.user?.premiumTier === "PREMIUM";
     const nextCursor = rawPosts.length === 12 ? rawPosts[rawPosts.length - 1]?.id ?? null : null;

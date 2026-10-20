@@ -9,6 +9,7 @@ import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { hydrateViewerPollVotes } from "@/lib/post-poll";
 import { withRepostActivities } from "@/lib/repost-timeline";
 import { applyViewerBlockPolicyToPosts } from "@/lib/user-block";
+import { attachSponsoredAdFlags } from "@/lib/sponsored-ad/post-disclosure";
 
 export async function GET(req: NextRequest) {
   try {
@@ -55,15 +56,18 @@ export async function GET(req: NextRequest) {
     const postIds = policyPosts.map((p) => p.id);
 
     // Web: no in-feed ads (Sponsored lives in the right-panel photo slot only).
-    const [gated, engagement] = await Promise.all([
+    const [gated, engagement, withAdFlags] = await Promise.all([
       attachWebPaidMediaPlayback(policyPosts, viewerUserId ?? null),
       viewerUserId && postIds.length > 0
         ? getPostEngagementForUser(viewerUserId, postIds)
         : Promise.resolve({ likedIds: [], starredIds: [], repostedIds: [] }),
+      attachSponsoredAdFlags(policyPosts),
     ]);
 
+    const adFlagById = new Map(withAdFlags.map((p) => [p.id, p.sponsoredAdActive]));
     const serialized = gated.map((data) => ({
       ...data,
+      sponsoredAdActive: adFlagById.get(data.id) ?? false,
       createdAt: data.createdAt.toISOString(),
     }));
 

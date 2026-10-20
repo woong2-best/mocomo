@@ -16,6 +16,7 @@ import { RepostBanner } from "@/components/post/repost-banner";
 import { QuotedPostCard } from "@/components/post/quoted-post-card";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 import { PostCardNavigate } from "@/components/feed/post-card-navigate";
+import { PostSponsoredAdBadge } from "@/components/post/post-sponsored-ad-badge";
 
 export function ProfilePostCard({
   post,
@@ -135,7 +136,9 @@ export function ProfilePostCard({
                 initialReposted={initialReposted}
               />
             </div>
-            <div className="flex shrink-0 items-center">
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              {post.sponsoredAdActive ? <PostSponsoredAdBadge className="mr-1" /> : null}
+              <div className="flex items-center">
               <AdminContentActionMenu
                 targetType="POST"
                 targetId={post.id}
@@ -151,6 +154,7 @@ export function ProfilePostCard({
                 size="md"
                 canBoost={canOwnMenu && isBoostableImageMedia(post.media)}
               />
+              </div>
             </div>
           </div>
         </div>
