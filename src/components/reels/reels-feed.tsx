@@ -323,7 +323,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   const canNext = activeIndex < items.length - 1;
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden bg-black lg:overflow-visible lg:bg-transparent">
+    <div className="absolute inset-0 flex overflow-hidden bg-black lg:bg-transparent">
       <div
         className={cn(
           "absolute inset-0 min-h-0 min-w-0 select-none"
@@ -343,7 +343,6 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         ref={scrollerRef}
         className={cn(
           "absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain",
-          "lg:overflow-x-visible",
           "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
@@ -399,8 +398,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         className={cn(
           "pointer-events-none absolute z-40 flex flex-col gap-2",
           "right-2 top-[max(4.5rem,env(safe-area-inset-top))]",
-          "lg:right-3 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
-          commentsPanel && "hidden"
+          "lg:right-3 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3"
         )}
       >
         <button

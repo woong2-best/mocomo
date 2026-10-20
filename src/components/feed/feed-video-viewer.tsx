@@ -432,7 +432,7 @@ export function FeedVideoViewer({
       aria-modal={column ? "false" : "true"}
       aria-label={t("feed.szady4c")}
       className={cn(
-        "fixed z-[160] flex overflow-hidden lg:overflow-visible",
+        "fixed z-[160] flex overflow-hidden",
         column ? "bg-background" : "inset-0 bg-black"
       )}
       style={
@@ -452,10 +452,7 @@ export function FeedVideoViewer({
         )}
       >
       <header
-        className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]",
-          commentsPanel && "hidden"
-        )}
+        className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.5rem,env(safe-area-inset-top))]"
       >
         <button
           type="button"
@@ -471,7 +468,6 @@ export function FeedVideoViewer({
         ref={scrollerRef}
         className={cn(
           "absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain",
-          "lg:overflow-x-visible",
           "snap-y snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
@@ -501,6 +497,7 @@ export function FeedVideoViewer({
             onActiveVideoChange={(videoIndex) => {
               videoIndexByGroupRef.current[index] = videoIndex;
             }}
+            horizontalNavEnabled={!commentsPanel}
             onComment={(postId, count) =>
               setCommentsPanel({ postId, count })
             }
@@ -541,8 +538,7 @@ export function FeedVideoViewer({
         className={cn(
           "pointer-events-none absolute z-40 flex flex-col gap-2",
           "right-2 top-[max(4.5rem,env(safe-area-inset-top))]",
-          "lg:right-3 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3",
-          commentsPanel && "hidden"
+          "lg:right-3 lg:top-1/2 lg:-translate-y-1/2 lg:gap-3"
         )}
       >
         <button

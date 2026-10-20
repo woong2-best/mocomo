@@ -50,13 +50,10 @@ type Props = {
   commentsPanel?: ReactNode;
 };
 
-const DESKTOP_STAGE_HEIGHT = "lg:h-[min(100%,920px)]";
-const DESKTOP_VIDEO_WIDTH =
-  "lg:w-[min(420px,calc(100%-7.5rem))] lg:max-w-[420px] lg:shrink-0";
-const DESKTOP_STAGE_WRAPPER_CLOSED =
-  "lg:w-[min(420px,calc(100%-7.5rem))] lg:max-w-[420px]";
+const DESKTOP_CARD_CLASS =
+  "h-full w-full overflow-hidden lg:h-[min(100%,920px)] lg:w-[min(420px,calc(100%-7.5rem))]";
 const DESKTOP_STAGE_WRAPPER_OPEN =
-  "lg:w-[min(calc(420px+24rem),100%)] lg:max-w-[calc(420px+24rem)]";
+  "lg:h-[min(100%,920px)] lg:w-[min(calc(420px+24rem),100%)] lg:max-w-[calc(420px+24rem)]";
 
 export function ReelsSlide({
   reel,
@@ -251,7 +248,7 @@ export function ReelsSlide({
       data-cinema={cinema ? "1" : "0"}
       className={cn(
         "relative flex h-full w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none",
-        cinema ? "z-[60] bg-black" : "bg-black lg:overflow-visible lg:bg-transparent"
+        cinema ? "z-[60] bg-black" : "bg-black lg:bg-transparent"
       )}
       aria-label={`Video by ${userDisplayName(reel.author)}`}
       onClick={
@@ -286,21 +283,18 @@ export function ReelsSlide({
             <X className="h-5 w-5" />
           </button>
         </div>
-      ) : (
+      ) : commentsOpen ? (
         <div
           className={cn(
-            "relative mx-auto flex w-full min-w-0 items-stretch transition-[width,max-width] duration-300 ease-out",
-            DESKTOP_STAGE_HEIGHT,
-            commentsOpen ? DESKTOP_STAGE_WRAPPER_OPEN : DESKTOP_STAGE_WRAPPER_CLOSED,
-            commentsOpen && "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
+            "relative mx-auto flex w-full min-w-0 items-stretch",
+            DESKTOP_STAGE_WRAPPER_OPEN,
+            "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
           )}
         >
           <div
             className={cn(
-              "relative h-full w-full shrink-0 overflow-hidden bg-black",
-              DESKTOP_STAGE_HEIGHT,
-              DESKTOP_VIDEO_WIDTH,
-              commentsOpen ? "lg:rounded-none" : "lg:rounded-2xl"
+              "relative shrink-0 overflow-hidden bg-black",
+              DESKTOP_CARD_CLASS
             )}
             onClick={(e) => e.stopPropagation()}
           >
@@ -308,7 +302,16 @@ export function ReelsSlide({
             {captionBlock}
             {actions}
           </div>
-          {commentsOpen && commentsPanel ? commentsPanel : null}
+          {commentsPanel}
+        </div>
+      ) : (
+        <div
+          className={cn("relative bg-black", DESKTOP_CARD_CLASS, "lg:rounded-2xl")}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {player}
+          {captionBlock}
+          {actions}
         </div>
       )}
     </section>
