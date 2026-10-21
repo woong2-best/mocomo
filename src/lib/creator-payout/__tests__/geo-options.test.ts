@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { listTaxCities, listTaxCountries, listTaxStates, toTaxAsciiName } from "@/lib/creator-payout/geo-options";
+import {
+  isTaxCityInState,
+  listTaxCities,
+  listTaxCountries,
+  listTaxStates,
+  toTaxAsciiName,
+} from "@/lib/creator-payout/geo-options";
 
 describe("tax form geo options", () => {
   it("lists English country names and US states", () => {
@@ -16,5 +22,8 @@ describe("tax form geo options", () => {
     expect(cities.length).toBeGreaterThan(0);
     expect(cities.some((city) => city.name === "Los Angeles")).toBe(true);
     expect(toTaxAsciiName("S\u00e3o Paulo")).toBe("Sao Paulo");
+    expect(isTaxCityInState("US", "WY", "Sheridan")).toBe(true);
+    expect(isTaxCityInState("US", "WY", "Los Angeles")).toBe(false);
+    expect(listTaxCities("US", "GU")).toEqual([]);
   });
 });

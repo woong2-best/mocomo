@@ -19,6 +19,7 @@ import {
 } from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
+import { isTaxCityInState } from "@/lib/creator-payout/geo-options";
 import { TaxLocationFields } from "@/components/settlement/tax-location-fields";
 
 type Quote = {
@@ -202,8 +203,10 @@ export function SettlementRequestFlow() {
     const latinOk = [...textFields, ...optional].every((value) => isTaxFormEnglishText(value));
     const qualityOk = [...textFields, ...optional].every((value) => isTaxFormTextQualityOk(value));
     const postalOk = isValidTaxPostalCode(postalCode);
-    return latinOk && qualityOk && postalOk;
-  }, [businessName, city, formType, fullName, postalCode, state, street]);
+    const addressCountry = formType === "W9" ? "US" : residenceCountryCode;
+    const cityMatchesState = isTaxCityInState(addressCountry, stateCode, city);
+    return latinOk && qualityOk && postalOk && cityMatchesState;
+  }, [businessName, city, formType, fullName, postalCode, residenceCountryCode, state, stateCode, street]);
   const canSubmitTax = useMemo(() => {
     const base =
       taxLatinFieldsValid &&

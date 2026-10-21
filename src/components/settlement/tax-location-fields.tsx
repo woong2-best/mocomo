@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import {
   listTaxCities,
   listTaxCitiesOfCountry,
@@ -43,9 +43,29 @@ export function TaxLocationFields({
     return [];
   }, [countryCode, stateCode, states.length]);
 
+  const locationKey = `${countryCode}:${stateCode}`;
+  const prevLocationKey = useRef(locationKey);
+
+  useLayoutEffect(() => {
+    if (prevLocationKey.current === locationKey) return;
+    prevLocationKey.current = locationKey;
+    onCityChange("");
+  }, [locationKey, onCityChange]);
+
   const stateFallback = Boolean(countryCode) && states.length === 0;
   const cityFallback = Boolean(countryCode) && (stateFallback || Boolean(stateCode)) && cities.length === 0;
-  const cityEnabled = Boolean(countryCode) && (stateFallback || Boolean(stateCode) || Boolean(state));
+  const cityEnabled = Boolean(countryCode) && (stateFallback || Boolean(stateCode));
+
+  function changeCountry(nextCountry: string) {
+    onCityChange("");
+    onStateChange("", "");
+    onCountryChange(nextCountry);
+  }
+
+  function changeState(name: string, isoCode: string) {
+    onCityChange("");
+    onStateChange(name, isoCode);
+  }
 
   return (
     <>
@@ -56,7 +76,7 @@ export function TaxLocationFields({
           value={countryCode}
           disabled={countryLocked}
           autoComplete="off"
-          onChange={(e) => onCountryChange(e.target.value)}
+          onChange={(e) => changeCountry(e.target.value)}
         >
           {!countryCode ? <option value="">Select country</option> : null}
           {countries.map((country) => (
@@ -68,18 +88,24 @@ export function TaxLocationFields({
       </label>
 
       {stateFallback ? (
-        <FallbackField label="State / province" value={state} onChange={(value) => onStateChange(value, "")} />
+        <FallbackField
+          key={`state-text-${countryCode}`}
+          label="State / province"
+          value={state}
+          onChange={(value) => changeState(value, "")}
+        />
       ) : (
         <label className="block space-y-1 text-sm">
           <span className="font-semibold">{excludeUs ? "State / province" : "State"}</span>
           <select
+            key={`state-select-${countryCode}`}
             className={fieldClass}
             value={stateCode}
             disabled={!countryCode}
             autoComplete="off"
             onChange={(e) => {
               const next = states.find((item) => item.code === e.target.value);
-              onStateChange(next?.name ?? "", next?.code ?? "");
+              changeState(next?.name ?? "", next?.code ?? "");
             }}
           >
             <option value="">{countryCode ? "Select state" : "Select country first"}</option>
@@ -94,6 +120,7 @@ export function TaxLocationFields({
 
       {cityFallback ? (
         <FallbackField
+          key={`city-text-${locationKey}`}
           label="City"
           value={city}
           onChange={onCityChange}
@@ -103,8 +130,9 @@ export function TaxLocationFields({
         <label className="block space-y-1 text-sm">
           <span className="font-semibold">City</span>
           <select
+            key={`city-select-${locationKey}`}
             className={fieldClass}
-            value={city}
+            value={cities.some((item) => item.name === city) ? city : ""}
             disabled={!cityEnabled}
             autoComplete="off"
             onChange={(e) => onCityChange(e.target.value)}

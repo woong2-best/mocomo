@@ -37,6 +37,12 @@ export function listTaxCities(countryCode: string, stateCode: string): GeoOption
     .sort((a, b) => a.name.localeCompare(b.name, "en"));
 }
 
+export function isTaxCityInState(countryCode: string, stateCode: string, city: string): boolean {
+  const cities = listTaxCities(countryCode, stateCode);
+  if (cities.length === 0) return city.trim().length >= 2;
+  return cities.some((item) => item.name === city);
+}
+
 export function listTaxCitiesOfCountry(countryCode: string): GeoOption[] {
   if (!countryCode) return [];
   return (City.getCitiesOfCountry(countryCode) ?? [])
