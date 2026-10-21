@@ -13,7 +13,6 @@ import { usePostTranslate } from "@/components/providers/post-translate-provider
 import { useAutoClientTranslation } from "@/hooks/use-auto-client-translate";
 import { needsClientTranslation } from "@/lib/client-translate/detect-source";
 import { extractFirstHttpUrl, isUrlOnlyContent } from "@/lib/link-preview-shared";
-import { sourceLanguageLabel } from "@/lib/text-language";
 import { cn } from "@/lib/utils";
 
 export function TranslatableText({
@@ -30,7 +29,7 @@ export function TranslatableText({
   /** 본문 첫 URL의 OG/유튜브 카드 (기본 on) */
   showLinkPreview?: boolean;
 }) {
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const { preference } = usePostTranslate();
   const loadState = useClientTranslationLoad();
   const loadProgress = loadState.progress;
@@ -103,12 +102,6 @@ export function TranslatableText({
           <Languages className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
           {showingTranslation && sourceLang ? (
             <>
-              <span className="text-muted-foreground">
-                {t("translate.sourceLanguage", {
-                  language: sourceLanguageLabel(sourceLang, locale),
-                })}
-              </span>
-              <span className="text-muted-foreground">·</span>
               <button
                 type="button"
                 className="text-primary hover:underline disabled:opacity-50"

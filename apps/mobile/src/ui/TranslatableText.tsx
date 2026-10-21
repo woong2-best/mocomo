@@ -6,17 +6,6 @@ import { useAutoClientTranslation } from "@/hooks/useAutoClientTranslation";
 import { needsClientTranslation } from "@/lib/translate/detect-source";
 import { LinkifiedText } from "@/ui/LinkifiedText";
 import { useTheme } from "@/theme/ThemeContext";
-import type { Locale } from "@/i18n";
-
-function sourceLanguageLabel(source: Locale, uiLocale: Locale): string {
-  const tag = uiLocale === "zh-TW" ? "zh-Hant" : uiLocale;
-  try {
-    return new Intl.DisplayNames([tag, "en"], { type: "language" }).of(source) ?? source;
-  } catch {
-    return source;
-  }
-}
-
 type Props = {
   text: string;
   style?: StyleProp<TextStyle>;
@@ -80,12 +69,6 @@ export function TranslatableText({
         <Ionicons name="language-outline" size={14} color={colors.textMuted} />
         {showingTranslation && sourceLang ? (
           <>
-            <Text style={styles.metaText}>
-              {t("translate.sourceLanguage", {
-                language: sourceLanguageLabel(sourceLang, locale),
-              })}
-            </Text>
-            <Text style={styles.metaDot}>·</Text>
             <Pressable onPress={() => setShowOriginal(true)} hitSlop={8}>
               <Text style={styles.metaAction}>{t("translate.viewOriginal")}</Text>
             </Pressable>
@@ -128,10 +111,6 @@ function createStyles(colors: { textMuted: string; brand: string; danger: string
       marginBottom: 4,
     },
     metaText: {
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    metaDot: {
       fontSize: 12,
       color: colors.textMuted,
     },
