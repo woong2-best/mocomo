@@ -29,8 +29,8 @@ export type PreparedTaxForm =
       signedOn: Date;
     };
 
-/** IRS PDF Helvetica: Latin letters, digits, space, and , . - # / only. */
-const TAX_FORM_LATIN = /^[A-Za-z0-9 ,.\-#/]*$/;
+/** IRS PDF Helvetica: Latin letters, digits, space, and basic punctuation. */
+const TAX_FORM_LATIN = /^[A-Za-z0-9 ,.\-/#']*$/;
 
 export const TAX_FORM_ENGLISH_ONLY_MESSAGE =
   "All fields must be filled out in English. (영문으로 입력해 주세요)";
@@ -39,14 +39,23 @@ export function isTaxFormEnglishText(value: string): boolean {
   return TAX_FORM_LATIN.test(value);
 }
 
-const TAX_POSTAL = /^[A-Za-z0-9\s-]+$/;
+/** Collapse 3+ of the same character in a row down to two. */
+export function stripTaxFormRepeats(value: string): string {
+  return value.replace(/(.)\1{2,}/g, "$1$1");
+}
+
+export function sanitizeTaxTextInput(value: string): string {
+  return stripTaxFormRepeats(value.replace(/[^a-zA-Z0-9\s,.\-/#']/g, ""));
+}
+
+const TAX_POSTAL = /^[A-Za-z0-9-]+$/;
 
 export function sanitizeTaxPostalInput(value: string): string {
-  return value.replace(/[^a-zA-Z0-9\s-]/g, "").slice(0, 10);
+  return stripTaxFormRepeats(value.replace(/[^a-zA-Z0-9-]/g, "").toUpperCase()).slice(0, 10);
 }
 
 export function isValidTaxPostalCode(value: string): boolean {
-  const trimmed = value.trim();
+  const trimmed = sanitizeTaxPostalInput(value);
   if (trimmed.length < 3 || trimmed.length > 10) return false;
   if (!TAX_POSTAL.test(trimmed)) return false;
   return /\d/.test(trimmed);
@@ -56,9 +65,49 @@ export function sanitizeForeignTinInput(value: string): string {
   return value.replace(/[^0-9-]/g, "").slice(0, 20);
 }
 
-/** Same character repeated 4+ times in a row (e.g. eeeee). */
+export function formatSsnInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 9);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
+}
+
+export function formatEinInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 9);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+}
+
+export function formatUsTinInput(kind: "SSN" | "EIN", value: string): string {
+  return kind === "EIN" ? formatEinInput(value) : formatSsnInput(value);
+}
+
+export function sanitizeAccountNumberInput(value: string): string {
+  return value.replace(/[^0-9-]/g, "").slice(0, 34);
+}
+
+export function sanitizeSwiftInput(value: string): string {
+  return value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 11);
+}
+
+export function isCompletePayoutEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+export function isValidAccountNumber(value: string): boolean {
+  const compact = sanitizeAccountNumberInput(value);
+  const digits = compact.replace(/-/g, "");
+  return digits.length >= 4 && digits.length <= 34 && /^[0-9-]+$/.test(compact);
+}
+
+export function isValidSwiftCode(value: string): boolean {
+  if (!value.trim()) return true;
+  return /^[A-Z0-9]{8,11}$/.test(sanitizeSwiftInput(value));
+}
+
+/** Same character repeated 3+ times in a row (e.g. yyy). */
 export function hasTaxFormExcessiveRepeat(value: string): boolean {
-  return /(.)\1{3,}/.test(value);
+  return /(.)\1{2,}/.test(value);
 }
 
 export function isTaxFormTextQualityOk(value: string): boolean {

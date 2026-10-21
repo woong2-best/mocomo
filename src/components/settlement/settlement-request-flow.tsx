@@ -3,12 +3,19 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  formatUsTinInput,
+  isCompletePayoutEmail,
   isTaxFormEnglishText,
   isTaxFormTextQualityOk,
+  isValidAccountNumber,
   isValidForeignTin,
+  isValidSwiftCode,
   isValidTaxPostalCode,
+  sanitizeAccountNumberInput,
   sanitizeForeignTinInput,
+  sanitizeSwiftInput,
   sanitizeTaxPostalInput,
+  sanitizeTaxTextInput,
 } from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
@@ -214,6 +221,22 @@ export function SettlementRequestFlow() {
     tin,
   ]);
 
+  const canSaveDestination = useMemo(() => {
+    if (kind === "BANK") {
+      return (
+        accountHolder.trim().length >= 2 &&
+        bankName.trim().length >= 2 &&
+        isTaxFormEnglishText(accountHolder) &&
+        isTaxFormEnglishText(bankName) &&
+        isTaxFormTextQualityOk(accountHolder) &&
+        isTaxFormTextQualityOk(bankName) &&
+        isValidAccountNumber(accountNumber) &&
+        isValidSwiftCode(routingNumber)
+      );
+    }
+    return isCompletePayoutEmail(email);
+  }, [accountHolder, accountNumber, bankName, email, kind, routingNumber]);
+
   const signatureDate = new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
@@ -268,6 +291,7 @@ export function SettlementRequestFlow() {
   }
 
   async function saveMethod() {
+    if (!canSaveDestination) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -457,7 +481,6 @@ export function SettlementRequestFlow() {
                     label={formType === "W9" ? "Full name" : "Full legal name"}
                     value={fullName}
                     onChange={setFullName}
-                    autoComplete="name"
                   />
                   {formType === "W9" ? (
                     <LatinField
@@ -475,20 +498,17 @@ export function SettlementRequestFlow() {
                     label={formType === "W9" ? "Address" : "Permanent residence address"}
                     value={street}
                     onChange={setStreet}
-                    autoComplete="address-line1"
                   />
                   <LatinField
                     label="City"
                     value={city}
                     onChange={setCity}
-                    autoComplete="address-level2"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <LatinField
                       label={formType === "W9" ? "State" : "State / province"}
                       value={state}
                       onChange={setState}
-                      autoComplete="address-level1"
                     />
                     <PostalField
                       label={formType === "W9" ? "ZIP" : "Postal"}
@@ -505,18 +525,34 @@ export function SettlementRequestFlow() {
                   {formType === "W9" ? (
                     <>
                       <div className="grid grid-cols-2 gap-2">
-                        <Choice label="SSN" selected={tinKind === "SSN"} onClick={() => setTinKind("SSN")} />
-                        <Choice label="EIN" selected={tinKind === "EIN"} onClick={() => setTinKind("EIN")} />
+                        <Choice
+                          label="SSN"
+                          selected={tinKind === "SSN"}
+                          onClick={() => {
+                            setTinKind("SSN");
+                            setTin((value) => formatUsTinInput("SSN", value));
+                          }}
+                        />
+                        <Choice
+                          label="EIN"
+                          selected={tinKind === "EIN"}
+                          onClick={() => {
+                            setTinKind("EIN");
+                            setTin((value) => formatUsTinInput("EIN", value));
+                          }}
+                        />
                       </div>
                       <label className="block space-y-1 text-sm">
-                        <span className="font-semibold">SSN or EIN</span>
+                        <span className="font-semibold">{tinKind === "EIN" ? "EIN" : "SSN"}</span>
                         <input
                           className={fieldClass}
                           inputMode="numeric"
                           autoComplete="off"
+                          spellCheck={false}
+                          maxLength={tinKind === "EIN" ? 10 : 11}
                           value={tin}
-                          onChange={(e) => setTin(e.target.value)}
-                          placeholder="9 digits"
+                          onChange={(e) => setTin(formatUsTinInput(tinKind, e.target.value))}
+                          placeholder={tinKind === "EIN" ? "XX-XXXXXXX" : "XXX-XX-XXXX"}
                         />
                       </label>
                     </>
@@ -552,7 +588,7 @@ export function SettlementRequestFlow() {
                 <SignatureCanvas key={signatureKey} ref={signatureRef} onChange={setSignaturePng} />
                 <label className="block space-y-1 text-sm">
                   <span className="font-semibold">Signature date</span>
-                  <input className={fieldClass} value={signatureDate} readOnly />
+                  <input className={fieldClass} value={signatureDate} readOnly autoComplete="off" spellCheck={false} />
                 </label>
                 <button
                   type="button"
@@ -582,10 +618,40 @@ export function SettlementRequestFlow() {
               </label>
               {kind === "BANK" ? (
                 <div className="grid gap-2">
-                  <input className={fieldClass} placeholder="Account holder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} />
-                  <input className={fieldClass} placeholder="Bank name" value={bankName} onChange={(e) => setBankName(e.target.value)} />
-                  <input className={fieldClass} placeholder="Account number" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} autoComplete="off" />
-                  <input className={fieldClass} placeholder="Routing or SWIFT (optional)" value={routingNumber} onChange={(e) => setRoutingNumber(e.target.value)} />
+                  <input
+                    className={fieldClass}
+                    placeholder="Account holder"
+                    value={accountHolder}
+                    onChange={(e) => setAccountHolder(sanitizeTaxTextInput(e.target.value))}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <input
+                    className={fieldClass}
+                    placeholder="Bank name"
+                    value={bankName}
+                    onChange={(e) => setBankName(sanitizeTaxTextInput(e.target.value))}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <input
+                    className={fieldClass}
+                    placeholder="Account number"
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(sanitizeAccountNumberInput(e.target.value))}
+                    autoComplete="off"
+                    spellCheck={false}
+                    inputMode="numeric"
+                  />
+                  <input
+                    className={fieldClass}
+                    placeholder="SWIFT / BIC (optional)"
+                    value={routingNumber}
+                    maxLength={11}
+                    onChange={(e) => setRoutingNumber(sanitizeSwiftInput(e.target.value))}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
                 </div>
               ) : (
                 <input
@@ -595,13 +661,14 @@ export function SettlementRequestFlow() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="off"
+                  spellCheck={false}
                 />
               )}
               <button
                 type="button"
-                disabled={busy}
+                disabled={!canSaveDestination || busy}
                 onClick={() => void saveMethod()}
-                className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-black text-sm font-bold disabled:opacity-40"
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-black text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Save destination
               </button>
@@ -683,12 +750,10 @@ function LatinField({
   label,
   value,
   onChange,
-  autoComplete,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  autoComplete?: string;
 }) {
   return (
     <label className="block space-y-1 text-sm">
@@ -696,8 +761,8 @@ function LatinField({
       <input
         className={fieldClass}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoComplete={autoComplete}
+        onChange={(e) => onChange(sanitizeTaxTextInput(e.target.value))}
+        autoComplete="off"
         spellCheck={false}
       />
     </label>
@@ -721,7 +786,7 @@ function PostalField({
         value={value}
         maxLength={10}
         onChange={(e) => onChange(sanitizeTaxPostalInput(e.target.value))}
-        autoComplete="postal-code"
+        autoComplete="off"
         spellCheck={false}
       />
     </label>
@@ -740,7 +805,7 @@ function CountrySelect({
   const options = w8benOnly ? W8BEN_COUNTRY_OPTIONS : COUNTRY_OPTIONS;
   const safeValue = w8benOnly && value === "US" ? "KR" : value;
   return (
-    <select className={fieldClass} value={safeValue} onChange={(e) => onChange(e.target.value)}>
+    <select className={fieldClass} value={safeValue} onChange={(e) => onChange(e.target.value)} autoComplete="off">
       {options.map((country) => (
         <option key={country.code} value={country.code}>
           {country.nameEn}
@@ -783,6 +848,7 @@ function ForeignTinFields({
         <input
           className={fieldClass}
           autoComplete="off"
+          spellCheck={false}
           value={value}
           maxLength={20}
           onChange={(e) => onChange(sanitizeForeignTinInput(e.target.value))}

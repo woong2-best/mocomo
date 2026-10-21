@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatEinInput,
+  formatSsnInput,
   hasTaxFormExcessiveRepeat,
+  isCompletePayoutEmail,
   isTaxFormEnglishText,
+  isValidAccountNumber,
   isValidForeignTin,
+  isValidSwiftCode,
   isValidTaxPostalCode,
   isW8benEligibleCountry,
   normalizeForeignTin,
@@ -10,6 +15,7 @@ import {
   prepareForeignTinForPdf,
   sanitizeForeignTinInput,
   sanitizeTaxPostalInput,
+  sanitizeTaxTextInput,
   w8benExpiresAt,
 } from "@/lib/creator-payout/tax-form-input";
 import { generateTaxFormPdf } from "@/lib/creator-payout/tax-pdf";
@@ -78,15 +84,20 @@ describe("tax form dates and input", () => {
 
   it("sanitizes postal codes and rejects letter-only junk", () => {
     expect(sanitizeTaxPostalInput("49315!@#")).toBe("49315");
+    expect(sanitizeTaxPostalInput("sw1a 1aa")).toBe("SW1A1AA");
     expect(sanitizeTaxPostalInput("12345678901")).toBe("1234567890");
+    expect(sanitizeTaxPostalInput("AAA111")).toBe("AA11");
     expect(isValidTaxPostalCode("49315")).toBe(true);
-    expect(isValidTaxPostalCode("SW1A 1AA")).toBe(true);
+    expect(isValidTaxPostalCode("SW1A1AA")).toBe(true);
     expect(isValidTaxPostalCode("abcdef")).toBe(false);
   });
 
-  it("flags excessive repeated characters in text fields", () => {
+  it("strips Hangul and 3-repeat keyboard mashing from text fields", () => {
+    expect(sanitizeTaxTextInput("백권웅 Gwonung")).toBe(" Gwonung");
+    expect(sanitizeTaxTextInput("yyy")).toBe("yy");
+    expect(sanitizeTaxTextInput("hello")).toBe("hello");
     expect(hasTaxFormExcessiveRepeat("hello")).toBe(false);
-    expect(hasTaxFormExcessiveRepeat("teeeeeest")).toBe(true);
+    expect(hasTaxFormExcessiveRepeat("eee")).toBe(true);
     expect(
       parseTaxFormPayload({
         formType: "W8BEN",
@@ -101,6 +112,19 @@ describe("tax form dates and input", () => {
         signaturePng: ONE_PIXEL_PNG.toString("base64"),
       }),
     ).toBeNull();
+  });
+
+  it("formats US TINs and payout destination fields", () => {
+    expect(formatSsnInput("123456789")).toBe("123-45-6789");
+    expect(formatSsnInput("12ab34")).toBe("123-4");
+    expect(formatEinInput("123456789")).toBe("12-3456789");
+    expect(isCompletePayoutEmail("user@wise.com")).toBe(true);
+    expect(isCompletePayoutEmail("user@wise")).toBe(false);
+    expect(isValidAccountNumber("12ab34-56")).toBe(true);
+    expect(isValidAccountNumber("abc")).toBe(false);
+    expect(isValidSwiftCode("BOFAUS3NXXX")).toBe(true);
+    expect(isValidSwiftCode("bo-fa")).toBe(false);
+    expect(isValidSwiftCode("")).toBe(true);
   });
 });
 

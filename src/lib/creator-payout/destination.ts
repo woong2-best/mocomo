@@ -60,13 +60,15 @@ export function parsePayoutDestination(
   if (kind === "BANK") {
     const accountHolder = clean(raw.accountHolder, 80);
     const bankName = clean(raw.bankName, 80);
-    const accountNumber = clean(raw.accountNumber, 34).replace(/\s+/g, "");
+    const accountNumber = clean(raw.accountNumber, 34).replace(/[^0-9-]/g, "");
     const countryCode = clean(raw.countryCode, 2).toUpperCase();
-    const routingNumber = clean(raw.routingNumber, 20) || undefined;
+    const routingNumber = clean(raw.routingNumber, 11).replace(/[^A-Za-z0-9]/g, "").toUpperCase() || undefined;
     if (accountHolder.length < 2 || bankName.length < 2) return null;
-    if (!/^[A-Za-z0-9]{4,34}$/.test(accountNumber)) return null;
+    if (!/^[A-Za-z0-9 ,.\-/#']*$/.test(accountHolder) || !/^[A-Za-z0-9 ,.\-/#']*$/.test(bankName)) return null;
+    if (/(.)\1{2,}/.test(accountHolder) || /(.)\1{2,}/.test(bankName)) return null;
+    if (!/^[0-9-]{4,34}$/.test(accountNumber) || accountNumber.replace(/-/g, "").length < 4) return null;
     if (requireCountry ? !isSelectableCountryCode(countryCode) : !/^[A-Z]{2}$/.test(countryCode)) return null;
-    if (routingNumber && !/^[A-Za-z0-9]{4,20}$/.test(routingNumber)) return null;
+    if (routingNumber && !/^[A-Z0-9]{8,11}$/.test(routingNumber)) return null;
     return { kind, accountHolder, bankName, accountNumber, countryCode, routingNumber };
   }
   return null;
