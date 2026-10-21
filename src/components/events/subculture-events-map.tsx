@@ -5,6 +5,7 @@ const i18n = createTranslator("en");
 
 import { useEffect, useRef, useState } from "react";
 import type {
+  ExpressionSpecification,
   GeoJSONSource,
   Map as MapLibreMap,
   MapGeoJSONFeature,
@@ -81,7 +82,7 @@ const PIN_TOUCH_BUFFER = 20;
 const CLUSTER_RADIUS = 50;
 const CLUSTER_MAX_ZOOM = 16;
 /** Visual diameter stays ~20–32px. Do not scale with point_count without a cap. */
-const CLUSTER_CIRCLE_RADIUS = [
+const CLUSTER_CIRCLE_RADIUS: ExpressionSpecification = [
   "step",
   ["get", "point_count"],
   12,
@@ -89,8 +90,8 @@ const CLUSTER_CIRCLE_RADIUS = [
   14,
   50,
   16,
-] as const;
-const SIDEBAR_CLUSTER_CIRCLE_RADIUS = [
+];
+const SIDEBAR_CLUSTER_CIRCLE_RADIUS: ExpressionSpecification = [
   "step",
   ["get", "point_count"],
   10,
@@ -98,7 +99,7 @@ const SIDEBAR_CLUSTER_CIRCLE_RADIUS = [
   12,
   50,
   14,
-] as const;
+];
 
 function pinColor(category: string, halo: boolean) {
   if (halo) return "#ff4d9a";
