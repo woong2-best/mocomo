@@ -10,12 +10,16 @@ import { StudioEditorForm } from "@/components/used/studio-editor-form";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 import type { StudioDraft } from "@/lib/studio-editor-validation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const LOGIN_PATH = "/auth/login?redirect=/market/new/digital";
 
 function isNextControlFlow(err: unknown) {
-  const digest =
-    err && typeof err === "object" && "digest" in err ? String((err as { digest?: string }).digest) : "";
-  return digest.startsWith("NEXT_REDIRECT") || digest.startsWith("NEXT_NOT_FOUND");
+  if (!err || typeof err !== "object") return false;
+  const digest = "digest" in err ? String((err as { digest?: unknown }).digest ?? "") : "";
+  const message = err instanceof Error ? err.message : "";
+  return digest.startsWith("NEXT_") || digest === "DYNAMIC_SERVER_USAGE" || message.includes("Dynamic server usage");
 }
 
 function logDigitalRouteError(scope: string, err: unknown) {

@@ -6,6 +6,9 @@ import { getServerTranslator } from "@/lib/i18n/server";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function MarketSellChoicePage() {
   const user = await getCachedCurrentUser();
   if (!user) redirect("/auth/signin?callbackUrl=/market/new");

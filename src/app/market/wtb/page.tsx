@@ -6,6 +6,9 @@ import { getCachedCurrentUser } from "@/lib/auth";
 import { UsedWtbMySection } from "@/components/used/used-wtb-my-section";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function UsedWtbPage() {
   const user = await getCachedCurrentUser();
   if (!user?.id) redirect("/auth/signin?callbackUrl=/market/wtb");

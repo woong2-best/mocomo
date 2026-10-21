@@ -4,13 +4,24 @@ import type { Session } from "next-auth";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function isNextSystemError(err: unknown) {
+  if (!err || typeof err !== "object") return false;
+  const digest = "digest" in err ? String((err as { digest?: unknown }).digest ?? "") : "";
+  const message = err instanceof Error ? err.message : "";
+  return digest.startsWith("NEXT_") || digest === "DYNAMIC_SERVER_USAGE" || message.includes("Dynamic server usage");
+}
+
 export default async function UsedLayout({ children }: { children: React.ReactNode }) {
   let session: Session | null = null;
   try {
     session = (await auth()) ?? null;
   } catch (err) {
+    if (isNextSystemError(err)) throw err;
     const error = err instanceof Error ? err : new Error("Market session failed");
-    console.error("[market/layout] auth", error.stack ?? error.message);
+    console.error("[Market Layout Error]:", error.stack ?? error.message);
     session = null;
   }
   let usedMarketBanned = false;
@@ -36,8 +47,9 @@ export default async function UsedLayout({ children }: { children: React.ReactNo
         listingTitle = listing?.title ?? null;
       }
     } catch (err) {
+      if (isNextSystemError(err)) throw err;
       const error = err instanceof Error ? err : new Error("Market ban lookup failed");
-      console.error("[market/layout] ban", error.stack ?? error.message);
+      console.error("[Market Layout Error]:", error.stack ?? error.message);
       usedMarketBanned = false;
     }
   }

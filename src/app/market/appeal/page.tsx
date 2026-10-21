@@ -7,6 +7,9 @@ import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { UsedMarketAppealForm } from "@/components/used/used-market-appeal-form";
 import { getUsedMarketAppealContext } from "@/actions/used-market-appeal";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function UsedMarketAppealPage() {
   const ctx = await getUsedMarketAppealContext();
   if ("error" in ctx) {

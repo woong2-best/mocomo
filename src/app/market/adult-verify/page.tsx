@@ -9,6 +9,9 @@ import { UsedAdultVerifyForm } from "@/components/used/used-adult-verify-form";
 import { isUsedAdultVerified } from "@/lib/used-youth-protection";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function UsedAdultVerifyPage({
   searchParams,
 }: {

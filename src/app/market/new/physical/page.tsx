@@ -11,6 +11,9 @@ import { assertUsedMarketCountryAllowed } from "@/lib/used-regions-global";
 import { usedMarketBlockedRegionMsg } from "@/lib/used-bank-auth";
 import { MARKET_BRAND_NAME } from "@/lib/market-brand";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function MarketPhysicalSellPage() {
   const user = await getCachedCurrentUser();
   if (!user) redirect("/auth/signin?callbackUrl=/market/new/physical");

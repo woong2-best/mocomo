@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { parseMarketLane } from "@/lib/market-browse";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function UsedMyPage({
   searchParams,
 }: {
