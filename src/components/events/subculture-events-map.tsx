@@ -436,7 +436,7 @@ export function SubcultureEventsMap({
                 "min",
                 pinHalo ? SIDEBAR_CLUSTER_CIRCLE_RADIUS : CLUSTER_CIRCLE_RADIUS,
                 ["interpolate", ["linear"], ["zoom"], 1, 8, 3, 12, 6, 16],
-              ],
+              ] as ExpressionSpecification,
               "circle-pitch-alignment": "viewport",
               "circle-pitch-scale": "viewport",
             },
