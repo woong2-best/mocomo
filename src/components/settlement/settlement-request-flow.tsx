@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  isTaxFormEnglishText,
-  isValidForeignTin,
-  TAX_FORM_ENGLISH_ONLY_MESSAGE,
-} from "@/lib/creator-payout/tax-form-input";
+import { isTaxFormEnglishText, isValidForeignTin } from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
 
@@ -435,9 +431,6 @@ export function SettlementRequestFlow() {
                 </>
               ) : (
                 <>
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm leading-relaxed text-amber-950">
-                    ⚠️ IRS regulations require all tax form information to be entered in English.
-                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Choice label="W-9 (US person)" selected={formType === "W9"} onClick={() => setFormType("W9")} />
                     <Choice
@@ -454,7 +447,6 @@ export function SettlementRequestFlow() {
                     label={formType === "W9" ? "Full name" : "Full legal name"}
                     value={fullName}
                     onChange={setFullName}
-                    placeholder="e.g. Gwonung Baek"
                     autoComplete="name"
                   />
                   {formType === "W9" ? (
@@ -473,14 +465,12 @@ export function SettlementRequestFlow() {
                     label={formType === "W9" ? "Address" : "Permanent residence address"}
                     value={street}
                     onChange={setStreet}
-                    placeholder="e.g. 123, Nakdong-daero"
                     autoComplete="address-line1"
                   />
                   <LatinField
                     label="City"
                     value={city}
                     onChange={setCity}
-                    placeholder="e.g. Saha-gu"
                     autoComplete="address-level2"
                   />
                   <div className="grid grid-cols-2 gap-2">
@@ -488,7 +478,6 @@ export function SettlementRequestFlow() {
                       label={formType === "W9" ? "State" : "State / province"}
                       value={state}
                       onChange={setState}
-                      placeholder="e.g. Busan"
                       autoComplete="address-level1"
                     />
                     <LatinField
@@ -565,9 +554,7 @@ export function SettlementRequestFlow() {
                   Save tax form
                 </button>
                 <p className="text-xs leading-relaxed text-neutral-500">
-                  {taxLatinFieldsValid
-                    ? "Draw a signature to turn the save button on."
-                    : TAX_FORM_ENGLISH_ONLY_MESSAGE}
+                  Draw a signature to turn the save button on.
                 </p>
               </div>
             </Panel>
@@ -687,28 +674,23 @@ function LatinField({
   label,
   value,
   onChange,
-  placeholder,
   autoComplete,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder?: string;
   autoComplete?: string;
 }) {
-  const invalid = value.length > 0 && !isTaxFormEnglishText(value);
   return (
     <label className="block space-y-1 text-sm">
       <span className="font-semibold">{label}</span>
       <input
-        className={`${fieldClass} ${invalid ? "border-red-500" : ""}`}
+        className={fieldClass}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
         autoComplete={autoComplete}
         spellCheck={false}
       />
-      {invalid ? <p className="text-xs font-semibold text-red-600">{TAX_FORM_ENGLISH_ONLY_MESSAGE}</p> : null}
     </label>
   );
 }
