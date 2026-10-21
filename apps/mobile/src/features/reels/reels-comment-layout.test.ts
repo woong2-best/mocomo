@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   REELS_COMMENT_VIDEO_GAP,
   REELS_COMMENT_VIDEO_RADIUS,
+  reelsCommentBackdropEndAction,
+  reelsCommentBackdropHeight,
   reelsCommentKeyboardCover,
   reelsCommentKeyboardFrame,
   reelsCommentSheetHeight,
@@ -61,6 +63,19 @@ test("progress 0 is full-screen video; progress 1 is the shrunk frame", () => {
   );
   assert.equal(reelsCommentSheetTranslateY(0, sheet), sheet);
   assert.equal(reelsCommentSheetTranslateY(1, sheet), 0);
+});
+
+test("backdrop covers everything above the sheet, including the shrunk video", () => {
+  assert.equal(reelsCommentBackdropHeight(800, 464, 0, 0), 800);
+  assert.equal(reelsCommentBackdropHeight(800, 464, 0, 1), 336);
+  assert.equal(reelsCommentBackdropHeight(800, 424, 340, 1), 36);
+});
+
+test("a tap on the video dismisses; a sideways nudge does not", () => {
+  assert.equal(reelsCommentBackdropEndAction(2, 3, 40, 1), "dismiss");
+  assert.equal(reelsCommentBackdropEndAction(40, 4, 0, 1), "restore");
+  assert.equal(reelsCommentBackdropEndAction(0, 200, 0, 0.4), "dismiss");
+  assert.equal(reelsCommentBackdropEndAction(0, 40, 0, 0.9), "restore");
 });
 
 test("dismiss follows a fast downward flick or a half-closed sheet", () => {

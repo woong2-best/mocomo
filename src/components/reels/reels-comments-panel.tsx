@@ -53,6 +53,7 @@ import {
   setPrefetchedComments,
 } from "@/lib/comments-prefetch-cache";
 import { cn, formatNumber } from "@/lib/utils";
+import { useMobileReelsCommentSheet } from "@/components/reels/reels-comment-motion";
 
 type SortId = "ranked" | "popular" | "newest" | "oldest";
 
@@ -715,6 +716,7 @@ export function ReelsCommentsPanel({
   const [error, setError] = useState("");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const sheet = useMobileReelsCommentSheet(open, onClose);
   const onCountChangeRef = useRef(onCountChange);
   onCountChangeRef.current = onCountChange;
   const totalRef = useRef(total);
@@ -1057,12 +1059,12 @@ export function ReelsCommentsPanel({
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        sheet.requestClose();
       }
     }
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [open, onClose]);
+  }, [open, sheet]);
 
   const sortLabel =
     SORT_OPTIONS.find((o) => o.id === sort)?.label ?? i18n("reels.skkmnjp");
@@ -1106,7 +1108,7 @@ export function ReelsCommentsPanel({
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10"
             aria-label={i18n("reels.sbu67a0")}
-            onClick={onClose}
+            onClick={sheet.requestClose}
           >
             <X className="h-5 w-5" />
           </button>
@@ -1141,7 +1143,13 @@ export function ReelsCommentsPanel({
 
       <div
         ref={listRef}
+        data-comment-scroll=""
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-1"
+        onPointerDown={sheet.onListPointerDown}
+        onPointerMove={sheet.onListPointerMove}
+        onPointerUp={sheet.onListPointerUp}
+        onPointerCancel={sheet.onListPointerUp}
+        onClickCapture={sheet.onListClickCapture}
       >
         {loading ? (
           <SkeletonRows />
@@ -1247,24 +1255,25 @@ export function ReelsCommentsPanel({
         aria-hidden={!open}
       >
         <button
+          ref={sheet.hitRef}
           type="button"
-          className={cn(
-            "absolute inset-0 bg-black/50 transition-opacity duration-150",
-            open ? "pointer-events-auto opacity-100" : "opacity-0"
-          )}
+          className="pointer-events-auto absolute inset-x-0 top-0 z-[1] h-full bg-transparent"
           aria-label={i18n("reels.sbu67a0")}
-          onClick={onClose}
+          onClick={sheet.requestClose}
         />
         <div
+          ref={sheet.sheetRef}
           role="dialog"
           aria-modal="true"
           aria-label={i18n("lib.notifications.s6d4e9bd3a9")}
-          className={cn(
-            "pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl bg-[#121212] text-white shadow-2xl transition-transform duration-150 ease-out will-change-transform",
-            open ? "translate-y-0" : "translate-y-full"
-          )}
+          onPointerDown={sheet.onSheetPointerDown}
+          onPointerMove={sheet.onSheetPointerMove}
+          onPointerUp={sheet.onSheetPointerUp}
+          onPointerCancel={sheet.onSheetPointerUp}
+          className="pointer-events-auto absolute inset-x-0 bottom-0 z-[2] flex translate-y-full flex-col overflow-hidden rounded-t-2xl bg-[#121212] text-white shadow-2xl will-change-transform"
+          style={{ height: "58%" }}
         >
-          <div className="flex justify-center py-2">
+          <div className="flex cursor-grab justify-center py-2 active:cursor-grabbing">
             <span className="h-1 w-10 rounded-full bg-white/25" />
           </div>
           {panelBody}

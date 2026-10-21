@@ -100,3 +100,36 @@ export function reelsCommentShouldClose(progress: number, velocityY: number): bo
   "worklet";
   return velocityY > 1100 || progress < 0.55;
 }
+
+/**
+ * Hit target above the sheet. `lift` is the keyboard offset; `frameHeight` is
+ * the sheet's current height (shorter while the IME is open).
+ */
+export function reelsCommentBackdropHeight(
+  screenHeight: number,
+  frameHeight: number,
+  lift: number,
+  progress: number
+) {
+  "worklet";
+  const screen = Math.max(0, screenHeight);
+  const frame = Math.max(0, frameHeight);
+  const raised = Math.max(0, lift);
+  const t = Math.min(1, Math.max(0, progress));
+  return Math.max(0, screen - raised - frame * t);
+}
+
+/** A short press on the video/backdrop closes. A real drag settles like the sheet. */
+export function reelsCommentBackdropEndAction(
+  translationX: number,
+  translationY: number,
+  velocityY: number,
+  progress: number
+): "dismiss" | "restore" {
+  "worklet";
+  const ax = Math.abs(translationX);
+  const ay = Math.abs(translationY);
+  if (ay < 12 && ax < 12) return "dismiss";
+  if (ax > ay && ay < 24) return "restore";
+  return reelsCommentShouldClose(progress, velocityY) ? "dismiss" : "restore";
+}

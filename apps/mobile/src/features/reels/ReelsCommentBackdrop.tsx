@@ -4,13 +4,15 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   runOnJS,
+  useAnimatedStyle,
   useSharedValue,
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
 import {
   REELS_COMMENT_DURATION_MS,
-  reelsCommentShouldClose,
+  reelsCommentBackdropEndAction,
+  reelsCommentBackdropHeight,
 } from "@/features/reels/reels-comment-layout";
 
 const SNAP = {
@@ -20,59 +22,72 @@ const SNAP = {
 
 type Props = {
   progress: SharedValue<number>;
+  screenHeight: SharedValue<number>;
+  /** Resting sheet height. Drag distance while the keyboard is closed. */
   sheetHeight: SharedValue<number>;
+  /** Live sheet height (shrinks when the keyboard covers the sheet). */
+  frameHeight: SharedValue<number>;
+  frameLift: SharedValue<number>;
   onDismiss: () => void;
   accessibilityLabel: string;
 };
 
 /**
- * Full-screen hit target above the reel and under the sheet.
- * Tap (or a downward flick) closes — Instagram Reels comments.
+ * Hit target for the gap and the shrunk video above the sheet.
+ * A tap closes immediately. A downward drag follows the same progress as the handle.
+ * Play/pause on the reel is disabled while this layer is up.
  */
 export function ReelsCommentBackdrop({
   progress,
+  screenHeight,
   sheetHeight,
+  frameHeight,
+  frameLift,
   onDismiss,
   accessibilityLabel,
 }: Props) {
   const dragStart = useSharedValue(1);
 
-  const tap = useMemo(
-    () =>
-      Gesture.Tap()
-        .maxDistance(10)
-        .onEnd((_e, success) => {
-          if (success) runOnJS(onDismiss)();
-        }),
-    [onDismiss]
-  );
-
   const pan = useMemo(
     () =>
       Gesture.Pan()
-        .activeOffsetY(12)
-        .failOffsetX([-28, 28])
         .onStart(() => {
           dragStart.value = progress.value;
         })
         .onUpdate((e) => {
-          const h = Math.max(1, sheetHeight.value);
+          const ay = Math.abs(e.translationY);
+          const ax = Math.abs(e.translationX);
+          if (ay < 12 || ax > ay) return;
+          const h = Math.max(1, frameHeight.value || sheetHeight.value);
           progress.value = Math.min(1, Math.max(0, dragStart.value - e.translationY / h));
         })
         .onEnd((e) => {
-          if (reelsCommentShouldClose(progress.value, e.velocityY)) {
+          const action = reelsCommentBackdropEndAction(
+            e.translationX,
+            e.translationY,
+            e.velocityY,
+            progress.value
+          );
+          if (action === "dismiss") {
             runOnJS(onDismiss)();
-          } else {
-            progress.value = withTiming(1, SNAP);
+            return;
           }
+          progress.value = withTiming(1, SNAP);
         }),
-    [dragStart, onDismiss, progress, sheetHeight]
+    [dragStart, frameHeight, onDismiss, progress, sheetHeight]
   );
 
-  const gesture = useMemo(() => Gesture.Exclusive(pan, tap), [pan, tap]);
+  const clipStyle = useAnimatedStyle(() => ({
+    height: reelsCommentBackdropHeight(
+      screenHeight.value,
+      frameHeight.value || sheetHeight.value,
+      frameLift.value,
+      progress.value
+    ),
+  }));
 
   return (
-    <GestureDetector gesture={gesture}>
+    <GestureDetector gesture={pan}>
       <Animated.View
         collapsable={false}
         accessible
@@ -82,7 +97,7 @@ export function ReelsCommentBackdrop({
         onAccessibilityAction={(e) => {
           if (e.nativeEvent.actionName === "activate") onDismiss();
         }}
-        style={styles.backdrop}
+        style={[styles.backdrop, clipStyle]}
       />
     </GestureDetector>
   );
@@ -90,9 +105,12 @@ export function ReelsCommentBackdrop({
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 1,
-    elevation: 1,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+    elevation: 2,
     backgroundColor: "rgba(0,0,0,0.01)",
   },
 });

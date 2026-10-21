@@ -67,6 +67,8 @@ type Props = {
   disableLoop?: boolean;
   onEnded?: () => void;
   className?: string;
+  /** Comments sheet is open: play/pause and long-press lose to the dismiss target. */
+  gesturesDisabled?: boolean;
   /**
    * Sale price of this media. Immersive playback is the most likely place for a
    * paid video to be screen-recorded, so it has to carry the forensic signal
@@ -91,6 +93,7 @@ const ReelsStillImage = forwardRef<ReelsPlayerHandle, Props>(function ReelsStill
     onDoubleTapLike,
     onLongPressMenu,
     onContextMenu,
+    gesturesDisabled = false,
   },
   ref
 ) {
@@ -116,7 +119,7 @@ const ReelsStillImage = forwardRef<ReelsPlayerHandle, Props>(function ReelsStill
   };
 
   const onPointerDown = (e: ReactPointerEvent) => {
-    if (e.button !== 0) return;
+    if (gesturesDisabled || e.button !== 0) return;
     longPressFired.current = false;
     clearLongPress();
     const { clientX, clientY } = e;
@@ -128,7 +131,7 @@ const ReelsStillImage = forwardRef<ReelsPlayerHandle, Props>(function ReelsStill
 
   const onPointerUp = () => {
     clearLongPress();
-    if (longPressFired.current) return;
+    if (gesturesDisabled || longPressFired.current) return;
     const now = Date.now();
     if (now - lastTapRef.current < DOUBLE_TAP_MS) {
       lastTapRef.current = 0;
@@ -188,6 +191,7 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
   className,
   mediaPriceKrw,
   postInstantPurchasePriceKrw,
+  gesturesDisabled = false,
 }: Props, ref) {
   const reactId = useId();
   const playerId = `reel-${mediaId}-${reactId}`;
@@ -574,7 +578,7 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
   };
 
   const onPointerDown = (e: ReactPointerEvent) => {
-    if (e.button !== 0) return;
+    if (gesturesDisabled || e.button !== 0) return;
     longPressFired.current = false;
     clearLongPress();
     const { clientX, clientY } = e;
@@ -586,7 +590,7 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
 
   const onPointerUp = (e: ReactPointerEvent) => {
     clearLongPress();
-    if (longPressFired.current) return;
+    if (gesturesDisabled || longPressFired.current) return;
     const now = Date.now();
     if (now - lastTapRef.current < DOUBLE_TAP_MS) {
       lastTapRef.current = 0;
@@ -697,7 +701,12 @@ const ReelsVideoPlayer = forwardRef<ReelsPlayerHandle, Props>(function ReelsVide
       )}
 
       {isActive && (
-        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div
+          className={cn(
+            "absolute inset-x-0 bottom-0 z-20 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+            gesturesDisabled ? "pointer-events-none" : "pointer-events-auto"
+          )}
+        >
           <ReelsProgressBar
             progress={progress}
             buffered={buffered}

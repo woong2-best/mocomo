@@ -155,6 +155,8 @@ export function ReelsScreen() {
   const [commentLayerHeight, setCommentLayerHeight] = useState(height);
   const screenHSv = useSharedValue(height);
   const sheetHSv = useSharedValue(sheetHeight);
+  const commentFrameHSv = useSharedValue(sheetHeight);
+  const commentLiftSv = useSharedValue(0);
   screenHSv.value = height;
   sheetHSv.value = sheetHeight;
 
@@ -716,7 +718,10 @@ export function ReelsScreen() {
         >
           <ReelsCommentBackdrop
             progress={commentProgress}
+            screenHeight={screenHSv}
             sheetHeight={sheetHSv}
+            frameHeight={commentFrameHSv}
+            frameLift={commentLiftSv}
             onDismiss={requestCloseComments}
             accessibilityLabel={t("m.common.close")}
           />
@@ -724,6 +729,8 @@ export function ReelsScreen() {
             progress={commentProgress}
             sheetHeight={sheetHeight}
             layerHeight={commentLayerHeight}
+            frameHeightSv={commentFrameHSv}
+            frameLiftSv={commentLiftSv}
             commentsPostId={commentsPostId}
             comments={comments}
             commentTotal={commentTotal}

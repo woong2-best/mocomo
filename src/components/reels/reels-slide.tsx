@@ -19,6 +19,11 @@ import type { ReelItem } from "@/lib/reels/types";
 import { ReelsPlayer } from "@/components/reels/reels-player";
 import { ReelsActions } from "@/components/reels/reels-actions";
 import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
+import {
+  ReelsCommentMotionRoot,
+  useCompactReelsViewport,
+  useReelsCommentMotion,
+} from "@/components/reels/reels-comment-motion";
 import { cn } from "@/lib/utils";
 
 const CINEMA_IDLE_MS = 1600;
@@ -55,7 +60,15 @@ const DESKTOP_CARD_CLASS =
 const DESKTOP_STAGE_WRAPPER_OPEN =
   "lg:h-[min(100%,920px)] lg:w-[min(calc(420px+24rem),100%)] lg:max-w-[calc(420px+24rem)]";
 
-export function ReelsSlide({
+export function ReelsSlide(props: Props) {
+  return (
+    <ReelsCommentMotionRoot enabled={!!props.commentsOpen}>
+      <ReelsSlideBody {...props} />
+    </ReelsCommentMotionRoot>
+  );
+}
+
+function ReelsSlideBody({
   reel,
   index,
   activeIndex,
@@ -74,6 +87,8 @@ export function ReelsSlide({
   commentsOpen = false,
   commentsPanel,
 }: Props) {
+  const motion = useReelsCommentMotion();
+  const compact = useCompactReelsViewport();
   const distance = Math.abs(index - activeIndex);
   const isActive = index === activeIndex;
   const like = useOptimisticLike(reel.postId, reel.liked, reel.likeCount);
@@ -195,6 +210,7 @@ export function ReelsSlide({
       }}
       onLongPressMenu={onOpenMenu}
       onContextMenu={onOpenMenu}
+      gesturesDisabled={commentsOpen && compact}
     />
   );
 
@@ -251,8 +267,9 @@ export function ReelsSlide({
         cinema ? "z-[60] bg-black" : "bg-black lg:bg-transparent"
       )}
       aria-label={`Video by ${userDisplayName(reel.author)}`}
+      ref={motion.bindFrame}
       onClick={
-        isViewer && onBackgroundClick && !cinema
+        isViewer && onBackgroundClick && !cinema && !commentsOpen
           ? (e) => {
               if (e.target === e.currentTarget) onBackgroundClick();
             }
@@ -286,14 +303,15 @@ export function ReelsSlide({
       ) : commentsOpen ? (
         <div
           className={cn(
-            "relative mx-auto flex w-full min-w-0 items-stretch",
+            "relative mx-auto flex h-full w-full min-w-0 items-stretch self-stretch",
             DESKTOP_STAGE_WRAPPER_OPEN,
             "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
           )}
         >
           <div
+            ref={motion.bindVideo}
             className={cn(
-              "relative shrink-0 overflow-hidden bg-black",
+              "relative shrink-0 overflow-hidden bg-black max-lg:pointer-events-none",
               DESKTOP_CARD_CLASS
             )}
             onClick={(e) => e.stopPropagation()}

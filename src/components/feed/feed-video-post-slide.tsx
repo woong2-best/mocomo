@@ -20,6 +20,11 @@ import type { FeedVideoGroup } from "@/lib/feed-video-viewer";
 import { ReelsPlayer, type ReelsPlayerHandle } from "@/components/reels/reels-player";
 import { ReelsActions } from "@/components/reels/reels-actions";
 import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
+import {
+  ReelsCommentMotionRoot,
+  useCompactReelsViewport,
+  useReelsCommentMotion,
+} from "@/components/reels/reels-comment-motion";
 import { cn } from "@/lib/utils";
 import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
@@ -56,7 +61,15 @@ type Props = {
   commentsPanel?: ReactNode;
 };
 
-export function FeedVideoPostSlide({
+export function FeedVideoPostSlide(props: Props) {
+  return (
+    <ReelsCommentMotionRoot enabled={!!props.commentsOpen}>
+      <FeedVideoPostSlideBody {...props} />
+    </ReelsCommentMotionRoot>
+  );
+}
+
+function FeedVideoPostSlideBody({
   group,
   index,
   activeIndex,
@@ -77,6 +90,8 @@ export function FeedVideoPostSlide({
   commentsOpen = false,
   commentsPanel,
 }: Props) {
+  const motion = useReelsCommentMotion();
+  const compact = useCompactReelsViewport();
   const hScrollerRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<Array<ReelsPlayerHandle | null>>([]);
   const [videoIndex, setVideoIndex] = useState(() =>
@@ -257,10 +272,11 @@ export function FeedVideoPostSlide({
 
   const videoCard = (
     <div
+      ref={motion.bindVideo}
       className={cn(
         "relative h-full w-full overflow-hidden bg-black",
         DESKTOP_CARD_CLASS,
-        commentsOpen ? "lg:shrink-0 lg:rounded-none" : "lg:rounded-2xl"
+        commentsOpen ? "max-lg:pointer-events-none lg:shrink-0 lg:rounded-none" : "lg:rounded-2xl"
       )}
       onClick={(e) => e.stopPropagation()}
     >
@@ -314,6 +330,7 @@ export function FeedVideoPostSlide({
                 }}
                 onLongPressMenu={onOpenMenu}
                 onContextMenu={onOpenMenu}
+                gesturesDisabled={commentsOpen && compact}
               />
 
               {isCurrent && (
@@ -382,8 +399,9 @@ export function FeedVideoPostSlide({
       data-reel-id={group.postId}
       className="relative flex h-full w-full shrink-0 snap-start snap-always items-center justify-center overflow-hidden select-none bg-black lg:bg-transparent"
       aria-label={`Videos by ${userDisplayName(activeReel.author)}`}
+      ref={motion.bindFrame}
       onClick={
-        onBackgroundClick
+        onBackgroundClick && !commentsOpen
           ? (e) => {
               if (e.target === e.currentTarget) onBackgroundClick();
             }
@@ -393,7 +411,7 @@ export function FeedVideoPostSlide({
       {commentsOpen ? (
         <div
           className={cn(
-            "relative mx-auto flex w-full min-w-0 items-stretch",
+            "relative mx-auto flex h-full w-full min-w-0 items-stretch self-stretch",
             DESKTOP_STAGE_WRAPPER_OPEN,
             "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
           )}

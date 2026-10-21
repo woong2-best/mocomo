@@ -47,6 +47,9 @@ type Props = {
   sheetHeight: number;
   /** Comment layer onLayout height. Stays full-screen when the IME only overlays. */
   layerHeight: number;
+  /** Live sheet box, so the video hit target stays above the keyboard sheet. */
+  frameHeightSv: SharedValue<number>;
+  frameLiftSv: SharedValue<number>;
   commentsPostId: string | null;
   comments: CommentItem[];
   commentTotal: number;
@@ -64,6 +67,8 @@ export function ReelsCommentsSheet({
   progress,
   sheetHeight,
   layerHeight,
+  frameHeightSv,
+  frameLiftSv,
   commentsPostId,
   comments,
   commentTotal,
@@ -106,6 +111,8 @@ export function ReelsCommentsSheet({
   const frameHeight = frame.height > 0 ? frame.height : sheetHeight;
   const scrollY = useSharedValue(0);
   const dragStart = useSharedValue(1);
+  frameHeightSv.value = frameHeight;
+  frameLiftSv.value = frame.lift;
 
   const settle = useCallback(
     (close: boolean) => {
