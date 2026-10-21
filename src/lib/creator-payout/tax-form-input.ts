@@ -44,14 +44,19 @@ export function stripTaxFormRepeats(value: string): string {
   return value.replace(/(.)\1{2,}/g, "$1$1");
 }
 
+/** Numpad / IME fullwidth digits (０-９) → ASCII 0-9. Never filter by KeyboardEvent.code. */
+export function normalizeAsciiDigits(value: string): string {
+  return value.replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xff10 + 0x30));
+}
+
 export function sanitizeTaxTextInput(value: string): string {
-  return stripTaxFormRepeats(value.replace(/[^a-zA-Z0-9\s,.\-/#']/g, ""));
+  return stripTaxFormRepeats(normalizeAsciiDigits(value).replace(/[^a-zA-Z0-9\s,.\-/#']/g, ""));
 }
 
 const TAX_POSTAL = /^[A-Za-z0-9-]+$/;
 
 export function sanitizeTaxPostalInput(value: string): string {
-  return stripTaxFormRepeats(value.replace(/[^a-zA-Z0-9-]/g, "").toUpperCase()).slice(0, 10);
+  return normalizeAsciiDigits(value).replace(/[^a-zA-Z0-9-]/g, "").toUpperCase().slice(0, 10);
 }
 
 export function isValidTaxPostalCode(value: string): boolean {
@@ -62,18 +67,18 @@ export function isValidTaxPostalCode(value: string): boolean {
 }
 
 export function sanitizeForeignTinInput(value: string): string {
-  return value.replace(/[^0-9-]/g, "").slice(0, 20);
+  return normalizeAsciiDigits(value).replace(/[^0-9-]/g, "").slice(0, 20);
 }
 
 export function formatSsnInput(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 9);
+  const digits = normalizeAsciiDigits(value).replace(/\D/g, "").slice(0, 9);
   if (digits.length <= 3) return digits;
   if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
   return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
 }
 
 export function formatEinInput(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 9);
+  const digits = normalizeAsciiDigits(value).replace(/\D/g, "").slice(0, 9);
   if (digits.length <= 2) return digits;
   return `${digits.slice(0, 2)}-${digits.slice(2)}`;
 }
@@ -83,7 +88,11 @@ export function formatUsTinInput(kind: "SSN" | "EIN", value: string): string {
 }
 
 export function sanitizeAccountNumberInput(value: string): string {
-  return value.replace(/[^0-9-]/g, "").slice(0, 34);
+  return normalizeAsciiDigits(value).replace(/[^0-9-]/g, "").slice(0, 34);
+}
+
+export function payoutEmailsMatch(email: string, confirm: string): boolean {
+  return email.trim().toLowerCase() === confirm.trim().toLowerCase() && isCompletePayoutEmail(email);
 }
 
 export function sanitizeSwiftInput(value: string): string {

@@ -15,8 +15,12 @@ export async function POST(req: NextRequest) {
 
   const quote = await getOnDemandWithdrawalQuoteForUser(session.user.id);
   if (!quote.ok) {
-    return NextResponse.json({ error: quote.message, code: quote.code }, { status: 400 });
+    return NextResponse.json({
+      ok: false,
+      code: quote.code,
+      message: quote.message,
+    });
   }
 
-  return NextResponse.json(serializeOnDemandQuote(quote));
+  return NextResponse.json({ ok: true, ...serializeOnDemandQuote(quote) });
 }

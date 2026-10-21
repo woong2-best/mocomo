@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatUsTinInput,
-  isCompletePayoutEmail,
+  payoutEmailsMatch,
   isTaxFormEnglishText,
   isTaxFormTextQualityOk,
   isValidAccountNumber,
@@ -121,6 +121,7 @@ export function SettlementRequestFlow() {
   const signatureRef = useRef<SignatureCanvasHandle>(null);
   const [kind, setKind] = useState<"PAYONEER" | "WISE" | "BANK">("PAYONEER");
   const [email, setEmail] = useState("");
+  const [emailConfirm, setEmailConfirm] = useState("");
   const [accountHolder, setAccountHolder] = useState("");
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
@@ -133,41 +134,54 @@ export function SettlementRequestFlow() {
   const [editingTax, setEditingTax] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
 
+  const applyReadiness = useCallback((ready: Readiness) => {
+    setReadiness(ready);
+    if (ready.tax?.formType) setFormType(ready.tax.formType);
+    if (ready.method?.kind === "PAYONEER" || ready.method?.kind === "WISE" || ready.method?.kind === "BANK") {
+      setKind(ready.method.kind);
+    }
+    if (ready.method?.countryCode) setCountryCode(ready.method.countryCode);
+    setRenewalNotice(ready.code === "TAX_FORM_EXPIRED");
+  }, []);
+
+  const loadReadiness = useCallback(async () => {
+    const readyRes = await fetch("/api/settlements/payout-readiness", { cache: "no-store" });
+    if (!readyRes.ok) return false;
+    applyReadiness((await readyRes.json()) as Readiness);
+    return true;
+  }, [applyReadiness]);
+
+  const loadQuote = useCallback(async () => {
+    const quoteRes = await fetch("/api/settlements/on-demand-withdraw/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const quoteBody = (await quoteRes.json()) as
+      | (Quote & { ok?: boolean })
+      | { ok?: boolean; error?: string; message?: string };
+    if (quoteRes.ok && "withdrawMoco" in quoteBody && typeof quoteBody.withdrawMoco === "number") {
+      setQuote(quoteBody);
+      setQuoteError(null);
+      return;
+    }
+    setQuote(null);
+    setQuoteError(
+      ("message" in quoteBody && quoteBody.message) ||
+        ("error" in quoteBody && quoteBody.error) ||
+        "Reward payout starts at Pulse (10 MOCO, $47.25).",
+    );
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [quoteRes, readyRes] = await Promise.all([
-        fetch("/api/settlements/on-demand-withdraw/quote", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-        }),
-        fetch("/api/settlements/payout-readiness", { cache: "no-store" }),
-      ]);
-      const quoteBody = (await quoteRes.json()) as Quote | { error?: string };
-      if (!quoteRes.ok) {
-        setQuote(null);
-        setQuoteError("error" in quoteBody && quoteBody.error ? quoteBody.error : "Quote failed");
-      } else {
-        setQuote(quoteBody as Quote);
-        setQuoteError(null);
-      }
-      if (readyRes.ok) {
-        const ready = (await readyRes.json()) as Readiness;
-        setReadiness(ready);
-        if (ready.tax?.formType) setFormType(ready.tax.formType);
-        if (ready.method?.kind === "PAYONEER" || ready.method?.kind === "WISE" || ready.method?.kind === "BANK") {
-          setKind(ready.method.kind);
-        }
-        if (ready.method?.countryCode) setCountryCode(ready.method.countryCode);
-        setRenewalNotice(ready.code === "TAX_FORM_EXPIRED");
-      }
-    } catch {
+    const results = await Promise.allSettled([loadQuote(), loadReadiness()]);
+    if (results[0].status === "rejected") {
+      setQuote(null);
       setQuoteError("Could not load this payout.");
-    } finally {
-      setLoading(false);
     }
-  }, []);
+    setLoading(false);
+  }, [loadQuote, loadReadiness]);
 
   useEffect(() => {
     void load();
@@ -234,8 +248,8 @@ export function SettlementRequestFlow() {
         isValidSwiftCode(routingNumber)
       );
     }
-    return isCompletePayoutEmail(email);
-  }, [accountHolder, accountNumber, bankName, email, kind, routingNumber]);
+    return payoutEmailsMatch(email, emailConfirm);
+  }, [accountHolder, accountNumber, bankName, email, emailConfirm, kind, routingNumber]);
 
   const signatureDate = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -270,7 +284,13 @@ export function SettlementRequestFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        status?: TaxStatus;
+        taxFormType?: "W9" | "W8BEN";
+        expiresAt?: string | null;
+        countryCode?: string | null;
+      };
       setTin("");
       setForeignTin("");
       setSignaturePng(null);
@@ -279,10 +299,27 @@ export function SettlementRequestFlow() {
         setError(data.error ?? "Could not save the tax form.");
         return;
       }
+      if (data.taxFormType && data.status) {
+        applyReadiness({
+          tax: {
+            formType: data.taxFormType,
+            status: data.status,
+            expiresAt: data.expiresAt ?? null,
+            countryCode: data.countryCode ?? null,
+          },
+          method: readiness?.method ?? null,
+          canRequest: Boolean(readiness?.method) && data.status === "VERIFIED",
+          code: readiness?.method
+            ? data.status === "VERIFIED"
+              ? null
+              : "TAX_FORM_REQUIRED"
+            : "PAYOUT_METHOD_REQUIRED",
+        });
+      }
       setEditingTax(false);
       setRenewalNotice(false);
       setNotice("Tax form saved and verified.");
-      await load();
+      await Promise.allSettled([loadReadiness(), loadQuote()]);
     } catch {
       setError("Could not save the tax form.");
     } finally {
@@ -314,7 +351,7 @@ export function SettlementRequestFlow() {
       setRenewalNotice(Boolean(data.taxExpired));
       setNotice(data.taxExpired ? "Payout country changed. Submit a new tax form." : "Payout destination saved.");
       if (data.taxExpired) setEditingTax(true);
-      await load();
+      await Promise.allSettled([loadReadiness(), loadQuote()]);
     } catch {
       setError("Could not save the payout destination.");
     } finally {
@@ -654,15 +691,32 @@ export function SettlementRequestFlow() {
                   />
                 </div>
               ) : (
-                <input
-                  type="email"
-                  className={fieldClass}
-                  placeholder={kind === "PAYONEER" ? "Payoneer email" : "Wise email"}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
+                <div className="grid gap-2">
+                  <label className="block space-y-1 text-sm">
+                    <span className="font-semibold">{kind === "PAYONEER" ? "Payoneer Email" : "Wise Email"}</span>
+                    <input
+                      type="email"
+                      className={fieldClass}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </label>
+                  <label className="block space-y-1 text-sm">
+                    <span className="font-semibold">
+                      {kind === "PAYONEER" ? "Confirm Payoneer Email" : "Confirm Wise Email"}
+                    </span>
+                    <input
+                      type="email"
+                      className={fieldClass}
+                      value={emailConfirm}
+                      onChange={(e) => setEmailConfirm(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </label>
+                </div>
               )}
               <button
                 type="button"

@@ -4,6 +4,7 @@ import {
   formatSsnInput,
   hasTaxFormExcessiveRepeat,
   isCompletePayoutEmail,
+  payoutEmailsMatch,
   isTaxFormEnglishText,
   isValidAccountNumber,
   isValidForeignTin,
@@ -76,6 +77,7 @@ describe("tax form dates and input", () => {
     expect(isValidForeignTin("900101-1234567")).toBe(true);
     expect(prepareForeignTinForPdf("900101-1234567")).toBe("9001011234567");
     expect(sanitizeForeignTinInput("abc900-12")).toBe("900-12");
+    expect(sanitizeForeignTinInput("９００１０１-１２３４")).toBe("900101-1234");
     expect(isValidForeignTin("ABCD")).toBe(false);
     expect(isValidForeignTin("900101-ABCD")).toBe(true);
     expect(isW8benEligibleCountry("US")).toBe(false);
@@ -86,7 +88,8 @@ describe("tax form dates and input", () => {
     expect(sanitizeTaxPostalInput("49315!@#")).toBe("49315");
     expect(sanitizeTaxPostalInput("sw1a 1aa")).toBe("SW1A1AA");
     expect(sanitizeTaxPostalInput("12345678901")).toBe("1234567890");
-    expect(sanitizeTaxPostalInput("AAA111")).toBe("AA11");
+    expect(sanitizeTaxPostalInput("AAA111")).toBe("AAA111");
+    expect(sanitizeTaxPostalInput("１２３４５")).toBe("12345");
     expect(isValidTaxPostalCode("49315")).toBe(true);
     expect(isValidTaxPostalCode("SW1A1AA")).toBe(true);
     expect(isValidTaxPostalCode("abcdef")).toBe(false);
@@ -116,10 +119,13 @@ describe("tax form dates and input", () => {
 
   it("formats US TINs and payout destination fields", () => {
     expect(formatSsnInput("123456789")).toBe("123-45-6789");
+    expect(formatSsnInput("１２３４５６７８９")).toBe("123-45-6789");
     expect(formatSsnInput("12ab34")).toBe("123-4");
     expect(formatEinInput("123456789")).toBe("12-3456789");
     expect(isCompletePayoutEmail("user@wise.com")).toBe(true);
     expect(isCompletePayoutEmail("user@wise")).toBe(false);
+    expect(payoutEmailsMatch("User@Wise.com", "user@wise.com")).toBe(true);
+    expect(payoutEmailsMatch("user@wise.com", "other@wise.com")).toBe(false);
     expect(isValidAccountNumber("12ab34-56")).toBe(true);
     expect(isValidAccountNumber("abc")).toBe(false);
     expect(isValidSwiftCode("BOFAUS3NXXX")).toBe(true);
