@@ -30,7 +30,7 @@ function detectHeuristicMl(text: string): TranslateLanguage | null {
   if (hangul / letters >= 0.25) return MlLang.KOREAN;
   if (kana / letters >= 0.12) return MlLang.JAPANESE;
   if (han / letters >= 0.25 && kana === 0 && hangul === 0) return MlLang.CHINESE;
-  if (latin / letters >= 0.45) return MlLang.ENGLISH;
+  // Latin script alone is not English — franc distinguishes French, German, Spanish, etc.
 
   return null;
 }
