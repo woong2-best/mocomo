@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { db } from "@/lib/db";
 import { safeLogWarn } from "@/lib/safe-log";
-import { parseTaxFormPayload, w8benExpiresAt } from "@/lib/creator-payout/tax-form-input";
+import { inspectTaxFormPayload, w8benExpiresAt } from "@/lib/creator-payout/tax-form-input";
 import { generateTaxFormPdf } from "@/lib/creator-payout/tax-pdf";
 import { uploadTaxFormBuffer } from "@/lib/creator-payout/tax-storage";
 
@@ -26,13 +26,11 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   const signedOn = new Date();
-  const prepared = parseTaxFormPayload(body, signedOn);
-  if (!prepared) {
-    return NextResponse.json(
-      { error: "Complete every required field and sign the form." },
-      { status: 400 },
-    );
+  const inspected = inspectTaxFormPayload(body, signedOn);
+  if (!inspected.ok) {
+    return NextResponse.json({ error: inspected.error }, { status: 400 });
   }
+  const prepared = inspected.value;
 
   let pdf: Uint8Array;
   try {

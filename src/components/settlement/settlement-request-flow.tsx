@@ -143,7 +143,7 @@ export function SettlementRequestFlow() {
       setKind(ready.method.kind);
     }
     if (ready.method?.countryCode) setCountryCode(ready.method.countryCode);
-    setRenewalNotice(ready.code === "TAX_FORM_EXPIRED");
+    setRenewalNotice(ready.code === "TAX_FORM_EXPIRED" || ready.code === "TAX_COUNTRY_MISMATCH");
   }, []);
 
   const loadReadiness = useCallback(async () => {
@@ -293,35 +293,38 @@ export function SettlementRequestFlow() {
         expiresAt?: string | null;
         countryCode?: string | null;
       };
-      setTin("");
-      setForeignTin("");
-      setSignaturePng(null);
-      setSignatureKey((key) => key + 1);
       if (!res.ok) {
         setError(data.error ?? "Could not save the tax form.");
         return;
       }
-      if (data.taxFormType && data.status) {
+      setTin("");
+      setForeignTin("");
+      setSignaturePng(null);
+      setSignatureKey((key) => key + 1);
+      const savedTax = {
+        formType: data.taxFormType ?? formType,
+        status: (data.status ?? "VERIFIED") as TaxStatus,
+        expiresAt: data.expiresAt ?? null,
+        countryCode: data.countryCode ?? (formType === "W9" ? "US" : residenceCountryCode),
+      };
+      applyReadiness({
+        tax: savedTax,
+        method: readiness?.method ?? null,
+        canRequest: Boolean(readiness?.method) && savedTax.status === "VERIFIED",
+        code: readiness?.method ? null : "PAYOUT_METHOD_REQUIRED",
+      });
+      setEditingTax(false);
+      setNotice("Tax form saved and verified.");
+      const refreshed = await loadReadiness().catch(() => false);
+      if (!refreshed) {
         applyReadiness({
-          tax: {
-            formType: data.taxFormType,
-            status: data.status,
-            expiresAt: data.expiresAt ?? null,
-            countryCode: data.countryCode ?? null,
-          },
+          tax: savedTax,
           method: readiness?.method ?? null,
-          canRequest: Boolean(readiness?.method) && data.status === "VERIFIED",
-          code: readiness?.method
-            ? data.status === "VERIFIED"
-              ? null
-              : "TAX_FORM_REQUIRED"
-            : "PAYOUT_METHOD_REQUIRED",
+          canRequest: Boolean(readiness?.method) && savedTax.status === "VERIFIED",
+          code: readiness?.method ? null : "PAYOUT_METHOD_REQUIRED",
         });
       }
-      setEditingTax(false);
-      setRenewalNotice(false);
-      setNotice("Tax form saved and verified.");
-      await Promise.allSettled([loadReadiness(), loadQuote()]);
+      await loadQuote().catch(() => undefined);
     } catch {
       setError("Could not save the tax form.");
     } finally {
@@ -424,11 +427,17 @@ export function SettlementRequestFlow() {
 
       {renewalNotice ? (
         <p className="mt-6 rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm leading-relaxed">
-          Your tax form no longer matches this payout, or its term has ended. Submit a new form before requesting a payout.
+          {readiness?.code === "TAX_COUNTRY_MISMATCH"
+            ? "Tax form is saved. Save a payout destination in the same country before requesting a payout."
+            : "Your tax form no longer matches this payout, or its term has ended. Submit a new form before requesting a payout."}
         </p>
       ) : null}
-      {notice ? <p className="mt-4 text-sm">{notice}</p> : null}
-      {error ? <p className="mt-4 text-sm">{error}</p> : null}
+      {notice ? <p className="mt-4 text-sm font-semibold">{notice}</p> : null}
+      {error ? (
+        <p className="mt-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">
+          {error}
+        </p>
+      ) : null}
 
       <div className="mt-8 grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 space-y-6">

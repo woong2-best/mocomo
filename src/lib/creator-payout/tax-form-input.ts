@@ -255,52 +255,87 @@ function signatureHasInk(png: Buffer): boolean {
   return false;
 }
 
-export function parseTaxFormPayload(input: unknown, signedOn = new Date()): PreparedTaxForm | null {
-  if (!input || typeof input !== "object") return null;
+export function inspectTaxFormPayload(
+  input: unknown,
+  signedOn = new Date(),
+): { ok: true; value: PreparedTaxForm } | { ok: false; error: string } {
+  if (!input || typeof input !== "object") {
+    return { ok: false, error: "Complete every required field and sign the form." };
+  }
   const raw = input as Record<string, unknown>;
   const kind = raw.formType === "W9" || raw.formType === "W8BEN" ? raw.formType : null;
-  if (!kind) return null;
+  if (!kind) return { ok: false, error: "Choose W-9 or W-8BEN." };
   const fullName = cleanLatin(raw.fullName, 80);
   const street = cleanLatin(raw.street, 100);
   const cityLine = composeCityLine(raw);
   const signaturePng = signaturePngFromPayload(raw.signaturePng);
-  if (!fullName || !street || fullName.length < 2 || street.length < 3 || cityLine.length < 2 || !signaturePng) {
-    return null;
+  if (!fullName || fullName.length < 2) {
+    return { ok: false, error: "Enter a full legal name in English." };
+  }
+  if (!street || street.length < 3) {
+    return { ok: false, error: "Enter a street address in English." };
+  }
+  if (!cityLine || cityLine.length < 2) {
+    return { ok: false, error: "Enter city, state, and a valid postal code." };
+  }
+  if (!signaturePng) {
+    return { ok: false, error: "Draw a clearer signature, then save again." };
   }
 
   if (kind === "W9") {
     const tinKind = raw.tinKind === "EIN" ? "EIN" : raw.tinKind === "SSN" ? "SSN" : null;
     const tin = clean(raw.tin, 20).replace(/\D/g, "");
     const businessName = cleanLatin(raw.businessName, 80);
-    if (!tinKind || tin.length !== 9 || businessName === null) return null;
+    if (businessName === null) {
+      return { ok: false, error: "Enter the business name in English, or leave it blank." };
+    }
+    if (!tinKind || tin.length !== 9) {
+      return { ok: false, error: "Enter a 9-digit SSN or EIN." };
+    }
     return {
-      kind,
-      fullName,
-      businessName,
-      street,
-      cityLine,
-      tinKind,
-      tin,
-      countryCode: "US",
-      signaturePng,
-      signedOn,
+      ok: true,
+      value: {
+        kind,
+        fullName,
+        businessName,
+        street,
+        cityLine,
+        tinKind,
+        tin,
+        countryCode: "US",
+        signaturePng,
+        signedOn,
+      },
     };
   }
 
   const citizenshipCode = w8benCountry(raw.citizenshipCode);
   const residenceCountryCode = w8benCountry(raw.residenceCountryCode);
   const foreignTin = prepareForeignTinForPdf(raw.foreignTin);
-  if (!citizenshipCode || !residenceCountryCode || !foreignTin) return null;
+  if (!citizenshipCode || !residenceCountryCode) {
+    return { ok: false, error: "Choose a non-U.S. country of citizenship and residence." };
+  }
+  if (!foreignTin) {
+    return { ok: false, error: "Enter a foreign TIN using digits and hyphens only." };
+  }
   return {
-    kind,
-    fullName,
-    citizenshipCode,
-    street,
-    cityLine,
-    residenceCountryCode,
-    foreignTin,
-    countryCode: residenceCountryCode,
-    signaturePng,
-    signedOn,
+    ok: true,
+    value: {
+      kind,
+      fullName,
+      citizenshipCode,
+      street,
+      cityLine,
+      residenceCountryCode,
+      foreignTin,
+      countryCode: residenceCountryCode,
+      signaturePng,
+      signedOn,
+    },
   };
+}
+
+export function parseTaxFormPayload(input: unknown, signedOn = new Date()): PreparedTaxForm | null {
+  const inspected = inspectTaxFormPayload(input, signedOn);
+  return inspected.ok ? inspected.value : null;
 }

@@ -19,6 +19,7 @@ const BLOCK_COPY: Record<string, string> = {
   TAX_FORM_PENDING: "Your tax form is waiting for review. Payout requests open after it is verified.",
   TAX_FORM_REJECTED: "Your tax form was rejected. Submit a corrected W-9 or W-8BEN.",
   TAX_FORM_EXPIRED: "Your tax form has expired. Submit a new W-9 or W-8BEN before requesting a payout.",
+  TAX_COUNTRY_MISMATCH: "Save a payout destination in the same country as this tax form.",
   PAYOUT_METHOD_REQUIRED: "Save a Payoneer, Wise, or bank destination before requesting a payout.",
 };
 
@@ -40,7 +41,7 @@ export async function getPayoutReadiness(userId: string): Promise<PayoutReadines
     tax?.countryCode && method?.countryCode && tax.countryCode !== method.countryCode,
   );
   const pastExpiry = Boolean(tax?.expiresAt && tax.expiresAt.getTime() <= now.getTime());
-  if (tax && status === "VERIFIED" && (pastExpiry || countryMismatch)) {
+  if (tax && status === "VERIFIED" && pastExpiry) {
     await db.creatorTaxInfo.update({
       where: { userId },
       data: { status: "EXPIRED" },
@@ -67,6 +68,7 @@ export async function getPayoutReadiness(userId: string): Promise<PayoutReadines
   else if (taxView.status === "REJECTED") code = "TAX_FORM_REJECTED";
   else if (taxView.status === "EXPIRED") code = "TAX_FORM_EXPIRED";
   else if (taxView.status !== "VERIFIED") code = "TAX_FORM_REQUIRED";
+  else if (countryMismatch) code = "TAX_COUNTRY_MISMATCH";
   else if (!methodView) code = "PAYOUT_METHOD_REQUIRED";
 
   return {
