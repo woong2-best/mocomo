@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FlatList, Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -26,10 +27,12 @@ import {
 } from "@/api/post-comments-query";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { useI18n } from "@/i18n/I18nProvider";
-import { useKeyboardLift } from "@/lib/use-keyboard-inset";
+import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import type { ReelsUi } from "@/features/reels/reels-ui";
 import {
   REELS_COMMENT_DURATION_MS,
+  reelsCommentKeyboardCover,
+  reelsCommentKeyboardFrame,
   reelsCommentSheetTranslateY,
   reelsCommentShouldClose,
 } from "@/features/reels/reels-comment-layout";
@@ -42,6 +45,8 @@ const TIMING = {
 type Props = {
   progress: SharedValue<number>;
   sheetHeight: number;
+  /** Comment layer onLayout height. Stays full-screen when the IME only overlays. */
+  layerHeight: number;
   commentsPostId: string | null;
   comments: CommentItem[];
   commentTotal: number;
@@ -58,6 +63,7 @@ type Props = {
 export function ReelsCommentsSheet({
   progress,
   sheetHeight,
+  layerHeight,
   commentsPostId,
   comments,
   commentTotal,
@@ -72,7 +78,32 @@ export function ReelsCommentsSheet({
 }: Props) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const { keyboardLift } = useKeyboardLift();
+  const insets = useSafeAreaInsets();
+  const keyboardOverlap = useKeyboardBottomInset();
+  const restingLayerRef = useRef(layerHeight);
+  // Commit resting height only after the IME event has had time to arrive.
+  // A resize that shows up before keyboardDidShow must not become the new baseline,
+  // or the sheet stays glued to the physical bottom and the field slides under the keys.
+  useEffect(() => {
+    if (keyboardOverlap > 0 || layerHeight <= 0) return;
+    const t = setTimeout(() => {
+      restingLayerRef.current = layerHeight;
+    }, 800);
+    return () => clearTimeout(t);
+  }, [keyboardOverlap, layerHeight]);
+  const restingLayer = Math.max(layerHeight, restingLayerRef.current);
+  const keyboardCover = reelsCommentKeyboardCover(
+    keyboardOverlap,
+    layerHeight,
+    restingLayer
+  );
+  const frame = reelsCommentKeyboardFrame(
+    sheetHeight,
+    restingLayer,
+    layerHeight,
+    keyboardCover
+  );
+  const frameHeight = frame.height > 0 ? frame.height : sheetHeight;
   const scrollY = useSharedValue(0);
   const dragStart = useSharedValue(1);
 
@@ -97,13 +128,13 @@ export function ReelsCommentsSheet({
           dragStart.value = progress.value;
         })
         .onUpdate((e) => {
-          const next = dragStart.value - e.translationY / sheetHeight;
+          const next = dragStart.value - e.translationY / frameHeight;
           progress.value = Math.min(1, Math.max(0, next));
         })
         .onEnd((e) => {
           runOnJS(settle)(reelsCommentShouldClose(progress.value, e.velocityY));
         }),
-    [dragStart, progress, settle, sheetHeight]
+    [dragStart, frameHeight, progress, settle]
   );
 
   const listPan = useMemo(
@@ -116,14 +147,14 @@ export function ReelsCommentsSheet({
         .onUpdate((e) => {
           if (scrollY.value > 2 && e.translationY > 0) return;
           if (e.translationY < 0 && progress.value >= 0.995) return;
-          const next = dragStart.value - e.translationY / sheetHeight;
+          const next = dragStart.value - e.translationY / frameHeight;
           progress.value = Math.min(1, Math.max(0, next));
         })
         .onEnd((e) => {
           if (scrollY.value > 2 && e.translationY > 0 && progress.value > 0.92) return;
           runOnJS(settle)(reelsCommentShouldClose(progress.value, e.velocityY));
         }),
-    [dragStart, progress, scrollY, settle, sheetHeight]
+    [dragStart, frameHeight, progress, scrollY, settle]
   );
 
   const listGesture = useMemo(
@@ -132,7 +163,9 @@ export function ReelsCommentsSheet({
   );
 
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: reelsCommentSheetTranslateY(progress.value, sheetHeight) }],
+    transform: [
+      { translateY: reelsCommentSheetTranslateY(progress.value, frameHeight) },
+    ],
   }));
 
   const closeFromButton = useCallback(() => {
@@ -144,7 +177,12 @@ export function ReelsCommentsSheet({
       pointerEvents={commentsPostId ? "auto" : "none"}
       style={[
         styles.sheet,
-        { height: sheetHeight, paddingBottom: 10 + keyboardLift },
+        {
+          height: frameHeight,
+          bottom: frame.lift,
+          paddingBottom:
+            keyboardOverlap > 0 ? 10 : Math.max(10, insets.bottom),
+        },
         sheetStyle,
       ]}
     >
@@ -242,8 +280,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 2,
-    elevation: 2,
+    zIndex: 8,
+    elevation: 8,
     backgroundColor: "#1A1A1A",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,

@@ -37,6 +37,7 @@ import {
   withOptimisticComment,
   type PostCommentsResponse,
 } from "@/api/post-comments-query";
+import { ReelsCommentBackdrop } from "@/features/reels/ReelsCommentBackdrop";
 import { ReelsCommentsSheet } from "@/features/reels/ReelsCommentsSheet";
 import {
   REELS_COMMENT_DURATION_MS,
@@ -151,6 +152,7 @@ export function ReelsScreen() {
     [height, insets.bottom]
   );
   const [sheetHeight, setSheetHeight] = useState(liveSheetHeight);
+  const [commentLayerHeight, setCommentLayerHeight] = useState(height);
   const screenHSv = useSharedValue(height);
   const sheetHSv = useSharedValue(sheetHeight);
   screenHSv.value = height;
@@ -463,7 +465,11 @@ export function ReelsScreen() {
 
   const pagerAnimStyle = useAnimatedStyle(() => {
     if (commentLayerSv.value < 0.5) {
-      return { transform: [{ translateY: 0 }, { scale: 1 }] };
+      return {
+        transform: [{ translateY: 0 }, { scale: 1 }],
+        borderRadius: 0,
+        overflow: "hidden",
+      };
     }
     const v = reelsCommentVideoAtProgress(
       commentProgress.value,
@@ -472,6 +478,8 @@ export function ReelsScreen() {
     );
     return {
       transform: [{ translateY: v.translateY }, { scale: v.scale }],
+      borderRadius: v.borderRadius,
+      overflow: "hidden",
     };
   });
 
@@ -575,8 +583,8 @@ export function ReelsScreen() {
   }, [activeSlot]);
 
   useEffect(() => {
-    if (!isCommentOpen) setSheetHeight(liveSheetHeight);
-  }, [isCommentOpen, liveSheetHeight]);
+    setSheetHeight(liveSheetHeight);
+  }, [liveSheetHeight]);
 
   useEffect(() => {
     if (!isCommentOpen) return;
@@ -696,16 +704,26 @@ export function ReelsScreen() {
       </Animated.View>
 
       {isCommentOpen ? (
-        <View style={styles.commentLayer} pointerEvents="box-none">
-          <Pressable
-            style={[styles.videoHitbox, { height: Math.max(80, height - sheetHeight) }]}
-            onPress={requestCloseComments}
-            accessibilityRole="button"
+        <View
+          style={styles.commentLayer}
+          pointerEvents="box-none"
+          onLayout={(e: LayoutChangeEvent) => {
+            const next = Math.round(e.nativeEvent.layout.height);
+            if (next > 200) {
+              setCommentLayerHeight((prev) => (prev === next ? prev : next));
+            }
+          }}
+        >
+          <ReelsCommentBackdrop
+            progress={commentProgress}
+            sheetHeight={sheetHSv}
+            onDismiss={requestCloseComments}
             accessibilityLabel={t("m.common.close")}
           />
           <ReelsCommentsSheet
             progress={commentProgress}
             sheetHeight={sheetHeight}
+            layerHeight={commentLayerHeight}
             commentsPostId={commentsPostId}
             comments={comments}
             commentTotal={commentTotal}
@@ -729,16 +747,9 @@ const styles = StyleSheet.create({
   pager: { flex: 1, overflow: "hidden" },
   pagerFill: { flex: 1 },
   commentLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 40,
     elevation: 40,
-  },
-  videoHitbox: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1,
   },
   center: {
     flex: 1,
