@@ -19,6 +19,7 @@ import {
 } from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
+import { TaxLocationFields } from "@/components/settlement/tax-location-fields";
 
 type Quote = {
   withdrawMoco: number;
@@ -109,6 +110,7 @@ export function SettlementRequestFlow() {
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
+  const [stateCode, setStateCode] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [tinKind, setTinKind] = useState<"SSN" | "EIN">("SSN");
   const [tin, setTin] = useState("");
@@ -503,7 +505,17 @@ export function SettlementRequestFlow() {
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-2">
-                    <Choice label="W-9 (US person)" selected={formType === "W9"} onClick={() => setFormType("W9")} />
+                    <Choice
+                      label="W-9 (US person)"
+                      selected={formType === "W9"}
+                      onClick={() => {
+                        setFormType("W9");
+                        setResidenceCountryCode("US");
+                        setState("");
+                        setStateCode("");
+                        setCity("");
+                      }}
+                    />
                     <Choice
                       label="W-8BEN (Non-US person)"
                       selected={formType === "W8BEN"}
@@ -511,6 +523,9 @@ export function SettlementRequestFlow() {
                         setFormType("W8BEN");
                         setCitizenshipCode((code) => pickW8benCountry(code));
                         setResidenceCountryCode((code) => pickW8benCountry(code));
+                        setState("");
+                        setStateCode("");
+                        setCity("");
                       }}
                     />
                   </div>
@@ -536,29 +551,31 @@ export function SettlementRequestFlow() {
                     value={street}
                     onChange={setStreet}
                   />
-                  <LatinField
-                    label="City"
-                    value={city}
-                    onChange={setCity}
+                  <TaxLocationFields
+                    countryCode={formType === "W9" ? "US" : residenceCountryCode}
+                    countryLocked={formType === "W9"}
+                    excludeUs={formType === "W8BEN"}
+                    onCountryChange={(code) => {
+                      setResidenceCountryCode(formType === "W9" ? "US" : pickW8benCountry(code));
+                      setState("");
+                      setStateCode("");
+                      setCity("");
+                    }}
+                    state={state}
+                    stateCode={stateCode}
+                    onStateChange={(name, isoCode) => {
+                      setState(name);
+                      setStateCode(isoCode);
+                      setCity("");
+                    }}
+                    city={city}
+                    onCityChange={setCity}
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    <LatinField
-                      label={formType === "W9" ? "State" : "State / province"}
-                      value={state}
-                      onChange={setState}
-                    />
-                    <PostalField
-                      label={formType === "W9" ? "ZIP" : "Postal"}
-                      value={postalCode}
-                      onChange={setPostalCode}
-                    />
-                  </div>
-                  {formType === "W8BEN" ? (
-                    <label className="block space-y-1 text-sm">
-                      <span className="font-semibold">Country of residence</span>
-                      <CountrySelect value={residenceCountryCode} onChange={setResidenceCountryCode} w8benOnly />
-                    </label>
-                  ) : null}
+                  <PostalField
+                    label={formType === "W9" ? "ZIP" : "Postal"}
+                    value={postalCode}
+                    onChange={setPostalCode}
+                  />
                   {formType === "W9" ? (
                     <>
                       <div className="grid grid-cols-2 gap-2">

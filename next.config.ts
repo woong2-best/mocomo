@@ -43,6 +43,7 @@ const nextConfig: NextConfig = {
     "@pixiv/three-vrm",
     "three",
     "textarea-caret",
+    "country-state-city",
   ],
   serverExternalPackages: [
     "@huggingface/transformers",
