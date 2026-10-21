@@ -60,7 +60,7 @@ const protectedRoutes = [
   "/avatar",
   "/cosplay/apply",
 ];
-const authRoutes = ["/auth/signin", "/auth/signup"];
+const authRoutes = ["/auth/signin", "/auth/signup", "/auth/login"];
 const studioProtectedPrefixes = [
   "/studio/create",
   "/studio/assets",
@@ -227,6 +227,16 @@ export default edgeAuth(async (req) => {
   }
 
   const isLoggedIn = !!req.auth?.user?.id;
+
+  if (pathname === "/auth/login" && !isLoggedIn) {
+    const raw = req.nextUrl.searchParams.get("callbackUrl") || req.nextUrl.searchParams.get("redirect") || "";
+    const dest = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+    const signIn = new URL("/auth/signin", req.url);
+    signIn.searchParams.set("callbackUrl", dest === "/admin" || dest.startsWith("/admin/") ? "/" : dest);
+    const res = NextResponse.redirect(signIn);
+    stampAppClientIfNeeded(req, res);
+    return res;
+  }
   const isFullBanned = Boolean(req.auth?.user?.isBanned);
   const termsRequired = Boolean(req.auth?.user?.termsRequired);
   const requiredTermsVersion = req.auth?.user?.requiredTermsVersion ?? null;
@@ -292,8 +302,9 @@ export default edgeAuth(async (req) => {
       stampAppClientIfNeeded(req, res);
       return res;
     }
-    const signIn = new URL("/auth/signin", req.url);
-    signIn.searchParams.set("callbackUrl", pathname);
+    const digitalSell = pathname === "/market/new/digital" || pathname.startsWith("/market/new/digital/");
+    const signIn = new URL(digitalSell ? "/auth/login" : "/auth/signin", req.url);
+    signIn.searchParams.set(digitalSell ? "redirect" : "callbackUrl", pathname);
     const res = NextResponse.redirect(signIn);
     stampAppClientIfNeeded(req, res);
     return res;
@@ -303,7 +314,8 @@ export default edgeAuth(async (req) => {
       req.nextUrl.searchParams.get("addAccount") === "1" ||
       req.cookies.get(ADD_ACCOUNT_COOKIE)?.value === "1";
     if (!addingAccount) {
-      const callback = req.nextUrl.searchParams.get("callbackUrl");
+      const callback =
+        req.nextUrl.searchParams.get("callbackUrl") || req.nextUrl.searchParams.get("redirect");
       const dest =
         callback?.startsWith("/") && !callback.startsWith("//") ? callback : DEFAULT_LANDING_PATH;
       const res = NextResponse.redirect(new URL(dest, req.url));

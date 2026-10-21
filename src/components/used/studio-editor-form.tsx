@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveMyCreatorStudio } from "@/actions/creator-studio";
 import { useLocale } from "@/components/providers/locale-provider";
 import type { StudioAddon, StudioField, StudioTier } from "@/lib/creator-studio";
-import { studioCategoryGroups, studioCategoryLabel } from "@/lib/creator-studio-categories";
+import { studioCategoryGroups, studioCategoryLabel, type StudioCategoryOption } from "@/lib/creator-studio-categories";
 import { StudioPortfolioEditor } from "@/components/used/studio-portfolio-editor";
 import {
   normalizeDraft,
@@ -43,15 +43,95 @@ const EMPTY: StudioDraft = {
 const inputClass =
   "w-full rounded-xl border border-border bg-background p-3.5 text-[15px] outline-none focus:border-folk-terracotta";
 
-export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
+type StudioCategoryGroups = [string, StudioCategoryOption[]][];
+
+function coerceDraft(initial: StudioDraft | null | undefined): StudioDraft {
+  if (!initial || typeof initial !== "object") return EMPTY;
+  const tiers = Array.isArray(initial.tiers)
+    ? initial.tiers.filter((tier) => tier && typeof tier.id === "string")
+    : [];
+  const addons = Array.isArray(initial.addons)
+    ? initial.addons.filter((addon) => addon && typeof addon.id === "string")
+    : [];
+  const formFields = Array.isArray(initial.formFields)
+    ? initial.formFields.filter((field) => field && typeof field.id === "string")
+    : [];
+  return {
+    category: typeof initial.category === "string" ? initial.category : "",
+    title: typeof initial.title === "string" ? initial.title : "",
+    about: typeof initial.about === "string" ? initial.about : "",
+    open: initial.open !== false,
+    slotCap: Number.isFinite(initial.slotCap) ? initial.slotCap : EMPTY.slotCap,
+    deliveryDays: Number.isFinite(initial.deliveryDays) ? initial.deliveryDays : EMPTY.deliveryDays,
+    revisionNote: typeof initial.revisionNote === "string" ? initial.revisionNote : EMPTY.revisionNote,
+    currency: typeof initial.currency === "string" && initial.currency ? initial.currency : EMPTY.currency,
+    coverUrl: typeof initial.coverUrl === "string" ? initial.coverUrl : "",
+    blocks: Array.isArray(initial.blocks) ? initial.blocks : [],
+    tiers: tiers.length > 0 ? tiers : EMPTY.tiers,
+    addons,
+    formFields: formFields.length > 0 ? formFields : EMPTY.formFields,
+  };
+}
+
+function resolveCategories(categories: StudioCategoryGroups | null | undefined): StudioCategoryGroups | null {
+  if (categories == null) return null;
+  if (categories.length > 0) return categories;
+  try {
+    return studioCategoryGroups();
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Studio categories failed");
+    console.error("[StudioEditorForm] categories", error.stack ?? error.message);
+    return [];
+  }
+}
+
+function StudioFormSkeleton() {
+  return (
+    <div className="space-y-4" aria-busy="true" aria-live="polite">
+      <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+      <div className="flex gap-2">
+        <div className="h-8 flex-1 animate-pulse rounded-full bg-muted" />
+        <div className="h-8 flex-1 animate-pulse rounded-full bg-muted" />
+        <div className="h-8 flex-1 animate-pulse rounded-full bg-muted" />
+      </div>
+      <div className="h-12 animate-pulse rounded-xl bg-muted" />
+      <div className="h-12 animate-pulse rounded-xl bg-muted" />
+      <div className="h-28 animate-pulse rounded-xl bg-muted" />
+    </div>
+  );
+}
+
+export function StudioEditorForm({
+  initial,
+  categories,
+  sellerId,
+}: {
+  initial?: StudioDraft | null;
+  categories?: StudioCategoryGroups | null;
+  sellerId?: string | null;
+}) {
   const router = useRouter();
   const { t } = useLocale();
+  const groups = resolveCategories(categories);
+  const draftSeed = useMemo(() => coerceDraft(initial), [initial]);
   const [step, setStep] = useState(1);
-  const [draft, setDraft] = useState<StudioDraft>(initial ?? EMPTY);
+  const [draft, setDraft] = useState<StudioDraft>(draftSeed);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [dragField, setDragField] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initial == null) return;
+    const broken =
+      !Array.isArray(initial.tiers) ||
+      !Array.isArray(initial.addons) ||
+      !Array.isArray(initial.formFields) ||
+      !Array.isArray(initial.blocks);
+    if (broken) {
+      console.error("[StudioEditorForm] studio draft missing arrays", initial);
+    }
+  }, [initial]);
 
   const canNext = useMemo(() => {
     if (step === 1) return step1Valid(draft);
@@ -108,7 +188,9 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
       }
       router.push(`/market/studio/${result.studio.id}`);
       router.refresh();
-    } catch {
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("Studio save failed");
+      console.error("[StudioEditorForm] save", error.stack ?? error.message);
       setError(t("validation.invalidInput"));
     } finally {
       setBusy(false);
@@ -120,6 +202,10 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
     { n: 2, label: t("market.studio.stepPricing") },
     { n: 3, label: t("market.studio.stepSlots") },
   ];
+
+  if (groups == null || sellerId == null) {
+    return <StudioFormSkeleton />;
+  }
 
   return (
     <div className="space-y-5 pb-24">
@@ -151,11 +237,11 @@ export function StudioEditorForm({ initial }: { initial: StudioDraft | null }) {
           </label>
           {categoryOpen ? (
             <div className="max-h-72 space-y-4 overflow-y-auto rounded-2xl border border-border p-3">
-              {studioCategoryGroups().map(([group, items]) => (
+              {groups.map(([group, items]) => (
                 <div key={group} className="space-y-2">
                   <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">{group}</p>
                   <div className="flex flex-wrap gap-2">
-                    {items.map((item) => (
+                    {(items ?? []).map((item) => (
                       <button
                         key={item.id}
                         type="button"

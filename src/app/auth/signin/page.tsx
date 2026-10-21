@@ -7,6 +7,7 @@ import { SignInForm } from "./signin-form";
 
 type SearchParams = {
   callbackUrl?: string;
+  redirect?: string;
   email?: string;
   error?: string;
   reset?: string;
@@ -32,7 +33,7 @@ export default async function SignInPage({
 
   const callbackUrl = fromMobile
     ? mobileAuthCompletePath(platform)
-    : sanitizeMainSiteCallbackPath(sp.callbackUrl, DEFAULT_LANDING_PATH);
+    : sanitizeMainSiteCallbackPath(sp.callbackUrl || sp.redirect, DEFAULT_LANDING_PATH);
 
   return (
     <>
