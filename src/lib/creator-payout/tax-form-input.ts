@@ -39,6 +39,33 @@ export function isTaxFormEnglishText(value: string): boolean {
   return TAX_FORM_LATIN.test(value);
 }
 
+const TAX_POSTAL = /^[A-Za-z0-9\s-]+$/;
+
+export function sanitizeTaxPostalInput(value: string): string {
+  return value.replace(/[^a-zA-Z0-9\s-]/g, "").slice(0, 10);
+}
+
+export function isValidTaxPostalCode(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length < 3 || trimmed.length > 10) return false;
+  if (!TAX_POSTAL.test(trimmed)) return false;
+  return /\d/.test(trimmed);
+}
+
+export function sanitizeForeignTinInput(value: string): string {
+  return value.replace(/[^0-9-]/g, "").slice(0, 20);
+}
+
+/** Same character repeated 4+ times in a row (e.g. eeeee). */
+export function hasTaxFormExcessiveRepeat(value: string): boolean {
+  return /(.)\1{3,}/.test(value);
+}
+
+export function isTaxFormTextQualityOk(value: string): boolean {
+  if (!value.trim()) return true;
+  return !hasTaxFormExcessiveRepeat(value);
+}
+
 function clean(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
   return value.replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
@@ -47,13 +74,20 @@ function clean(value: unknown, max: number): string {
 function cleanLatin(value: unknown, max: number): string | null {
   const next = clean(value, max);
   if (!isTaxFormEnglishText(next)) return null;
+  if (!isTaxFormTextQualityOk(next)) return null;
+  return next;
+}
+
+function cleanPostal(value: unknown): string | null {
+  const next = sanitizeTaxPostalInput(clean(value, 10));
+  if (!isValidTaxPostalCode(next)) return null;
   return next;
 }
 
 export function composeCityLine(raw: Record<string, unknown>): string {
   const city = cleanLatin(raw.city, 50);
   const state = cleanLatin(raw.state, 40);
-  const postalCode = cleanLatin(raw.postalCode, 16);
+  const postalCode = cleanPostal(raw.postalCode);
   if (city && state && postalCode && city.length >= 2 && state.length >= 1 && postalCode.length >= 3) {
     return `${city}, ${state} ${postalCode}`;
   }
@@ -74,14 +108,15 @@ function w8benCountry(value: unknown): string | null {
 }
 
 export function normalizeForeignTin(value: string): string {
-  return clean(value, 40).replace(/\s+/g, "");
+  return sanitizeForeignTinInput(clean(value, 20));
 }
 
 export function isValidForeignTin(value: string): boolean {
   const compact = normalizeForeignTin(value);
+  if (compact.length > 20) return false;
   const core = compact.replace(/-/g, "");
-  if (core.length < 4 || core.length > 30) return false;
-  return /^[A-Za-z0-9]+$/.test(core);
+  if (core.length < 4 || core.length > 20) return false;
+  return /^[0-9]+$/.test(core);
 }
 
 export function prepareForeignTinForPdf(value: unknown): string | null {

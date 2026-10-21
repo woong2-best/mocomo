@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasTaxFormExcessiveRepeat,
   isTaxFormEnglishText,
   isValidForeignTin,
+  isValidTaxPostalCode,
   isW8benEligibleCountry,
   normalizeForeignTin,
   parseTaxFormPayload,
   prepareForeignTinForPdf,
+  sanitizeForeignTinInput,
+  sanitizeTaxPostalInput,
   w8benExpiresAt,
 } from "@/lib/creator-payout/tax-form-input";
 import { generateTaxFormPdf } from "@/lib/creator-payout/tax-pdf";
@@ -65,8 +69,38 @@ describe("tax form dates and input", () => {
     expect(normalizeForeignTin(" 900101-1234567 ")).toBe("900101-1234567");
     expect(isValidForeignTin("900101-1234567")).toBe(true);
     expect(prepareForeignTinForPdf("900101-1234567")).toBe("9001011234567");
+    expect(sanitizeForeignTinInput("abc900-12")).toBe("900-12");
+    expect(isValidForeignTin("ABCD")).toBe(false);
+    expect(isValidForeignTin("900101-ABCD")).toBe(true);
     expect(isW8benEligibleCountry("US")).toBe(false);
     expect(isW8benEligibleCountry("KR")).toBe(true);
+  });
+
+  it("sanitizes postal codes and rejects letter-only junk", () => {
+    expect(sanitizeTaxPostalInput("49315!@#")).toBe("49315");
+    expect(sanitizeTaxPostalInput("12345678901")).toBe("1234567890");
+    expect(isValidTaxPostalCode("49315")).toBe(true);
+    expect(isValidTaxPostalCode("SW1A 1AA")).toBe(true);
+    expect(isValidTaxPostalCode("abcdef")).toBe(false);
+  });
+
+  it("flags excessive repeated characters in text fields", () => {
+    expect(hasTaxFormExcessiveRepeat("hello")).toBe(false);
+    expect(hasTaxFormExcessiveRepeat("teeeeeest")).toBe(true);
+    expect(
+      parseTaxFormPayload({
+        formType: "W8BEN",
+        fullName: "Kim Hhhhhappy",
+        street: "123 Nakdong-daero",
+        city: "Saha-gu",
+        state: "Busan",
+        postalCode: "49315",
+        citizenshipCode: "KR",
+        residenceCountryCode: "KR",
+        foreignTin: "900101-1234567",
+        signaturePng: ONE_PIXEL_PNG.toString("base64"),
+      }),
+    ).toBeNull();
   });
 });
 

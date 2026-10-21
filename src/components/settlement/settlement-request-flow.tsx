@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isTaxFormEnglishText, isValidForeignTin } from "@/lib/creator-payout/tax-form-input";
+import {
+  isTaxFormEnglishText,
+  isTaxFormTextQualityOk,
+  isValidForeignTin,
+  isValidTaxPostalCode,
+  sanitizeForeignTinInput,
+  sanitizeTaxPostalInput,
+} from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
 
@@ -167,9 +174,12 @@ export function SettlementRequestFlow() {
 
   const taxReady = readiness?.tax?.status === "VERIFIED" && !editingTax;
   const taxLatinFieldsValid = useMemo(() => {
-    const required = [fullName, street, city, state, postalCode];
+    const textFields = [fullName, street, city, state];
     const optional = formType === "W9" ? [businessName] : [];
-    return [...required, ...optional].every((value) => isTaxFormEnglishText(value));
+    const latinOk = [...textFields, ...optional].every((value) => isTaxFormEnglishText(value));
+    const qualityOk = [...textFields, ...optional].every((value) => isTaxFormTextQualityOk(value));
+    const postalOk = isValidTaxPostalCode(postalCode);
+    return latinOk && qualityOk && postalOk;
   }, [businessName, city, formType, fullName, postalCode, state, street]);
   const canSubmitTax = useMemo(() => {
     const base =
@@ -480,11 +490,10 @@ export function SettlementRequestFlow() {
                       onChange={setState}
                       autoComplete="address-level1"
                     />
-                    <LatinField
+                    <PostalField
                       label={formType === "W9" ? "ZIP" : "Postal"}
                       value={postalCode}
                       onChange={setPostalCode}
-                      autoComplete="postal-code"
                     />
                   </div>
                   {formType === "W8BEN" ? (
@@ -695,6 +704,30 @@ function LatinField({
   );
 }
 
+function PostalField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="space-y-1 text-sm">
+      <span className="font-semibold">{label}</span>
+      <input
+        className={fieldClass}
+        value={value}
+        maxLength={10}
+        onChange={(e) => onChange(sanitizeTaxPostalInput(e.target.value))}
+        autoComplete="postal-code"
+        spellCheck={false}
+      />
+    </label>
+  );
+}
+
 function CountrySelect({
   value,
   onChange,
@@ -751,7 +784,8 @@ function ForeignTinFields({
           className={fieldClass}
           autoComplete="off"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          maxLength={20}
+          onChange={(e) => onChange(sanitizeForeignTinInput(e.target.value))}
           placeholder={copy.placeholder}
         />
         <p className="text-xs leading-relaxed text-neutral-500">{copy.helper}</p>
