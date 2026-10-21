@@ -100,6 +100,8 @@ type Props = {
   height: number;
   center: { lat: number; lng: number };
   locale?: Locale;
+  /** Drawer is on screen. Repaint the already-warm globe; do not reload it. */
+  active?: boolean;
   onOpen: () => void;
   onOpenPressIn?: () => void;
 };
@@ -205,6 +207,7 @@ if (!maplibregl) {
   const style = {
     version: 8,
     projection: { type: "globe" },
+    glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
     sources: {
       "satellite-tiles": {
         type: "raster",
@@ -446,13 +449,77 @@ if (!maplibregl) {
     map.setProjection({ type: "globe" });
     map.resize();
   };
-  const PIN_HIT_PX = 28;
+  const PIN_BUFFER = 20;
+  const CLUSTER_RADIUS = 50;
+  const CLUSTER_MAX_ZOOM = 16;
   const circlePitch = {
     "circle-pitch-alignment": "viewport",
     "circle-pitch-scale": "viewport"
   };
+  const queryNear = (layers) => {
+    const present = layers.filter((id) => map.getLayer(id));
+    if (!present.length) return [];
+    try {
+      return map.queryRenderedFeatures(
+        [[pointScratch.x - PIN_BUFFER, pointScratch.y - PIN_BUFFER], [pointScratch.x + PIN_BUFFER, pointScratch.y + PIN_BUFFER]],
+        { layers: present }
+      );
+    } catch (e) {
+      return [];
+    }
+  };
+  let pointScratch = { x: 0, y: 0 };
+  const nearestRendered = (features, point) => {
+    let best = null;
+    let bestDist = Infinity;
+    for (const feature of features) {
+      const geom = feature.geometry;
+      if (!geom || geom.type !== "Point") continue;
+      let projected;
+      try { projected = map.project(geom.coordinates); } catch (e) { continue; }
+      if (!projected || !Number.isFinite(projected.x) || !Number.isFinite(projected.y)) continue;
+      const dist = Math.hypot(projected.x - point.x, projected.y - point.y);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = feature;
+      }
+    }
+    return best;
+  };
+  const expandCluster = (feature) => {
+    const geom = feature.geometry;
+    if (!geom || geom.type !== "Point") return;
+    const coords = geom.coordinates;
+    const clusterId = Number(feature.properties && feature.properties.cluster_id);
+    const source = map.getSource("event-pins");
+    const fallback = () => {
+      map.easeTo({
+        center: coords,
+        zoom: Math.min(${ESRI_SATELLITE_MAX_ZOOM}, Math.max(map.getZoom() + 1.6, ${GLOBE_ZOOM} + 1)),
+        duration: 450,
+        essential: true
+      });
+    };
+    if (!source || typeof source.getClusterExpansionZoom !== "function" || !Number.isFinite(clusterId)) {
+      fallback();
+      return;
+    }
+    Promise.resolve(source.getClusterExpansionZoom(clusterId)).then((zoom) => {
+      const next = Math.min(${ESRI_SATELLITE_MAX_ZOOM}, Math.max(Number(zoom) + 0.15, map.getZoom() + 1.4));
+      map.easeTo({ center: coords, zoom: next, duration: 450, essential: true });
+    }).catch(fallback);
+  };
   const nearestPinFromPoint = (point) => {
     if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
+    pointScratch = point;
+    const cluster = nearestRendered(queryNear(["event-clusters", "event-cluster-count"]), point);
+    if (cluster) return { kind: "cluster", feature: cluster };
+    const pinFeatures = nearestRendered(queryNear(["event-pins-dot"]), point);
+    if (pinFeatures) {
+      const raw = pinFeatures.properties && pinFeatures.properties.id != null ? pinFeatures.properties.id : pinFeatures.id;
+      const pin = pinIndex.get(raw == null ? "" : String(raw));
+      if (pin) return { kind: "pin", pin };
+    }
     let best = null;
     let bestDist = Infinity;
     for (const pin of visiblePins) {
@@ -460,12 +527,12 @@ if (!maplibregl) {
       try { projected = map.project([pin.lng, pin.lat]); } catch (e) { continue; }
       if (!projected || !Number.isFinite(projected.x) || !Number.isFinite(projected.y)) continue;
       const dist = Math.hypot(projected.x - point.x, projected.y - point.y);
-      if (dist < bestDist) {
+      if (dist < bestDist && dist <= PIN_BUFFER) {
         bestDist = dist;
         best = pin;
       }
     }
-    return best && bestDist <= PIN_HIT_PX ? best : null;
+    return best ? { kind: "pin", pin: best } : null;
   };
   const canvasPoint = (touch) => {
     const canvas = map.getCanvas();
@@ -476,36 +543,61 @@ if (!maplibregl) {
     };
   };
   const selectPinAtPoint = (point) => {
-    const pin = nearestPinFromPoint(point);
-    if (!pin) return false;
-    if (openPinId === pin.id && Date.now() - pinTapAt < 400) return true;
-    pinTapAt = Date.now();
+    const hit = nearestPinFromPoint(point);
+    if (!hit) return false;
     lastEmptyTap = 0;
-    showPin(pin);
+    if (hit.kind === "cluster") {
+      pinTapAt = Date.now();
+      dismissPopup();
+      expandCluster(hit.feature);
+      return true;
+    }
+    if (openPinId === hit.pin.id && Date.now() - pinTapAt < 400) return true;
+    pinTapAt = Date.now();
+    showPin(hit.pin);
     return true;
   };
   map.on("load", () => {
     frame();
     map.addSource("event-pins", {
       type: "geojson",
-      data: { type: "FeatureCollection", features: [] }
+      data: { type: "FeatureCollection", features: [] },
+      cluster: true,
+      clusterRadius: CLUSTER_RADIUS,
+      clusterMaxZoom: CLUSTER_MAX_ZOOM
     });
     map.addLayer({
-      id: "event-pins-hit",
+      id: "event-clusters",
       type: "circle",
       source: "event-pins",
+      filter: ["has", "point_count"],
       paint: Object.assign({
-        "circle-radius": PIN_HIT_PX,
-        "circle-color": "#ffffff",
-        "circle-opacity": 0.04
+        "circle-color": "#7c3aed",
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#ffffff",
+        "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 25, 24, 50, 28]
       }, circlePitch)
+    });
+    map.addLayer({
+      id: "event-cluster-count",
+      type: "symbol",
+      source: "event-pins",
+      filter: ["has", "point_count"],
+      layout: {
+        "text-field": ["get", "point_count_abbreviated"],
+        "text-size": 12,
+        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-allow-overlap": true
+      },
+      paint: { "text-color": "#ffffff" }
     });
     map.addLayer({
       id: "event-pins-dot",
       type: "circle",
       source: "event-pins",
+      filter: ["!", ["has", "point_count"]],
       paint: Object.assign({
-        "circle-radius": 8,
+        "circle-radius": 7,
         "circle-color": ["get", "color"],
         "circle-stroke-width": 2,
         "circle-stroke-color": "#ffffff"
@@ -652,6 +744,9 @@ if (!maplibregl) {
       lastEmptyTap = now;
     }
   });
+  window.__repaint = () => {
+    try { map.resize(); map.triggerRepaint(); } catch (e) {}
+  };
   window.__setPins = (pins) => {
     allPins = [];
     pinIndex.clear();
@@ -679,6 +774,7 @@ export function DrawerMapLibreGlobe({
   height,
   center,
   locale = "en",
+  active = false,
   onOpen,
   onOpenPressIn,
 }: Props) {
@@ -704,6 +800,16 @@ export function DrawerMapLibreGlobe({
   useEffect(() => {
     pushPins(payload);
   }, [payload]);
+
+  useEffect(() => {
+    if (!active) return;
+    const repaint = () => {
+      webRef.current?.injectJavaScript("window.__repaint&&window.__repaint();true;");
+    };
+    repaint();
+    const timer = setTimeout(repaint, 280);
+    return () => clearTimeout(timer);
+  }, [active]);
 
   const onMessage = (event: WebViewMessageEvent) => {
     try {
@@ -738,7 +844,6 @@ export function DrawerMapLibreGlobe({
         javaScriptEnabled
         domStorageEnabled
         mixedContentMode="always"
-        androidLayerType="hardware"
         cacheMode="LOAD_CACHE_ELSE_NETWORK"
         scrollEnabled={false}
         bounces={false}

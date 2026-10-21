@@ -62,7 +62,7 @@ export function DrawerSubcultureMapCard({
         <>
           <View
             pointerEvents={active && interactive ? "auto" : "none"}
-            style={[styles.mapClip, !active && styles.mapHidden]}
+            style={styles.mapClip}
           >
             <DrawerMapLibreGlobe
               pins={pins}
@@ -71,6 +71,7 @@ export function DrawerSubcultureMapCard({
               height={box.h}
               center={center}
               locale={locale}
+              active={active}
               onOpen={onExpand}
               onOpenPressIn={onExpandPressIn}
             />
@@ -110,18 +111,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   mapClip: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
-  },
-  mapHidden: {
-    opacity: 0,
   },
   attribWrap: {
     position: "absolute",
     top: 8,
     left: 10,
     zIndex: 12,
-    elevation: 12,
+    elevation: 0,
     alignItems: "flex-start",
   },
   attribBtn: {

@@ -1,4 +1,4 @@
-import { useMemo, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Feature } from "geojson";
@@ -13,8 +13,8 @@ import { globeCenterForCountry } from "@/navigation/DrawerMapLibreGlobe";
 
 type ViewConfig = { lat: number; lng: number; zoom: number };
 
-/** Finger-sized tap padding around each pin (MapLibre v11 ViewPadding). */
-const PIN_HITBOX = { top: 28, right: 28, bottom: 28, left: 28 };
+/** Screen-pixel pad around a tap. The pin graphic stays small. */
+const PIN_HITBOX = { top: 20, right: 20, bottom: 20, left: 20 };
 
 function validPins(pins: MapEventPin[]) {
   return pins.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
@@ -33,12 +33,29 @@ function pressFeatures(event: unknown): Feature[] {
   );
 }
 
+function isClusterFeature(feature: Feature) {
+  const props = feature.properties ?? {};
+  if (props.cluster === true) return true;
+  const count = Number(props.point_count);
+  return Number.isFinite(count) && count > 1;
+}
+
+function clusterCenterFromPress(event: unknown): { lat: number; lng: number } | null {
+  for (const feature of pressFeatures(event)) {
+    if (!isClusterFeature(feature) || feature.geometry?.type !== "Point") continue;
+    const [lng, lat] = feature.geometry.coordinates;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+  return null;
+}
+
 function pinFromPressEvent(event: unknown, pins: MapEventPin[]): MapEventPin | null {
   const features = pressFeatures(event);
   const tap = coordsFromPressEvent(event);
   let best: MapEventPin | null = null;
   let bestDist = Infinity;
   for (const feature of features) {
+    if (isClusterFeature(feature)) continue;
     const raw = feature.properties?.id ?? feature.id;
     const id = raw == null ? "" : String(raw);
     if (!id) continue;
@@ -61,7 +78,7 @@ function nearestPinAtCoords(
   zoom: number
 ): MapEventPin | null {
   if (!coords || pins.length === 0) return null;
-  const maxDeg = (360 / (256 * 2 ** Math.max(zoom, 1))) * 44;
+  const maxDeg = (360 / (256 * 2 ** Math.max(zoom, 1))) * 20;
   const cos = Math.cos((coords.lat * Math.PI) / 180);
   let best: MapEventPin | null = null;
   let bestDist = Infinity;
@@ -184,9 +201,14 @@ export function EventsNativeMap({
     return usablePins.find((p) => p.id === focusPinId) ?? null;
   }, [focusPinId, usablePins]);
 
+  const [explore, setExplore] = useState<ViewConfig | null>(null);
+  useEffect(() => {
+    setExplore(null);
+  }, [usablePins, focusPinId]);
+
   const view: ViewConfig = focused
     ? { lat: focused.lat, lng: focused.lng, zoom: PIN_FOCUS_ZOOM }
-    : baseView;
+    : explore ?? baseView;
 
   const MLRN = useMemo(() => {
     try {
@@ -242,10 +264,21 @@ export function EventsNativeMap({
           preview
             ? undefined
             : (event: unknown) => {
+                const cluster = clusterCenterFromPress(event);
+                if (cluster) {
+                  setExplore({
+                    lat: cluster.lat,
+                    lng: cluster.lng,
+                    zoom: Math.min(ESRI_SATELLITE_MAX_ZOOM, Math.max(view.zoom + 1.8, 5)),
+                  });
+                  return;
+                }
                 const coords = coordsFromPressEvent(event);
                 const pin =
                   pinFromPressEvent(event, usablePins) ??
-                  nearestPinAtCoords(coords, usablePins, view.zoom);
+                  (view.zoom >= 14
+                    ? nearestPinAtCoords(coords, usablePins, view.zoom)
+                    : null);
                 if (pin) {
                   onSelectPin(pin);
                   return;
@@ -265,14 +298,29 @@ export function EventsNativeMap({
         <GeoJSONSource
           id="event-pins"
           data={geojson}
+          cluster
+          clusterRadius={50}
+          clusterMaxZoomLevel={16}
           hitbox={PIN_HITBOX}
           onPress={
             preview
               ? undefined
               : (event: { stopPropagation?: () => void }) => {
+                  const cluster = clusterCenterFromPress(event);
+                  if (cluster) {
+                    event.stopPropagation?.();
+                    setExplore({
+                      lat: cluster.lat,
+                      lng: cluster.lng,
+                      zoom: Math.min(ESRI_SATELLITE_MAX_ZOOM, Math.max(view.zoom + 1.8, 5)),
+                    });
+                    return;
+                  }
                   const pin =
                     pinFromPressEvent(event, usablePins) ??
-                    nearestPinAtCoords(coordsFromPressEvent(event), usablePins, view.zoom);
+                    (view.zoom >= 14
+                      ? nearestPinAtCoords(coordsFromPressEvent(event), usablePins, view.zoom)
+                      : null);
                   if (!pin) return;
                   event.stopPropagation?.();
                   onSelectPin(pin);
@@ -280,32 +328,38 @@ export function EventsNativeMap({
           }
         >
           <Layer
-            id="event-pins-hit"
+            id="event-clusters"
             type="circle"
+            filter={["has", "point_count"]}
             paint={{
-              "circle-radius": 22,
-              "circle-color": "#ffffff",
-              "circle-opacity": 0.04,
+              "circle-color": "#7c3aed",
+              "circle-stroke-width": 2,
+              "circle-stroke-color": "#ffffff",
+              "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 25, 24, 50, 28],
               "circle-pitch-alignment": "viewport",
               "circle-pitch-scale": "viewport",
             }}
           />
           <Layer
-            id="event-pins-halo"
-            type="circle"
+            id="event-cluster-count"
+            type="symbol"
+            filter={["has", "point_count"]}
+            layout={{
+              "text-field": ["get", "point_count_abbreviated"],
+              "text-size": 12,
+              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+              "text-allow-overlap": true,
+            }}
             paint={{
-              "circle-radius": ["case", ["==", ["get", "selected"], 1], 18, 14],
-              "circle-color": ["get", "color"],
-              "circle-opacity": 0.28,
-              "circle-pitch-alignment": "viewport",
-              "circle-pitch-scale": "viewport",
+              "text-color": "#ffffff",
             }}
           />
           <Layer
             id="event-pins-circle"
             type="circle"
+            filter={["!", ["has", "point_count"]]}
             paint={{
-              "circle-radius": ["case", ["==", ["get", "selected"], 1], 10, 8],
+              "circle-radius": ["case", ["==", ["get", "selected"], 1], 8, 7],
               "circle-color": ["get", "color"],
               "circle-stroke-width": 2,
               "circle-stroke-color": "#ffffff",

@@ -19,6 +19,7 @@ export const ESRI_SATELLITE_MAX_ZOOM = 19;
 /** Raster style matching web `subculture-events-map.tsx` SATELLITE_STYLE */
 export const ESRI_SATELLITE_STYLE = {
   version: 8 as const,
+  glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   sources: {
     "satellite-tiles": {
       type: "raster" as const,

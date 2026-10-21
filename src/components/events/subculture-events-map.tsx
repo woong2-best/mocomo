@@ -5,8 +5,10 @@ const i18n = createTranslator("en");
 
 import { useEffect, useRef, useState } from "react";
 import type {
+  GeoJSONSource,
   Map as MapLibreMap,
-  Marker as MapLibreMarker,
+  MapGeoJSONFeature,
+  Popup as MapLibrePopup,
   StyleSpecification,
 } from "maplibre-gl";
 import type { MapEventPin } from "@/lib/subculture-events";
@@ -33,6 +35,7 @@ import { enUS } from "date-fns/locale";
 
 const SATELLITE_STYLE = {
   version: 8 as const,
+  glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   sources: {
     "satellite-tiles": {
       type: "raster" as const,
@@ -74,13 +77,109 @@ function safeHttpUrl(url: string | null | undefined): string | null {
   return null;
 }
 
-function createPinElement(color: string, halo = false): HTMLDivElement {
-  const el = document.createElement("div");
-  el.className = "subculture-event-pin";
-  el.style.cssText = halo
-    ? "width:22px;height:22px;box-sizing:border-box;background:#ff4d9a;border:4px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.78),0 2px 8px rgba(0,0,0,.45);cursor:pointer"
-    : `width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(0,0,0,.35);cursor:pointer`;
-  return el;
+const PIN_TOUCH_BUFFER = 20;
+const CLUSTER_RADIUS = 50;
+const CLUSTER_MAX_ZOOM = 16;
+
+function pinColor(category: string, halo: boolean) {
+  if (halo) return "#ff4d9a";
+  return SUBCULTURE_EVENT_CATEGORY_COLORS[category] ?? SUBCULTURE_EVENT_CATEGORY_COLORS.other;
+}
+
+function pinsToGeoJSON(pins: MapEventPin[], halo: boolean) {
+  return {
+    type: "FeatureCollection" as const,
+    features: pins
+      .filter((pin) => Number.isFinite(pin.lat) && Number.isFinite(pin.lng))
+      .map((pin) => ({
+        type: "Feature" as const,
+        id: pin.id,
+        geometry: { type: "Point" as const, coordinates: [pin.lng, pin.lat] },
+        properties: { id: pin.id, color: pinColor(pin.category, halo) },
+      })),
+  };
+}
+
+function queryNear(
+  map: MapLibreMap,
+  point: { x: number; y: number },
+  layers: string[]
+): MapGeoJSONFeature[] {
+  const present = layers.filter((id) => map.getLayer(id));
+  if (present.length === 0) return [];
+  try {
+    return map.queryRenderedFeatures(
+      [
+        [point.x - PIN_TOUCH_BUFFER, point.y - PIN_TOUCH_BUFFER],
+        [point.x + PIN_TOUCH_BUFFER, point.y + PIN_TOUCH_BUFFER],
+      ],
+      { layers: present }
+    );
+  } catch {
+    return [];
+  }
+}
+
+function featureScreenDist(
+  map: MapLibreMap,
+  feature: MapGeoJSONFeature,
+  point: { x: number; y: number }
+) {
+  const geom = feature.geometry;
+  if (geom.type !== "Point") return Number.POSITIVE_INFINITY;
+  const [lng, lat] = geom.coordinates as [number, number];
+  try {
+    const projected = map.project([lng, lat]);
+    return Math.hypot(projected.x - point.x, projected.y - point.y);
+  } catch {
+    return Number.POSITIVE_INFINITY;
+  }
+}
+
+function nearestFeature(
+  map: MapLibreMap,
+  features: MapGeoJSONFeature[],
+  point: { x: number; y: number }
+) {
+  let best: MapGeoJSONFeature | null = null;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const feature of features) {
+    const dist = featureScreenDist(map, feature, point);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = feature;
+    }
+  }
+  return best;
+}
+
+function expandCluster(map: MapLibreMap, feature: MapGeoJSONFeature) {
+  const geom = feature.geometry;
+  if (geom.type !== "Point") return;
+  const [lng, lat] = geom.coordinates as [number, number];
+  const clusterId = Number(feature.properties?.cluster_id);
+  const source = map.getSource("event-pins") as GeoJSONSource | undefined;
+  const fallback = () => {
+    map.easeTo({
+      center: [lng, lat],
+      zoom: Math.min(ESRI_SATELLITE_MAX_ZOOM, Math.max(map.getZoom() + 1.6, 5)),
+      duration: 450,
+    });
+  };
+  if (!source || !Number.isFinite(clusterId)) {
+    fallback();
+    return;
+  }
+  void source
+    .getClusterExpansionZoom(clusterId)
+    .then((zoom) => {
+      const next = Math.min(
+        ESRI_SATELLITE_MAX_ZOOM,
+        Math.max(zoom + 0.15, map.getZoom() + 1.4)
+      );
+      map.easeTo({ center: [lng, lat], zoom: next, duration: 450 });
+    })
+    .catch(fallback);
 }
 
 function buildPinPopupHtml(pin: MapEventPin): string {
@@ -210,7 +309,7 @@ export function SubcultureEventsMap({
   const navigationControls = showNavigationControls ?? false;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
-  const markersRef = useRef<MapLibreMarker[]>([]);
+  const popupRef = useRef<MapLibrePopup | null>(null);
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
   const onMapClickRef = useRef(onMapClick);
@@ -229,8 +328,8 @@ export function SubcultureEventsMap({
       if (cancelled || !containerRef.current) return;
 
       if (mapRef.current) {
-        for (const marker of markersRef.current) marker.remove();
-        markersRef.current = [];
+        popupRef.current?.remove();
+        popupRef.current = null;
         mapRef.current.remove();
         mapRef.current = null;
       }
@@ -296,6 +395,68 @@ export function SubcultureEventsMap({
         } catch {
           /* mercator fallback */
         }
+        if (!map.getSource("event-pins")) {
+          map.addSource("event-pins", {
+            type: "geojson",
+            data: pinsToGeoJSON(pins, pinHalo),
+            cluster: true,
+            clusterRadius: CLUSTER_RADIUS,
+            clusterMaxZoom: CLUSTER_MAX_ZOOM,
+          });
+          map.addLayer({
+            id: "event-clusters",
+            type: "circle",
+            source: "event-pins",
+            filter: ["has", "point_count"],
+            paint: {
+              "circle-color": pinHalo ? "#ff4d9a" : "#7c3aed",
+              "circle-stroke-width": 2,
+              "circle-stroke-color": "#ffffff",
+              "circle-radius": [
+                "step",
+                ["get", "point_count"],
+                16,
+                10,
+                20,
+                25,
+                24,
+                50,
+                28,
+              ],
+              "circle-pitch-alignment": "viewport",
+              "circle-pitch-scale": "viewport",
+            },
+          });
+          map.addLayer({
+            id: "event-cluster-count",
+            type: "symbol",
+            source: "event-pins",
+            filter: ["has", "point_count"],
+            layout: {
+              "text-field": ["get", "point_count_abbreviated"],
+              "text-size": 12,
+              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+              "text-allow-overlap": true,
+            },
+            paint: {
+              "text-color": "#ffffff",
+            },
+          });
+          map.addLayer({
+            id: "event-pins-dot",
+            type: "circle",
+            source: "event-pins",
+            filter: ["!", ["has", "point_count"]],
+            paint: {
+              "circle-radius": pinHalo ? 8 : 7,
+              "circle-color": ["get", "color"],
+              "circle-stroke-width": pinHalo ? 3 : 2,
+              "circle-stroke-color": "#ffffff",
+              "circle-pitch-alignment": "viewport",
+              "circle-pitch-scale": "viewport",
+            },
+          });
+        }
         resize();
         if (respectDefaultView && defaultView) {
           map.setCenter([defaultView.lng, defaultView.lat]);
@@ -309,44 +470,59 @@ export function SubcultureEventsMap({
       map.once("error", (event) => {
         console.error("[subculture-events-map]", event.error ?? event);
       });
-      map.on("click", (event) => {
-        onMapClickRef.current?.({ lat: event.lngLat.lat, lng: event.lngLat.lng });
-      });
-      requestAnimationFrame(resize);
-      resizeObserver = new ResizeObserver(resize);
-      resizeObserver.observe(containerRef.current);
-
-      for (const pin of pins) {
-        const color =
-          SUBCULTURE_EVENT_CATEGORY_COLORS[pin.category] ??
-          SUBCULTURE_EVENT_CATEGORY_COLORS.other;
+      const pinById = new Map(pins.map((pin) => [pin.id, pin]));
+      const openPin = (pin: MapEventPin) => {
+        popupRef.current?.remove();
         const popup = new maplibregl.Popup({
           closeButton: false,
           maxWidth: "240px",
           className: "subculture-map-popup",
           offset: 12,
-        }).setHTML(buildPinPopupHtml(pin));
-
-        const marker = new maplibregl.Marker({ element: createPinElement(color, pinHalo) })
+        })
           .setLngLat([pin.lng, pin.lat])
-          .setPopup(popup)
+          .setHTML(buildPinPopupHtml(pin))
           .addTo(map);
-
-        marker.getElement().addEventListener("click", () => {
-          map.flyTo({
-            center: [pin.lng, pin.lat],
-            zoom: Math.min(
-              ESRI_SATELLITE_MAX_ZOOM,
-              Math.max(map.getZoom(), PIN_FOCUS_ZOOM)
-            ),
-            duration: 700,
-            essential: true,
-          });
-          onPinClick?.(pin);
+        popupRef.current = popup;
+        map.flyTo({
+          center: [pin.lng, pin.lat],
+          zoom: Math.min(
+            ESRI_SATELLITE_MAX_ZOOM,
+            Math.max(map.getZoom(), PIN_FOCUS_ZOOM)
+          ),
+          duration: 700,
+          essential: true,
         });
+        onPinClick?.(pin);
+      };
 
-        markersRef.current.push(marker);
-      }
+      map.on("click", (event) => {
+        if (interactive) {
+          const clusterHit = nearestFeature(
+            map,
+            queryNear(map, event.point, ["event-clusters", "event-cluster-count"]),
+            event.point
+          );
+          if (clusterHit) {
+            expandCluster(map, clusterHit);
+            return;
+          }
+          const pinHit = nearestFeature(
+            map,
+            queryNear(map, event.point, ["event-pins-dot"]),
+            event.point
+          );
+          const pinId = pinHit?.properties?.id;
+          const pin = pinId == null ? undefined : pinById.get(String(pinId));
+          if (pin) {
+            openPin(pin);
+            return;
+          }
+        }
+        onMapClickRef.current?.({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+      });
+      requestAnimationFrame(resize);
+      resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(containerRef.current);
 
       mapRef.current = map;
 
@@ -416,8 +592,8 @@ export function SubcultureEventsMap({
     return () => {
       cancelled = true;
       resizeObserver?.disconnect();
-      for (const marker of markersRef.current) marker.remove();
-      markersRef.current = [];
+      popupRef.current?.remove();
+      popupRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;

@@ -3,8 +3,9 @@ import {
   Animated,
   AppState,
   type AppStateStatus,
+  BackHandler,
   Easing,
-  Modal,
+  InteractionManager,
   Pressable,
   StyleSheet,
   Text,
@@ -143,12 +144,15 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
   const [followListTab, setFollowListTab] = useState<FollowListTab | null>(null);
 
-  const [presented, setPresented] = useState(false);
-  /** Unmount with the drawer. A hidden map WebView was covering the home feed. */
-  const [modalOn, setModalOn] = useState(false);
-  const [globeMounted, setGlobeMounted] = useState(false);
-  const slideX = useRef(new Animated.Value(-360)).current;
-  const presentedRef = useRef(false);
+  /**
+   * The globe WebView stays mounted. Unmounting it made every menu open reload
+   * MapLibre from the CDN. It is parked with layout `left`, not opacity or
+   * transform — a transformed/hidden hardware WebView was painting over the feed.
+   */
+  const [overlay, setOverlay] = useState(false);
+  const [globeReady, setGlobeReady] = useState(false);
+  const slideX = useRef(new Animated.Value(-panelWidth)).current;
+  const overlayRef = useRef(false);
   const visibleRef = useRef(visible);
   const panelWidthRef = useRef(panelWidth);
   visibleRef.current = visible;
@@ -166,15 +170,23 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
   const closeAccountSheet = () => setAccountSheetOpen(false);
 
-  const hideDrawerChrome = () => {
+  const hideOverlay = () => {
     if (visibleRef.current) return;
-    presentedRef.current = false;
-    setPresented(false);
-    setModalOn(false);
-    setGlobeMounted(false);
+    overlayRef.current = false;
+    setOverlay(false);
     setAccountSheetOpen(false);
     setFollowListTab(null);
   };
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => setGlobeReady(true));
+    return () => task.cancel();
+  }, []);
+
+  useEffect(() => {
+    if (visibleRef.current) return;
+    slideX.setValue(-panelWidth);
+  }, [panelWidth, slideX]);
 
   useEffect(() => {
     if (visible) {
@@ -198,20 +210,29 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   }, []);
 
   useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible, onClose]);
+
+  useEffect(() => {
     let anim: Animated.CompositeAnimation | null = null;
     let failsafe: ReturnType<typeof setTimeout> | null = null;
 
     if (visible) {
-      presentedRef.current = true;
-      setPresented(true);
-      setModalOn(true);
-      setGlobeMounted(true);
+      overlayRef.current = true;
+      setOverlay(true);
       slideX.setValue(-panelWidthRef.current);
+      // `left` is layout, so the Android WebView surface moves with the panel.
+      // A native-driver transform leaves that surface stuck on top of the feed.
       anim = Animated.timing(slideX, {
         toValue: 0,
         duration: OPEN_MS,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       });
       anim.start();
       return () => {
@@ -219,7 +240,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
       };
     }
 
-    if (!presentedRef.current) return;
+    if (!overlayRef.current) return;
 
     setAccountSheetOpen(false);
     setFollowListTab(null);
@@ -228,19 +249,18 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
       toValue: -panelWidthRef.current,
       duration: CLOSE_MS,
       easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: false,
     });
     anim.start(() => {
-      hideDrawerChrome();
+      hideOverlay();
     });
-    failsafe = setTimeout(hideDrawerChrome, CLOSE_MS + 80);
+    failsafe = setTimeout(hideOverlay, CLOSE_MS + 80);
 
     return () => {
       anim?.stop();
       if (failsafe) clearTimeout(failsafe);
     };
-    // `presented` must stay out of deps — toggling it used to cancel the close
-    // animation and leave a transparent Modal eating every tap on iOS.
+    // overlay stays out of deps — same reason `presented` used to cancel the close.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slideX, visible]);
 
@@ -260,27 +280,22 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
   };
 
   const rowChevron = colors.textMuted;
-
-  if (!presented) return null;
+  const drawerOpen = overlay || visible;
 
   return (
     <>
-    <Modal
-      visible={modalOn}
-      animationType="none"
-      transparent
-      onRequestClose={handleDrawerClose}
-      statusBarTranslucent
+    <View
+      style={
+        drawerOpen
+          ? [styles.root, styles.rootOpen]
+          : [styles.rootParked, { width: panelWidth, left: -(panelWidth + 8) }]
+      }
+      collapsable={false}
+      pointerEvents={drawerOpen ? "box-none" : "none"}
+      accessibilityElementsHidden={!drawerOpen}
+      importantForAccessibility={drawerOpen ? "auto" : "no-hide-descendants"}
     >
-      <View
-        style={styles.root}
-        collapsable={false}
-        pointerEvents={visible ? "auto" : "none"}
-      >
-        {/*
-          Fixed-intensity BlurView + dim; opacity driven by slideX on the
-          native driver so blur never recomputes intensity mid-frame.
-        */}
+      {drawerOpen ? (
         <Animated.View
           style={[styles.scrimWrap, { opacity: backdropOpacity }]}
           pointerEvents="none"
@@ -304,6 +319,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
             pointerEvents="none"
           />
         </Animated.View>
+      ) : null}
         <Animated.View
           style={[
             styles.panel,
@@ -311,7 +327,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
               width: panelWidth,
               paddingTop: insets.top + 10,
               paddingBottom: 0,
-              transform: [{ translateX: slideX }],
+              left: slideX,
             },
           ]}
         >
@@ -431,7 +447,7 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
 
             <DrawerSubcultureMapCard
               active={visible && !accountSheetOpen}
-              showGlobe={presented && visible && !accountSheetOpen}
+              showGlobe={globeReady || visible}
               interactive={visible && !accountSheetOpen}
               height={layout.mapH}
               onExpandPressIn={() => prefetch("EventsMap")}
@@ -440,12 +456,14 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
           </View>
         </Animated.View>
         {/* Above panel z-index; BlurView on Android can swallow scrim taps */}
+        {drawerOpen ? (
         <Pressable
           style={[styles.marginDismiss, { left: panelWidth }]}
           onPress={handleDrawerClose}
           accessibilityRole="button"
           accessibilityLabel={t("m.nav.close_menu")}
         />
+        ) : null}
         {user?.username ? (
           <ProfileFollowListSheet
             embedInParent
@@ -456,7 +474,6 @@ export function SideDrawer({ visible, onClose, onNavigate, onAddAccountLogin }: 
           />
         ) : null}
       </View>
-    </Modal>
 
     <AccountsBottomSheet
       visible={accountSheetOpen}
@@ -515,7 +532,21 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     : "rgba(255, 251, 245, 0.85)";
 
   return StyleSheet.create({
-    root: { flex: 1 },
+    root: {
+      ...StyleSheet.absoluteFill,
+    },
+    rootOpen: {
+      zIndex: 40,
+      elevation: 16,
+    },
+    rootParked: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      zIndex: 0,
+      elevation: 0,
+      overflow: "hidden",
+    },
     scrimWrap: {
       ...StyleSheet.absoluteFill,
     },
@@ -528,12 +559,12 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
     },
     panel: {
       position: "absolute",
-      left: 0,
       top: 0,
       bottom: 0,
       backgroundColor: panelBg,
       paddingHorizontal: spacing.md,
       zIndex: 2,
+      overflow: "hidden",
     },
     panelBody: {
       flex: 1,
