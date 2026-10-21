@@ -7,6 +7,7 @@ import type { MapEventPin } from "@/api/events";
 import { eventPinColor } from "@/features/events/event-map-colors";
 import type { Locale } from "@/i18n";
 import { translate } from "@/i18n/runtime";
+import { MAPLIBRE_GLYPHS_URL, MAPLIBRE_LABEL_FONTS } from "@/maps/map-styles";
 
 const MAPLIBRE_VERSION = "6.1.0";
 
@@ -207,7 +208,7 @@ if (!maplibregl) {
   const style = {
     version: 8,
     projection: { type: "globe" },
-    glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+    glyphs: ${JSON.stringify(MAPLIBRE_GLYPHS_URL)},
     sources: {
       "satellite-tiles": {
         type: "raster",
@@ -590,7 +591,7 @@ if (!maplibregl) {
       layout: {
         "text-field": ["get", "point_count_abbreviated"],
         "text-size": 11,
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-font": ${JSON.stringify([...MAPLIBRE_LABEL_FONTS])},
         "text-anchor": "center",
         "text-justify": "center",
         "text-offset": [0, 0],

@@ -274,9 +274,10 @@ function FeedVideoPostSlideBody({
     <div
       ref={motion.bindVideo}
       className={cn(
-        "relative h-full w-full overflow-hidden bg-black",
-        DESKTOP_CARD_CLASS,
-        commentsOpen ? "max-lg:pointer-events-none lg:shrink-0 lg:rounded-none" : "lg:rounded-2xl"
+        "relative isolate h-full w-full overflow-hidden bg-black",
+        commentsOpen
+          ? "max-lg:pointer-events-none lg:w-[min(420px,calc(100%-15rem))] lg:shrink-0 lg:rounded-none"
+          : "lg:rounded-2xl"
       )}
       onClick={(e) => e.stopPropagation()}
     >
@@ -408,20 +409,21 @@ function FeedVideoPostSlideBody({
           : undefined
       }
     >
-      {commentsOpen ? (
-        <div
-          className={cn(
-            "relative mx-auto flex h-full w-full min-w-0 items-stretch self-stretch",
-            DESKTOP_STAGE_WRAPPER_OPEN,
-            "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
-          )}
-        >
-          {videoCard}
-          {commentsPanel}
-        </div>
-      ) : (
-        videoCard
-      )}
+      <div
+        className={cn(
+          "relative mx-auto flex h-full min-w-0 items-stretch self-stretch",
+          commentsOpen
+            ? cn(
+                "w-full",
+                DESKTOP_STAGE_WRAPPER_OPEN,
+                "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
+              )
+            : cn("w-full", DESKTOP_CARD_CLASS)
+        )}
+      >
+        {videoCard}
+        {commentsPanel}
+      </div>
 
       {showSideNav ? (
         <>

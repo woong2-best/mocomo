@@ -10,3 +10,9 @@ export const ESRI_SATELLITE_MAX_ZOOM = 19;
 
 export const ESRI_WORLD_IMAGERY_TILES =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
+/** OpenFreeMap glyph atlas — same stack as the liberty style (`Noto Sans *`). */
+export const MAPLIBRE_GLYPHS_URL =
+  "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
+
+export const MAPLIBRE_LABEL_FONTS = ["Noto Sans Bold"] as const;

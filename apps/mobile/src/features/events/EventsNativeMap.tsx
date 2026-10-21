@@ -7,6 +7,7 @@ import { eventPinColor } from "@/features/events/event-map-colors";
 import {
   ESRI_SATELLITE_MAX_ZOOM,
   ESRI_SATELLITE_STYLE,
+  MAPLIBRE_LABEL_FONTS,
   SUBCULTURE_MAP_GLOBAL_VIEW,
 } from "@/maps/map-styles";
 import { globeCenterForCountry } from "@/navigation/DrawerMapLibreGlobe";
@@ -351,7 +352,7 @@ export function EventsNativeMap({
             layout={{
               "text-field": ["get", "point_count_abbreviated"],
               "text-size": 11,
-              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+              "text-font": [...MAPLIBRE_LABEL_FONTS],
               "text-anchor": "center",
               "text-justify": "center",
               "text-offset": [0, 0],

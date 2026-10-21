@@ -6,6 +6,12 @@
 
 export const OSM_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
+/** Same glyph host as OpenFreeMap liberty (`Noto Sans *`). */
+export const MAPLIBRE_GLYPHS_URL =
+  "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
+
+export const MAPLIBRE_LABEL_FONTS = ["Noto Sans Bold"] as const;
+
 export const ESRI_ATTRIBUTION = "Tiles © Esri";
 export const ESRI_ATTRIBUTION_URL = "https://www.esri.com/";
 
@@ -19,7 +25,7 @@ export const ESRI_SATELLITE_MAX_ZOOM = 19;
 /** Raster style matching web `subculture-events-map.tsx` SATELLITE_STYLE */
 export const ESRI_SATELLITE_STYLE = {
   version: 8 as const,
-  glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+  glyphs: MAPLIBRE_GLYPHS_URL,
   sources: {
     "satellite-tiles": {
       type: "raster" as const,

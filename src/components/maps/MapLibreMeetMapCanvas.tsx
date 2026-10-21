@@ -10,6 +10,7 @@ import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import {
   ESRI_SATELLITE_MAX_ZOOM,
   ESRI_WORLD_IMAGERY_TILES,
+  MAPLIBRE_GLYPHS_URL,
 } from "@/lib/maps/esri-satellite";
 import type { MeetCoords } from "@/lib/maps/types";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ type Props = {
 
 const ESRI_SATELLITE_STYLE = {
   version: 8 as const,
+  glyphs: MAPLIBRE_GLYPHS_URL,
   sources: {
     "satellite-tiles": {
       type: "raster" as const,

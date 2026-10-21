@@ -300,19 +300,25 @@ function ReelsSlideBody({
             <X className="h-5 w-5" />
           </button>
         </div>
-      ) : commentsOpen ? (
+      ) : (
         <div
           className={cn(
-            "relative mx-auto flex h-full w-full min-w-0 items-stretch self-stretch",
-            DESKTOP_STAGE_WRAPPER_OPEN,
-            "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
+            "relative mx-auto flex h-full min-w-0 items-stretch self-stretch",
+            commentsOpen
+              ? cn(
+                  "w-full",
+                  DESKTOP_STAGE_WRAPPER_OPEN,
+                  "lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:ring-1 lg:ring-white/10"
+                )
+              : cn(DESKTOP_CARD_CLASS, "lg:rounded-2xl")
           )}
         >
           <div
             ref={motion.bindVideo}
             className={cn(
-              "relative shrink-0 overflow-hidden bg-black max-lg:pointer-events-none",
-              DESKTOP_CARD_CLASS
+              "relative isolate h-full w-full overflow-hidden bg-black",
+              commentsOpen &&
+                "shrink-0 max-lg:pointer-events-none lg:w-[min(420px,calc(100%-7.5rem))]"
             )}
             onClick={(e) => e.stopPropagation()}
           >
@@ -321,15 +327,6 @@ function ReelsSlideBody({
             {actions}
           </div>
           {commentsPanel}
-        </div>
-      ) : (
-        <div
-          className={cn("relative bg-black", DESKTOP_CARD_CLASS, "lg:rounded-2xl")}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {player}
-          {captionBlock}
-          {actions}
         </div>
       )}
     </section>

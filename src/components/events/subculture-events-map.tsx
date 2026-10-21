@@ -21,6 +21,8 @@ import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import {
   ESRI_SATELLITE_MAX_ZOOM,
   ESRI_WORLD_IMAGERY_TILES,
+  MAPLIBRE_GLYPHS_URL,
+  MAPLIBRE_LABEL_FONTS,
 } from "@/lib/maps/esri-satellite";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -36,7 +38,7 @@ import { enUS } from "date-fns/locale";
 
 const SATELLITE_STYLE = {
   version: 8 as const,
-  glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+  glyphs: MAPLIBRE_GLYPHS_URL,
   sources: {
     "satellite-tiles": {
       type: "raster" as const,
@@ -449,7 +451,7 @@ export function SubcultureEventsMap({
             layout: {
               "text-field": ["get", "point_count_abbreviated"],
               "text-size": pinHalo ? 11 : 12,
-              "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+              "text-font": [...MAPLIBRE_LABEL_FONTS],
               "text-anchor": "center",
               "text-justify": "center",
               "text-offset": [0, 0],

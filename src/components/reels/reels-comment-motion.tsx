@@ -33,6 +33,14 @@ type MotionApi = {
 
 const ReelsCommentMotionContext = createContext<MotionApi | null>(null);
 
+function resetVideoMotion(video: HTMLElement) {
+  video.style.transform = "";
+  video.style.borderRadius = "";
+  video.style.transition = "";
+  video.style.transformOrigin = "";
+  video.style.overflow = "";
+}
+
 export function useCompactReelsViewport() {
   const [compact, setCompact] = useState(false);
   useEffect(() => {
@@ -82,9 +90,7 @@ export function ReelsCommentMotionRoot({
       if (!video) return;
       const compact = isCompactReelsViewport();
       if (!compact || !enabledRef.current) {
-        video.style.transform = "";
-        video.style.borderRadius = "";
-        video.style.transition = "";
+        resetVideoMotion(video);
         return;
       }
       const frame = getFrameHeight();
@@ -112,6 +118,7 @@ export function ReelsCommentMotionRoot({
       },
       bindVideo: (el) => {
         videoEl.current = el;
+        if (el && !enabledRef.current) resetVideoMotion(el);
       },
       applyVideo,
       getFrameHeight,
