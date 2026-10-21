@@ -33,6 +33,9 @@ import {
 } from "@/lib/wiki/editorUtils";
 import type { WikiMacro } from "@/lib/wiki/macros";
 import { cn } from "@/lib/utils";
+import { FileDropZone } from "@/components/media/file-drop-zone";
+import { isGalleryImageFile } from "@/lib/gallery-image-upload";
+import { isGalleryVideoFile } from "@/lib/gallery-video-upload";
 
 export type WikiEditorProps = {
   value?: string;
@@ -400,12 +403,23 @@ export function WikiEditor({
   const visiblePopover = popover && (results.length > 0 || isSearching) ? popover : null;
 
   return (
-    <div
+    <FileDropZone
       ref={wrapperRef}
       className={cn(
         "relative overflow-visible rounded-2xl border-2 border-[hsl(var(--folk-cobalt)/0.35)] bg-card text-card-foreground shadow-[3px_4px_0_hsl(var(--folk-cobalt)/0.12)]",
         className
       )}
+      disabled={imageBusy || videoBusy}
+      hint={t("media.dropHint")}
+      onFiles={(files) => {
+        const image = files.find((file) => isGalleryImageFile(file, true));
+        if (image) {
+          void handleInlineImage(image);
+          return;
+        }
+        const video = files.find((file) => isGalleryVideoFile(file));
+        if (video) void handleVideoFile(video);
+      }}
     >
       <EditorToolbar
         variant={variant}
@@ -594,6 +608,6 @@ export function WikiEditor({
           </button>
         </div>
       ) : null}
-    </div>
+    </FileDropZone>
   );
 }

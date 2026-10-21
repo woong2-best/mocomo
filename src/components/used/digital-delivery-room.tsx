@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getDigitalDelivery, updateDigitalDelivery } from "@/actions/digital-delivery";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 import { applyImageWatermarkBlob } from "@/lib/media-watermark-canvas";
 import { uploadAudioBlob, uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -20,6 +21,9 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
   const [digital, setDigital] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [localPreview, setLocalPreview] = useState<{ url: string; kind: "image" | "video" } | null>(
+    null
+  );
 
   async function reload() {
     const res = await getDigitalDelivery(listingId);
@@ -50,6 +54,14 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
     if (!file) return;
     setBusy(true);
     setNote("");
+    const localUrl = URL.createObjectURL(file);
+    const kind = file.type.startsWith("video/")
+      ? "video"
+      : file.type.startsWith("image/")
+        ? "image"
+        : null;
+    if (kind) setLocalPreview({ url: localUrl, kind });
+    else URL.revokeObjectURL(localUrl);
     try {
       let original: string;
       let previewUrl: string | undefined;
@@ -68,6 +80,9 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
     } catch (error) {
       setNote(error instanceof Error ? error.message : "Upload failed.");
       setBusy(false);
+    } finally {
+      if (kind) URL.revokeObjectURL(localUrl);
+      setLocalPreview(null);
     }
   }
 
@@ -88,8 +103,14 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
           </li>
         ))}
       </ol>
-      {delivery.previewUrl && delivery.status !== "completed" ? (
-        <img src={delivery.previewUrl} alt="" className="max-h-48 rounded-lg object-contain" />
+      {localPreview?.kind === "video" ? (
+        <video src={localPreview.url} className="max-h-48 w-full rounded-lg object-contain" muted playsInline />
+      ) : localPreview?.kind === "image" || (delivery.previewUrl && delivery.status !== "completed") ? (
+        <img
+          src={localPreview?.url ?? delivery.previewUrl}
+          alt=""
+          className="max-h-48 rounded-lg object-contain"
+        />
       ) : delivery.status !== "completed" ? (
         <p className="text-xs text-muted-foreground">{delivery.fileName ?? t("market.track.fileUploaded")}</p>
       ) : null}
@@ -99,15 +120,28 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
         </button>
       ) : null}
       {role === "seller" && delivery.status !== "completed" ? (
-        <label className="inline-flex cursor-pointer rounded-xl bg-folk-terracotta px-3 py-2 text-sm font-bold text-white">
-          {t("market.track.deliverWork")}
-          <input
-            type="file"
-            className="sr-only"
-            disabled={busy}
-            onChange={(event) => void onFile(event.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileDropZone
+          className="rounded-xl"
+          disabled={busy}
+          hint={t("media.dropHint")}
+          onFiles={(files) => {
+            void onFile(files[0] ?? null);
+          }}
+        >
+          <label className="file-drop-zone__pad cursor-pointer">
+            <span className="rounded-xl bg-folk-terracotta px-3 py-2 text-sm font-bold text-white">
+              {t("market.track.deliverWork")}
+            </span>
+            <span className="text-xs">{t("media.dropHint")}</span>
+            <input
+              type="file"
+              accept="image/*,video/*,audio/*"
+              className="sr-only"
+              disabled={busy}
+              onChange={(event) => void onFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+        </FileDropZone>
       ) : null}
       {role === "buyer" && delivery.status === "uploaded" ? (
         <button type="button" className="rounded-xl bg-folk-cobalt px-3 py-2 text-sm font-bold text-white" disabled={busy} onClick={() => void run("approve")}>

@@ -14,7 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createCreatorSeries, publishCreatorEpisode } from "@/actions/creator-works";
 import { CREATOR_WORK_KIND_LABEL } from "@/lib/creator-work-labels";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 import { uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
+import { isGalleryImageFile } from "@/lib/gallery-image-upload";
+import { isGalleryVideoFile } from "@/lib/gallery-video-upload";
 import { cn } from "@/lib/utils";
 
 type MySeries = Awaited<ReturnType<typeof import("@/actions/creator-works").listMyCreatorSeries>>;
@@ -38,6 +41,8 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
   const activeKind = selected?.kind ?? kind;
 
   async function uploadCover(file: File) {
+    const preview = URL.createObjectURL(file);
+    setCoverUrl(preview);
     setLoading(true);
     setErr("");
     try {
@@ -45,24 +50,40 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
       setCoverUrl(url);
     } catch (e) {
       setErr(e instanceof Error ? e.message : t("works.sfyrsvv"));
+      setCoverUrl("");
     } finally {
+      URL.revokeObjectURL(preview);
       setLoading(false);
     }
   }
 
-  async function uploadPages(files: FileList | null) {
+  async function uploadPages(files: File[] | FileList | null) {
     if (!files?.length) return;
+    const list = Array.from(files).filter((file) => isGalleryImageFile(file, true));
+    if (list.length === 0) return;
+    const previews = list.map((file) => URL.createObjectURL(file));
+    setContentUrls((prev) => [...prev, ...previews]);
     setLoading(true);
     setErr("");
     try {
       const urls: string[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of list) {
         urls.push(await uploadImageBlob(file, file.name));
       }
-      setContentUrls((prev) => [...prev, ...urls]);
+      setContentUrls((prev) => {
+        const next = [...prev];
+        previews.forEach((preview, i) => {
+          const idx = next.indexOf(preview);
+          const url = urls[i];
+          if (idx >= 0 && url) next[idx] = url;
+        });
+        return next;
+      });
     } catch (e) {
+      setContentUrls((prev) => prev.filter((url) => !previews.includes(url)));
       setErr(e instanceof Error ? e.message : t("works.s1bw7noj"));
     } finally {
+      previews.forEach((url) => URL.revokeObjectURL(url));
       setLoading(false);
     }
   }
@@ -152,26 +173,36 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
           onChange={(e) => setDescription(e.target.value)}
           className="rounded-xl min-h-[80px]"
         />
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
-            <Upload className="h-4 w-4" />
-            표지 업로드
-            <input
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void uploadCover(f);
-                e.target.value = "";
-              }}
-            />
-          </label>
-          {coverUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverUrl} alt="" className="h-16 w-16 rounded-lg object-cover border" />
-          )}
-        </div>
+        <FileDropZone
+          className="rounded-xl"
+          disabled={loading}
+          hint={t("media.dropHintImage")}
+          onFiles={(files) => {
+            const file = files.find((item) => isGalleryImageFile(item, true));
+            if (file) void uploadCover(file);
+          }}
+        >
+          <div className="file-drop-zone__pad min-h-0 flex-row flex-wrap justify-start py-3">
+            <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <Upload className="h-4 w-4" />
+              표지 업로드
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadCover(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {coverUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl} alt="" className="h-16 w-16 rounded-lg object-cover border" />
+            )}
+          </div>
+        </FileDropZone>
         <Button type="button" className="rounded-xl gap-2" disabled={loading} onClick={() => void onCreateSeries()}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           시리즈 생성
@@ -228,37 +259,64 @@ export function CreatorStudioForm({ mySeries }: { mySeries: MySeries }) {
               className="rounded-xl"
             />
             <p className="text-[11px] text-muted-foreground -mt-2">{t("works.s8ca8su")}</p>
-            <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
-              <Upload className="h-4 w-4" />
-              {activeKind === "WEBTOON" ? t("works.s1ozu5jd") : t("works.sc97bxb")}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="sr-only"
-                onChange={(e) => void uploadPages(e.target.files)}
-              />
-            </label>
-            {contentUrls.length > 0 && (
-              <p className="text-xs text-emerald-600">{contentUrls.length}장 업로드됨</p>
-            )}
+            <FileDropZone
+              className="rounded-xl"
+              disabled={loading}
+              hint={t("media.dropHintImage")}
+              onFiles={(files) => {
+                void uploadPages(files);
+              }}
+            >
+              <label className="file-drop-zone__pad cursor-pointer text-sm font-medium">
+                <Upload className="h-4 w-4" />
+                {activeKind === "WEBTOON" ? t("works.s1ozu5jd") : t("works.sc97bxb")}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="sr-only"
+                  onChange={(e) => {
+                    void uploadPages(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                {contentUrls.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {contentUrls.map((url) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={url} src={url} alt="" className="h-16 w-16 rounded-lg object-cover border" />
+                    ))}
+                  </div>
+                ) : null}
+              </label>
+            </FileDropZone>
           </>
         )}
         {activeKind === "VIDEO" && (
-          <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
-            <Upload className="h-4 w-4" />
-            Video 업로드
-            <input
-              type="file"
-              accept="video/*"
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void uploadVideo(f);
-                e.target.value = "";
-              }}
-            />
-          </label>
+          <FileDropZone
+            className="rounded-xl"
+            disabled={loading}
+            hint={t("media.dropHintVideo")}
+            onFiles={(files) => {
+              const file = files.find((item) => isGalleryVideoFile(item));
+              if (file) void uploadVideo(file);
+            }}
+          >
+            <label className="file-drop-zone__pad cursor-pointer text-sm font-medium">
+              <Upload className="h-4 w-4" />
+              Video 업로드
+              <input
+                type="file"
+                accept="video/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadVideo(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </FileDropZone>
         )}
         {videoUrl && <p className="text-xs text-emerald-600 truncate">{t("works.sizpsxv")}</p>}
         <Button type="button" className="rounded-xl w-full" disabled={loading} onClick={() => void onPublishEpisode()}>

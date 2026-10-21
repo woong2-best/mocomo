@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 import { uploadSellerKycDocument } from "@/lib/marketplace/kyc-client-upload";
 
 export type SellerKycDocumentUploadValue = {
@@ -72,7 +73,15 @@ export function SellerKycDocumentUpload({ value, onChange, disabled, idType }: P
         : t("market.s10y8nss");
 
   return (
-    <div className="space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3">
+    <FileDropZone
+      className="space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3"
+      disabled={disabled || uploading}
+      hint={t("media.dropHintImage")}
+      onFiles={(files) => {
+        const file = files[0];
+        if (file) void onFileSelected(file);
+      }}
+    >
       <div className="flex items-start gap-2">
         <ImagePlus className="h-4 w-4 text-primary shrink-0 mt-0.5" />
         <div className="min-w-0">
@@ -159,6 +168,6 @@ export function SellerKycDocumentUpload({ value, onChange, disabled, idType }: P
       )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+    </FileDropZone>
   );
 }

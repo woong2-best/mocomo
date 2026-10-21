@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dedupeClipboardFiles, filesFromClipboard } from "../clipboard-files";
+import {
+  dataTransferHasFiles,
+  dedupeClipboardFiles,
+  filesFromClipboard,
+  filesFromDataTransfer,
+} from "../clipboard-files";
 
 function fakeFile(name: string, bytes = 12, type = "image/png"): File {
   return new File([new Uint8Array(bytes)], name, { type, lastModified: 1_700_000_000_000 });
@@ -46,4 +51,23 @@ test("dedupeClipboardFiles collapses identical name/size/type/mtime", () => {
   const a = fakeFile("same.png");
   const b = fakeFile("same.png");
   assert.equal(dedupeClipboardFiles([a, b]).length, 1);
+});
+
+test("dataTransferHasFiles detects Files type and file list", () => {
+  const withType = {
+    types: ["Files"],
+    files: [] as unknown as FileList,
+  } as unknown as DataTransfer;
+  assert.equal(dataTransferHasFiles(withType), true);
+
+  const withList = fakeTransfer({ files: [fakeFile("drop.jpg")] });
+  assert.equal(dataTransferHasFiles(withList), true);
+  assert.equal(dataTransferHasFiles(fakeTransfer({ files: [] })), false);
+});
+
+test("filesFromDataTransfer matches the file-input File list", () => {
+  const file = fakeFile("explorer.mp4", 48, "video/mp4");
+  const out = filesFromDataTransfer(fakeTransfer({ files: [file] }));
+  assert.equal(out.length, 1);
+  assert.equal(out[0], file);
 });

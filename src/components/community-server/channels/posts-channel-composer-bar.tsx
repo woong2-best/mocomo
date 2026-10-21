@@ -18,6 +18,8 @@ import { toAbsoluteUploadUrl, uploadAudioBlob, uploadImageBlob, uploadVideoBlob 
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { cn } from "@/lib/utils";
 import { notifyPostPublished } from "@/lib/feed-live-sync";
+import { FileDropZone } from "@/components/media/file-drop-zone";
+import { isGalleryVideoFile } from "@/lib/gallery-video-upload";
 
 const MAX_VOICE_SEC = 120;
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif";
@@ -49,6 +51,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
   const [error, setError] = useState("");
   const [recording, setRecording] = useState(false);
   const [recordSec, setRecordSec] = useState(0);
+  const [pendingPreview, setPendingPreview] = useState<{ url: string; kind: "image" | "video" } | null>(null);
 
   const canCompose =
     (isMember || isOwner) && hasPermission(permissions, "createPosts");
@@ -115,15 +118,14 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
     void uploadAndSendImage(blob, name);
   }
 
-  async function onGalleryPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    const video = file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
+  async function ingestPickedFile(file: File) {
+    const video = isGalleryVideoFile(file);
     if (!video && !isGalleryImageFile(file, true)) {
       setError(t("community-server.s17v6uv"));
       return;
     }
+    const previewUrl = URL.createObjectURL(file);
+    setPendingPreview({ url: previewUrl, kind: video ? "video" : "image" });
     setUploading(true);
     setError("");
     try {
@@ -140,8 +142,17 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("community-server.s125dinl"));
     } finally {
+      URL.revokeObjectURL(previewUrl);
+      setPendingPreview(null);
       setUploading(false);
     }
+  }
+
+  async function onGalleryPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await ingestPickedFile(file);
   }
 
   function stopRecording(send: boolean) {
@@ -249,7 +260,20 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
   }
 
   return (
-    <div className="shrink-0 bg-background px-2 py-2 sm:px-3 pb-safe">
+    <FileDropZone
+      className="shrink-0 rounded-2xl bg-background px-2 py-2 sm:px-3 pb-safe"
+      disabled={uploading || recording}
+      hint={t("media.dropHint")}
+      onFiles={(files) => {
+        const picked =
+          files.find((file) => isGalleryImageFile(file, true) || isGalleryVideoFile(file));
+        if (!picked) {
+          setError(t("community-server.s17v6uv"));
+          return;
+        }
+        void ingestPickedFile(picked);
+      }}
+    >
       {recording && (
         <div className="flex items-center justify-center gap-3 mb-2 py-2 rounded-xl bg-folk-terracotta/10 border border-folk-terracotta/20 max-w-3xl mx-auto">
           <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
@@ -280,6 +304,18 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
       {error && (
         <p className="text-[11px] text-destructive text-center px-2 mb-1">{error}</p>
       )}
+
+      {pendingPreview ? (
+        <div className="mx-auto mb-2 flex max-w-3xl items-center gap-2 rounded-xl border border-border bg-muted/40 p-2">
+          {pendingPreview.kind === "video" ? (
+            <video src={pendingPreview.url} className="h-14 w-14 rounded-lg object-cover" muted playsInline />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={pendingPreview.url} alt="" className="h-14 w-14 rounded-lg object-cover" />
+          )}
+          <span className="text-xs text-muted-foreground">{t("lib.published.toast.store.sfaa0601b2e")}</span>
+        </div>
+      ) : null}
 
       <div className="flex items-end gap-1.5 max-w-3xl mx-auto">
         <div className="flex items-center gap-0.5 shrink-0 pb-0.5">
@@ -382,6 +418,6 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
         enableFaceFilter={false}
         onCapture={onCameraCapture}
       />
-    </div>
+    </FileDropZone>
   );
 }

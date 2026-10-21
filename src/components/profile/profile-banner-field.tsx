@@ -21,6 +21,8 @@ import {
 } from "@/lib/profile-banner";
 import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
 import { cn } from "@/lib/utils";
+import { FileDropZone } from "@/components/media/file-drop-zone";
+import { isGalleryImageFile } from "@/lib/gallery-image-upload";
 
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 const VIDEO_ACCEPT = "video/mp4,video/webm,video/quicktime";
@@ -47,13 +49,11 @@ export function ProfileBannerField({
   const [picking, setPicking] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [error, setError] = useState("");
+  const [localVideoPreview, setLocalVideoPreview] = useState("");
 
-  async function onImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  async function ingestImageFile(file: File) {
     const allowed = IMAGE_ACCEPT.split(",");
-    if (!allowed.includes(file.type)) return;
+    if (!allowed.includes(file.type) && !isGalleryImageFile(file, true)) return;
     setError("");
     setPicking(true);
     try {
@@ -65,18 +65,17 @@ export function ProfileBannerField({
     }
   }
 
-  async function onVideoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const raw = e.target.files?.[0];
-    e.target.value = "";
-    if (!raw) return;
+  async function ingestVideoFile(raw: File) {
     if (!isGalleryVideoFile(raw)) {
       setError(t("profile.s3hqp0n"));
       return;
     }
     setError("");
     setUploadingVideo(true);
+    const file = normalizeGalleryVideoFile(raw);
+    const preview = URL.createObjectURL(file);
+    setLocalVideoPreview(preview);
     try {
-      const file = normalizeGalleryVideoFile(raw);
       const mimeWarning = bannerVideoMimeWarning(file.type, file.name);
       if (mimeWarning) {
         setError(mimeWarning);
@@ -98,8 +97,24 @@ export function ProfileBannerField({
     } catch (err) {
       setError(err instanceof Error ? err.message : t("profile.s1eazbik"));
     } finally {
+      URL.revokeObjectURL(preview);
+      setLocalVideoPreview("");
       setUploadingVideo(false);
     }
+  }
+
+  async function onImageFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await ingestImageFile(file);
+  }
+
+  async function onVideoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.files?.[0];
+    e.target.value = "";
+    if (!raw) return;
+    await ingestVideoFile(raw);
   }
 
   function clearBanner() {
@@ -108,10 +123,24 @@ export function ProfileBannerField({
     setError("");
   }
 
-  const hasMedia = Boolean(bannerUrl || profileBannerHasVideo(bannerVideoUrl));
+  const hasMedia = Boolean(bannerUrl || profileBannerHasVideo(bannerVideoUrl) || localVideoPreview);
 
   return (
-    <div className="space-y-3">
+    <FileDropZone
+      className="space-y-3 rounded-xl"
+      disabled={picking || uploadingVideo}
+      hint={t("media.dropHint")}
+      onFiles={(files) => {
+        const video = files.find((file) => isGalleryVideoFile(file));
+        if (video) {
+          void ingestVideoFile(video);
+          return;
+        }
+        const image = files.find((file) => isGalleryImageFile(file, true));
+        if (image) void ingestImageFile(image);
+        else setError(t("media.dropUnsupported"));
+      }}
+    >
       <label className="text-sm font-medium">{t("profile.s1ytpxdw")}</label>
 
       <div
@@ -120,7 +149,11 @@ export function ProfileBannerField({
           previewClassName
         )}
       >
-        <ProfileBannerMedia bannerUrl={bannerUrl} bannerVideoUrl={bannerVideoUrl} active />
+        <ProfileBannerMedia
+          bannerUrl={bannerUrl}
+          bannerVideoUrl={localVideoPreview || bannerVideoUrl}
+          active
+        />
       </div>
 
       <p className="text-xs text-muted-foreground">
@@ -193,6 +226,6 @@ export function ProfileBannerField({
           }}
         />
       ) : null}
-    </div>
+    </FileDropZone>
   );
 }

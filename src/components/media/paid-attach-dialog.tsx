@@ -20,6 +20,7 @@ import {
 } from "@/lib/money";
 import { parseSpendableMoco, sanitizeMocoDecimalInput } from "@/lib/moco/decimal-amount";
 import { cn } from "@/lib/utils";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 
 const MEDIA_ACCEPT =
   "image/*,.heic,.heif,image/heic,image/heif,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov";
@@ -83,15 +84,20 @@ export function PaidAttachDialog({
     onOpenChange(false);
   }
 
-  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(e.target.files ?? []).filter(isAttachFile);
-    e.target.value = "";
+  function ingestFiles(list: File[]) {
+    const picked = list.filter(isAttachFile);
     if (picked.length === 0) {
       setError(t("compose.attach.needFile"));
       return;
     }
     setFiles(picked);
     setError("");
+  }
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const list = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    ingestFiles(list);
   }
 
   function confirm() {
@@ -151,6 +157,13 @@ export function PaidAttachDialog({
               className="rounded-xl"
             />
           </label>
+          <FileDropZone
+            className="rounded-xl"
+            disabled={disabled}
+            hint={t("media.dropHint")}
+            onFiles={ingestFiles}
+          >
+          <div className="file-drop-zone__pad min-h-0 gap-2 py-3">
           <Button
             type="button"
             variant="outline"
@@ -216,6 +229,8 @@ export function PaidAttachDialog({
               ) : null}
             </div>
           ) : null}
+          </div>
+          </FileDropZone>
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" className="rounded-xl" onClick={close}>

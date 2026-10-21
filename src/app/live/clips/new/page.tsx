@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Scissors, Upload } from "lucide-react";
 import { createStreamClip } from "@/actions/stream-clip";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 import { uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +25,16 @@ export default function NewClipPage() {
   const [thumbUrl, setThumbUrl] = useState("");
   const [isVertical, setIsVertical] = useState(true);
   const [error, setError] = useState("");
+  const [videoPreview, setVideoPreview] = useState("");
+  const [thumbPreview, setThumbPreview] = useState("");
 
-  async function onVideoFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function ingestVideo(file: File | null) {
     if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setVideoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return preview;
+    });
     setLoading(true);
     setError("");
     try {
@@ -39,9 +46,13 @@ export default function NewClipPage() {
     setLoading(false);
   }
 
-  async function onThumbFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function ingestThumb(file: File | null) {
     if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setThumbPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return preview;
+    });
     try {
       const url = await uploadImageBlob(file, file.name);
       setThumbUrl(url);
@@ -86,20 +97,65 @@ export default function NewClipPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={i18n("app.live.s1l5t7t0")} required />
-            <label className="block text-xs text-muted-foreground">
-              Video 파일 (R2) 또는 URL
-              <input type="file" accept="video/*" className="mt-1 block w-full text-sm" onChange={onVideoFile} />
-            </label>
+            <FileDropZone
+              className="rounded-xl"
+              disabled={loading}
+              hint={i18n("media.dropHintVideo")}
+              onFiles={(files) => {
+                void ingestVideo(files[0] ?? null);
+              }}
+            >
+              <label className="file-drop-zone__pad cursor-pointer text-xs text-muted-foreground">
+                Video 파일 (R2) 또는 URL
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    void ingestVideo(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+                {videoPreview ? (
+                  <video src={videoPreview} className="mt-2 max-h-40 w-full rounded-lg object-contain" muted playsInline />
+                ) : (
+                  <span className="text-xs font-medium text-foreground">{i18n("media.dropHintVideo")}</span>
+                )}
+              </label>
+            </FileDropZone>
             <Input
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
               placeholder={i18n("app.live.url")}
               required
             />
-            <label className="block text-xs text-muted-foreground">
-              썸네일 (선택)
-              <input type="file" accept="image/*" className="mt-1 block w-full text-sm" onChange={onThumbFile} />
-            </label>
+            <FileDropZone
+              className="rounded-xl"
+              disabled={loading}
+              hint={i18n("media.dropHintImage")}
+              onFiles={(files) => {
+                void ingestThumb(files[0] ?? null);
+              }}
+            >
+              <label className="file-drop-zone__pad cursor-pointer text-xs text-muted-foreground">
+                썸네일 (선택)
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    void ingestThumb(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                />
+                {thumbPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thumbPreview} alt="" className="mt-2 max-h-32 w-full rounded-lg object-contain" />
+                ) : (
+                  <span className="text-xs font-medium text-foreground">{i18n("media.dropHintImage")}</span>
+                )}
+              </label>
+            </FileDropZone>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={isVertical} onChange={(e) => setIsVertical(e.target.checked)} />
               세로형 쇼츠

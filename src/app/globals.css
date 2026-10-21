@@ -1915,3 +1915,82 @@ html.mocomo-hide-root-scrollbar::-webkit-scrollbar {
     max-width: 78%;
   }
 }
+
+@layer components {
+  .file-drop-zone {
+    position: relative;
+    border-radius: inherit;
+    transition:
+      background-color 160ms ease,
+      box-shadow 160ms ease,
+      outline-color 160ms ease,
+      outline-offset 160ms ease;
+  }
+
+  .file-drop-zone--active {
+    background-color: hsl(var(--primary) / 0.1);
+    outline: 2px dashed hsl(var(--primary));
+    outline-offset: -3px;
+    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.35);
+  }
+
+  .file-drop-zone__overlay {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+    background-color: hsl(var(--card) / 0.72);
+    backdrop-filter: blur(2px);
+  }
+
+  .file-drop-zone__hint {
+    display: inline-flex;
+    max-width: calc(100% - 1.5rem);
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1.5px dashed hsl(var(--primary));
+    background-color: hsl(var(--background) / 0.94);
+    color: hsl(var(--primary));
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    text-align: center;
+  }
+
+  .file-drop-zone__pad {
+    display: flex;
+    min-height: 7.5rem;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.75rem;
+    border: 2px dashed hsl(var(--border));
+    background-color: hsl(var(--muted) / 0.35);
+    color: hsl(var(--muted-foreground));
+    padding: 1rem 0.75rem;
+    text-align: center;
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .file-drop-zone--active .file-drop-zone__pad {
+    border-color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.1);
+    color: hsl(var(--primary));
+  }
+
+  .file-drop-zone__pad--compact {
+    min-height: 4.5rem;
+    padding: 0.7rem 0.65rem;
+  }
+}

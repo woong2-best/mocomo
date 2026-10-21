@@ -23,8 +23,10 @@ import {
   saveCreatorWelcomeMessageAction,
   sendCreatorBulkDmAction,
 } from "@/actions/creator-dm-marketing";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 import { toAbsoluteUploadUrl, uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
 import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-upload";
+import { isGalleryVideoFile } from "@/lib/gallery-video-upload";
 import {
   formatUsd,
   SALE_MEDIA_MAX_PRICE_USD_CENTS,
@@ -267,16 +269,44 @@ export function CreatorMarketingDialog({ open, onOpenChange }: Props) {
               onCustomChange={setWelcomeCustomPrice}
             />
 
+            <FileDropZone
+              className="rounded-2xl"
+              disabled={welcomeBusy}
+              hint={t("media.dropHint")}
+              onFiles={(files) => {
+                const file = files.find(
+                  (item) => isGalleryImageFile(item, true) || isGalleryVideoFile(item)
+                );
+                if (!file) return;
+                void (async () => {
+                  try {
+                    setWelcomeMedia(await uploadMarketingFile(file, welcomeEffectivePrice));
+                  } catch (err) {
+                    setWelcomeError(err instanceof Error ? err.message : t("webtoon-studio.s1vgkz0f"));
+                  }
+                })();
+              }}
+            >
             {welcomeMedia ? (
-              <div className="flex items-center gap-2 text-xs font-semibold">
-                <span className="truncate flex-1">
-                  {welcomeMedia.name ?? t("messages.suwdao")} · {formatUsd(welcomeEffectivePrice)}
-                </span>
-                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setWelcomeMedia(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
+              <div className="space-y-2">
+                {welcomeMedia.type === "VIDEO" ? (
+                  <video src={welcomeMedia.url} className="max-h-36 w-full rounded-lg object-contain" muted playsInline />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={welcomeMedia.url} alt="" className="max-h-36 w-full rounded-lg object-contain" />
+                )}
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <span className="truncate flex-1">
+                    {welcomeMedia.name ?? t("messages.suwdao")} · {formatUsd(welcomeEffectivePrice)}
+                  </span>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setWelcomeMedia(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <p className="file-drop-zone__pad text-xs font-medium">{t("media.dropHint")}</p>
+            )}
 
             <input
               ref={welcomeInputRef}
@@ -304,6 +334,7 @@ export function CreatorMarketingDialog({ open, onOpenChange }: Props) {
               <Images className="h-4 w-4 mr-2" />
               {t("messages.s308m73")}
             </Button>
+            </FileDropZone>
 
             {welcomeError ? <p className="text-xs text-destructive">{welcomeError}</p> : null}
 
@@ -349,16 +380,44 @@ export function CreatorMarketingDialog({ open, onOpenChange }: Props) {
               onCustomChange={setBulkCustomPrice}
             />
 
+            <FileDropZone
+              className="rounded-2xl"
+              disabled={bulkBusy}
+              hint={t("media.dropHint")}
+              onFiles={(files) => {
+                const file = files.find(
+                  (item) => isGalleryImageFile(item, true) || isGalleryVideoFile(item)
+                );
+                if (!file) return;
+                void (async () => {
+                  try {
+                    setBulkMedia(await uploadMarketingFile(file, bulkEffectivePrice));
+                  } catch (err) {
+                    setBulkError(err instanceof Error ? err.message : t("webtoon-studio.s1vgkz0f"));
+                  }
+                })();
+              }}
+            >
             {bulkMedia ? (
-              <div className="flex items-center gap-2 text-xs font-semibold">
-                <span className="truncate flex-1">
-                  {bulkMedia.name ?? t("messages.suwdao")} · {formatUsd(bulkEffectivePrice)}
-                </span>
-                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setBulkMedia(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
+              <div className="space-y-2">
+                {bulkMedia.type === "VIDEO" ? (
+                  <video src={bulkMedia.url} className="max-h-36 w-full rounded-lg object-contain" muted playsInline />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={bulkMedia.url} alt="" className="max-h-36 w-full rounded-lg object-contain" />
+                )}
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <span className="truncate flex-1">
+                    {bulkMedia.name ?? t("messages.suwdao")} · {formatUsd(bulkEffectivePrice)}
+                  </span>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setBulkMedia(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <p className="file-drop-zone__pad text-xs font-medium">{t("media.dropHint")}</p>
+            )}
 
             <input
               ref={bulkInputRef}
@@ -386,6 +445,7 @@ export function CreatorMarketingDialog({ open, onOpenChange }: Props) {
               <Images className="h-4 w-4 mr-2" />
               {t("messages.s308m73")}
             </Button>
+            </FileDropZone>
 
             {bulkError ? <p className="text-xs text-destructive">{bulkError}</p> : null}
 

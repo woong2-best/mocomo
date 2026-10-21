@@ -15,6 +15,7 @@ import { PayButton } from "@/components/payments/pay-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImagePlus, Loader2 } from "lucide-react";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 
 export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean }) {
   const [title, setTitle] = useState("");
@@ -25,30 +26,46 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
   const [requestId, setRequestId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  async function onImages(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    e.target.value = "";
-    if (!files?.length) return;
-    const list = Array.from(files).filter((f) => isGalleryImageFile(f, true));
+  async function ingestImages(files: File[]) {
+    const remaining = Math.max(0, 8 - images.length);
+    const list = files.filter((f) => isGalleryImageFile(f, true)).slice(0, remaining);
     if (list.length === 0) {
       setError(t("market.s13qm3zj"));
       return;
     }
+    const previewUrls = list.map((file) => URL.createObjectURL(file));
+    setImages((prev) => [...prev, ...previewUrls].slice(0, 8));
     setUploading(true);
     setError("");
     try {
-      const urls: string[] = [];
-      for (const file of list.slice(0, 6)) {
+      const uploaded: string[] = [];
+      for (const file of list) {
         const prepared = await fileToUploadableJpeg(file);
-        const url = await uploadImageBlob(prepared, prepared.name);
-        urls.push(url);
+        uploaded.push(await uploadImageBlob(prepared, prepared.name));
       }
-      setImages((prev) => [...prev, ...urls].slice(0, 8));
+      setImages((prev) => {
+        const next = [...prev];
+        previewUrls.forEach((preview, i) => {
+          const idx = next.indexOf(preview);
+          const url = uploaded[i];
+          if (idx >= 0 && url) next[idx] = url;
+        });
+        return next.slice(0, 8);
+      });
     } catch (err) {
+      setImages((prev) => prev.filter((url) => !previewUrls.includes(url)));
       setError(err instanceof Error ? err.message : t("market.s1vgkz0f"));
     } finally {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
       setUploading(false);
     }
+  }
+
+  async function onImages(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    e.target.value = "";
+    if (!files?.length) return;
+    await ingestImages(Array.from(files));
   }
 
   async function submitDraft(e: React.FormEvent) {
@@ -115,9 +132,16 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
         type="url"
       />
 
-      <div>
-            <label className="text-sm font-medium">{t("market.s1mbr4rw")}</label>
-        <div className="flex flex-wrap gap-2 mt-2">
+      <FileDropZone
+        className="rounded-xl"
+        disabled={uploading}
+        hint={t("media.dropHintImage")}
+        onFiles={(files) => {
+          void ingestImages(files);
+        }}
+      >
+        <label className="text-sm font-medium">{t("market.s1mbr4rw")}</label>
+        <div className="file-drop-zone__pad mt-2 min-h-0 flex-row flex-wrap justify-start gap-2 py-3">
           {images.map((url) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img key={url} src={url} alt="" className="h-20 w-20 rounded-lg object-cover border" />
@@ -131,7 +155,7 @@ export function GoodsListingForm({ paymentsEnabled }: { paymentsEnabled: boolean
             <input type="file" accept="image/*" multiple className="hidden" onChange={onImages} disabled={uploading} />
           </label>
         </div>
-      </div>
+      </FileDropZone>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

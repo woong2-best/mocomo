@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { ContentVisibility } from "@prisma/client";
 import { PostMediaComposer, type PostMediaComposerHandle, type PostMediaItem } from "@/components/media/post-media-composer";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 import { ComposePollEditor } from "@/components/compose/compose-poll-editor";
 import {
   ComposeCollaboratorPicker,
@@ -172,6 +173,10 @@ export function ComposeForm({
 
   function handleComposePaste(event: React.ClipboardEvent) {
     mediaComposerRef.current?.handlePaste(event);
+  }
+
+  function handleComposeDropFiles(files: File[]) {
+    mediaComposerRef.current?.handleDropFiles(files);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -342,6 +347,12 @@ export function ComposeForm({
   if (variant === "inline") {
     return (
       <form onSubmit={handleSubmit} onPasteCapture={handleComposePaste} className="space-y-2">
+        <FileDropZone
+          className="rounded-2xl"
+          disabled={submitBusy}
+          hint={t("media.dropHint")}
+          onFiles={handleComposeDropFiles}
+        >
         <div className="min-w-0 space-y-3">
           <ComposeRichTextarea
             name="content"
@@ -362,6 +373,7 @@ export function ComposeForm({
             maxVideos={10}
             layout="toolbar"
             allowVideoCapture={false}
+            enableDrop={false}
             enablePaidAttach={paidAttachEnabled}
             watermarkCreditLabel={watermarkCreditLabel}
             onUploadingChange={setMediaUploading}
@@ -434,6 +446,7 @@ export function ComposeForm({
             />
           )}
         </div>
+        </FileDropZone>
         <input type="hidden" name="contentRating" value={contentRating} />
         {error && <p className="text-sm text-destructive">{error}</p>}
       </form>
@@ -447,6 +460,12 @@ export function ComposeForm({
           {t("compose.s1ckvxjo")}
         </p>
       )}
+      <FileDropZone
+        className="space-y-4 rounded-2xl"
+        disabled={submitBusy}
+        hint={t("media.dropHint")}
+        onFiles={handleComposeDropFiles}
+      >
       {isQuoteCompose ? (
         <>
           <ComposeRichTextarea
@@ -466,6 +485,7 @@ export function ComposeForm({
             maxImages={100}
             maxVideos={10}
             allowVideoCapture={false}
+            enableDrop={false}
             enablePaidAttach={paidAttachEnabled}
             onUploadingChange={setMediaUploading}
           />
@@ -480,6 +500,7 @@ export function ComposeForm({
             maxImages={100}
             maxVideos={10}
             allowVideoCapture={false}
+            enableDrop={false}
             enablePaidAttach={paidAttachEnabled}
             onUploadingChange={setMediaUploading}
             afterVideoButton={nsfwToggle}
@@ -562,6 +583,7 @@ export function ComposeForm({
         </Button>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
+      </FileDropZone>
     </form>
   );
 

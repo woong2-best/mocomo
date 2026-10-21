@@ -15,7 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { publishCreatorEpisode } from "@/actions/creator-works";
 import { createWebtoonSeries, updateWebtoonGenre } from "@/actions/webtoon";
 import { WEBTOON_GENRE_LABEL, WEBTOON_GENRES } from "@/lib/webtoon/constants";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 import { uploadImageBlob } from "@/lib/client-upload";
+import { isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { cn } from "@/lib/utils";
 
 type MyWebtoon = Awaited<
@@ -46,31 +48,49 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
   }, [seriesId, myWebtoons]);
 
   async function uploadCover(file: File) {
+    const preview = URL.createObjectURL(file);
+    setCoverUrl(preview);
     setLoading(true);
     setErr("");
     try {
       setCoverUrl(await uploadImageBlob(file, file.name));
     } catch (e) {
       setErr(e instanceof Error ? e.message : t("webtoon.s1jd5iav"));
+      setCoverUrl("");
     } finally {
+      URL.revokeObjectURL(preview);
       setLoading(false);
     }
   }
 
-  async function uploadPages(files: FileList | null) {
+  async function uploadPages(files: File[] | FileList | null) {
     if (!files?.length) return;
+    const list = Array.from(files).filter((file) => isGalleryImageFile(file, true));
+    if (list.length === 0) return;
+    const previews = list.map((file) => URL.createObjectURL(file));
+    setContentUrls((prev) => [...prev, ...previews]);
     setLoading(true);
     setErr("");
     try {
       const urls: string[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of list) {
         urls.push(await uploadImageBlob(file, file.name));
       }
-      setContentUrls((prev) => [...prev, ...urls]);
+      setContentUrls((prev) => {
+        const next = [...prev];
+        previews.forEach((preview, i) => {
+          const idx = next.indexOf(preview);
+          const url = urls[i];
+          if (idx >= 0 && url) next[idx] = url;
+        });
+        return next;
+      });
       if (!coverUrl && urls[0]) setCoverUrl(urls[0]);
     } catch (e) {
+      setContentUrls((prev) => prev.filter((url) => !previews.includes(url)));
       setErr(e instanceof Error ? e.message : t("works.s1bw7noj"));
     } finally {
+      previews.forEach((url) => URL.revokeObjectURL(url));
       setLoading(false);
     }
   }
@@ -164,26 +184,36 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
             ))}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
-            <Upload className="h-4 w-4" />
-            대표 이미지
-            <input
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void uploadCover(f);
-                e.target.value = "";
-              }}
-            />
-          </label>
-          {coverUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverUrl} alt="" className="h-16 w-16 rounded-lg object-cover border" />
-          )}
-        </div>
+        <FileDropZone
+          className="rounded-xl"
+          disabled={loading}
+          hint={t("media.dropHintImage")}
+          onFiles={(files) => {
+            const file = files.find((item) => isGalleryImageFile(item, true));
+            if (file) void uploadCover(file);
+          }}
+        >
+          <div className="file-drop-zone__pad min-h-0 flex-row flex-wrap justify-start py-3">
+            <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <Upload className="h-4 w-4" />
+              대표 이미지
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadCover(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {coverUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl} alt="" className="h-16 w-16 rounded-lg object-cover border" />
+            )}
+          </div>
+        </FileDropZone>
         <Button type="button" className="rounded-xl gap-2 bg-[#0096fa] hover:bg-[#0086e0]" disabled={loading} onClick={() => void onCreateSeries()}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           포트폴리오 만들기
@@ -247,18 +277,39 @@ export function WebtoonStudioForm({ myWebtoons }: { myWebtoons: MyWebtoon[] }) {
             className="rounded-xl"
           />
         </label>
-        <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium">
-          <Upload className="h-4 w-4" />
-          그림 업로드 (여러 장 가능)
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="sr-only"
-            onChange={(e) => void uploadPages(e.target.files)}
-          />
-        </label>
-        {contentUrls.length > 0 && <p className="text-xs text-[#0096fa]">{contentUrls.length}장 업로드됨</p>}
+        <FileDropZone
+          className="rounded-xl"
+          disabled={loading}
+          hint={t("media.dropHintImage")}
+          onFiles={(files) => {
+            void uploadPages(files);
+          }}
+        >
+          <label className="file-drop-zone__pad cursor-pointer text-sm font-medium">
+            <Upload className="h-4 w-4" />
+            그림 업로드 (여러 장 가능)
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              onChange={(e) => {
+                void uploadPages(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            {contentUrls.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {contentUrls.map((url) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={url} src={url} alt="" className="h-16 w-16 rounded-lg object-cover border" />
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">{t("media.dropHintImage")}</span>
+            )}
+          </label>
+        </FileDropZone>
         <Button
           type="button"
           className="rounded-xl w-full bg-[#0096fa] hover:bg-[#0086e0]"

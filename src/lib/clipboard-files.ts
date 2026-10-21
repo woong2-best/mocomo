@@ -34,3 +34,20 @@ export function filesFromClipboard(data: DataTransfer | null | undefined): File[
   }
   return dedupeClipboardFiles(fromItems);
 }
+
+/** OS file drag (Explorer / mobile share) — not in-page text or node drags. */
+export function dataTransferHasFiles(data: DataTransfer | null | undefined): boolean {
+  if (!data) return false;
+  try {
+    const types = Array.from(data.types ?? []);
+    if (types.includes("Files")) return true;
+  } catch {
+    /* some browsers throw while types are unresolved */
+  }
+  return (data.files?.length ?? 0) > 0;
+}
+
+/** Same File objects the hidden <input type="file"> path already consumes. */
+export function filesFromDataTransfer(data: DataTransfer | null | undefined): File[] {
+  return filesFromClipboard(data);
+}

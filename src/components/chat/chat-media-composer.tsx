@@ -9,6 +9,7 @@ import { fileToUploadableJpeg, isGalleryImageFile } from "@/lib/gallery-image-up
 import type { ChatAttachmentInput } from "@/lib/chat-attachments";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 
 const MAX_VOICE_SEC = 120;
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif";
@@ -51,6 +52,7 @@ export function ChatMediaComposer({
   const [error, setError] = useState("");
   const [recording, setRecording] = useState(false);
   const [recordSec, setRecordSec] = useState(0);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
 
   const stopMicStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -91,13 +93,13 @@ export function ChatMediaComposer({
     void uploadAndSendImage(blob, name);
   }
 
-  async function onGalleryPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !isGalleryImageFile(file, true)) {
+  async function ingestImageFile(file: File) {
+    if (!isGalleryImageFile(file, true)) {
       setError(t("ui.choose_an_image_file"));
       return;
     }
+    const preview = URL.createObjectURL(file);
+    setPendingPreview(preview);
     setUploading(true);
     setError("");
     try {
@@ -111,8 +113,17 @@ export function ChatMediaComposer({
         err instanceof Error ? err.message : t("ui.couldn_t_send_photo")
       );
     } finally {
+      URL.revokeObjectURL(preview);
+      setPendingPreview(null);
       setUploading(false);
     }
+  }
+
+  async function onGalleryPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await ingestImageFile(file);
   }
 
   function stopRecording(send: boolean) {
@@ -208,7 +219,19 @@ export function ChatMediaComposer({
   const canSendText = !!value.trim() && !uploading && !recording && !disabled;
 
   return (
-    <div className="shrink-0 bg-background px-2 py-2 sm:px-3 pb-safe">
+    <FileDropZone
+      className="shrink-0 rounded-2xl bg-background px-2 py-2 sm:px-3 pb-safe"
+      disabled={disabled || uploading || recording}
+      hint={t("media.dropHintImage")}
+      onFiles={(files) => {
+        const image = files.find((file) => isGalleryImageFile(file, true));
+        if (!image) {
+          setError(t("ui.choose_an_image_file"));
+          return;
+        }
+        void ingestImageFile(image);
+      }}
+    >
       {recording && (
         <div className="flex items-center justify-center gap-3 mb-2 py-2 rounded-xl bg-folk-terracotta/10 border border-folk-terracotta/20">
           <span className="h-2 w-2 rounded-full bg-folk-terracotta animate-pulse" />
@@ -244,6 +267,14 @@ export function ChatMediaComposer({
       {error && (
         <p className="text-[11px] text-destructive text-center px-2 mb-1">{error}</p>
       )}
+
+      {pendingPreview ? (
+        <div className="mx-auto mb-2 flex max-w-3xl items-center gap-2 rounded-xl border border-border bg-muted/40 p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={pendingPreview} alt="" className="h-14 w-14 rounded-lg object-cover" />
+          <span className="text-xs text-muted-foreground">{t("ui.sending")}</span>
+        </div>
+      ) : null}
 
       <div className="flex items-end gap-1.5 max-w-3xl mx-auto">
         <div className="flex flex-col items-center gap-0.5 shrink-0 pb-0.5">
@@ -352,6 +383,6 @@ export function ChatMediaComposer({
         onCapture={onCameraCapture}
       />
 
-    </div>
+    </FileDropZone>
   );
 }

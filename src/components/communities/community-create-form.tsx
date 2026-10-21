@@ -23,6 +23,8 @@ import { ChevronLeft, ImagePlus, Loader2, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQnaNsfwGate } from "@/hooks/use-qna-nsfw-gate";
 import { QnaNsfwBlockedDialog } from "@/components/communities/qna-nsfw-blocked-dialog";
+import { FileDropZone } from "@/components/media/file-drop-zone";
+import { isGalleryImageFile } from "@/lib/gallery-image-upload";
 
 const CREATE_CATEGORY_OPTIONS = COMMUNITY_CATEGORY_OPTIONS.filter((o) => o.id !== "INFO");
 
@@ -264,7 +266,16 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                   }}
                 />
               </div>
-              <div className="min-h-[180px] rounded-sm border border-border bg-background/50 p-3 space-y-2.5">
+              <FileDropZone
+                className="rounded-sm"
+                disabled={loading}
+                hint={t("media.dropHintImage")}
+                onFiles={(files) => {
+                  const image = files.find((file) => isGalleryImageFile(file, true));
+                  pickDetailImage(image ?? null);
+                }}
+              >
+              <div className="file-drop-zone__pad min-h-[180px] space-y-2.5">
                 {detailBlocks.map((block) =>
                   block.kind === "text" ? (
                     <p key={block.id} className="text-sm whitespace-pre-wrap">
@@ -302,6 +313,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                   className="w-full min-h-[120px] text-sm outline-none resize-y bg-transparent disabled:opacity-60"
                 />
               </div>
+              </FileDropZone>
             </div>
 
             {error && (

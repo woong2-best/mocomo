@@ -11,6 +11,7 @@ import { readFileAsObjectUrl } from "@/lib/crop-image";
 import { uploadImageBlob } from "@/lib/client-upload";
 import { avatarShapeClass } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 
@@ -82,12 +83,11 @@ export function ProfileImageField({
   const [picking, setPicking] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
-  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  async function ingestFile(file: File) {
     const allowed = ACCEPT.split(",");
-    if (!allowed.includes(file.type)) {
+    const typeOk = allowed.includes(file.type);
+    const extOk = /\.(jpe?g|png|webp|gif)$/i.test(file.name);
+    if (!typeOk && !extOk) {
       setUploadError(t("profile.jpeg_png_webp_gif"));
       return;
     }
@@ -109,8 +109,23 @@ export function ProfileImageField({
     }
   }
 
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await ingestFile(file);
+  }
+
   return (
-    <div className="space-y-3">
+    <FileDropZone
+      className="space-y-3 rounded-xl"
+      disabled={picking}
+      hint={t("media.dropHintImage")}
+      onFiles={(files) => {
+        const file = files[0];
+        if (file) void ingestFile(file);
+      }}
+    >
       <input type="hidden" name={name} value={value} />
 
       <label className="text-sm font-medium">{cfg.label}</label>
@@ -201,6 +216,6 @@ export function ProfileImageField({
           }}
         />
       ) : null}
-    </div>
+    </FileDropZone>
   );
 }

@@ -42,6 +42,7 @@ import { filesFromClipboard } from "@/lib/clipboard-files";
 import { formatSaleMoco } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { PaidAttachDialog } from "@/components/media/paid-attach-dialog";
+import { FileDropZone } from "@/components/media/file-drop-zone";
 
 export type PostMediaItem = {
   url: string;
@@ -79,6 +80,8 @@ type PostMediaComposerProps = {
   disabled?: boolean;
   className?: string;
   onUploadingChange?: (busy: boolean) => void;
+  /** false when a parent already wraps a drop zone (compose form). */
+  enableDrop?: boolean;
 };
 
 const IMAGE_ACCEPT = "image/*,.heic,.heif,image/heic,image/heif";
@@ -102,6 +105,7 @@ function isGalleryVideoFile(file: File): boolean {
 
 export type PostMediaComposerHandle = {
   handlePaste: (event: React.ClipboardEvent) => boolean;
+  handleDropFiles: (files: File[]) => boolean;
 };
 
 export const PostMediaComposer = forwardRef<
@@ -125,6 +129,7 @@ export const PostMediaComposer = forwardRef<
   disabled = false,
   className,
   onUploadingChange,
+  enableDrop = true,
 }, ref) {
   const galleryInputId = useId();
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -543,20 +548,16 @@ export const PostMediaComposer = forwardRef<
     }
   }
 
-  function handlePaste(event: React.ClipboardEvent): boolean {
+  function ingestDroppedFiles(files: File[]): boolean {
     if (disabled || uploading) return false;
-    const now = Date.now();
-    if (now < pasteLockUntilRef.current) return false;
-    const files = filesFromClipboard(event.clipboardData);
     if (files.length === 0) return false;
 
     const images = files.filter((f) => isGalleryImageFile(f, true));
     const videos = allowVideo ? files.filter((f) => isGalleryVideoFile(f)) : [];
-    if (images.length === 0 && videos.length === 0) return false;
-
-    event.preventDefault();
-    event.stopPropagation();
-    pasteLockUntilRef.current = now + 400;
+    if (images.length === 0 && videos.length === 0) {
+      setError(t("media.dropUnsupported"));
+      return false;
+    }
 
     if (images.length > 0 && canAddImage) {
       void ingestGalleryImages(images);
@@ -573,13 +574,33 @@ export const PostMediaComposer = forwardRef<
     return true;
   }
 
+  function handlePaste(event: React.ClipboardEvent): boolean {
+    if (disabled || uploading) return false;
+    const now = Date.now();
+    if (now < pasteLockUntilRef.current) return false;
+    const files = filesFromClipboard(event.clipboardData);
+    if (files.length === 0) return false;
+
+    const images = files.filter((f) => isGalleryImageFile(f, true));
+    const videos = allowVideo ? files.filter((f) => isGalleryVideoFile(f)) : [];
+    if (images.length === 0 && videos.length === 0) return false;
+
+    event.preventDefault();
+    event.stopPropagation();
+    pasteLockUntilRef.current = now + 400;
+    return ingestDroppedFiles(files);
+  }
+
   const handlePasteRef = useRef(handlePaste);
   handlePasteRef.current = handlePaste;
+  const ingestDroppedFilesRef = useRef(ingestDroppedFiles);
+  ingestDroppedFilesRef.current = ingestDroppedFiles;
 
   useImperativeHandle(
     ref,
     () => ({
       handlePaste: (event) => handlePasteRef.current(event),
+      handleDropFiles: (files) => ingestDroppedFilesRef.current(files),
     }),
     []
   );
@@ -633,8 +654,32 @@ export const PostMediaComposer = forwardRef<
     </>
   );
 
-  return (
-    <div className={cn("space-y-3", className)}>
+  const dropHint = allowVideo ? t("media.dropHint") : t("media.dropHintImage");
+
+  const body = (
+    <div className={cn("space-y-3", !enableDrop && className)}>
+      {items.length === 0 && (canAddImage || canAddVideo) ? (
+        <button
+          type="button"
+          className={cn(
+            "file-drop-zone__pad w-full",
+            layout === "toolbar" && "file-drop-zone__pad--compact"
+          )}
+          disabled={disabled || uploading}
+          onClick={() => {
+            if (canAddImage) galleryInputRef.current?.click();
+            else pickVideoFiles();
+          }}
+        >
+          {uploading ? (
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          ) : (
+            <ImagePlus className="h-7 w-7" />
+          )}
+          <span className="text-xs font-medium">{dropHint}</span>
+        </button>
+      ) : null}
+
       {items.length > 0 && (
         <div className="flex flex-wrap gap-2">
         {items.map((m, i) => (
@@ -828,6 +873,21 @@ export const PostMediaComposer = forwardRef<
         isOwner
       />
     </div>
+  );
+
+  if (!enableDrop) return body;
+
+  return (
+    <FileDropZone
+      className={cn("rounded-xl", className)}
+      disabled={disabled || uploading}
+      hint={dropHint}
+      onFiles={(files) => {
+        ingestDroppedFilesRef.current(files);
+      }}
+    >
+      {body}
+    </FileDropZone>
   );
 });
 
