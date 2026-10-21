@@ -335,7 +335,11 @@ export function EventsNativeMap({
               "circle-color": "#7c3aed",
               "circle-stroke-width": 2,
               "circle-stroke-color": "#ffffff",
-              "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 25, 24, 50, 28],
+              "circle-radius": [
+                "min",
+                ["step", ["get", "point_count"], 12, 10, 14, 50, 16],
+                ["interpolate", ["linear"], ["zoom"], 1, 8, 3, 12, 6, 16],
+              ],
               "circle-pitch-alignment": "viewport",
               "circle-pitch-scale": "viewport",
             }}
@@ -346,9 +350,13 @@ export function EventsNativeMap({
             filter={["has", "point_count"]}
             layout={{
               "text-field": ["get", "point_count_abbreviated"],
-              "text-size": 12,
+              "text-size": 11,
               "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+              "text-anchor": "center",
+              "text-justify": "center",
+              "text-offset": [0, 0],
               "text-allow-overlap": true,
+              "text-ignore-placement": true,
             }}
             paint={{
               "text-color": "#ffffff",

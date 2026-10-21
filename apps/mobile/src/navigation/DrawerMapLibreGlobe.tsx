@@ -575,7 +575,11 @@ if (!maplibregl) {
         "circle-color": "#7c3aed",
         "circle-stroke-width": 2,
         "circle-stroke-color": "#ffffff",
-        "circle-radius": ["step", ["get", "point_count"], 16, 10, 20, 25, 24, 50, 28]
+        "circle-radius": [
+          "min",
+          ["step", ["get", "point_count"], 10, 10, 12, 50, 14],
+          ["interpolate", ["linear"], ["zoom"], 1, 8, 3, 11, 6, 14]
+        ]
       }, circlePitch)
     });
     map.addLayer({
@@ -585,9 +589,13 @@ if (!maplibregl) {
       filter: ["has", "point_count"],
       layout: {
         "text-field": ["get", "point_count_abbreviated"],
-        "text-size": 12,
+        "text-size": 11,
         "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-        "text-allow-overlap": true
+        "text-anchor": "center",
+        "text-justify": "center",
+        "text-offset": [0, 0],
+        "text-allow-overlap": true,
+        "text-ignore-placement": true
       },
       paint: { "text-color": "#ffffff" }
     });

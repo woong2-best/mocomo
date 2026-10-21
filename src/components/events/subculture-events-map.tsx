@@ -80,6 +80,25 @@ function safeHttpUrl(url: string | null | undefined): string | null {
 const PIN_TOUCH_BUFFER = 20;
 const CLUSTER_RADIUS = 50;
 const CLUSTER_MAX_ZOOM = 16;
+/** Visual diameter stays ~20–32px. Do not scale with point_count without a cap. */
+const CLUSTER_CIRCLE_RADIUS = [
+  "step",
+  ["get", "point_count"],
+  12,
+  10,
+  14,
+  50,
+  16,
+] as const;
+const SIDEBAR_CLUSTER_CIRCLE_RADIUS = [
+  "step",
+  ["get", "point_count"],
+  10,
+  10,
+  12,
+  50,
+  14,
+] as const;
 
 function pinColor(category: string, halo: boolean) {
   if (halo) return "#ff4d9a";
@@ -413,15 +432,9 @@ export function SubcultureEventsMap({
               "circle-stroke-width": 2,
               "circle-stroke-color": "#ffffff",
               "circle-radius": [
-                "step",
-                ["get", "point_count"],
-                16,
-                10,
-                20,
-                25,
-                24,
-                50,
-                28,
+                "min",
+                pinHalo ? SIDEBAR_CLUSTER_CIRCLE_RADIUS : CLUSTER_CIRCLE_RADIUS,
+                ["interpolate", ["linear"], ["zoom"], 1, 8, 3, 12, 6, 16],
               ],
               "circle-pitch-alignment": "viewport",
               "circle-pitch-scale": "viewport",
@@ -434,9 +447,13 @@ export function SubcultureEventsMap({
             filter: ["has", "point_count"],
             layout: {
               "text-field": ["get", "point_count_abbreviated"],
-              "text-size": 12,
+              "text-size": pinHalo ? 11 : 12,
               "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+              "text-anchor": "center",
+              "text-justify": "center",
+              "text-offset": [0, 0],
               "text-allow-overlap": true,
+              "text-ignore-placement": true,
             },
             paint: {
               "text-color": "#ffffff",
