@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useId, useLayoutEffect, useMemo, useRef } from "react";
 import {
   listTaxCities,
   listTaxCitiesOfCountry,
@@ -29,17 +29,18 @@ export function TaxLocationFields({
   onCountryChange,
   countryLocked = false,
   excludeUs = false,
-  state,
+  state: _state,
   stateCode,
   onStateChange,
   city,
   onCityChange,
 }: TaxLocationFieldsProps) {
+  const cityListId = useId();
   const countries = useMemo(() => listTaxCountries({ excludeUs }), [excludeUs]);
   const states = useMemo(() => listTaxStates(countryCode), [countryCode]);
   const cities = useMemo(() => {
     if (stateCode) return listTaxCities(countryCode, stateCode);
-    if (states.length === 0) return listTaxCitiesOfCountry(countryCode);
+    if (states.length === 0 && countryCode) return listTaxCitiesOfCountry(countryCode);
     return [];
   }, [countryCode, stateCode, states.length]);
 
@@ -52,9 +53,7 @@ export function TaxLocationFields({
     onCityChange("");
   }, [locationKey, onCityChange]);
 
-  const stateFallback = Boolean(countryCode) && states.length === 0;
-  const cityFallback = Boolean(countryCode) && (stateFallback || Boolean(stateCode)) && cities.length === 0;
-  const cityEnabled = Boolean(countryCode) && (stateFallback || Boolean(stateCode));
+  const cityEnabled = Boolean(countryCode) && (Boolean(stateCode) || states.length === 0);
 
   function changeCountry(nextCountry: string) {
     onCityChange("");
@@ -87,91 +86,55 @@ export function TaxLocationFields({
         </select>
       </label>
 
-      {stateFallback ? (
-        <FallbackField
-          key={`state-text-${countryCode}`}
-          label="State / province"
-          value={state}
-          onChange={(value) => changeState(value, "")}
-        />
-      ) : (
-        <label className="block space-y-1 text-sm">
-          <span className="font-semibold">{excludeUs ? "State / province" : "State"}</span>
-          <select
-            key={`state-select-${countryCode}`}
-            className={fieldClass}
-            value={stateCode}
-            disabled={!countryCode}
-            autoComplete="off"
-            onChange={(e) => {
-              const next = states.find((item) => item.code === e.target.value);
-              changeState(next?.name ?? "", next?.code ?? "");
-            }}
-          >
-            <option value="">{countryCode ? "Select state" : "Select country first"}</option>
-            {states.map((item) => (
-              <option key={item.code} value={item.code}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
+      <label className="block space-y-1 text-sm">
+        <span className="font-semibold">{excludeUs ? "State / province" : "State"}</span>
+        <select
+          key={`state-select-${countryCode}`}
+          className={fieldClass}
+          value={stateCode}
+          disabled={!countryCode || states.length === 0}
+          autoComplete="off"
+          onChange={(e) => {
+            const next = states.find((item) => item.code === e.target.value);
+            changeState(next?.name ?? "", next?.code ?? "");
+          }}
+        >
+          <option value="">
+            {!countryCode
+              ? "Select country first"
+              : states.length === 0
+                ? "No states for this country"
+                : "Select state"}
+          </option>
+          {states.map((item) => (
+            <option key={item.code} value={item.code}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
-      {cityFallback ? (
-        <FallbackField
+      <label className="block space-y-1 text-sm">
+        <span className="font-semibold">City</span>
+        <input
           key={`city-text-${locationKey}`}
-          label="City"
+          className={fieldClass}
           value={city}
-          onChange={onCityChange}
           disabled={!cityEnabled}
+          list={cityEnabled && cities.length > 0 ? cityListId : undefined}
+          onChange={(e) => onCityChange(sanitizeTaxTextInput(e.target.value))}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={cityEnabled ? "City" : "Select state first"}
         />
-      ) : (
-        <label className="block space-y-1 text-sm">
-          <span className="font-semibold">City</span>
-          <select
-            key={`city-select-${locationKey}`}
-            className={fieldClass}
-            value={cities.some((item) => item.name === city) ? city : ""}
-            disabled={!cityEnabled}
-            autoComplete="off"
-            onChange={(e) => onCityChange(e.target.value)}
-          >
-            <option value="">{cityEnabled ? "Select city" : "Select state first"}</option>
+        {cityEnabled && cities.length > 0 ? (
+          <datalist id={cityListId}>
             {cities.map((item) => (
-              <option key={`${item.name}-${item.code}`} value={item.name}>
-                {item.name}
-              </option>
+              <option key={`${item.name}-${item.code}`} value={item.name} />
             ))}
-          </select>
-        </label>
-      )}
+          </datalist>
+        ) : null}
+      </label>
     </>
-  );
-}
-
-function FallbackField({
-  label,
-  value,
-  onChange,
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="block space-y-1 text-sm">
-      <span className="font-semibold">{label}</span>
-      <input
-        className={fieldClass}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(sanitizeTaxTextInput(e.target.value))}
-        autoComplete="off"
-        spellCheck={false}
-      />
-    </label>
   );
 }
