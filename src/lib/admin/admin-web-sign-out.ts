@@ -13,5 +13,7 @@ export async function performAdminWebSignOut(reason: "manual" | "expired" = "man
   await performWebSignOut({
     callbackUrl:
       reason === "expired" ? "/auth/signin?error=SessionExpired" : "/auth/signin",
+    autoSwitch: false,
+    scope: "this",
   });
 }

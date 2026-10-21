@@ -1,26 +1,9 @@
 "use client";
 
 import { signOut as nextAuthSignOut } from "next-auth/react";
-import { exportCurrentAccount, listSavedAccounts } from "@/lib/account-switch/client";
 import { clearAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
-
-function signOutLandingPath(userId?: string): string {
-  const saved = listSavedAccounts();
-  const hasSaved = saved.length > 0 || Boolean(userId);
-  if (!hasSaved) return "/auth/signin";
-  const params = new URLSearchParams({ pickAccount: "1" });
-  if (userId) params.set("loggedOut", userId);
-  return `/auth/signin?${params.toString()}`;
-}
-
-async function purgeServerSession() {
-  const res = await fetch("/api/auth/logout", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-  });
-  if (!res.ok) throw new Error("LOGOUT_FAILED");
-}
+import { replaceSavedAccounts } from "@/lib/account-switch/client";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 function clearClientOAuthCookies() {
   if (typeof document === "undefined") return;
@@ -39,46 +22,46 @@ function clearClientOAuthCookies() {
   }
 }
 
-async function confirmLoggedOut(): Promise<boolean> {
-  try {
-    const res = await fetch("/api/auth/session", { credentials: "include" });
-    if (!res.ok) return true;
-    const data = (await res.json()) as { user?: unknown };
-    return !data.user;
-  } catch {
-    return true;
-  }
-}
-
 /**
- * Web logout — export account for picker, purge server cookies, sync client session, hard navigate.
- * Keeps saved accounts (logged-out account stays in the list) and lands on the account picker.
+ * Web logout.
+ * - scope "this": end this account only. If another parked session exists, switch to it and land home.
+ * - scope "device": wipe every parked session on this device and go to a clean sign-in.
  */
 export async function performWebSignOut(options?: {
   callbackUrl?: string;
   userId?: string;
+  scope?: "this" | "device";
+  autoSwitch?: boolean;
 }) {
-  const callbackUrl = options?.callbackUrl ?? signOutLandingPath(options?.userId);
+  const scope = options?.scope ?? "this";
+  const autoSwitch = options?.autoSwitch ?? true;
 
   clearAddAccountFlowCookie();
   clearClientOAuthCookies();
 
-  // Save switch token before session is destroyed so the account stays switchable.
+  let switched = false;
   try {
-    await exportCurrentAccount();
+    const res = await fetch("/api/auth/accounts/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope, autoSwitch }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { switched?: boolean };
+      switched = data.switched === true;
+    }
   } catch {
-    // Continue — account may already be in localStorage.
+    // Client signOut + hard navigation still run.
   }
 
-  try {
-    await purgeServerSession();
-  } catch {
-    // Retry once; client signOut + hard navigation still run.
-    try {
-      await purgeServerSession();
-    } catch {
-      // Best-effort server purge.
-    }
+  if (scope === "device") {
+    replaceSavedAccounts([]);
+  }
+
+  if (switched) {
+    window.location.replace(DEFAULT_LANDING_PATH);
+    return;
   }
 
   try {
@@ -87,52 +70,5 @@ export async function performWebSignOut(options?: {
     // Hard navigation below is the source of truth for logged-out UI.
   }
 
-  if (!(await confirmLoggedOut())) {
-    try {
-      await purgeServerSession();
-      await nextAuthSignOut({ redirect: false });
-    } catch {
-      // Proceed with hard navigation.
-    }
-  }
-
-  window.location.replace(callbackUrl);
-}
-
-/**
- * Sign out current session while preserving add-account flow cookies.
- * Do not call /api/auth/logout without preserveAddAccount — that route clears the add-account cookie.
- */
-export async function signOutForAddAccount(sourceUserId?: string | null) {
-  const { setAddAccountFlowCookie } = await import("@/lib/account-switch/add-account-flow");
-  setAddAccountFlowCookie(sourceUserId);
-
-  try {
-    await fetch("/api/auth/logout?preserveAddAccount=1", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch {
-    // Client signOut below still clears the React session snapshot.
-  }
-
-  try {
-    await nextAuthSignOut({ redirect: false });
-  } catch {
-    // OAuth kickoff also clears server session cookies when addAccount=1.
-  }
-
-  if (!(await confirmLoggedOut())) {
-    try {
-      await fetch("/api/auth/logout?preserveAddAccount=1", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      await nextAuthSignOut({ redirect: false });
-    } catch {
-      // OAuth kickoff clears session again server-side.
-    }
-  }
+  window.location.replace(options?.callbackUrl ?? "/auth/signin");
 }

@@ -16,6 +16,7 @@ import {
 import { expireTemporarySuspensionIfNeeded } from "@/lib/expire-suspension";
 import { getPendingSanctionNotice } from "@/lib/operator-sanctions";
 import { canModerateContent } from "@/lib/content-moderator";
+import { isOperatorIdentity } from "@/lib/operator-config";
 import { FEED_POSTS_CACHE_TAG, profileUserCacheTag } from "@/lib/cache-tags";
 import { isLocale, normalizeLocale } from "@/lib/i18n/config";
 import { normalizeTimeZone } from "@/lib/i18n/timezone";
@@ -151,6 +152,10 @@ export async function GET(req: NextRequest) {
       },
       moneyAge: toPublicMoneyAge(evaluateMoneyAge(user.birthDate)),
       isModerator: canModerateContent({
+        username: user.username,
+        role: user.role,
+      }),
+      isOperator: isOperatorIdentity({
         username: user.username,
         role: user.role,
       }),

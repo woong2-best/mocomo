@@ -105,11 +105,19 @@ export function SettingsScreen() {
               <View style={{ gap: spacing.sm }}>
                 <Text style={styles.cardDesc}>{t("m.settings.log_out_on_this_device")}</Text>
                 <FolkButton
-                  label={t("m.account.log_out")}
+                  label={t("m.account.log_out_this")}
                   variant="secondary"
                   onPress={() => {
                     setLogoutConfirm(false);
-                    void signOut();
+                    void signOut("this");
+                  }}
+                />
+                <FolkButton
+                  label={t("m.account.log_out_all")}
+                  variant="ghost"
+                  onPress={() => {
+                    setLogoutConfirm(false);
+                    void signOut("device");
                   }}
                 />
                 <FolkButton label={t("toast.cancel")} variant="ghost" onPress={() => setLogoutConfirm(false)} />

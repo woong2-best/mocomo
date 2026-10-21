@@ -669,6 +669,7 @@ model User {
   recommendationEventsAsCandidate RecommendationEvent[] @relation("RecEventCandidate")
   feedRecommendations FeedRecommendation[] @relation("FeedRecViewer")
   commerceRecommendations CommerceRecommendation[] @relation("CommerceRecViewer")
+  deviceParkedSessions DeviceParkedSession[]
 }
 
 model Account {
@@ -706,6 +707,20 @@ model Session {
   userId       String
   expires      DateTime
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/** Web multi-account: device cookie + userId. No JWT stored in the browser. */
+model DeviceParkedSession {
+  id         String   @id @default(cuid())
+  deviceId   String
+  userId     String
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, userId])
+  @@index([deviceId, lastUsedAt])
+  @@index([userId])
 }
 
 model VerificationToken {

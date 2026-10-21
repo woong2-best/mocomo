@@ -1,6 +1,10 @@
 import { cookies } from "next/headers";
 import { signIn, auth } from "@/lib/auth";
-import { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE } from "@/lib/account-switch/constants";
+import {
+  ADD_ACCOUNT_COOKIE,
+  ADD_ACCOUNT_SOURCE_USER_COOKIE,
+  DEVICE_ACCOUNT_COOKIE,
+} from "@/lib/account-switch/constants";
 import { clearSessionTokenCookies } from "@/lib/account-switch/session-cookies";
 import { OAUTH_FLOW_COOKIE } from "@/lib/oauth-flow-cookie";
 import {
@@ -68,22 +72,39 @@ export async function startOAuthProviderSignin(opts: StartOAuthProviderSigninOpt
       secure: process.env.NODE_ENV === "production",
     });
 
-    // Source user id is set client-side before logout; only backfill if still logged in.
     const session = await auth();
-    if (session?.user?.id && !jar.get(ADD_ACCOUNT_SOURCE_USER_COOKIE)?.value) {
-      jar.set(ADD_ACCOUNT_SOURCE_USER_COOKIE, session.user.id, {
-        path: "/",
-        maxAge: 3600,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      });
+    if (session?.user?.id) {
+      if (!jar.get(ADD_ACCOUNT_SOURCE_USER_COOKIE)?.value) {
+        jar.set(ADD_ACCOUNT_SOURCE_USER_COOKIE, session.user.id, {
+          path: "/",
+          maxAge: 3600,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
+      }
+      try {
+        const { parkUserOnDevice, resolveDeviceId } = await import(
+          "@/lib/account-switch/device-sessions"
+        );
+        const deviceId = await resolveDeviceId();
+        await parkUserOnDevice(deviceId, session.user.id);
+        jar.set(DEVICE_ACCOUNT_COOKIE, deviceId, {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 60 * 24 * 400,
+        });
+      } catch {
+        // Park is best-effort — add-account still proceeds.
+      }
     }
   }
 
   // Mobile AuthSession must never reuse a stale browser session — otherwise the user
-  // picks ojeojag@gmail.com in Google but gets tokens for tom6761bear@gmail.com.
-  // Drop session JWT only (not full signOut) so CSRF for signIn() below stays valid.
-  if (opts.mobile || opts.addAccount) {
+  // picks a Google account but gets tokens for whoever was last in the WebView.
+  // Web add-account keeps the current cookie so cancel/back stays signed in.
+  if (opts.mobile) {
     await clearSessionTokenCookies();
   }
 

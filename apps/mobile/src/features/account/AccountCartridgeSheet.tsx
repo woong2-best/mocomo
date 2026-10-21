@@ -104,7 +104,8 @@ export function AccountsCartridgeSheet({
 }: Props) {
   const { t } = useI18n();
   const { colors, isDark } = useTheme();
-  const { user, savedAccounts, switchAccount, refreshSavedAccounts } = useAuth();
+  const { user, savedAccounts, switchAccount, refreshSavedAccounts, signOut, removeAccountFromDevice } =
+    useAuth();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
 
@@ -122,7 +123,7 @@ export function AccountsCartridgeSheet({
   const accounts = useMemo(() => {
     const map = new Map<string, SavedMobileAccountPublic>();
     for (const a of savedAccounts) map.set(a.userId, a);
-    if (user && !map.has(user.id)) {
+    if (user && !user.isOperator && !map.has(user.id)) {
       map.set(user.id, {
         userId: user.id,
         username: user.username,
@@ -225,8 +226,8 @@ export function AccountsCartridgeSheet({
   const handleLogout = useCallback(() => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     onClose();
-    onLogout?.();
-  }, [onClose, onLogout]);
+    void signOut("this");
+  }, [onClose, signOut]);
 
   const persistOrder = useCallback(
     (ids: string[]) => {
@@ -368,6 +369,9 @@ export function AccountsCartridgeSheet({
                         onCardLongPress(item.account.userId, item.account.userId === user?.id)
                       }
                       onLogout={handleLogout}
+                      onRemove={() => {
+                        void removeAccountFromDevice(item.account.userId);
+                      }}
                     />
                   )}
                 </Animated.View>
@@ -459,7 +463,15 @@ function EmptyCartridgeSlot({ busy, onPress }: { busy: boolean; onPress: () => v
   );
 }
 
-function LogoutFooter({ busy, onPress }: { busy: boolean; onPress: () => void }) {
+function LogoutFooter({
+  busy,
+  onPress,
+  label,
+}: {
+  busy: boolean;
+  onPress: () => void;
+  label?: string;
+}) {
   const { t } = useI18n();
   const press = useSharedValue(0);
 
@@ -491,12 +503,12 @@ function LogoutFooter({ busy, onPress }: { busy: boolean; onPress: () => void })
         onPress();
       }}
       accessibilityRole="button"
-      accessibilityLabel={t("m.account.log_out")}
+      accessibilityLabel={label ?? t("m.account.log_out")}
     >
       <Animated.View style={[styles.logoutBtn, pressStyle]}>
         <Animated.View style={[styles.logoutInset, insetStyle]} pointerEvents="none" />
         <Ionicons name="log-out-outline" size={12} color="#fff" />
-        <Text style={styles.logoutLabel}>{t("m.account.log_out")}</Text>
+        <Text style={styles.logoutLabel}>{label ?? t("m.account.log_out")}</Text>
         <View style={styles.logoutRim} pointerEvents="none" />
       </Animated.View>
     </Pressable>
@@ -511,6 +523,7 @@ function SwitchCartridge({
   onPress,
   onLongPress,
   onLogout,
+  onRemove,
 }: {
   account: SavedMobileAccountPublic;
   isActive: boolean;
@@ -519,6 +532,7 @@ function SwitchCartridge({
   onPress: () => void;
   onLongPress: () => void;
   onLogout: () => void;
+  onRemove: () => void;
 }) {
   const { t } = useI18n();
   const { sink, rise, shellStyle } = useInsertPress();
@@ -609,7 +623,11 @@ function SwitchCartridge({
             )}
           </Pressable>
 
-          {isActive ? <LogoutFooter busy={busy} onPress={onLogout} /> : null}
+          {isActive ? (
+            <LogoutFooter busy={busy} onPress={onLogout} label={t("m.account.log_out_this")} />
+          ) : (
+            <LogoutFooter busy={busy} onPress={onRemove} label={t("m.account.remove_from_device")} />
+          )}
         </View>
       </Animated.View>
     </Animated.View>

@@ -17,7 +17,7 @@ import {
 } from "@/studio/lib/host";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { isRemovedGameApiPath, isRemovedGamePagePath } from "@/lib/removed-game-routes";
-import { ADD_ACCOUNT_COOKIE } from "@/lib/account-switch/constants";
+import { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE } from "@/lib/account-switch/constants";
 import { getOperatorEmails, getOperatorUsernames } from "@/lib/operator-config";
 import {
   ADMIN_MFA_COOKIE,
@@ -113,7 +113,21 @@ function applyAppClientRedirect(req: NextRequest): NextResponse | null {
   return res;
 }
 
+function clearStaleAddAccountCookies(req: NextRequest, res: NextResponse) {
+  const { pathname } = req.nextUrl;
+  if (pathname.startsWith("/auth") || pathname.startsWith("/api/auth")) return;
+  if (
+    !req.cookies.get(ADD_ACCOUNT_COOKIE)?.value &&
+    !req.cookies.get(ADD_ACCOUNT_SOURCE_USER_COOKIE)?.value
+  ) {
+    return;
+  }
+  res.cookies.set(ADD_ACCOUNT_COOKIE, "", { path: "/", maxAge: 0 });
+  res.cookies.set(ADD_ACCOUNT_SOURCE_USER_COOKIE, "", { path: "/", maxAge: 0 });
+}
+
 function stampAppClientIfNeeded(req: NextRequest, res: NextResponse) {
+  clearStaleAddAccountCookies(req, res);
   const host = req.nextUrl.hostname;
 
   if (!isAppHostname(host)) {

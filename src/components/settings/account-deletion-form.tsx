@@ -67,6 +67,7 @@ export function AccountDeletionForm({ username, hasPassword }: Props) {
     resetForm();
     void performWebSignOut({
       callbackUrl: "/auth/signin?recovered=0&message=account_deleted",
+      autoSwitch: false,
     });
   }
 

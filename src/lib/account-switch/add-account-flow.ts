@@ -2,6 +2,7 @@ import {
   ADD_ACCOUNT_COOKIE,
   ADD_ACCOUNT_SOURCE_USER_COOKIE,
 } from "@/lib/account-switch/constants";
+import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 
 export { ADD_ACCOUNT_COOKIE, ADD_ACCOUNT_SOURCE_USER_COOKIE };
 
@@ -81,38 +82,33 @@ export async function finishAddAccountFlow() {
   return true;
 }
 
-/**
- * Start "create new account" from the account switcher — export, mark flow, sign out, navigate.
- */
-export async function beginCreateAccountFlow(sourceUserId?: string | null) {
-  const { exportCurrentAccount } = await import("@/lib/account-switch/client");
-  const { signOutForAddAccount } = await import("@/lib/account-switch/sign-out-client");
+export function cancelAddAccountFlow() {
+  clearAddAccountFlowCookie();
+  window.location.assign(DEFAULT_LANDING_PATH);
+}
 
+async function parkThenOpenAddAccount(path: string, sourceUserId?: string | null) {
+  const { exportCurrentAccount } = await import("@/lib/account-switch/client");
   try {
     await exportCurrentAccount();
   } catch {
-    // Continue — account may already be in localStorage.
+    // Continue — the current session cookie is still valid.
   }
-
   setAddAccountFlowCookie(sourceUserId);
-  await signOutForAddAccount(sourceUserId);
-  window.location.href = withAddAccountQuery("/auth/signin?intent=signup", true);
+  window.location.assign(withAddAccountQuery(path, true));
 }
 
 /**
- * Start "add existing account" — export, mark flow, sign out, navigate to sign-in.
+ * Start "create new account" from the account switcher.
+ * Current session stays signed in. Cancel returns to the same account.
+ */
+export async function beginCreateAccountFlow(sourceUserId?: string | null) {
+  await parkThenOpenAddAccount("/auth/signin?intent=signup", sourceUserId);
+}
+
+/**
+ * Start "add existing account" — current session stays signed in.
  */
 export async function beginAddExistingAccountFlow(sourceUserId?: string | null) {
-  const { exportCurrentAccount } = await import("@/lib/account-switch/client");
-  const { signOutForAddAccount } = await import("@/lib/account-switch/sign-out-client");
-
-  try {
-    await exportCurrentAccount();
-  } catch {
-    // Continue — account may already be in localStorage.
-  }
-
-  setAddAccountFlowCookie(sourceUserId);
-  await signOutForAddAccount(sourceUserId);
-  window.location.href = withAddAccountQuery("/auth/signin", true);
+  await parkThenOpenAddAccount("/auth/signin", sourceUserId);
 }

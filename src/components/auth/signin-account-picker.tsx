@@ -12,15 +12,14 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import {
   listSavedAccounts,
-  removeSavedAccount,
+  removeAccountFromDevice,
   switchToAccount,
+  syncSavedAccountsFromServer,
   type SavedAccount,
 } from "@/lib/account-switch/client";
-import { beginCreateAccountFlow, beginAddExistingAccountFlow } from "@/lib/account-switch/add-account-flow";
-import { cn } from "@/lib/utils";
+import { beginCreateAccountFlow } from "@/lib/account-switch/add-account-flow";
 
 export function SignInAccountPicker({
-  loggedOutUserId,
   onShowSignInForm,
 }: {
   loggedOutUserId?: string | null;
@@ -32,12 +31,13 @@ export function SignInAccountPicker({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const refreshList = useCallback(() => {
-    setAccounts(listSavedAccounts());
+  const refreshList = useCallback(async () => {
+    const next = await syncSavedAccountsFromServer();
+    setAccounts(next.length > 0 ? next : listSavedAccounts());
   }, []);
 
   useEffect(() => {
-    refreshList();
+    void refreshList();
   }, [refreshList]);
 
   if (status === "loading") return null;
@@ -51,15 +51,15 @@ export function SignInAccountPicker({
     setBusyId(null);
     if (!result.ok) {
       setError(t("accountSwitch.switchFailed"));
-      refreshList();
+      void refreshList();
       return;
     }
-    window.location.href = DEFAULT_LANDING_PATH;
+    window.location.assign(DEFAULT_LANDING_PATH);
   }
 
   async function handleAddExisting() {
     setError("");
-    await beginAddExistingAccountFlow();
+    onShowSignInForm?.();
   }
 
   async function handleCreateNew() {
@@ -67,10 +67,10 @@ export function SignInAccountPicker({
     await beginCreateAccountFlow();
   }
 
-  function handleRemove(account: SavedAccount, e: React.MouseEvent) {
+  async function handleRemove(account: SavedAccount, e: React.MouseEvent) {
     e.stopPropagation();
-    removeSavedAccount(account.userId);
-    refreshList();
+    await removeAccountFromDevice(account.userId);
+    void refreshList();
   }
 
   return (
@@ -82,7 +82,6 @@ export function SignInAccountPicker({
 
       <ul className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
         {accounts.map((account) => {
-          const isLoggedOut = account.userId === loggedOutUserId;
           const displayName = account.name || account.username;
           return (
             <li key={account.userId} className="border-b border-border/60 last:border-0">
@@ -102,32 +101,18 @@ export function SignInAccountPicker({
                     <span className="block truncate text-sm text-muted-foreground">
                       @{account.username}
                     </span>
-                    {isLoggedOut ? (
-                      <span className="block text-xs font-medium text-muted-foreground mt-0.5">
-                        {t("accountSwitch.loggedOut")}
-                      </span>
-                    ) : null}
                   </span>
                   {busyId === account.userId ? (
                     <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" />
-                  ) : isLoggedOut ? (
-                    <span
-                      className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                        "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {t("accountSwitch.loggedOut")}
-                    </span>
                   ) : null}
                 </button>
                 {busyId !== account.userId && (
                   <button
                     type="button"
                     className="shrink-0 text-xs text-muted-foreground hover:text-destructive px-2 py-2 rounded-lg hover:bg-destructive/10"
-                    onClick={(e) => handleRemove(account, e)}
+                    onClick={(e) => void handleRemove(account, e)}
                   >
-                    {t("accountSwitch.remove")}
+                    {t("accountSwitch.removeFromDevice")}
                   </button>
                 )}
               </div>
@@ -143,7 +128,7 @@ export function SignInAccountPicker({
           type="button"
           variant="outline"
           className="w-full rounded-xl h-11 font-semibold"
-          onClick={handleCreateNew}
+          onClick={() => void handleCreateNew()}
         >
           {t("accountSwitch.createNew")}
         </Button>

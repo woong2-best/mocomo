@@ -41,10 +41,14 @@ import {
   listSavedAccountsPublic,
   migrateLegacySingleToken,
   patchActiveAccountProfile,
+  listSavedAccountsPrivate,
+  peekOtherAccount,
+  removeAccount,
   saveAccountSession,
   savedAccountToCachedUser,
   type SavedMobileAccountPublic,
 } from "@/auth/account-store";
+import { goToSignedInHome } from "@/navigation/navigationRef";
 import { prefetchImageUrls } from "@/perf/image";
 import {
   clearTokens,
@@ -142,7 +146,8 @@ type AuthState = {
   /** Save current session before in-app add-account login (no browser). */
   prepareAddAccountSession: () => Promise<void>;
   switchAccount: (userId: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: (scope?: "this" | "device") => Promise<void>;
+  removeAccountFromDevice: (userId: string) => Promise<void>;
   refreshMe: () => Promise<void>;
   refreshSavedAccounts: () => Promise<void>;
 };
@@ -545,6 +550,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const switchAccount = useCallback(
     async (userId: string) => {
       if (user?.id === userId) return;
+      const leavingOperator = user?.isOperator === true;
       await unregisterPushSafe();
       try {
         const { disconnectInboxSocket } = await import("@/lib/inbox-socket");
@@ -554,6 +560,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const hit = await activateAccount(userId);
       if (!hit) return;
+      if (leavingOperator && user?.id) {
+        await removeAccount(user.id);
+      }
       queryClient.clear();
       await Promise.all([
         clearFeedBootstrap(),
@@ -568,49 +577,107 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus("signedIn");
       prefetchHomeFeed(queryClient);
       scheduleTabWarmup(queryClient);
+      goToSignedInHome();
       await refreshMe();
     },
-    [queryClient, refreshMe, user?.id]
+    [queryClient, refreshMe, user?.id, user?.isOperator]
   );
 
-  const signOut = useCallback(async () => {
-    invalidateAuthSession();
+  const clearLocalSessionCaches = useCallback(async () => {
+    await unregisterPushSafe();
     try {
-      const { getRefreshToken } = await import("@/auth/token-store");
-      const refreshToken = await getRefreshToken();
-      await apiRequest(MobileApi.auth.logout, {
-        method: "POST",
-        auth: true,
-        body: { refreshToken, allDevices: false },
-      }).catch(() => undefined);
-    } finally {
-      await unregisterPushSafe();
-      try {
-        const { disconnectInboxSocket } = await import("@/lib/inbox-socket");
-        disconnectInboxSocket();
-      } catch {
-        /* socket unused */
-      }
-      try {
-        const { clearGoogleNativeSession } = await import("@/auth/google-native");
-        await clearGoogleNativeSession();
-      } catch {
-        /* SDK unavailable */
-      }
-      await logoutCurrentAccount();
-      await Promise.all([
-        clearFeedBootstrap(),
-        clearDmBootstrap(),
-        clearWalletBootstrap(),
-        clearFollowingDmBootstrap(),
-        clearStarHubBootstrap(),
-      ]);
-      queryClient.clear();
-      setUser(null);
-      setStatus("signedOut");
-      await refreshSavedAccounts();
+      const { disconnectInboxSocket } = await import("@/lib/inbox-socket");
+      disconnectInboxSocket();
+    } catch {
+      /* socket unused */
     }
-  }, [queryClient, refreshSavedAccounts]);
+    try {
+      const { clearGoogleNativeSession } = await import("@/auth/google-native");
+      await clearGoogleNativeSession();
+    } catch {
+      /* SDK unavailable */
+    }
+    await Promise.all([
+      clearFeedBootstrap(),
+      clearDmBootstrap(),
+      clearWalletBootstrap(),
+      clearFollowingDmBootstrap(),
+      clearStarHubBootstrap(),
+    ]);
+    queryClient.clear();
+    resetTabWarmup();
+  }, [queryClient]);
+
+  const signOut = useCallback(
+    async (scope: "this" | "device" = "this") => {
+      invalidateAuthSession();
+      const active = await getActiveAccount();
+      const next = scope === "this" ? await peekOtherAccount(active?.userId) : null;
+
+      try {
+        if (scope === "device") {
+          const all = await listSavedAccountsPrivate();
+          await Promise.all(
+            all.map((account) =>
+              apiRequest(MobileApi.auth.logout, {
+                method: "POST",
+                body: { refreshToken: account.refreshToken, allDevices: false },
+              }).catch(() => undefined)
+            )
+          );
+        } else {
+          const { getRefreshToken } = await import("@/auth/token-store");
+          const refreshToken = await getRefreshToken();
+          await apiRequest(MobileApi.auth.logout, {
+            method: "POST",
+            auth: true,
+            body: { refreshToken, allDevices: false },
+          }).catch(() => undefined);
+        }
+      } finally {
+        await clearLocalSessionCaches();
+        if (scope === "device") {
+          await clearTokens();
+          setUser(null);
+          setStatus("signedOut");
+          await refreshSavedAccounts();
+          return;
+        }
+
+        await logoutCurrentAccount();
+        if (next) {
+          const hit = await activateAccount(next.userId);
+          if (hit) {
+            await hydrateStarHubQuery(queryClient, hit.userId);
+            setUser(savedAccountToCachedUser(hit));
+            setStatus("signedIn");
+            prefetchHomeFeed(queryClient);
+            scheduleTabWarmup(queryClient);
+            await refreshSavedAccounts();
+            goToSignedInHome();
+            await refreshMe();
+            return;
+          }
+        }
+        setUser(null);
+        setStatus("signedOut");
+        await refreshSavedAccounts();
+      }
+    },
+    [clearLocalSessionCaches, queryClient, refreshMe, refreshSavedAccounts]
+  );
+
+  const removeAccountFromDevice = useCallback(
+    async (userId: string) => {
+      if (user?.id === userId) {
+        await signOut("this");
+        return;
+      }
+      await removeAccount(userId);
+      await refreshSavedAccounts();
+    },
+    [refreshSavedAccounts, signOut, user?.id]
+  );
 
   useEffect(() => {
     if (status !== "signedIn" || !user) return;
@@ -642,6 +709,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       prepareAddAccountSession,
       switchAccount,
       signOut,
+      removeAccountFromDevice,
       refreshMe,
       refreshSavedAccounts,
     }),
@@ -659,6 +727,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       prepareAddAccountSession,
       switchAccount,
       signOut,
+      removeAccountFromDevice,
       refreshMe,
       refreshSavedAccounts,
     ]

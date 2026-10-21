@@ -14,6 +14,7 @@ export type SavedMobileAccount = {
   image: string | null;
   bannerUrl?: string | null;
   bannerVideoUrl?: string | null;
+  isOperator?: boolean;
   accessToken: string;
   refreshToken: string;
   savedAt: number;
@@ -109,9 +110,23 @@ export async function migrateLegacySingleToken(): Promise<void> {
 export async function listSavedAccountsPublic(): Promise<SavedMobileAccountPublic[]> {
   const accounts = await readAccountsRaw();
   return accounts
+    .filter((a) => !a.isOperator)
     .slice()
     .sort((a, b) => b.savedAt - a.savedAt)
     .map(stripTokens);
+}
+
+export async function listSavedAccountsPrivate(): Promise<SavedMobileAccount[]> {
+  return (await readAccountsRaw()).slice();
+}
+
+export async function peekOtherAccount(
+  exceptUserId?: string | null
+): Promise<SavedMobileAccount | null> {
+  const accounts = await readAccountsRaw();
+  return (
+    accounts.find((a) => a.userId !== exceptUserId && !a.isOperator) ?? null
+  );
 }
 
 export async function getActiveAccount(): Promise<SavedMobileAccount | null> {
@@ -125,7 +140,7 @@ export async function getActiveAccount(): Promise<SavedMobileAccount | null> {
 
 export async function saveAccountSession(
   user: Pick<MobileAuthUser, "id" | "username" | "name" | "image"> &
-    Partial<Pick<MobileAuthUser, "bannerUrl" | "bannerVideoUrl">>,
+    Partial<Pick<MobileAuthUser, "bannerUrl" | "bannerVideoUrl" | "isOperator">>,
   accessToken: string,
   refreshToken: string,
   allow: () => boolean = () => true
@@ -143,6 +158,7 @@ export async function saveAccountSession(
       bannerUrl: user.bannerUrl !== undefined ? user.bannerUrl : prev?.bannerUrl ?? null,
       bannerVideoUrl:
         user.bannerVideoUrl !== undefined ? user.bannerVideoUrl : prev?.bannerVideoUrl ?? null,
+      isOperator: user.isOperator === true,
       accessToken,
       refreshToken,
       savedAt: Date.now(),
@@ -240,7 +256,7 @@ export async function getCachedActiveUser(): Promise<MobileAuthUser | null> {
 
 export async function patchActiveAccountProfile(
   user: Pick<MobileAuthUser, "id" | "username" | "name" | "image"> &
-    Partial<Pick<MobileAuthUser, "bannerUrl" | "bannerVideoUrl">>
+    Partial<Pick<MobileAuthUser, "bannerUrl" | "bannerVideoUrl" | "isOperator">>
 ): Promise<void> {
   await enqueueMutation(async () => {
     const accounts = await readAccountsRaw();
@@ -256,6 +272,7 @@ export async function patchActiveAccountProfile(
       bannerUrl: user.bannerUrl !== undefined ? user.bannerUrl : prev.bannerUrl ?? null,
       bannerVideoUrl:
         user.bannerVideoUrl !== undefined ? user.bannerVideoUrl : prev.bannerVideoUrl ?? null,
+      isOperator: user.isOperator === true ? true : prev.isOperator,
       savedAt: Date.now(),
     };
     await writeAccountsRaw(next);

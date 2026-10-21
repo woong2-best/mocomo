@@ -1,5 +1,6 @@
 import { decode, encode } from "@auth/core/jwt";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthSecret } from "@/lib/auth-env";
 import { sessionCookieName } from "@/lib/account-switch/constants";
@@ -26,15 +27,21 @@ export async function decodeSessionToken(token: string) {
   }
 }
 
+const SESSION_COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  path: "/",
+  secure: useSecureCookies,
+  maxAge: SESSION_MAX_AGE,
+};
+
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
-  cookieStore.set(sessionCookieName(), token, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    secure: useSecureCookies,
-    maxAge: SESSION_MAX_AGE,
-  });
+  cookieStore.set(sessionCookieName(), token, SESSION_COOKIE_OPTS);
+}
+
+export function setSessionCookieOnResponse(res: NextResponse, token: string) {
+  res.cookies.set(sessionCookieName(), token, SESSION_COOKIE_OPTS);
 }
 
 export async function encodeSessionFromPayload(payload: Record<string, unknown>) {

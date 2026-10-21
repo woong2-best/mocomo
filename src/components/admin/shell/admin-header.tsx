@@ -58,7 +58,13 @@ export function AdminHeader({
           variant="outline"
           size="sm"
           className="h-9 gap-1.5"
-          onClick={() => void performWebSignOut({ callbackUrl: "/auth/signin" })}
+          onClick={() =>
+            void performWebSignOut({
+              callbackUrl: "/auth/signin",
+              autoSwitch: false,
+              scope: "this",
+            })
+          }
         >
           <LogOut className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">{t("menu.signOut")}</span>

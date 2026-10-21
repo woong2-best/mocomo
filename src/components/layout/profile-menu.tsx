@@ -72,7 +72,17 @@ export function ProfileMenu() {
             onSelect={handleSignOut}
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {t("menu.signOut")}
+            {t("accountSwitch.logoutThis")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={() => {
+              if (!window.confirm(t("accountSwitch.logoutAllConfirm"))) return;
+              void performWebSignOut({ scope: "device", autoSwitch: false });
+            }}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            {t("accountSwitch.logoutAll")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

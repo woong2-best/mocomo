@@ -19,11 +19,16 @@ import { BRAND } from "@/lib/brand";
 import { loginErrorMessage } from "@/lib/auth-login-errors";
 import { useLocale } from "@/components/providers/locale-provider";
 import { persistOAuthFlowIntent, setOAuthFlowCookieClient } from "@/lib/oauth-flow-cookie";
-import { setAddAccountFlowCookie } from "@/lib/account-switch/add-account-flow";
+import {
+  cancelAddAccountFlow,
+  clearAddAccountFlowCookie,
+  finishAddAccountFlow,
+  setAddAccountFlowCookie,
+} from "@/lib/account-switch/add-account-flow";
 import { SignInAccountPicker } from "@/components/auth/signin-account-picker";
 import { listSavedAccounts } from "@/lib/account-switch/client";
 import { waitForClientSession } from "@/lib/auth-session-retry";
-import { finishAddAccountFlow } from "@/lib/account-switch/add-account-flow";
+import { DEFAULT_LANDING_PATH, sanitizeMainSiteCallbackPath } from "@/lib/site-routes";
 import {
   adminLogoutMfaAction,
   adminMfaAfterPasswordAction,
@@ -38,7 +43,6 @@ import {
   sanitizeMobileRedirectUri,
 } from "@/lib/mobile-oauth-shared";
 import { buildProviderSigninHref } from "@/lib/oauth-provider-signin-shared";
-import { sanitizeMainSiteCallbackPath } from "@/lib/site-routes";
 
 function safeCallbackUrl(raw: string): string {
   return sanitizeMainSiteCallbackPath(raw, "/");
@@ -67,7 +71,6 @@ export function SignInForm({
   addAccount = false,
   mobileRedirectUri: mobileRedirectUriProp = null,
   pickAccount = false,
-  loggedOutUserId = null,
 }: {
   googleOAuth: boolean;
   callbackUrl: string;
@@ -99,7 +102,11 @@ export function SignInForm({
   const isMobile = fromMobile || cookieMobile;
   const resolvedPlatform = fromMobile ? platform : cookiePlatform;
   const completeUrl = mobileAuthCompletePath(resolvedPlatform);
-  const oauthCallbackUrl = isMobile ? completeUrl : callbackUrl;
+  const oauthCallbackUrl = isMobile
+    ? completeUrl
+    : addAccount
+      ? DEFAULT_LANDING_PATH
+      : callbackUrl;
   const mobileRedirectUri =
     sanitizeMobileRedirectUri(mobileRedirectUriProp) ?? cookieRedirectUri;
 
@@ -114,7 +121,7 @@ export function SignInForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showLoginForm, setShowLoginForm] = useState(
-    () => !pickAccount || listSavedAccounts().length === 0
+    () => addAccount || (!pickAccount && listSavedAccounts().length === 0)
   );
 
   const emailVerifyHref = isMobile
@@ -146,12 +153,10 @@ export function SignInForm({
   }, [addAccount, oauthMode]);
 
   useEffect(() => {
-    if (!addAccount || (!sameAccountNotice && !accountExistsNotice) || !session?.user?.id) return;
-    void (async () => {
-      const { signOutForAddAccount } = await import("@/lib/account-switch/sign-out-client");
-      await signOutForAddAccount(session.user.id);
-    })();
-  }, [addAccount, sameAccountNotice, accountExistsNotice, session?.user?.id]);
+    if (!addAccount || (!sameAccountNotice && !accountExistsNotice)) return;
+    clearAddAccountFlowCookie();
+    window.location.replace(DEFAULT_LANDING_PATH);
+  }, [addAccount, sameAccountNotice, accountExistsNotice]);
 
   // Unregistered Google account → continue as signup (web + mobile).
   useEffect(() => {
@@ -232,7 +237,12 @@ export function SignInForm({
       await adminLogoutMfaAction();
       await adminMfaAfterPasswordAction();
     }
-    window.location.assign(isMobile ? completeUrl : callbackUrl);
+    const nextPath = isMobile
+      ? completeUrl
+      : addAccount
+        ? DEFAULT_LANDING_PATH
+        : callbackUrl;
+    window.location.assign(nextPath);
   }
 
   const bannedNotice =
@@ -262,11 +272,8 @@ export function SignInForm({
           <BrandLogoLockup size={44} priority />
         </div>
       ) : null}
-      {!showLoginForm ? (
-        <SignInAccountPicker
-          loggedOutUserId={loggedOutUserId}
-          onShowSignInForm={() => setShowLoginForm(true)}
-        />
+      {!showLoginForm && !addAccount ? (
+        <SignInAccountPicker onShowSignInForm={() => setShowLoginForm(true)} />
       ) : (
         <Card className="w-full max-w-sm rounded-2xl shadow-lg border-border">
           <CardHeader className="text-center space-y-3 pb-2">
@@ -279,6 +286,22 @@ export function SignInForm({
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
+            {addAccount ? (
+              <div className="space-y-2">
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200/80 rounded-xl px-3 py-2 dark:text-amber-100 dark:bg-amber-950/40 dark:border-amber-800/60">
+                  {t("accountSwitch.addingAnother")}
+                </p>
+                {session?.user?.id ? (
+                  <button
+                    type="button"
+                    className="w-full text-sm text-primary hover:underline py-1"
+                    onClick={() => cancelAddAccountFlow()}
+                  >
+                    {t("accountSwitch.cancelAdd")}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             {(error || bannedNotice || callbackErrorMessage) && (
               <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-3 py-2">
                 {error || bannedNotice || callbackErrorMessage}

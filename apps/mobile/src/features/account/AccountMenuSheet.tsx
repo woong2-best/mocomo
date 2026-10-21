@@ -50,7 +50,7 @@ function mergeAccounts(
 ): SavedMobileAccountPublic[] {
   const map = new Map<string, SavedMobileAccountPublic>();
   for (const a of savedAccounts) map.set(a.userId, a);
-  if (user && !map.has(user.id)) {
+  if (user && !user.isOperator && !map.has(user.id)) {
     map.set(user.id, {
       userId: user.id,
       username: user.username,
@@ -79,7 +79,6 @@ export function AccountsBottomSheet({
   visible,
   onClose,
   onUnregisteredAccount,
-  onLogout,
 }: Props) {
   const { t } = useI18n();
   const {
@@ -91,6 +90,8 @@ export function AccountsBottomSheet({
     signInWithCredentials,
     signInWithGoogleNative,
     openWebAuth,
+    signOut,
+    removeAccountFromDevice,
   } = useAuth();
   const insets = useSafeAreaInsets();
   const keyboardHeight = useKeyboardBottomInset();
@@ -222,8 +223,15 @@ export function AccountsBottomSheet({
     Keyboard.dismiss();
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     onClose();
-    onLogout?.();
-  }, [onClose, onLogout]);
+    void signOut("this");
+  }, [onClose, signOut]);
+
+  const handleLogoutAll = useCallback(() => {
+    Keyboard.dismiss();
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    onClose();
+    void signOut("device");
+  }, [onClose, signOut]);
 
   const listMaxHeight = keyboardHeight > 80 ? 128 : 220;
 
@@ -277,9 +285,19 @@ export function AccountsBottomSheet({
                       {active ? (
                         <PhosphorText style={styles.flag}>[ACTIVE]</PhosphorText>
                       ) : (
-                        <PhosphorText faint style={styles.flag}>
-                          [idle]
-                        </PhosphorText>
+                        <Pressable
+                          disabled={busy}
+                          onPress={() => {
+                            void removeAccountFromDevice(account.userId);
+                          }}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={t("m.account.remove_from_device")}
+                        >
+                          <PhosphorText faint style={styles.flag}>
+                            [eject]
+                          </PhosphorText>
+                        </Pressable>
                       )}
                     </Pressable>
                   );
@@ -367,9 +385,20 @@ export function AccountsBottomSheet({
                 style={({ pressed }) => [styles.cmdRow, styles.logoutRow, pressed && styles.rowPressed]}
                 onPress={handleLogout}
                 accessibilityRole="button"
+                accessibilityLabel={t("m.account.log_out_this")}
               >
                 <PhosphorText dim style={styles.prompt}>
                   {">>"} logout
+                </PhosphorText>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.cmdRow, pressed && styles.rowPressed]}
+                onPress={handleLogoutAll}
+                accessibilityRole="button"
+                accessibilityLabel={t("m.account.log_out_all")}
+              >
+                <PhosphorText dim style={styles.prompt}>
+                  {">>"} logout --all
                 </PhosphorText>
               </Pressable>
             </View>

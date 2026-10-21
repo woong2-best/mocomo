@@ -137,7 +137,7 @@ export function SellerCenterShell({
                     <button
                       type="button"
                       className="w-full flex items-center gap-2 px-3.5 py-2.5 hover:bg-muted/50 text-left"
-                      onClick={() => void performWebSignOut({ callbackUrl: "/market" })}
+                      onClick={() => void performWebSignOut({ scope: "this" })}
                     >
                       <LogOut className="h-3.5 w-3.5" />
                       {t("menu.signOut")}

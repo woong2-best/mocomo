@@ -31,6 +31,7 @@ export type MobileAuthUser = {
     minAge?: number;
   };
   isModerator?: boolean;
+  isOperator?: boolean;
   accountStatus?: string;
   readOnly?: boolean;
   suspensionReason?: string | null;

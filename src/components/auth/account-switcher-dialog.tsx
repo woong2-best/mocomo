@@ -14,11 +14,13 @@ import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import {
   exportCurrentAccount,
   listSavedAccounts,
-  removeSavedAccount,
+  removeAccountFromDevice,
   switchToAccount,
+  syncSavedAccountsFromServer,
   type SavedAccount,
 } from "@/lib/account-switch/client";
 import { beginCreateAccountFlow, beginAddExistingAccountFlow } from "@/lib/account-switch/add-account-flow";
+import { performWebSignOut } from "@/lib/account-switch/sign-out-client";
 import { cn } from "@/lib/utils";
 
 export function AccountSwitcherDialog({
@@ -34,16 +36,20 @@ export function AccountSwitcherDialog({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const refreshList = useCallback(() => {
-    setAccounts(listSavedAccounts());
+  const refreshList = useCallback(async () => {
+    const next = await syncSavedAccountsFromServer();
+    setAccounts(next.length > 0 ? next : listSavedAccounts());
   }, []);
 
   useEffect(() => {
     if (!open) return;
     setError("");
-    refreshList();
     if (session?.user?.id) {
-      void exportCurrentAccount().finally(refreshList);
+      void exportCurrentAccount().finally(() => {
+        void refreshList();
+      });
+    } else {
+      void refreshList();
     }
   }, [open, session?.user?.id, refreshList]);
 
@@ -58,11 +64,11 @@ export function AccountSwitcherDialog({
     setBusyId(null);
     if (!result.ok) {
       setError(t("accountSwitch.switchFailed"));
-      refreshList();
+      void refreshList();
       return;
     }
     onOpenChange(false);
-    window.location.href = DEFAULT_LANDING_PATH;
+    window.location.assign(DEFAULT_LANDING_PATH);
   }
 
   async function handleAddExisting() {
@@ -77,10 +83,10 @@ export function AccountSwitcherDialog({
     await beginCreateAccountFlow(session?.user?.id);
   }
 
-  function handleRemove(account: SavedAccount, e: React.MouseEvent) {
+  async function handleRemove(account: SavedAccount, e: React.MouseEvent) {
     e.stopPropagation();
-    removeSavedAccount(account.userId);
-    refreshList();
+    await removeAccountFromDevice(account.userId);
+    void refreshList();
   }
 
   const activeId = session?.user?.id;
@@ -100,9 +106,10 @@ export function AccountSwitcherDialog({
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" aria-hidden />
           </div>
 
-          <DialogPrimitive.Title className="px-5 pb-3 text-xl font-bold">
+          <DialogPrimitive.Title className="px-5 pb-1 text-xl font-bold">
             {t("accountSwitch.title")}
           </DialogPrimitive.Title>
+          <p className="px-5 pb-3 text-sm text-muted-foreground">{t("accountSwitch.pickPrompt")}</p>
 
           <ul className="px-2 pb-2">
             {accounts.length === 0 ? (
@@ -142,9 +149,9 @@ export function AccountSwitcherDialog({
                         <button
                           type="button"
                           className="shrink-0 text-xs text-muted-foreground hover:text-destructive px-2 py-2 rounded-lg hover:bg-destructive/10"
-                          onClick={(e) => handleRemove(account, e)}
+                          onClick={(e) => void handleRemove(account, e)}
                         >
-                          {t("accountSwitch.remove")}
+                          {t("accountSwitch.removeFromDevice")}
                         </button>
                       )}
                     </div>
@@ -173,6 +180,28 @@ export function AccountSwitcherDialog({
             >
               {t("accountSwitch.addExisting")}
             </Button>
+            {activeId ? (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full rounded-xl h-11 font-semibold text-destructive hover:text-destructive"
+                  onClick={() => void performWebSignOut({ userId: activeId, scope: "this" })}
+                >
+                  {t("accountSwitch.logoutThis")}
+                </Button>
+                <button
+                  type="button"
+                  className="w-full text-xs text-muted-foreground hover:text-destructive py-1"
+                  onClick={() => {
+                    if (!window.confirm(t("accountSwitch.logoutAllConfirm"))) return;
+                    void performWebSignOut({ scope: "device", autoSwitch: false });
+                  }}
+                >
+                  {t("accountSwitch.logoutAll")}
+                </button>
+              </>
+            ) : null}
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

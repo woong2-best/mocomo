@@ -1,85 +1,61 @@
-import { errorText } from "@/lib/i18n/error-text";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
+import { errorText } from "@/lib/i18n/error-text";
+import { rateLimitPublicApi } from "@/lib/api-security";
+import { setSessionCookieOnResponse } from "@/lib/account-switch/server";
 import {
-  encodeSessionFromPayload,
-  setSessionCookie,
-  validateSwitchToken,
-} from "@/lib/account-switch/server";
+  activateParkedUser,
+  parkUserOnDevice,
+  resolveDeviceId,
+  stampDeviceCookie,
+} from "@/lib/account-switch/device-sessions";
 
 const bodySchema = z.object({
   userId: z.string().min(1).max(64),
-  switchToken: z.string().min(1),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await rateLimitPublicApi(req, "auth-accounts-switch", 30);
+  if (limited) return limited;
+
   try {
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: "INVALID_INPUT" }, { status: 400 });
     }
 
-    const { userId, switchToken } = parsed.data;
-    const validated = await validateSwitchToken(userId, switchToken);
-    if (!validated.ok) {
+    const deviceId = await resolveDeviceId(req);
+    const session = await auth();
+    if (session?.user?.id && session.user.id !== parsed.data.userId) {
+      await parkUserOnDevice(deviceId, session.user.id);
+    }
+
+    const activated = await activateParkedUser(deviceId, parsed.data.userId);
+    if (!activated.ok) {
       const status =
-        validated.error === "BANNED" ? 403 : validated.error === "USER_NOT_FOUND" ? 404 : 401;
-      return NextResponse.json({ ok: false, error: errorText(validated.error) }, { status });
+        activated.error === "BANNED"
+          ? 403
+          : activated.error === "USER_NOT_FOUND"
+            ? 404
+            : 401;
+      const res = NextResponse.json(
+        { ok: false, error: errorText(activated.error) },
+        { status }
+      );
+      stampDeviceCookie(res, deviceId);
+      return res;
     }
 
-    const fresh = await dbRefreshTokenPayload(validated.user.id, validated.payload);
-    const encoded = await encodeSessionFromPayload(fresh);
-    if (!encoded) {
-      return NextResponse.json({ ok: false, error: "ENCODE_FAILED" }, { status: 500 });
-    }
-
-    await setSessionCookie(encoded);
-
-    return NextResponse.json({
+    const res = NextResponse.json({
       ok: true,
-      user: {
-        id: validated.user.id,
-        username: validated.user.username,
-        name: validated.user.name,
-        image: validated.user.image,
-      },
-      switchToken: encoded,
+      user: activated.user,
     });
+    setSessionCookieOnResponse(res, activated.token);
+    stampDeviceCookie(res, deviceId);
+    return res;
   } catch (e) {
     console.error("[api/auth/accounts/switch]", e);
     return NextResponse.json({ ok: false, error: "SERVER_ERROR" }, { status: 500 });
   }
-}
-
-async function dbRefreshTokenPayload(
-  userId: string,
-  existing: Record<string, unknown>
-): Promise<Record<string, unknown>> {
-  const { db } = await import("@/lib/db");
-  const { effectiveRole } = await import("@/lib/operator-config");
-
-  const dbUser = await db.user.findUnique({
-    where: { id: userId },
-    select: {
-      username: true,
-      role: true,
-      premiumTier: true,
-      locale: true,
-      countryCode: true,
-      isBanned: true,
-    },
-  });
-  if (!dbUser) return existing;
-
-  return {
-    ...existing,
-    id: userId,
-    sub: userId,
-    username: dbUser.username,
-    role: effectiveRole(dbUser),
-    premiumTier: dbUser.premiumTier,
-    locale: dbUser.locale,
-    countryCode: dbUser.countryCode,
-    isBanned: dbUser.isBanned,
-  };
 }
