@@ -145,6 +145,7 @@ export const PostMediaComposer = forwardRef<
   const [attachOpen, setAttachOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [showDropPad, setShowDropPad] = useState(layout !== "toolbar");
   const [watermarkOptions, setWatermarkOptions] = useState(EMPTY_WATERMARK_OPTIONS);
   const pasteLockUntilRef = useRef(0);
   const watermarkOptionsRef = useRef(watermarkOptions);
@@ -608,6 +609,22 @@ export const PostMediaComposer = forwardRef<
   const iconBtnClass =
     "h-9 w-9 rounded-full flex items-center justify-center text-primary hover:bg-primary/10 transition-colors disabled:opacity-40";
 
+  function openImageDropPad() {
+    if (showDropPad) {
+      galleryInputRef.current?.click();
+      return;
+    }
+    setShowDropPad(true);
+  }
+
+  function openVideoDropPad() {
+    if (showDropPad) {
+      pickVideoFiles();
+      return;
+    }
+    setShowDropPad(true);
+  }
+
   const toolbarIcons = (
     <>
       {canAddImage && (
@@ -616,7 +633,7 @@ export const PostMediaComposer = forwardRef<
             type="button"
             className={iconBtnClass}
             disabled={disabled || uploading}
-            onClick={() => galleryInputRef.current?.click()}
+            onClick={openImageDropPad}
             aria-label={t("media.s1wib9dx")}
             title={t("lib.creator.work.labels.s2f826f3ee6")}
           >
@@ -630,7 +647,7 @@ export const PostMediaComposer = forwardRef<
             type="button"
             className={iconBtnClass}
             disabled={disabled || uploading}
-            onClick={pickVideoFiles}
+            onClick={openVideoDropPad}
             aria-label={t("media.sh6wai8")}
             title={t("lib.web.push.se9d6e13c5d")}
           >
@@ -658,7 +675,7 @@ export const PostMediaComposer = forwardRef<
 
   const body = (
     <div className={cn("space-y-3", !enableDrop && className)}>
-      {items.length === 0 && (canAddImage || canAddVideo) ? (
+      {items.length === 0 && (canAddImage || canAddVideo) && showDropPad ? (
         <button
           type="button"
           className={cn(
