@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Search } from "lucide-react";
+import { NotificationsSettingsLink } from "@/components/notifications/notifications-settings-link";
 import { BRAND } from "@/lib/brand";
 import {
   DEFAULT_LANDING_PATH,
@@ -126,6 +127,7 @@ export function NativeAppHeader() {
   const isSearchPage = pathname === "/search";
   const isRoot = ROOT_PATHS.has(pathname);
   const title = titleForPath(pathname, t, locale);
+  const isNotifications = pathname === "/notifications";
   const showBack = !isRoot && !!title && !isSearchPage;
 
   if (isMobileHubChromePath(pathname)) {
@@ -207,7 +209,8 @@ export function NativeAppHeader() {
       </div>
 
       <div className="flex shrink-0 items-center justify-end gap-0.5 min-w-[5.5rem]">
-        {!showBack && (
+        {isNotifications ? <NotificationsSettingsLink /> : null}
+        {!showBack && !isNotifications && (
           <Link
             href="/search"
             className={cn(

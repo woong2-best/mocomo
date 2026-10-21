@@ -6,6 +6,7 @@ export type DrawerRoute =
   | "Profile"
   | "ProfileEdit"
   | "Settings"
+  | "NotificationSettings"
   | "StarList"
   | "CommunityList"
   | "Wallet"
@@ -113,6 +114,7 @@ export type RootStackParamList = {
   AnimeHistory: { slug: string };
   AnimeDetail: { slug: string };
   Settings: undefined;
+  NotificationSettings: undefined;
   LegalPolicies: undefined;
   Wallet: { initialTab?: "wallet" | "earnings" | "transfer" | "tier"; returnScreen?: "UsedCreate" | "AuctionCreate" | "MarketplaceList" | "AuctionList" | "MarketSellItem" } | undefined;
   FortuneCookies: { openLatest?: boolean } | undefined;

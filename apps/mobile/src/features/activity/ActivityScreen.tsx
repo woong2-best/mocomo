@@ -18,6 +18,7 @@ import {
   type NotificationItem,
 } from "@/api/notifications";
 import { clearNotificationBadges } from "@/push/clear-notification-badge";
+import { handleNotificationPress } from "@/features/activity/handleNotificationPress";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
@@ -47,6 +48,7 @@ export function ActivityScreen() {
         if (!prev) return prev;
         return {
           unread: res.unread,
+          badge: res.badge ?? 0,
           notifications: prev.notifications.map((row) =>
             row.id === id ? { ...row, read: true } : row
           ),
@@ -54,15 +56,6 @@ export function ActivityScreen() {
       });
     },
   });
-
-  const markAll = useMutation({
-    mutationFn: () => markNotificationsRead({ all: true }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-    },
-  });
-
-  const unread = query.data?.unread ?? 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -85,15 +78,13 @@ export function ActivityScreen() {
         leftLabel={t("m.common.back")}
         onLeftPress={() => navigation.goBack()}
         rightSlot={
-          unread > 0 ? (
-            <Pressable onPress={() => markAll.mutate()} hitSlop={10} disabled={markAll.isPending}>
-              <Text style={styles.markAll}>{t("m.activity.mark_all_read")}</Text>
-            </Pressable>
-          ) : (
-            <Pressable onPress={() => navigation.navigate("Settings")} hitSlop={10}>
-              <Ionicons name="settings-outline" size={22} color={colors.cobalt} />
-            </Pressable>
-          )
+          <Pressable
+            onPress={() => navigation.navigate("NotificationSettings")}
+            hitSlop={10}
+            accessibilityLabel={t("m.settings.notifications.title")}
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.cobalt} />
+          </Pressable>
         }
       />
       {query.isLoading ? (
@@ -135,7 +126,7 @@ export function ActivityScreen() {
               t={t}
               onPress={() => {
                 if (!item.read) markOne.mutate(item.id);
-                openAlarm(item, navigation);
+                handleNotificationPress(item, navigation);
               }}
             />
           )}
@@ -192,27 +183,6 @@ function AlarmRow({
   );
 }
 
-function openAlarm(
-  item: NotificationItem,
-  navigation: NativeStackNavigationProp<RootStackParamList>
-) {
-  const link = item.link ?? "";
-  const postId = link.match(/\/post\/([^/?#]+)/)?.[1];
-  if (postId) {
-    navigation.navigate("PostDetail", { id: postId });
-    return;
-  }
-  const marketId = link.match(/\/market\/([^/?#]+)/)?.[1];
-  if (marketId && marketId !== "orders" && marketId !== "my" && marketId !== "verify") {
-    navigation.navigate("MarketplaceDetail", {
-      id: marketId,
-    });
-    return;
-  }
-  const liveId = link.match(/\/voice\/([^/?#]+)/)?.[1];
-  if (liveId) navigation.navigate("LiveDetail", { id: liveId });
-}
-
 function alarmVisual(type: string | undefined): {
   icon: keyof typeof Ionicons.glyphMap;
   ink: string;
@@ -225,6 +195,14 @@ function alarmVisual(type: string | undefined): {
     case "like":
     case "listing_like":
       return { icon: "heart", ink: "#C5522A", wash: "rgba(197, 82, 42, 0.14)" };
+    case "dm":
+    case "dm_group":
+      return { icon: "notifications", ink: "#1B4A8C", wash: "rgba(27, 74, 140, 0.12)" };
+    case "follow":
+    case "follow_request":
+      return { icon: "person-add", ink: "#1B4A8C", wash: "rgba(27, 74, 140, 0.12)" };
+    case "mention":
+      return { icon: "at", ink: "#5B21B6", wash: "rgba(91, 33, 182, 0.12)" };
     case "comment":
     case "comment_reply":
       return { icon: "chatbubble", ink: "#1B4A8C", wash: "rgba(27, 74, 140, 0.12)" };
@@ -261,7 +239,6 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
   return StyleSheet.create({
     list: { padding: spacing.md, paddingBottom: 48, flexGrow: 1 },
     center: { padding: spacing.lg, alignItems: "center", gap: 12 },
-    markAll: { color: colors.cobalt, fontWeight: "800", fontSize: 13 },
     row: {
       flexDirection: "row",
       alignItems: "flex-start",
@@ -276,7 +253,6 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
     },
     rowUnread: {
       borderColor: "rgba(197, 82, 42, 0.45)",
-      // Opaque wash — transparent rgba showed list background as a black patch in dark mode.
       backgroundColor: unreadWash,
     },
     iconBubble: {

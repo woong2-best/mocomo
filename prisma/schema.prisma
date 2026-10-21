@@ -341,6 +341,12 @@ model User {
   currentTermsVersion String?   @map("current_terms_version")
   /** 알림 페이지 방문 시각 — 헤더 뱃지는 이 이후 미확인만 표시. 개별 read와 별개 */
   notificationsLastSeenAt DateTime?
+  /** 모바일 푸시 · 알림 종류별 수신 설정 */
+  pushNotificationsEnabled Boolean @default(true)
+  notifyDirectMessages     Boolean @default(true)
+  notifyMentionsReplies    Boolean @default(true)
+  notifyLikesInteractions  Boolean @default(true)
+  notifyGroupMessages      Boolean @default(true)
   /** 관리자 계정 활성 여부 (스태프 역할일 때) */
   adminDisabledAt     DateTime?
   createdAt     DateTime  @default(now())

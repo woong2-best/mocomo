@@ -44,6 +44,7 @@ export const MobileApi = {
   onboardingCosplayers: "/api/mobile/onboarding/cosplayers",
   cosplayApply: "/api/mobile/cosplay/apply",
   me: "/api/mobile/me",
+  notificationSettings: "/api/mobile/me/notification-settings",
   user: (username: string) => `/api/mobile/users/${encodeURIComponent(username)}`,
   userConnections: (username: string) =>
     `/api/mobile/users/${encodeURIComponent(username)}/connections`,

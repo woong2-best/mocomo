@@ -1,0 +1,5 @@
+ALTER TABLE "User" ADD COLUMN "pushNotificationsEnabled" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "User" ADD COLUMN "notifyDirectMessages" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "User" ADD COLUMN "notifyMentionsReplies" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "User" ADD COLUMN "notifyLikesInteractions" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "User" ADD COLUMN "notifyGroupMessages" BOOLEAN NOT NULL DEFAULT true;

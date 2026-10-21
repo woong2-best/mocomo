@@ -16,11 +16,11 @@ import {
   type NotificationRow,
 } from "@/lib/notification-display";
 import {
-  markAllNotificationsReadAction,
   markNotificationRead,
   markNotificationsSeenAction,
 } from "@/actions/notifications";
 import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
+import { resolveNotificationPath } from "@/lib/notification-routing";
 import { CollabInviteNotificationActions } from "@/components/notifications/collab-invite-notification-actions";
 
 const FILTERS: { id: string; label: string; category: string | null }[] = [
@@ -35,14 +35,12 @@ const FILTERS: { id: string; label: string; category: string | null }[] = [
 
 export function NotificationsFeedClient({
   initialNotifications,
-  initialUnread,
 }: {
   initialNotifications: NotificationRow[];
-  initialUnread: number;
+  initialUnread?: number;
 }) {
   const [filter, setFilter] = useState("all");
   const [items, setItems] = useState(initialNotifications);
-  const [unread, setUnread] = useState(initialUnread);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
 
@@ -61,7 +59,6 @@ export function NotificationsFeedClient({
         unread?: number;
       };
       if (Array.isArray(data.notifications)) setItems(data.notifications);
-      if (typeof data.unread === "number") setUnread(data.unread);
     } catch {
       setFetchError(true);
     } finally {
@@ -96,8 +93,8 @@ export function NotificationsFeedClient({
       setItems((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
-      setUnread((u) => Math.max(0, u - 1));
       await markNotificationRead(id);
+      dispatchNotificationsRead();
     }
   }
 
@@ -108,40 +105,22 @@ export function NotificationsFeedClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                filter === f.id
-                  ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        {unread > 0 && (
-          <form action={markAllNotificationsReadAction}>
-            <Button
-              type="submit"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setUnread(0);
-                setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-                dispatchNotificationsRead();
-              }}
-            >
-              모두 읽음
-            </Button>
-          </form>
-        )}
+      <div className="flex flex-wrap gap-1.5">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => setFilter(f.id)}
+            className={cn(
+              "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+              filter === f.id
+                ? "bg-foreground text-background"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {fetchError ? (
@@ -182,7 +161,7 @@ export function NotificationsFeedClient({
         <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden bg-card">
           {filtered.map((n) => {
             const { Icon, className: iconClass } = notificationIcon(n.type);
-            const href = n.link ?? "#";
+            const href = resolveNotificationPath(n) ?? n.link ?? "#";
             const inner = (
               <div
                 className={cn(

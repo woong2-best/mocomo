@@ -421,6 +421,12 @@ export function RootNavigator() {
               getComponent={() => require("@/features/settings/SettingsScreen").SettingsScreen}
             />
             <Stack.Screen
+              name="NotificationSettings"
+              getComponent={() =>
+                require("@/features/settings/NotificationSettingsScreen").NotificationSettingsScreen
+              }
+            />
+            <Stack.Screen
               name="LegalPolicies"
               getComponent={() =>
                 require("@/features/legal/LegalPoliciesScreen").LegalPoliciesScreen
