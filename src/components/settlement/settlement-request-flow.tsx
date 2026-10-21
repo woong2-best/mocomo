@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isValidForeignTin } from "@/lib/creator-payout/tax-form-input";
+import {
+  isTaxFormEnglishText,
+  isValidForeignTin,
+  TAX_FORM_ENGLISH_ONLY_MESSAGE,
+} from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
 
@@ -166,8 +170,14 @@ export function SettlementRequestFlow() {
   }, [formType, citizenshipCode, residenceCountryCode]);
 
   const taxReady = readiness?.tax?.status === "VERIFIED" && !editingTax;
+  const taxLatinFieldsValid = useMemo(() => {
+    const required = [fullName, street, city, state, postalCode];
+    const optional = formType === "W9" ? [businessName] : [];
+    return [...required, ...optional].every((value) => isTaxFormEnglishText(value));
+  }, [businessName, city, formType, fullName, postalCode, state, street]);
   const canSubmitTax = useMemo(() => {
     const base =
+      taxLatinFieldsValid &&
       fullName.trim().length >= 2 &&
       street.trim().length >= 3 &&
       city.trim().length >= 2 &&
@@ -183,7 +193,20 @@ export function SettlementRequestFlow() {
       residenceCountryCode.length === 2 &&
       isValidForeignTin(foreignTin)
     );
-  }, [citizenshipCode, city, foreignTin, formType, fullName, postalCode, residenceCountryCode, signaturePng, state, street, tin]);
+  }, [
+    citizenshipCode,
+    city,
+    foreignTin,
+    formType,
+    fullName,
+    postalCode,
+    residenceCountryCode,
+    signaturePng,
+    state,
+    street,
+    taxLatinFieldsValid,
+    tin,
+  ]);
 
   const signatureDate = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -412,6 +435,9 @@ export function SettlementRequestFlow() {
                 </>
               ) : (
                 <>
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm leading-relaxed text-amber-950">
+                    ⚠️ IRS regulations require all tax form information to be entered in English.
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Choice label="W-9 (US person)" selected={formType === "W9"} onClick={() => setFormType("W9")} />
                     <Choice
@@ -424,40 +450,53 @@ export function SettlementRequestFlow() {
                       }}
                     />
                   </div>
-                  <label className="block space-y-1 text-sm">
-                    <span className="font-semibold">{formType === "W9" ? "Full name" : "Full legal name"}</span>
-                    <input className={fieldClass} value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
-                  </label>
+                  <LatinField
+                    label={formType === "W9" ? "Full name" : "Full legal name"}
+                    value={fullName}
+                    onChange={setFullName}
+                    placeholder="e.g. Gwonung Baek"
+                    autoComplete="name"
+                  />
                   {formType === "W9" ? (
-                    <label className="block space-y-1 text-sm">
-                      <span className="font-semibold">Business name (optional)</span>
-                      <input className={fieldClass} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
-                    </label>
+                    <LatinField
+                      label="Business name (optional)"
+                      value={businessName}
+                      onChange={setBusinessName}
+                    />
                   ) : (
                     <label className="block space-y-1 text-sm">
                       <span className="font-semibold">Country of citizenship</span>
                       <CountrySelect value={citizenshipCode} onChange={setCitizenshipCode} w8benOnly />
                     </label>
                   )}
-                  <label className="block space-y-1 text-sm">
-                    <span className="font-semibold">
-                      {formType === "W9" ? "Address" : "Permanent residence address"}
-                    </span>
-                    <input className={fieldClass} value={street} onChange={(e) => setStreet(e.target.value)} autoComplete="address-line1" />
-                  </label>
-                  <label className="block space-y-1 text-sm">
-                    <span className="font-semibold">City</span>
-                    <input className={fieldClass} value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
-                  </label>
+                  <LatinField
+                    label={formType === "W9" ? "Address" : "Permanent residence address"}
+                    value={street}
+                    onChange={setStreet}
+                    placeholder="e.g. 123, Nakdong-daero"
+                    autoComplete="address-line1"
+                  />
+                  <LatinField
+                    label="City"
+                    value={city}
+                    onChange={setCity}
+                    placeholder="e.g. Saha-gu"
+                    autoComplete="address-level2"
+                  />
                   <div className="grid grid-cols-2 gap-2">
-                    <label className="space-y-1 text-sm">
-                      <span className="font-semibold">{formType === "W9" ? "State" : "State / province"}</span>
-                      <input className={fieldClass} value={state} onChange={(e) => setState(e.target.value)} autoComplete="address-level1" />
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="font-semibold">{formType === "W9" ? "ZIP" : "Postal"}</span>
-                      <input className={fieldClass} value={postalCode} onChange={(e) => setPostalCode(e.target.value)} autoComplete="postal-code" />
-                    </label>
+                    <LatinField
+                      label={formType === "W9" ? "State" : "State / province"}
+                      value={state}
+                      onChange={setState}
+                      placeholder="e.g. Busan"
+                      autoComplete="address-level1"
+                    />
+                    <LatinField
+                      label={formType === "W9" ? "ZIP" : "Postal"}
+                      value={postalCode}
+                      onChange={setPostalCode}
+                      autoComplete="postal-code"
+                    />
                   </div>
                   {formType === "W8BEN" ? (
                     <label className="block space-y-1 text-sm">
@@ -526,7 +565,9 @@ export function SettlementRequestFlow() {
                   Save tax form
                 </button>
                 <p className="text-xs leading-relaxed text-neutral-500">
-                  Draw a signature to turn the save button on.
+                  {taxLatinFieldsValid
+                    ? "Draw a signature to turn the save button on."
+                    : TAX_FORM_ENGLISH_ONLY_MESSAGE}
                 </p>
               </div>
             </Panel>
@@ -639,6 +680,36 @@ function Choice({ label, selected, onClick }: { label: string; selected: boolean
     >
       {label}
     </button>
+  );
+}
+
+function LatinField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  autoComplete?: string;
+}) {
+  const invalid = value.length > 0 && !isTaxFormEnglishText(value);
+  return (
+    <label className="block space-y-1 text-sm">
+      <span className="font-semibold">{label}</span>
+      <input
+        className={`${fieldClass} ${invalid ? "border-red-500" : ""}`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        spellCheck={false}
+      />
+      {invalid ? <p className="text-xs font-semibold text-red-600">{TAX_FORM_ENGLISH_ONLY_MESSAGE}</p> : null}
+    </label>
   );
 }
 

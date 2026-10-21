@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isTaxFormEnglishText,
   isValidForeignTin,
   isW8benEligibleCountry,
   normalizeForeignTin,
@@ -37,6 +38,27 @@ describe("tax form dates and input", () => {
       ),
     ).toBeNull();
     expect(parseTaxFormPayload({ formType: "W8BEN", fullName: "Kim", street: "Road", cityLine: "Seoul" }, signedOn)).toBeNull();
+  });
+
+  it("rejects Hangul and other non-Latin tax form text", () => {
+    expect(isTaxFormEnglishText("Gwonung Baek")).toBe(true);
+    expect(isTaxFormEnglishText("123, Nakdong-daero")).toBe(true);
+    expect(isTaxFormEnglishText("백권웅")).toBe(false);
+    expect(isTaxFormEnglishText("Saha-gu 사하구")).toBe(false);
+    expect(
+      parseTaxFormPayload({
+        formType: "W8BEN",
+        fullName: "백권웅",
+        street: "123 Nakdong-daero",
+        city: "Saha-gu",
+        state: "Busan",
+        postalCode: "49315",
+        citizenshipCode: "KR",
+        residenceCountryCode: "KR",
+        foreignTin: "900101-1234567",
+        signaturePng: ONE_PIXEL_PNG.toString("base64"),
+      }),
+    ).toBeNull();
   });
 
   it("normalizes foreign TIN and rejects U.S. countries on W-8BEN", () => {

@@ -29,19 +29,35 @@ export type PreparedTaxForm =
       signedOn: Date;
     };
 
+/** IRS PDF Helvetica: Latin letters, digits, space, and , . - # / only. */
+const TAX_FORM_LATIN = /^[A-Za-z0-9 ,.\-#/]*$/;
+
+export const TAX_FORM_ENGLISH_ONLY_MESSAGE =
+  "All fields must be filled out in English. (영문으로 입력해 주세요)";
+
+export function isTaxFormEnglishText(value: string): boolean {
+  return TAX_FORM_LATIN.test(value);
+}
+
 function clean(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
   return value.replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
 }
 
+function cleanLatin(value: unknown, max: number): string | null {
+  const next = clean(value, max);
+  if (!isTaxFormEnglishText(next)) return null;
+  return next;
+}
+
 export function composeCityLine(raw: Record<string, unknown>): string {
-  const city = clean(raw.city, 50);
-  const state = clean(raw.state, 40);
-  const postalCode = clean(raw.postalCode, 16);
-  if (city.length >= 2 && state.length >= 1 && postalCode.length >= 3) {
+  const city = cleanLatin(raw.city, 50);
+  const state = cleanLatin(raw.state, 40);
+  const postalCode = cleanLatin(raw.postalCode, 16);
+  if (city && state && postalCode && city.length >= 2 && state.length >= 1 && postalCode.length >= 3) {
     return `${city}, ${state} ${postalCode}`;
   }
-  return clean(raw.cityLine, 80);
+  return cleanLatin(raw.cityLine, 80) ?? "";
 }
 
 function country(value: unknown): string | null {
@@ -151,20 +167,23 @@ export function parseTaxFormPayload(input: unknown, signedOn = new Date()): Prep
   const raw = input as Record<string, unknown>;
   const kind = raw.formType === "W9" || raw.formType === "W8BEN" ? raw.formType : null;
   if (!kind) return null;
-  const fullName = clean(raw.fullName, 80);
-  const street = clean(raw.street, 100);
+  const fullName = cleanLatin(raw.fullName, 80);
+  const street = cleanLatin(raw.street, 100);
   const cityLine = composeCityLine(raw);
   const signaturePng = signaturePngFromPayload(raw.signaturePng);
-  if (fullName.length < 2 || street.length < 3 || cityLine.length < 2 || !signaturePng) return null;
+  if (!fullName || !street || fullName.length < 2 || street.length < 3 || cityLine.length < 2 || !signaturePng) {
+    return null;
+  }
 
   if (kind === "W9") {
     const tinKind = raw.tinKind === "EIN" ? "EIN" : raw.tinKind === "SSN" ? "SSN" : null;
     const tin = clean(raw.tin, 20).replace(/\D/g, "");
-    if (!tinKind || tin.length !== 9) return null;
+    const businessName = cleanLatin(raw.businessName, 80);
+    if (!tinKind || tin.length !== 9 || businessName === null) return null;
     return {
       kind,
       fullName,
-      businessName: clean(raw.businessName, 80),
+      businessName,
       street,
       cityLine,
       tinKind,
