@@ -3,24 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { VRM } from "@pixiv/three-vrm";
-import { IDOL_VRM_FALLBACK } from "@/lib/ai-live/idols";
+import { playableIdolVrmUrl } from "@/lib/ai-live/idols";
 
 export type IdolVrmPhase = "loading" | "ready" | "error";
-
-async function resolveIdolVrmUrl(url: string): Promise<string> {
-  if (!url || url === IDOL_VRM_FALLBACK) return IDOL_VRM_FALLBACK;
-  try {
-    const res = await fetch(url, { method: "HEAD" });
-    if (res.ok) {
-      const type = res.headers.get("content-type") ?? "";
-      if (!type.includes("text/html")) return url;
-    }
-    if (res.status === 405) return url;
-  } catch {
-    /* missing file falls back to the studio model */
-  }
-  return IDOL_VRM_FALLBACK;
-}
 
 /** Drop geometries and materials so a swapped model does not stay on the GPU. */
 export function disposeIdolVrm(vrm: VRM) {
@@ -40,7 +25,7 @@ export function disposeIdolVrm(vrm: VRM) {
 
 export async function loadIdolVrm(loader: GLTFLoader, url: string): Promise<VRM> {
   const { VRMUtils } = await import("@pixiv/three-vrm");
-  const resolved = await resolveIdolVrmUrl(url);
+  const resolved = playableIdolVrmUrl(url);
   const gltf = await loader.loadAsync(resolved);
   const vrm = gltf.userData.vrm as VRM;
   VRMUtils.removeUnnecessaryVertices(vrm.scene);

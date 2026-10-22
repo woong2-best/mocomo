@@ -31,14 +31,13 @@ export function IdolGroupRoom({
     <MocoLiveRoom
       channelId={channels[idol.id] ?? null}
       vrmUrl={idol.vrmUrl}
+      hostUsername={idol.username}
       hostNameKey={idol.nameKey}
       titleKey={idol.titleKey}
       subKey={idol.roleKey}
       memberId={idol.id}
       donationPoll={`/api/live/idol/${idol.id}/donations`}
       signInPath={`/live/${idol.id}`}
-      poster={false}
-      accent={idol.accent}
       tabs={IDOLS.map((item) => ({
         id: item.id,
         label: t(item.nameKey),

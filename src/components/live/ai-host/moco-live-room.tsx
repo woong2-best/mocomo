@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { Radio, Send } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { MocoStageHandle } from "@/components/live/ai-host/moco-vrm-stage";
@@ -11,6 +12,10 @@ import { createSpeechQueue, enqueueSpeech, type SpeechJob } from "@/lib/ai-live/
 import { LiveMocoDonationComposerButton } from "@/components/live/live-moco-donation-composer-button";
 import { VideoDonationRoomControls } from "@/components/live/video-donation-room-controls";
 import { MocoDonationStage } from "@/components/live/ai-host/moco-donation-stage";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
+import { MOCO_OFFICIAL_USERNAME } from "@/lib/ai-live/official-channel-id";
 import type { IdolId } from "@/lib/ai-live/idols";
 import type { MessageKey } from "@/lib/i18n/message-keys";
 
@@ -50,8 +55,7 @@ export function MocoLiveRoom({
   memberId = null,
   donationPoll = "/api/live/moco/donations",
   signInPath = "/live/moco",
-  poster = true,
-  accent = "#ff4d8d",
+  hostUsername = MOCO_OFFICIAL_USERNAME,
   tabs,
 }: {
   channelId?: string | null;
@@ -62,11 +66,10 @@ export function MocoLiveRoom({
   memberId?: IdolId | null;
   donationPoll?: string;
   signInPath?: string;
-  poster?: boolean;
-  accent?: string;
+  hostUsername?: string;
   tabs?: IdolTab[];
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const sessionState = useSession();
   const status = sessionState?.status ?? "loading";
   const signedIn = status === "authenticated";
@@ -235,110 +238,114 @@ export function MocoLiveRoom({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col px-3 py-4">
-      <Link href="/live" className="w-fit text-sm font-semibold text-white/70 hover:text-white">
-        {t("live.navBack")}
-      </Link>
-      <div className="relative mt-3 aspect-video overflow-hidden rounded-xl border border-white/10 bg-[#241c33]">
-        {poster ? (
-          <img
-            src="/live/moco-poster.png"
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{ background: `linear-gradient(160deg, ${accent}, #241c33 72%)` }}
-          />
-        )}
-        <MocoVrmStage framing="stage" vrmUrl={vrmUrl} onReady={onReady} />
-        {channelId ? (
-          <MocoDonationStage
-            channelId={channelId}
-            pollUrl={donationPoll}
-            onActive={onDonationActive}
-            onLine={(text) => addLine("moco", text)}
-          />
-        ) : null}
-        <span className="pointer-events-none absolute left-3 top-3 rounded-md bg-[#1a4fa0] px-2 py-1 text-[11px] font-black text-white">
-          {t("live.aiOfficialBadge")}
+    <div className="live-studio-twitch mx-auto w-full max-w-[1600px] space-y-3 px-2 py-3 sm:px-4 lg:pb-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span className="live-badge text-xs px-2.5 py-0.5">
+          <Radio className="h-3 w-3" />
+          LIVE
         </span>
+        <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium">
+          {localizedLiveCategoryLabel("JUST_CHATTING", locale)}
+        </span>
+        <h1 className="min-w-0 flex-1 truncate text-base font-bold tracking-tight sm:text-lg">{t(titleKey)}</h1>
       </div>
-      <h1 className="mt-3 text-lg font-semibold text-white">{hostName}</h1>
-      <p className="text-sm text-white/65">{t(titleKey)}</p>
-      <p className="mt-1 text-xs text-white/45">{t(subKey)}</p>
 
-      {lines.length > 0 ? (
-        <div ref={logRef} className="mt-4 max-h-40 space-y-2 overflow-y-auto pr-1">
-          {lines.map((line) => (
-            <p key={line.id} className="text-sm leading-5">
-              <span className="mr-2 text-[11px] font-semibold uppercase tracking-wide text-white/45">
-                {line.who === "you" ? t("live.aiYou") : hostName}
-              </span>
-              <span className={line.who === "you" ? "text-white/80" : "text-white"}>{line.text}</span>
+      <p className="text-sm">
+        <span className="text-primary">@{hostUsername}</span>
+        <span className="ml-2 text-muted-foreground">{t(subKey)}</span>
+      </p>
+
+      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
+        <div className="min-w-0">
+          <div className="relative aspect-video overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
+            <img src="/live/moco-poster.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <MocoVrmStage framing="stage" vrmUrl={vrmUrl} onReady={onReady} />
+            {channelId ? (
+              <MocoDonationStage
+                channelId={channelId}
+                pollUrl={donationPoll}
+                onActive={onDonationActive}
+                onLine={(text) => addLine("moco", text)}
+              />
+            ) : null}
+          </div>
+          {tabs && tabs.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  aria-pressed={tab.active}
+                  onClick={tab.onSelect}
+                  className={
+                    tab.active
+                      ? "rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+                      : "rounded-md bg-muted px-3 py-1.5 text-sm font-medium text-foreground"
+                  }
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background xl:sticky xl:top-16">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-muted/30 px-3 py-2.5">
+            <span className="text-sm font-semibold">{t("live.chat.title")}</span>
+            <span className="text-xs font-medium text-muted-foreground">{hostName}</span>
+          </div>
+          <div ref={logRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+            {lines.map((line) => (
+              <div key={line.id}>
+                <p className="text-xs font-semibold text-primary">
+                  @{line.who === "you" ? t("live.aiYou") : hostUsername}
+                </p>
+                <p className="mt-0.5 text-sm leading-snug break-words">{line.text}</p>
+              </div>
+            ))}
+          </div>
+          {signedIn ? (
+            <form onSubmit={onSubmit} className="shrink-0 space-y-2 border-t border-border/60 p-2.5">
+              {channelId ? <VideoDonationRoomControls channelId={channelId} isHost={false} /> : null}
+              <div className="flex gap-2">
+                <Input
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value.slice(0, 200))}
+                  maxLength={200}
+                  aria-label={t("live.sdp6wzr")}
+                  placeholder={t("live.sdp6wzr")}
+                  className="h-9 flex-1 rounded-lg text-sm"
+                />
+                {channelId ? (
+                  <LiveMocoDonationComposerButton
+                    channelId={channelId}
+                    hostDisplayName={hostName}
+                    buttonSize={36}
+                    className="h-9 w-9"
+                  />
+                ) : null}
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!draft.trim()}
+                  className="h-9 shrink-0 rounded-lg bg-folk-terracotta px-3 hover:bg-folk-terracotta/90"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </form>
+          ) : status === "unauthenticated" ? (
+            <p className="shrink-0 p-3 text-center text-xs text-muted-foreground">
+              <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(signInPath)}`} className="hover:underline">
+                {t("live.s1vpyvyp")}
+              </Link>
             </p>
-          ))}
+          ) : (
+            <div className="h-[53px] shrink-0 border-t border-border/60" />
+          )}
         </div>
-      ) : null}
-
-      <form onSubmit={onSubmit} className="mt-4 flex gap-2">
-        <input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value.slice(0, 200))}
-          maxLength={200}
-          aria-label={t("live.aiChatPlaceholder")}
-          placeholder={t("live.aiChatPlaceholder")}
-          className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
-        />
-        {channelId && signedIn ? (
-          <LiveMocoDonationComposerButton
-            channelId={channelId}
-            hostDisplayName={hostName}
-            buttonSize={36}
-            className="h-9 w-9 shrink-0"
-          />
-        ) : null}
-        <button
-          type="submit"
-          disabled={!draft.trim()}
-          className="rounded-lg bg-[#1a4fa0] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-        >
-          {t("live.aiSend")}
-        </button>
-      </form>
-      {channelId && signedIn ? (
-        <div className="mt-2">
-          <VideoDonationRoomControls channelId={channelId} isHost={false} />
-        </div>
-      ) : null}
-      {status === "unauthenticated" ? (
-        <Link
-          href={`/auth/signin?callbackUrl=${encodeURIComponent(signInPath)}`}
-          className="mt-2 w-fit text-xs font-semibold text-white/70 hover:text-white"
-        >
-          {t("live.aiSignIn")}
-        </Link>
-      ) : null}
-      {tabs && tabs.length > 0 ? (
-        <div className="mt-4 flex gap-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              aria-pressed={tab.active}
-              onClick={tab.onSelect}
-              className={
-                tab.active
-                  ? "rounded-full bg-white px-4 py-2 text-sm font-black text-black"
-                  : "rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white"
-              }
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }

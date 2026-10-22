@@ -14,6 +14,17 @@ export type IdolMember = {
 /** The group sits beside Moco. Custom files replace the fallback when they are added. */
 export const IDOL_VRM_FALLBACK = "/avatars/default.vrm";
 
+/**
+ * Only URLs that exist in `public/` belong here.
+ * Requesting a missing `/models/*.vrm` prints a 404 in the browser, so unshipped files stay off this list.
+ */
+const READY_VRM_URLS = new Set<string>([]);
+
+export function playableIdolVrmUrl(url: string | null | undefined): string {
+  if (url && READY_VRM_URLS.has(url)) return url;
+  return IDOL_VRM_FALLBACK;
+}
+
 export const IDOLS: readonly IdolMember[] = [
   {
     id: "airi",
