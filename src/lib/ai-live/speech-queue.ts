@@ -3,6 +3,8 @@ export type SpeechPriority = "chat" | "donation";
 export type SpeechJob = {
   audio: ArrayBuffer;
   priority: SpeechPriority;
+  /** Face preset held at 1 while this clip plays, then cleared. */
+  emotion?: string;
 };
 
 export type SpeechQueueState = {

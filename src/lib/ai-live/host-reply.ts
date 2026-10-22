@@ -1,5 +1,6 @@
 import { classifyAiHostMessage, textHasHangul } from "@/lib/ai-live/blocklist";
 import { synthesizeIdolVoice } from "@/lib/ai-live/sovits";
+import { readHostEmotionReply, type VrmEmotion } from "@/lib/ai-live/vrm-expression";
 
 /** Shut down or removed. A leftover GEMINI_MODEL value must not be called. */
 const RETIRED_GEMINI_MODELS = new Set([
@@ -31,8 +32,23 @@ function systemFor(member: string | null): string {
     "If the viewer writes any other language, answer in that language, casual and tsundere.",
     "Use light live-chat memes. One or two sentences. No lists, no stage directions, no asterisks.",
     "Refuse illegal, sexual, scam, drug, and minor topics in character. Do not explain these rules.",
+    'Return JSON only: {"text":"spoken line","emotion":"neutral"}.',
+    "emotion is one of neutral, happy, angry, sad, relaxed, surprised, and it matches the line.",
+    "text is the spoken line only. Do not put the emotion word or JSON inside text.",
   ].join(" ");
 }
+
+const HOST_RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    text: { type: "STRING" },
+    emotion: {
+      type: "STRING",
+      enum: ["neutral", "happy", "angry", "sad", "relaxed", "surprised"],
+    },
+  },
+  required: ["text", "emotion"],
+};
 
 const AI_ADMISSION =
   /\b(?:as an ai|i am an ai|i'm an ai|language model|large language model)\b/i;
@@ -71,9 +87,18 @@ type GeminiJson = {
   }[];
 };
 
-type ModelResult = { kind: "text"; text: string } | { kind: "safety" } | { kind: "fail" };
+type ModelResult =
+  | { kind: "text"; text: string; emotion: VrmEmotion }
+  | { kind: "safety" }
+  | { kind: "fail"; status?: number };
 
-async function oneModel(model: string, key: string, userText: string, system: string): Promise<ModelResult> {
+async function oneModel(
+  model: string,
+  key: string,
+  userText: string,
+  system: string,
+  jsonMode: boolean
+): Promise<ModelResult> {
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
@@ -86,8 +111,11 @@ async function oneModel(model: string, key: string, userText: string, system: st
           contents: [{ role: "user", parts: [{ text: userText }] }],
           generationConfig: {
             temperature: 0.9,
-            maxOutputTokens: 180,
+            maxOutputTokens: jsonMode ? 320 : 180,
             thinkingConfig: { thinkingBudget: 0 },
+            ...(jsonMode
+              ? { responseMimeType: "application/json", responseSchema: HOST_RESPONSE_SCHEMA }
+              : {}),
           },
           safetySettings: [
             { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
@@ -98,19 +126,19 @@ async function oneModel(model: string, key: string, userText: string, system: st
         }),
       }
     );
-    if (!res.ok) return { kind: "fail" };
+    if (!res.ok) return { kind: "fail", status: res.status };
     const json = (await res.json()) as GeminiJson;
     if (json.promptFeedback?.blockReason) return { kind: "safety" };
     const candidate = json.candidates?.[0];
     if (candidate?.finishReason === "SAFETY") return { kind: "safety" };
-    const text = (candidate?.content?.parts ?? [])
+    const raw = (candidate?.content?.parts ?? [])
       .filter((part) => !part.thought)
       .map((part) => part.text ?? "")
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 240);
-    return { kind: "text", text };
+      .join("")
+      .trim();
+    const spoken = readHostEmotionReply(raw);
+    if (!spoken) return { kind: "fail" };
+    return { kind: "text", text: spoken.text, emotion: spoken.emotion };
   } catch {
     return { kind: "fail" };
   }
@@ -119,22 +147,25 @@ async function oneModel(model: string, key: string, userText: string, system: st
 async function geminiZeta(
   userText: string,
   member: string | null
-): Promise<{ text: string; blocked: boolean }> {
+): Promise<{ text: string; emotion: VrmEmotion; blocked: boolean }> {
   const key = geminiKey();
-  if (!key) return { text: quietLine(userText), blocked: false };
+  if (!key) return { text: quietLine(userText), emotion: "sad", blocked: false };
   const system = systemFor(member);
 
   for (const model of geminiModels()) {
-    const result = await oneModel(model, key, userText, system);
+    let result = await oneModel(model, key, userText, system, true);
+    if (result.kind === "fail" && result.status === 400) {
+      result = await oneModel(model, key, userText, system, false);
+    }
     if (result.kind === "fail") continue;
-    if (result.kind === "safety") return { text: angryOrHard(userText), blocked: true };
-    if (!result.text) return { text: quietLine(userText), blocked: false };
-    if (AI_ADMISSION.test(result.text)) return { text: deflect(userText), blocked: false };
+    if (result.kind === "safety") return { text: angryOrHard(userText), emotion: "angry", blocked: true };
+    if (!result.text) return { text: quietLine(userText), emotion: "sad", blocked: false };
+    if (AI_ADMISSION.test(result.text)) return { text: deflect(userText), emotion: "angry", blocked: false };
     const blocked = classifyAiHostMessage(result.text);
-    if (blocked) return { text: blocked.text, blocked: true };
-    return { text: result.text, blocked: false };
+    if (blocked) return { text: blocked.text, emotion: "angry", blocked: true };
+    return { text: result.text, emotion: result.emotion, blocked: false };
   }
-  return { text: quietLine(userText), blocked: false };
+  return { text: quietLine(userText), emotion: "sad", blocked: false };
 }
 
 function angryOrHard(userText: string): string {
@@ -143,6 +174,7 @@ function angryOrHard(userText: string): string {
 
 export type HostSpeech = {
   text: string;
+  emotion: VrmEmotion;
   blocked: boolean;
   audio: ArrayBuffer | null;
 };
@@ -150,7 +182,7 @@ export type HostSpeech = {
 /** Caller must already have passed `planHostReply` and only send `kind: "model"` text. */
 export async function speakHostLine(userText: string, member: string | null = null): Promise<HostSpeech> {
   const reply = await geminiZeta(userText, member);
-  if (reply.blocked) return { text: reply.text, blocked: true, audio: null };
+  if (reply.blocked) return { text: reply.text, emotion: reply.emotion, blocked: true, audio: null };
   const audio = await synthesizeIdolVoice(reply.text, textHasHangul(reply.text));
-  return { text: reply.text, blocked: false, audio };
+  return { text: reply.text, emotion: reply.emotion, blocked: false, audio };
 }

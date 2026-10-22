@@ -3,6 +3,7 @@
 import type { VRM } from "@pixiv/three-vrm";
 import { useEffect, useMemo, useRef } from "react";
 import { IDOL_VRM_FALLBACK } from "@/lib/ai-live/idols";
+import { applyVrmMouth, parseVrmEmotion, setVrmEmotion } from "@/lib/ai-live/vrm-expression";
 import { disposeIdolVrm, loadIdolVrm, useIdolVrm } from "@/components/live/ai-host/use-idol-vrm";
 
 const DEFAULT_VRM_URL = IDOL_VRM_FALLBACK;
@@ -10,12 +11,76 @@ const DEFAULT_VRM_URL = IDOL_VRM_FALLBACK;
 export type MocoStageHandle = {
   /** Create the audio graph during the click that will play speech. */
   prime: () => void;
-  playVoice: (bytes: ArrayBuffer) => Promise<void>;
+  /** Play speech. `emotion` stays at 1 until the clip ends, then the face returns to neutral. */
+  playVoice: (bytes: ArrayBuffer, emotion?: string) => Promise<void>;
   stopVoice: () => void;
+  /** Swap a clothing material's texture without reloading the VRM. */
+  changeClothing: (materialName: string, textureUrl: string) => void;
 };
+
+type PaintableMaterial = import("three").Material & { map?: import("three").Texture | null };
+
+function clothingTextureUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const base = typeof window !== "undefined" ? window.location.origin : "https://mocomo.net";
+    const url = new URL(trimmed, base);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Keep the skeleton and mesh. Replace the named material's color map.
+ * `materialName` matches `material.name` (for example `CLOTHING_MAT`).
+ */
+export async function changeClothingTexture(vrm: VRM | null | undefined, materialName: string, newTextureUrl: string) {
+  const needle = materialName.trim();
+  const href = clothingTextureUrl(newTextureUrl);
+  if (!vrm || !needle || !href) return;
+
+  const THREE = await import("three");
+  const texture = await new Promise<import("three").Texture | null>((resolve) => {
+    new THREE.TextureLoader().load(href, (loaded) => resolve(loaded), undefined, () => resolve(null));
+  });
+  if (!texture) return;
+  texture.flipY = false;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  texture.userData.mocoClothing = true;
+
+  const retired = new Set<import("three").Texture>();
+  let applied = 0;
+  vrm.scene.traverse((child) => {
+    const mesh = child as import("three").Mesh;
+    if (!mesh.isMesh) return;
+    const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const mat of list) {
+      if (!mat?.name?.includes(needle)) continue;
+      const paintable = mat as PaintableMaterial;
+      if (!("map" in paintable)) continue;
+      const previous = paintable.map;
+      paintable.map = texture;
+      paintable.needsUpdate = true;
+      applied += 1;
+      if (previous && previous !== texture && previous.userData.mocoClothing === true) {
+        retired.add(previous);
+      }
+    }
+  });
+  if (applied === 0) {
+    texture.dispose();
+    return;
+  }
+  for (const previous of retired) previous.dispose();
+}
 
 type LipSync = {
   active: boolean;
+  emotion: string;
   analyser: AnalyserNode | null;
   bins: Uint8Array<ArrayBuffer> | null;
 };
@@ -41,13 +106,15 @@ export function MocoVrmStage({
     prime() {},
     playVoice: async () => {},
     stopVoice() {},
+    changeClothing() {},
   });
 
   const handle = useMemo<MocoStageHandle>(
     () => ({
       prime: () => voiceRef.current.prime(),
-      playVoice: (bytes) => voiceRef.current.playVoice(bytes),
+      playVoice: (bytes, emotion) => voiceRef.current.playVoice(bytes, emotion),
       stopVoice: () => voiceRef.current.stopVoice(),
+      changeClothing: (materialName, textureUrl) => voiceRef.current.changeClothing(materialName, textureUrl),
     }),
     []
   );
@@ -66,11 +133,13 @@ export function MocoVrmStage({
     let source: AudioBufferSourceNode | null = null;
     let playDone: (() => void) | null = null;
     let voiceSession = 0;
-    const lip: LipSync = { active: false, analyser: null, bins: null };
+    const lip: LipSync = { active: false, emotion: "neutral", analyser: null, bins: null };
+    const shown: { vrm: VRM | null } = { current: null };
 
     const stopVoice = () => {
       voiceSession += 1;
       lip.active = false;
+      lip.emotion = "neutral";
       lip.analyser = null;
       lip.bins = null;
       const current = source;
@@ -94,9 +163,10 @@ export function MocoVrmStage({
       void audioCtx.resume();
     };
 
-    const playVoice = async (bytes: ArrayBuffer) => {
+    const playVoice = async (bytes: ArrayBuffer, emotion?: string) => {
       stopVoice();
       const token = voiceSession;
+      const mood = parseVrmEmotion(emotion);
       prime();
       if (!audioCtx || bytes.byteLength < 64) return;
       try {
@@ -111,12 +181,14 @@ export function MocoVrmStage({
         source = src;
         lip.analyser = analyser;
         lip.bins = new Uint8Array(analyser.frequencyBinCount);
+        lip.emotion = mood;
         lip.active = true;
         await new Promise<void>((resolve) => {
           playDone = resolve;
           src.onended = () => {
             if (source === src) {
               lip.active = false;
+              lip.emotion = "neutral";
               lip.analyser = null;
               lip.bins = null;
               source = null;
@@ -127,10 +199,15 @@ export function MocoVrmStage({
         });
       } catch {
         lip.active = false;
+        lip.emotion = "neutral";
       }
     };
 
-    voiceRef.current = { prime, playVoice, stopVoice };
+    const changeClothing = (materialName: string, textureUrl: string) => {
+      void changeClothingTexture(shown.current, materialName, textureUrl);
+    };
+
+    voiceRef.current = { prime, playVoice, stopVoice, changeClothing };
 
     void (async () => {
       const THREE = await import("three");
@@ -288,6 +365,7 @@ export function MocoVrmStage({
           }
           if (poseRef.current) disposeIdolVrm(poseRef.current.vrm);
           scene.add(vrm.scene);
+          shown.current = vrm;
           poseRef.current = rememberPose(vrm);
           frameCamera(vrm);
           host.dataset.vrmReady = "1";
@@ -367,8 +445,8 @@ export function MocoVrmStage({
           const expressions = vrm.expressionManager;
           if (expressions) {
             expressions.setValue("blink", blinking ? 1 : 0);
-            expressions.setValue("aa", aa);
-            expressions.setValue("happy", aa > 0.02 ? 0 : 0.08);
+            applyVrmMouth(vrm, aa);
+            setVrmEmotion(vrm, lip.active ? lip.emotion : "neutral");
             expressions.update();
           }
         }
@@ -388,6 +466,7 @@ export function MocoVrmStage({
       dispose = () => {
         cancelAnimationFrame(raf);
         loadGen += 1;
+        shown.current = null;
         if (poseRef.current) disposeIdolVrm(poseRef.current.vrm);
         ro.disconnect();
         env.dispose();
@@ -407,6 +486,7 @@ export function MocoVrmStage({
         prime() {},
         playVoice: async () => {},
         stopVoice() {},
+        changeClothing() {},
       };
       dispose();
     };

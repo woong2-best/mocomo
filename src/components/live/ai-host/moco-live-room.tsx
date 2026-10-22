@@ -107,7 +107,7 @@ export function MocoLiveRoom({
     speakingRef.current = true;
     const token = queueRef.current.epoch;
     try {
-      await stageRef.current?.playVoice(job.audio);
+      await stageRef.current?.playVoice(job.audio, job.emotion);
     } finally {
       if (token !== queueRef.current.epoch) return;
       speakingRef.current = false;
@@ -162,12 +162,18 @@ export function MocoLiveRoom({
           addLine("moco", t("live.aiUnavailable"));
           return;
         }
-        const json = (await res.json()) as { text?: unknown; audioBase64?: unknown };
+        const json = (await res.json()) as { text?: unknown; emotion?: unknown; audioBase64?: unknown };
         if (!aliveRef.current) return;
         const reply = typeof json.text === "string" ? json.text.trim() : "";
         if (reply) addLine("moco", reply);
         const audio = typeof json.audioBase64 === "string" ? decodeAudioBase64(json.audioBase64) : null;
-        if (audio) pushAudio({ audio, priority: "chat" });
+        if (audio) {
+          pushAudio({
+            audio,
+            priority: "chat",
+            emotion: typeof json.emotion === "string" ? json.emotion : "neutral",
+          });
+        }
       } catch {
         if (aliveRef.current) addLine("moco", t("live.aiUnavailable"));
       }

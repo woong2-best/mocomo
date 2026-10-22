@@ -29,12 +29,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
   if (plan.kind === "blocked") {
-    return NextResponse.json({ text: plan.text, blocked: true, audioBase64: null });
+    return NextResponse.json({ text: plan.text, emotion: "angry", blocked: true, audioBase64: null });
   }
 
   const spoken = await speakHostLine(plan.text, member);
   return NextResponse.json({
     text: spoken.text,
+    emotion: spoken.emotion,
     blocked: spoken.blocked,
     audioBase64: spoken.audio ? Buffer.from(spoken.audio).toString("base64") : null,
   });
