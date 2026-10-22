@@ -57,7 +57,7 @@ const protectedRoutes = [
   "/premium",
   "/support",
   "/voice",
-  "/avatar",
+  "/avatar/",
   "/cosplay/apply",
 ];
 const authRoutes = ["/auth/signin", "/auth/signup", "/auth/login"];
@@ -430,6 +430,6 @@ export default edgeAuth(async (req) => {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|wasm|task|js|css|woff2?)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|wasm|task|js|css|woff2?|vrm|glb|gltf)$).*)",
   ],
 };
