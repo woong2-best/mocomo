@@ -175,6 +175,7 @@ export function MocoVrmStage({
         const src = audioCtx.createBufferSource();
         const analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.45;
         src.buffer = buffer;
         src.connect(analyser);
         analyser.connect(audioCtx.destination);
@@ -425,7 +426,8 @@ export function MocoVrmStage({
           lip.analyser.getByteFrequencyData(bins);
           let sum = 0;
           for (let i = 0; i < bins.length; i += 1) sum += bins[i] ?? 0;
-          aa = Math.min(sum / bins.length / 100, 1);
+          // Edge-TTS speech sits lower in the analyser than a studio WAV. /40 reaches aa.
+          aa = Math.min(sum / bins.length / 40, 1);
         }
 
         const now = performance.now();

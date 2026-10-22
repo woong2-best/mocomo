@@ -1,5 +1,5 @@
 import { classifyAiHostMessage, textHasHangul } from "@/lib/ai-live/blocklist";
-import { synthesizeIdolVoice } from "@/lib/ai-live/sovits";
+import { synthesizeIdolVoice } from "@/lib/ai-live/edge-tts";
 import { readHostEmotionReply, type VrmEmotion } from "@/lib/ai-live/vrm-expression";
 
 /** Shut down or removed. A leftover GEMINI_MODEL value must not be called. */
@@ -183,6 +183,6 @@ export type HostSpeech = {
 export async function speakHostLine(userText: string, member: string | null = null): Promise<HostSpeech> {
   const reply = await geminiZeta(userText, member);
   if (reply.blocked) return { text: reply.text, emotion: reply.emotion, blocked: true, audio: null };
-  const audio = await synthesizeIdolVoice(reply.text, textHasHangul(reply.text));
+  const audio = await synthesizeIdolVoice(reply.text);
   return { text: reply.text, emotion: reply.emotion, blocked: false, audio };
 }

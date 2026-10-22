@@ -50,6 +50,8 @@ const nextConfig: NextConfig = {
     "onnxruntime-web",
     "onnxruntime-node",
     "sharp",
+    "node-edge-tts",
+    "ws",
   ],
   webpack: (config, { isServer }) => {
     if (isServer) {

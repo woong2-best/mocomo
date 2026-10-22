@@ -6,6 +6,7 @@ import { speakHostLine } from "@/lib/ai-live/host-reply";
 import { isIdolId } from "@/lib/ai-live/idols";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "live-ai-host", 8);
