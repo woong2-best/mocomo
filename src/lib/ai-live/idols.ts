@@ -5,6 +5,7 @@ export type IdolMember = {
   channelId: string;
   username: string;
   vrmUrl: string;
+  poster: string;
   accent: string;
   nameKey: "live.idol.airi.name" | "live.idol.chloe.name" | "live.idol.stella.name";
   titleKey: "live.idol.airi.title" | "live.idol.chloe.title" | "live.idol.stella.title";
@@ -31,6 +32,7 @@ export const IDOLS: readonly IdolMember[] = [
     channelId: "idol-airi",
     username: "idol_airi",
     vrmUrl: "/models/airi.vrm",
+    poster: "/live/idols/airi.jpg",
     accent: "#ff4d8d",
     nameKey: "live.idol.airi.name",
     titleKey: "live.idol.airi.title",
@@ -41,6 +43,7 @@ export const IDOLS: readonly IdolMember[] = [
     channelId: "idol-chloe",
     username: "idol_chloe",
     vrmUrl: "/models/chloe.vrm",
+    poster: "/live/idols/chloe.jpg",
     accent: "#c4a574",
     nameKey: "live.idol.chloe.name",
     titleKey: "live.idol.chloe.title",
@@ -51,6 +54,7 @@ export const IDOLS: readonly IdolMember[] = [
     channelId: "idol-stella",
     username: "idol_stella",
     vrmUrl: "/models/stella.vrm",
+    poster: "/live/idols/stella.jpg",
     accent: "#3ddcff",
     nameKey: "live.idol.stella.name",
     titleKey: "live.idol.stella.title",

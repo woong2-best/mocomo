@@ -190,6 +190,7 @@ export function LiveListScreen() {
                       <AiOfficialChannelCard
                         key={idol.id}
                         accent={idol.accent}
+                        poster={idol.poster}
                         title={t(idol.titleKey)}
                         host={t(idol.nameKey)}
                         sub={t(idol.roleKey)}

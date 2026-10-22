@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -49,7 +50,9 @@ export function IdolLiveScreen({ route, navigation }: Props) {
       >
         <Ionicons name="chevron-back" size={26} color={colors.text} />
       </Pressable>
-      <View style={{ width, height: stageH, backgroundColor: idol.accent }} />
+      <View style={{ width, height: stageH, backgroundColor: "#111" }}>
+        <Image source={idol.poster} style={StyleSheet.absoluteFill} contentFit="cover" />
+      </View>
       <View style={styles.meta}>
         <Text style={[styles.name, { color: colors.text }]}>{t(idol.nameKey)}</Text>
         <Text style={[styles.title, { color: colors.textSecondary }]}>{t(idol.titleKey)}</Text>

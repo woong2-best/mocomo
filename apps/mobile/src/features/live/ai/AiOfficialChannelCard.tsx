@@ -12,9 +12,10 @@ type Props = {
   host?: string;
   sub?: string;
   accent?: string;
+  poster?: number;
 };
 
-function AiOfficialChannelCardInner({ onPress, title, host, sub, accent }: Props) {
+function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, poster }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -24,7 +25,9 @@ function AiOfficialChannelCardInner({ onPress, title, host, sub, accent }: Props
   return (
     <Pressable style={styles.row} onPress={onPress} accessibilityRole="button">
       <View style={[styles.thumb, { width: thumbW, height: thumbH, backgroundColor: accent ?? "#241c33" }]}>
-        {accent ? null : <Image source={POSTER} style={StyleSheet.absoluteFill} contentFit="cover" />}
+        {poster || !accent ? (
+          <Image source={poster ?? POSTER} style={StyleSheet.absoluteFill} contentFit="cover" />
+        ) : null}
         <View style={styles.badge} pointerEvents="none">
           <Text style={styles.badgeText}>{t(accent ? "m.live.idol_badge" : "m.live.ai_official_badge")}</Text>
         </View>
