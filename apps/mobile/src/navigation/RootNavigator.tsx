@@ -204,6 +204,10 @@ export function RootNavigator() {
               getComponent={() => require("@/features/live/LiveListScreen").LiveListScreen}
             />
             <Stack.Screen
+              name="MocoLive"
+              getComponent={() => require("@/features/live/MocoLiveScreen").MocoLiveScreen}
+            />
+            <Stack.Screen
               name="LiveDetail"
               getComponent={() => require("@/features/live/LiveDetailScreen").LiveDetailScreen}
               options={{ orientation: "default" }}

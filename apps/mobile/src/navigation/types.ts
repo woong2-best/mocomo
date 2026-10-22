@@ -55,6 +55,7 @@ export type RootStackParamList = {
   IncomingCall: { callId: string };
   Discover: undefined;
   LiveList: undefined;
+  MocoLive: undefined;
   LiveDetail: { id: string };
   LiveGoLive: undefined;
   LiveStudio: undefined;

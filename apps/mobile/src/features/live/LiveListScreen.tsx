@@ -182,7 +182,9 @@ export function LiveListScreen() {
             }
             ListFooterComponent={
               <View>
-                {showAiCard ? <AiOfficialChannelCard /> : null}
+                {showAiCard ? (
+                  <AiOfficialChannelCard onPress={() => navigation.navigate("MocoLive")} />
+                ) : null}
                 {query.isFetchingNextPage ? (
                   <ActivityIndicator style={{ marginVertical: 16 }} color={colors.terracotta} />
                 ) : null}
