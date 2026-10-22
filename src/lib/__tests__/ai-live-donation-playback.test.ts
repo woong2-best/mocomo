@@ -20,8 +20,9 @@ test("official and idol channels stay on, and other rooms do not", () => {
   assert.equal(isAlwaysOnLiveChannel("idol-stella"), true);
   assert.equal(isAlwaysOnLiveChannel("other"), false);
   assert.equal(idolById("airi")?.vrmUrl, "/models/airi.vrm");
-  assert.equal(playableIdolVrmUrl("/models/airi.vrm"), "/avatars/default.vrm");
-  assert.equal(playableIdolVrmUrl("/models/chloe.vrm"), "/avatars/default.vrm");
-  assert.equal(playableIdolVrmUrl("/models/stella.vrm"), "/avatars/default.vrm");
+  assert.equal(playableIdolVrmUrl("/models/airi.vrm"), "/models/airi.vrm");
+  assert.equal(playableIdolVrmUrl("/models/chloe.vrm"), "/models/chloe.vrm");
+  assert.equal(playableIdolVrmUrl("/models/stella.vrm"), "/models/stella.vrm");
+  assert.equal(playableIdolVrmUrl("/models/missing.vrm"), "/avatars/default.vrm");
   assert.equal(idolById("nope"), null);
 });

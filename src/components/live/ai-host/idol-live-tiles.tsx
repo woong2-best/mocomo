@@ -19,14 +19,14 @@ export function IdolLiveTiles() {
             <img
               src={idol.poster}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover object-[center_22%] transition-transform duration-500 group-hover:scale-[1.03]"
+              className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
             <LiveThumbnailLiveBadge className="absolute top-2.5 left-2.5" />
           </div>
           <div className="mt-2.5 flex min-w-0 gap-2.5">
             <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/40 ring-2 ring-white/15">
-              <img src={idol.poster} alt="" className="h-full w-full object-cover object-[center_18%]" />
+              <img src={idol.poster} alt="" className="h-full w-full object-cover object-center" />
             </div>
             <div className="min-w-0 flex-1 space-y-0.5">
               <p className="truncate text-sm font-semibold text-white">{t(idol.nameKey)}</p>

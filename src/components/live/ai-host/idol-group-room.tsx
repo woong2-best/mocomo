@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MocoLiveRoom } from "@/components/live/ai-host/moco-live-room";
 import { useLocale } from "@/components/providers/locale-provider";
-import { IDOLS, IDOL_VRM_FALLBACK, idolById, playableIdolVrmUrl, type IdolId } from "@/lib/ai-live/idols";
+import { IDOLS, idolById, playableIdolVrmUrl, type IdolId } from "@/lib/ai-live/idols";
 
 function rememberIdolPath(id: IdolId) {
   const next = `/live/${id}`;
@@ -21,8 +21,6 @@ export function IdolGroupRoom({
   const { t } = useLocale();
   const [member, setMember] = useState(initial);
   const idol = idolById(member) ?? IDOLS[0];
-  const ownVrm = playableIdolVrmUrl(idol.vrmUrl);
-  const hasOwnVrm = ownVrm !== IDOL_VRM_FALLBACK;
 
   const select = (id: IdolId) => {
     setMember(id);
@@ -32,10 +30,9 @@ export function IdolGroupRoom({
   return (
     <MocoLiveRoom
       channelId={channels[idol.id] ?? null}
-      vrmUrl={hasOwnVrm ? ownVrm : undefined}
+      vrmUrl={playableIdolVrmUrl(idol.vrmUrl)}
       hostUsername={idol.username}
-      posterSrc={idol.poster}
-      showVrm={hasOwnVrm}
+      showVrm
       hostNameKey={idol.nameKey}
       titleKey={idol.titleKey}
       subKey={idol.roleKey}

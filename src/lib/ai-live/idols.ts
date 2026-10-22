@@ -12,14 +12,15 @@ export type IdolMember = {
   roleKey: "live.idol.airi.role" | "live.idol.chloe.role" | "live.idol.stella.role";
 };
 
-/** The group sits beside Moco. Custom files replace the fallback when they are added. */
+/** Used only when a model file is not in the ready set. */
 export const IDOL_VRM_FALLBACK = "/avatars/default.vrm";
 
 /**
- * Only URLs that exist in `public/` belong here.
- * Requesting a missing `/models/*.vrm` prints a 404 in the browser, so unshipped files stay off this list.
+ * Files that exist under `public/`. Missing paths stay off this list so the browser never requests a 404.
+ * AIRI is VRoid AvatarSample_B, CHLOE is AvatarSample_A (commercial use and redistribution allowed, credit not required).
+ * STELLA is VRoid HairSample_Female (CC0).
  */
-const READY_VRM_URLS = new Set<string>([]);
+const READY_VRM_URLS = new Set<string>(["/models/airi.vrm", "/models/chloe.vrm", "/models/stella.vrm"]);
 
 export function playableIdolVrmUrl(url: string | null | undefined): string {
   if (url && READY_VRM_URLS.has(url)) return url;

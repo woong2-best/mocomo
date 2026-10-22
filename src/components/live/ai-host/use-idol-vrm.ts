@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 import type { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { VRM } from "@pixiv/three-vrm";
 import { playableIdolVrmUrl } from "@/lib/ai-live/idols";
@@ -35,8 +36,26 @@ export async function loadIdolVrm(loader: GLTFLoader, url: string): Promise<VRM>
   vrm.scene.traverse((obj) => {
     obj.frustumCulled = false;
   });
-  vrm.scene.rotation.y = 0;
+  faceTheCamera(vrm);
   return vrm;
+}
+
+/** VRoid exports face -Z. The studio model faces +Z. Turn whichever side the eyes are looking toward the camera. */
+function faceTheCamera(vrm: VRM) {
+  vrm.scene.rotation.y = 0;
+  vrm.scene.updateMatrixWorld(true);
+  const humanoid = vrm.humanoid;
+  const left = humanoid?.getNormalizedBoneNode("leftEye") ?? humanoid?.getRawBoneNode("leftEye");
+  const right = humanoid?.getNormalizedBoneNode("rightEye") ?? humanoid?.getRawBoneNode("rightEye");
+  if (!left || !right) return;
+  const leftPos = left.getWorldPosition(new THREE.Vector3());
+  const rightPos = right.getWorldPosition(new THREE.Vector3());
+  const across = new THREE.Vector3().subVectors(leftPos, rightPos);
+  across.y = 0;
+  if (across.lengthSq() < 1e-8) return;
+  across.normalize();
+  const forward = new THREE.Vector3().crossVectors(across, new THREE.Vector3(0, 1, 0));
+  if (forward.z < 0) vrm.scene.rotation.y = Math.PI;
 }
 
 /**

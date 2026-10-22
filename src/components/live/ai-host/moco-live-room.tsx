@@ -56,7 +56,6 @@ export function MocoLiveRoom({
   donationPoll = "/api/live/moco/donations",
   signInPath = "/live/moco",
   hostUsername = MOCO_OFFICIAL_USERNAME,
-  posterSrc = "/live/moco-poster.png",
   showVrm = true,
   tabs,
 }: {
@@ -69,7 +68,6 @@ export function MocoLiveRoom({
   donationPoll?: string;
   signInPath?: string;
   hostUsername?: string;
-  posterSrc?: string;
   showVrm?: boolean;
   tabs?: IdolTab[];
 }) {
@@ -262,7 +260,6 @@ export function MocoLiveRoom({
       <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
         <div className="min-w-0">
           <div className="relative aspect-video overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
-            <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
             {showVrm ? <MocoVrmStage framing="stage" vrmUrl={vrmUrl} onReady={onReady} /> : null}
             {channelId ? (
               <MocoDonationStage
