@@ -59,7 +59,6 @@ export const MobileApi = {
   callAccept: (id: string) => `/api/mobile/calls/${id}/accept`,
   callEnd: (id: string) => `/api/mobile/calls/${id}/end`,
   live: "/api/mobile/live",
-  aiLiveChat: "/api/mobile/live/ai-host/chat",
   marketplace: "/api/mobile/marketplace",
   commissions: "/api/mobile/commissions",
   studios: "/api/mobile/studios",

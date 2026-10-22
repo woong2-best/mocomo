@@ -10,7 +10,6 @@ import { fetchLiveHub, type LiveListItem } from "@/api/live";
 import { coerceViewerCount, type MobileLiveCategoryId } from "@/features/live/live-categories";
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
-import { AiLiveRoom } from "@/features/live/ai/AiLiveRoom";
 import { AiOfficialChannelCard } from "@/features/live/ai/AiOfficialChannelCard";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
@@ -88,9 +87,8 @@ export function LiveListScreen() {
   const hero = visibleItems[0] ?? null;
   const rows = hero ? visibleItems.slice(1) : visibleItems;
   const waitingFirst = query.isPending && !hasHubPages;
-  const showAiRoom = !hero && !searchNorm && !waitingFirst;
   const showAiCard =
-    !!hero && !searchNorm && (category === "ALL" || category === "JUST_CHATTING");
+    !searchNorm && !waitingFirst && (category === "ALL" || category === "JUST_CHATTING");
 
   const openLive = useCallback(
     (id: string) => navigation.navigate("LiveDetail", { id }),
@@ -133,21 +131,13 @@ export function LiveListScreen() {
             style={styles.backHit}
             accessibilityLabel={copy.back}
           >
-            <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+            <Ionicons name="chevron-back" size={26} color={hero ? "#FFFFFF" : colors.text} />
           </Pressable>
           <LiveGlassSearch value={searchQ} onChangeText={setSearchQ} expandedWidth={searchWidth} />
         </View>
 
-        {showAiRoom ? (
-          <AiLiveRoom
-            topInset={insets.top + 48}
-            between={<LiveSlantTabs active={category} onSelect={selectCategory} />}
-            notice={query.isError && !hasHubPages ? copy.loadHubError : null}
-            onRetry={query.isError ? () => void query.refetch() : undefined}
-            retryLabel={copy.retry}
-          />
-        ) : query.isError && !hasHubPages ? (
-          <View style={[styles.fill, { paddingTop: insets.top }]}>
+        {query.isError && !hasHubPages ? (
+          <View style={[styles.fill, { paddingTop: insets.top + 48 }]}>
             <LiveSlantTabs active={category} onSelect={selectCategory} />
             <View style={styles.center}>
               <Text style={styles.error}>{copy.loadHubError}</Text>
@@ -161,12 +151,13 @@ export function LiveListScreen() {
             renderItem={renderItem}
             maintainVisibleContentPosition={{ disabled: true }}
             ListHeaderComponent={
-              <View style={{ paddingTop: insets.top, backgroundColor: "#000" }}>
-                {hero ? (
-                  <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} />
-                ) : (
-                  <View style={{ width, height: Math.round(width * (9 / 16)), backgroundColor: "#000" }} />
-                )}
+              <View
+                style={{
+                  paddingTop: hero ? insets.top : insets.top + 48,
+                  backgroundColor: hero ? "#000" : colors.background,
+                }}
+              >
+                {hero ? <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} /> : null}
                 <LiveSlantTabs active={category} onSelect={selectCategory} />
               </View>
             }
@@ -183,17 +174,15 @@ export function LiveListScreen() {
               }
             }}
             ListEmptyComponent={
-              query.isPending && !hasHubPages ? (
+              waitingFirst ? (
                 <ActivityIndicator style={{ marginTop: 48 }} color={colors.terracotta} />
-              ) : hero ? null : (
+              ) : searchNorm && !hero ? (
                 <Text style={styles.empty}>{copy.noSearchResults}</Text>
-              )
+              ) : null
             }
             ListFooterComponent={
               <View>
-                {showAiCard ? (
-                  <AiOfficialChannelCard onPress={() => navigation.navigate("LiveAiHost")} />
-                ) : null}
+                {showAiCard ? <AiOfficialChannelCard /> : null}
                 {query.isFetchingNextPage ? (
                   <ActivityIndicator style={{ marginVertical: 16 }} color={colors.terracotta} />
                 ) : null}

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Eye, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
-import { AiHostPanel, AiOfficialLiveCard } from "@/components/live/ai-host/ai-host-panel";
+import { AiLiveTile } from "@/components/live/ai-host/ai-live-tile";
 import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
@@ -114,7 +114,20 @@ function filterChannels(
   return channels.filter((ch) => ch.category === filter);
 }
 
-/** Category tabs + neon bar + 3-column grid. Real lives stay above the official AI card. */
+const PLACEHOLDER_COUNT = 9;
+
+function LiveGrayPlaceholderCard({ index }: { index: number }) {
+  const shade = 22 + (index % 5) * 4;
+  return (
+    <div
+      className="min-w-0 rounded-xl border border-white/[0.06] aspect-video"
+      style={{ backgroundColor: `rgb(${shade},${shade},${shade + 2})` }}
+      aria-hidden
+    />
+  );
+}
+
+/** Category tabs + neon bar + 3-column grid. Moco is one cell, same size as the others. */
 export function LiveChannelGrid({
   channels,
   hosts,
@@ -127,7 +140,6 @@ export function LiveChannelGrid({
   view?: "explore" | "following";
 }) {
   const [activeFilter, setActiveFilter] = useState<LiveFolderFilter>("ALL");
-  const [aiOpen, setAiOpen] = useState(false);
   const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
   const followedSet = useMemo(() => new Set(followedHostIds), [followedHostIds]);
 
@@ -136,32 +148,23 @@ export function LiveChannelGrid({
     [channels, activeFilter, followedSet]
   );
   const isEmpty = visible.length === 0;
-  const showAiCard =
-    !isEmpty && (activeFilter === "ALL" || activeFilter === "JUST_CHATTING");
+  const showAiTile = activeFilter === "ALL" || activeFilter === "JUST_CHATTING";
+  const fillerCount = isEmpty ? PLACEHOLDER_COUNT - (showAiTile ? 1 : 0) : 0;
 
   return (
     <div className="flex w-full min-w-0 max-w-full flex-1 flex-col overflow-x-clip">
       <div className="shrink-0 min-w-0 max-w-full px-0.5 pb-2">
-        <LiveHubTabBar
-          active={activeFilter}
-          onChange={(id) => {
-            setAiOpen(false);
-            setActiveFilter(id);
-          }}
-        />
+        <LiveHubTabBar active={activeFilter} onChange={setActiveFilter} />
       </div>
       <div className="relative min-w-0">
         <div className={cn("grid gap-3 sm:gap-4 pb-4 pt-0.5", "grid-cols-3")}>
-          {isEmpty ? <AiHostPanel key={activeFilter} /> : null}
-          {isEmpty
-            ? null
-            : visible.map((ch) => (
-                <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
-              ))}
-          {!isEmpty && aiOpen ? <AiHostPanel key="official-open" /> : null}
-          {showAiCard ? (
-            <AiOfficialLiveCard onOpen={() => setAiOpen((open) => !open)} />
-          ) : null}
+          {visible.map((ch) => (
+            <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
+          ))}
+          {showAiTile ? <AiLiveTile /> : null}
+          {Array.from({ length: fillerCount }, (_, i) => (
+            <LiveGrayPlaceholderCard key={`ph-${i}`} index={i} />
+          ))}
         </div>
       </div>
     </div>

@@ -38,7 +38,6 @@
     "expo-location": "^57.0.7",
     "expo-notifications": "^57.0.10",
     "expo-secure-store": "~57.0.1",
-    "expo-speech": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "expo-task-manager": "~57.0.3",
     "expo-video": "~57.0.2",
