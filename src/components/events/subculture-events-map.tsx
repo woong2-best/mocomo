@@ -103,6 +103,22 @@ const SIDEBAR_CLUSTER_CIRCLE_RADIUS: ExpressionSpecification = [
   14,
 ];
 
+/**
+ * MapLibre only allows `zoom` as the input of a top-level step/interpolate.
+ * Nesting that interpolate under `min` makes addLayer throw and drops the clusters.
+ */
+function clusterCircleRadius(countRadius: ExpressionSpecification): ExpressionSpecification {
+  const expr: unknown[] = ["interpolate", ["linear"], ["zoom"]];
+  for (const [zoom, cap] of [
+    [1, 8],
+    [3, 12],
+    [6, 16],
+  ] as const) {
+    expr.push(zoom, ["min", structuredClone(countRadius), cap]);
+  }
+  return expr as ExpressionSpecification;
+}
+
 function pinColor(category: string, halo: boolean) {
   if (halo) return "#ff4d9a";
   return SUBCULTURE_EVENT_CATEGORY_COLORS[category] ?? SUBCULTURE_EVENT_CATEGORY_COLORS.other;
@@ -434,11 +450,9 @@ export function SubcultureEventsMap({
               "circle-color": pinHalo ? "#ff4d9a" : "#7c3aed",
               "circle-stroke-width": 2,
               "circle-stroke-color": "#ffffff",
-              "circle-radius": [
-                "min",
-                pinHalo ? SIDEBAR_CLUSTER_CIRCLE_RADIUS : CLUSTER_CIRCLE_RADIUS,
-                ["interpolate", ["linear"], ["zoom"], 1, 8, 3, 12, 6, 16],
-              ] as ExpressionSpecification,
+              "circle-radius": clusterCircleRadius(
+                pinHalo ? SIDEBAR_CLUSTER_CIRCLE_RADIUS : CLUSTER_CIRCLE_RADIUS
+              ),
               "circle-pitch-alignment": "viewport",
               "circle-pitch-scale": "viewport",
             },

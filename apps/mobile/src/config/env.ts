@@ -13,8 +13,31 @@ const extra = (Constants.expoConfig?.extra ?? {}) as Extra;
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? extra.apiBaseUrl ?? "https://mocomo.net";
 
-export const SOCKET_URL =
-  process.env.EXPO_PUBLIC_SOCKET_URL ?? extra.socketUrl ?? API_BASE_URL;
+const SOCKET_FALLBACK_URL = "https://mocomo-socket.onrender.com";
+
+const SITE_SOCKET_HOSTS = new Set([
+  "mocomo.net",
+  "www.mocomo.net",
+  "app.mocomo.net",
+  "studio.mocomo.net",
+]);
+
+/** Site hosts do not run Socket.IO. Match the web client and use the Render server. */
+function resolveSocketUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  try {
+    const host = new URL(trimmed).hostname;
+    if (SITE_SOCKET_HOSTS.has(host)) return SOCKET_FALLBACK_URL;
+  } catch {
+    return trimmed;
+  }
+  return trimmed;
+}
+
+export const SOCKET_URL = resolveSocketUrl(
+  process.env.EXPO_PUBLIC_SOCKET_URL ?? extra.socketUrl ?? API_BASE_URL
+);
 
 export const APP_PACKAGE_ID = "net.mocomo.app";
 

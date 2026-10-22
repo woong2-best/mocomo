@@ -22,10 +22,12 @@ async function connectCallSocket(): Promise<Socket | null> {
 
   return new Promise((resolve) => {
     const socket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       auth: { token: authRes.token },
       reconnection: true,
       reconnectionAttempts: 8,
+      reconnectionDelay: 2500,
+      reconnectionDelayMax: 30000,
     });
 
     const timer = setTimeout(() => {

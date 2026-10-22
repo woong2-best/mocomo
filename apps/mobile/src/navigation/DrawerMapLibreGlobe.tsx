@@ -577,9 +577,15 @@ if (!maplibregl) {
         "circle-stroke-width": 2,
         "circle-stroke-color": "#ffffff",
         "circle-radius": [
-          "min",
-          ["step", ["get", "point_count"], 10, 10, 12, 50, 14],
-          ["interpolate", ["linear"], ["zoom"], 1, 8, 3, 11, 6, 14]
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          1,
+          ["min", ["step", ["get", "point_count"], 10, 10, 12, 50, 14], 8],
+          3,
+          ["min", ["step", ["get", "point_count"], 10, 10, 12, 50, 14], 11],
+          6,
+          ["min", ["step", ["get", "point_count"], 10, 10, 12, 50, 14], 14]
         ]
       }, circlePitch)
     });

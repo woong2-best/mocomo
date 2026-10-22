@@ -91,6 +91,19 @@ function onSocketDisconnect() {
   applyPresenceSnapshot([], "replace");
 }
 
+async function wakeMobileSocket(url: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`${url.replace(/\/$/, "")}/health`, { signal: controller.signal });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function connectInboxSocket(): Promise<Socket | null> {
   if (!SOCKET_URL) return null;
   if (socket?.connected) return socket;
@@ -101,15 +114,21 @@ async function connectInboxSocket(): Promise<Socket | null> {
     if (!bearer) return null;
     const authRes = await fetchMobileSocketAuthToken().catch(() => null);
     if (!authRes?.token) return null;
+    const woke = await wakeMobileSocket(SOCKET_URL);
+    if (!woke) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await wakeMobileSocket(SOCKET_URL);
+    }
 
     return await new Promise<Socket | null>((resolve) => {
       const next = io(SOCKET_URL, {
-        transports: ["websocket", "polling"],
+        transports: ["polling", "websocket"],
         auth: { token: authRes.token },
         reconnection: true,
         reconnectionAttempts: Infinity,
-        reconnectionDelay: 400,
-        reconnectionDelayMax: 4000,
+        reconnectionDelay: 2500,
+        reconnectionDelayMax: 30000,
+        randomizationFactor: 0.5,
       });
       const timer = setTimeout(() => {
         if (!next.connected) {

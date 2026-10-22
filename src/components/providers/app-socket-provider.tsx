@@ -42,13 +42,16 @@ const AppSocketContext = createContext<AppSocketContextValue>({
   isUserOnline: () => false,
 });
 
-/** 허브 화면: cold-start wake는 백그라운드, 소켓 연결은 즉시 (통화 수신 보장) */
+/** 허브 화면: cold-start wake는 백그라운드. 통화·메시지 경로는 헬스 확인 뒤에 연결 */
 async function prepareSocketServer(socketUrl: string, immediate: boolean): Promise<void> {
-  if (immediate) {
-    await wakeSocketServer(socketUrl);
+  if (!immediate) {
+    void wakeSocketServer(socketUrl);
     return;
   }
-  void wakeSocketServer(socketUrl);
+  const woke = await wakeSocketServer(socketUrl);
+  if (woke) return;
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  await wakeSocketServer(socketUrl);
 }
 
 /** 로그인 사용자 — 앱 어디서든 접속 중 표시·실시간 채팅용 단일 소켓 */
@@ -109,6 +112,8 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
     let tokenRefreshTimer: number | undefined;
     let connectTimeout: number | undefined;
     let startTimer: number | undefined;
+    let holdTimer: number | undefined;
+    let lastAuthRefresh = 0;
 
     const start = () => {
       void import("socket.io-client").then(async ({ io }) => {
@@ -127,12 +132,14 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
 
       activeSocket = io(socketUrl, {
         auth: { token },
-        transports: ["websocket", "polling"],
+        // Polling first so a cold Render websocket 503 does not fill the console.
+        // A healthy server still upgrades to websocket.
+        transports: ["polling", "websocket"],
         reconnection: true,
         reconnectionAttempts: Infinity,
-        reconnectionDelay: 1200,
-        reconnectionDelayMax: 10000,
-        randomizationFactor: 0.4,
+        reconnectionDelay: 2500,
+        reconnectionDelayMax: 30000,
+        randomizationFactor: 0.5,
         timeout: SOCKET_IO_TIMEOUT_MS,
       });
 
@@ -180,14 +187,34 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
         setOnlineUserIds(new Set());
       });
 
-      activeSocket.on("connect_error", (error: { message?: string }) => {
-        const rateLimited = /429|too many/i.test(String(error?.message ?? ""));
-        void refreshAuth().then((ok) => {
-          if (!ok || !activeSocket || activeSocket.connected) return;
-          window.setTimeout(() => {
-            if (!disposed && activeSocket && !activeSocket.connected) activeSocket.connect();
-          }, rateLimited ? 8000 : 1500);
-        });
+      activeSocket.on("connect_error", (error: { message?: string; description?: unknown }) => {
+        const now = Date.now();
+        if (now - lastAuthRefresh > 30_000) {
+          lastAuthRefresh = now;
+          void refreshAuth();
+        }
+        const message = String(error?.message ?? "");
+        const description = error?.description;
+        const status =
+          typeof description === "number"
+            ? description
+            : description &&
+                typeof description === "object" &&
+                "status" in description &&
+                typeof (description as { status?: unknown }).status === "number"
+              ? (description as { status: number }).status
+              : null;
+        const rateLimited = status === 429 || /429|too many/i.test(message);
+        const unavailable = status === 503 || /503|unavailable/i.test(message);
+        if ((!rateLimited && !unavailable) || !activeSocket || activeSocket.connected) return;
+        // Socket.IO is already retrying. A second connect() here is what turns 503 into 429.
+        activeSocket.io.reconnection(false);
+        if (holdTimer) window.clearTimeout(holdTimer);
+        holdTimer = window.setTimeout(() => {
+          if (disposed || !activeSocket || activeSocket.connected) return;
+          activeSocket.io.reconnection(true);
+          activeSocket.connect();
+        }, rateLimited ? 30_000 : 8_000);
       });
 
         activeSocket.io.on("reconnect", () => {
@@ -208,6 +235,7 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
     return () => {
       disposed = true;
       if (startTimer) window.clearTimeout(startTimer);
+      if (holdTimer) window.clearTimeout(holdTimer);
       if (tokenRefreshTimer) window.clearInterval(tokenRefreshTimer);
       if (connectTimeout) window.clearTimeout(connectTimeout);
       setSocketReady(false);

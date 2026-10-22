@@ -8,10 +8,11 @@ import type { LiveChatMessage } from "@/api/live";
 function connectLiveSocket(token: string): Socket {
   return io(SOCKET_URL, {
     auth: { token },
-    transports: ["websocket"],
-    upgrade: false,
+    transports: ["polling", "websocket"],
     reconnection: true,
     reconnectionAttempts: 12,
+    reconnectionDelay: 2500,
+    reconnectionDelayMax: 30000,
   });
 }
 
