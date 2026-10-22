@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { MocoLiveRoom } from "@/components/live/ai-host/moco-live-room";
-import { useLocale } from "@/components/providers/locale-provider";
 import { IDOLS, idolById, playableIdolVrmUrl, type IdolId } from "@/lib/ai-live/idols";
-
-function rememberIdolPath(id: IdolId) {
-  const next = `/live/${id}`;
-  if (window.location.pathname === next) return;
-  History.prototype.replaceState.call(window.history, window.history.state, "", next);
-}
 
 export function IdolGroupRoom({
   initial,
@@ -18,17 +10,11 @@ export function IdolGroupRoom({
   initial: IdolId;
   channels: Partial<Record<IdolId, string>>;
 }) {
-  const { t } = useLocale();
-  const [member, setMember] = useState(initial);
-  const idol = idolById(member) ?? IDOLS[0];
-
-  const select = (id: IdolId) => {
-    setMember(id);
-    rememberIdolPath(id);
-  };
+  const idol = idolById(initial) ?? IDOLS[0];
 
   return (
     <MocoLiveRoom
+      key={idol.id}
       channelId={channels[idol.id] ?? null}
       vrmUrl={playableIdolVrmUrl(idol.vrmUrl)}
       hostUsername={idol.username}
@@ -39,12 +25,6 @@ export function IdolGroupRoom({
       memberId={idol.id}
       donationPoll={`/api/live/idol/${idol.id}/donations`}
       signInPath={`/live/${idol.id}`}
-      tabs={IDOLS.map((item) => ({
-        id: item.id,
-        label: t(item.nameKey),
-        active: item.id === idol.id,
-        onSelect: () => select(item.id),
-      }))}
     />
   );
 }

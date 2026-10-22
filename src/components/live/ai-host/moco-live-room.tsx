@@ -25,6 +25,11 @@ const MocoVrmStage = dynamic(
 );
 
 type Line = { id: number; who: "you" | "moco"; text: string };
+type ChatRoomId = IdolId | "moco";
+
+function roomIdFor(memberId: IdolId | null): ChatRoomId {
+  return memberId ?? "moco";
+}
 
 function decodeAudioBase64(value: string): ArrayBuffer | null {
   if (!value || value.length > 4_000_000) return null;
@@ -38,13 +43,6 @@ function decodeAudioBase64(value: string): ArrayBuffer | null {
   }
 }
 
-type IdolTab = {
-  id: IdolId;
-  label: string;
-  active: boolean;
-  onSelect: () => void;
-};
-
 /** Watch page. Grid stays silent. Donations use the same MOCO live payment as every other room. */
 export function MocoLiveRoom({
   channelId,
@@ -57,7 +55,6 @@ export function MocoLiveRoom({
   signInPath = "/live/moco",
   hostUsername = MOCO_OFFICIAL_USERNAME,
   showVrm = true,
-  tabs,
 }: {
   channelId?: string | null;
   vrmUrl?: string;
@@ -69,7 +66,6 @@ export function MocoLiveRoom({
   signInPath?: string;
   hostUsername?: string;
   showVrm?: boolean;
-  tabs?: IdolTab[];
 }) {
   const { t, locale } = useLocale();
   const sessionState = useSession();
@@ -79,10 +75,12 @@ export function MocoLiveRoom({
   const stageRef = useRef<MocoStageHandle | null>(null);
   const memberRef = useRef(memberId);
   memberRef.current = memberId;
+  const roomRef = useRef<ChatRoomId>(roomIdFor(memberId));
+  const logsRef = useRef<Partial<Record<ChatRoomId, Line[]>>>({});
   const hostName = t(hostNameKey);
   const queueRef = useRef(createSpeechQueue());
   const speakingRef = useRef(false);
-  const waitRef = useRef<string[]>([]);
+  const waitRef = useRef<{ text: string; room: ChatRoomId }[]>([]);
   const busyRef = useRef(false);
   const aliveRef = useRef(true);
   const donationHoldRef = useRef(false);
@@ -95,9 +93,11 @@ export function MocoLiveRoom({
     stageRef.current = handle;
   }, []);
 
-  const addLine = useCallback((who: Line["who"], text: string) => {
+  const addLine = useCallback((who: Line["who"], text: string, room = roomRef.current) => {
     const id = (idRef.current += 1);
-    setLines((prev) => [...prev, { id, who, text }].slice(-12));
+    const next = [...(logsRef.current[room] ?? []), { id, who, text }].slice(-12);
+    logsRef.current[room] = next;
+    if (roomRef.current === room) setLines(next);
   }, []);
 
   const drain = useCallback(async () => {
@@ -141,33 +141,36 @@ export function MocoLiveRoom({
   );
 
   const ask = useCallback(
-    async (text: string) => {
+    async (text: string, room: ChatRoomId) => {
       try {
         const res = await fetch("/api/live/ai-host/speak", {
           method: "POST",
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, member: memberRef.current ?? undefined }),
+          body: JSON.stringify({
+            text,
+            characterId: room === "moco" ? undefined : room,
+          }),
         });
-        if (!aliveRef.current) return;
+        if (!aliveRef.current || roomRef.current !== room) return;
         if (res.status === 401) {
-          addLine("moco", t("live.aiSignIn"));
+          addLine("moco", t("live.aiSignIn"), room);
           return;
         }
         if (res.status === 429) {
-          addLine("moco", t("live.aiRateLimit"));
+          addLine("moco", t("live.aiRateLimit"), room);
           return;
         }
         if (!res.ok) {
-          addLine("moco", t("live.aiUnavailable"));
+          addLine("moco", t("live.aiUnavailable"), room);
           return;
         }
         const json = (await res.json()) as { text?: unknown; emotion?: unknown; audioBase64?: unknown };
-        if (!aliveRef.current) return;
+        if (!aliveRef.current || roomRef.current !== room) return;
         const reply = typeof json.text === "string" ? json.text.trim() : "";
-        if (reply) addLine("moco", reply);
+        if (reply) addLine("moco", reply, room);
         const audio = typeof json.audioBase64 === "string" ? decodeAudioBase64(json.audioBase64) : null;
-        if (audio) {
+        if (audio && roomRef.current === room) {
           pushAudio({
             audio,
             priority: "chat",
@@ -175,7 +178,7 @@ export function MocoLiveRoom({
           });
         }
       } catch {
-        if (aliveRef.current) addLine("moco", t("live.aiUnavailable"));
+        if (aliveRef.current && roomRef.current === room) addLine("moco", t("live.aiUnavailable"), room);
       }
     },
     [addLine, pushAudio, t]
@@ -187,7 +190,7 @@ export function MocoLiveRoom({
     if (!next) return;
     busyRef.current = true;
     try {
-      await ask(next);
+      await ask(next.text, next.room);
     } finally {
       busyRef.current = false;
       if (aliveRef.current) void pump();
@@ -221,27 +224,43 @@ export function MocoLiveRoom({
     if (el) el.scrollTop = el.scrollHeight;
   }, [lines]);
 
+  useEffect(() => {
+    const room = roomIdFor(memberId);
+    if (roomRef.current === room) return;
+    roomRef.current = room;
+    memberRef.current = memberId;
+    waitRef.current = [];
+    busyRef.current = false;
+    speakingRef.current = false;
+    queueRef.current.epoch += 1;
+    queueRef.current.items.length = 0;
+    stageRef.current?.stopVoice();
+    setLines(logsRef.current[room] ?? []);
+    setDraft("");
+  }, [memberId]);
+
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     const text = draft.trim();
     if (!text) return;
+    const room = roomRef.current;
     setDraft("");
-    addLine("you", text);
+    addLine("you", text, room);
     const blocked = classifyAiHostMessage(text);
     if (blocked) {
-      addLine("moco", blocked.text);
+      addLine("moco", blocked.text, room);
       return;
     }
     if (!signedIn) {
-      addLine("moco", t("live.aiSignIn"));
+      addLine("moco", t("live.aiSignIn"), room);
       return;
     }
     if (waitRef.current.length >= 2) {
-      addLine("moco", t("live.aiRateLimit"));
+      addLine("moco", t("live.aiRateLimit"), room);
       return;
     }
     stageRef.current?.prime();
-    waitRef.current.push(text);
+    waitRef.current.push({ text, room });
     void pump();
   };
 
@@ -276,25 +295,6 @@ export function MocoLiveRoom({
               />
             ) : null}
           </div>
-          {tabs && tabs.length > 0 ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  aria-pressed={tab.active}
-                  onClick={tab.onSelect}
-                  className={
-                    tab.active
-                      ? "rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
-                      : "rounded-md bg-muted px-3 py-1.5 text-sm font-medium text-foreground"
-                  }
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
         </div>
 
         <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background xl:sticky xl:top-16">

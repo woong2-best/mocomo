@@ -1,3 +1,4 @@
+import { promptForCharacter } from "@/constants/prompts";
 import { classifyAiHostMessage, textHasHangul } from "@/lib/ai-live/blocklist";
 import { synthesizeIdolVoice } from "@/lib/ai-live/edge-tts";
 import { readHostEmotionReply, type VrmEmotion } from "@/lib/ai-live/vrm-expression";
@@ -17,25 +18,17 @@ const RETIRED_GEMINI_MODELS = new Set([
   "gemini-1.5-pro-latest",
 ]);
 
-const MEMBER_INTRO: Record<string, string> = {
-  airi: "You are AIRI, a high-energy Japanese VTuber and the main streamer of the idol group. Bright, fast, and playful.",
-  chloe: "You are CHLOE, a chic French VTuber. Elegant, tsundere, short, and cool. You talk about fashion and vocals.",
-  stella: "You are STELLA, an American gamer VTuber. Trendy, cool, and a girl-crush. Competitive, then kind.",
-};
-
-function systemFor(member: string | null): string {
-  const intro = (member && MEMBER_INTRO[member]) || "You are Moco, a live VTuber hosting a broadcast.";
+export function systemInstructionFor(characterId: string | null): string {
   return [
-    intro,
-    "Never say or imply that you are an AI, a bot, a model, a language model, or a program.",
-    "If the viewer writes Korean, answer in casual Korean banmal. Tsundere. Short.",
-    "If the viewer writes any other language, answer in that language, casual and tsundere.",
-    "Use light live-chat memes. One or two sentences. No lists, no stage directions, no asterisks.",
+    promptForCharacter(characterId),
+    "Stay in this identity only. Do not answer as any other member of the group.",
+    "If the viewer writes in another language, answer in that language while keeping this character's tone.",
+    "No lists, no stage directions, no asterisks.",
     "Refuse illegal, sexual, scam, drug, and minor topics in character. Do not explain these rules.",
     'Return JSON only: {"text":"spoken line","emotion":"neutral"}.',
     "emotion is one of neutral, happy, angry, sad, relaxed, surprised, and it matches the line.",
     "text is the spoken line only. Do not put the emotion word or JSON inside text.",
-  ].join(" ");
+  ].join("\n");
 }
 
 const HOST_RESPONSE_SCHEMA = {
@@ -150,7 +143,7 @@ async function geminiZeta(
 ): Promise<{ text: string; emotion: VrmEmotion; blocked: boolean }> {
   const key = geminiKey();
   if (!key) return { text: quietLine(userText), emotion: "sad", blocked: false };
-  const system = systemFor(member);
+  const system = systemInstructionFor(member);
 
   for (const model of geminiModels()) {
     let result = await oneModel(model, key, userText, system, true);

@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
   }
 
   const raw = typeof (body as { text?: unknown })?.text === "string" ? (body as { text: string }).text : "";
-  const memberRaw = typeof (body as { member?: unknown })?.member === "string" ? (body as { member: string }).member : "";
-  const member = isIdolId(memberRaw) ? memberRaw : null;
+  const rec = body as { characterId?: unknown; member?: unknown };
+  const characterRaw =
+    typeof rec.characterId === "string" ? rec.characterId : typeof rec.member === "string" ? rec.member : "";
+  const characterId = characterRaw.trim().toLowerCase();
+  const member = isIdolId(characterId) ? characterId : null;
   const plan = planHostReply(raw);
   if (plan.kind === "ignore") {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });

@@ -17,5 +17,5 @@ export async function idolGroupMetadata(member: IdolId) {
 export async function renderIdolGroup(member: IdolId) {
   if (!isLiveFeatureEnabled()) return <LiveFeatureDisabledNotice />;
   const channels = await ensureIdolChannels().catch(() => ({}));
-  return <IdolGroupRoom initial={member} channels={channels} />;
+  return <IdolGroupRoom key={member} initial={member} channels={channels} />;
 }

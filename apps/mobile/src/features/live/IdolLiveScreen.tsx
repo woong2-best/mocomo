@@ -13,7 +13,7 @@ import { LiveMocoDonationMenuSheet } from "@/features/live/LiveMocoDonationMenuS
 import { LiveMocoSfxDonationSheet } from "@/features/live/LiveMocoSfxDonationSheet";
 import { LiveMocoVideoDonationSheet } from "@/features/live/LiveMocoVideoDonationSheet";
 import { LiveVideoDonationBar } from "@/features/live/LiveVideoDonationBar";
-import { IDOL_LIVES, type IdolLiveId } from "@/features/live/ai/idol-lives";
+import { IDOL_LIVES } from "@/features/live/ai/idol-lives";
 import type { RootStackParamList } from "@/navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "IdolLive">;
@@ -25,7 +25,7 @@ export function IdolLiveScreen({ route, navigation }: Props) {
   const copy = liveUi(t);
   const { colors } = useTheme();
   const moneyAge = useMoneyAgeGate();
-  const [member, setMember] = useState<IdolLiveId>(route.params.member);
+  const member = route.params.member;
   const idol = IDOL_LIVES.find((item) => item.id === member) ?? IDOL_LIVES[0];
   const [menuOpen, setMenuOpen] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
@@ -62,20 +62,6 @@ export function IdolLiveScreen({ route, navigation }: Props) {
         <MocoTipButton onPress={openDonate} size={40} />
       </View>
       <LiveVideoDonationBar channelId={idol.channelId} isHost={false} />
-      <View style={styles.tabs}>
-        {IDOL_LIVES.map((item) => {
-          const active = item.id === idol.id;
-          return (
-            <Pressable
-              key={item.id}
-              onPress={() => setMember(item.id)}
-              style={[styles.tab, { backgroundColor: active ? "#fff" : "rgba(255,255,255,0.12)" }]}
-            >
-              <Text style={{ color: active ? "#111" : colors.text, fontWeight: "800" }}>{t(item.nameKey)}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
       <LiveMocoDonationMenuSheet
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -110,6 +96,4 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: "700" },
   sub: { fontSize: 13, fontWeight: "600" },
   donateRow: { paddingHorizontal: 16, paddingTop: 16 },
-  tabs: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingTop: 18 },
-  tab: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
 });
