@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { SESSION_END_DATA } from "@/lib/live-broadcast/session-lifecycle";
 import { teardownObsIngress } from "@/lib/obs-ingress-service";
 import { revalidateLiveHubCache } from "@/lib/live-hub-data";
+import { isMocoOfficialChannel } from "@/lib/ai-live/official-channel-id";
 
 /** 방송 종료 없이 나간 뒤 DB에서 완전 종료까지 (24시간) */
 export const ABANDONED_LIVE_END_MS = 24 * 60 * 60 * 1000;
@@ -57,7 +58,9 @@ export async function autoEndAbandonedLiveChannels(): Promise<number> {
   if (live.length === 0) return 0;
 
   const hostSeen = await fetchHostLastSeen(live);
-  const stale = live.filter((ch) => hostLastSeenAt(ch, hostSeen) < cutoff);
+  const stale = live.filter(
+    (ch) => !isMocoOfficialChannel(ch.id) && hostLastSeenAt(ch, hostSeen) < cutoff
+  );
   if (stale.length === 0) return 0;
 
   for (const ch of stale) {

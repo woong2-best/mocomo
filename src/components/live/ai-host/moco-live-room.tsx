@@ -8,6 +8,9 @@ import type { MocoStageHandle } from "@/components/live/ai-host/moco-vrm-stage";
 import { useLocale } from "@/components/providers/locale-provider";
 import { classifyAiHostMessage } from "@/lib/ai-live/blocklist";
 import { createSpeechQueue, enqueueSpeech, type SpeechJob } from "@/lib/ai-live/speech-queue";
+import { LiveMocoDonationComposerButton } from "@/components/live/live-moco-donation-composer-button";
+import { VideoDonationRoomControls } from "@/components/live/video-donation-room-controls";
+import { MocoDonationStage } from "@/components/live/ai-host/moco-donation-stage";
 
 const MocoVrmStage = dynamic(
   () => import("@/components/live/ai-host/moco-vrm-stage").then((m) => m.MocoVrmStage),
@@ -28,8 +31,8 @@ function decodeAudioBase64(value: string): ArrayBuffer | null {
   }
 }
 
-/** Watch page. The grid stays silent. She speaks only after a signed-in line. */
-export function MocoLiveRoom() {
+/** Watch page. Grid stays silent. Donations use the same MOCO live payment as every other room. */
+export function MocoLiveRoom({ channelId }: { channelId?: string | null }) {
   const { t } = useLocale();
   const sessionState = useSession();
   const status = sessionState?.status ?? "loading";
@@ -41,6 +44,7 @@ export function MocoLiveRoom() {
   const waitRef = useRef<string[]>([]);
   const busyRef = useRef(false);
   const aliveRef = useRef(true);
+  const donationHoldRef = useRef(false);
   const idRef = useRef(0);
   const logRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<Line[]>([]);
@@ -56,7 +60,7 @@ export function MocoLiveRoom() {
   }, []);
 
   const drain = useCallback(async () => {
-    if (speakingRef.current) return;
+    if (speakingRef.current || donationHoldRef.current) return;
     const job = queueRef.current.items.shift();
     if (!job) return;
     speakingRef.current = true;
@@ -66,9 +70,22 @@ export function MocoLiveRoom() {
     } finally {
       if (token !== queueRef.current.epoch) return;
       speakingRef.current = false;
+      if (donationHoldRef.current) return;
       void drain();
     }
   }, []);
+
+  const onDonationActive = useCallback(
+    (active: boolean) => {
+      donationHoldRef.current = active;
+      if (active) {
+        stageRef.current?.stopVoice();
+        return;
+      }
+      void drain();
+    },
+    [drain]
+  );
 
   const pushAudio = useCallback(
     (job: SpeechJob) => {
@@ -193,6 +210,9 @@ export function MocoLiveRoom() {
           className="absolute inset-0 h-full w-full object-cover"
         />
         <MocoVrmStage framing="stage" onReady={onReady} />
+        {channelId ? (
+          <MocoDonationStage channelId={channelId} onActive={onDonationActive} onLine={(text) => addLine("moco", text)} />
+        ) : null}
         <span className="pointer-events-none absolute left-3 top-3 rounded-md bg-[#1a4fa0] px-2 py-1 text-[11px] font-black text-white">
           {t("live.aiOfficialBadge")}
         </span>
@@ -223,6 +243,14 @@ export function MocoLiveRoom() {
           placeholder={t("live.aiChatPlaceholder")}
           className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
         />
+        {channelId && signedIn ? (
+          <LiveMocoDonationComposerButton
+            channelId={channelId}
+            hostDisplayName={t("live.aiHostName")}
+            buttonSize={36}
+            className="h-9 w-9 shrink-0"
+          />
+        ) : null}
         <button
           type="submit"
           disabled={!draft.trim()}
@@ -231,6 +259,11 @@ export function MocoLiveRoom() {
           {t("live.aiSend")}
         </button>
       </form>
+      {channelId && signedIn ? (
+        <div className="mt-2">
+          <VideoDonationRoomControls channelId={channelId} isHost={false} />
+        </div>
+      ) : null}
       {status === "unauthenticated" ? (
         <Link
           href={`/auth/signin?callbackUrl=${encodeURIComponent("/live/moco")}`}

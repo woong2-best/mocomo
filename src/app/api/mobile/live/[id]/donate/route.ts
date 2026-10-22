@@ -6,6 +6,8 @@ import { requireMobileApiUser } from "@/lib/api-mobile-auth";
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { createMocoDonation } from "@/lib/moco-donation/service";
 import { stripeAccountNotReadyPayload } from "@/lib/creator-payout-ready";
+import { isMocoOfficialChannel } from "@/lib/ai-live/official-channel-id";
+import { ensureMocoOfficialChannel } from "@/lib/ai-live/official-channel";
 
 const VALID_TYPES = new Set<MocoDonationType>(["VIDEO", "SFX"]);
 
@@ -21,6 +23,9 @@ export async function POST(
   if ("error" in authResult) return authResult.error;
 
   const { id: channelId } = await params;
+  if (isMocoOfficialChannel(channelId)) {
+    await ensureMocoOfficialChannel().catch(() => null);
+  }
   const access = await resolveLiveChannelAccess(channelId, authResult.user.id);
   if (!access.allowed) {
     return NextResponse.json({ error: "Join the stream before donating." }, { status: 403 });

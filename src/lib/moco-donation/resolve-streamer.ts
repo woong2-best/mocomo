@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { liveHostBroadcastWhere } from "@/lib/live-broadcast/session-queries";
+import { isMocoOfficialChannel } from "@/lib/ai-live/official-channel-id";
+import { ensureMocoOfficialChannel } from "@/lib/ai-live/official-channel";
 
 export type ResolvedStreamerTarget =
   | {
@@ -16,6 +18,10 @@ export async function resolveStreamerTarget(streamerIdRaw: string): Promise<Reso
   const streamerId = streamerIdRaw.trim();
   if (!streamerId || streamerId.length > 64) {
     return { ok: false, error: "streamer_id is invalid." };
+  }
+
+  if (isMocoOfficialChannel(streamerId)) {
+    await ensureMocoOfficialChannel();
   }
 
   const byChannel = await db.voiceChannel.findUnique({
