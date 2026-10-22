@@ -67,3 +67,20 @@ export function classifyAiHostMessage(raw: string): AiHostBlock | null {
   }
   return null;
 }
+
+const MAX_INPUT = 500;
+const MODEL_INPUT = 200;
+
+export type HostReplyPlan =
+  | { kind: "ignore" }
+  | { kind: "blocked"; text: string }
+  | { kind: "model"; text: string };
+
+/** Regex gate. `blocked` and `ignore` must not call a model or a voice server. */
+export function planHostReply(raw: string): HostReplyPlan {
+  const text = raw.trim().slice(0, MAX_INPUT);
+  if (!text) return { kind: "ignore" };
+  const blocked = classifyAiHostMessage(text);
+  if (blocked) return { kind: "blocked", text: blocked.text };
+  return { kind: "model", text: text.slice(0, MODEL_INPUT) };
+}

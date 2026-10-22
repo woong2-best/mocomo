@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { classifyAiHostMessage } from "@/lib/ai-live/blocklist";
+import { classifyAiHostMessage, planHostReply } from "@/lib/ai-live/blocklist";
 
 test("a greeting does not need the model", () => {
   assert.equal(classifyAiHostMessage("hey moco"), null);
@@ -17,6 +17,17 @@ test("blocked keywords skip the model and answer in the viewer's language", () =
   assert.ok([...ko].every((line) => line === "..." || /[가-힣]/.test(line)));
   assert.ok([...en].some((line) => line.includes("banned") || line.includes("Tch") || line === "..."));
   assert.equal(classifyAiHostMessage("토토")!.blocked, true);
+});
+
+test("empty and blocked lines are not sent to the model", () => {
+  assert.deepEqual(planHostReply("   "), { kind: "ignore" });
+  const blocked = planHostReply("send me a casino link");
+  assert.equal(blocked.kind, "blocked");
+  if (blocked.kind === "blocked") assert.equal(blocked.text.length > 0, true);
+  assert.deepEqual(planHostReply("  hey moco  "), { kind: "model", text: "hey moco" });
+  const long = planHostReply(`hello ${"a".repeat(400)}`);
+  assert.equal(long.kind, "model");
+  if (long.kind === "model") assert.equal(long.text.length, 200);
 });
 
 test("minor sexual terms get a flat refusal", () => {

@@ -1,18 +1,129 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import type { VRM } from "@pixiv/three-vrm";
+import { useEffect, useMemo, useRef } from "react";
 
 const VRM_URL = "/avatars/default.vrm";
 
-/** The same default VRM used by early live studio and APT. No chat. */
-export function MocoVrmStage({ framing = "bust" }: { framing?: "bust" | "stage" }) {
+export type MocoStageHandle = {
+  /** Create the audio graph during the click that will play speech. */
+  prime: () => void;
+  playVoice: (bytes: ArrayBuffer) => Promise<void>;
+  stopVoice: () => void;
+};
+
+type LipSync = {
+  active: boolean;
+  analyser: AnalyserNode | null;
+  bins: Uint8Array<ArrayBuffer> | null;
+};
+
+/**
+ * Studio VRM. Idle is local requestAnimationFrame only.
+ * Voice bytes are analysed here; this file never calls a model or a TTS server.
+ */
+export function MocoVrmStage({
+  framing = "bust",
+  onReady,
+}: {
+  framing?: "bust" | "stage";
+  onReady?: (handle: MocoStageHandle | null) => void;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const voiceRef = useRef<MocoStageHandle>({
+    prime() {},
+    playVoice: async () => {},
+    stopVoice() {},
+  });
+
+  const handle = useMemo<MocoStageHandle>(
+    () => ({
+      prime: () => voiceRef.current.prime(),
+      playVoice: (bytes) => voiceRef.current.playVoice(bytes),
+      stopVoice: () => voiceRef.current.stopVoice(),
+    }),
+    []
+  );
+
+  useEffect(() => {
+    onReady?.(handle);
+    return () => onReady?.(null);
+  }, [handle, onReady]);
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     let alive = true;
     let dispose = () => {};
+    let audioCtx: AudioContext | null = null;
+    let source: AudioBufferSourceNode | null = null;
+    let playDone: (() => void) | null = null;
+    let voiceSession = 0;
+    const lip: LipSync = { active: false, analyser: null, bins: null };
+
+    const stopVoice = () => {
+      voiceSession += 1;
+      lip.active = false;
+      lip.analyser = null;
+      lip.bins = null;
+      const current = source;
+      source = null;
+      if (current) {
+        current.onended = null;
+        try {
+          current.stop();
+        } catch {
+          /* already stopped */
+        }
+      }
+      const done = playDone;
+      playDone = null;
+      done?.();
+    };
+
+    const prime = () => {
+      if (typeof AudioContext === "undefined") return;
+      if (!audioCtx) audioCtx = new AudioContext();
+      void audioCtx.resume();
+    };
+
+    const playVoice = async (bytes: ArrayBuffer) => {
+      stopVoice();
+      const token = voiceSession;
+      prime();
+      if (!audioCtx || bytes.byteLength < 64) return;
+      try {
+        const buffer = await audioCtx.decodeAudioData(bytes.slice(0));
+        if (!alive || token !== voiceSession || !audioCtx) return;
+        const src = audioCtx.createBufferSource();
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        src.buffer = buffer;
+        src.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        source = src;
+        lip.analyser = analyser;
+        lip.bins = new Uint8Array(analyser.frequencyBinCount);
+        lip.active = true;
+        await new Promise<void>((resolve) => {
+          playDone = resolve;
+          src.onended = () => {
+            if (source === src) {
+              lip.active = false;
+              lip.analyser = null;
+              lip.bins = null;
+              source = null;
+            }
+            resolve();
+          };
+          src.start(0);
+        });
+      } catch {
+        lip.active = false;
+      }
+    };
+
+    voiceRef.current = { prime, playVoice, stopVoice };
 
     void (async () => {
       const THREE = await import("three");
@@ -74,12 +185,12 @@ export function MocoVrmStage({ framing = "bust" }: { framing?: "bust" | "stage" 
         return;
       }
 
-      const vrm = gltf.userData.vrm;
+      const vrm = gltf.userData.vrm as VRM;
       VRMUtils.removeUnnecessaryVertices(vrm.scene);
       const utils = VRMUtils as { combineSkeletons?: (root: unknown) => void };
       utils.combineSkeletons?.(vrm.scene);
       VRMUtils.rotateVRM0(vrm);
-      vrm.scene.traverse((obj: { frustumCulled: boolean }) => {
+      vrm.scene.traverse((obj) => {
         obj.frustumCulled = false;
       });
       vrm.scene.rotation.y = 0;
@@ -101,11 +212,11 @@ export function MocoVrmStage({ framing = "bust" }: { framing?: "bust" | "stage" 
         vrm.lookAt.target = camera;
       }
 
-      const spine = vrm.humanoid?.getNormalizedBoneNode("spine");
-      const chest = vrm.humanoid?.getNormalizedBoneNode("chest");
+      const spine = vrm.humanoid?.getRawBoneNode("spine");
+      const headBone = vrm.humanoid?.getRawBoneNode("head");
       const spineRestX = spine?.rotation.x ?? 0;
-      const spineRestY = spine?.rotation.y ?? 0;
-      const chestRestX = chest?.rotation.x ?? 0;
+      const headRestY = headBone?.rotation.y ?? 0;
+      const headRestZ = headBone?.rotation.z ?? 0;
       const reduced =
         window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
         document.documentElement.dataset.visibleAnimations === "off";
@@ -118,31 +229,42 @@ export function MocoVrmStage({ framing = "bust" }: { framing?: "bust" | "stage" 
 
       const loop = () => {
         const dt = Math.min(clock.getDelta(), 0.05);
-        const now = performance.now();
-        const t = now / 1000;
+        const time = clock.elapsedTime;
         if (!reduced) {
-          if (spine) {
-            spine.rotation.x = spineRestX + Math.sin(t * 0.9) * 0.012;
-            spine.rotation.y = spineRestY + Math.sin(t * 0.35) * 0.018;
+          if (spine) spine.rotation.x = spineRestX + Math.sin(time * 2) * 0.02;
+          if (headBone) {
+            headBone.rotation.y = headRestY + Math.sin(time * 1.5) * 0.05;
+            headBone.rotation.z = headRestZ + Math.cos(time * 1.2) * 0.02;
           }
-          if (chest) chest.rotation.x = chestRestX + Math.sin(t * 1.6) * 0.015;
         }
+
+        let aa = 0;
+        const bins = lip.bins;
+        if (lip.active && lip.analyser && bins) {
+          lip.analyser.getByteFrequencyData(bins);
+          let sum = 0;
+          for (let i = 0; i < bins.length; i += 1) sum += bins[i] ?? 0;
+          aa = Math.min(sum / bins.length / 100, 1);
+        }
+
+        const now = performance.now();
+        if (!blinking && now >= blinkAt) {
+          blinking = true;
+          blinkUntil = now + 110;
+        }
+        if (blinking && now >= blinkUntil) {
+          blinking = false;
+          blinkAt = now + 2000 + Math.random() * 3000;
+        }
+
         camera.updateMatrixWorld(true);
+        vrm.update(dt);
         const expressions = vrm.expressionManager;
         if (expressions) {
-          if (!blinking && now >= blinkAt) {
-            blinking = true;
-            blinkUntil = now + 110;
-          }
-          if (blinking && now >= blinkUntil) {
-            blinking = false;
-            blinkAt = now + 2000 + Math.random() * 2600;
-          }
-        }
-        vrm.update(dt);
-        if (expressions) {
           expressions.setValue("blink", blinking ? 1 : 0);
-          expressions.setValue("happy", 0.08);
+          expressions.setValue("aa", aa);
+          expressions.setValue("happy", aa > 0.02 ? 0 : 0.08);
+          expressions.update();
         }
         renderer.render(scene, camera);
         raf = requestAnimationFrame(loop);
@@ -166,6 +288,13 @@ export function MocoVrmStage({ framing = "bust" }: { framing?: "bust" | "stage" 
 
     return () => {
       alive = false;
+      stopVoice();
+      void audioCtx?.close();
+      voiceRef.current = {
+        prime() {},
+        playVoice: async () => {},
+        stopVoice() {},
+      };
       dispose();
     };
   }, [framing]);
