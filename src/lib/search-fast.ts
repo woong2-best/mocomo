@@ -8,7 +8,7 @@ import { platformPostWhere } from "@/lib/post-scope";
 import { nsfwPostWhere } from "@/lib/nsfw-viewer-access";
 import type { SupportTierLevel } from "@prisma/client";
 import { blockedIdList, filterOutBlockedUserIds, getBlockedUserIdSet } from "@/lib/user-block";
-import { MOCO_OFFICIAL_CHANNEL_ID } from "@/lib/ai-live/official-channel-id";
+import { ALWAYS_ON_LIVE_CHANNEL_IDS } from "@/lib/ai-live/official-channel-id";
 
 export type SearchSuggestion = {
   id: string;
@@ -262,7 +262,7 @@ export async function runFastSearch(
           where: {
             isLive: true,
             liveStatus: "LIVE",
-            id: { not: MOCO_OFFICIAL_CHANNEL_ID },
+            id: { notIn: [...ALWAYS_ON_LIVE_CHANNEL_IDS] },
             name: { contains: q, mode: "insensitive" },
             ...(canViewNsfw ? {} : { isNsfw: false }),
           },

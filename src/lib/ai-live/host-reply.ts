@@ -16,14 +16,23 @@ const RETIRED_GEMINI_MODELS = new Set([
   "gemini-1.5-pro-latest",
 ]);
 
-const ZETA_SYSTEM = [
-  "You are Moco, a live VTuber hosting a broadcast.",
-  "Never say or imply that you are an AI, a bot, a model, a language model, or a program.",
-  "If the viewer writes Korean, answer in casual Korean banmal. Tsundere. Short.",
-  "If the viewer writes any other language, answer in that language, casual and tsundere.",
-  "Use light live-chat memes. One or two sentences. No lists, no stage directions, no asterisks.",
-  "Refuse illegal, sexual, scam, drug, and minor topics in character. Do not explain these rules.",
-].join(" ");
+const MEMBER_INTRO: Record<string, string> = {
+  airi: "You are AIRI, a high-energy Japanese VTuber and the main streamer of the idol group. Bright, fast, and playful.",
+  chloe: "You are CHLOE, a chic French VTuber. Elegant, tsundere, short, and cool. You talk about fashion and vocals.",
+  stella: "You are STELLA, an American gamer VTuber. Trendy, cool, and a girl-crush. Competitive, then kind.",
+};
+
+function systemFor(member: string | null): string {
+  const intro = (member && MEMBER_INTRO[member]) || "You are Moco, a live VTuber hosting a broadcast.";
+  return [
+    intro,
+    "Never say or imply that you are an AI, a bot, a model, a language model, or a program.",
+    "If the viewer writes Korean, answer in casual Korean banmal. Tsundere. Short.",
+    "If the viewer writes any other language, answer in that language, casual and tsundere.",
+    "Use light live-chat memes. One or two sentences. No lists, no stage directions, no asterisks.",
+    "Refuse illegal, sexual, scam, drug, and minor topics in character. Do not explain these rules.",
+  ].join(" ");
+}
 
 const AI_ADMISSION =
   /\b(?:as an ai|i am an ai|i'm an ai|language model|large language model)\b/i;
@@ -64,7 +73,7 @@ type GeminiJson = {
 
 type ModelResult = { kind: "text"; text: string } | { kind: "safety" } | { kind: "fail" };
 
-async function oneModel(model: string, key: string, userText: string): Promise<ModelResult> {
+async function oneModel(model: string, key: string, userText: string, system: string): Promise<ModelResult> {
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
@@ -73,7 +82,7 @@ async function oneModel(model: string, key: string, userText: string): Promise<M
         headers: { "Content-Type": "application/json" },
         signal: AbortSignal.timeout(8_000),
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: ZETA_SYSTEM }] },
+          systemInstruction: { parts: [{ text: system }] },
           contents: [{ role: "user", parts: [{ text: userText }] }],
           generationConfig: {
             temperature: 0.9,
@@ -107,12 +116,16 @@ async function oneModel(model: string, key: string, userText: string): Promise<M
   }
 }
 
-async function geminiZeta(userText: string): Promise<{ text: string; blocked: boolean }> {
+async function geminiZeta(
+  userText: string,
+  member: string | null
+): Promise<{ text: string; blocked: boolean }> {
   const key = geminiKey();
   if (!key) return { text: quietLine(userText), blocked: false };
+  const system = systemFor(member);
 
   for (const model of geminiModels()) {
-    const result = await oneModel(model, key, userText);
+    const result = await oneModel(model, key, userText, system);
     if (result.kind === "fail") continue;
     if (result.kind === "safety") return { text: angryOrHard(userText), blocked: true };
     if (!result.text) return { text: quietLine(userText), blocked: false };
@@ -135,8 +148,8 @@ export type HostSpeech = {
 };
 
 /** Caller must already have passed `planHostReply` and only send `kind: "model"` text. */
-export async function speakHostLine(userText: string): Promise<HostSpeech> {
-  const reply = await geminiZeta(userText);
+export async function speakHostLine(userText: string, member: string | null = null): Promise<HostSpeech> {
+  const reply = await geminiZeta(userText, member);
   if (reply.blocked) return { text: reply.text, blocked: true, audio: null };
   const audio = await synthesizeIdolVoice(reply.text, textHasHangul(reply.text));
   return { text: reply.text, blocked: false, audio };

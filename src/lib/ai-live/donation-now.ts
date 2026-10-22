@@ -1,15 +1,15 @@
 import { db } from "@/lib/db";
-import { ensureMocoOfficialChannel } from "@/lib/ai-live/official-channel";
-import { MOCO_OFFICIAL_CHANNEL_ID } from "@/lib/ai-live/official-channel-id";
+import { ensureAlwaysOnChannel } from "@/lib/ai-live/official-channel";
+import { isAlwaysOnLiveChannel, MOCO_OFFICIAL_CHANNEL_ID } from "@/lib/ai-live/official-channel-id";
 import { mocoDonationPlayMs } from "@/lib/ai-live/donation-playback";
 import { toMocoDonationPayload } from "@/lib/moco-donation/payload";
 import type { MocoDonationPayload } from "@/lib/moco-donation/types";
 
 const includeUser = { user: { select: { username: true } } } as const;
 
-async function finishIfDue(): Promise<void> {
+async function finishIfDue(channelId: string): Promise<void> {
   const playing = await db.mocoDonation.findFirst({
-    where: { channelId: MOCO_OFFICIAL_CHANNEL_ID, status: "PLAYING" },
+    where: { channelId, status: "PLAYING" },
     orderBy: { playedAt: "desc" },
   });
   if (!playing) return;
@@ -21,20 +21,23 @@ async function finishIfDue(): Promise<void> {
   });
 }
 
-/** One shared now-playing row for every viewer of the official room. */
-export async function currentOfficialDonation(): Promise<MocoDonationPayload | null> {
-  await ensureMocoOfficialChannel();
-  await finishIfDue();
+/** One shared now-playing row for every viewer of an always-on room. */
+export async function currentOfficialDonation(
+  channelId: string = MOCO_OFFICIAL_CHANNEL_ID
+): Promise<MocoDonationPayload | null> {
+  if (!isAlwaysOnLiveChannel(channelId)) return null;
+  await ensureAlwaysOnChannel(channelId);
+  await finishIfDue(channelId);
 
   const playing = await db.mocoDonation.findFirst({
-    where: { channelId: MOCO_OFFICIAL_CHANNEL_ID, status: "PLAYING" },
+    where: { channelId, status: "PLAYING" },
     orderBy: { playedAt: "desc" },
     include: includeUser,
   });
   if (playing) return toMocoDonationPayload(playing);
 
   const pending = await db.mocoDonation.findFirst({
-    where: { channelId: MOCO_OFFICIAL_CHANNEL_ID, status: "PENDING" },
+    where: { channelId, status: "PENDING" },
     orderBy: { createdAt: "asc" },
   });
   if (!pending) return null;
@@ -45,7 +48,7 @@ export async function currentOfficialDonation(): Promise<MocoDonationPayload | n
   });
   if (claimed.count === 0) {
     const raced = await db.mocoDonation.findFirst({
-      where: { channelId: MOCO_OFFICIAL_CHANNEL_ID, status: "PLAYING" },
+      where: { channelId, status: "PLAYING" },
       include: includeUser,
     });
     return raced ? toMocoDonationPayload(raced) : null;

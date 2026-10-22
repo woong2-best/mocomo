@@ -11,6 +11,7 @@ import { coerceViewerCount, type MobileLiveCategoryId } from "@/features/live/li
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
 import { AiOfficialChannelCard } from "@/features/live/ai/AiOfficialChannelCard";
+import { IDOL_LIVES } from "@/features/live/ai/idol-lives";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
 import { sanitizeLiveListItems } from "@/features/live/live-hub-sanitize";
@@ -183,7 +184,19 @@ export function LiveListScreen() {
             ListFooterComponent={
               <View>
                 {showAiCard ? (
-                  <AiOfficialChannelCard onPress={() => navigation.navigate("MocoLive")} />
+                  <>
+                    <AiOfficialChannelCard onPress={() => navigation.navigate("MocoLive")} />
+                    {IDOL_LIVES.map((idol) => (
+                      <AiOfficialChannelCard
+                        key={idol.id}
+                        accent={idol.accent}
+                        title={t(idol.titleKey)}
+                        host={t(idol.nameKey)}
+                        sub={t(idol.roleKey)}
+                        onPress={() => navigation.navigate("IdolLive", { member: idol.id })}
+                      />
+                    ))}
+                  </>
                 ) : null}
                 {query.isFetchingNextPage ? (
                   <ActivityIndicator style={{ marginVertical: 16 }} color={colors.terracotta} />

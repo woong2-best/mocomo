@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mocoDonationPlayMs } from "@/lib/ai-live/donation-playback";
-import { isMocoOfficialChannel } from "@/lib/ai-live/official-channel-id";
+import { isAlwaysOnLiveChannel, isMocoOfficialChannel } from "@/lib/ai-live/official-channel-id";
+import { idolById } from "@/lib/ai-live/idols";
 
 test("video donations stay up for their paid length and effects are short", () => {
   assert.equal(mocoDonationPlayMs({ type: "SFX" }), 4500);
@@ -10,7 +11,14 @@ test("video donations stay up for their paid length and effects are short", () =
   assert.equal(mocoDonationPlayMs({ type: "VIDEO", segmentPlaySec: 999, maxPlaySec: 60 }), 180800);
 });
 
-test("only the official channel id is the always-on host", () => {
+test("official and idol channels stay on, and other rooms do not", () => {
   assert.equal(isMocoOfficialChannel("moco-official"), true);
   assert.equal(isMocoOfficialChannel("other"), false);
+  assert.equal(isAlwaysOnLiveChannel("moco-official"), true);
+  assert.equal(isAlwaysOnLiveChannel("idol-airi"), true);
+  assert.equal(isAlwaysOnLiveChannel("idol-chloe"), true);
+  assert.equal(isAlwaysOnLiveChannel("idol-stella"), true);
+  assert.equal(isAlwaysOnLiveChannel("other"), false);
+  assert.equal(idolById("airi")?.vrmUrl, "/models/airi.vrm");
+  assert.equal(idolById("nope"), null);
 });

@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { COMMUNITIES_LIST_CACHE_TAG, FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { liveViewerCutoff } from "@/lib/live-presence";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
+import { ALWAYS_ON_LIVE_CHANNEL_IDS } from "@/lib/ai-live/official-channel-id";
 import { db } from "@/lib/db";
 import { userPublicSelect } from "@/lib/user-public-select";
 import { getTipRanking } from "@/actions/monetization";
@@ -208,6 +209,7 @@ export const getCachedLiveChannels = unstable_cache(
         where: {
           isLive: true,
           broadcastMode: { in: ["BROWSER", "OBS"] },
+          id: { notIn: [...ALWAYS_ON_LIVE_CHANNEL_IDS] },
         },
         select: {
           id: true,
@@ -251,7 +253,7 @@ export const getCachedLiveChannels = unstable_cache(
 export const getCachedVoiceChannels = unstable_cache(
   async () =>
     db.voiceChannel.findMany({
-      where: { isLive: true },
+      where: { isLive: true, id: { notIn: [...ALWAYS_ON_LIVE_CHANNEL_IDS] } },
       take: 24,
       include: { _count: { select: { members: true } } },
       orderBy: { createdAt: "desc" },

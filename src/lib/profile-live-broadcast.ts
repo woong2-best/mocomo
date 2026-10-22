@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { liveHostBroadcastWhere } from "@/lib/live-broadcast/session-queries";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
+import { isAlwaysOnLiveChannel } from "@/lib/ai-live/official-channel-id";
 import { resolveLiveStillThumb } from "@/lib/live-preview-thumb";
 
 export type ProfileLiveBroadcast = {
@@ -35,7 +36,7 @@ export async function getProfileLiveBroadcast(
     },
     orderBy: { createdAt: "desc" },
   });
-  if (!raw) return null;
+  if (!raw || isAlwaysOnLiveChannel(raw.id)) return null;
 
   const present = await filterChannelsWithPresentHost([raw]);
   const ch = present[0];

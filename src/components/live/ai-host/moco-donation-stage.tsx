@@ -35,10 +35,12 @@ function donationCaption(item: MocoDonationPayload, gap: string, tail: string): 
  */
 export function MocoDonationStage({
   channelId,
+  pollUrl = "/api/live/moco/donations",
   onActive,
   onLine,
 }: {
   channelId: string;
+  pollUrl?: string;
   onActive?: (active: boolean) => void;
   onLine?: (text: string) => void;
 }) {
@@ -53,9 +55,10 @@ export function MocoDonationStage({
 
   useEffect(() => {
     let alive = true;
+    setCurrent(null);
     const pull = async () => {
       try {
-        const res = await fetch("/api/live/moco/donations", { cache: "no-store" });
+        const res = await fetch(pollUrl, { cache: "no-store" });
         if (!res.ok || !alive) return;
         const body = (await res.json()) as { current?: MocoDonationPayload | null };
         if (!alive) return;
@@ -71,7 +74,7 @@ export function MocoDonationStage({
       alive = false;
       window.clearInterval(id);
     };
-  }, [channelId]);
+  }, [channelId, pollUrl]);
 
   useEffect(() => {
     onActiveRef.current?.(current != null);

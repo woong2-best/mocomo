@@ -11,6 +11,8 @@ import { createSpeechQueue, enqueueSpeech, type SpeechJob } from "@/lib/ai-live/
 import { LiveMocoDonationComposerButton } from "@/components/live/live-moco-donation-composer-button";
 import { VideoDonationRoomControls } from "@/components/live/video-donation-room-controls";
 import { MocoDonationStage } from "@/components/live/ai-host/moco-donation-stage";
+import type { IdolId } from "@/lib/ai-live/idols";
+import type { MessageKey } from "@/lib/i18n/message-keys";
 
 const MocoVrmStage = dynamic(
   () => import("@/components/live/ai-host/moco-vrm-stage").then((m) => m.MocoVrmStage),
@@ -31,14 +33,48 @@ function decodeAudioBase64(value: string): ArrayBuffer | null {
   }
 }
 
+type IdolTab = {
+  id: IdolId;
+  label: string;
+  active: boolean;
+  onSelect: () => void;
+};
+
 /** Watch page. Grid stays silent. Donations use the same MOCO live payment as every other room. */
-export function MocoLiveRoom({ channelId }: { channelId?: string | null }) {
+export function MocoLiveRoom({
+  channelId,
+  vrmUrl,
+  hostNameKey = "live.aiHostName",
+  titleKey = "live.aiCardTitle",
+  subKey = "live.aiCardSub",
+  memberId = null,
+  donationPoll = "/api/live/moco/donations",
+  signInPath = "/live/moco",
+  poster = true,
+  accent = "#ff4d8d",
+  tabs,
+}: {
+  channelId?: string | null;
+  vrmUrl?: string;
+  hostNameKey?: MessageKey;
+  titleKey?: MessageKey;
+  subKey?: MessageKey;
+  memberId?: IdolId | null;
+  donationPoll?: string;
+  signInPath?: string;
+  poster?: boolean;
+  accent?: string;
+  tabs?: IdolTab[];
+}) {
   const { t } = useLocale();
   const sessionState = useSession();
   const status = sessionState?.status ?? "loading";
   const signedIn = status === "authenticated";
 
   const stageRef = useRef<MocoStageHandle | null>(null);
+  const memberRef = useRef(memberId);
+  memberRef.current = memberId;
+  const hostName = t(hostNameKey);
   const queueRef = useRef(createSpeechQueue());
   const speakingRef = useRef(false);
   const waitRef = useRef<string[]>([]);
@@ -106,7 +142,7 @@ export function MocoLiveRoom({ channelId }: { channelId?: string | null }) {
           method: "POST",
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, member: memberRef.current ?? undefined }),
         });
         if (!aliveRef.current) return;
         if (res.status === 401) {
@@ -204,29 +240,41 @@ export function MocoLiveRoom({ channelId }: { channelId?: string | null }) {
         {t("live.navBack")}
       </Link>
       <div className="relative mt-3 aspect-video overflow-hidden rounded-xl border border-white/10 bg-[#241c33]">
-        <img
-          src="/live/moco-poster.png"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <MocoVrmStage framing="stage" onReady={onReady} />
+        {poster ? (
+          <img
+            src="/live/moco-poster.png"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(160deg, ${accent}, #241c33 72%)` }}
+          />
+        )}
+        <MocoVrmStage framing="stage" vrmUrl={vrmUrl} onReady={onReady} />
         {channelId ? (
-          <MocoDonationStage channelId={channelId} onActive={onDonationActive} onLine={(text) => addLine("moco", text)} />
+          <MocoDonationStage
+            channelId={channelId}
+            pollUrl={donationPoll}
+            onActive={onDonationActive}
+            onLine={(text) => addLine("moco", text)}
+          />
         ) : null}
         <span className="pointer-events-none absolute left-3 top-3 rounded-md bg-[#1a4fa0] px-2 py-1 text-[11px] font-black text-white">
           {t("live.aiOfficialBadge")}
         </span>
       </div>
-      <h1 className="mt-3 text-lg font-semibold text-white">{t("live.aiHostName")}</h1>
-      <p className="text-sm text-white/65">{t("live.aiCardTitle")}</p>
-      <p className="mt-1 text-xs text-white/45">{t("live.aiCardSub")}</p>
+      <h1 className="mt-3 text-lg font-semibold text-white">{hostName}</h1>
+      <p className="text-sm text-white/65">{t(titleKey)}</p>
+      <p className="mt-1 text-xs text-white/45">{t(subKey)}</p>
 
       {lines.length > 0 ? (
         <div ref={logRef} className="mt-4 max-h-40 space-y-2 overflow-y-auto pr-1">
           {lines.map((line) => (
             <p key={line.id} className="text-sm leading-5">
               <span className="mr-2 text-[11px] font-semibold uppercase tracking-wide text-white/45">
-                {line.who === "you" ? t("live.aiYou") : t("live.aiHostName")}
+                {line.who === "you" ? t("live.aiYou") : hostName}
               </span>
               <span className={line.who === "you" ? "text-white/80" : "text-white"}>{line.text}</span>
             </p>
@@ -246,7 +294,7 @@ export function MocoLiveRoom({ channelId }: { channelId?: string | null }) {
         {channelId && signedIn ? (
           <LiveMocoDonationComposerButton
             channelId={channelId}
-            hostDisplayName={t("live.aiHostName")}
+            hostDisplayName={hostName}
             buttonSize={36}
             className="h-9 w-9 shrink-0"
           />
@@ -266,11 +314,30 @@ export function MocoLiveRoom({ channelId }: { channelId?: string | null }) {
       ) : null}
       {status === "unauthenticated" ? (
         <Link
-          href={`/auth/signin?callbackUrl=${encodeURIComponent("/live/moco")}`}
+          href={`/auth/signin?callbackUrl=${encodeURIComponent(signInPath)}`}
           className="mt-2 w-fit text-xs font-semibold text-white/70 hover:text-white"
         >
           {t("live.aiSignIn")}
         </Link>
+      ) : null}
+      {tabs && tabs.length > 0 ? (
+        <div className="mt-4 flex gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              aria-pressed={tab.active}
+              onClick={tab.onSelect}
+              className={
+                tab.active
+                  ? "rounded-full bg-white px-4 py-2 text-sm font-black text-black"
+                  : "rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+              }
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       ) : null}
     </div>
   );

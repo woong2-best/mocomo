@@ -2,8 +2,10 @@
 
 import type { VRM } from "@pixiv/three-vrm";
 import { useEffect, useMemo, useRef } from "react";
+import { IDOL_VRM_FALLBACK } from "@/lib/ai-live/idols";
+import { disposeIdolVrm, loadIdolVrm, useIdolVrm } from "@/components/live/ai-host/use-idol-vrm";
 
-const VRM_URL = "/avatars/default.vrm";
+const DEFAULT_VRM_URL = IDOL_VRM_FALLBACK;
 
 export type MocoStageHandle = {
   /** Create the audio graph during the click that will play speech. */
@@ -24,12 +26,17 @@ type LipSync = {
  */
 export function MocoVrmStage({
   framing = "bust",
+  vrmUrl = DEFAULT_VRM_URL,
   onReady,
 }: {
   framing?: "bust" | "stage";
+  vrmUrl?: string;
   onReady?: (handle: MocoStageHandle | null) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const urlRef = useRef(vrmUrl);
+  urlRef.current = vrmUrl;
+  const { phase, swapRef, armed, setPhaseRef } = useIdolVrm(vrmUrl);
   const voiceRef = useRef<MocoStageHandle>({
     prime() {},
     playVoice: async () => {},
@@ -129,7 +136,7 @@ export function MocoVrmStage({
       const THREE = await import("three");
       const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
       const { RoomEnvironment } = await import("three/addons/environments/RoomEnvironment.js");
-      const { VRMLoaderPlugin, VRMUtils } = await import("@pixiv/three-vrm");
+      const { VRMLoaderPlugin } = await import("@pixiv/three-vrm");
       if (!alive || !hostRef.current) return;
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -175,48 +182,83 @@ export function MocoVrmStage({
 
       const loader = new GLTFLoader();
       loader.register((parser) => new VRMLoaderPlugin(parser));
-      const gltf = await loader.loadAsync(VRM_URL);
-      if (!alive) {
-        renderer.dispose();
-        canvas.remove();
-        pmrem.dispose();
-        env.dispose();
-        ro.disconnect();
-        return;
-      }
 
-      const vrm = gltf.userData.vrm as VRM;
-      VRMUtils.removeUnnecessaryVertices(vrm.scene);
-      const utils = VRMUtils as { combineSkeletons?: (root: unknown) => void };
-      utils.combineSkeletons?.(vrm.scene);
-      VRMUtils.rotateVRM0(vrm);
-      vrm.scene.traverse((obj) => {
-        obj.frustumCulled = false;
-      });
-      vrm.scene.rotation.y = 0;
-      scene.add(vrm.scene);
-      vrm.scene.updateMatrixWorld(true);
+      type Pose = {
+        vrm: VRM;
+        spine: import("three").Object3D | null;
+        headBone: import("three").Object3D | null;
+        spineRestX: number;
+        headRestY: number;
+        headRestZ: number;
+      };
+      const poseRef: { current: Pose | null } = { current: null };
+      let loadGen = 0;
 
-      const head = vrm.humanoid?.getNormalizedBoneNode("head");
-      const headPos = new THREE.Vector3(0, 1.45, 0);
-      head?.getWorldPosition(headPos);
-      const look = headPos.clone();
-      look.y -= framing === "bust" ? 0.02 : 0.04;
-      const distance = framing === "bust" ? 0.7 : 0.82;
-      camera.position.set(look.x, look.y + 0.03, look.z + distance);
-      camera.lookAt(look);
-      camera.updateMatrixWorld(true);
-      camera.updateProjectionMatrix();
-      if (vrm.lookAt) {
-        vrm.lookAt.autoUpdate = true;
-        vrm.lookAt.target = camera;
-      }
+      const frameCamera = (vrm: VRM) => {
+        vrm.scene.updateMatrixWorld(true);
+        const head = vrm.humanoid?.getNormalizedBoneNode("head");
+        const headPos = new THREE.Vector3(0, 1.45, 0);
+        head?.getWorldPosition(headPos);
+        const look = headPos.clone();
+        look.y -= framing === "bust" ? 0.02 : 0.04;
+        const distance = framing === "bust" ? 0.7 : 0.82;
+        camera.position.set(look.x, look.y + 0.03, look.z + distance);
+        camera.lookAt(look);
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+        if (vrm.lookAt) {
+          vrm.lookAt.autoUpdate = true;
+          vrm.lookAt.target = camera;
+        }
+      };
 
-      const spine = vrm.humanoid?.getRawBoneNode("spine");
-      const headBone = vrm.humanoid?.getRawBoneNode("head");
-      const spineRestX = spine?.rotation.x ?? 0;
-      const headRestY = headBone?.rotation.y ?? 0;
-      const headRestZ = headBone?.rotation.z ?? 0;
+      const rememberPose = (vrm: VRM): Pose => {
+        const spine = vrm.humanoid?.getRawBoneNode("spine") ?? null;
+        const headBone = vrm.humanoid?.getRawBoneNode("head") ?? null;
+        return {
+          vrm,
+          spine,
+          headBone,
+          spineRestX: spine?.rotation.x ?? 0,
+          headRestY: headBone?.rotation.y ?? 0,
+          headRestZ: headBone?.rotation.z ?? 0,
+        };
+      };
+
+      const swap = async (url: string): Promise<boolean> => {
+        const gen = ++loadGen;
+        setPhaseRef.current("loading");
+        canvas.style.opacity = "0";
+        try {
+          const vrm = await loadIdolVrm(loader, url);
+          if (!alive || gen !== loadGen) {
+            disposeIdolVrm(vrm);
+            return false;
+          }
+          if (poseRef.current) disposeIdolVrm(poseRef.current.vrm);
+          scene.add(vrm.scene);
+          frameCamera(vrm);
+          poseRef.current = rememberPose(vrm);
+          host.dataset.vrmReady = "1";
+          delete host.dataset.vrmFailed;
+          requestAnimationFrame(() => {
+            canvas.style.opacity = "1";
+          });
+          setPhaseRef.current("ready");
+          return true;
+        } catch {
+          if (alive && gen === loadGen) {
+            canvas.style.opacity = "1";
+            if (!poseRef.current) host.dataset.vrmFailed = "1";
+            setPhaseRef.current("error");
+          }
+          return false;
+        }
+      };
+
+      swapRef.current = swap;
+      armed.current = true;
+
       const reduced =
         window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
         document.documentElement.dataset.visibleAnimations === "off";
@@ -230,11 +272,12 @@ export function MocoVrmStage({
       const loop = () => {
         const dt = Math.min(clock.getDelta(), 0.05);
         const time = clock.elapsedTime;
-        if (!reduced) {
-          if (spine) spine.rotation.x = spineRestX + Math.sin(time * 2) * 0.02;
-          if (headBone) {
-            headBone.rotation.y = headRestY + Math.sin(time * 1.5) * 0.05;
-            headBone.rotation.z = headRestZ + Math.cos(time * 1.2) * 0.02;
+        const pose = poseRef.current;
+        if (pose && !reduced) {
+          if (pose.spine) pose.spine.rotation.x = pose.spineRestX + Math.sin(time * 2) * 0.02;
+          if (pose.headBone) {
+            pose.headBone.rotation.y = pose.headRestY + Math.sin(time * 1.5) * 0.05;
+            pose.headBone.rotation.z = pose.headRestZ + Math.cos(time * 1.2) * 0.02;
           }
         }
 
@@ -258,24 +301,34 @@ export function MocoVrmStage({
         }
 
         camera.updateMatrixWorld(true);
-        vrm.update(dt);
-        const expressions = vrm.expressionManager;
-        if (expressions) {
-          expressions.setValue("blink", blinking ? 1 : 0);
-          expressions.setValue("aa", aa);
-          expressions.setValue("happy", aa > 0.02 ? 0 : 0.08);
-          expressions.update();
+        const vrm = pose?.vrm;
+        if (vrm) {
+          vrm.update(dt);
+          const expressions = vrm.expressionManager;
+          if (expressions) {
+            expressions.setValue("blink", blinking ? 1 : 0);
+            expressions.setValue("aa", aa);
+            expressions.setValue("happy", aa > 0.02 ? 0 : 0.08);
+            expressions.update();
+          }
         }
         renderer.render(scene, camera);
         raf = requestAnimationFrame(loop);
       };
+
+      canvas.style.transition = "opacity 280ms ease";
+      canvas.style.opacity = "0";
       renderer.render(scene, camera);
       host.appendChild(canvas);
-      host.dataset.vrmReady = "1";
       raf = requestAnimationFrame(loop);
+      void swap(urlRef.current).then((ok) => {
+        if (alive && ok) host.dataset.vrmReady = "1";
+      });
 
       dispose = () => {
         cancelAnimationFrame(raf);
+        loadGen += 1;
+        if (poseRef.current) disposeIdolVrm(poseRef.current.vrm);
         ro.disconnect();
         env.dispose();
         pmrem.dispose();
@@ -299,5 +352,13 @@ export function MocoVrmStage({
     };
   }, [framing]);
 
-  return <div ref={hostRef} className="pointer-events-none absolute inset-0" />;
+  return (
+    <div ref={hostRef} className="pointer-events-none absolute inset-0">
+      {phase === "loading" ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+        </div>
+      ) : null}
+    </div>
+  );
 }

@@ -7,6 +7,8 @@ import { Eye, User } from "lucide-react";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { AiLiveTile } from "@/components/live/ai-host/ai-live-tile";
+import { IdolLiveTiles } from "@/components/live/ai-host/idol-live-tiles";
+import { IDOLS } from "@/lib/ai-live/idols";
 import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
@@ -149,7 +151,8 @@ export function LiveChannelGrid({
   );
   const isEmpty = visible.length === 0;
   const showAiTile = activeFilter === "ALL" || activeFilter === "JUST_CHATTING";
-  const fillerCount = isEmpty ? PLACEHOLDER_COUNT - (showAiTile ? 1 : 0) : 0;
+  const aiTileCount = showAiTile ? 1 + IDOLS.length : 0;
+  const fillerCount = isEmpty ? Math.max(0, PLACEHOLDER_COUNT - aiTileCount) : 0;
 
   return (
     <div className="flex w-full min-w-0 max-w-full flex-1 flex-col overflow-x-clip">
@@ -162,6 +165,7 @@ export function LiveChannelGrid({
             <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
           ))}
           {showAiTile ? <AiLiveTile /> : null}
+          {showAiTile ? <IdolLiveTiles /> : null}
           {Array.from({ length: fillerCount }, (_, i) => (
             <LiveGrayPlaceholderCard key={`ph-${i}`} index={i} />
           ))}

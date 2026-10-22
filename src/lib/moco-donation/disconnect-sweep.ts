@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { releaseBroadcastSession } from "@/lib/live-broadcast/session-manager";
-import { isMocoOfficialChannel } from "@/lib/ai-live/official-channel-id";
+import { isAlwaysOnLiveChannel } from "@/lib/ai-live/official-channel-id";
 
 /** Host must come back within this window or the stream is treated as ended. */
 export function videoDonationDisconnectGraceMs(): number {
@@ -13,7 +13,7 @@ const closing = new Set<string>();
 
 /** If the host heartbeat is older than the grace window, end the stream and settle/refund video donations. */
 export async function closeChannelIfHostGone(channelId: string): Promise<boolean> {
-  if (isMocoOfficialChannel(channelId) || closing.has(channelId)) return false;
+  if (isAlwaysOnLiveChannel(channelId) || closing.has(channelId)) return false;
   const channel = await db.voiceChannel.findUnique({
     where: { id: channelId },
     select: { id: true, createdBy: true, createdAt: true, isLive: true, liveStatus: true },

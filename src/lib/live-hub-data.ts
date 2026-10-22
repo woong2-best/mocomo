@@ -9,7 +9,7 @@ import {
 } from "@/lib/live-abandon";
 import { isExternalLiveEnabled, isFirstPartyLiveEnabled } from "@/lib/live-feature";
 import { resolveLiveStillThumb } from "@/lib/live-preview-thumb";
-import { MOCO_OFFICIAL_CHANNEL_ID } from "@/lib/ai-live/official-channel-id";
+import { ALWAYS_ON_LIVE_CHANNEL_IDS } from "@/lib/ai-live/official-channel-id";
 
 /** /live 허브·팔로우 라이브 목록 캐시 */
 export const LIVE_HUB_CACHE_TAG = "live-hub";
@@ -96,7 +96,7 @@ async function fetchLiveHubChannels(category?: LiveStreamCategory, mode: LiveHub
     where: {
       isLive: true,
       liveStatus: "LIVE",
-      id: { not: MOCO_OFFICIAL_CHANNEL_ID },
+      id: { notIn: [...ALWAYS_ON_LIVE_CHANNEL_IDS] },
       ...(category ? { category } : {}),
       ...modeFilter,
     },
@@ -209,7 +209,7 @@ async function fetchFollowedLive(userId: string) {
     where: {
       isLive: true,
       liveStatus: "LIVE",
-      id: { not: MOCO_OFFICIAL_CHANNEL_ID },
+      id: { notIn: [...ALWAYS_ON_LIVE_CHANNEL_IDS] },
       createdBy: { in: ids },
     },
     select: {

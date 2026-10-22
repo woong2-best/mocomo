@@ -3,6 +3,7 @@ import { requireApiUser } from "@/lib/api-post-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { planHostReply } from "@/lib/ai-live/blocklist";
 import { speakHostLine } from "@/lib/ai-live/host-reply";
+import { isIdolId } from "@/lib/ai-live/idols";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ export async function POST(req: NextRequest) {
   }
 
   const raw = typeof (body as { text?: unknown })?.text === "string" ? (body as { text: string }).text : "";
+  const memberRaw = typeof (body as { member?: unknown })?.member === "string" ? (body as { member: string }).member : "";
+  const member = isIdolId(memberRaw) ? memberRaw : null;
   const plan = planHostReply(raw);
   if (plan.kind === "ignore") {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ text: plan.text, blocked: true, audioBase64: null });
   }
 
-  const spoken = await speakHostLine(plan.text);
+  const spoken = await speakHostLine(plan.text, member);
   return NextResponse.json({
     text: spoken.text,
     blocked: spoken.blocked,

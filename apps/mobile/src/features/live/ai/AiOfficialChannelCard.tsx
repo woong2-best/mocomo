@@ -8,9 +8,13 @@ const POSTER = require("../../../../assets/moco-live-poster.png");
 
 type Props = {
   onPress: () => void;
+  title?: string;
+  host?: string;
+  sub?: string;
+  accent?: string;
 };
 
-function AiOfficialChannelCardInner({ onPress }: Props) {
+function AiOfficialChannelCardInner({ onPress, title, host, sub, accent }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -19,21 +23,21 @@ function AiOfficialChannelCardInner({ onPress }: Props) {
 
   return (
     <Pressable style={styles.row} onPress={onPress} accessibilityRole="button">
-      <View style={[styles.thumb, { width: thumbW, height: thumbH }]}>
-        <Image source={POSTER} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <View style={[styles.thumb, { width: thumbW, height: thumbH, backgroundColor: accent ?? "#241c33" }]}>
+        {accent ? null : <Image source={POSTER} style={StyleSheet.absoluteFill} contentFit="cover" />}
         <View style={styles.badge} pointerEvents="none">
-          <Text style={styles.badgeText}>{t("m.live.ai_official_badge")}</Text>
+          <Text style={styles.badgeText}>{t(accent ? "m.live.idol_badge" : "m.live.ai_official_badge")}</Text>
         </View>
       </View>
       <View style={styles.meta}>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
-          {t("m.live.ai_card_title")}
+          {title ?? t("m.live.ai_card_title")}
         </Text>
         <Text style={[styles.host, { color: colors.textSecondary }]} numberOfLines={1}>
-          {t("m.live.ai_host_name")}
+          {host ?? t("m.live.ai_host_name")}
         </Text>
         <Text style={[styles.sub, { color: colors.textMuted }]} numberOfLines={1}>
-          {t("m.live.ai_card_sub")}
+          {sub ?? t("m.live.ai_card_sub")}
         </Text>
       </View>
     </Pressable>
