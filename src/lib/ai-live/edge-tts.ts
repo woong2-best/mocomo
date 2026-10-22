@@ -23,7 +23,9 @@ function looksLikeMp3(bytes: Uint8Array): boolean {
 }
 
 function toArrayBuffer(buf: Buffer): ArrayBuffer {
-  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  const out = new ArrayBuffer(buf.byteLength);
+  new Uint8Array(out).set(buf);
+  return out;
 }
 
 async function fromEdgeWs(text: string, lang: SpeechLang): Promise<ArrayBuffer | null> {
