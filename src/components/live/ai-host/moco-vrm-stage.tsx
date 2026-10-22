@@ -145,6 +145,7 @@ export function MocoVrmStage({
       renderer.toneMappingExposure = 1.08;
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
       const canvas = renderer.domElement;
+      canvas.dataset.functionalCanvas = "";
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       canvas.style.display = "block";
@@ -259,9 +260,7 @@ export function MocoVrmStage({
       swapRef.current = swap;
       armed.current = true;
 
-      const reduced =
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-        document.documentElement.dataset.visibleAnimations === "off";
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       let blinkAt = performance.now() + 1600;
       let blinking = false;
@@ -356,7 +355,7 @@ export function MocoVrmStage({
     <div ref={hostRef} className="pointer-events-none absolute inset-0">
       {phase === "loading" ? (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+          <div className="h-8 w-8 rounded-full border-2 border-white/25 border-t-white" />
         </div>
       ) : null}
     </div>
