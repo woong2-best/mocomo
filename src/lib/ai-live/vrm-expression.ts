@@ -42,7 +42,7 @@ function setPreset(em: NonNullable<VRM["expressionManager"]>, name: string, valu
     }
     expr.overrideMouth = "none";
   } else if (typeof expr.userData.mocoMouthOverride === "string") {
-    expr.overrideMouth = expr.userData.mocoMouthOverride;
+    expr.overrideMouth = expr.userData.mocoMouthOverride as typeof expr.overrideMouth;
   }
   em.setValue(name, value);
 }

@@ -134,7 +134,7 @@ export function MocoVrmStage({
     let playDone: (() => void) | null = null;
     let voiceSession = 0;
     const lip: LipSync = { active: false, emotion: "neutral", analyser: null, bins: null };
-    const shown: { vrm: VRM | null } = { current: null };
+    const shown: { current: VRM | null } = { current: null };
 
     const stopVoice = () => {
       voiceSession += 1;
