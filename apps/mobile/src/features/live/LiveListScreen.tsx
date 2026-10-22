@@ -10,7 +10,8 @@ import { fetchLiveHub, type LiveListItem } from "@/api/live";
 import { coerceViewerCount, type MobileLiveCategoryId } from "@/features/live/live-categories";
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
-import { LiveEmptyTestPattern } from "@/features/live/LiveEmptyTestPattern";
+import { AiLiveRoom } from "@/features/live/ai/AiLiveRoom";
+import { AiOfficialChannelCard } from "@/features/live/ai/AiOfficialChannelCard";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
 import { sanitizeLiveListItems } from "@/features/live/live-hub-sanitize";
@@ -86,7 +87,10 @@ export function LiveListScreen() {
   const hasHubPages = (query.data?.pages?.length ?? 0) > 0;
   const hero = visibleItems[0] ?? null;
   const rows = hero ? visibleItems.slice(1) : visibleItems;
-  const showPattern = !hero && !searchNorm && !(query.isPending && !hasHubPages);
+  const waitingFirst = query.isPending && !hasHubPages;
+  const showAiRoom = !hero && !searchNorm && !waitingFirst;
+  const showAiCard =
+    !!hero && !searchNorm && (category === "ALL" || category === "JUST_CHATTING");
 
   const openLive = useCallback(
     (id: string) => navigation.navigate("LiveDetail", { id }),
@@ -134,12 +138,17 @@ export function LiveListScreen() {
           <LiveGlassSearch value={searchQ} onChangeText={setSearchQ} expandedWidth={searchWidth} />
         </View>
 
-        {query.isError && !hasHubPages ? (
+        {showAiRoom ? (
+          <AiLiveRoom
+            topInset={insets.top + 48}
+            between={<LiveSlantTabs active={category} onSelect={selectCategory} />}
+            notice={query.isError && !hasHubPages ? copy.loadHubError : null}
+            onRetry={query.isError ? () => void query.refetch() : undefined}
+            retryLabel={copy.retry}
+          />
+        ) : query.isError && !hasHubPages ? (
           <View style={[styles.fill, { paddingTop: insets.top }]}>
-            <View style={styles.blackStage}>
-              <LiveEmptyTestPattern />
-              <LiveSlantTabs active={category} onSelect={selectCategory} />
-            </View>
+            <LiveSlantTabs active={category} onSelect={selectCategory} />
             <View style={styles.center}>
               <Text style={styles.error}>{copy.loadHubError}</Text>
               <FolkButton label={copy.retry} onPress={() => void query.refetch()} />
@@ -155,8 +164,6 @@ export function LiveListScreen() {
               <View style={{ paddingTop: insets.top, backgroundColor: "#000" }}>
                 {hero ? (
                   <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} />
-                ) : showPattern ? (
-                  <LiveEmptyTestPattern />
                 ) : (
                   <View style={{ width, height: Math.round(width * (9 / 16)), backgroundColor: "#000" }} />
                 )}
@@ -178,14 +185,19 @@ export function LiveListScreen() {
             ListEmptyComponent={
               query.isPending && !hasHubPages ? (
                 <ActivityIndicator style={{ marginTop: 48 }} color={colors.terracotta} />
-              ) : hero || showPattern ? null : (
+              ) : hero ? null : (
                 <Text style={styles.empty}>{copy.noSearchResults}</Text>
               )
             }
             ListFooterComponent={
-              query.isFetchingNextPage ? (
-                <ActivityIndicator style={{ marginVertical: 16 }} color={colors.terracotta} />
-              ) : null
+              <View>
+                {showAiCard ? (
+                  <AiOfficialChannelCard onPress={() => navigation.navigate("LiveAiHost")} />
+                ) : null}
+                {query.isFetchingNextPage ? (
+                  <ActivityIndicator style={{ marginVertical: 16 }} color={colors.terracotta} />
+                ) : null}
+              </View>
             }
           />
         )}
@@ -198,7 +210,6 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
     fill: { flex: 1 },
-    blackStage: { backgroundColor: "#000" },
     chrome: {
       position: "absolute",
       top: 0,
