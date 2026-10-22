@@ -1,25 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { MocoLiveRoom } from "@/components/live/ai-host/moco-live-room";
 import { useLocale } from "@/components/providers/locale-provider";
-import { IDOLS, idolById, type IdolId } from "@/lib/ai-live/idols";
+import { IDOLS, type IdolId } from "@/lib/ai-live/idols";
 
-export function IdolGroupRoom({
-  initial,
-  channels,
-}: {
-  initial: IdolId;
-  channels: Partial<Record<IdolId, string>>;
-}) {
+export function IdolGroupRoom({ channels }: { channels: Partial<Record<IdolId, string>> }) {
   const { t } = useLocale();
-  const [member, setMember] = useState(initial);
-  const idol = idolById(member) ?? IDOLS[0];
+  const pathname = usePathname();
+  const router = useRouter();
+  const idol = IDOLS.find((item) => pathname === `/live/${item.id}`) ?? IDOLS[0];
 
   const select = (id: IdolId) => {
-    setMember(id);
-    const next = `/live/${id}`;
-    if (window.location.pathname !== next) window.history.replaceState(null, "", next);
+    if (id === idol.id) return;
+    router.replace(`/live/${id}`);
   };
 
   return (
