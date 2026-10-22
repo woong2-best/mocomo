@@ -184,16 +184,42 @@ export function MocoVrmStage({
       const loader = new GLTFLoader();
       loader.register((parser) => new VRMLoaderPlugin(parser));
 
+      type HungBone = { bone: import("three").Object3D; quat: import("three").Quaternion };
       type Pose = {
         vrm: VRM;
         spine: import("three").Object3D | null;
+        chest: import("three").Object3D | null;
         headBone: import("three").Object3D | null;
         spineRestX: number;
+        spineRestY: number;
+        spineRestZ: number;
+        chestRestX: number;
+        chestRestY: number;
+        chestRestZ: number;
+        headRestX: number;
         headRestY: number;
         headRestZ: number;
+        hung: HungBone[];
       };
       const poseRef: { current: Pose | null } = { current: null };
       let loadGen = 0;
+
+      const hangBone = (bone: import("three").Object3D | null, goal: import("three").Vector3): HungBone | null => {
+        if (!bone?.parent) return null;
+        bone.updateWorldMatrix(true, true);
+        const child = bone.children.find((node) => (node as import("three").Bone).isBone) ?? bone.children[0];
+        if (!child) return null;
+        const origin = bone.getWorldPosition(new THREE.Vector3());
+        const tip = child.getWorldPosition(new THREE.Vector3());
+        const dir = tip.sub(origin);
+        if (dir.lengthSq() < 1e-6) return null;
+        dir.normalize();
+        const worldDelta = new THREE.Quaternion().setFromUnitVectors(dir, goal.clone().normalize());
+        const parentWorld = bone.parent.getWorldQuaternion(new THREE.Quaternion());
+        const currentWorld = bone.getWorldQuaternion(new THREE.Quaternion());
+        bone.quaternion.copy(parentWorld.invert()).multiply(worldDelta.multiply(currentWorld));
+        return { bone, quat: bone.quaternion.clone() };
+      };
 
       const frameCamera = (vrm: VRM) => {
         vrm.scene.updateMatrixWorld(true);
@@ -214,15 +240,39 @@ export function MocoVrmStage({
       };
 
       const rememberPose = (vrm: VRM): Pose => {
-        const spine = vrm.humanoid?.getRawBoneNode("spine") ?? null;
-        const headBone = vrm.humanoid?.getRawBoneNode("head") ?? null;
+        const humanoid = vrm.humanoid as
+          | (NonNullable<VRM["humanoid"]> & { autoUpdateHumanBones?: boolean })
+          | null;
+        if (humanoid) humanoid.autoUpdateHumanBones = false;
+        const raw = (name: Parameters<NonNullable<VRM["humanoid"]>["getRawBoneNode"]>[0]) =>
+          humanoid?.getRawBoneNode(name) ?? null;
+        const hung: HungBone[] = [];
+        const keep = (bone: import("three").Object3D | null, goal: import("three").Vector3) => {
+          const next = hangBone(bone, goal);
+          if (next) hung.push(next);
+        };
+        keep(raw("leftShoulder"), new THREE.Vector3(0.9, -0.4, 0.06));
+        keep(raw("rightShoulder"), new THREE.Vector3(-0.9, -0.4, 0.06));
+        keep(raw("leftUpperArm"), new THREE.Vector3(0.32, -1, 0.18));
+        keep(raw("rightUpperArm"), new THREE.Vector3(-0.32, -1, 0.18));
+        const spine = raw("spine");
+        const chest = raw("chest");
+        const headBone = raw("head");
         return {
           vrm,
           spine,
+          chest,
           headBone,
           spineRestX: spine?.rotation.x ?? 0,
+          spineRestY: spine?.rotation.y ?? 0,
+          spineRestZ: spine?.rotation.z ?? 0,
+          chestRestX: chest?.rotation.x ?? 0,
+          chestRestY: chest?.rotation.y ?? 0,
+          chestRestZ: chest?.rotation.z ?? 0,
+          headRestX: headBone?.rotation.x ?? 0,
           headRestY: headBone?.rotation.y ?? 0,
           headRestZ: headBone?.rotation.z ?? 0,
+          hung,
         };
       };
 
@@ -238,8 +288,8 @@ export function MocoVrmStage({
           }
           if (poseRef.current) disposeIdolVrm(poseRef.current.vrm);
           scene.add(vrm.scene);
-          frameCamera(vrm);
           poseRef.current = rememberPose(vrm);
+          frameCamera(vrm);
           host.dataset.vrmReady = "1";
           delete host.dataset.vrmFailed;
           requestAnimationFrame(() => {
@@ -272,9 +322,20 @@ export function MocoVrmStage({
         const dt = Math.min(clock.getDelta(), 0.05);
         const time = clock.elapsedTime;
         const pose = poseRef.current;
-        if (pose && !reduced) {
-          if (pose.spine) pose.spine.rotation.x = pose.spineRestX + Math.sin(time * 2) * 0.02;
-          if (pose.headBone) {
+        if (pose) {
+          for (const arm of pose.hung) arm.bone.quaternion.copy(arm.quat);
+          if (!reduced && pose.spine) {
+            pose.spine.rotation.x = pose.spineRestX + Math.sin(time * 2) * 0.03;
+            pose.spine.rotation.y = pose.spineRestY + Math.cos(time * 1.5) * 0.01;
+            pose.spine.rotation.z = pose.spineRestZ;
+          }
+          if (!reduced && pose.chest) {
+            pose.chest.rotation.x = pose.chestRestX + Math.sin(time * 2) * 0.02;
+            pose.chest.rotation.y = pose.chestRestY + Math.cos(time * 1.5) * 0.008;
+            pose.chest.rotation.z = pose.chestRestZ;
+          }
+          if (!reduced && pose.headBone) {
+            pose.headBone.rotation.x = pose.headRestX;
             pose.headBone.rotation.y = pose.headRestY + Math.sin(time * 1.5) * 0.05;
             pose.headBone.rotation.z = pose.headRestZ + Math.cos(time * 1.2) * 0.02;
           }
