@@ -55,6 +55,7 @@ export function MocoLiveRoom({
   signInPath = "/live/moco",
   hostUsername = MOCO_OFFICIAL_USERNAME,
   showVrm = true,
+  backdropUrl = null,
 }: {
   channelId?: string | null;
   vrmUrl?: string;
@@ -66,6 +67,7 @@ export function MocoLiveRoom({
   signInPath?: string;
   hostUsername?: string;
   showVrm?: boolean;
+  backdropUrl?: string | null;
 }) {
   const { t, locale } = useLocale();
   const sessionState = useSession();
@@ -107,7 +109,11 @@ export function MocoLiveRoom({
     speakingRef.current = true;
     const token = queueRef.current.epoch;
     try {
-      await stageRef.current?.playVoice(job.audio, job.emotion);
+      if (job.audio && job.audio.byteLength >= 64) {
+        await stageRef.current?.playVoice(job.audio, job.emotion);
+      } else if (job.text) {
+        await stageRef.current?.speakText(job.text, job.emotion);
+      }
     } finally {
       if (token !== queueRef.current.epoch) return;
       speakingRef.current = false;
@@ -170,9 +176,10 @@ export function MocoLiveRoom({
         const reply = typeof json.text === "string" ? json.text.trim() : "";
         if (reply) addLine("moco", reply, room);
         const audio = typeof json.audioBase64 === "string" ? decodeAudioBase64(json.audioBase64) : null;
-        if (audio && roomRef.current === room) {
+        if (roomRef.current === room && (audio || reply)) {
           pushAudio({
             audio,
+            text: reply,
             priority: "chat",
             emotion: typeof json.emotion === "string" ? json.emotion : "neutral",
           });
@@ -285,7 +292,9 @@ export function MocoLiveRoom({
       <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
         <div className="min-w-0">
           <div className="relative aspect-video overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
-            {showVrm ? <MocoVrmStage framing="stage" vrmUrl={vrmUrl} onReady={onReady} /> : null}
+            {showVrm ? (
+              <MocoVrmStage framing="stage" vrmUrl={vrmUrl} backdropUrl={backdropUrl} onReady={onReady} />
+            ) : null}
             {channelId ? (
               <MocoDonationStage
                 channelId={channelId}

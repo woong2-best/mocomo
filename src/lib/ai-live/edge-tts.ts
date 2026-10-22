@@ -1,35 +1,18 @@
 import { EdgeTTS } from "node-edge-tts";
-import { textHasHangul } from "@/lib/ai-live/blocklist";
+import { safeLogWarn } from "@/lib/safe-log";
+import { EDGE_VOICES, speechLangForText, type SpeechLang } from "@/lib/ai-live/speech-lang";
 
-/** Microsoft neural voices. No API key and no GPU server. */
-const VOICES = {
-  ko: { voice: "ko-KR-SunHiNeural", lang: "ko-KR" },
-  en: { voice: "en-US-JennyNeural", lang: "en-US" },
-  ja: { voice: "ja-JP-NanamiNeural", lang: "ja-JP" },
-} as const;
-
-export type EdgeVoiceLang = keyof typeof VOICES;
+export type EdgeVoiceLang = SpeechLang;
 
 const MAX_AUDIO_BYTES = 3_000_000;
-const OUTPUT_FORMAT = "audio-24khz-96kbitrate-mono-mp3";
+const OUTPUT_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
 
-function hasKana(text: string): boolean {
-  for (const ch of text) {
-    const code = ch.codePointAt(0) ?? 0;
-    if (code >= 0x3040 && code <= 0x30ff) return true;
-  }
-  return false;
-}
-
-/** Korean if the line has Hangul, Japanese if it has kana, otherwise English. */
 export function edgeVoiceForText(text: string): EdgeVoiceLang {
-  if (textHasHangul(text)) return "ko";
-  if (hasKana(text)) return "ja";
-  return "en";
+  return speechLangForText(text);
 }
 
 export function edgeVoiceName(lang: EdgeVoiceLang): string {
-  return VOICES[lang].voice;
+  return EDGE_VOICES[lang].voice;
 }
 
 function looksLikeMp3(bytes: Uint8Array): boolean {
@@ -39,31 +22,77 @@ function looksLikeMp3(bytes: Uint8Array): boolean {
   return bytes[0] === 0xff && (bytes[1]! & 0xe0) === 0xe0;
 }
 
-/** Speak one host line. Returns null when Edge has no audio, never calls a paid TTS server. */
+function toArrayBuffer(buf: Buffer): ArrayBuffer {
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+}
+
+async function fromEdgeWs(text: string, lang: SpeechLang): Promise<ArrayBuffer | null> {
+  const preset = EDGE_VOICES[lang];
+  const tts = new EdgeTTS({
+    voice: preset.voice,
+    lang: preset.lang,
+    outputFormat: OUTPUT_FORMAT,
+    timeout: 10_000,
+  });
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of tts.streamAudio(text)) {
+    if (!Buffer.isBuffer(chunk)) continue;
+    total += chunk.length;
+    if (total > MAX_AUDIO_BYTES) return null;
+    chunks.push(chunk);
+  }
+  if (total < 64) return null;
+  const buf = Buffer.concat(chunks);
+  return looksLikeMp3(buf) ? toArrayBuffer(buf) : null;
+}
+
+async function fromGoogleTranslate(text: string, lang: SpeechLang): Promise<ArrayBuffer | null> {
+  const line = text.slice(0, 180);
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${encodeURIComponent(line)}`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Referer: "https://translate.google.com/",
+    },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!res.ok) return null;
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length < 64 || buf.length > MAX_AUDIO_BYTES || !looksLikeMp3(buf)) return null;
+  return toArrayBuffer(buf);
+}
+
+async function fromStreamElements(text: string, lang: SpeechLang): Promise<ArrayBuffer | null> {
+  const line = text.slice(0, 180);
+  const voice = EDGE_VOICES[lang].voice;
+  const url = `https://api.streamelements.com/kappa/v2/speech?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(line)}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+  if (!res.ok) return null;
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length < 64 || buf.length > MAX_AUDIO_BYTES || !looksLikeMp3(buf)) return null;
+  return toArrayBuffer(buf);
+}
+
+/** Speak one host line. Free neural first, then HTTP fallbacks. Never calls a paid GPU server. */
 export async function synthesizeIdolVoice(text: string): Promise<ArrayBuffer | null> {
   const line = text.replace(/\s+/g, " ").trim().slice(0, 240);
   if (!line) return null;
-  const preset = VOICES[edgeVoiceForText(line)];
-  try {
-    const tts = new EdgeTTS({
-      voice: preset.voice,
-      lang: preset.lang,
-      outputFormat: OUTPUT_FORMAT,
-      timeout: 12_000,
-    });
-    const chunks: Buffer[] = [];
-    let total = 0;
-    for await (const chunk of tts.streamAudio(line)) {
-      if (!Buffer.isBuffer(chunk)) continue;
-      total += chunk.length;
-      if (total > MAX_AUDIO_BYTES) return null;
-      chunks.push(chunk);
+  const lang = speechLangForText(line);
+  const steps: Array<[string, () => Promise<ArrayBuffer | null>]> = [
+    ["edge", () => fromEdgeWs(line, lang)],
+    ["google", () => fromGoogleTranslate(line, lang)],
+    ["streamelements", () => fromStreamElements(line, lang)],
+  ];
+  for (const [name, run] of steps) {
+    try {
+      const audio = await run();
+      if (audio) return audio;
+      safeLogWarn("live-tts", { step: name, result: "empty" });
+    } catch {
+      safeLogWarn("live-tts", { step: name, result: "fail" });
     }
-    if (total < 64) return null;
-    const buf = Buffer.concat(chunks);
-    if (!looksLikeMp3(buf)) return null;
-    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-  } catch {
-    return null;
   }
+  return null;
 }

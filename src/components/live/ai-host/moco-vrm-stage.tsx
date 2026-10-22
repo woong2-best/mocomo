@@ -13,6 +13,8 @@ export type MocoStageHandle = {
   prime: () => void;
   /** Play speech. `emotion` stays at 1 until the clip ends, then the face returns to neutral. */
   playVoice: (bytes: ArrayBuffer, emotion?: string) => Promise<void>;
+  /** Browser voice when the server did not return MP3. */
+  speakText: (text: string, emotion?: string) => Promise<void>;
   stopVoice: () => void;
   /** Swap a clothing material's texture without reloading the VRM. */
   changeClothing: (materialName: string, textureUrl: string) => void;
@@ -83,6 +85,7 @@ type LipSync = {
   emotion: string;
   analyser: AnalyserNode | null;
   bins: Uint8Array<ArrayBuffer> | null;
+  pulse: number | null;
 };
 
 /**
@@ -92,10 +95,12 @@ type LipSync = {
 export function MocoVrmStage({
   framing = "bust",
   vrmUrl = DEFAULT_VRM_URL,
+  backdropUrl,
   onReady,
 }: {
   framing?: "bust" | "stage";
   vrmUrl?: string;
+  backdropUrl?: string | null;
   onReady?: (handle: MocoStageHandle | null) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -105,6 +110,7 @@ export function MocoVrmStage({
   const voiceRef = useRef<MocoStageHandle>({
     prime() {},
     playVoice: async () => {},
+    speakText: async () => {},
     stopVoice() {},
     changeClothing() {},
   });
@@ -113,6 +119,7 @@ export function MocoVrmStage({
     () => ({
       prime: () => voiceRef.current.prime(),
       playVoice: (bytes, emotion) => voiceRef.current.playVoice(bytes, emotion),
+      speakText: (text, emotion) => voiceRef.current.speakText(text, emotion),
       stopVoice: () => voiceRef.current.stopVoice(),
       changeClothing: (materialName, textureUrl) => voiceRef.current.changeClothing(materialName, textureUrl),
     }),
@@ -133,7 +140,7 @@ export function MocoVrmStage({
     let source: AudioBufferSourceNode | null = null;
     let playDone: (() => void) | null = null;
     let voiceSession = 0;
-    const lip: LipSync = { active: false, emotion: "neutral", analyser: null, bins: null };
+    const lip: LipSync = { active: false, emotion: "neutral", analyser: null, bins: null, pulse: null };
     const shown: { current: VRM | null } = { current: null };
 
     const stopVoice = () => {
@@ -142,6 +149,10 @@ export function MocoVrmStage({
       lip.emotion = "neutral";
       lip.analyser = null;
       lip.bins = null;
+      lip.pulse = null;
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
       const current = source;
       source = null;
       if (current) {
@@ -183,6 +194,7 @@ export function MocoVrmStage({
         lip.analyser = analyser;
         lip.bins = new Uint8Array(analyser.frequencyBinCount);
         lip.emotion = mood;
+        lip.pulse = null;
         lip.active = true;
         await new Promise<void>((resolve) => {
           playDone = resolve;
@@ -204,11 +216,62 @@ export function MocoVrmStage({
       }
     };
 
+    const speakText = async (text: string, emotion?: string) => {
+      const line = text.replace(/\s+/g, " ").trim();
+      if (!line || typeof window === "undefined" || !window.speechSynthesis) return;
+      stopVoice();
+      const token = voiceSession;
+      const mood = parseVrmEmotion(emotion);
+      const { speechLangForText, EDGE_VOICES } = await import("@/lib/ai-live/speech-lang");
+      const want = EDGE_VOICES[speechLangForText(line)].bcp47;
+      const voices = await new Promise<SpeechSynthesisVoice[]>((resolve) => {
+        const have = window.speechSynthesis.getVoices();
+        if (have.length) {
+          resolve(have);
+          return;
+        }
+        const finish = () => resolve(window.speechSynthesis.getVoices());
+        window.speechSynthesis.addEventListener("voiceschanged", finish, { once: true });
+        window.setTimeout(finish, 400);
+      });
+      if (!alive || token !== voiceSession) return;
+      const voice =
+        voices.find((item) => item.lang === want) ??
+        voices.find((item) => item.lang.toLowerCase().startsWith(want.slice(0, 2))) ??
+        null;
+      const uttered = new SpeechSynthesisUtterance(line);
+      uttered.lang = want;
+      if (voice) uttered.voice = voice;
+      uttered.rate = 1.04;
+      lip.emotion = mood;
+      lip.active = true;
+      lip.pulse = 0.35;
+      const pulse = () => {
+        if (!lip.active || token !== voiceSession) return;
+        lip.pulse = 0.22 + 0.55 * Math.abs(Math.sin(performance.now() / 110));
+        requestAnimationFrame(pulse);
+      };
+      requestAnimationFrame(pulse);
+      await new Promise<void>((resolve) => {
+        playDone = resolve;
+        uttered.onend = () => {
+          if (token === voiceSession) {
+            lip.active = false;
+            lip.emotion = "neutral";
+            lip.pulse = null;
+          }
+          resolve();
+        };
+        uttered.onerror = () => resolve();
+        window.speechSynthesis.speak(uttered);
+      });
+    };
+
     const changeClothing = (materialName: string, textureUrl: string) => {
       void changeClothingTexture(shown.current, materialName, textureUrl);
     };
 
-    voiceRef.current = { prime, playVoice, stopVoice, changeClothing };
+    voiceRef.current = { prime, playVoice, speakText, stopVoice, changeClothing };
 
     void (async () => {
       const THREE = await import("three");
@@ -217,10 +280,12 @@ export function MocoVrmStage({
       const { VRMLoaderPlugin } = await import("@pixiv/three-vrm");
       if (!alive || !hostRef.current) return;
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      const useBackdrop = Boolean(backdropUrl);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: useBackdrop });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.08;
+      if (useBackdrop) renderer.setClearColor(0x000000, 0);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
       const canvas = renderer.domElement;
       canvas.dataset.functionalCanvas = "";
@@ -230,8 +295,8 @@ export function MocoVrmStage({
       canvas.setAttribute("aria-hidden", "true");
 
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x241c33);
-      const camera = new THREE.PerspectiveCamera(26, 1, 0.05, 30);
+      scene.background = useBackdrop ? null : new THREE.Color(0x241c33);
+      const camera = new THREE.PerspectiveCamera(framing === "stage" ? 30 : 26, 1, 0.05, 30);
 
       const pmrem = new THREE.PMREMGenerator(renderer);
       const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -305,8 +370,8 @@ export function MocoVrmStage({
         const headPos = new THREE.Vector3(0, 1.45, 0);
         head?.getWorldPosition(headPos);
         const look = headPos.clone();
-        look.y -= framing === "bust" ? 0.02 : 0.04;
-        const distance = framing === "bust" ? 0.7 : 0.82;
+        look.y -= framing === "bust" ? 0.02 : 0.12;
+        const distance = framing === "bust" ? 0.7 : 1.22;
         camera.position.set(look.x, look.y + 0.03, look.z + distance);
         camera.lookAt(look);
         camera.updateMatrixWorld(true);
@@ -422,7 +487,9 @@ export function MocoVrmStage({
 
         let aa = 0;
         const bins = lip.bins;
-        if (lip.active && lip.analyser && bins) {
+        if (lip.active && lip.pulse != null) {
+          aa = lip.pulse;
+        } else if (lip.active && lip.analyser && bins) {
           lip.analyser.getByteFrequencyData(bins);
           let sum = 0;
           for (let i = 0; i < bins.length; i += 1) sum += bins[i] ?? 0;
@@ -487,15 +554,20 @@ export function MocoVrmStage({
       voiceRef.current = {
         prime() {},
         playVoice: async () => {},
+        speakText: async () => {},
         stopVoice() {},
         changeClothing() {},
       };
       dispose();
     };
-  }, [framing]);
+  }, [framing, backdropUrl]);
 
   return (
-    <div ref={hostRef} className="pointer-events-none absolute inset-0">
+    <div
+      ref={hostRef}
+      className="pointer-events-none absolute inset-0 bg-cover bg-center"
+      style={backdropUrl ? { backgroundImage: `url(${backdropUrl})` } : undefined}
+    >
       {phase === "loading" ? (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="h-8 w-8 rounded-full border-2 border-white/25 border-t-white" />

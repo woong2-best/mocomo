@@ -1,7 +1,9 @@
 export type SpeechPriority = "chat" | "donation";
 
 export type SpeechJob = {
-  audio: ArrayBuffer;
+  audio: ArrayBuffer | null;
+  /** Spoken line. Used when Edge/HTTP TTS did not return bytes. */
+  text?: string;
   priority: SpeechPriority;
   /** Face preset held at 1 while this clip plays, then cleared. */
   emotion?: string;

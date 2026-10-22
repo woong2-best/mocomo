@@ -17,5 +17,5 @@ export async function generateMetadata() {
 export default async function MocoLivePage() {
   if (!isLiveFeatureEnabled()) return <LiveFeatureDisabledNotice />;
   const channel = await ensureMocoOfficialChannel().catch(() => null);
-  return <MocoLiveRoom channelId={channel?.channelId ?? null} />;
+  return <MocoLiveRoom channelId={channel?.channelId ?? null} backdropUrl="/live/backgrounds/moco-room.jpg" />;
 }
