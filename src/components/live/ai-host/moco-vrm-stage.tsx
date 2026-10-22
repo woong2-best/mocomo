@@ -94,12 +94,17 @@ export function MocoVrmStage({ framing = "bust" }: { framing?: "bust" | "stage" 
       const distance = framing === "bust" ? 0.7 : 0.82;
       camera.position.set(look.x, look.y + 0.03, look.z + distance);
       camera.lookAt(look);
+      camera.updateMatrixWorld(true);
       camera.updateProjectionMatrix();
+      if (vrm.lookAt) {
+        vrm.lookAt.autoUpdate = true;
+        vrm.lookAt.target = camera;
+      }
 
-      const neck = vrm.humanoid?.getNormalizedBoneNode("neck");
+      const spine = vrm.humanoid?.getNormalizedBoneNode("spine");
       const chest = vrm.humanoid?.getNormalizedBoneNode("chest");
-      const neckRestX = neck?.rotation.x ?? 0;
-      const neckRestY = neck?.rotation.y ?? 0;
+      const spineRestX = spine?.rotation.x ?? 0;
+      const spineRestY = spine?.rotation.y ?? 0;
       const chestRestX = chest?.rotation.x ?? 0;
       const reduced =
         window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
@@ -116,12 +121,13 @@ export function MocoVrmStage({ framing = "bust" }: { framing?: "bust" | "stage" 
         const now = performance.now();
         const t = now / 1000;
         if (!reduced) {
-          if (neck) {
-            neck.rotation.y = neckRestY + Math.sin(t * 0.7) * 0.07;
-            neck.rotation.x = neckRestX + Math.sin(t * 0.45) * 0.035;
+          if (spine) {
+            spine.rotation.x = spineRestX + Math.sin(t * 0.9) * 0.012;
+            spine.rotation.y = spineRestY + Math.sin(t * 0.35) * 0.018;
           }
-          if (chest) chest.rotation.x = chestRestX + Math.sin(t * 1.6) * 0.018;
+          if (chest) chest.rotation.x = chestRestX + Math.sin(t * 1.6) * 0.015;
         }
+        camera.updateMatrixWorld(true);
         const expressions = vrm.expressionManager;
         if (expressions) {
           if (!blinking && now >= blinkAt) {
@@ -132,10 +138,12 @@ export function MocoVrmStage({ framing = "bust" }: { framing?: "bust" | "stage" 
             blinking = false;
             blinkAt = now + 2000 + Math.random() * 2600;
           }
+        }
+        vrm.update(dt);
+        if (expressions) {
           expressions.setValue("blink", blinking ? 1 : 0);
           expressions.setValue("happy", 0.08);
         }
-        vrm.update(dt);
         renderer.render(scene, camera);
         raf = requestAnimationFrame(loop);
       };
