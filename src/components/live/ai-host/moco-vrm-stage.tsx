@@ -328,7 +328,7 @@ function MocoVrmStageView({
       const loader = new GLTFLoader();
       loader.register((parser) => new VRMLoaderPlugin(parser));
 
-      type HungBone = { bone: import("three").Object3D; x: number; y: number; z: number };
+      type HungBone = { bone: import("three").Object3D; quat: import("three").Quaternion };
       type Pose = {
         vrm: VRM;
         spine: import("three").Object3D | null;
@@ -349,9 +349,21 @@ function MocoVrmStageView({
       let loadedUrl: string | null = null;
       let loadGen = 0;
 
-      const dropArm = (bone: import("three").Object3D | null, z: number, x = 0.12): HungBone | null => {
-        if (!bone) return null;
-        return { bone, x, y: 0, z };
+      const hangBone = (bone: import("three").Object3D | null, goal: import("three").Vector3): HungBone | null => {
+        if (!bone?.parent) return null;
+        bone.updateWorldMatrix(true, true);
+        const child = bone.children.find((node) => (node as import("three").Bone).isBone) ?? bone.children[0];
+        if (!child) return null;
+        const origin = bone.getWorldPosition(new THREE.Vector3());
+        const tip = child.getWorldPosition(new THREE.Vector3());
+        const dir = tip.sub(origin);
+        if (dir.lengthSq() < 1e-8) return null;
+        dir.normalize();
+        const worldDelta = new THREE.Quaternion().setFromUnitVectors(dir, goal.clone().normalize());
+        const parentWorld = bone.parent.getWorldQuaternion(new THREE.Quaternion());
+        const currentWorld = bone.getWorldQuaternion(new THREE.Quaternion());
+        bone.quaternion.copy(parentWorld.invert()).multiply(worldDelta).multiply(currentWorld);
+        return { bone, quat: bone.quaternion.clone() };
       };
 
       const frameCamera = (vrm: VRM) => {
@@ -390,23 +402,33 @@ function MocoVrmStageView({
         const humanoid = vrm.humanoid as
           | (NonNullable<VRM["humanoid"]> & { autoUpdateHumanBones?: boolean })
           | null;
-        if (humanoid) humanoid.autoUpdateHumanBones = true;
+        if (humanoid) humanoid.autoUpdateHumanBones = false;
         const node = (name: Parameters<NonNullable<VRM["humanoid"]>["getNormalizedBoneNode"]>[0]) =>
-          humanoid?.getNormalizedBoneNode(name) ?? humanoid?.getRawBoneNode(name) ?? null;
+          humanoid?.getNormalizedBoneNode(name) ?? null;
+        const raw = (name: Parameters<NonNullable<VRM["humanoid"]>["getRawBoneNode"]>[0]) =>
+          humanoid?.getRawBoneNode(name) ?? null;
         const hung: HungBone[] = [];
-        const keep = (bone: import("three").Object3D | null, addZ: number, addX = 0) => {
-          const next = dropArm(bone, addZ, addX);
-          if (!next) return;
-          next.bone.rotation.set(next.x, next.y, next.z);
-          hung.push(next);
+        const keep = (
+          name: Parameters<NonNullable<VRM["humanoid"]>["getNormalizedBoneNode"]>[0],
+          goal: import("three").Vector3,
+        ) => {
+          const seen = new Set<import("three").Object3D>();
+          for (const bone of [node(name), raw(name)]) {
+            if (!bone || seen.has(bone)) continue;
+            seen.add(bone);
+            const next = hangBone(bone, goal);
+            if (next) hung.push(next);
+          }
         };
-        keep(node("leftUpperArm"), -1.25);
-        keep(node("rightUpperArm"), 1.25);
-        keep(node("leftLowerArm"), -0.18, 0);
-        keep(node("rightLowerArm"), 0.18, 0);
-        const spine = node("spine");
-        const chest = node("chest");
-        const headBone = node("head");
+        vrm.scene.updateMatrixWorld(true);
+        keep("leftUpperArm", new THREE.Vector3(0.16, -1, 0.06));
+        keep("rightUpperArm", new THREE.Vector3(-0.16, -1, 0.06));
+        vrm.scene.updateMatrixWorld(true);
+        keep("leftLowerArm", new THREE.Vector3(0.04, -1, 0.02));
+        keep("rightLowerArm", new THREE.Vector3(-0.04, -1, 0.02));
+        const spine = node("spine") ?? raw("spine");
+        const chest = node("chest") ?? raw("chest");
+        const headBone = node("head") ?? raw("head");
         return {
           vrm,
           spine,
@@ -446,6 +468,7 @@ function MocoVrmStageView({
           poseRef.current = rememberPose(vrm);
           loadedUrl = url;
           frameCamera(vrm);
+          renderer.render(scene, camera);
           host.dataset.vrmReady = "1";
           delete host.dataset.vrmFailed;
           requestAnimationFrame(() => {
@@ -518,14 +541,15 @@ function MocoVrmStageView({
           blinkAt = now + 2000 + Math.random() * 3000;
         }
 
-        if (pose) {
-          for (const arm of pose.hung) arm.bone.rotation.set(arm.x, arm.y, arm.z);
-        }
         camera.lookAt(cameraTarget);
         camera.updateMatrixWorld(true);
         const vrm = pose?.vrm;
         if (vrm) {
           vrm.update(dt);
+          if (pose) {
+            for (const arm of pose.hung) arm.bone.quaternion.copy(arm.quat);
+            vrm.scene.updateMatrixWorld(true);
+          }
           const expressions = vrm.expressionManager;
           if (expressions) {
             expressions.setValue("blink", blinking ? 1 : 0);
