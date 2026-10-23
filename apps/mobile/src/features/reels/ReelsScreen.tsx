@@ -492,11 +492,12 @@ export function ReelsScreen() {
     [queryClient]
   );
 
-  const submitComment = useCallback(async () => {
-    if (!commentsPostId || !commentDraft.trim() || commentBusy) return;
+  const submitComment = useCallback(async (media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null) => {
+    if (!commentsPostId || commentBusy) return;
+    if (!commentDraft.trim() && !media) return;
     setCommentBusy(true);
     try {
-      const res = await createPostComment(commentsPostId, commentDraft.trim());
+      const res = await createPostComment(commentsPostId, commentDraft.trim(), media);
       queryClient.setQueryData<PostCommentsResponse>(
         postCommentsQueryKey(commentsPostId),
         (old) => withOptimisticComment(old, res.comment, "prepend")

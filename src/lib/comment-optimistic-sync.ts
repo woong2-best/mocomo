@@ -19,6 +19,8 @@ export type OptimisticComment = {
   content: string;
   parentId?: string;
   pending?: boolean;
+  mediaType?: "NONE" | "PHOTO" | "GIF";
+  mediaUrl?: string | null;
   author: OptimisticCommentAuthor;
   replies: { id: string; content: string; author: OptimisticCommentAuthor }[];
 };

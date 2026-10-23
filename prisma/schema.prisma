@@ -1410,12 +1410,20 @@ model PostTag {
   @@id([postId, tagId])
 }
 
+enum CommentMediaType {
+  PHOTO
+  GIF
+}
+
 model Comment {
   id        String    @id @default(cuid())
   content   String    @db.Text
   authorId  String
   postId    String
   parentId  String?
+  /** One photo or one GIF. Null = text only. */
+  mediaType CommentMediaType?
+  mediaUrl  String?
   /** Denormalized like count for popular sort / feed speed */
   likeCount Int       @default(0)
   /** Top-level pin; null = not pinned. Max 3 per post enforced in API. */

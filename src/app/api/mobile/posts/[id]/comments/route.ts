@@ -9,6 +9,7 @@ import { userPublicSelect } from "@/lib/user-public-select";
 import { getPostCommentsPage } from "@/lib/comment-service";
 import type { PostCommentSort } from "@/lib/post-queries";
 import { assertUserBlockInteractionAllowed } from "@/lib/user-block";
+import { parseCommentMediaInput, serializeCommentMedia } from "@/lib/comment-media";
 
 function parseSort(raw: string | null, isQna: boolean): PostCommentSort {
   if (isQna) {
@@ -90,17 +91,25 @@ export async function POST(
   if ("error" in authResult) return authResult.error;
   const { user } = authResult;
 
-  let body: { content?: string; parentId?: string };
+  let body: {
+    content?: string;
+    parentId?: string;
+    mediaType?: string;
+    mediaUrl?: string;
+    media_type?: string;
+    media_url?: string;
+  };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const content = body.content?.trim();
-  if (!content || content.length > 4000) {
-    return NextResponse.json({ error: "Check your comment content." }, { status: 400 });
+  const media = parseCommentMediaInput(body);
+  if (!media.ok) {
+    return NextResponse.json({ error: media.error }, { status: 400 });
   }
+  const content = media.content;
 
   const parentId =
     typeof body.parentId === "string" && body.parentId.length > 0 && body.parentId.length <= 64
@@ -143,13 +152,22 @@ export async function POST(
     });
 
     const comment = await db.comment.create({
-      data: { content, authorId: user.id, postId, parentId },
+      data: {
+        content,
+        authorId: user.id,
+        postId,
+        parentId,
+        mediaType: media.mediaType,
+        mediaUrl: media.mediaUrl,
+      },
       select: {
         id: true,
         content: true,
         createdAt: true,
         updatedAt: true,
         likeCount: true,
+        mediaType: true,
+        mediaUrl: true,
         authorId: true,
         parentId: true,
         author: { select: userPublicSelect },
@@ -162,7 +180,7 @@ export async function POST(
       commentId: comment.id,
       actorId: user.id,
       parentCommentAuthorId,
-      content,
+      content: content || (media.mediaType === "GIF" ? "GIF" : "Photo"),
     });
 
     revalidatePath(`/post/${postId}`);
@@ -177,6 +195,7 @@ export async function POST(
         likeCount: 0,
         likedByMe: false,
         parentId: comment.parentId,
+        ...serializeCommentMedia(comment),
         author: fullUser ?? comment.author,
       },
     });

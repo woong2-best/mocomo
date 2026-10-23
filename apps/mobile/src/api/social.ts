@@ -39,6 +39,8 @@ export async function fetchPostDetail(id: string) {
   });
 }
 
+export type CommentMediaType = "NONE" | "PHOTO" | "GIF";
+
 export type CommentItem = {
   id: string;
   content: string;
@@ -48,6 +50,8 @@ export type CommentItem = {
   likedByMe?: boolean;
   isPinned?: boolean;
   acceptedAt?: string | null;
+  mediaType?: CommentMediaType | null;
+  mediaUrl?: string | null;
   author: {
     id: string;
     username: string;
@@ -83,11 +87,30 @@ export async function acceptQnaAnswer(postId: string, commentId: string) {
   });
 }
 
-export async function createPostComment(postId: string, content: string) {
+export async function createPostComment(
+  postId: string,
+  content: string,
+  media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null
+) {
   return apiRequest<{ comment: CommentItem }>(MobileApi.postComments(postId), {
     method: "POST",
-    body: { content },
+    body: {
+      content,
+      mediaType: media?.mediaType ?? "NONE",
+      mediaUrl: media?.mediaUrl ?? null,
+    },
   });
+}
+
+export type TenorGifItem = {
+  id: string;
+  previewUrl: string;
+  playUrl: string;
+};
+
+export async function searchTenorGifs(q = "") {
+  const params = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
+  return apiRequest<{ items: TenorGifItem[] }>(`${MobileApi.tenorSearch}${params}`);
 }
 
 export async function togglePostStar(postId: string) {

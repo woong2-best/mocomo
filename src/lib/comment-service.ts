@@ -14,6 +14,7 @@ import {
   pickRankedTopIds,
   usesFeedCommentRanking,
 } from "@/lib/comment-rank";
+import { serializeCommentMedia, type CommentMediaPayload } from "@/lib/comment-media";
 
 export const MAX_PINNED_COMMENTS = 3;
 export const COMMENT_PAGE_SIZE = 20;
@@ -52,7 +53,7 @@ export type SerializedReply = {
   isPostAuthor: boolean;
   isEdited: boolean;
   author: SerializedCommentAuthor;
-};
+} & CommentMediaPayload;
 
 export type SerializedComment = {
   id: string;
@@ -70,7 +71,7 @@ export type SerializedComment = {
   replyCount: number;
   author: SerializedCommentAuthor;
   replies: SerializedReply[];
-};
+} & CommentMediaPayload;
 
 function isEdited(createdAt: Date, updatedAt: Date) {
   return updatedAt.getTime() - createdAt.getTime() > 2000;
@@ -104,6 +105,8 @@ const commentSelectBase = {
   likeCount: true,
   pinnedAt: true,
   acceptedAt: true,
+  mediaType: true,
+  mediaUrl: true,
   authorId: true,
   author: { select: userPublicSelect },
   _count: { select: { replies: true } },
@@ -202,6 +205,8 @@ async function mapComments(
     likeCount: number;
     pinnedAt: Date | null;
     acceptedAt?: Date | null;
+    mediaType?: "PHOTO" | "GIF" | null;
+    mediaUrl?: string | null;
     authorId: string;
     author: {
       id: string;
@@ -217,6 +222,8 @@ async function mapComments(
       createdAt: Date;
       updatedAt: Date;
       likeCount: number;
+      mediaType?: "PHOTO" | "GIF" | null;
+      mediaUrl?: string | null;
       authorId: string;
       author: {
         id: string;
@@ -269,6 +276,7 @@ async function mapComments(
       c.acceptedAt instanceof Date ? c.acceptedAt.toISOString() : null,
     isEdited: isEdited(c.createdAt, c.updatedAt),
     replyCount,
+    ...serializeCommentMedia(c),
     author: serializeAuthor(c.author, { anonymous, viewerId }),
     replies: visibleReplies.map((r) => ({
       id: r.id,
@@ -280,6 +288,7 @@ async function mapComments(
       likedByAuthor: likedByAuthor.has(r.id),
       isPostAuthor: r.authorId === postAuthorId,
       isEdited: isEdited(r.createdAt, r.updatedAt),
+      ...serializeCommentMedia(r),
       author: serializeAuthor(r.author, { anonymous, viewerId }),
     })),
   };
@@ -361,6 +370,8 @@ async function getRankedCommentsPage(params: {
       createdAt: true,
       updatedAt: true,
       likeCount: true,
+      mediaType: true,
+      mediaUrl: true,
       authorId: true,
       author: { select: userPublicSelect },
     },
@@ -607,6 +618,8 @@ export async function getPostCommentsPage(params: {
       createdAt: true,
       updatedAt: true,
       likeCount: true,
+      mediaType: true,
+      mediaUrl: true,
       authorId: true,
       author: { select: userPublicSelect },
     },
@@ -811,6 +824,8 @@ export async function getCommentRepliesPage(params: {
       createdAt: true,
       updatedAt: true,
       likeCount: true,
+      mediaType: true,
+      mediaUrl: true,
       authorId: true,
       author: { select: userPublicSelect },
     },
@@ -834,6 +849,7 @@ export async function getCommentRepliesPage(params: {
     likedByAuthor: likedByAuthor.has(r.id),
     isPostAuthor: r.authorId === params.postAuthorId,
     isEdited: isEdited(r.createdAt, r.updatedAt),
+    ...serializeCommentMedia(r),
     author: serializeAuthor(r.author, {
       anonymous: params.anonymous,
       viewerId: params.viewerId,

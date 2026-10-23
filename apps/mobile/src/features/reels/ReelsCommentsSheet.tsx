@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -20,6 +20,10 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { pinPostComment, type CommentItem } from "@/api/social";
+import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
+import { TenorGifSheet } from "@/features/feed/TenorGifSheet";
+import { uploadLocalFile } from "@/api/upload-file";
+import * as ImagePicker from "expo-image-picker";
 import {
   moveCommentPin,
   postCommentsQueryKey,
@@ -59,7 +63,7 @@ type Props = {
   canPin: boolean;
   copy: ReelsUi;
   onDraftChange: (text: string) => void;
-  onSubmit: () => void;
+  onSubmit: (media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null) => void;
   onClosed: () => void;
 };
 
@@ -83,6 +87,9 @@ export function ReelsCommentsSheet({
 }: Props) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
+  const [gifOpen, setGifOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const insets = useSafeAreaInsets();
   const keyboardOverlap = useKeyboardBottomInset();
   const restingLayerRef = useRef(layerHeight);
@@ -230,7 +237,10 @@ export function ReelsCommentsSheet({
                         <Text style={styles.commentMeta}> · {t("m.feed.pinned_comments")}</Text>
                       ) : null}
                     </Text>
-                    <TranslatableText text={item.content} style={styles.commentBody} lightLinks />
+                    {item.content ? (
+                      <TranslatableText text={item.content} style={styles.commentBody} lightLinks />
+                    ) : null}
+                    <CommentMediaBlock mediaType={item.mediaType} mediaUrl={item.mediaUrl} />
                   </View>
                   {canPin && commentsPostId ? (
                     <Pressable
@@ -263,20 +273,73 @@ export function ReelsCommentsSheet({
           </Animated.View>
         </GestureDetector>
       )}
+      {attach ? (
+        <View style={{ paddingBottom: 8 }}>
+          <CommentMediaBlock mediaType={attach.mediaType} mediaUrl={attach.mediaUrl} />
+        </View>
+      ) : null}
       <View style={styles.commentInputRow}>
+        <Pressable
+          onPress={() => {
+            void (async () => {
+              if (attach || uploading) return;
+              const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (!perm.granted) return;
+              const picked = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                quality: 0.85,
+              });
+              if (picked.canceled || !picked.assets[0]) return;
+              const asset = picked.assets[0];
+              setUploading(true);
+              try {
+                const url = await uploadLocalFile({
+                  uri: asset.uri,
+                  filename: asset.fileName ?? `comment-${Date.now()}.jpg`,
+                  contentType: asset.mimeType ?? "image/jpeg",
+                  category: "image",
+                });
+                setAttach({ mediaType: "PHOTO", mediaUrl: url });
+              } finally {
+                setUploading(false);
+              }
+            })();
+          }}
+          disabled={!!attach || uploading}
+          hitSlop={8}
+        >
+          <Ionicons name="image-outline" size={20} color="rgba(255,255,255,0.7)" />
+        </Pressable>
+        <Pressable onPress={() => setGifOpen(true)} disabled={!!attach || uploading} hitSlop={8}>
+          <Ionicons name="happy-outline" size={20} color="rgba(255,255,255,0.7)" />
+        </Pressable>
         <TextInput
           style={styles.commentInput}
           placeholder={copy.commentPh}
           placeholderTextColor="rgba(255,255,255,0.45)"
           value={draft}
           onChangeText={onDraftChange}
-          onSubmitEditing={onSubmit}
+          onSubmitEditing={() => {
+            onSubmit(attach);
+            setAttach(null);
+          }}
           returnKeyType="send"
         />
-        <Pressable onPress={onSubmit} disabled={busy}>
+        <Pressable
+          onPress={() => {
+            onSubmit(attach);
+            setAttach(null);
+          }}
+          disabled={busy || uploading}
+        >
           <Text style={styles.commentSend}>{copy.postComment}</Text>
         </Pressable>
       </View>
+      <TenorGifSheet
+        visible={gifOpen}
+        onClose={() => setGifOpen(false)}
+        onPick={(url) => setAttach({ mediaType: "GIF", mediaUrl: url })}
+      />
     </Animated.View>
   );
 }

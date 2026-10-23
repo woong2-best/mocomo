@@ -27,12 +27,16 @@ function fromSerialized(c: SerializedComment): ListComment {
     likeCount: c.likeCount,
     likedByMe: c.likedByMe,
     isPinned: c.isPinned,
+    mediaType: c.mediaType,
+    mediaUrl: c.mediaUrl,
     author: c.author,
     replies: (c.replies ?? []).map((r) => ({
       id: r.id,
       content: r.content,
       likeCount: r.likeCount,
       likedByMe: r.likedByMe,
+      mediaType: r.mediaType,
+      mediaUrl: r.mediaUrl,
       author: r.author,
     })),
   };
@@ -46,6 +50,8 @@ function optimisticToList(c: OptimisticComment): ListComment {
     likedByMe: false,
     pending: c.pending,
     isPinned: false,
+    mediaType: c.mediaType,
+    mediaUrl: c.mediaUrl,
     author: {
       id: c.author.id ?? c.author.username,
       name: c.author.name,
@@ -137,6 +143,8 @@ export function PostCommentsList({
                       content: comment.content,
                       likeCount: 0,
                       likedByMe: false,
+                      mediaType: comment.mediaType,
+                      mediaUrl: comment.mediaUrl,
                       author: {
                         id: comment.author.id ?? comment.author.username,
                         name: comment.author.name,

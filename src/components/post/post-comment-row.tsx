@@ -20,12 +20,15 @@ import { blockUserAction } from "@/actions/user-relationship";
 import type { SupportTierLevel } from "@prisma/client";
 import { cn, formatNumber } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
+import { CommentMediaThumb } from "@/components/post/comment-media-view";
 
 export type PostCommentRowData = {
   id: string;
   content: string;
   likeCount: number;
   likedByMe: boolean;
+  mediaType?: "NONE" | "PHOTO" | "GIF" | null;
+  mediaUrl?: string | null;
   author: {
     id: string;
     name: string | null;
@@ -170,11 +173,14 @@ export function PostCommentRow({
           profileUsername={comment.author.username}
           idHandle={showIdHandle ? comment.author.username : undefined}
         />
-        <TranslatableText
-          text={comment.content}
-          as="p"
-          className="text-sm mt-1 whitespace-pre-wrap"
-        />
+        {comment.content ? (
+          <TranslatableText
+            text={comment.content}
+            as="p"
+            className="text-sm mt-1 whitespace-pre-wrap"
+          />
+        ) : null}
+        <CommentMediaThumb mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
         {likeCount > 0 ? (
           <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
             <span>{t("post.likeCount", { count: formatNumber(likeCount) })}</span>

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { CommentForm } from "@/components/post/comment-form";
+import { CommentMediaThumb } from "@/components/post/comment-media-view";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -538,6 +539,7 @@ function CommentRow({
                 {display}
               </p>
             )}
+            <CommentMediaThumb mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
           </div>
 
           <div className="flex shrink-0 flex-col items-center gap-1">
@@ -951,6 +953,8 @@ export function ReelsCommentsPanel({
                       likedByAuthor: false,
                       isPostAuthor: author.id === postAuthorId,
                       isEdited: false,
+                      mediaType: c.mediaType ?? "NONE",
+                      mediaUrl: c.mediaUrl ?? null,
                       author,
                     },
                   ],
@@ -975,6 +979,8 @@ export function ReelsCommentsPanel({
           pinnedAt: null,
           isEdited: false,
           replyCount: 0,
+          mediaType: c.mediaType ?? "NONE",
+          mediaUrl: c.mediaUrl ?? null,
           author,
           replies: [],
         };

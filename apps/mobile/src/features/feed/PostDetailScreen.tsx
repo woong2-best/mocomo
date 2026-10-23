@@ -24,6 +24,10 @@ import {
   type CommentItem,
 } from "@/api/social";
 import { PostCommentOverflowMenu } from "@/features/feed/PostCommentOverflowMenu";
+import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
+import { TenorGifSheet } from "@/features/feed/TenorGifSheet";
+import { uploadLocalFile } from "@/api/upload-file";
+import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import {
   mapCommentBuckets,
@@ -58,6 +62,9 @@ export function PostDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
+  const [gifOpen, setGifOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [menuComment, setMenuComment] = useState<CommentItem | null>(null);
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
@@ -132,16 +139,19 @@ export function PostDetailScreen() {
   const canPinComments = !isQnaPost && !!user?.id && user.id === post?.author?.id;
 
   const commentMut = useMutation({
-    mutationFn: (content: string) => createPostComment(postId, content),
-    onMutate: async (content) => {
+    mutationFn: (input: { content: string; media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null }) =>
+      createPostComment(postId, input.content, input.media),
+    onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: postCommentsQueryKey(postId) });
       const previous = queryClient.getQueryData<PostCommentsResponse>(
         postCommentsQueryKey(postId)
       );
       const optimistic: CommentItem = {
         id: `temp-${Date.now()}`,
-        content,
+        content: input.content,
         createdAt: new Date().toISOString(),
+        mediaType: input.media?.mediaType ?? "NONE",
+        mediaUrl: input.media?.mediaUrl ?? null,
         author: {
           id: user?.id ?? "me",
           username: user?.username ?? "me",
@@ -154,6 +164,7 @@ export function PostDetailScreen() {
         withOptimisticComment(previous, optimistic, isQnaPost ? "append" : "prepend")
       );
       setDraft("");
+      setAttach(null);
       return { previous, tempId: optimistic.id };
     },
     onError: (err, _content, ctx) => {
@@ -182,14 +193,37 @@ export function PostDetailScreen() {
     keyboardLift > 0 ? spacing.sm : Math.max(spacing.md, insets.bottom);
   const androidKeyboardLift = Platform.OS === "android" ? keyboardLift : 0;
 
+  async function pickPhoto() {
+    if (attach || uploading) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.85 });
+    if (picked.canceled || !picked.assets[0]) return;
+    const asset = picked.assets[0];
+    setUploading(true);
+    try {
+      const url = await uploadLocalFile({
+        uri: asset.uri,
+        filename: asset.fileName ?? `comment-${Date.now()}.jpg`,
+        contentType: asset.mimeType ?? "image/jpeg",
+        category: "image",
+      });
+      setAttach({ mediaType: "PHOTO", mediaUrl: url });
+    } catch (err) {
+      showIslandError(t("m.common.error"), err instanceof Error ? err.message : t("m.feed.photo_failed"));
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function submitComment() {
     const content = draft.trim();
-    if (!content) return;
+    if (!content && !attach) return;
     if (!user) {
       showIslandError(t("m.common.sign_in_required"), t("m.feed.sign_in_to_comment"));
       return;
     }
-    commentMut.mutate(content);
+    commentMut.mutate({ content, media: attach });
   }
 
   async function acceptAnswer(item: CommentItem) {
@@ -379,37 +413,75 @@ export function PostDetailScreen() {
                       </Pressable>
                     </View>
                   </View>
-                  <TranslatableText text={item.content} style={styles.commentBody} />
+                  {item.content ? (
+                    <TranslatableText text={item.content} style={styles.commentBody} />
+                  ) : null}
+                  <CommentMediaBlock mediaType={item.mediaType} mediaUrl={item.mediaUrl} />
                 </View>
               );
             }}
           />
           <View
             style={[
-              styles.composer,
+              styles.composerCol,
               {
                 paddingBottom: composerBottomPad,
                 marginBottom: androidKeyboardLift,
               },
             ]}
           >
-            <TextInput
-              style={styles.input}
-              value={draft}
-              onChangeText={setDraft}
-              placeholder={isQnaPost ? t("qna.write_answer") : t("m.feed.write_a_comment")}
-              placeholderTextColor={colors.textMuted}
-              multiline
-            />
-            <FolkButton
-              label={isQnaPost ? t("qna.answer_button") : t("m.common.post")}
-              disabled={!draft.trim()}
-              onPress={submitComment}
-              style={{ minWidth: 88 }}
-            />
+            {attach ? (
+              <View style={styles.previewRow}>
+                <CommentMediaBlock mediaType={attach.mediaType} mediaUrl={attach.mediaUrl} />
+                <Pressable onPress={() => setAttach(null)} style={styles.clearAttach}>
+                  <Ionicons name="close" size={16} color={colors.text} />
+                </Pressable>
+              </View>
+            ) : null}
+            <View style={styles.composer}>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() => void pickPhoto()}
+                disabled={!!attach || uploading}
+                accessibilityLabel={t("m.feed.attach_photo")}
+              >
+                <Ionicons
+                  name={uploading ? "hourglass-outline" : "image-outline"}
+                  size={22}
+                  color={attach ? colors.textMuted : colors.cobalt}
+                />
+              </Pressable>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() => setGifOpen(true)}
+                disabled={!!attach || uploading}
+                accessibilityLabel={t("m.feed.attach_gif")}
+              >
+                <Ionicons name="happy-outline" size={22} color={attach ? colors.textMuted : colors.cobalt} />
+              </Pressable>
+              <TextInput
+                style={styles.input}
+                value={draft}
+                onChangeText={setDraft}
+                placeholder={isQnaPost ? t("qna.write_answer") : t("m.feed.write_a_comment")}
+                placeholderTextColor={colors.textMuted}
+                multiline
+              />
+              <FolkButton
+                label={isQnaPost ? t("qna.answer_button") : t("m.common.post")}
+                disabled={(!draft.trim() && !attach) || uploading}
+                onPress={submitComment}
+                style={{ minWidth: 88 }}
+              />
+            </View>
           </View>
         </KeyboardAvoidingView>
       )}
+      <TenorGifSheet
+        visible={gifOpen}
+        onClose={() => setGifOpen(false)}
+        onPick={(url) => setAttach({ mediaType: "GIF", mediaUrl: url })}
+      />
       {menuComment ? (
         <PostCommentOverflowMenu
           visible={!!menuComment}
@@ -506,14 +578,26 @@ function createThemedStyles(colors: ThemeColors) {
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
     },
-    composer: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
+    composerCol: {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.hairline,
       backgroundColor: colors.background,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+    },
+    previewRow: { flexDirection: "row", alignItems: "flex-start" },
+    clearAttach: {
+      marginLeft: 8,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.surfaceRaised,
+    },
+    composer: {
+      flexDirection: "row",
+      gap: spacing.sm,
       alignItems: "flex-end",
     },
     input: {
