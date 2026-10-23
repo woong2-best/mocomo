@@ -328,7 +328,7 @@ function MocoVrmStageView({
       const loader = new GLTFLoader();
       loader.register((parser) => new VRMLoaderPlugin(parser));
 
-      type HungBone = { bone: import("three").Object3D; quat: import("three").Quaternion };
+      type HungBone = { bone: import("three").Object3D; x: number; y: number; z: number };
       type Pose = {
         vrm: VRM;
         spine: import("three").Object3D | null;
@@ -349,21 +349,9 @@ function MocoVrmStageView({
       let loadedUrl: string | null = null;
       let loadGen = 0;
 
-      const hangBone = (bone: import("three").Object3D | null, goal: import("three").Vector3): HungBone | null => {
-        if (!bone?.parent) return null;
-        bone.updateWorldMatrix(true, true);
-        const child = bone.children.find((node) => (node as import("three").Bone).isBone) ?? bone.children[0];
-        if (!child) return null;
-        const origin = bone.getWorldPosition(new THREE.Vector3());
-        const tip = child.getWorldPosition(new THREE.Vector3());
-        const dir = tip.sub(origin);
-        if (dir.lengthSq() < 1e-6) return null;
-        dir.normalize();
-        const worldDelta = new THREE.Quaternion().setFromUnitVectors(dir, goal.clone().normalize());
-        const parentWorld = bone.parent.getWorldQuaternion(new THREE.Quaternion());
-        const currentWorld = bone.getWorldQuaternion(new THREE.Quaternion());
-        bone.quaternion.copy(parentWorld.invert()).multiply(worldDelta.multiply(currentWorld));
-        return { bone, quat: bone.quaternion.clone() };
+      const dropArm = (bone: import("three").Object3D | null, addZ: number, addX = 0): HungBone | null => {
+        if (!bone) return null;
+        return { bone, x: bone.rotation.x + addX, y: bone.rotation.y, z: bone.rotation.z + addZ };
       };
 
       const frameCamera = (vrm: VRM) => {
@@ -376,17 +364,17 @@ function MocoVrmStageView({
         const chestPos = new THREE.Vector3(0, 1.2, 0);
         head?.getWorldPosition(headPos);
         chest?.getWorldPosition(chestPos);
-        const hairTop = headPos.y + 0.22;
-        const chestLine = chestPos.y + 0.02;
+        const hairTop = headPos.y + 0.2;
+        const chestLine = chestPos.y + 0.06;
         const avatarH = Math.max(hairTop - chestLine, 0.28);
         const visibleH = avatarH / 0.75;
-        const headroom = 0.08;
+        const headroom = 0.1;
         cameraTarget.set(headPos.x, hairTop + headroom - visibleH / 2, headPos.z);
         const fovRad = (camera.fov * Math.PI) / 180;
         const distance = THREE.MathUtils.clamp(
           (visibleH / 2) / Math.tan(fovRad / 2),
-          framing === "bust" ? 1.15 : 1.2,
-          1.6,
+          framing === "bust" ? 1.05 : 1.1,
+          1.45,
         );
         camera.position.set(cameraTarget.x, cameraTarget.y + 0.05, cameraTarget.z + distance);
         camera.lookAt(cameraTarget);
@@ -406,16 +394,16 @@ function MocoVrmStageView({
         const node = (name: Parameters<NonNullable<VRM["humanoid"]>["getNormalizedBoneNode"]>[0]) =>
           humanoid?.getNormalizedBoneNode(name) ?? null;
         const hung: HungBone[] = [];
-        const keep = (bone: import("three").Object3D | null, goal: import("three").Vector3) => {
-          const next = hangBone(bone, goal);
-          if (next) hung.push(next);
+        const keep = (bone: import("three").Object3D | null, addZ: number, addX = 0) => {
+          const next = dropArm(bone, addZ, addX);
+          if (!next) return;
+          next.bone.rotation.set(next.x, next.y, next.z);
+          hung.push(next);
         };
-        keep(node("leftShoulder"), new THREE.Vector3(0.55, -0.78, 0.04));
-        keep(node("rightShoulder"), new THREE.Vector3(-0.55, -0.78, 0.04));
-        keep(node("leftUpperArm"), new THREE.Vector3(0.18, -1, 0.06));
-        keep(node("rightUpperArm"), new THREE.Vector3(-0.18, -1, 0.06));
-        keep(node("leftLowerArm"), new THREE.Vector3(0.06, -1, 0.02));
-        keep(node("rightLowerArm"), new THREE.Vector3(-0.06, -1, 0.02));
+        keep(node("leftUpperArm"), 1.2, 0.06);
+        keep(node("rightUpperArm"), -1.2, 0.06);
+        keep(node("leftLowerArm"), 0.12);
+        keep(node("rightLowerArm"), -0.12);
         const spine = node("spine");
         const chest = node("chest");
         const headBone = node("head");
@@ -536,7 +524,7 @@ function MocoVrmStageView({
         if (vrm) {
           vrm.update(dt);
           if (pose) {
-            for (const arm of pose.hung) arm.bone.quaternion.copy(arm.quat);
+            for (const arm of pose.hung) arm.bone.rotation.set(arm.x, arm.y, arm.z);
             vrm.scene.updateMatrixWorld(true);
           }
           const expressions = vrm.expressionManager;
