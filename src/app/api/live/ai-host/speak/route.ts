@@ -3,7 +3,7 @@ import { requireApiUser } from "@/lib/api-post-auth";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { planHostReply } from "@/lib/ai-live/blocklist";
 import { speakHostLine } from "@/lib/ai-live/host-reply";
-import { isIdolId } from "@/lib/ai-live/idols";
+import { resolveLiveAvatarId } from "@/lib/ai-live/avatars";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -26,8 +26,7 @@ export async function POST(req: NextRequest) {
   const rec = body as { characterId?: unknown; member?: unknown };
   const characterRaw =
     typeof rec.characterId === "string" ? rec.characterId : typeof rec.member === "string" ? rec.member : "";
-  const characterId = characterRaw.trim().toLowerCase();
-  const member = isIdolId(characterId) ? characterId : null;
+  const characterId = resolveLiveAvatarId(characterRaw) ?? "zelie";
   const plan = planHostReply(raw);
   if (plan.kind === "ignore") {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
@@ -36,7 +35,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ text: plan.text, emotion: "angry", blocked: true, audioBase64: null });
   }
 
-  const spoken = await speakHostLine(plan.text, member);
+  const spoken = await speakHostLine(plan.text, characterId);
+  if (spoken.rateLimited) {
+    return NextResponse.json(
+      {
+        text: spoken.text,
+        emotion: spoken.emotion,
+        blocked: false,
+        rateLimited: true,
+        audioBase64: null,
+      },
+      { status: 429 },
+    );
+  }
   return NextResponse.json({
     text: spoken.text,
     emotion: spoken.emotion,

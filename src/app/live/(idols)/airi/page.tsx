@@ -3,9 +3,9 @@ import { idolGroupMetadata, renderIdolGroup } from "@/components/live/ai-host/id
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
-  return idolGroupMetadata("airi");
+  return idolGroupMetadata("cleo");
 }
 
 export default async function AiriLivePage() {
-  return renderIdolGroup("airi");
+  return renderIdolGroup("cleo");
 }

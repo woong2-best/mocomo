@@ -8,11 +8,11 @@ import { IDOL_BACKDROP_DEFAULTS } from "@/lib/ai-live/idol-backdrop-shared";
 export function AiLiveTile({ backdropUrl }: { backdropUrl?: string | null }) {
   return (
     <AiHostPreviewTile
-      href="/live/moco"
+      href="/live/zelie"
       vrmUrl={IDOL_VRM_FALLBACK}
       backdropUrl={backdropUrl ?? IDOL_BACKDROP_DEFAULTS.moco}
       posterUrl="/live/moco-poster.png"
-      characterId="moco"
+      characterId="zelie"
       nameKey="live.aiHostName"
       titleKey="live.aiCardTitle"
     />

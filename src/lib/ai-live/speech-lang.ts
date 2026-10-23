@@ -42,7 +42,8 @@ const CHLOE_STYLE: VoiceStyle = { pitch: "+18%", rate: "-12%" };
 const AIRI_STYLE: VoiceStyle = { pitch: "-15%", rate: "+5%" };
 
 export function isAiriCharacter(characterId: string | null | undefined): boolean {
-  return characterId?.trim().toLowerCase() === "airi";
+  const id = characterId?.trim().toLowerCase();
+  return id === "airi" || id === "cleo";
 }
 
 /** Hiragana → katakana so Mayu reads the Japanese line as requested. */
@@ -75,8 +76,8 @@ export function wrapAiriMayuSsml(text: string): string {
 /** Moco is brighter; Chloe is drunk-slow; AIRI is husky Mayu. */
 export function voiceStyleForCharacter(characterId: string | null | undefined): VoiceStyle {
   const id = characterId?.trim().toLowerCase();
-  if (!id || id === "moco") return MOCO_STYLE;
-  if (id === "chloe") return CHLOE_STYLE;
-  if (id === "airi") return AIRI_STYLE;
+  if (!id || id === "moco" || id === "zelie") return MOCO_STYLE;
+  if (id === "chloe" || id === "mio") return CHLOE_STYLE;
+  if (id === "airi" || id === "cleo") return AIRI_STYLE;
   return DEFAULT_STYLE;
 }

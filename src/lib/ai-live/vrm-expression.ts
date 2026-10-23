@@ -57,7 +57,8 @@ export function setVrmEmotion(vrm: VRM | null | undefined, emotion: string) {
 }
 
 export function isChloeCharacter(characterId: string | null | undefined): boolean {
-  return characterId?.trim().toLowerCase() === "chloe";
+  const id = characterId?.trim().toLowerCase();
+  return id === "chloe" || id === "mio";
 }
 
 /**

@@ -23,7 +23,16 @@ const REALTIME_PREFIXES = [
   "/u/",
 ] as const;
 
-const AI_HOST_LIVE = new Set(["/live/moco", "/live/airi", "/live/chloe", "/live/stella"]);
+const AI_HOST_LIVE = new Set([
+  "/live/zelie",
+  "/live/cleo",
+  "/live/mio",
+  "/live/nangnang",
+  "/live/moco",
+  "/live/airi",
+  "/live/chloe",
+  "/live/stella",
+]);
 
 /** VRM host rooms pretend to be live. They do not need the realtime socket. */
 export function isAiHostLivePath(pathname: string): boolean {

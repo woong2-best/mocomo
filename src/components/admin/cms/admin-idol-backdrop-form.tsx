@@ -14,10 +14,10 @@ import {
 } from "@/lib/ai-live/idol-backdrop-shared";
 
 const COPY: Record<IdolBackdropSlot, { title: string; body: string }> = {
-  moco: { title: "Moco", body: "기본은 침실 사진입니다. 라이브 화면 뒤에 깔립니다." },
-  airi: { title: "AIRI", body: "기본은 학교 사물함·소파 방입니다." },
-  chloe: { title: "CHLOE", body: "기본은 야경이 보이는 다다미 방입니다." },
-  stella: { title: "STELLA", body: "기본 배경은 없습니다. 올리면 라이브 뒤에 깔립니다." },
+  moco: { title: "Zelie", body: "기본은 침실 사진입니다. 라이브 화면 뒤에 깔립니다." },
+  airi: { title: "Cleo", body: "기본은 학교 사물함·소파 방입니다." },
+  chloe: { title: "Mio", body: "기본은 야경이 보이는 다다미 방입니다." },
+  stella: { title: "Nangnang", body: "기본 배경은 없습니다. 올리면 라이브 뒤에 깔립니다." },
 };
 
 const ERRORS: Record<string, string> = {
@@ -195,7 +195,7 @@ export function AdminIdolBackdropForm({ initial }: { initial: IdolBackdropUrls }
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        사진을 올리지 않으면 지금 넣어 둔 기본 배경이 나옵니다. Moco · AIRI · CHLOE는 기본 사진이 있고, STELLA는
+        사진을 올리지 않으면 지금 넣어 둔 기본 배경이 나옵니다. Zelie · Cleo · Mio는 기본 사진이 있고, Nangnang는
         올리지 않으면 단색입니다. 기본 파일은{" "}
         {IDOL_BACKDROP_SLOTS.filter((slot) => IDOL_BACKDROP_DEFAULTS[slot])
           .map((slot) => IDOL_BACKDROP_DEFAULTS[slot])

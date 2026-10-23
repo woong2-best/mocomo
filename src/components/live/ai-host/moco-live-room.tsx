@@ -25,10 +25,10 @@ const MocoVrmStage = dynamic(
 );
 
 type Line = { id: number; who: "you" | "moco"; text: string };
-type ChatRoomId = IdolId | "moco";
+type ChatRoomId = IdolId | "zelie" | "moco";
 
 function roomIdFor(memberId: IdolId | null): ChatRoomId {
-  return memberId ?? "moco";
+  return memberId ?? "zelie";
 }
 
 function decodeAudioBase64(value: string): ArrayBuffer | null {
@@ -52,7 +52,7 @@ export function MocoLiveRoom({
   subKey = "live.aiCardSub",
   memberId = null,
   donationPoll = "/api/live/moco/donations",
-  signInPath = "/live/moco",
+  signInPath = "/live/zelie",
   hostUsername = MOCO_OFFICIAL_USERNAME,
   showVrm = true,
   backdropUrl = null,
@@ -159,7 +159,7 @@ export function MocoLiveRoom({
           headers: { "Content-Type": "application/json", "X-Moco-No-Progress": "1" },
           body: JSON.stringify({
             text,
-            characterId: room === "moco" ? undefined : room,
+            characterId: room === "moco" ? "zelie" : room,
           }),
         });
         if (!aliveRef.current || roomRef.current !== room) return;

@@ -36,6 +36,17 @@ export function isIdolBackdropSlot(value: unknown): value is IdolBackdropSlot {
   return typeof value === "string" && (IDOL_BACKDROP_SLOTS as readonly string[]).includes(value);
 }
 
+/** New public names still read the stored moco/airi/chloe/stella slots. */
+export function backdropSlotForAvatar(value: string | null | undefined): IdolBackdropSlot | null {
+  const id = value?.trim().toLowerCase();
+  if (!id) return null;
+  if (id === "zelie" || id === "moco") return "moco";
+  if (id === "cleo" || id === "airi") return "airi";
+  if (id === "mio" || id === "chloe") return "chloe";
+  if (id === "nangnang" || id === "stella") return "stella";
+  return isIdolBackdropSlot(id) ? id : null;
+}
+
 export function isSafeIdolBackdropUrl(url: string): boolean {
   if (!url || url.length > MAX_URL_LENGTH) return false;
   if (DEFAULT_PATHS.has(url)) return true;

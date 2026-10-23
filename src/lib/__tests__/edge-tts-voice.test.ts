@@ -13,8 +13,11 @@ test("Edge voices follow the spoken language", () => {
 test("Moco is brighter, Chloe stays tipsy-slow, AIRI is husky Mayu", () => {
   assert.deepEqual(voiceStyleForCharacter(null), { pitch: "+18%", rate: "+10%" });
   assert.deepEqual(voiceStyleForCharacter("moco"), { pitch: "+18%", rate: "+10%" });
+  assert.deepEqual(voiceStyleForCharacter("zelie"), { pitch: "+18%", rate: "+10%" });
   assert.deepEqual(voiceStyleForCharacter("chloe"), { pitch: "+18%", rate: "-12%" });
+  assert.deepEqual(voiceStyleForCharacter("mio"), { pitch: "+18%", rate: "-12%" });
   assert.deepEqual(voiceStyleForCharacter("airi"), { pitch: "-15%", rate: "+5%" });
+  assert.deepEqual(voiceStyleForCharacter("cleo"), { pitch: "-15%", rate: "+5%" });
   assert.deepEqual(voiceStyleForCharacter("stella"), { pitch: "default", rate: "default" });
 });
 

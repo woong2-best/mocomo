@@ -6,6 +6,7 @@ import {
   IDOL_BACKDROP_KEY,
   effectiveIdolBackdropUrl,
   isCustomIdolBackdropUrl,
+  backdropSlotForAvatar,
   isIdolBackdropSlot,
   parseIdolBackdropValue,
   type IdolBackdropSlot,
@@ -25,7 +26,9 @@ export const getCachedIdolBackdrops = unstable_cache(readIdolBackdrops, ["idol-b
   revalidate: 3600,
 });
 
-export async function getIdolBackdropUrl(slot: IdolBackdropSlot): Promise<string | null> {
+export async function getIdolBackdropUrl(slotOrAvatar: string): Promise<string | null> {
+  const slot = backdropSlotForAvatar(slotOrAvatar);
+  if (!slot) return null;
   const urls = await getCachedIdolBackdrops();
   return effectiveIdolBackdropUrl(slot, urls[slot]);
 }

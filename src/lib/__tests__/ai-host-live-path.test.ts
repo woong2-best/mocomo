@@ -4,11 +4,12 @@ import { isAiHostLivePath, needsImmediateRealtime } from "@/lib/hub-fast-path";
 import { shouldTrackFetch } from "@/lib/top-progress";
 
 test("fake host rooms do not wake the live socket", () => {
+  assert.equal(isAiHostLivePath("/live/zelie"), true);
+  assert.equal(isAiHostLivePath("/live/cleo"), true);
   assert.equal(isAiHostLivePath("/live/moco"), true);
-  assert.equal(isAiHostLivePath("/live/airi"), true);
   assert.equal(isAiHostLivePath("/live/studio"), false);
-  assert.equal(needsImmediateRealtime("/live/moco"), false);
-  assert.equal(needsImmediateRealtime("/live/stella"), false);
+  assert.equal(needsImmediateRealtime("/live/zelie"), false);
+  assert.equal(needsImmediateRealtime("/live/nangnang"), false);
   assert.equal(needsImmediateRealtime("/messages"), true);
 });
 

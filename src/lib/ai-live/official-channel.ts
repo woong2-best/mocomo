@@ -21,12 +21,16 @@ const ALWAYS_ON_PROFILES: Record<string, AlwaysOnProfile> = {
   [MOCO_OFFICIAL_CHANNEL_ID]: {
     id: MOCO_OFFICIAL_CHANNEL_ID,
     username: MOCO_OFFICIAL_USERNAME,
-    name: "Moco",
+    name: "Zelie",
   },
   ...Object.fromEntries(
     IDOLS.map((idol) => [
       idol.channelId,
-      { id: idol.channelId, username: idol.username, name: idol.id.toUpperCase() },
+      {
+        id: idol.channelId,
+        username: idol.username,
+        name: idol.id === "cleo" ? "Cleo" : idol.id === "mio" ? "Mio" : "Nangnang",
+      },
     ])
   ),
 };

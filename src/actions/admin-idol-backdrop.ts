@@ -38,6 +38,10 @@ function bustIdolBackdrop() {
   revalidatePath("/live/airi");
   revalidatePath("/live/chloe");
   revalidatePath("/live/stella");
+  revalidatePath("/live/zelie");
+  revalidatePath("/live/cleo");
+  revalidatePath("/live/mio");
+  revalidatePath("/live/nangnang");
   revalidatePath("/admin/live/backgrounds");
 }
 

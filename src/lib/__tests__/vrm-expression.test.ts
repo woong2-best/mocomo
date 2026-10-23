@@ -46,6 +46,7 @@ test("Chloe idle keeps a tipsy smile", () => {
   };
   setupChloeDrunkState(vrm as never);
   assert.equal(isChloeCharacter("CHLOE"), true);
+  assert.equal(isChloeCharacter("mio"), true);
   assert.equal(isChloeCharacter("airi"), false);
   assert.equal(values.get("happy"), 0.5);
   assert.equal(values.get("relaxed"), 0.3);

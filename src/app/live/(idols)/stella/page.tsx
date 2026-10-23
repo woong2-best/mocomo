@@ -3,9 +3,9 @@ import { idolGroupMetadata, renderIdolGroup } from "@/components/live/ai-host/id
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
-  return idolGroupMetadata("stella");
+  return idolGroupMetadata("nangnang");
 }
 
 export default async function StellaLivePage() {
-  return renderIdolGroup("stella");
+  return renderIdolGroup("nangnang");
 }
