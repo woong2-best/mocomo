@@ -65,6 +65,7 @@ export type SerializedComment = {
   isPostAuthor: boolean;
   isPinned: boolean;
   pinnedAt: string | null;
+  acceptedAt: string | null;
   isEdited: boolean;
   replyCount: number;
   author: SerializedCommentAuthor;
@@ -102,6 +103,7 @@ const commentSelectBase = {
   updatedAt: true,
   likeCount: true,
   pinnedAt: true,
+  acceptedAt: true,
   authorId: true,
   author: { select: userPublicSelect },
   _count: { select: { replies: true } },
@@ -199,6 +201,7 @@ async function mapComments(
     updatedAt: Date;
     likeCount: number;
     pinnedAt: Date | null;
+    acceptedAt?: Date | null;
     authorId: string;
     author: {
       id: string;
@@ -262,6 +265,8 @@ async function mapComments(
     isPostAuthor: c.authorId === postAuthorId,
     isPinned: !!c.pinnedAt,
     pinnedAt: c.pinnedAt ? c.pinnedAt.toISOString() : null,
+    acceptedAt:
+      c.acceptedAt instanceof Date ? c.acceptedAt.toISOString() : null,
     isEdited: isEdited(c.createdAt, c.updatedAt),
     replyCount,
     author: serializeAuthor(c.author, { anonymous, viewerId }),

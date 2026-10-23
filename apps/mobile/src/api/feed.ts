@@ -68,6 +68,8 @@ export type FeedPost = {
     customCategoryLabel?: string | null;
   } | null;
   isAnonymous?: boolean;
+  qnaBountyCenti?: number;
+  acceptedCommentId?: string | null;
   poll?: FeedPoll | null;
   repostBy?: {
     id: string;

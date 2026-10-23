@@ -80,6 +80,7 @@ export function pushAllowedForNotificationType(
       "comment_reply",
       "quote",
       "qna_answer",
+      "qna_answer_accepted",
       "comment_pin",
       "clip_comment",
     ].includes(type)

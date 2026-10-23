@@ -37,11 +37,15 @@ export async function getMocoBalanceSnapshot(userId: string): Promise<MocoBalanc
     getOrCreatePlatformWallet(userId),
     db.user.findUnique({
       where: { id: userId },
-      select: { gemBalance: true, gemBalanceTenths: true },
+      select: { gemBalance: true, gemBalanceTenths: true, gemBalanceHundredths: true },
     }),
   ]);
-  const mocoPointsBalance = joinMoco(wallet.mocoPoints, wallet.mocoPointsTenths);
-  const purchasedGemBalance = joinMoco(user?.gemBalance ?? 0, user?.gemBalanceTenths ?? 0);
+  const mocoPointsBalance =
+    joinMoco(wallet.mocoPoints, wallet.mocoPointsTenths) +
+    (wallet.mocoPointsHundredths ?? 0) / 100;
+  const purchasedGemBalance =
+    joinMoco(user?.gemBalance ?? 0, user?.gemBalanceTenths ?? 0) +
+    (user?.gemBalanceHundredths ?? 0) / 100;
   return {
     availableMocoBalance: mocoPointsBalance + purchasedGemBalance,
     lockedMocoBalance: wallet.lockedMocoBalance,

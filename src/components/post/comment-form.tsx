@@ -20,6 +20,7 @@ export function CommentForm({
   postId,
   parentId,
   placeholder,
+  submitLabel,
   className,
   inputClassName,
   autoFocus,
@@ -28,6 +29,7 @@ export function CommentForm({
   postId: string;
   parentId?: string;
   placeholder?: string;
+  submitLabel?: string;
   className?: string;
   inputClassName?: string;
   autoFocus?: boolean;
@@ -132,7 +134,7 @@ export function CommentForm({
           )}
         />
         <Button type="submit" size="sm" disabled={!content.trim() || submitting}>
-          {t("star.badge.post")}
+          {submitLabel ?? t("star.badge.post")}
         </Button>
       </div>
       {content.trim() ? (

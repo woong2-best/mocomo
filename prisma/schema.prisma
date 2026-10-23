@@ -1267,6 +1267,11 @@ model Post {
   isPinned    Boolean  @default(false)
   /** QnA 익명 질문 — 화면에는 익명, authorId는 DB에 유지 */
   isAnonymous Boolean  @default(false)
+  /** QnA 내공 — 0.01 MOCO units (0.02 = 2). Optional; 0 means no bounty. */
+  qnaBountyCenti Int @default(0)
+  /** QnA accepted answer (top-level comment). */
+  acceptedCommentId String?
+  qnaBountySettledAt DateTime?
   visibility  ContentVisibility @default(PUBLIC)
   /** 구독 등급 미달 시 즉시 구매로 열람 (원, 0=비활성) */
   instantPurchasePriceKrw Int @default(0)
@@ -1307,6 +1312,7 @@ model Post {
   @@index([communityId, createdAt(sort: Desc)])
   @@index([quotedPostId])
   @@index([removedAt])
+  @@index([acceptedCommentId])
 }
 
 enum PostCollaboratorStatus {
@@ -1418,6 +1424,8 @@ model Comment {
   hiddenAt  DateTime?
   /** Soft delete — author/owner/admin */
   deletedAt DateTime?
+  /** QnA — question author selected this answer */
+  acceptedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -1431,6 +1439,7 @@ model Comment {
   @@index([postId, parentId, createdAt])
   @@index([postId, parentId, likeCount(sort: Desc), createdAt(sort: Desc)])
   @@index([postId, pinnedAt])
+  @@index([postId, acceptedAt])
   @@index([authorId, createdAt(sort: Desc)])
 }
 
@@ -3368,6 +3377,9 @@ enum MocoTransactionType {
   CHECKOUT_BURN
   /** 결제로 충전한 보유 MOCO를 다른 사용자 정산으로 전달. 수령자 보유 잔액에는 넣지 않음 */
   PEER_TRANSFER
+  QNA_BOUNTY
+  QNA_BOUNTY_PAYOUT
+  QNA_BOUNTY_REFUND
 }
 
 /** MOCO 소멸(Burn) 감사 원장 — 유저 지갑 내역 (플랫폼 이체 없음) */
@@ -3378,6 +3390,8 @@ model MocoTransactionHistory {
   amount      Int
   /** Signed 0.1 place, same sign as amount (0.1 burn → amount 0, amountTenths -1) */
   amountTenths Int @default(0)
+  /** Signed 0.01 place, same sign as amount */
+  amountHundredths Int @default(0)
   type        MocoTransactionType
   reason      String
   referenceId String
@@ -5079,6 +5093,8 @@ model PlatformWallet {
   mocoPoints      Int      @default(0)
   /** 0–9 on mocoPoints */
   mocoPointsTenths Int     @default(0)
+  /** 0–9, extra 0.01 purchased MOCO (QnA bounty) */
+  mocoPointsHundredths Int @default(0)
   /** 경매 입찰 보증금 등 동결 MOCO (lockedMocoBalance) */
   lockedMocoBalance Int    @default(0)
   /** earnedMoco — 후원 수령분, 월간 정산 차감 후 잔여 이월 */

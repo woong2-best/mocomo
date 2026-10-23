@@ -5,6 +5,7 @@ import { getAuthUserId } from "@/lib/auth";
 import { FEED_POSTS_CACHE_TAG } from "@/lib/cache-tags";
 import { db } from "@/lib/db";
 import { COMMUNITY_FEED_PATH } from "@/lib/site-routes";
+import { refundUnsettledQnaBounty } from "@/lib/qna-bounty";
 
 export async function deleteOwnPost(
   postId: string
@@ -19,6 +20,7 @@ export async function deleteOwnPost(
   if (!post) return { error: "actions.sgr97ft" };
   if (post.authorId !== userId) return { error: "actions.si15yum" };
 
+  await refundUnsettledQnaBounty(postId);
   await db.report.deleteMany({ where: { postId } });
   await db.post.delete({ where: { id: postId } });
 

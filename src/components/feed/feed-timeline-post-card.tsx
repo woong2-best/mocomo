@@ -29,6 +29,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 import { qnaListTitle } from "@/lib/qna-list-title";
+import { formatQnaBountyMoco } from "@/lib/qna-bounty";
 import { PostCardNavigate } from "@/components/feed/post-card-navigate";
 import { PostSponsoredAdBadge } from "@/components/post/post-sponsored-ad-badge";
 
@@ -55,7 +56,7 @@ export function FeedTimelinePostCard({
   const session = sessionState?.data;
   const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const postHref = `/post/${post.id}`;
 
   const createdAt = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
@@ -127,13 +128,32 @@ export function FeedTimelinePostCard({
                 </PrefetchLink>
               ) : null}
               {hideQnaBody && qnaHeadline ? (
-                <TranslatableText
-                  text={qnaHeadline}
-                  as="p"
-                  stopPropagation
-                  showLinkPreview={false}
-                  className="font-semibold text-[15px] mb-1 text-white whitespace-pre-wrap break-words line-clamp-[8]"
-                />
+                <div className="space-y-1.5 mb-1">
+                  <p className="font-semibold text-[15px] text-white">
+                    <span className="text-folk-cobalt">Q. </span>
+                    <TranslatableText
+                      text={qnaHeadline}
+                      as="span"
+                      stopPropagation
+                      showLinkPreview={false}
+                      className="whitespace-pre-wrap break-words"
+                    />
+                  </p>
+                  {(post.qnaBountyCenti ?? 0) > 0 || post.acceptedCommentId ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {(post.qnaBountyCenti ?? 0) > 0 ? (
+                        <span className="rounded-full bg-folk-gold/20 px-2 py-0.5 text-[11px] font-semibold text-folk-cobalt">
+                          {formatQnaBountyMoco(post.qnaBountyCenti ?? 0)} MOCO
+                        </span>
+                      ) : null}
+                      {post.acceptedCommentId ? (
+                        <span className="rounded-full bg-folk-cobalt/15 px-2 py-0.5 text-[11px] font-semibold text-folk-cobalt">
+                          {t("qna.accepted")}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               ) : post.title ? (
                 <PrefetchLink href={postHref} className="block">
                   <p

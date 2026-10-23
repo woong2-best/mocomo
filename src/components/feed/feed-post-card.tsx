@@ -92,6 +92,8 @@ export type GridPost = {
   activityAt?: string;
   /** Active MOCO sponsored-ad (boost) campaign */
   sponsoredAdActive?: boolean;
+  qnaBountyCenti?: number;
+  acceptedCommentId?: string | null;
 };
 
 const typeLabels: Record<string, string> = {

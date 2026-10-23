@@ -17,6 +17,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthContext";
 import {
+  acceptQnaAnswer,
   createPostComment,
   fetchPostDetail,
   toggleCommentLike,
@@ -59,6 +60,7 @@ export function PostDetailScreen() {
   const [draft, setDraft] = useState("");
   const [menuComment, setMenuComment] = useState<CommentItem | null>(null);
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const postId = route.params.id;
 
   const onPressVideo = useCallback(
@@ -92,7 +94,13 @@ export function PostDetailScreen() {
 
   const commentRows = useMemo<CommentRow[]>(() => {
     if (isQnaPost) {
-      return buckets.recent.map((comment) => ({
+      const acceptedId = post?.acceptedCommentId;
+      const sorted = [...buckets.recent].sort((a, b) => {
+        const aSel = a.id === acceptedId || Boolean(a.acceptedAt) ? 0 : 1;
+        const bSel = b.id === acceptedId || Boolean(b.acceptedAt) ? 0 : 1;
+        return aSel - bSel;
+      });
+      return sorted.map((comment) => ({
         kind: "comment" as const,
         id: comment.id,
         comment,
@@ -118,7 +126,7 @@ export function PostDetailScreen() {
       }
     }
     return rows;
-  }, [buckets, isQnaPost, t]);
+  }, [buckets, isQnaPost, post?.acceptedCommentId, t]);
 
   const commentsEmpty = buckets.pinned.length + buckets.top.length + buckets.recent.length === 0;
   const canPinComments = !isQnaPost && !!user?.id && user.id === post?.author?.id;
@@ -184,6 +192,23 @@ export function PostDetailScreen() {
     commentMut.mutate(content);
   }
 
+  async function acceptAnswer(item: CommentItem) {
+    if (!user || acceptingId || !isQnaPost) return;
+    setAcceptingId(item.id);
+    try {
+      await acceptQnaAnswer(postId, item.id);
+      void queryClient.invalidateQueries({ queryKey: postCommentsQueryKey(postId) });
+      void queryClient.invalidateQueries({ queryKey: ["mobile-post", postId] });
+    } catch (err) {
+      showIslandError(
+        t("m.common.error"),
+        err instanceof Error ? err.message : t("qna.accept_failed")
+      );
+    } finally {
+      setAcceptingId(null);
+    }
+  }
+
   async function toggleLike(item: CommentItem) {
     if (!user || likeBusyId) return;
     const liked = Boolean(item.liked);
@@ -245,7 +270,11 @@ export function PostDetailScreen() {
                   onPressAuthor={(author: UserProfileSeed) => openUserProfile(author)}
                   onPressVideo={onPressVideo}
                 />
-                <Text style={styles.section}>{isQnaPost ? "A" : t("m.feed.comments")}</Text>
+                <Text style={styles.section}>
+                  {isQnaPost
+                    ? t("qna.answers", { count: String(buckets.recent.length) })
+                    : t("m.feed.comments")}
+                </Text>
               </View>
             }
             ListEmptyComponent={
@@ -255,7 +284,9 @@ export function PostDetailScreen() {
                   style={{ marginVertical: spacing.md }}
                 />
               ) : commentsEmpty ? (
-                <Text style={styles.muted}>{t("m.common.no_comments_yet")}</Text>
+                <Text style={styles.muted}>
+                  {isQnaPost ? t("qna.first_answer") : t("m.common.no_comments_yet")}
+                </Text>
               ) : null
             }
             renderItem={({ item: row }) => {
@@ -272,8 +303,19 @@ export function PostDetailScreen() {
               const likeCount = item.likeCount ?? 0;
               const liked = Boolean(item.liked);
               const isOwn = user?.id === item.author.id;
+              const selected =
+                item.id === post.acceptedCommentId || Boolean(item.acceptedAt);
+              const canAccept =
+                isQnaPost &&
+                !!user?.id &&
+                user.id === post.author.id &&
+                !post.acceptedCommentId &&
+                !isOwn;
               return (
                 <View style={styles.comment}>
+                  {selected ? (
+                    <Text style={styles.selectedBanner}>{t("qna.selected_banner")}</Text>
+                  ) : null}
                   <View style={styles.commentTopRow}>
                     <Pressable
                       style={styles.commentHeader}
@@ -297,6 +339,15 @@ export function PostDetailScreen() {
                       </View>
                     </Pressable>
                     <View style={styles.commentActions}>
+                      {canAccept ? (
+                        <Pressable
+                          style={styles.acceptBtn}
+                          onPress={() => void acceptAnswer(item)}
+                          disabled={!!acceptingId}
+                        >
+                          <Text style={styles.acceptBtnText}>{t("qna.accept")}</Text>
+                        </Pressable>
+                      ) : null}
                       {user && (!isOwn || canPinComments) ? (
                         <Pressable
                           style={styles.iconBtn}
@@ -346,12 +397,12 @@ export function PostDetailScreen() {
               style={styles.input}
               value={draft}
               onChangeText={setDraft}
-              placeholder={t("m.feed.write_a_comment")}
+              placeholder={isQnaPost ? t("qna.write_answer") : t("m.feed.write_a_comment")}
               placeholderTextColor={colors.textMuted}
               multiline
             />
             <FolkButton
-              label={t("m.common.post")}
+              label={isQnaPost ? t("qna.answer_button") : t("m.common.post")}
               disabled={!draft.trim()}
               onPress={submitComment}
               style={{ minWidth: 88 }}
@@ -434,6 +485,21 @@ function createThemedStyles(colors: ThemeColors) {
     commentAuthor: { fontWeight: "800", color: colors.text, fontSize: 14 },
     commentHandle: { fontWeight: "500", color: colors.textMuted },
     commentBody: { color: colors.text, lineHeight: 20, fontSize: 15 },
+    selectedBanner: {
+      color: colors.cobalt,
+      fontWeight: "700",
+      fontSize: 13,
+      marginBottom: 8,
+    },
+    acceptBtn: {
+      minHeight: 32,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      backgroundColor: colors.cobalt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    acceptBtnText: { color: "#fff", fontSize: 12, fontWeight: "700" },
     muted: {
       color: colors.textMuted,
       fontWeight: "600",

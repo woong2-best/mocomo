@@ -16,6 +16,7 @@ import { canViewNsfwResource } from "@/lib/nsfw-viewer-access";
 import { redactQnaPublicPost } from "@/lib/anonymous-post";
 import { hydrateViewerPollVotes, mapPostPollRow, postPollSelect } from "@/lib/post-poll";
 import { applyViewerBlockPolicyToPosts, areUsersBlocked } from "@/lib/user-block";
+import { refundUnsettledQnaBounty } from "@/lib/qna-bounty";
 
 export async function GET(
   req: NextRequest,
@@ -44,6 +45,8 @@ export async function GET(
       viewCount: true,
       visibility: true,
       communityId: true,
+      qnaBountyCenti: true,
+      acceptedCommentId: true,
       instantPurchasePriceKrw: true,
       author: {
         select: {
@@ -51,7 +54,9 @@ export async function GET(
           creatorSubscriptionPriceKrw: true,
         },
       },
-      community: { select: { slug: true, name: true } },
+      community: {
+        select: { slug: true, name: true, category: true, customCategoryLabel: true },
+      },
       media: postMediaGallery,
       poll: { select: postPollSelect },
       _count: { select: { likes: true, comments: true, votes: true, reposts: true } },
@@ -157,6 +162,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Deleted." }, { status: 403 });
   }
 
+  await refundUnsettledQnaBounty(postId);
   await db.report.deleteMany({ where: { postId } });
   await db.post.delete({ where: { id: postId } });
 

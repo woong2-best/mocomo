@@ -47,6 +47,7 @@ export type CommentItem = {
   liked?: boolean;
   likedByMe?: boolean;
   isPinned?: boolean;
+  acceptedAt?: string | null;
   author: {
     id: string;
     username: string;
@@ -72,6 +73,13 @@ export async function fetchPostComments(postId: string, isQna = false) {
 export async function pinPostComment(commentId: string, pinned: boolean) {
   return apiRequest<{ ok: boolean; pinned: boolean }>(MobileApi.commentPin(commentId), {
     method: pinned ? "POST" : "DELETE",
+  });
+}
+
+export async function acceptQnaAnswer(postId: string, commentId: string) {
+  return apiRequest<{ ok: boolean }>(MobileApi.postAcceptAnswer(postId), {
+    method: "POST",
+    body: { commentId },
   });
 }
 

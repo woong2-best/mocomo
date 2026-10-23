@@ -45,7 +45,11 @@ const postDetailSelect = {
   instantPurchasePriceKrw: true,
   viewCount: true,
   communityId: true,
-  community: { select: { slug: true, name: true } },
+  qnaBountyCenti: true,
+  acceptedCommentId: true,
+  community: {
+    select: { slug: true, name: true, category: true, customCategoryLabel: true },
+  },
   author: { select: userPublicSelect },
   collaborators: postCollaboratorsHeaderInclude,
   media: {

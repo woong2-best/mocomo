@@ -46,7 +46,12 @@ export async function fetchQnaFeedPage(opts: {
     try {
       const posts = await db.post.findMany({
         ...query,
-        select: { ...mobileFeedPostSelect, community: { select: qnaCommunitySelect } },
+        select: {
+          ...mobileFeedPostSelect,
+          qnaBountyCenti: true,
+          acceptedCommentId: true,
+          community: { select: qnaCommunitySelect },
+        },
       });
       return posts.map((p) => mapMobileFeedPost(p));
     } catch (e) {
@@ -55,6 +60,8 @@ export async function fetchQnaFeedPage(opts: {
         ...query,
         select: {
           ...mobileFeedPostSelect,
+          qnaBountyCenti: true,
+          acceptedCommentId: true,
           _count: { select: { likes: true, comments: true, votes: true } },
           community: { select: qnaCommunitySelect },
         },
@@ -71,7 +78,12 @@ export async function fetchQnaFeedPage(opts: {
   try {
     const posts = await db.post.findMany({
       ...query,
-      select: { ...feedPostListSelect, community: { select: qnaCommunitySelect } },
+      select: {
+        ...feedPostListSelect,
+        qnaBountyCenti: true,
+        acceptedCommentId: true,
+        community: { select: qnaCommunitySelect },
+      },
     });
     return posts.map(mapFeedPost);
   } catch (e) {
@@ -81,6 +93,8 @@ export async function fetchQnaFeedPage(opts: {
         ...query,
         select: {
           ...feedPostListSelectNoReposts,
+          qnaBountyCenti: true,
+          acceptedCommentId: true,
           community: { select: qnaCommunitySelect },
         },
       });

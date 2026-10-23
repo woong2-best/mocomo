@@ -27,6 +27,7 @@ import {
   assertCanPublishNsfwContent,
   nsfwViewerSelect,
 } from "@/lib/nsfw-viewer-access";
+import { escrowQnaBountyInTx, parseQnaBountyInput } from "@/lib/qna-bounty";
 
 export type CreatePostMediaInput = {
   url: string;
@@ -55,6 +56,8 @@ export type CreatePostInput = {
   collaboratorUserIds?: string[];
   /** 인용하기 — 원본 게시물 id */
   quotedPostId?: string | null;
+  /** QnA bounty in 0.01 MOCO units. Ignored unless communityId is set. */
+  qnaBountyCenti?: number | string | null;
 };
 
 function isPersistableMediaUrl(url: string): boolean {
@@ -158,6 +161,15 @@ export async function createPostForUser(
       }
     }
     const isAnonymous = Boolean(communityId);
+    const bountyCenti = communityId ? parseQnaBountyInput(data.qnaBountyCenti) : 0;
+    if (communityId && bountyCenti == null) {
+      return { error: "Enter 0.02 MOCO or another multiple of 0.02." };
+    }
+    if ((bountyCenti ?? 0) > 0) {
+      const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+      const ageBlock = await assertMoneyAgeAllowed(user.id);
+      if (ageBlock) return { error: ageBlock.error };
+    }
 
     let animeId: string | undefined = data.animeId?.trim() || undefined;
     if (animeId) {
@@ -187,7 +199,8 @@ export async function createPostForUser(
       data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
     if (quotedIsNsfw) contentRating = "ADULT";
 
-    const post = await db.post.create({
+    const post = await db.$transaction(async (tx) => {
+      const created = await tx.post.create({
       data: {
         title: data.title?.trim() || null,
         content,
@@ -199,6 +212,7 @@ export async function createPostForUser(
         isAnonymous,
         visibility: data.visibility ?? "PUBLIC",
         quotedPostId,
+        qnaBountyCenti: bountyCenti ?? 0,
         instantPurchasePriceKrw: communityId
           ? 0
           : Math.max(0, Math.floor(data.instantPurchasePriceKrw ?? 0)),
@@ -223,6 +237,18 @@ export async function createPostForUser(
         id: true,
         media: { select: { id: true, url: true, type: true } },
       },
+    });
+      if ((bountyCenti ?? 0) > 0) {
+        const escrow = await escrowQnaBountyInTx(tx, {
+          userId: user.id,
+          postId: created.id,
+          centi: bountyCenti ?? 0,
+        });
+        if (!escrow.ok) {
+          throw new Error(escrow.error);
+        }
+      }
+      return created;
     });
 
     const explicitTags = (data.tagNames ?? []).map((t) => t.trim()).filter(Boolean);
@@ -295,6 +321,9 @@ export async function createPostForUser(
 
     return { postId: post.id };
   } catch (e) {
+    if (e instanceof Error && e.message === "Insufficient MOCO balance.") {
+      return { error: e.message };
+    }
     console.error("[createPostForUser]", e);
     return { error: prismaErrorMessage(e) };
   }

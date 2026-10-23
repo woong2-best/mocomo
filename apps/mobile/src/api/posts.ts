@@ -51,6 +51,7 @@ export async function createPost(input: {
   communityId?: string;
   isAnonymous?: boolean;
   quotedPostId?: string;
+  qnaBountyCenti?: number;
 }) {
   return apiRequest<{ postId: string; warning?: string }>(MobileApi.postsCreate, {
     method: "POST",
@@ -62,6 +63,7 @@ export async function createPost(input: {
       isNsfw: input.isNsfw ?? false,
       ...(input.communityId ? { communityId: input.communityId, isAnonymous: true } : {}),
       ...(input.quotedPostId ? { quotedPostId: input.quotedPostId } : {}),
+      ...(typeof input.qnaBountyCenti === "number" ? { qnaBountyCenti: input.qnaBountyCenti } : {}),
     },
   });
 }

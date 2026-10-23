@@ -7,6 +7,8 @@ import { PostDetailCard } from "@/components/post/post-detail-card";
 import { PostDetailActions } from "@/components/post/post-detail-actions";
 import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
 import { PostCommentsSection } from "@/components/post/post-comments-section";
+import { QnaQuestionPanel } from "@/components/qna/qna-question-panel";
+import { QnaAnswersSection } from "@/components/qna/qna-answers-section";
 import { PostCommentsSkeleton } from "@/components/post/post-comments-skeleton";
 import {
   getPostDetail,
@@ -149,6 +151,8 @@ export default async function PostPage({
       ? viewerCollab.status
       : null;
 
+  const isQna = Boolean(post.communityId);
+
   return (
     <AppPageChrome maxWidth="2xl">
       <ContentModerationBar
@@ -159,42 +163,67 @@ export default async function PostPage({
         isStaff={isStaff}
         isLoggedIn={!!session?.user}
       />
-      <PostFlashHighlight postId={post.id}>
-        <PostDetailCard
-          post={cardPost}
-          quotedPostBlocked={quotedPostBlocked}
-          sponsoredAdActive={sponsoredAdActive}
-          locale={locale}
-          isOwner={session?.user?.id === realAuthorId}
-          paymentsEnabled={isPaymentsConfigured()}
-          subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
-          subscribed={!!viewerSub}
-          viewerCollabStatus={viewerCollabStatus}
-          viewerShowNsfw={viewerPrefs?.showNsfw ?? false}
-        />
-      </PostFlashHighlight>
-      <PostDetailActions
-        postId={post.id}
-        authorUsername={displayPost.author.username}
-        title={post.title}
-        content={post.content}
-        hasVideo={post.media?.some((m) => m.type === "VIDEO")}
-        likeCount={visibleCounts.likes}
-        commentCount={visibleCounts.comments}
-        repostCount={repostCount}
-        viewCount={post.viewCount}
-        initialLiked={engagement.likedIds.includes(post.id)}
-        initialStarred={engagement.starredIds.includes(post.id)}
-        initialReposted={engagement.repostedIds.includes(post.id)}
-        qna={Boolean(post.communityId)}
-      />
+      {isQna ? (
+        <PostFlashHighlight postId={post.id}>
+          <QnaQuestionPanel
+            post={cardPost}
+            locale={locale}
+            isOwner={session?.user?.id === realAuthorId}
+            commentCount={visibleCounts.comments}
+            initialStarred={engagement.starredIds.includes(post.id)}
+            paymentsEnabled={isPaymentsConfigured()}
+            subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
+            subscribed={!!viewerSub}
+            viewerShowNsfw={viewerPrefs?.showNsfw ?? false}
+          />
+        </PostFlashHighlight>
+      ) : (
+        <>
+          <PostFlashHighlight postId={post.id}>
+            <PostDetailCard
+              post={cardPost}
+              quotedPostBlocked={quotedPostBlocked}
+              sponsoredAdActive={sponsoredAdActive}
+              locale={locale}
+              isOwner={session?.user?.id === realAuthorId}
+              paymentsEnabled={isPaymentsConfigured()}
+              subscriptionPriceKrw={creator?.creatorSubscriptionPriceKrw ?? undefined}
+              subscribed={!!viewerSub}
+              viewerCollabStatus={viewerCollabStatus}
+              viewerShowNsfw={viewerPrefs?.showNsfw ?? false}
+            />
+          </PostFlashHighlight>
+          <PostDetailActions
+            postId={post.id}
+            authorUsername={displayPost.author.username}
+            title={post.title}
+            content={post.content}
+            hasVideo={post.media?.some((m) => m.type === "VIDEO")}
+            likeCount={visibleCounts.likes}
+            commentCount={visibleCounts.comments}
+            repostCount={repostCount}
+            viewCount={post.viewCount}
+            initialLiked={engagement.likedIds.includes(post.id)}
+            initialStarred={engagement.starredIds.includes(post.id)}
+            initialReposted={engagement.repostedIds.includes(post.id)}
+          />
+        </>
+      )}
       <Suspense fallback={<PostCommentsSkeleton />}>
-        <PostCommentsSection
-          postId={post.id}
-          postAuthorId={realAuthorId}
-          qna={Boolean(post.communityId)}
-          showIdHandle={!displayPost.isAnonymous}
-        />
+        {isQna ? (
+          <QnaAnswersSection
+            postId={post.id}
+            postAuthorId={realAuthorId}
+            acceptedCommentId={post.acceptedCommentId}
+            bountyCenti={post.qnaBountyCenti ?? 0}
+          />
+        ) : (
+          <PostCommentsSection
+            postId={post.id}
+            postAuthorId={realAuthorId}
+            showIdHandle={!displayPost.isAnonymous}
+          />
+        )}
       </Suspense>
     </AppPageChrome>
   );

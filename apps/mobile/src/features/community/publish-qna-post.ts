@@ -26,6 +26,7 @@ export async function publishQnaOpeningPost(input: {
   name: string;
   description?: string | null;
   isNsfw?: boolean;
+  qnaBountyCenti?: number;
 }) {
   const { content, media } = qnaBodyToPost(input.name, input.description);
   return createPost({
@@ -34,6 +35,7 @@ export async function publishQnaOpeningPost(input: {
     communityId: input.communityId,
     isAnonymous: true,
     isNsfw: input.isNsfw ?? false,
+    qnaBountyCenti: input.qnaBountyCenti,
   });
 }
 

@@ -25,6 +25,8 @@ import { useQnaNsfwGate } from "@/hooks/use-qna-nsfw-gate";
 import { QnaNsfwBlockedDialog } from "@/components/communities/qna-nsfw-blocked-dialog";
 import { FileDropZone } from "@/components/media/file-drop-zone";
 import { isGalleryImageFile } from "@/lib/gallery-image-upload";
+import { QnaBountyField } from "@/components/qna/qna-bounty-field";
+import { parseQnaBountyInput } from "@/lib/qna-bounty";
 
 const CREATE_CATEGORY_OPTIONS = COMMUNITY_CATEGORY_OPTIONS.filter((o) => o.id !== "INFO");
 
@@ -67,6 +69,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
   const [name, setName] = useState("");
   const [detailBlocks, setDetailBlocks] = useState<DetailBlock[]>([]);
   const [detailDraft, setDetailDraft] = useState("");
+  const [bounty, setBounty] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { blockedOpen, setBlockedOpen, guardCategoryNav } = useQnaNsfwGate();
 
@@ -122,6 +125,11 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
       setError(t("communities.s1f9tfcz"));
       return;
     }
+    const bountyCenti = parseQnaBountyInput(bounty);
+    if (bountyCenti == null) {
+      setError(t("qna.bounty_invalid"));
+      return;
+    }
 
     setLoading(true);
 
@@ -134,6 +142,7 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
         category: payload.category,
         customCategoryLabel: payload.customCategoryLabel,
         isNsfw: payload.isNsfw,
+        qnaBountyCenti: bountyCenti,
       });
 
       if (!result) {
@@ -315,6 +324,8 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
               </div>
               </FileDropZone>
             </div>
+
+            <QnaBountyField value={bounty} onChange={setBounty} disabled={loading} />
 
             {error && (
               <p className="text-sm text-destructive rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2">

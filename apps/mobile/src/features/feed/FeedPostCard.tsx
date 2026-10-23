@@ -450,13 +450,27 @@ function FeedPostCardInner({
       </View>
 
       {hideQnaBody ? (
-        <TranslatableText
-          text={qnaListTitle(post)}
-          style={styles.qnaTitle}
-          numberOfLines={expandBody ? undefined : 4}
-          onBackgroundPress={onPressPost ? openPost : undefined}
-          translateActive
-        />
+        <View>
+          <TranslatableText
+            text={`Q. ${qnaListTitle(post)}`}
+            style={styles.qnaTitle}
+            numberOfLines={expandBody ? undefined : 4}
+            onBackgroundPress={onPressPost ? openPost : undefined}
+            translateActive
+          />
+          {(post.qnaBountyCenti ?? 0) > 0 || post.acceptedCommentId ? (
+            <View style={styles.qnaBadges}>
+              {(post.qnaBountyCenti ?? 0) > 0 ? (
+                <Text style={styles.qnaBadge}>
+                  {((post.qnaBountyCenti ?? 0) / 100).toFixed(2)} MOCO
+                </Text>
+              ) : null}
+              {post.acceptedCommentId ? (
+                <Text style={styles.qnaBadge}>{t("qna.accepted")}</Text>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
       ) : post.content ? (
         <TranslatableText
           text={post.content}
@@ -822,7 +836,18 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       lineHeight: 21,
       fontWeight: "700",
       color: isDark ? "#FFFFFF" : colors.text,
-      marginBottom: 10,
+      marginBottom: 6,
+    },
+    qnaBadges: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 },
+    qnaBadge: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.cobalt,
+      backgroundColor: "rgba(27,74,140,0.12)",
+      overflow: "hidden",
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
     },
     actions: {
       flexDirection: "row",

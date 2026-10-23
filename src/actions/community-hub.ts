@@ -18,6 +18,7 @@ import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 import { calcHotScore } from "@/lib/utils";
 import { qnaBodyToPost } from "@/lib/qna-body-to-post";
+import { escrowQnaBountyInTx, parseQnaBountyInput } from "@/lib/qna-bounty";
 
 function revalidateCommunitiesList(slug?: string) {
   after(() => {
@@ -48,6 +49,7 @@ export async function createCommunity(data: {
   customCategoryLabel?: string;
   isNsfw?: boolean;
   parentId?: string;
+  qnaBountyCenti?: number | string | null;
 }): Promise<
   | { community: { id: string; slug: string; name: string } }
   | { error: string }
@@ -76,6 +78,16 @@ export async function createCommunity(data: {
 
     const description = data.description?.trim() || null;
     const isNsfw = data.isNsfw ?? false;
+
+    const bountyCenti = parseQnaBountyInput(data.qnaBountyCenti);
+    if (bountyCenti == null) {
+      return { error: "Enter 0.02 MOCO or another multiple of 0.02." };
+    }
+    if (bountyCenti > 0) {
+      const { assertMoneyAgeAllowed } = await import("@/lib/money-age-gate");
+      const ageBlock = await assertMoneyAgeAllowed(user.id);
+      if (ageBlock) return { error: ageBlock.error };
+    }
 
     if (isNsfw) {
       const nsfwUser = await db.user.findUnique({
@@ -120,7 +132,7 @@ export async function createCommunity(data: {
           });
           const { content, media } = qnaBodyToPost(name, description);
           const contentRating = isNsfw ? "ADULT" : "GENERAL";
-          await tx.post.create({
+          const opening = await tx.post.create({
             data: {
               title: null,
               content,
@@ -130,13 +142,25 @@ export async function createCommunity(data: {
               visibility: "PUBLIC",
               contentRating,
               isNsfw,
+              qnaBountyCenti: bountyCenti,
               hotScore: calcHotScore(0, 0, new Date()),
               media:
                 media.length > 0
                   ? { create: media.map((m, order) => ({ ...m, order, priceKrw: 0 })) }
                   : undefined,
             },
+            select: { id: true },
           });
+          if (bountyCenti > 0) {
+            const escrow = await escrowQnaBountyInTx(tx, {
+              userId: user.id,
+              postId: opening.id,
+              centi: bountyCenti,
+            });
+            if (!escrow.ok) {
+              throw new Error(escrow.error);
+            }
+          }
           return row;
         });
 
@@ -166,6 +190,9 @@ export async function createCommunity(data: {
 
     return { error: "actions.s1qn8dms" };
   } catch (e) {
+    if (e instanceof Error && e.message === "Insufficient MOCO balance.") {
+      return { error: e.message };
+    }
     console.error("[createCommunity]", e);
     return { error: prismaErrorMessage(e) };
   }

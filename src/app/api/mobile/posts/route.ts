@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
     communityId: body.communityId ? String(body.communityId) : undefined,
     isAnonymous: Boolean(body.isAnonymous),
     quotedPostId: body.quotedPostId ? String(body.quotedPostId) : undefined,
+    qnaBountyCenti: body.qnaBountyCenti ?? undefined,
   });
 
   if (result.error && !result.postId) {

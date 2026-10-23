@@ -79,6 +79,17 @@ import type { RootStackParamList } from "@/navigation/types";
 
 
 
+function parseMobileQnaBounty(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return 0;
+  const n = Number(trimmed.replace(/,/g, ""));
+  if (!Number.isFinite(n) || n < 0) return null;
+  const centi = Math.round(n * 100);
+  if (centi === 0) return 0;
+  if (centi < 2 || centi % 2 !== 0 || centi > 10_000) return null;
+  return centi;
+}
+
 const CREATE_CATEGORY_OPTIONS = COMMUNITY_CATEGORY_OPTIONS.filter(
 
   (o) => o.id !== "ALL" && o.id !== "INFO"
@@ -188,6 +199,7 @@ export function CommunityCreateScreen() {
   const [detailBlocks, setDetailBlocks] = useState<DetailBlock[]>([]);
 
   const [detailDraft, setDetailDraft] = useState("");
+  const [bounty, setBounty] = useState("");
 
   const nameRef = useRef<TextInput>(null);
 
@@ -217,6 +229,11 @@ export function CommunityCreateScreen() {
         throw new Error("category");
       }
 
+      const bountyCenti = parseMobileQnaBounty(bounty);
+      if (bountyCenti == null) {
+        throw new Error(t("qna.bounty_invalid"));
+      }
+
       const payload = qnaCreateSelectionToApi(category);
 
       const community = await createCommunity({
@@ -242,6 +259,8 @@ export function CommunityCreateScreen() {
         description,
 
         isNsfw: payload.isNsfw,
+
+        qnaBountyCenti: bountyCenti,
 
       });
 
@@ -657,6 +676,23 @@ export function CommunityCreateScreen() {
             </View>
 
 
+
+            <View>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>{t("qna.bounty")}</Text>
+                <Text style={styles.hint}>{t("qna.bounty_optional")}</Text>
+              </View>
+              <TextInput
+                value={bounty}
+                onChangeText={setBounty}
+                placeholder={t("qna.bounty_placeholder")}
+                placeholderTextColor={colors.textMuted}
+                keyboardType="decimal-pad"
+                style={styles.input}
+                editable={!create.isPending}
+              />
+              <Text style={styles.hint}>{t("qna.bounty_hint")}</Text>
+            </View>
 
             <Text style={styles.termsNotice}>{COMMUNITY_QNA_TERMS_NOTICE}</Text>
 
