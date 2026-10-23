@@ -368,12 +368,24 @@ function MocoVrmStageView({
       const frameCamera = (vrm: VRM) => {
         vrm.scene.updateMatrixWorld(true);
         const head = vrm.humanoid?.getNormalizedBoneNode("head");
+        const chest =
+          vrm.humanoid?.getNormalizedBoneNode("upperChest") ??
+          vrm.humanoid?.getNormalizedBoneNode("chest");
         const headPos = new THREE.Vector3(0, 1.45, 0);
+        const chestPos = new THREE.Vector3(0, 1.2, 0);
         head?.getWorldPosition(headPos);
-        const look = headPos.clone();
-        look.y -= framing === "bust" ? 0.02 : 0;
-        const distance = framing === "bust" ? 0.7 : 0.72;
-        camera.position.set(look.x, look.y + 0.03, look.z + distance);
+        chest?.getWorldPosition(chestPos);
+        const look = new THREE.Vector3(
+          headPos.x,
+          headPos.y * 0.78 + chestPos.y * 0.22,
+          headPos.z,
+        );
+        const hairTop = headPos.y + (framing === "bust" ? 0.16 : 0.2);
+        const chestCut = chestPos.y + (framing === "bust" ? 0.08 : 0.1);
+        const halfH = Math.max(hairTop - look.y, look.y - chestCut);
+        const fovRad = (camera.fov * Math.PI) / 180;
+        const distance = THREE.MathUtils.clamp(halfH / Math.tan(fovRad / 2), 0.38, 0.68);
+        camera.position.set(look.x, look.y + 0.02, look.z + distance);
         camera.lookAt(look);
         camera.updateMatrixWorld(true);
         camera.updateProjectionMatrix();
@@ -395,10 +407,12 @@ function MocoVrmStageView({
           const next = hangBone(bone, goal);
           if (next) hung.push(next);
         };
-        keep(raw("leftShoulder"), new THREE.Vector3(0.9, -0.4, 0.06));
-        keep(raw("rightShoulder"), new THREE.Vector3(-0.9, -0.4, 0.06));
-        keep(raw("leftUpperArm"), new THREE.Vector3(0.32, -1, 0.18));
-        keep(raw("rightUpperArm"), new THREE.Vector3(-0.32, -1, 0.18));
+        keep(raw("leftShoulder"), new THREE.Vector3(0.55, -0.78, 0.04));
+        keep(raw("rightShoulder"), new THREE.Vector3(-0.55, -0.78, 0.04));
+        keep(raw("leftUpperArm"), new THREE.Vector3(0.18, -1, 0.06));
+        keep(raw("rightUpperArm"), new THREE.Vector3(-0.18, -1, 0.06));
+        keep(raw("leftLowerArm"), new THREE.Vector3(0.06, -1, 0.02));
+        keep(raw("rightLowerArm"), new THREE.Vector3(-0.06, -1, 0.02));
         const spine = raw("spine");
         const chest = raw("chest");
         const headBone = raw("head");
