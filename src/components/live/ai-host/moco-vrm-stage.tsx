@@ -3,7 +3,13 @@
 import type { VRM } from "@pixiv/three-vrm";
 import { memo, useEffect, useMemo, useRef } from "react";
 import { IDOL_VRM_FALLBACK } from "@/lib/ai-live/idols";
-import { applyVrmMouth, parseVrmEmotion, setVrmEmotion } from "@/lib/ai-live/vrm-expression";
+import {
+  applyVrmMouth,
+  isChloeCharacter,
+  parseVrmEmotion,
+  setVrmEmotion,
+  setupChloeDrunkState,
+} from "@/lib/ai-live/vrm-expression";
 import { disposeIdolVrm, loadIdolVrm, useIdolVrm } from "@/components/live/ai-host/use-idol-vrm";
 
 const DEFAULT_VRM_URL = IDOL_VRM_FALLBACK;
@@ -96,16 +102,20 @@ function MocoVrmStageView({
   framing = "bust",
   vrmUrl = DEFAULT_VRM_URL,
   backdropUrl,
+  characterId = null,
   onReady,
 }: {
   framing?: "bust" | "stage";
   vrmUrl?: string;
   backdropUrl?: string | null;
+  characterId?: string | null;
   onReady?: (handle: MocoStageHandle | null) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const urlRef = useRef(vrmUrl);
   urlRef.current = vrmUrl;
+  const characterIdRef = useRef(characterId);
+  characterIdRef.current = characterId;
   const { phase, swapRef, armed, setPhaseRef } = useIdolVrm(vrmUrl);
   const voiceRef = useRef<MocoStageHandle>({
     prime() {},
@@ -466,6 +476,7 @@ function MocoVrmStageView({
           scene.add(vrm.scene);
           shown.current = vrm;
           poseRef.current = rememberPose(vrm);
+          if (isChloeCharacter(characterIdRef.current)) setupChloeDrunkState(vrm);
           loadedUrl = url;
           frameCamera(vrm);
           renderer.render(scene, camera);
@@ -502,20 +513,25 @@ function MocoVrmStageView({
         const time = clock.elapsedTime;
         const pose = poseRef.current;
         if (pose) {
+          const drunk = isChloeCharacter(characterIdRef.current);
+          const sway = drunk ? 0.085 : 0.03;
+          const swayY = drunk ? 0.04 : 0.01;
+          const swayZ = drunk ? 0.035 : 0;
+          const tempo = drunk ? 1.35 : 2;
           if (!reduced && pose.spine) {
-            pose.spine.rotation.x = pose.spineRestX + Math.sin(time * 2) * 0.03;
-            pose.spine.rotation.y = pose.spineRestY + Math.cos(time * 1.5) * 0.01;
-            pose.spine.rotation.z = pose.spineRestZ;
+            pose.spine.rotation.x = pose.spineRestX + Math.sin(time * tempo) * sway;
+            pose.spine.rotation.y = pose.spineRestY + Math.cos(time * 1.5) * swayY;
+            pose.spine.rotation.z = pose.spineRestZ + Math.sin(time * 0.9) * swayZ;
           }
           if (!reduced && pose.chest) {
-            pose.chest.rotation.x = pose.chestRestX + Math.sin(time * 2) * 0.02;
-            pose.chest.rotation.y = pose.chestRestY + Math.cos(time * 1.5) * 0.008;
-            pose.chest.rotation.z = pose.chestRestZ;
+            pose.chest.rotation.x = pose.chestRestX + Math.sin(time * tempo) * (drunk ? 0.055 : 0.02);
+            pose.chest.rotation.y = pose.chestRestY + Math.cos(time * 1.5) * (drunk ? 0.025 : 0.008);
+            pose.chest.rotation.z = pose.chestRestZ + Math.sin(time * 0.9) * swayZ * 0.6;
           }
           if (!reduced && pose.headBone) {
-            pose.headBone.rotation.x = pose.headRestX;
-            pose.headBone.rotation.y = pose.headRestY + Math.sin(time * 1.5) * 0.05;
-            pose.headBone.rotation.z = pose.headRestZ + Math.cos(time * 1.2) * 0.02;
+            pose.headBone.rotation.x = pose.headRestX + (drunk ? Math.sin(time * 0.8) * 0.03 : 0);
+            pose.headBone.rotation.y = pose.headRestY + Math.sin(time * 1.5) * (drunk ? 0.09 : 0.05);
+            pose.headBone.rotation.z = pose.headRestZ + Math.cos(time * 1.2) * (drunk ? 0.05 : 0.02);
           }
         }
 
@@ -555,6 +571,9 @@ function MocoVrmStageView({
             expressions.setValue("blink", blinking ? 1 : 0);
             applyVrmMouth(vrm, aa);
             setVrmEmotion(vrm, lip.active ? lip.emotion : "neutral");
+            if (!lip.active && isChloeCharacter(characterIdRef.current)) {
+              setupChloeDrunkState(vrm);
+            }
             expressions.update();
           }
         }

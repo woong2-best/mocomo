@@ -299,6 +299,7 @@ export function MocoLiveRoom({
             showVrm={showVrm}
             vrmUrl={vrmUrl}
             backdropUrl={backdropUrl}
+            characterId={memberId}
             onReady={onReady}
             channelId={channelId}
             donationPoll={donationPoll}
@@ -375,6 +376,7 @@ const IdolStagePane = memo(function IdolStagePane({
   showVrm,
   vrmUrl,
   backdropUrl,
+  characterId,
   onReady,
   channelId,
   donationPoll,
@@ -384,6 +386,7 @@ const IdolStagePane = memo(function IdolStagePane({
   showVrm: boolean;
   vrmUrl?: string;
   backdropUrl?: string | null;
+  characterId?: string | null;
   onReady: (handle: MocoStageHandle | null) => void;
   channelId?: string | null;
   donationPoll: string;
@@ -392,7 +395,15 @@ const IdolStagePane = memo(function IdolStagePane({
 }) {
   return (
     <div className="relative aspect-video overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
-      {showVrm ? <MocoVrmStage framing="stage" vrmUrl={vrmUrl} backdropUrl={backdropUrl} onReady={onReady} /> : null}
+      {showVrm ? (
+        <MocoVrmStage
+          framing="stage"
+          vrmUrl={vrmUrl}
+          backdropUrl={backdropUrl}
+          characterId={characterId}
+          onReady={onReady}
+        />
+      ) : null}
       {channelId ? (
         <MocoDonationStage
           channelId={channelId}

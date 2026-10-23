@@ -20,6 +20,7 @@ export function IdolLiveTiles({
           backdropUrl={backdrops?.[idol.id] ?? IDOL_BACKDROP_DEFAULTS[idol.id]}
           posterUrl={idol.poster}
           avatarUrl={idol.poster}
+          characterId={idol.id}
           nameKey={idol.nameKey}
           titleKey={idol.titleKey}
         />

@@ -33,10 +33,13 @@ export type VoiceStyle = { pitch: string; rate: string };
 
 const DEFAULT_STYLE: VoiceStyle = { pitch: "default", rate: "default" };
 const MOCO_STYLE: VoiceStyle = { pitch: "+18%", rate: "+10%" };
+/** Chloe stays tipsy: higher pitch, slower slurred tempo. */
+const CHLOE_STYLE: VoiceStyle = { pitch: "+18%", rate: "-12%" };
 
-/** Only Moco gets the brighter VTuber tone. Other members stay at the stock neural read. */
+/** Moco is brighter; Chloe is drunk-slow. Other members stay at the stock neural read. */
 export function voiceStyleForCharacter(characterId: string | null | undefined): VoiceStyle {
   const id = characterId?.trim().toLowerCase();
   if (!id || id === "moco") return MOCO_STYLE;
+  if (id === "chloe") return CHLOE_STYLE;
   return DEFAULT_STYLE;
 }

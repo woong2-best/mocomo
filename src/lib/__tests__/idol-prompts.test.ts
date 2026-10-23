@@ -14,6 +14,8 @@ test("each idol has a distinct persona prompt", () => {
   assert.match(STELLA_PROMPT, /\[Identity: STELLA\]/);
   assert.match(AIRI_PROMPT, /귀요미/);
   assert.match(CHLOE_PROMPT, /마미/);
+  assert.match(CHLOE_PROMPT, /32살/);
+  assert.match(CHLOE_PROMPT, /취해/);
   assert.match(STELLA_PROMPT, /자본주의/);
 });
 

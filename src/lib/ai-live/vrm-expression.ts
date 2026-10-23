@@ -56,6 +56,22 @@ export function setVrmEmotion(vrm: VRM | null | undefined, emotion: string) {
   if (next !== "neutral") setPreset(em, next, 1);
 }
 
+export function isChloeCharacter(characterId: string | null | undefined): boolean {
+  return characterId?.trim().toLowerCase() === "chloe";
+}
+
+/**
+ * Always-on tipsy smile + loosened eyes. Reapply after idle `neutral`
+ * so a spoken emotion can still take the face while she talks.
+ */
+export function setupChloeDrunkState(vrm: VRM | null | undefined) {
+  const em = vrm?.expressionManager;
+  if (!em) return;
+  setPreset(em, "happy", 0.5);
+  setPreset(em, "joy", 0.5);
+  setPreset(em, "relaxed", 0.3);
+}
+
 /**
  * Volume is 0–1 from the analyser.
  * Silence stays closed. Up to 30% is `ih`, up to 60% is `ou`, and the rest is `aa`.

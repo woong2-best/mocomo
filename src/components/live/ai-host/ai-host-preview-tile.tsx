@@ -19,6 +19,7 @@ export function AiHostPreviewTile({
   backdropUrl,
   posterUrl,
   avatarUrl,
+  characterId,
   nameKey,
   titleKey,
 }: {
@@ -27,6 +28,7 @@ export function AiHostPreviewTile({
   backdropUrl?: string | null;
   posterUrl?: string | null;
   avatarUrl?: string | null;
+  characterId?: string | null;
   nameKey: string;
   titleKey: string;
 }) {
@@ -61,7 +63,9 @@ export function AiHostPreviewTile({
             className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : null}
-        {showVrm ? <MocoVrmStage framing="bust" vrmUrl={vrmUrl} backdropUrl={backdropUrl} /> : null}
+        {showVrm ? (
+          <MocoVrmStage framing="bust" vrmUrl={vrmUrl} backdropUrl={backdropUrl} characterId={characterId} />
+        ) : null}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
         <LiveThumbnailLiveBadge className="absolute top-2.5 left-2.5" />
       </div>

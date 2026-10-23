@@ -12,6 +12,7 @@ export function AiLiveTile({ backdropUrl }: { backdropUrl?: string | null }) {
       vrmUrl={IDOL_VRM_FALLBACK}
       backdropUrl={backdropUrl ?? IDOL_BACKDROP_DEFAULTS.moco}
       posterUrl="/live/moco-poster.png"
+      characterId="moco"
       nameKey="live.aiHostName"
       titleKey="live.aiCardTitle"
     />

@@ -10,10 +10,10 @@ test("Edge voices follow the spoken language", () => {
   assert.equal(edgeVoiceName(edgeVoiceForText("\u3053\u3093\u306B\u3061\u306F")), "ja-JP-NanamiNeural");
 });
 
-test("only Moco raises pitch and rate", () => {
+test("Moco is brighter and Chloe stays tipsy-slow", () => {
   assert.deepEqual(voiceStyleForCharacter(null), { pitch: "+18%", rate: "+10%" });
   assert.deepEqual(voiceStyleForCharacter("moco"), { pitch: "+18%", rate: "+10%" });
+  assert.deepEqual(voiceStyleForCharacter("chloe"), { pitch: "+18%", rate: "-12%" });
   assert.deepEqual(voiceStyleForCharacter("airi"), { pitch: "default", rate: "default" });
-  assert.deepEqual(voiceStyleForCharacter("chloe"), { pitch: "default", rate: "default" });
   assert.deepEqual(voiceStyleForCharacter("stella"), { pitch: "default", rate: "default" });
 });
