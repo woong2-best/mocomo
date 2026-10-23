@@ -349,9 +349,9 @@ function MocoVrmStageView({
       let loadedUrl: string | null = null;
       let loadGen = 0;
 
-      const dropArm = (bone: import("three").Object3D | null, addZ: number, addX = 0): HungBone | null => {
+      const dropArm = (bone: import("three").Object3D | null, z: number, x = 0.12): HungBone | null => {
         if (!bone) return null;
-        return { bone, x: bone.rotation.x + addX, y: bone.rotation.y, z: bone.rotation.z + addZ };
+        return { bone, x, y: 0, z };
       };
 
       const frameCamera = (vrm: VRM) => {
@@ -400,10 +400,10 @@ function MocoVrmStageView({
           next.bone.rotation.set(next.x, next.y, next.z);
           hung.push(next);
         };
-        keep(node("leftUpperArm"), 1.55, 0.1);
-        keep(node("rightUpperArm"), -1.55, 0.1);
-        keep(node("leftLowerArm"), 0.2);
-        keep(node("rightLowerArm"), -0.2);
+        keep(node("leftUpperArm"), 1.25);
+        keep(node("rightUpperArm"), -1.25);
+        keep(node("leftLowerArm"), 0.18, 0);
+        keep(node("rightLowerArm"), -0.18, 0);
         const spine = node("spine");
         const chest = node("chest");
         const headBone = node("head");
