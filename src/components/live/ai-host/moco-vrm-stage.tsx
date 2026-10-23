@@ -296,7 +296,7 @@ function MocoVrmStageView({
 
       const scene = new THREE.Scene();
       scene.background = useBackdrop ? null : new THREE.Color(0x241c33);
-      const camera = new THREE.PerspectiveCamera(22, 1, 0.05, 30);
+      const camera = new THREE.PerspectiveCamera(24, 1, 0.05, 30);
 
       const pmrem = new THREE.PMREMGenerator(renderer);
       const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -371,8 +371,8 @@ function MocoVrmStageView({
         const headPos = new THREE.Vector3(0, 1.45, 0);
         head?.getWorldPosition(headPos);
         const look = headPos.clone();
-        look.y += framing === "bust" ? 0.04 : 0.06;
-        const distance = framing === "bust" ? 0.46 : 0.48;
+        look.y -= framing === "bust" ? 0.05 : 0.04;
+        const distance = framing === "bust" ? 0.58 : 0.6;
         camera.position.set(look.x, look.y + 0.015, look.z + distance);
         camera.lookAt(look);
         camera.updateMatrixWorld(true);
@@ -476,7 +476,6 @@ function MocoVrmStageView({
         const time = clock.elapsedTime;
         const pose = poseRef.current;
         if (pose) {
-          for (const arm of pose.hung) arm.bone.quaternion.copy(arm.quat);
           if (!reduced && pose.spine) {
             pose.spine.rotation.x = pose.spineRestX + Math.sin(time * 2) * 0.03;
             pose.spine.rotation.y = pose.spineRestY + Math.cos(time * 1.5) * 0.01;
@@ -520,6 +519,10 @@ function MocoVrmStageView({
         const vrm = pose?.vrm;
         if (vrm) {
           vrm.update(dt);
+          if (pose) {
+            for (const arm of pose.hung) arm.bone.quaternion.copy(arm.quat);
+            vrm.scene.updateMatrixWorld(true);
+          }
           const expressions = vrm.expressionManager;
           if (expressions) {
             expressions.setValue("blink", blinking ? 1 : 0);
