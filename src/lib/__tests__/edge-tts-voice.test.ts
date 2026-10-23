@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { edgeVoiceForText, edgeVoiceName, voiceStyleForCharacter } from "@/lib/ai-live/edge-tts";
+import { edgeVoiceForText, edgeVoiceName, edgeWebsocketAllowed, ttsProviderOrder, voiceStyleForCharacter } from "@/lib/ai-live/edge-tts";
 import { AIRI_MAYU_VOICE, speechLangForText, toKatakana, wrapAiriMayuSsml } from "@/lib/ai-live/speech-lang";
 
 test("Edge voices follow the spoken language", () => {
@@ -16,6 +16,13 @@ test("Moco is brighter, Chloe stays tipsy-slow, AIRI is husky Mayu", () => {
   assert.deepEqual(voiceStyleForCharacter("chloe"), { pitch: "+18%", rate: "-12%" });
   assert.deepEqual(voiceStyleForCharacter("airi"), { pitch: "-15%", rate: "+5%" });
   assert.deepEqual(voiceStyleForCharacter("stella"), { pitch: "default", rate: "default" });
+});
+
+test("Vercel skips the Edge websocket so speak cannot 504", () => {
+  assert.equal(edgeWebsocketAllowed({}), true);
+  assert.equal(edgeWebsocketAllowed({ VERCEL: "1" }), false);
+  assert.deepEqual(ttsProviderOrder({}), ["edge", "streamelements", "google"]);
+  assert.deepEqual(ttsProviderOrder({ VERCEL: "1" }), ["streamelements", "google"]);
 });
 
 test("AIRI SSML uses Mayu with a lowered pitch", () => {
