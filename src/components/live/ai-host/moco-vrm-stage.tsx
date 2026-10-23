@@ -371,8 +371,8 @@ function MocoVrmStageView({
         const headPos = new THREE.Vector3(0, 1.45, 0);
         head?.getWorldPosition(headPos);
         const look = headPos.clone();
-        look.y -= framing === "bust" ? 0.02 : 0.04;
-        const distance = framing === "bust" ? 0.7 : 0.76;
+        look.y -= framing === "bust" ? 0.02 : 0;
+        const distance = framing === "bust" ? 0.7 : 0.72;
         camera.position.set(look.x, look.y + 0.03, look.z + distance);
         camera.lookAt(look);
         camera.updateMatrixWorld(true);
