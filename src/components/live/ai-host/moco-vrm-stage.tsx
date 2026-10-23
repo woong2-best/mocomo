@@ -289,9 +289,13 @@ function MocoVrmStageView({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
       const canvas = renderer.domElement;
       canvas.dataset.functionalCanvas = "";
+      const stageCrop = framing === "bust" ? 1.16 : 1.2;
       canvas.style.width = "100%";
-      canvas.style.height = "100%";
+      canvas.style.height = `${Math.round(stageCrop * 100)}%`;
       canvas.style.display = "block";
+      canvas.style.position = "absolute";
+      canvas.style.left = "0";
+      canvas.style.top = "0";
       canvas.setAttribute("aria-hidden", "true");
 
       const scene = new THREE.Scene();
@@ -315,7 +319,7 @@ function MocoVrmStageView({
 
       const resize = () => {
         const w = Math.max(host.clientWidth, 1);
-        const h = Math.max(host.clientHeight, 1);
+        const h = Math.max(Math.round(host.clientHeight * stageCrop), 1);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         renderer.setSize(w, h, false);
@@ -577,7 +581,7 @@ function MocoVrmStageView({
   return (
     <div
       ref={hostRef}
-      className="pointer-events-none absolute inset-0 bg-cover bg-center"
+      className="pointer-events-none absolute inset-0 overflow-hidden bg-cover bg-center"
       style={backdropUrl ? { backgroundImage: `url(${backdropUrl})` } : undefined}
     >
       {phase === "loading" ? (
