@@ -365,16 +365,16 @@ function MocoVrmStageView({
         head?.getWorldPosition(headPos);
         chest?.getWorldPosition(chestPos);
         const hairTop = headPos.y + 0.2;
-        const chestLine = chestPos.y + 0.06;
+        const chestLine = chestPos.y + 0.1;
         const avatarH = Math.max(hairTop - chestLine, 0.28);
         const visibleH = avatarH / 0.75;
-        const headroom = 0.1;
+        const headroom = 0.12;
         cameraTarget.set(headPos.x, hairTop + headroom - visibleH / 2, headPos.z);
         const fovRad = (camera.fov * Math.PI) / 180;
         const distance = THREE.MathUtils.clamp(
           (visibleH / 2) / Math.tan(fovRad / 2),
-          framing === "bust" ? 1.05 : 1.1,
-          1.45,
+          framing === "bust" ? 1.0 : 1.05,
+          1.25,
         );
         camera.position.set(cameraTarget.x, cameraTarget.y + 0.05, cameraTarget.z + distance);
         camera.lookAt(cameraTarget);
@@ -400,10 +400,10 @@ function MocoVrmStageView({
           next.bone.rotation.set(next.x, next.y, next.z);
           hung.push(next);
         };
-        keep(node("leftUpperArm"), 1.2, 0.06);
-        keep(node("rightUpperArm"), -1.2, 0.06);
-        keep(node("leftLowerArm"), 0.12);
-        keep(node("rightLowerArm"), -0.12);
+        keep(node("leftUpperArm"), 1.55, 0.1);
+        keep(node("rightUpperArm"), -1.55, 0.1);
+        keep(node("leftLowerArm"), 0.2);
+        keep(node("rightLowerArm"), -0.2);
         const spine = node("spine");
         const chest = node("chest");
         const headBone = node("head");
