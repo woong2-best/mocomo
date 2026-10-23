@@ -6,9 +6,11 @@ import { IDOLS, idolById, playableIdolVrmUrl, type IdolId } from "@/lib/ai-live/
 export function IdolGroupRoom({
   initial,
   channels,
+  backdropUrl = null,
 }: {
   initial: IdolId;
   channels: Partial<Record<IdolId, string>>;
+  backdropUrl?: string | null;
 }) {
   const idol = idolById(initial) ?? IDOLS[0];
 
@@ -17,6 +19,7 @@ export function IdolGroupRoom({
       key={idol.id}
       channelId={channels[idol.id] ?? null}
       vrmUrl={playableIdolVrmUrl(idol.vrmUrl)}
+      backdropUrl={backdropUrl}
       hostUsername={idol.username}
       showVrm
       hostNameKey={idol.nameKey}

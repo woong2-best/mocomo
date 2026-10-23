@@ -47,6 +47,7 @@ export const ADMIN_PRIMARY_NAV: AdminNavItem[] = [
   { href: "/admin/products", label: "Products", icon: ShoppingBag, permission: "products" },
   { href: "/admin/communities", label: "Communities", icon: MessagesSquare, permission: "communities" },
   { href: "/admin/live", label: "Live", icon: Radio, permission: "live" },
+  { href: "/admin/live/backgrounds", label: "라이브 아바타 배경", icon: Images, permission: "live" },
   { href: "/admin/streaming-accounts", label: "스트리밍 연동", icon: Radio, permission: "live" },
   { href: "/admin/reports", label: "Reports", icon: ShieldAlert, permission: "reports" },
   { href: "/admin/events-map", label: "Event map pins", icon: MapPin, permission: "reports" },
