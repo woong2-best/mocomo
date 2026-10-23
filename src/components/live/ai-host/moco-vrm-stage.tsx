@@ -289,18 +289,15 @@ function MocoVrmStageView({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
       const canvas = renderer.domElement;
       canvas.dataset.functionalCanvas = "";
-      const stageCrop = framing === "bust" ? 1.16 : 1.2;
       canvas.style.width = "100%";
-      canvas.style.height = `${Math.round(stageCrop * 100)}%`;
+      canvas.style.height = "100%";
       canvas.style.display = "block";
-      canvas.style.position = "absolute";
-      canvas.style.left = "0";
-      canvas.style.top = "0";
       canvas.setAttribute("aria-hidden", "true");
 
       const scene = new THREE.Scene();
       scene.background = useBackdrop ? null : new THREE.Color(0x241c33);
-      const camera = new THREE.PerspectiveCamera(24, 1, 0.05, 30);
+      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 20);
+      const cameraTarget = new THREE.Vector3(0, 1.2, 0);
 
       const pmrem = new THREE.PMREMGenerator(renderer);
       const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -319,7 +316,7 @@ function MocoVrmStageView({
 
       const resize = () => {
         const w = Math.max(host.clientWidth, 1);
-        const h = Math.max(Math.round(host.clientHeight * stageCrop), 1);
+        const h = Math.max(host.clientHeight, 1);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         renderer.setSize(w, h, false);
@@ -372,13 +369,27 @@ function MocoVrmStageView({
       const frameCamera = (vrm: VRM) => {
         vrm.scene.updateMatrixWorld(true);
         const head = vrm.humanoid?.getNormalizedBoneNode("head");
+        const chest =
+          vrm.humanoid?.getNormalizedBoneNode("upperChest") ??
+          vrm.humanoid?.getNormalizedBoneNode("chest");
         const headPos = new THREE.Vector3(0, 1.45, 0);
+        const chestPos = new THREE.Vector3(0, 1.2, 0);
         head?.getWorldPosition(headPos);
-        const look = headPos.clone();
-        look.y -= framing === "bust" ? 0.05 : 0.04;
-        const distance = framing === "bust" ? 0.58 : 0.6;
-        camera.position.set(look.x, look.y + 0.015, look.z + distance);
-        camera.lookAt(look);
+        chest?.getWorldPosition(chestPos);
+        const hairTop = headPos.y + 0.22;
+        const chestLine = chestPos.y + 0.02;
+        const avatarH = Math.max(hairTop - chestLine, 0.28);
+        const visibleH = avatarH / 0.75;
+        const headroom = 0.08;
+        cameraTarget.set(headPos.x, hairTop + headroom - visibleH / 2, headPos.z);
+        const fovRad = (camera.fov * Math.PI) / 180;
+        const distance = THREE.MathUtils.clamp(
+          (visibleH / 2) / Math.tan(fovRad / 2),
+          framing === "bust" ? 1.15 : 1.2,
+          1.6,
+        );
+        camera.position.set(cameraTarget.x, cameraTarget.y + 0.05, cameraTarget.z + distance);
+        camera.lookAt(cameraTarget);
         camera.updateMatrixWorld(true);
         camera.updateProjectionMatrix();
         if (vrm.lookAt) {
@@ -519,6 +530,7 @@ function MocoVrmStageView({
           blinkAt = now + 2000 + Math.random() * 3000;
         }
 
+        camera.lookAt(cameraTarget);
         camera.updateMatrixWorld(true);
         const vrm = pose?.vrm;
         if (vrm) {
@@ -581,7 +593,7 @@ function MocoVrmStageView({
   return (
     <div
       ref={hostRef}
-      className="pointer-events-none absolute inset-0 overflow-hidden bg-cover bg-center"
+      className="pointer-events-none absolute inset-0 bg-cover bg-center"
       style={backdropUrl ? { backgroundImage: `url(${backdropUrl})` } : undefined}
     >
       {phase === "loading" ? (
