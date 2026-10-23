@@ -296,7 +296,7 @@ function MocoVrmStageView({
 
       const scene = new THREE.Scene();
       scene.background = useBackdrop ? null : new THREE.Color(0x241c33);
-      const camera = new THREE.PerspectiveCamera(26, 1, 0.05, 30);
+      const camera = new THREE.PerspectiveCamera(22, 1, 0.05, 30);
 
       const pmrem = new THREE.PMREMGenerator(renderer);
       const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -368,24 +368,12 @@ function MocoVrmStageView({
       const frameCamera = (vrm: VRM) => {
         vrm.scene.updateMatrixWorld(true);
         const head = vrm.humanoid?.getNormalizedBoneNode("head");
-        const chest =
-          vrm.humanoid?.getNormalizedBoneNode("upperChest") ??
-          vrm.humanoid?.getNormalizedBoneNode("chest");
         const headPos = new THREE.Vector3(0, 1.45, 0);
-        const chestPos = new THREE.Vector3(0, 1.2, 0);
         head?.getWorldPosition(headPos);
-        chest?.getWorldPosition(chestPos);
-        const look = new THREE.Vector3(
-          headPos.x,
-          headPos.y * 0.78 + chestPos.y * 0.22,
-          headPos.z,
-        );
-        const hairTop = headPos.y + (framing === "bust" ? 0.16 : 0.2);
-        const chestCut = chestPos.y + (framing === "bust" ? 0.08 : 0.1);
-        const halfH = Math.max(hairTop - look.y, look.y - chestCut);
-        const fovRad = (camera.fov * Math.PI) / 180;
-        const distance = THREE.MathUtils.clamp(halfH / Math.tan(fovRad / 2), 0.38, 0.68);
-        camera.position.set(look.x, look.y + 0.02, look.z + distance);
+        const look = headPos.clone();
+        look.y += framing === "bust" ? 0.04 : 0.06;
+        const distance = framing === "bust" ? 0.46 : 0.48;
+        camera.position.set(look.x, look.y + 0.015, look.z + distance);
         camera.lookAt(look);
         camera.updateMatrixWorld(true);
         camera.updateProjectionMatrix();
