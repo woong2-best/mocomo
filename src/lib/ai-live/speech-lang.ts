@@ -28,3 +28,15 @@ export const EDGE_VOICES: Record<SpeechLang, { voice: string; lang: string; bcp4
   en: { voice: "en-US-JennyNeural", lang: "en-US", bcp47: "en-US" },
   ja: { voice: "ja-JP-NanamiNeural", lang: "ja-JP", bcp47: "ja-JP" },
 };
+
+export type VoiceStyle = { pitch: string; rate: string };
+
+const DEFAULT_STYLE: VoiceStyle = { pitch: "default", rate: "default" };
+const MOCO_STYLE: VoiceStyle = { pitch: "+18%", rate: "+10%" };
+
+/** Only Moco gets the brighter VTuber tone. Other members stay at the stock neural read. */
+export function voiceStyleForCharacter(characterId: string | null | undefined): VoiceStyle {
+  const id = characterId?.trim().toLowerCase();
+  if (!id || id === "moco") return MOCO_STYLE;
+  return DEFAULT_STYLE;
+}

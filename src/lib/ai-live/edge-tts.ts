@@ -1,6 +1,8 @@
 import { EdgeTTS } from "node-edge-tts";
 import { safeLogWarn } from "@/lib/safe-log";
-import { EDGE_VOICES, speechLangForText, type SpeechLang } from "@/lib/ai-live/speech-lang";
+import { EDGE_VOICES, speechLangForText, voiceStyleForCharacter, type SpeechLang, type VoiceStyle } from "@/lib/ai-live/speech-lang";
+
+export { voiceStyleForCharacter };
 
 export type EdgeVoiceLang = SpeechLang;
 
@@ -28,12 +30,14 @@ function toArrayBuffer(buf: Buffer): ArrayBuffer {
   return out;
 }
 
-async function fromEdgeWs(text: string, lang: SpeechLang): Promise<ArrayBuffer | null> {
+async function fromEdgeWs(text: string, lang: SpeechLang, style: VoiceStyle): Promise<ArrayBuffer | null> {
   const preset = EDGE_VOICES[lang];
   const tts = new EdgeTTS({
     voice: preset.voice,
     lang: preset.lang,
     outputFormat: OUTPUT_FORMAT,
+    pitch: style.pitch,
+    rate: style.rate,
     timeout: 10_000,
   });
   const chunks: Buffer[] = [];
@@ -78,12 +82,16 @@ async function fromStreamElements(text: string, lang: SpeechLang): Promise<Array
 }
 
 /** Speak one host line. Free neural first, then HTTP fallbacks. Never calls a paid GPU server. */
-export async function synthesizeIdolVoice(text: string): Promise<ArrayBuffer | null> {
+export async function synthesizeIdolVoice(
+  text: string,
+  characterId: string | null = null
+): Promise<ArrayBuffer | null> {
   const line = text.replace(/\s+/g, " ").trim().slice(0, 240);
   if (!line) return null;
   const lang = speechLangForText(line);
+  const style = voiceStyleForCharacter(characterId);
   const steps: Array<[string, () => Promise<ArrayBuffer | null>]> = [
-    ["edge", () => fromEdgeWs(line, lang)],
+    ["edge", () => fromEdgeWs(line, lang, style)],
     ["google", () => fromGoogleTranslate(line, lang)],
     ["streamelements", () => fromStreamElements(line, lang)],
   ];

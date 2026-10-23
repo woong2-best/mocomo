@@ -176,6 +176,6 @@ export type HostSpeech = {
 export async function speakHostLine(userText: string, member: string | null = null): Promise<HostSpeech> {
   const reply = await geminiZeta(userText, member);
   if (reply.blocked) return { text: reply.text, emotion: reply.emotion, blocked: true, audio: null };
-  const audio = await synthesizeIdolVoice(reply.text);
+  const audio = await synthesizeIdolVoice(reply.text, member);
   return { text: reply.text, emotion: reply.emotion, blocked: false, audio };
 }
