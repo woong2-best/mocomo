@@ -65,7 +65,7 @@ export type SerializedComment = {
   isPostAuthor: boolean;
   isPinned: boolean;
   pinnedAt: string | null;
-  acceptedAt: string | null;
+  acceptedAt?: string | null;
   isEdited: boolean;
   replyCount: number;
   author: SerializedCommentAuthor;
