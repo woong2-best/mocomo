@@ -400,10 +400,10 @@ function MocoVrmStageView({
           next.bone.rotation.set(next.x, next.y, next.z);
           hung.push(next);
         };
-        keep(node("leftUpperArm"), 1.25);
-        keep(node("rightUpperArm"), -1.25);
-        keep(node("leftLowerArm"), 0.18, 0);
-        keep(node("rightLowerArm"), -0.18, 0);
+        keep(node("leftUpperArm"), -1.25);
+        keep(node("rightUpperArm"), 1.25);
+        keep(node("leftLowerArm"), -0.18, 0);
+        keep(node("rightLowerArm"), 0.18, 0);
         const spine = node("spine");
         const chest = node("chest");
         const headBone = node("head");
