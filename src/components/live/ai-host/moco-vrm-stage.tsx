@@ -390,9 +390,9 @@ function MocoVrmStageView({
         const humanoid = vrm.humanoid as
           | (NonNullable<VRM["humanoid"]> & { autoUpdateHumanBones?: boolean })
           | null;
-        if (humanoid) humanoid.autoUpdateHumanBones = false;
+        if (humanoid) humanoid.autoUpdateHumanBones = true;
         const node = (name: Parameters<NonNullable<VRM["humanoid"]>["getNormalizedBoneNode"]>[0]) =>
-          humanoid?.getNormalizedBoneNode(name) ?? null;
+          humanoid?.getNormalizedBoneNode(name) ?? humanoid?.getRawBoneNode(name) ?? null;
         const hung: HungBone[] = [];
         const keep = (bone: import("three").Object3D | null, addZ: number, addX = 0) => {
           const next = dropArm(bone, addZ, addX);
@@ -518,15 +518,14 @@ function MocoVrmStageView({
           blinkAt = now + 2000 + Math.random() * 3000;
         }
 
+        if (pose) {
+          for (const arm of pose.hung) arm.bone.rotation.set(arm.x, arm.y, arm.z);
+        }
         camera.lookAt(cameraTarget);
         camera.updateMatrixWorld(true);
         const vrm = pose?.vrm;
         if (vrm) {
           vrm.update(dt);
-          if (pose) {
-            for (const arm of pose.hung) arm.bone.rotation.set(arm.x, arm.y, arm.z);
-            vrm.scene.updateMatrixWorld(true);
-          }
           const expressions = vrm.expressionManager;
           if (expressions) {
             expressions.setValue("blink", blinking ? 1 : 0);
