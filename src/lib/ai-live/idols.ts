@@ -20,9 +20,8 @@ export const IDOL_VRM_FALLBACK = "/avatars/default.vrm";
 /**
  * Files that exist under `public/`. Missing paths stay off this list so the browser never requests a 404.
  * Cleo is VRoid AvatarSample_B, Mio is AvatarSample_A (commercial use and redistribution allowed, credit not required).
- * Nangnang is VRoid HairSample_Female (CC0).
  */
-const READY_VRM_URLS = new Set<string>(["/models/airi.vrm", "/models/chloe.vrm", "/models/stella.vrm"]);
+const READY_VRM_URLS = new Set<string>(["/models/airi.vrm", "/models/chloe.vrm", "/models/nangnang.vrm"]);
 
 export function playableIdolVrmUrl(url: string | null | undefined): string {
   if (url && READY_VRM_URLS.has(url)) return url;
@@ -56,7 +55,7 @@ export const IDOLS: readonly IdolMember[] = [
     id: "nangnang",
     channelId: "idol-stella",
     username: "idol_stella",
-    vrmUrl: "/models/stella.vrm",
+    vrmUrl: "/models/nangnang.vrm",
     poster: "/live/idols/stella.jpg",
     accent: "#3ddcff",
     nameKey: "live.idol.nangnang.name",
