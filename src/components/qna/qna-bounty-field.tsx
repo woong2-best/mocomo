@@ -2,7 +2,7 @@
 
 import { useLocale } from "@/components/providers/locale-provider";
 import { Input } from "@/components/ui/input";
-import { QNA_BOUNTY_DEFAULT_CENTI, formatQnaBountyMoco } from "@/lib/qna-bounty";
+import { QNA_BOUNTY_DEFAULT_CENTI, formatQnaBountyMoco } from "@/lib/qna-bounty-format";
 
 export function QnaBountyField({
   value,

@@ -26,7 +26,7 @@ import { QnaNsfwBlockedDialog } from "@/components/communities/qna-nsfw-blocked-
 import { FileDropZone } from "@/components/media/file-drop-zone";
 import { isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { QnaBountyField } from "@/components/qna/qna-bounty-field";
-import { parseQnaBountyInput } from "@/lib/qna-bounty";
+import { parseQnaBountyInput } from "@/lib/qna-bounty-format";
 
 const CREATE_CATEGORY_OPTIONS = COMMUNITY_CATEGORY_OPTIONS.filter((o) => o.id !== "INFO");
 

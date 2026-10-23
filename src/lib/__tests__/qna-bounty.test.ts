@@ -5,7 +5,7 @@ import {
   QNA_BOUNTY_STEP_CENTI,
   formatQnaBountyMoco,
   parseQnaBountyInput,
-} from "../qna-bounty";
+} from "../qna-bounty-format";
 
 test("default bounty is 0.02 MOCO", () => {
   assert.equal(QNA_BOUNTY_DEFAULT_CENTI, 2);

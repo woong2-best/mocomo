@@ -15,7 +15,7 @@ import {
   type OptimisticComment,
 } from "@/lib/comment-optimistic-sync";
 import type { SerializedComment } from "@/lib/comment-service";
-import { formatQnaBountyMoco } from "@/lib/qna-bounty";
+import { formatQnaBountyMoco } from "@/lib/qna-bounty-format";
 import { useLocale } from "@/components/providers/locale-provider";
 import { cn } from "@/lib/utils";
 

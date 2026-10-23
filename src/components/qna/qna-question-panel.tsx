@@ -14,7 +14,7 @@ import { useOptimisticStar } from "@/lib/use-optimistic-engage";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { communityCategoryLabel } from "@/lib/community-labels";
-import { formatQnaBountyMoco } from "@/lib/qna-bounty";
+import { formatQnaBountyMoco } from "@/lib/qna-bounty-format";
 import { qnaListTitle } from "@/lib/qna-list-title";
 import type { Locale } from "@/lib/i18n/config";
 import type { PostDetailOk } from "@/lib/post-queries";

@@ -29,7 +29,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { dateFnsLocale } from "@/lib/i18n/date-locale";
 import { isBoostableImageMedia } from "@/lib/sponsored-ad/boostable";
 import { qnaListTitle } from "@/lib/qna-list-title";
-import { formatQnaBountyMoco } from "@/lib/qna-bounty";
+import { formatQnaBountyMoco } from "@/lib/qna-bounty-format";
 import { PostCardNavigate } from "@/components/feed/post-card-navigate";
 import { PostSponsoredAdBadge } from "@/components/post/post-sponsored-ad-badge";
 
