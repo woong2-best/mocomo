@@ -296,7 +296,7 @@ function MocoVrmStageView({
 
       const scene = new THREE.Scene();
       scene.background = useBackdrop ? null : new THREE.Color(0x241c33);
-      const camera = new THREE.PerspectiveCamera(framing === "stage" ? 30 : 26, 1, 0.05, 30);
+      const camera = new THREE.PerspectiveCamera(26, 1, 0.05, 30);
 
       const pmrem = new THREE.PMREMGenerator(renderer);
       const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -371,8 +371,8 @@ function MocoVrmStageView({
         const headPos = new THREE.Vector3(0, 1.45, 0);
         head?.getWorldPosition(headPos);
         const look = headPos.clone();
-        look.y -= framing === "bust" ? 0.02 : 0.12;
-        const distance = framing === "bust" ? 0.7 : 1.22;
+        look.y -= framing === "bust" ? 0.02 : 0.055;
+        const distance = framing === "bust" ? 0.7 : 0.88;
         camera.position.set(look.x, look.y + 0.03, look.z + distance);
         camera.lookAt(look);
         camera.updateMatrixWorld(true);
