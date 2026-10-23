@@ -15,7 +15,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { uploadImageBlob } from "@/lib/client-upload";
 import { isGalleryImageFile, normalizeGalleryImageFile } from "@/lib/gallery-image-upload";
 import { CommentAttachPreview } from "@/components/post/comment-media-view";
-import { TenorGifPicker } from "@/components/post/tenor-gif-picker";
+import { GiphyGifPicker } from "@/components/post/tenor-gif-picker";
 
 type Attach = { mediaType: "PHOTO" | "GIF"; mediaUrl: string; previewUrl: string };
 
@@ -212,7 +212,7 @@ export function CommentForm({
         </p>
       ) : null}
       {error && <p className="text-xs text-destructive">{error}</p>}
-      <TenorGifPicker
+      <GiphyGifPicker
         open={gifOpen}
         onClose={() => setGifOpen(false)}
         onPick={(gif) => {

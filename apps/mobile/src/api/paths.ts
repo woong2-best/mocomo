@@ -31,7 +31,9 @@ export const MobileApi = {
   postRepost: (id: string) => `/api/mobile/posts/${id}/repost`,
   postProfileFeature: (id: string) => `/api/mobile/posts/${id}/profile-feature`,
   postComments: (id: string) => `/api/mobile/posts/${id}/comments`,
-  tenorSearch: "/api/mobile/tenor/search",
+  giphySearch: "/api/mobile/giphy/search",
+  /** @deprecated Use giphySearch — kept so old app builds keep working. */
+  tenorSearch: "/api/mobile/giphy/search",
   postAcceptAnswer: (id: string) => `/api/mobile/posts/${id}/accept-answer`,
   postPollVote: (id: string) => `/api/mobile/posts/${id}/poll/vote`,
   userMute: "/api/mobile/users/mute",

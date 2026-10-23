@@ -9,7 +9,7 @@ export type PickedGif = { playUrl: string; previewUrl: string };
 
 type Item = { id: string; previewUrl: string; playUrl: string };
 
-export function TenorGifPicker({
+export function GiphyGifPicker({
   open,
   onClose,
   onPick,
@@ -47,7 +47,10 @@ export function TenorGifPicker({
     setError("");
     try {
       const qs = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
-      const res = await fetch(`/api/tenor/search${qs}`, { credentials: "include" });
+      const res = await fetch(`/api/giphy/search${qs}`, {
+        credentials: "include",
+        headers: { "x-mocomo-platform": "web" },
+      });
       const body = (await res.json().catch(() => ({}))) as { items?: Item[]; error?: string };
       if (!res.ok) {
         setItems([]);
@@ -135,3 +138,6 @@ export function TenorGifPicker({
     </div>
   );
 }
+
+/** @deprecated Use GiphyGifPicker */
+export const TenorGifPicker = GiphyGifPicker;

@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { searchTenorGifs, type TenorGifItem } from "@/api/social";
+import { searchGiphyGifs, type GiphyGifItem } from "@/api/social";
 import { useI18n } from "@/i18n/I18nProvider";
 import { colors, radii, spacing } from "@/theme/tokens";
 
@@ -26,7 +26,7 @@ export function TenorGifSheet({
 }) {
   const { t } = useI18n();
   const [q, setQ] = useState("");
-  const [items, setItems] = useState<TenorGifItem[]>([]);
+  const [items, setItems] = useState<GiphyGifItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,7 +42,7 @@ export function TenorGifSheet({
     setLoading(true);
     setError("");
     try {
-      const res = await searchTenorGifs(query);
+      const res = await searchGiphyGifs(query);
       setItems(res.items ?? []);
     } catch (err) {
       setItems([]);

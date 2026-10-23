@@ -2,17 +2,23 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   isCommentGifPlaybackUrl,
+  isCommentGifUrl,
   isCommentPhotoUrl,
+  isGiphyMediaUrl,
   isTenorMediaUrl,
   parseCommentMediaInput,
   serializeCommentMedia,
 } from "@/lib/comment-media";
 
-test("Tenor hosts are the only GIF URLs we store", () => {
+test("Giphy and legacy Tenor hosts are the only GIF URLs we store", () => {
+  assert.equal(isGiphyMediaUrl("https://media.giphy.com/media/abc/giphy.webp"), true);
+  assert.equal(isGiphyMediaUrl("https://media2.giphy.com/media/abc/giphy.mp4"), true);
+  assert.equal(isGiphyMediaUrl("https://i.giphy.com/abc.webp"), true);
+  assert.equal(isGiphyMediaUrl("https://evil.example/giphy.gif"), false);
+  assert.equal(isGiphyMediaUrl("http://media.giphy.com/abc.gif"), false);
   assert.equal(isTenorMediaUrl("https://media.tenor.com/abc/tinygif.gif"), true);
-  assert.equal(isTenorMediaUrl("https://c.tenor.com/abc/mp4"), true);
-  assert.equal(isTenorMediaUrl("https://evil.example/tenor.gif"), false);
-  assert.equal(isTenorMediaUrl("http://media.tenor.com/abc.gif"), false);
+  assert.equal(isCommentGifUrl("https://media.giphy.com/media/abc/giphy.mp4"), true);
+  assert.equal(isCommentGifUrl("https://c.tenor.com/abc/mp4"), true);
 });
 
 test("comment photos stay on our storage", () => {
@@ -30,7 +36,7 @@ test("a comment needs text or one attachment", () => {
   const gif = parseCommentMediaInput({
     content: "",
     mediaType: "GIF",
-    mediaUrl: "https://media.tenor.com/abc/tinygif.gif",
+    mediaUrl: "https://media.giphy.com/media/abc/giphy.webp",
   });
   assert.equal(gif.ok, true);
   if (gif.ok) {
@@ -53,7 +59,8 @@ test("empty media serializes as NONE", () => {
   });
 });
 
-test("mp4 Tenor URLs play as video", () => {
+test("mp4 GIF URLs play as video", () => {
+  assert.equal(isCommentGifPlaybackUrl("https://media.giphy.com/media/abc/giphy.mp4"), true);
   assert.equal(isCommentGifPlaybackUrl("https://media.tenor.com/abc/mp4"), true);
-  assert.equal(isCommentGifPlaybackUrl("https://media.tenor.com/abc/tinygif.gif"), false);
+  assert.equal(isCommentGifPlaybackUrl("https://media.giphy.com/media/abc/giphy.webp"), false);
 });

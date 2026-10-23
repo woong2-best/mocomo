@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { API_BASE_URL } from "@/config/env";
 import { errorCodeOfBody, localizeErrorBody } from "@/api/error-code";
 import { emitTermsRequired } from "@/legal/terms-required-event";
@@ -119,6 +120,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   const headers: Record<string, string> = {
     Accept: "application/json",
+    "x-mocomo-platform": Platform.OS === "ios" ? "ios" : "android",
     ...extraHeaders,
   };
   if (body !== undefined) headers["Content-Type"] = "application/json";

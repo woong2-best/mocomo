@@ -670,7 +670,7 @@
   "comments.gifSearch": "Search GIFs",
   "comments.gifEmpty": "No GIFs for that search",
   "comments.gifUnavailable": "GIF search is busy. Try again in a moment.",
-  "comments.gifPowered": "Powered by Tenor",
+  "comments.gifPowered": "Powered by GIPHY",
   "comments.photoInvalid": "Choose a photo to attach.",
   "comments.photoFailed": "Couldn't upload that photo.",
   "post.views": "{count} views",

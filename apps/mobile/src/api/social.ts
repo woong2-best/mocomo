@@ -102,15 +102,23 @@ export async function createPostComment(
   });
 }
 
-export type TenorGifItem = {
+export type GiphyGifItem = {
   id: string;
   previewUrl: string;
   playUrl: string;
 };
 
-export async function searchTenorGifs(q = "") {
+/** @deprecated Use GiphyGifItem */
+export type TenorGifItem = GiphyGifItem;
+
+export async function searchGiphyGifs(q = "") {
   const params = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : "";
-  return apiRequest<{ items: TenorGifItem[] }>(`${MobileApi.tenorSearch}${params}`);
+  return apiRequest<{ items: GiphyGifItem[] }>(`${MobileApi.giphySearch}${params}`);
+}
+
+/** @deprecated Use searchGiphyGifs */
+export async function searchTenorGifs(q = "") {
+  return searchGiphyGifs(q);
 }
 
 export async function togglePostStar(postId: string) {

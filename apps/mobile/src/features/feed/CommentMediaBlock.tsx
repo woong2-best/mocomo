@@ -9,13 +9,21 @@ function isVideoUrl(url: string) {
   return /\.(mp4|webm)(\?|$)/.test(lower) || lower.includes("/mp4") || lower.includes("/webm");
 }
 
-function LoopVideo({ uri, style }: { uri: string; style: object }) {
+function LoopVideo({
+  uri,
+  style,
+  contentFit = "cover",
+}: {
+  uri: string;
+  style: object;
+  contentFit?: "cover" | "contain";
+}) {
   const player = useVideoPlayer(uri, (instance) => {
     instance.loop = true;
     instance.muted = true;
     instance.play();
   });
-  return <VideoView player={player} style={style} contentFit="cover" nativeControls={false} />;
+  return <VideoView player={player} style={style} contentFit={contentFit} nativeControls={false} />;
 }
 
 export function CommentMediaBlock({
@@ -45,7 +53,7 @@ export function CommentMediaBlock({
           </Pressable>
           <View style={styles.fullWrap} pointerEvents="box-none">
             {video ? (
-              <LoopVideo uri={mediaUrl} style={styles.full} />
+              <LoopVideo uri={mediaUrl} style={styles.full} contentFit="contain" />
             ) : (
               <Image source={{ uri: mediaUrl }} style={styles.full} resizeMode="contain" />
             )}

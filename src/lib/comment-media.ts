@@ -9,6 +9,16 @@ export type CommentMediaPayload = {
 const MAX_URL = 2048;
 
 const TENOR_HOSTS = new Set(["media.tenor.com", "c.tenor.com", "media1.tenor.com", "media.tenor.co"]);
+const GIPHY_HOSTS = new Set([
+  "giphy.com",
+  "media.giphy.com",
+  "i.giphy.com",
+  "media0.giphy.com",
+  "media1.giphy.com",
+  "media2.giphy.com",
+  "media3.giphy.com",
+  "media4.giphy.com",
+]);
 
 export function serializeCommentMedia(row: {
   mediaType?: "PHOTO" | "GIF" | null;
@@ -21,17 +31,33 @@ export function serializeCommentMedia(row: {
   return { mediaType: "NONE", mediaUrl: null };
 }
 
-export function isTenorMediaUrl(raw: string): boolean {
+function httpsHost(raw: string): string | null {
   let parsed: URL;
   try {
     parsed = new URL(raw.trim());
   } catch {
-    return false;
+    return null;
   }
-  if (parsed.protocol !== "https:") return false;
-  const host = parsed.hostname.toLowerCase();
+  if (parsed.protocol !== "https:") return null;
+  return parsed.hostname.toLowerCase();
+}
+
+export function isTenorMediaUrl(raw: string): boolean {
+  const host = httpsHost(raw);
+  if (!host) return false;
   if (TENOR_HOSTS.has(host)) return true;
   return host.endsWith(".tenor.com") || host.endsWith(".tenor.co");
+}
+
+export function isGiphyMediaUrl(raw: string): boolean {
+  const host = httpsHost(raw);
+  if (!host) return false;
+  if (GIPHY_HOSTS.has(host)) return true;
+  return host.endsWith(".giphy.com");
+}
+
+export function isCommentGifUrl(raw: string): boolean {
+  return isGiphyMediaUrl(raw) || isTenorMediaUrl(raw);
 }
 
 export function isCommentPhotoUrl(raw: string): boolean {
@@ -105,7 +131,7 @@ export function parseCommentMediaInput(body: {
   if (type === "PHOTO" && !isCommentPhotoUrl(url)) {
     return { ok: false, error: "That photo could not be attached." };
   }
-  if (type === "GIF" && !isTenorMediaUrl(url)) {
+  if (type === "GIF" && !isCommentGifUrl(url)) {
     return { ok: false, error: "That GIF could not be attached." };
   }
   return { ok: true, content, mediaType: type, mediaUrl: url };
