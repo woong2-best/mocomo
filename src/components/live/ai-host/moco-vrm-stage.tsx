@@ -1,7 +1,7 @@
 "use client";
 
 import type { VRM } from "@pixiv/three-vrm";
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { IDOL_VRM_FALLBACK } from "@/lib/ai-live/idols";
 import { applyVrmMouth, parseVrmEmotion, setVrmEmotion } from "@/lib/ai-live/vrm-expression";
 import { disposeIdolVrm, loadIdolVrm, useIdolVrm } from "@/components/live/ai-host/use-idol-vrm";
@@ -92,7 +92,7 @@ type LipSync = {
  * Studio VRM. Idle is local requestAnimationFrame only.
  * Voice bytes are analysed here; this file never calls a model or a TTS server.
  */
-export function MocoVrmStage({
+function MocoVrmStageView({
   framing = "bust",
   vrmUrl = DEFAULT_VRM_URL,
   backdropUrl,
@@ -345,6 +345,7 @@ export function MocoVrmStage({
         hung: HungBone[];
       };
       const poseRef: { current: Pose | null } = { current: null };
+      let loadedUrl: string | null = null;
       let loadGen = 0;
 
       const hangBone = (bone: import("three").Object3D | null, goal: import("three").Vector3): HungBone | null => {
@@ -420,9 +421,14 @@ export function MocoVrmStage({
       };
 
       const swap = async (url: string): Promise<boolean> => {
+        if (loadedUrl === url && poseRef.current) {
+          setPhaseRef.current("ready");
+          return true;
+        }
         const gen = ++loadGen;
+        const replacing = poseRef.current != null;
         setPhaseRef.current("loading");
-        canvas.style.opacity = "0";
+        if (replacing) canvas.style.opacity = "0";
         try {
           const vrm = await loadIdolVrm(loader, url);
           if (!alive || gen !== loadGen) {
@@ -433,6 +439,7 @@ export function MocoVrmStage({
           scene.add(vrm.scene);
           shown.current = vrm;
           poseRef.current = rememberPose(vrm);
+          loadedUrl = url;
           frameCamera(vrm);
           host.dataset.vrmReady = "1";
           delete host.dataset.vrmFailed;
@@ -576,3 +583,5 @@ export function MocoVrmStage({
     </div>
   );
 }
+
+export const MocoVrmStage = memo(MocoVrmStageView);

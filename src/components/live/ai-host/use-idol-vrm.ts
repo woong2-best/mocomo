@@ -72,7 +72,6 @@ export function useIdolVrm(url: string) {
   useEffect(() => {
     if (!armed.current) return;
     let cancelled = false;
-    setPhase("loading");
     void swapRef
       .current(url)
       .then((ok) => {

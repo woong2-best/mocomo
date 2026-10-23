@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Radio, Send } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { MocoStageHandle } from "@/components/live/ai-host/moco-vrm-stage";
 import { useLocale } from "@/components/providers/locale-provider";
 import { classifyAiHostMessage } from "@/lib/ai-live/blocklist";
@@ -134,6 +134,10 @@ export function MocoLiveRoom({
     [drain]
   );
 
+  const onDonationLine = useCallback((text: string) => {
+    addLine("moco", text);
+  }, [addLine]);
+
   const pushAudio = useCallback(
     (job: SpeechJob) => {
       const interrupt = enqueueSpeech(queueRef.current, job);
@@ -152,7 +156,7 @@ export function MocoLiveRoom({
         const res = await fetch("/api/live/ai-host/speak", {
           method: "POST",
           cache: "no-store",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Moco-No-Progress": "1" },
           body: JSON.stringify({
             text,
             characterId: room === "moco" ? undefined : room,
@@ -291,19 +295,16 @@ export function MocoLiveRoom({
 
       <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
         <div className="min-w-0">
-          <div className="relative aspect-video overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
-            {showVrm ? (
-              <MocoVrmStage framing="stage" vrmUrl={vrmUrl} backdropUrl={backdropUrl} onReady={onReady} />
-            ) : null}
-            {channelId ? (
-              <MocoDonationStage
-                channelId={channelId}
-                pollUrl={donationPoll}
-                onActive={onDonationActive}
-                onLine={(text) => addLine("moco", text)}
-              />
-            ) : null}
-          </div>
+          <IdolStagePane
+            showVrm={showVrm}
+            vrmUrl={vrmUrl}
+            backdropUrl={backdropUrl}
+            onReady={onReady}
+            channelId={channelId}
+            donationPoll={donationPoll}
+            onDonationActive={onDonationActive}
+            onDonationLine={onDonationLine}
+          />
         </div>
 
         <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background xl:sticky xl:top-16">
@@ -323,7 +324,6 @@ export function MocoLiveRoom({
           </div>
           {signedIn ? (
             <form onSubmit={onSubmit} className="shrink-0 space-y-2 border-t border-border/60 p-2.5">
-              {channelId ? <VideoDonationRoomControls channelId={channelId} isHost={false} /> : null}
               <div className="flex gap-2">
                 <Input
                   value={draft}
@@ -360,8 +360,47 @@ export function MocoLiveRoom({
           ) : (
             <div className="h-[53px] shrink-0 border-t border-border/60" />
           )}
+          {signedIn && channelId ? (
+            <div className="shrink-0 border-t border-border/60 px-2.5 py-2">
+              <VideoDonationRoomControls channelId={channelId} isHost={false} />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
+
+const IdolStagePane = memo(function IdolStagePane({
+  showVrm,
+  vrmUrl,
+  backdropUrl,
+  onReady,
+  channelId,
+  donationPoll,
+  onDonationActive,
+  onDonationLine,
+}: {
+  showVrm: boolean;
+  vrmUrl?: string;
+  backdropUrl?: string | null;
+  onReady: (handle: MocoStageHandle | null) => void;
+  channelId?: string | null;
+  donationPoll: string;
+  onDonationActive: (active: boolean) => void;
+  onDonationLine: (text: string) => void;
+}) {
+  return (
+    <div className="relative aspect-video overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
+      {showVrm ? <MocoVrmStage framing="stage" vrmUrl={vrmUrl} backdropUrl={backdropUrl} onReady={onReady} /> : null}
+      {channelId ? (
+        <MocoDonationStage
+          channelId={channelId}
+          pollUrl={donationPoll}
+          onActive={onDonationActive}
+          onLine={onDonationLine}
+        />
+      ) : null}
+    </div>
+  );
+});

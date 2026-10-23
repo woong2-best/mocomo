@@ -23,9 +23,16 @@ const REALTIME_PREFIXES = [
   "/u/",
 ] as const;
 
+const AI_HOST_LIVE = new Set(["/live/moco", "/live/airi", "/live/chloe", "/live/stella"]);
+
+/** VRM host rooms pretend to be live. They do not need the realtime socket. */
+export function isAiHostLivePath(pathname: string): boolean {
+  return AI_HOST_LIVE.has(pathname);
+}
+
 /** 소켓·실시간이 필요한 경로 — 나머지는 연결 지연 */
 export function needsImmediateRealtime(pathname: string): boolean {
-  if (!pathname) return false;
+  if (!pathname || isAiHostLivePath(pathname)) return false;
   return REALTIME_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p)
   );

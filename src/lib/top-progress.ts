@@ -293,6 +293,7 @@ export function shouldTrackFetch(input: RequestInfo | URL, init?: RequestInit): 
     if (pathname.startsWith("/api/auth/")) return false;
     if (pathname.startsWith("/api/socket-auth")) return false;
     if (pathname.startsWith("/api/health")) return false;
+    if (pathname.startsWith("/api/live/ai-host/")) return false;
     // Background telemetry — not user-initiated (scroll view counts, visits, bootstrap).
     if (/^\/api\/posts\/[^/]+\/view$/.test(pathname)) return false;
     if (/^\/api\/anime\/[^/]+\/view$/.test(pathname)) return false;
