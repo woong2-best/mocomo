@@ -21,15 +21,13 @@ const OUTPUT_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
 const EDGE_DEADLINE_MS = 4_000;
 const HTTP_TIMEOUT_MS = 5_000;
 
-type RuntimeEnv = { VERCEL?: string };
-
 /** Edge's WS never finishes connecting on Vercel, so the speak route 504s. */
-export function edgeWebsocketAllowed(env: RuntimeEnv = process.env): boolean {
-  return !env.VERCEL;
+export function edgeWebsocketAllowed(vercel = process.env.VERCEL): boolean {
+  return !vercel;
 }
 
-export function ttsProviderOrder(env: RuntimeEnv = process.env): Array<"edge" | "streamelements" | "google"> {
-  return edgeWebsocketAllowed(env) ? ["edge", "streamelements", "google"] : ["streamelements", "google"];
+export function ttsProviderOrder(vercel = process.env.VERCEL): Array<"edge" | "streamelements" | "google"> {
+  return edgeWebsocketAllowed(vercel) ? ["edge", "streamelements", "google"] : ["streamelements", "google"];
 }
 
 async function withDeadline<T>(work: Promise<T | null>, ms: number): Promise<T | null> {

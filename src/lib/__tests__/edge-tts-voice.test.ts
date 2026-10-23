@@ -19,10 +19,10 @@ test("Moco is brighter, Chloe stays tipsy-slow, AIRI is husky Mayu", () => {
 });
 
 test("Vercel skips the Edge websocket so speak cannot 504", () => {
-  assert.equal(edgeWebsocketAllowed({}), true);
-  assert.equal(edgeWebsocketAllowed({ VERCEL: "1" }), false);
-  assert.deepEqual(ttsProviderOrder({}), ["edge", "streamelements", "google"]);
-  assert.deepEqual(ttsProviderOrder({ VERCEL: "1" }), ["streamelements", "google"]);
+  assert.equal(edgeWebsocketAllowed(""), true);
+  assert.equal(edgeWebsocketAllowed("1"), false);
+  assert.deepEqual(ttsProviderOrder(""), ["edge", "streamelements", "google"]);
+  assert.deepEqual(ttsProviderOrder("1"), ["streamelements", "google"]);
 });
 
 test("AIRI SSML uses Mayu with a lowered pitch", () => {
