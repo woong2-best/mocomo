@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   IDOL_BACKDROP_DEFAULTS,
+  effectiveIdolBackdropMap,
   effectiveIdolBackdropUrl,
   isIdolBackdropSlot,
   isSafeIdolBackdropUrl,
@@ -22,6 +23,9 @@ test("default backdrop paths are safe and used when nothing is uploaded", () => 
   assert.equal(isSafeIdolBackdropUrl("/live/backgrounds/airi-room.jpg"), true);
   assert.equal(effectiveIdolBackdropUrl("airi", null), "/live/backgrounds/airi-room.jpg");
   assert.equal(effectiveIdolBackdropUrl("stella", null), null);
+  const map = effectiveIdolBackdropMap({ moco: null, airi: null, chloe: null, stella: null });
+  assert.equal(map.airi, IDOL_BACKDROP_DEFAULTS.airi);
+  assert.equal(map.chloe, IDOL_BACKDROP_DEFAULTS.chloe);
 });
 
 test("stored values only keep custom https storage urls", () => {

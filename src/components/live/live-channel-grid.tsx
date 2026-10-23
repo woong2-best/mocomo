@@ -9,6 +9,7 @@ import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { AiLiveTile } from "@/components/live/ai-host/ai-live-tile";
 import { IdolLiveTiles } from "@/components/live/ai-host/idol-live-tiles";
 import { IDOLS } from "@/lib/ai-live/idols";
+import type { IdolBackdropSlot } from "@/lib/ai-live/idol-backdrop-shared";
 import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { LiveAdultWatermark, isLiveAdultChannel } from "@/components/live/live-adult-watermark";
@@ -134,12 +135,14 @@ export function LiveChannelGrid({
   channels,
   hosts,
   followedHostIds = [],
+  backdrops,
 }: {
   channels: LiveHubChannel[];
   hosts: LiveHubHost[];
   followedHostIds?: string[];
   filteredCategory?: LiveStreamCategory;
   view?: "explore" | "following";
+  backdrops?: Partial<Record<IdolBackdropSlot, string | null>>;
 }) {
   const [activeFilter, setActiveFilter] = useState<LiveFolderFilter>("ALL");
   const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
@@ -164,8 +167,8 @@ export function LiveChannelGrid({
           {visible.map((ch) => (
             <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
           ))}
-          {showAiTile ? <AiLiveTile /> : null}
-          {showAiTile ? <IdolLiveTiles /> : null}
+          {showAiTile ? <AiLiveTile backdropUrl={backdrops?.moco} /> : null}
+          {showAiTile ? <IdolLiveTiles backdrops={backdrops} /> : null}
           {Array.from({ length: fillerCount }, (_, i) => (
             <LiveGrayPlaceholderCard key={`ph-${i}`} index={i} />
           ))}

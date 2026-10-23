@@ -33,6 +33,7 @@ function errMsg(e: unknown) {
 
 function bustIdolBackdrop() {
   revalidateTag("idol-backdrop");
+  revalidatePath("/live");
   revalidatePath("/live/moco");
   revalidatePath("/live/airi");
   revalidatePath("/live/chloe");

@@ -3,6 +3,8 @@ import { parseLiveHubModeParam } from "@/lib/live-hub-mode";
 import { getLiveHubChannelFeed, getLiveHubStaticData } from "@/lib/live-hub-data";
 import { LiveChannelGrid } from "@/components/live/live-channel-grid";
 import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { getCachedIdolBackdrops } from "@/lib/ai-live/idol-backdrop";
+import { effectiveIdolBackdropMap } from "@/lib/ai-live/idol-backdrop-shared";
 
 /**
  * Always loads the full live feed; folder rail filters client-side
@@ -46,11 +48,16 @@ export async function LiveChannelFeed({
     /* DB 미마이그레이션 */
   }
 
+  const backdrops = await getCachedIdolBackdrops()
+    .then(effectiveIdolBackdropMap)
+    .catch(() => effectiveIdolBackdropMap({ moco: null, airi: null, chloe: null, stella: null }));
+
   return (
     <LiveChannelGrid
       channels={channels}
       hosts={hosts}
       followedHostIds={followedHostIds}
+      backdrops={backdrops}
     />
   );
 }

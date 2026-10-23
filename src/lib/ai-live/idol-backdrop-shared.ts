@@ -77,3 +77,12 @@ export function effectiveIdolBackdropUrl(slot: IdolBackdropSlot, custom: string 
   if (custom && isSafeIdolBackdropUrl(custom)) return custom;
   return IDOL_BACKDROP_DEFAULTS[slot];
 }
+
+export function effectiveIdolBackdropMap(custom: IdolBackdropUrls): Record<IdolBackdropSlot, string | null> {
+  return {
+    moco: effectiveIdolBackdropUrl("moco", custom.moco),
+    airi: effectiveIdolBackdropUrl("airi", custom.airi),
+    chloe: effectiveIdolBackdropUrl("chloe", custom.chloe),
+    stella: effectiveIdolBackdropUrl("stella", custom.stella),
+  };
+}
