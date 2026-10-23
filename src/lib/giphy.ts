@@ -67,11 +67,12 @@ function mapRow(row: GiphyRow): GiphyGifItem | null {
     images?.original?.webp,
   );
   const playUrl = firstAllowed(
-    images?.fixed_height?.mp4,
-    images?.original?.mp4,
     images?.fixed_height?.webp,
     images?.original?.webp,
+    images?.fixed_height?.url,
     images?.original?.url,
+    images?.fixed_height?.mp4,
+    images?.original?.mp4,
     previewUrl,
   );
   if (!id || !previewUrl || !playUrl) return null;

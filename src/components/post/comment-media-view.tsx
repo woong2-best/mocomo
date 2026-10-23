@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { isCommentGifPlaybackUrl } from "@/lib/comment-media";
+import { commentGifDisplayUrl, isCommentGifPlaybackUrl } from "@/lib/comment-media";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -26,23 +26,34 @@ function MediaFrame({
   onClick?: () => void;
 }) {
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const source = gif ? commentGifDisplayUrl(url) : url;
   const fit = contain ? "object-contain" : "object-cover";
   const common = cn("block h-full w-full", fit);
+  const useVideo = gif && isCommentGifPlaybackUrl(source) && !failed;
 
-  if (gif && isCommentGifPlaybackUrl(url)) {
+  if (useVideo) {
     return (
-      <video
-        src={url}
-        className={cn(common, className)}
-        autoPlay
-        loop
-        muted
-        playsInline
-        onLoadedData={() => setReady(true)}
-        onClick={onClick}
-      />
+      <>
+        {!ready ? (
+          <div className="absolute inset-0 animate-pulse rounded-[inherit] bg-muted" />
+        ) : null}
+        <video
+          src={source}
+          className={cn(common, className, !ready && "opacity-0")}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          onLoadedData={() => setReady(true)}
+          onError={() => setFailed(true)}
+          onClick={onClick}
+        />
+      </>
     );
   }
+
   return (
     <>
       {!ready ? (
@@ -50,7 +61,7 @@ function MediaFrame({
       ) : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={url}
+        src={source}
         alt=""
         className={cn(common, className, !ready && "opacity-0")}
         onLoad={() => setReady(true)}
@@ -68,18 +79,25 @@ export function CommentMediaThumb({ mediaType, mediaUrl, className }: CommentMed
 
   return (
     <>
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className={cn(
-          "relative mt-2 block max-h-[280px] w-full max-w-[280px] overflow-hidden rounded-xl bg-muted",
-          "aspect-square cursor-zoom-in",
+          "relative mt-2 block aspect-square w-[min(100%,200px)] max-h-[250px] max-w-[250px]",
+          "cursor-zoom-in overflow-hidden rounded-[12px] bg-muted",
           className,
         )}
         onClick={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
         aria-label={t("comments.openMedia")}
       >
         <MediaFrame url={mediaUrl} gif={gif} />
-      </button>
+      </div>
       <CommentMediaLightbox
         open={open}
         mediaType={mediaType}
@@ -133,7 +151,7 @@ export function CommentMediaLightbox({
         className="max-h-[90vh] max-w-[90vw]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative max-h-[90vh] max-w-[90vw]">
+        <div className="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-[12px]">
           <MediaFrame
             url={mediaUrl}
             gif={mediaType === "GIF"}
@@ -158,7 +176,7 @@ export function CommentAttachPreview({
   const { t } = useLocale();
   return (
     <div className="relative mt-1 inline-block max-w-[160px]">
-      <div className="relative overflow-hidden rounded-xl bg-muted">
+      <div className="relative overflow-hidden rounded-[12px] bg-muted">
         <div className="relative aspect-square w-36">
           <MediaFrame url={url} gif={gif} />
         </div>

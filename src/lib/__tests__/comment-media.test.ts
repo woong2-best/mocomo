@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  commentGifDisplayUrl,
   isCommentGifPlaybackUrl,
   isCommentGifUrl,
   isCommentPhotoUrl,
@@ -63,4 +64,19 @@ test("mp4 GIF URLs play as video", () => {
   assert.equal(isCommentGifPlaybackUrl("https://media.giphy.com/media/abc/giphy.mp4"), true);
   assert.equal(isCommentGifPlaybackUrl("https://media.tenor.com/abc/mp4"), true);
   assert.equal(isCommentGifPlaybackUrl("https://media.giphy.com/media/abc/giphy.webp"), false);
+});
+
+test("Giphy MP4 comments display as WebP", () => {
+  assert.equal(
+    commentGifDisplayUrl("https://media3.giphy.com/media/abc/giphy.mp4"),
+    "https://media3.giphy.com/media/abc/giphy.webp",
+  );
+  assert.equal(
+    commentGifDisplayUrl("https://media.giphy.com/media/abc/giphy.webp"),
+    "https://media.giphy.com/media/abc/giphy.webp",
+  );
+  assert.equal(
+    commentGifDisplayUrl("https://media.tenor.com/abc/mp4"),
+    "https://media.tenor.com/abc/mp4",
+  );
 });

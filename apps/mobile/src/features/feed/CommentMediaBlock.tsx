@@ -4,6 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
 import type { CommentMediaType } from "@/api/social";
 
+function displayGifUrl(url: string) {
+  if (/\.mp4(\?|$)/i.test(url) && /giphy\.com/i.test(url)) {
+    return url.replace(/\.mp4(\?|$)/i, ".webp$1");
+  }
+  return url;
+}
+
 function isVideoUrl(url: string) {
   const lower = url.toLowerCase();
   return /\.(mp4|webm)(\?|$)/.test(lower) || lower.includes("/mp4") || lower.includes("/webm");
@@ -35,15 +42,16 @@ export function CommentMediaBlock({
 }) {
   const [open, setOpen] = useState(false);
   if ((mediaType !== "PHOTO" && mediaType !== "GIF") || !mediaUrl) return null;
-  const video = mediaType === "GIF" && isVideoUrl(mediaUrl);
+  const source = mediaType === "GIF" ? displayGifUrl(mediaUrl) : mediaUrl;
+  const video = mediaType === "GIF" && isVideoUrl(source);
 
   return (
     <>
       <Pressable onPress={() => setOpen(true)} style={styles.thumbWrap}>
         {video ? (
-          <LoopVideo uri={mediaUrl} style={styles.thumb} />
+          <LoopVideo uri={source} style={styles.thumb} />
         ) : (
-          <Image source={{ uri: mediaUrl }} style={styles.thumb} />
+          <Image source={{ uri: source }} style={styles.thumb} resizeMode="cover" />
         )}
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -53,9 +61,9 @@ export function CommentMediaBlock({
           </Pressable>
           <View style={styles.fullWrap} pointerEvents="box-none">
             {video ? (
-              <LoopVideo uri={mediaUrl} style={styles.full} contentFit="contain" />
+              <LoopVideo uri={source} style={styles.full} contentFit="contain" />
             ) : (
-              <Image source={{ uri: mediaUrl }} style={styles.full} resizeMode="contain" />
+              <Image source={{ uri: source }} style={styles.full} resizeMode="contain" />
             )}
           </View>
         </Pressable>
@@ -67,8 +75,10 @@ export function CommentMediaBlock({
 const styles = StyleSheet.create({
   thumbWrap: {
     marginTop: 8,
-    width: 220,
-    height: 220,
+    width: 200,
+    height: 200,
+    maxWidth: 250,
+    maxHeight: 250,
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "rgba(0,0,0,0.08)",

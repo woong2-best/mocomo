@@ -102,6 +102,13 @@ export function isCommentGifPlaybackUrl(url: string): boolean {
   return /\.(mp4|webm)(\?|$)/.test(lower) || lower.includes("/mp4") || lower.includes("/webm");
 }
 
+/** Giphy MP4s do not paint inside comment thumbs — show the matching WebP instead. */
+export function commentGifDisplayUrl(url: string): string {
+  if (!isGiphyMediaUrl(url)) return url;
+  if (/\.mp4(\?|$)/i.test(url)) return url.replace(/\.mp4(\?|$)/i, ".webp$1");
+  return url;
+}
+
 export function parseCommentMediaInput(body: {
   content?: unknown;
   mediaType?: unknown;
