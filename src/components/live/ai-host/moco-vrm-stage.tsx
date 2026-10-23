@@ -388,22 +388,22 @@ function MocoVrmStageView({
           | (NonNullable<VRM["humanoid"]> & { autoUpdateHumanBones?: boolean })
           | null;
         if (humanoid) humanoid.autoUpdateHumanBones = false;
-        const raw = (name: Parameters<NonNullable<VRM["humanoid"]>["getRawBoneNode"]>[0]) =>
-          humanoid?.getRawBoneNode(name) ?? null;
+        const node = (name: Parameters<NonNullable<VRM["humanoid"]>["getNormalizedBoneNode"]>[0]) =>
+          humanoid?.getNormalizedBoneNode(name) ?? null;
         const hung: HungBone[] = [];
         const keep = (bone: import("three").Object3D | null, goal: import("three").Vector3) => {
           const next = hangBone(bone, goal);
           if (next) hung.push(next);
         };
-        keep(raw("leftShoulder"), new THREE.Vector3(0.55, -0.78, 0.04));
-        keep(raw("rightShoulder"), new THREE.Vector3(-0.55, -0.78, 0.04));
-        keep(raw("leftUpperArm"), new THREE.Vector3(0.18, -1, 0.06));
-        keep(raw("rightUpperArm"), new THREE.Vector3(-0.18, -1, 0.06));
-        keep(raw("leftLowerArm"), new THREE.Vector3(0.06, -1, 0.02));
-        keep(raw("rightLowerArm"), new THREE.Vector3(-0.06, -1, 0.02));
-        const spine = raw("spine");
-        const chest = raw("chest");
-        const headBone = raw("head");
+        keep(node("leftShoulder"), new THREE.Vector3(0.55, -0.78, 0.04));
+        keep(node("rightShoulder"), new THREE.Vector3(-0.55, -0.78, 0.04));
+        keep(node("leftUpperArm"), new THREE.Vector3(0.18, -1, 0.06));
+        keep(node("rightUpperArm"), new THREE.Vector3(-0.18, -1, 0.06));
+        keep(node("leftLowerArm"), new THREE.Vector3(0.06, -1, 0.02));
+        keep(node("rightLowerArm"), new THREE.Vector3(-0.06, -1, 0.02));
+        const spine = node("spine");
+        const chest = node("chest");
+        const headBone = node("head");
         return {
           vrm,
           spine,
