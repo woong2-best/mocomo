@@ -1,6 +1,7 @@
 import { EdgeTTS } from "node-edge-tts";
 import { safeLogWarn } from "@/lib/safe-log";
 import { EDGE_VOICES, speechLangForText, voiceStyleForCharacter, type SpeechLang, type VoiceStyle } from "@/lib/ai-live/speech-lang";
+import { synthesizeVoicevox, usesVoicevox } from "@/lib/ai-live/voicevox";
 
 export { voiceStyleForCharacter };
 
@@ -90,6 +91,10 @@ export async function synthesizeIdolVoice(
   if (!line) return null;
   const lang = speechLangForText(line);
   const style = voiceStyleForCharacter(characterId);
+  if (usesVoicevox(characterId)) {
+    const voicevox = await synthesizeVoicevox(line);
+    if (voicevox) return voicevox;
+  }
   const steps: Array<[string, () => Promise<ArrayBuffer | null>]> = [
     ["edge", () => fromEdgeWs(line, lang, style)],
     ["google", () => fromGoogleTranslate(line, lang)],

@@ -1699,7 +1699,7 @@ export const CULTURE_WIKI_TERMS: LegalDocument = {
 export const COPYRIGHT_POLICY: LegalDocument = {
   slug: "copyright",
   title: "MoCoMo 저작권 정책",
-  updatedAt: "2026년 10월 12일",
+  updatedAt: "2026년 10월 23일",
   intro:
     "MoCoMo LLC는 타인의 지식재산권을 존중하며, 적용 가능한 미국 저작권법(DMCA 포함) 및 관련 절차에 따라 침해 신고를 처리합니다.",
   blocks: [
@@ -1761,6 +1761,12 @@ export const COPYRIGHT_POLICY: LegalDocument = {
     {
       type: "p",
       text: "Post translation uses Opus-MT models by Helsinki-NLP (CC BY 4.0), converted to ONNX and quantized by Xenova via Transformers.js. Changes were made to the original models.",
+    },
+    { type: "hr" },
+    { type: "h2", text: "제9조 (제3자 음성)" },
+    {
+      type: "p",
+      text: "AIRI 라이브의 음성 합성에는 VOICEVOX 엔진의 No.7 화자(Speaker ID 29)를 사용합니다. 출처 표기: Voice by VOICEVOX:No.7",
     },
   ],
 };

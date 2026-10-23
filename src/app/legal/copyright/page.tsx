@@ -10,5 +10,17 @@ export const metadata: Metadata = {
 };
 
 export default async function CopyrightPolicyPage() {
-  return <PublishedLegalDocument fallback={COPYRIGHT_POLICY} />;
+  return (
+    <PublishedLegalDocument
+      fallback={COPYRIGHT_POLICY}
+      supplementalBlocks={[
+        { type: "hr" },
+        { type: "h2", text: "제9조 (제3자 음성)" },
+        {
+          type: "p",
+          text: "AIRI 라이브의 음성 합성에는 VOICEVOX 엔진의 No.7 화자(Speaker ID 29)를 사용합니다. 출처 표기: Voice by VOICEVOX:No.7",
+        },
+      ]}
+    />
+  );
 }
