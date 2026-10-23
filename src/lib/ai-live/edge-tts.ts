@@ -1,7 +1,16 @@
 import { EdgeTTS } from "node-edge-tts";
 import { safeLogWarn } from "@/lib/safe-log";
-import { EDGE_VOICES, speechLangForText, voiceStyleForCharacter, type SpeechLang, type VoiceStyle } from "@/lib/ai-live/speech-lang";
-import { synthesizeVoicevox, usesVoicevox } from "@/lib/ai-live/voicevox";
+import {
+  AIRI_MAYU_LANG,
+  AIRI_MAYU_VOICE,
+  EDGE_VOICES,
+  isAiriCharacter,
+  speechLangForText,
+  toKatakana,
+  voiceStyleForCharacter,
+  type SpeechLang,
+  type VoiceStyle,
+} from "@/lib/ai-live/speech-lang";
 
 export { voiceStyleForCharacter };
 
@@ -31,19 +40,26 @@ function toArrayBuffer(buf: Buffer): ArrayBuffer {
   return out;
 }
 
-async function fromEdgeWs(text: string, lang: SpeechLang, style: VoiceStyle): Promise<ArrayBuffer | null> {
+async function fromEdgeWs(
+  text: string,
+  lang: SpeechLang,
+  style: VoiceStyle,
+  characterId: string | null,
+): Promise<ArrayBuffer | null> {
+  const airi = isAiriCharacter(characterId);
   const preset = EDGE_VOICES[lang];
   const tts = new EdgeTTS({
-    voice: preset.voice,
-    lang: preset.lang,
+    voice: airi ? AIRI_MAYU_VOICE : preset.voice,
+    lang: airi ? AIRI_MAYU_LANG : preset.lang,
     outputFormat: OUTPUT_FORMAT,
     pitch: style.pitch,
     rate: style.rate,
     timeout: 10_000,
   });
+  const spoken = airi ? toKatakana(text) : text;
   const chunks: Buffer[] = [];
   let total = 0;
-  for await (const chunk of tts.streamAudio(text)) {
+  for await (const chunk of tts.streamAudio(spoken)) {
     if (!Buffer.isBuffer(chunk)) continue;
     total += chunk.length;
     if (total > MAX_AUDIO_BYTES) return null;
@@ -71,9 +87,13 @@ async function fromGoogleTranslate(text: string, lang: SpeechLang): Promise<Arra
   return toArrayBuffer(buf);
 }
 
-async function fromStreamElements(text: string, lang: SpeechLang): Promise<ArrayBuffer | null> {
+async function fromStreamElements(
+  text: string,
+  lang: SpeechLang,
+  voiceName?: string,
+): Promise<ArrayBuffer | null> {
   const line = text.slice(0, 180);
-  const voice = EDGE_VOICES[lang].voice;
+  const voice = voiceName ?? EDGE_VOICES[lang].voice;
   const url = `https://api.streamelements.com/kappa/v2/speech?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(line)}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(8_000) });
   if (!res.ok) return null;
@@ -89,16 +109,12 @@ export async function synthesizeIdolVoice(
 ): Promise<ArrayBuffer | null> {
   const line = text.replace(/\s+/g, " ").trim().slice(0, 240);
   if (!line) return null;
-  const lang = speechLangForText(line);
+  const lang = isAiriCharacter(characterId) ? "ja" : speechLangForText(line);
   const style = voiceStyleForCharacter(characterId);
-  if (usesVoicevox(characterId)) {
-    const voicevox = await synthesizeVoicevox(line);
-    if (voicevox) return voicevox;
-  }
   const steps: Array<[string, () => Promise<ArrayBuffer | null>]> = [
-    ["edge", () => fromEdgeWs(line, lang, style)],
+    ["edge", () => fromEdgeWs(line, lang, style, characterId)],
     ["google", () => fromGoogleTranslate(line, lang)],
-    ["streamelements", () => fromStreamElements(line, lang)],
+    ["streamelements", () => fromStreamElements(line, lang, isAiriCharacter(characterId) ? AIRI_MAYU_VOICE : undefined)],
   ];
   for (const [name, run] of steps) {
     try {

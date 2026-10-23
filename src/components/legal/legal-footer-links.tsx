@@ -6,7 +6,6 @@ const t = createTranslator("en");
 import Link from "next/link";
 import { useLocale } from "@/components/providers/locale-provider";
 import { LegalEntityFooterNotice } from "@/components/legal/legal-entity-notice";
-import { VoicevoxCredit } from "@/components/legal/voicevox-credit";
 import type { MessageKey } from "@/lib/i18n/messages";
 
 const links: { href: string; labelKey: MessageKey }[] = [
@@ -39,7 +38,6 @@ export function LegalFooterLinks({ className = "" }: { className?: string }) {
         ))}
       </nav>
       <LegalEntityFooterNotice />
-      <VoicevoxCredit className="text-center" />
     </div>
   );
 }

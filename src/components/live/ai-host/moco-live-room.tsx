@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { localizedLiveCategoryLabel } from "@/lib/live-categories-i18n";
 import { MOCO_OFFICIAL_USERNAME } from "@/lib/ai-live/official-channel-id";
 import type { IdolId } from "@/lib/ai-live/idols";
-import { VOICEVOX_NO7_CREDIT, usesVoicevox } from "@/lib/ai-live/voicevox-credit";
 import type { MessageKey } from "@/lib/i18n/message-keys";
 
 const MocoVrmStage = dynamic(
@@ -412,11 +411,6 @@ const IdolStagePane = memo(function IdolStagePane({
           onActive={onDonationActive}
           onLine={onDonationLine}
         />
-      ) : null}
-      {usesVoicevox(characterId) ? (
-        <p className="pointer-events-none absolute bottom-2 left-2 z-10 text-[10px] font-medium tracking-wide text-white/70">
-          {VOICEVOX_NO7_CREDIT}
-        </p>
       ) : null}
     </div>
   );

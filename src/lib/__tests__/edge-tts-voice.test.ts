@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { edgeVoiceForText, edgeVoiceName, voiceStyleForCharacter } from "@/lib/ai-live/edge-tts";
-import { speechLangForText } from "@/lib/ai-live/speech-lang";
+import { AIRI_MAYU_VOICE, speechLangForText, toKatakana, wrapAiriMayuSsml } from "@/lib/ai-live/speech-lang";
 
 test("Edge voices follow the spoken language", () => {
   assert.equal(speechLangForText("\uC548\uB155, \uBAA8\uCF54\uC57C."), "ko");
@@ -10,10 +10,20 @@ test("Edge voices follow the spoken language", () => {
   assert.equal(edgeVoiceName(edgeVoiceForText("\u3053\u3093\u306B\u3061\u306F")), "ja-JP-NanamiNeural");
 });
 
-test("Moco is brighter and Chloe stays tipsy-slow", () => {
+test("Moco is brighter, Chloe stays tipsy-slow, AIRI is husky Mayu", () => {
   assert.deepEqual(voiceStyleForCharacter(null), { pitch: "+18%", rate: "+10%" });
   assert.deepEqual(voiceStyleForCharacter("moco"), { pitch: "+18%", rate: "+10%" });
   assert.deepEqual(voiceStyleForCharacter("chloe"), { pitch: "+18%", rate: "-12%" });
-  assert.deepEqual(voiceStyleForCharacter("airi"), { pitch: "default", rate: "default" });
+  assert.deepEqual(voiceStyleForCharacter("airi"), { pitch: "-15%", rate: "+5%" });
   assert.deepEqual(voiceStyleForCharacter("stella"), { pitch: "default", rate: "default" });
+});
+
+test("AIRI SSML uses Mayu with a lowered pitch", () => {
+  assert.equal(AIRI_MAYU_VOICE, "ja-JP-MayuNeural");
+  assert.equal(toKatakana("こんにちは"), "コンニチハ");
+  const ssml = wrapAiriMayuSsml("こんにちは & あい");
+  assert.match(ssml, /xml:lang="ja-JP"/);
+  assert.match(ssml, /<voice name="ja-JP-MayuNeural">/);
+  assert.match(ssml, /<prosody pitch="-15%" rate="\+5%">/);
+  assert.match(ssml, /コンニチハ &amp; アイ/);
 });
