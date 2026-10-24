@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { quietLine, replyForAvatar } from "@/lib/ai-live/avatar-llm";
-import { NANGNANG_UNKNOWN_LANG } from "@/lib/ai-live/speech-lang";
+import { NANGNANG_UNKNOWN_LANG, ZELIE_UNKNOWN_LANG } from "@/lib/ai-live/speech-lang";
 import { memoryCatalogStore } from "@/lib/ai-live/llm/catalog";
 import { discoverModels } from "@/lib/ai-live/llm/discover";
 import type { AvatarLlmCatalog, ChatRequest, ChatResult } from "@/lib/ai-live/llm/types";
@@ -18,7 +18,7 @@ function catalog(live: string[]): AvatarLlmCatalog {
 test("a dead first model falls through and the next candidate answers", async () => {
   const store = memoryCatalogStore(catalog(["dead-model", "live-model"]));
   const alerts: string[] = [];
-  const reply = await replyForAvatar("hi", "zelie", {
+  const reply = await replyForAvatar("안녕", "zelie", {
     store,
     ensure: async () => (await store.load()) ?? catalog([]),
     configured: (company) => company === "groq",
@@ -29,11 +29,11 @@ test("a dead first model falls through and the next candidate answers", async ()
     rediscover: async () => (await store.load()) ?? catalog([]),
     async chat(req: ChatRequest): Promise<ChatResult> {
       if (req.model === "dead-model") return { kind: "dead", status: 404 };
-      if (req.model === "live-model") return { kind: "text", text: "hey.", emotion: "happy" };
+      if (req.model === "live-model") return { kind: "text", text: "안녕.", emotion: "happy" };
       return { kind: "fail", status: 500 };
     },
   });
-  assert.equal(reply.text, "hey.");
+  assert.equal(reply.text, "안녕.");
   assert.equal(reply.exhausted, undefined);
   assert.equal(alerts.includes("dead:groq:dead-model"), true);
   assert.equal(store.snapshot()?.providers.groq?.live.includes("dead-model"), false);
@@ -58,7 +58,7 @@ test("Workers AI answers when every company key is missing", async () => {
 test("all candidates down returns the quiet line as exhausted", async () => {
   const store = memoryCatalogStore(catalog(["gone"]));
   const alerts: string[] = [];
-  const reply = await replyForAvatar("hi", "zelie", {
+  const reply = await replyForAvatar("안녕", "zelie", {
     store,
     ensure: async () => (await store.load()) ?? catalog([]),
     configured: (company) => company === "groq",
@@ -72,7 +72,7 @@ test("all candidates down returns the quiet line as exhausted", async () => {
     },
   });
   assert.equal(reply.exhausted, true);
-  assert.equal(reply.text, quietLine("hi"));
+  assert.equal(reply.text, quietLine("안녕", "zelie"));
   assert.equal(alerts.includes("exhausted:zelie"), true);
 });
 
@@ -127,4 +127,34 @@ test("Nangnang keeps a Chinese model line", async () => {
     },
   });
   assert.equal(reply.text, "当然赚钱啊。");
+});
+
+test("Zelie refuses English without calling a model", async () => {
+  let called = 0;
+  const reply = await replyForAvatar("hello zelie", "zelie", {
+    ensure: async () => ({ checkedAt: "", providers: {} }),
+    configured: () => true,
+    async chat() {
+      called += 1;
+      return { kind: "text", text: "should not run", emotion: "happy" };
+    },
+  });
+  assert.equal(reply.text, ZELIE_UNKNOWN_LANG);
+  assert.equal(called, 0);
+});
+
+test("Zelie keeps a French model line", async () => {
+  const catalog = {
+    checkedAt: new Date().toISOString(),
+    providers: { groq: { live: ["ok"], dead: {}, cooldown: {} } },
+  };
+  const reply = await replyForAvatar("bonjour ça va", "zelie", {
+    store: memoryCatalogStore(catalog),
+    ensure: async () => catalog,
+    configured: (company) => company === "groq",
+    async chat() {
+      return { kind: "text", text: "Ça va bien.", emotion: "happy" };
+    },
+  });
+  assert.equal(reply.text, "Ça va bien.");
 });

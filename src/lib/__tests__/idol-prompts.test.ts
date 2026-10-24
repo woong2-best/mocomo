@@ -18,6 +18,7 @@ test("each avatar has a distinct persona and model", () => {
   assert.match(MIO_PROMPT, /\[Identity: MIO\]/);
   assert.match(NANGNANG_PROMPT, /\[Identity: NANGNANG\]/);
   assert.match(ZELIE_PROMPT, /\[Identity: ZELIE\]/);
+  assert.match(ZELIE_PROMPT, /프랑스/);
   assert.match(CLEO_PROMPT, /귀요미/);
   assert.match(MIO_PROMPT, /마미/);
   assert.match(NANGNANG_PROMPT, /자본주의/);
@@ -46,4 +47,5 @@ test("system instruction stays on one identity", () => {
   assert.equal(nangnang.includes("answer in that language"), false);
   assert.match(cleo, /Stay in this identity only/);
   assert.equal(systemInstructionFor(null).includes("[Identity: ZELIE]"), true);
+  assert.match(systemInstructionFor("zelie"), /Speak only Korean or French/);
 });

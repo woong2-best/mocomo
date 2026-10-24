@@ -1,4 +1,14 @@
-import { isNangnangCharacter, NANGNANG_HARD, NANGNANG_SNAP } from "@/lib/ai-live/speech-lang";
+import {
+  isNangnangCharacter,
+  isZelieCharacter,
+  NANGNANG_HARD,
+  NANGNANG_SNAP,
+  ZELIE_HARD_FR,
+  ZELIE_HARD_KO,
+  ZELIE_SNAP_FR,
+  ZELIE_SNAP_KO,
+  zelieInputLang,
+} from "@/lib/ai-live/speech-lang";
 
 /**
  * First-pass live-host filter. Regex only — callers must not hit an LLM when this matches.
@@ -50,11 +60,13 @@ function pick(items: string[]): string {
 
 export function angryReply(userText: string, characterId?: string | null): string {
   if (isNangnangCharacter(characterId)) return pick(NANGNANG_SNAP);
+  if (isZelieCharacter(characterId)) return pick(zelieInputLang(userText) === "fr" ? ZELIE_SNAP_FR : ZELIE_SNAP_KO);
   return pick(textHasHangul(userText) ? KO_SNAP : EN_SNAP);
 }
 
 export function hardRefusal(userText: string, characterId?: string | null): string {
   if (isNangnangCharacter(characterId)) return NANGNANG_HARD;
+  if (isZelieCharacter(characterId)) return zelieInputLang(userText) === "fr" ? ZELIE_HARD_FR : ZELIE_HARD_KO;
   return textHasHangul(userText) ? KO_HARD : EN_HARD;
 }
 

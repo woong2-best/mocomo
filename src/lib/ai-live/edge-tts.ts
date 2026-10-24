@@ -5,9 +5,11 @@ import {
   dedicatedEdgeVoice,
   isAiriCharacter,
   isNangnangCharacter,
+  isZelieCharacter,
   speechLangForText,
   toKatakana,
   voiceStyleForCharacter,
+  zelieSpeechLang,
   type SpeechLang,
   type VoiceStyle,
 } from "@/lib/ai-live/speech-lang";
@@ -72,7 +74,7 @@ async function fromEdgeWs(
   characterId: string | null,
 ): Promise<ArrayBuffer | null> {
   const airi = isAiriCharacter(characterId);
-  const preset = dedicatedEdgeVoice(characterId) ?? EDGE_VOICES[lang];
+  const preset = dedicatedEdgeVoice(characterId, lang) ?? EDGE_VOICES[lang];
   const tts = new EdgeTTS({
     voice: preset.voice,
     lang: preset.lang,
@@ -135,10 +137,16 @@ export async function synthesizeIdolVoice(
   const line = text.replace(/\s+/g, " ").trim().slice(0, 240);
   if (!line) return null;
   const airi = isAiriCharacter(characterId);
-  const lang = airi ? "ja" : isNangnangCharacter(characterId) ? "zh" : speechLangForText(line);
+  const lang = airi
+    ? "ja"
+    : isNangnangCharacter(characterId)
+      ? "zh"
+      : isZelieCharacter(characterId)
+        ? zelieSpeechLang(line)
+        : speechLangForText(line);
   const spoken = airi ? toKatakana(line) : line;
   const style = voiceStyleForCharacter(characterId);
-  const dedicated = dedicatedEdgeVoice(characterId);
+  const dedicated = dedicatedEdgeVoice(characterId, lang);
   const runners: Record<"edge" | "streamelements" | "google", () => Promise<ArrayBuffer | null>> = {
     edge: () => withDeadline(fromEdgeWs(spoken, lang, style, characterId), EDGE_DEADLINE_MS),
     streamelements: () => fromStreamElements(spoken, lang, dedicated?.voice),

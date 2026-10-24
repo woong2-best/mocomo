@@ -1,4 +1,4 @@
-export type SpeechLang = "ko" | "en" | "ja" | "zh";
+export type SpeechLang = "ko" | "en" | "ja" | "zh" | "fr";
 
 /** True when the line is Chinese and not Korean or Japanese. */
 export function textLooksChinese(text: string): boolean {
@@ -11,6 +11,18 @@ export function textLooksChinese(text: string): boolean {
   }
   return han;
 }
+
+export const ZELIE_UNKNOWN_LANG = "그 언어는 잘 몰라~ 한국어나 프랑스어로 해줘.";
+export const ZELIE_QUIET_KO = "잠깐, 목이 잠겼어. 다시 말해 봐.";
+export const ZELIE_QUIET_FR = "Attends, j'ai perdu la voix. Répète ?";
+export const ZELIE_BUSY_KO = "지금은 이 방이 너무 붐벼. 조금만 있다가 다시 불러줘.";
+export const ZELIE_BUSY_FR = "Là c'est trop bondé. Rappelle-moi juste après.";
+export const ZELIE_DEFLECT_KO = "칫. 다른 거 물어봐.";
+export const ZELIE_DEFLECT_FR = "Tch. Demande autre chose.";
+export const ZELIE_HARD_KO = "그건 얘기 안 해.";
+export const ZELIE_HARD_FR = "Je parle pas de ça.";
+export const ZELIE_SNAP_KO = ["너 방금 뭐라고 했냐? 이상한 소리 하면 밴이다!", "그런 불법적인 얘기는 안 받아줘. 칫...", "..."];
+export const ZELIE_SNAP_FR = ["T'as dit quoi là ? Encore une et t'es ban.", "Je prends pas ce genre de propos. Tch.", "..."];
 
 export const NANGNANG_UNKNOWN_LANG = "这语言我不会，说中文。";
 export const NANGNANG_QUIET = "等下，嗓子哑了，再说一遍。";
@@ -35,10 +47,35 @@ function hasHangul(text: string): boolean {
   return false;
 }
 
+const FR_MARK = /[àâäéèêëïîôùûüçœæÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ]/;
+const FR_STRONG =
+  /\b(?:bonjour|salut|merci|français|francais|pourquoi|comment|beaucoup|aujourd'hui|s'il|svp|voilà|voila)\b/i;
+const FR_WEAK =
+  /\b(?:je|tu|nous|vous|il|elle|oui|non|pas|avec|dans|pour|mais|que|qui|une|des|très|tres|ça|ca)\b/i;
+
+export function textLooksFrench(text: string): boolean {
+  if (hasHangul(text) || hasKana(text) || textLooksChinese(text)) return false;
+  if (FR_MARK.test(text) || FR_STRONG.test(text)) return true;
+  return (text.match(FR_WEAK) ?? []).length >= 2;
+}
+
+export type ZelieInputLang = "ko" | "fr";
+
+export function zelieInputLang(text: string): ZelieInputLang | null {
+  if (hasHangul(text)) return "ko";
+  if (textLooksFrench(text)) return "fr";
+  return null;
+}
+
+export function zelieSpeechLang(text: string): Extract<SpeechLang, "ko" | "fr"> {
+  return hasHangul(text) ? "ko" : "fr";
+}
+
 /** Korean if the line has Hangul, Japanese if it has kana, otherwise English. */
 export function speechLangForText(text: string): SpeechLang {
   if (hasHangul(text)) return "ko";
   if (hasKana(text)) return "ja";
+  if (textLooksFrench(text)) return "fr";
   return "en";
 }
 
@@ -47,12 +84,17 @@ export const EDGE_VOICES: Record<SpeechLang, { voice: string; lang: string; bcp4
   en: { voice: "en-US-JennyNeural", lang: "en-US", bcp47: "en-US" },
   ja: { voice: "ja-JP-NanamiNeural", lang: "ja-JP", bcp47: "ja-JP" },
   zh: { voice: "zh-CN-XiaoyiNeural", lang: "zh-CN", bcp47: "zh-CN" },
+  fr: { voice: "fr-FR-EloiseNeural", lang: "fr-FR", bcp47: "fr-FR" },
 };
 
 export const AIRI_MAYU_VOICE = "ja-JP-MayuNeural";
 export const AIRI_MAYU_LANG = "ja-JP";
 export const NANGNANG_XIAOYI_VOICE = "zh-CN-XiaoyiNeural";
 export const NANGNANG_XIAOYI_LANG = "zh-CN";
+export const ZELIE_SEOHYEON_VOICE = "ko-KR-SeoHyeonNeural";
+export const ZELIE_SEOHYEON_LANG = "ko-KR";
+export const ZELIE_ELOISE_VOICE = "fr-FR-EloiseNeural";
+export const ZELIE_ELOISE_LANG = "fr-FR";
 
 export type VoiceStyle = { pitch: string; rate: string };
 
@@ -73,12 +115,22 @@ export function isNangnangCharacter(characterId: string | null | undefined): boo
   return id === "nangnang" || id === "stella";
 }
 
+export function isZelieCharacter(characterId: string | null | undefined): boolean {
+  const id = characterId?.trim().toLowerCase();
+  return id === "zelie" || id === "moco";
+}
+
 /** Character-locked Microsoft Edge voice. Null means follow the spoken language. */
 export function dedicatedEdgeVoice(
   characterId: string | null | undefined,
+  lang?: SpeechLang,
 ): { voice: string; lang: string } | null {
   if (isAiriCharacter(characterId)) return { voice: AIRI_MAYU_VOICE, lang: AIRI_MAYU_LANG };
   if (isNangnangCharacter(characterId)) return { voice: NANGNANG_XIAOYI_VOICE, lang: NANGNANG_XIAOYI_LANG };
+  if (isZelieCharacter(characterId)) {
+    if (lang === "fr") return { voice: ZELIE_ELOISE_VOICE, lang: ZELIE_ELOISE_LANG };
+    return { voice: ZELIE_SEOHYEON_VOICE, lang: ZELIE_SEOHYEON_LANG };
+  }
   return null;
 }
 

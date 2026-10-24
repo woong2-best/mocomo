@@ -7,7 +7,18 @@ import {
   NANGNANG_HARD,
   NANGNANG_QUIET,
   NANGNANG_UNKNOWN_LANG,
+  ZELIE_BUSY_FR,
+  ZELIE_BUSY_KO,
+  ZELIE_DEFLECT_FR,
+  ZELIE_DEFLECT_KO,
+  ZELIE_HARD_FR,
+  ZELIE_HARD_KO,
+  ZELIE_QUIET_FR,
+  ZELIE_QUIET_KO,
+  ZELIE_UNKNOWN_LANG,
   textLooksChinese,
+  textLooksFrench,
+  zelieInputLang,
 } from "@/lib/ai-live/speech-lang";
 import type { VrmEmotion } from "@/lib/ai-live/vrm-expression";
 import {
@@ -59,6 +70,8 @@ export function systemInstructionFor(characterId: string | null): string {
   const languageRule =
     avatar === "nangnang"
       ? "Speak Simplified Chinese only. Never reply in Korean, English, or Japanese. If the viewer is not writing Chinese, say in Chinese that you do not know that language."
+      : avatar === "zelie"
+        ? "Speak only Korean or French, matching the viewer. If they write anything else, brush it off in Korean: you don't know that language, ask for Korean or French."
       : "If the viewer writes in another language, answer in that language while keeping this character's tone.";
   return [
     promptForCharacter(characterId),
@@ -74,6 +87,7 @@ export function systemInstructionFor(characterId: string | null): string {
 
 export function rateLimitLine(userText: string, avatar?: LiveAvatarId | null): string {
   if (avatar === "nangnang") return NANGNANG_BUSY;
+  if (avatar === "zelie") return zelieInputLang(userText) === "fr" ? ZELIE_BUSY_FR : ZELIE_BUSY_KO;
   return textHasHangul(userText)
     ? "지금은 이 방이 너무 붐벼. 조금만 있다가 다시 불러줘."
     : "This avatar is busy right now. Try again in a moment.";
@@ -81,6 +95,7 @@ export function rateLimitLine(userText: string, avatar?: LiveAvatarId | null): s
 
 export function quietLine(userText: string, avatar?: LiveAvatarId | null): string {
   if (avatar === "nangnang") return NANGNANG_QUIET;
+  if (avatar === "zelie") return zelieInputLang(userText) === "fr" ? ZELIE_QUIET_FR : ZELIE_QUIET_KO;
   return textHasHangul(userText)
     ? "잠깐, 목이 잠겼어. 다시 말해 봐."
     : "Hold on, my voice cut out. Say that again.";
@@ -88,11 +103,15 @@ export function quietLine(userText: string, avatar?: LiveAvatarId | null): strin
 
 function deflect(userText: string, avatar?: LiveAvatarId | null): string {
   if (avatar === "nangnang") return NANGNANG_DEFLECT;
+  if (avatar === "zelie") return zelieInputLang(userText) === "fr" ? ZELIE_DEFLECT_FR : ZELIE_DEFLECT_KO;
   return textHasHangul(userText) ? "칫. 다른 거 물어봐." : "Tch. Ask me something else.";
 }
 
 function angryOrHard(userText: string, avatar?: LiveAvatarId | null): string {
   if (avatar === "nangnang") return classifyAiHostMessage(userText, "nangnang")?.text ?? NANGNANG_HARD;
+  if (avatar === "zelie") {
+    return classifyAiHostMessage(userText, "zelie")?.text ?? (zelieInputLang(userText) === "fr" ? ZELIE_HARD_FR : ZELIE_HARD_KO);
+  }
   return classifyAiHostMessage(userText)?.text ?? deflect(userText);
 }
 
@@ -108,6 +127,9 @@ function finish(
   if (blocked) return { text: blocked.text, emotion: "angry", blocked: true, rateLimited: false };
   if (avatar === "nangnang" && !textLooksChinese(result.text)) {
     return { text: NANGNANG_UNKNOWN_LANG, emotion: "relaxed", blocked: false, rateLimited: false };
+  }
+  if (avatar === "zelie" && !textHasHangul(result.text) && !textLooksFrench(result.text)) {
+    return { text: ZELIE_UNKNOWN_LANG, emotion: "relaxed", blocked: false, rateLimited: false };
   }
   return { text: result.text, emotion: result.emotion, blocked: false, rateLimited: false };
 }
@@ -164,6 +186,9 @@ export async function replyForAvatar(
 
   if (avatar === "nangnang" && !textLooksChinese(userText)) {
     return { text: NANGNANG_UNKNOWN_LANG, emotion: "relaxed", blocked: false, rateLimited: false };
+  }
+  if (avatar === "zelie" && !zelieInputLang(userText)) {
+    return { text: ZELIE_UNKNOWN_LANG, emotion: "relaxed", blocked: false, rateLimited: false };
   }
 
   try {

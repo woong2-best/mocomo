@@ -5,9 +5,13 @@ import {
   AIRI_MAYU_VOICE,
   NANGNANG_UNKNOWN_LANG,
   NANGNANG_XIAOYI_VOICE,
+  ZELIE_ELOISE_VOICE,
+  ZELIE_SEOHYEON_VOICE,
   dedicatedEdgeVoice,
   speechLangForText,
   textLooksChinese,
+  textLooksFrench,
+  zelieInputLang,
   toKatakana,
   wrapAiriMayuSsml,
 } from "@/lib/ai-live/speech-lang";
@@ -44,7 +48,19 @@ test("Nangnang uses Microsoft Xiaoyi on Edge and StreamElements", () => {
   assert.deepEqual(dedicatedEdgeVoice("nangnang"), { voice: "zh-CN-XiaoyiNeural", lang: "zh-CN" });
   assert.deepEqual(dedicatedEdgeVoice("stella"), { voice: "zh-CN-XiaoyiNeural", lang: "zh-CN" });
   assert.deepEqual(dedicatedEdgeVoice("airi"), { voice: "ja-JP-MayuNeural", lang: "ja-JP" });
-  assert.equal(dedicatedEdgeVoice("zelie"), null);
+  assert.equal(ZELIE_SEOHYEON_VOICE, "ko-KR-SeoHyeonNeural");
+  assert.equal(ZELIE_ELOISE_VOICE, "fr-FR-EloiseNeural");
+  assert.deepEqual(dedicatedEdgeVoice("zelie", "ko"), { voice: "ko-KR-SeoHyeonNeural", lang: "ko-KR" });
+  assert.deepEqual(dedicatedEdgeVoice("moco", "fr"), { voice: "fr-FR-EloiseNeural", lang: "fr-FR" });
+});
+
+test("Zelie only treats Korean and French as her languages", () => {
+  assert.equal(zelieInputLang("안녕 젤리"), "ko");
+  assert.equal(zelieInputLang("bonjour ça va"), "fr");
+  assert.equal(zelieInputLang("hello zelie"), null);
+  assert.equal(zelieInputLang("こんにちは"), null);
+  assert.equal(textLooksFrench("Merci beaucoup"), true);
+  assert.equal(textLooksFrench("hello there"), false);
 });
 
 test("Vercel skips the Edge websocket so speak cannot 504", () => {
