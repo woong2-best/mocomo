@@ -1,4 +1,10 @@
 import { unstable_cache } from "next/cache";
+import {
+  beginPrimaryOrFallback,
+  fallbackAfterQuota,
+  isQuotaFailure,
+  workersAiChat,
+} from "@/lib/ai-fallback";
 import { targetLanguageForLocale } from "@/lib/i18n/target-language";
 
 const MAX_CHARS = 2000;
@@ -42,7 +48,18 @@ function buildPrompt(text: string, targetLocale: string): string {
 ${text}`;
 }
 
-async function translateWithGemini(text: string, targetLocale: string): Promise<string | null> {
+type TranslateAttempt = { text: string } | { quota: true; status: number } | null;
+
+async function translateWithWorkersAi(text: string, targetLocale: string): Promise<string | null> {
+  return workersAiChat({
+    user: buildPrompt(text, targetLocale),
+    temperature: 0.2,
+    maxTokens: 2048,
+    timeoutMs: 20_000,
+  });
+}
+
+async function translateWithGemini(text: string, targetLocale: string): Promise<TranslateAttempt> {
   const key = geminiKey();
   if (!key) return null;
 
@@ -63,7 +80,11 @@ async function translateWithGemini(text: string, targetLocale: string): Promise<
           }),
         }
       );
-      if (!res.ok) continue;
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        if (isQuotaFailure(res.status, body)) return { quota: true, status: res.status };
+        continue;
+      }
       const json = (await res.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
@@ -73,7 +94,7 @@ async function translateWithGemini(text: string, targetLocale: string): Promise<
         .filter((part) => part.length > 0)
         .join("")
         .trim();
-      if (translated) return translated;
+      if (translated) return { text: translated };
     } catch {
       continue;
     }
@@ -81,7 +102,7 @@ async function translateWithGemini(text: string, targetLocale: string): Promise<
   return null;
 }
 
-async function translateWithOpenAI(text: string, targetLocale: string): Promise<string | null> {
+async function translateWithOpenAI(text: string, targetLocale: string): Promise<TranslateAttempt> {
   const key = openaiKey();
   if (!key) return null;
 
@@ -99,23 +120,49 @@ async function translateWithOpenAI(text: string, targetLocale: string): Promise<
         messages: [{ role: "user", content: buildPrompt(text, targetLocale) }],
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (isQuotaFailure(res.status, body)) return { quota: true, status: res.status };
+      return null;
+    }
     const json = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
     };
-    return json.choices?.[0]?.message?.content?.trim() || null;
+    const translated = json.choices?.[0]?.message?.content?.trim() || "";
+    return translated ? { text: translated } : null;
   } catch {
     return null;
   }
 }
 
-const cachedTranslate = unstable_cache(
-  async (text: string, targetLocale: string) => {
+async function translateWithProviders(text: string, targetLocale: string): Promise<string | null> {
+  if (geminiKey()) {
+    if (beginPrimaryOrFallback("gemini", "post-translate") === "fallback") {
+      return translateWithWorkersAi(text, targetLocale);
+    }
     const gemini = await translateWithGemini(text, targetLocale);
-    if (gemini) return gemini;
+    if (gemini && "text" in gemini) return gemini.text;
+    if (gemini && "quota" in gemini && fallbackAfterQuota("gemini", "post-translate", gemini.status)) {
+      return translateWithWorkersAi(text, targetLocale);
+    }
+  }
+
+  if (openaiKey()) {
+    if (beginPrimaryOrFallback("openai", "post-translate") === "fallback") {
+      return translateWithWorkersAi(text, targetLocale);
+    }
     const openai = await translateWithOpenAI(text, targetLocale);
-    return openai;
-  },
+    if (openai && "text" in openai) return openai.text;
+    if (openai && "quota" in openai && fallbackAfterQuota("openai", "post-translate", openai.status)) {
+      return translateWithWorkersAi(text, targetLocale);
+    }
+  }
+
+  return null;
+}
+
+const cachedTranslate = unstable_cache(
+  async (text: string, targetLocale: string) => translateWithProviders(text, targetLocale),
   ["post-content-translate"],
   { revalidate: 604800 }
 );

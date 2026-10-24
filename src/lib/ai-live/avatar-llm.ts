@@ -2,6 +2,13 @@ import { classifyAiHostMessage, textHasHangul } from "@/lib/ai-live/blocklist";
 import { llmRouteForAvatar, resolveLiveAvatarId, type LiveAvatarId } from "@/lib/ai-live/avatars";
 import { promptForCharacter } from "@/constants/prompts";
 import { readHostEmotionReply, type VrmEmotion } from "@/lib/ai-live/vrm-expression";
+import {
+  beginPrimaryOrFallback,
+  fallbackAfterQuota,
+  isQuotaFailure,
+  workersAiChat,
+  type LlmProvider,
+} from "@/lib/ai-fallback";
 import { safeLogWarn } from "@/lib/safe-log";
 
 const AI_ADMISSION =
@@ -29,7 +36,7 @@ export type AvatarReply = {
 type ModelResult =
   | { kind: "text"; text: string; emotion: VrmEmotion }
   | { kind: "safety" }
-  | { kind: "rate_limit" }
+  | { kind: "rate_limit"; status?: number }
   | { kind: "fail"; status?: number };
 
 function geminiKey() {
@@ -104,8 +111,11 @@ async function groqChat(model: string, system: string, userText: string): Promis
         ],
       }),
     });
-    if (res.status === 429) return { kind: "rate_limit" };
-    if (!res.ok) return { kind: "fail", status: res.status };
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (isQuotaFailure(res.status, body)) return { kind: "rate_limit", status: res.status };
+      return { kind: "fail", status: res.status };
+    }
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const raw = json.choices?.[0]?.message?.content?.trim() ?? "";
     const spoken = readHostEmotionReply(raw);
@@ -145,8 +155,11 @@ async function geminiChat(model: string, system: string, userText: string, jsonM
         }),
       },
     );
-    if (res.status === 429) return { kind: "rate_limit" };
-    if (!res.ok) return { kind: "fail", status: res.status };
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (isQuotaFailure(res.status, body)) return { kind: "rate_limit", status: res.status };
+      return { kind: "fail", status: res.status };
+    }
     const json = (await res.json()) as GeminiJson;
     if (json.promptFeedback?.blockReason) return { kind: "safety" };
     const candidate = json.candidates?.[0];
@@ -182,15 +195,50 @@ function finish(userText: string, result: ModelResult): AvatarReply {
   return { text: result.text, emotion: result.emotion, blocked: false, rateLimited: false };
 }
 
+async function workersAiHostReply(system: string, userText: string): Promise<ModelResult> {
+  const raw = await workersAiChat({
+    system,
+    user: userText,
+    temperature: 0.9,
+    maxTokens: 180,
+    timeoutMs: 8_000,
+  });
+  const spoken = readHostEmotionReply(raw ?? "");
+  if (!spoken) return { kind: "fail" };
+  return { kind: "text", text: spoken.text, emotion: spoken.emotion };
+}
+
+async function maybeWorkersAiFallback(
+  provider: LlmProvider,
+  result: ModelResult,
+  system: string,
+  userText: string
+): Promise<ModelResult> {
+  if (result.kind !== "rate_limit") return result;
+  if (!fallbackAfterQuota(provider, "live-avatar", result.status ?? 429)) return result;
+  const fallback = await workersAiHostReply(system, userText);
+  return fallback.kind === "text" ? fallback : result;
+}
+
 /** Route one line to the avatar's own model. Never share Zelie's Groq model with the others. */
 export async function replyForAvatar(userText: string, characterId: string | null): Promise<AvatarReply> {
   const avatar: LiveAvatarId = resolveLiveAvatarId(characterId) ?? "zelie";
   const route = llmRouteForAvatar(avatar);
   const system = systemInstructionFor(avatar);
+  const provider: LlmProvider = route.platform === "groq" ? "groq" : "gemini";
 
   try {
+    if (beginPrimaryOrFallback(provider, "live-avatar") === "fallback") {
+      return finish(userText, await workersAiHostReply(system, userText));
+    }
+
     if (route.platform === "groq") {
-      const result = await groqChat(route.model, system, userText);
+      const result = await maybeWorkersAiFallback(
+        "groq",
+        await groqChat(route.model, system, userText),
+        system,
+        userText
+      );
       if (result.kind === "fail") {
         safeLogWarn("live-llm", { avatar, platform: "groq", result: "fail", status: result.status });
       }
@@ -201,6 +249,7 @@ export async function replyForAvatar(userText: string, characterId: string | nul
     if (result.kind === "fail" && result.status === 400) {
       result = await geminiChat(route.model, system, userText, false);
     }
+    result = await maybeWorkersAiFallback("gemini", result, system, userText);
     if (result.kind === "fail") {
       safeLogWarn("live-llm", { avatar, platform: "google", result: "fail", status: result.status });
     }

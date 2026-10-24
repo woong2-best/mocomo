@@ -1,3 +1,10 @@
+import {
+  beginPrimaryOrFallback,
+  fallbackAfterQuota,
+  isQuotaFailure,
+  workersAiChat,
+  workersAiVisionChat,
+} from "@/lib/ai-fallback";
 import { usedCategoryLabel } from "@/lib/used-market";
 import { usedProductTypeLabel } from "@/lib/used-catalog";
 
@@ -17,6 +24,13 @@ export type UsedListingAiDraft = {
   title: string;
   description: string;
   suggestedPrice: number | null;
+};
+
+type GenerateResult = {
+  draft?: UsedListingAiDraft;
+  error?: string;
+  quota?: boolean;
+  status?: number;
 };
 
 function geminiKey() {
@@ -116,7 +130,7 @@ async function fetchImageInline(
 async function generateWithGemini(
   input: UsedListingAiInput,
   images: string[]
-): Promise<{ draft?: UsedListingAiDraft; error?: string }> {
+): Promise<GenerateResult> {
   const key = geminiKey();
   if (!key) return { error: "GEMINI_API_KEY missing" };
 
@@ -165,18 +179,23 @@ async function generateWithGemini(
 
       if (!res.ok) {
         const errText = await res.text().catch(() => "");
-        console.warn("[used-listing-ai] gemini", model, res.status, errText.slice(0, 200));
+        if (isQuotaFailure(res.status, errText)) {
+          return {
+            quota: true,
+            status: res.status,
+            error: "무료 AI 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
+          };
+        }
+        console.warn("[used-listing-ai] gemini", model, res.status);
         const nextError =
-          res.status === 429
-            ? "무료 AI 한도에 도달했습니다. 잠시 후 다시 시도해 주세요."
-            : res.status === 403
-              ? "Gemini API 키가 유효하지 않습니다. Vercel GEMINI_API_KEY를 확인해 주세요."
-              : res.status === 404
-                ? null
-                : "AI draft generation failed. Please try again shortly.";
-        if (nextError && (res.status === 429 || res.status === 403 || lastErrorIsGeneric)) {
+          res.status === 403
+            ? "Gemini API 키가 유효하지 않습니다. Vercel GEMINI_API_KEY를 확인해 주세요."
+            : res.status === 404
+              ? null
+              : "AI draft generation failed. Please try again shortly.";
+        if (nextError && (res.status === 403 || lastErrorIsGeneric)) {
           lastError = nextError;
-          lastErrorIsGeneric = res.status !== 429 && res.status !== 403;
+          lastErrorIsGeneric = res.status !== 403;
         }
         continue;
       }
@@ -210,10 +229,46 @@ async function generateWithGemini(
   return { error: lastError };
 }
 
+async function generateWithWorkersAi(
+  input: UsedListingAiInput,
+  images: string[]
+): Promise<GenerateResult> {
+  const prompt = buildPrompt(input);
+  const firstImage = images[0];
+  if (firstImage) {
+    const inline = await fetchImageInline(firstImage);
+    if (inline) {
+      const vision = await workersAiVisionChat({
+        prompt,
+        imageBase64: inline.data,
+        maxTokens: 900,
+        timeoutMs: 45_000,
+      });
+      const draft = vision ? parseDraft(vision) : null;
+      if (draft) {
+        if (input.isFree) draft.suggestedPrice = null;
+        return { draft };
+      }
+    }
+  }
+
+  const text = await workersAiChat({
+    system: "Write only a used-market listing draft. Output exactly one valid JSON object.",
+    user: prompt,
+    temperature: 0.6,
+    maxTokens: 900,
+    timeoutMs: 45_000,
+  });
+  const draft = text ? parseDraft(text) : null;
+  if (!draft) return { error: "AI draft generation failed. Please try again shortly." };
+  if (input.isFree) draft.suggestedPrice = null;
+  return { draft };
+}
+
 async function generateWithOpenAI(
   input: UsedListingAiInput,
   images: string[]
-): Promise<{ draft?: UsedListingAiDraft; error?: string }> {
+): Promise<GenerateResult> {
   const key = openaiKey();
   if (!key) return { error: "OPENAI_API_KEY missing" };
 
@@ -254,6 +309,10 @@ async function generateWithOpenAI(
     });
 
     if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (isQuotaFailure(res.status, body)) {
+        return { quota: true, status: res.status, error: "AI draft generation failed. Please try again shortly." };
+      }
       return { error: "AI draft generation failed. Please try again shortly." };
     }
 
@@ -291,12 +350,27 @@ export async function generateUsedListingDraft(
   }
 
   if (geminiKey()) {
+    if (beginPrimaryOrFallback("gemini", "used-listing") === "fallback") {
+      return generateWithWorkersAi(input, images);
+    }
     const gemini = await generateWithGemini(input, images);
-    if (gemini.draft || !openaiKey()) return gemini;
+    if (gemini.draft) return gemini;
+    if (gemini.quota && fallbackAfterQuota("gemini", "used-listing", gemini.status ?? 429)) {
+      return generateWithWorkersAi(input, images);
+    }
+    if (!openaiKey()) return gemini;
   }
 
   if (openaiKey()) {
-    return generateWithOpenAI(input, images);
+    if (beginPrimaryOrFallback("openai", "used-listing") === "fallback") {
+      return generateWithWorkersAi(input, images);
+    }
+    const openai = await generateWithOpenAI(input, images);
+    if (openai.draft) return openai;
+    if (openai.quota && fallbackAfterQuota("openai", "used-listing", openai.status ?? 429)) {
+      return generateWithWorkersAi(input, images);
+    }
+    return openai;
   }
 
   return { error: "Check your AI settings." };
