@@ -348,8 +348,15 @@ export function ReelsCommentsSheet({
         >
           <Ionicons name="image-outline" size={20} color="rgba(255,255,255,0.7)" />
         </Pressable>
-        <Pressable onPress={() => setGifOpen(true)} disabled={!!attach || uploading} hitSlop={8}>
-          <Ionicons name="happy-outline" size={20} color="rgba(255,255,255,0.7)" />
+        <Pressable
+          onPress={() => setGifOpen(true)}
+          disabled={!!attach || uploading}
+          hitSlop={8}
+          accessibilityLabel={t("m.feed.attach_gif")}
+        >
+          <View style={[styles.gifChip, attach ? styles.gifChipOff : null]}>
+            <Text style={[styles.gifChipText, attach ? styles.gifChipTextOff : null]}>GIF</Text>
+          </View>
         </Pressable>
         <TextInput
           ref={inputRef}
@@ -476,4 +483,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: "#fff",
   },
+  gifChip: {
+    minWidth: 32,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gifChipOff: { borderColor: "rgba(255,255,255,0.28)" },
+  gifChipText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
+  gifChipTextOff: { color: "rgba(255,255,255,0.28)" },
 });

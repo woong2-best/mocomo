@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getGiphyApiKey, resolveGiphyPlatform } from "@/lib/giphy";
+import { getGiphyApiKey, mapGiphyRow, resolveGiphyPlatform } from "@/lib/giphy";
 
 test("getGiphyApiKey picks the platform env without falling across unrelated keys", () => {
   const prev = {
@@ -20,6 +20,28 @@ test("getGiphyApiKey picks the platform env without falling across unrelated key
     process.env.GIPHY_API_KEY_ANDROID = prev.android;
     process.env.GIPHY_API_KEY_IOS = prev.ios;
   }
+});
+
+test("Giphy rows prefer GIF URLs so Android can paint the picker tiles", () => {
+  const item = mapGiphyRow({
+    id: "abc",
+    images: {
+      fixed_height_small: {
+        url: "https://media.giphy.com/media/abc/100.gif",
+        webp: "https://media.giphy.com/media/abc/100.webp",
+      },
+      fixed_height: {
+        url: "https://media.giphy.com/media/abc/200.gif",
+        webp: "https://media.giphy.com/media/abc/200.webp",
+        mp4: "https://media.giphy.com/media/abc/200.mp4",
+      },
+    },
+  });
+  assert.deepEqual(item, {
+    id: "abc",
+    previewUrl: "https://media.giphy.com/media/abc/100.gif",
+    playUrl: "https://media.giphy.com/media/abc/200.gif",
+  });
 });
 
 test("resolveGiphyPlatform prefers the app header over the user agent", () => {

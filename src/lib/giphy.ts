@@ -18,8 +18,12 @@ type GiphyRow = {
   id?: string;
   images?: {
     original?: GiphyImage;
+    original_still?: GiphyImage;
     fixed_height?: GiphyImage;
+    fixed_height_still?: GiphyImage;
     fixed_height_small?: GiphyImage;
+    fixed_height_small_still?: GiphyImage;
+    preview_gif?: GiphyImage;
     preview_webp?: GiphyImage;
   };
 };
@@ -56,21 +60,29 @@ function firstAllowed(...urls: Array<string | undefined>) {
   return "";
 }
 
-function mapRow(row: GiphyRow): GiphyGifItem | null {
+export function mapGiphyRow(row: GiphyRow): GiphyGifItem | null {
   const id = row.id?.trim();
   const images = row.images;
+  // Prefer GIF over animated WebP. Android's stock Image decoder leaves WebP tiles blank.
   const previewUrl = firstAllowed(
+    images?.fixed_height_small?.url,
+    images?.preview_gif?.url,
+    images?.fixed_height?.url,
     images?.fixed_height_small?.webp,
     images?.preview_webp?.url,
     images?.fixed_height?.webp,
-    images?.fixed_height?.url,
+    images?.original?.url,
     images?.original?.webp,
+    images?.fixed_height_small_still?.url,
+    images?.fixed_height_still?.url,
+    images?.original_still?.url,
   );
   const playUrl = firstAllowed(
-    images?.fixed_height?.webp,
-    images?.original?.webp,
     images?.fixed_height?.url,
     images?.original?.url,
+    images?.fixed_height?.webp,
+    images?.original?.webp,
+    images?.fixed_height_small?.url,
     images?.fixed_height?.mp4,
     images?.original?.mp4,
     previewUrl,
@@ -97,5 +109,5 @@ export async function searchGiphyGifs(q: string, platform: GiphyPlatform = "web"
   });
   if (!res.ok) return [];
   const json = (await res.json()) as { data?: GiphyRow[] };
-  return (json.data ?? []).map(mapRow).filter((row): row is GiphyGifItem => row != null);
+  return (json.data ?? []).map(mapGiphyRow).filter((row): row is GiphyGifItem => row != null);
 }

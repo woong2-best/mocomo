@@ -528,7 +528,9 @@ export function PostDetailScreen() {
                 disabled={!!attach || uploading}
                 accessibilityLabel={t("m.feed.attach_gif")}
               >
-                <Ionicons name="happy-outline" size={22} color={attach ? colors.textMuted : colors.cobalt} />
+                <View style={[styles.gifChip, attach ? styles.gifChipOff : null]}>
+                  <Text style={[styles.gifChipText, attach ? styles.gifChipTextOff : null]}>GIF</Text>
+                </View>
               </Pressable>
               <TextInput
                 ref={inputRef}
@@ -640,6 +642,24 @@ function createThemedStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
     },
+    gifChip: {
+      minWidth: 32,
+      height: 22,
+      paddingHorizontal: 6,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: colors.cobalt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    gifChipOff: { borderColor: colors.textMuted },
+    gifChipText: {
+      color: colors.cobalt,
+      fontSize: 10,
+      fontWeight: "800",
+      letterSpacing: 0.4,
+    },
+    gifChipTextOff: { color: colors.textMuted },
     likeBtn: {
       minWidth: 44,
       minHeight: 36,

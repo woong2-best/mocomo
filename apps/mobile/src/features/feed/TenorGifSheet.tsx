@@ -2,18 +2,28 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { searchGiphyGifs, type GiphyGifItem } from "@/api/social";
 import { useI18n } from "@/i18n/I18nProvider";
-import { colors, radii, spacing } from "@/theme/tokens";
+
+const PICKER = {
+  bg: "#12141A",
+  cell: "#1E222B",
+  text: "#F4F6F8",
+  muted: "rgba(244,246,248,0.48)",
+  line: "rgba(255,255,255,0.08)",
+};
 
 export function TenorGifSheet({
   visible,
@@ -25,6 +35,7 @@ export function TenorGifSheet({
   onPick: (url: string) => void;
 }) {
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
   const [q, setQ] = useState("");
   const [items, setItems] = useState<GiphyGifItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,6 +48,12 @@ export function TenorGifSheet({
     }, q.trim() ? 250 : 0);
     return () => clearTimeout(handle);
   }, [visible, q]);
+
+  useEffect(() => {
+    if (visible) return;
+    setQ("");
+    setError("");
+  }, [visible]);
 
   async function load(query: string) {
     setLoading(true);
@@ -53,85 +70,152 @@ export function TenorGifSheet({
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.sheet}>
-        <View style={styles.top}>
-          <Ionicons name="search" size={18} color={colors.textMuted} />
-          <TextInput
-            style={styles.search}
-            value={q}
-            onChangeText={setQ}
-            placeholder={t("m.feed.gif_search")}
-            placeholderTextColor={colors.textMuted}
-            autoFocus
-          />
-          <Pressable onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={22} color={colors.text} />
-          </Pressable>
-        </View>
-        {loading && items.length === 0 ? (
-          <ActivityIndicator color={colors.terracotta} style={{ marginTop: 32 }} />
-        ) : error ? (
-          <Text style={styles.muted}>{error}</Text>
-        ) : (
-          <FlatList
-            data={items}
-            numColumns={2}
-            keyExtractor={(item) => item.id}
-            keyboardShouldPersistTaps="handled"
-            columnWrapperStyle={{ gap: 6 }}
-            contentContainerStyle={{ padding: 8, gap: 6 }}
-            renderItem={({ item }) => (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={styles.root}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.dock}
+        >
+          <View style={[styles.card, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+            <View style={styles.top}>
+              <Ionicons name="search" size={18} color={PICKER.muted} />
+              <TextInput
+                style={styles.search}
+                value={q}
+                onChangeText={setQ}
+                placeholder={t("m.feed.gif_search")}
+                placeholderTextColor={PICKER.muted}
+                autoFocus
+                returnKeyType="search"
+              />
               <Pressable
-                style={styles.cell}
-                onPress={() => {
-                  onPick(item.playUrl);
-                  onClose();
-                }}
+                onPress={onClose}
+                hitSlop={10}
+                style={styles.close}
+                accessibilityRole="button"
+                accessibilityLabel={t("m.common.close")}
               >
-                <Image source={{ uri: item.previewUrl }} style={styles.gif} />
+                <Ionicons name="close" size={18} color={PICKER.muted} />
               </Pressable>
+            </View>
+            {loading && items.length === 0 ? (
+              <ActivityIndicator color="#F4F6F8" style={styles.spinner} />
+            ) : error ? (
+              <Text style={styles.muted}>{error}</Text>
+            ) : (
+              <FlatList
+                style={styles.list}
+                data={items}
+                numColumns={2}
+                keyExtractor={(item) => item.id}
+                keyboardShouldPersistTaps="handled"
+                columnWrapperStyle={styles.row}
+                contentContainerStyle={styles.grid}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.cell}
+                    onPress={() => {
+                      onPick(item.playUrl);
+                      onClose();
+                    }}
+                  >
+                    <Image
+                      source={{ uri: item.previewUrl }}
+                      style={styles.gif}
+                      contentFit="cover"
+                      recyclingKey={item.id}
+                      cachePolicy="memory-disk"
+                      autoplay
+                    />
+                  </Pressable>
+                )}
+                ListEmptyComponent={<Text style={styles.muted}>{t("m.feed.gif_empty")}</Text>}
+              />
             )}
-            ListEmptyComponent={<Text style={styles.muted}>{t("m.feed.gif_empty")}</Text>}
-          />
-        )}
-        <Text style={styles.powered}>{t("m.feed.gif_powered")}</Text>
+            <Text style={styles.powered}>{t("m.feed.gif_powered")}</Text>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
 }
 
+/** @deprecated Use TenorGifSheet — same Giphy picker. */
+export const GiphyGifSheet = TenorGifSheet;
+
 const styles = StyleSheet.create({
-  sheet: { flex: 1, backgroundColor: colors.background, paddingTop: 48 },
+  root: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  dock: {
+    width: "100%",
+    maxHeight: "78%",
+  },
+  card: {
+    height: 560,
+    maxHeight: "100%",
+    backgroundColor: PICKER.bg,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    overflow: "hidden",
+  },
   top: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.hairline,
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    minHeight: 44,
+    borderRadius: 22,
+    backgroundColor: "#1C2028",
   },
-  search: { flex: 1, minHeight: 40, color: colors.text, fontSize: 16 },
+  search: {
+    flex: 1,
+    minHeight: 40,
+    color: PICKER.text,
+    fontSize: 16,
+  },
+  close: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  list: { flex: 1 },
+  row: { gap: 6 },
+  grid: { paddingHorizontal: 8, paddingBottom: 8, gap: 6, flexGrow: 1 },
   cell: {
     flex: 1,
     aspectRatio: 1,
-    borderRadius: radii.md,
+    borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: PICKER.cell,
   },
   gif: { width: "100%", height: "100%" },
+  spinner: { marginTop: 40 },
   muted: {
-    color: colors.textMuted,
+    color: PICKER.muted,
     textAlign: "center",
     marginTop: 32,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 16,
   },
   powered: {
     textAlign: "right",
-    color: colors.textMuted,
+    color: PICKER.muted,
     fontSize: 10,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 14,
+    paddingTop: 6,
   },
 });

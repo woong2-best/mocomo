@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Image, Modal, Pressable, StyleSheet, View } from "react-native";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
 import type { CommentMediaType } from "@/api/social";
 
 function displayGifUrl(url: string) {
   if (/\.mp4(\?|$)/i.test(url) && /giphy\.com/i.test(url)) {
-    return url.replace(/\.mp4(\?|$)/i, ".webp$1");
+    return url.replace(/\.mp4(\?|$)/i, ".gif$1");
   }
   return url;
 }
@@ -51,7 +52,7 @@ export function CommentMediaBlock({
         {video ? (
           <LoopVideo uri={source} style={styles.thumb} />
         ) : (
-          <Image source={{ uri: source }} style={styles.thumb} resizeMode="cover" />
+          <Image source={{ uri: source }} style={styles.thumb} contentFit="cover" autoplay />
         )}
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -63,7 +64,7 @@ export function CommentMediaBlock({
             {video ? (
               <LoopVideo uri={source} style={styles.full} contentFit="contain" />
             ) : (
-              <Image source={{ uri: source }} style={styles.full} resizeMode="contain" />
+              <Image source={{ uri: source }} style={styles.full} contentFit="contain" autoplay />
             )}
           </View>
         </Pressable>

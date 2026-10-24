@@ -19,6 +19,7 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "m.star.clear_all",
   "m.star.clear_all_saves",
   "m.feed.instagram_stories",
+  "m.feed.gif_powered",
 ]);
 
 export const KEEP_ENGLISH_TOKENS_RE =
