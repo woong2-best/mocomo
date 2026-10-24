@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import { edgeVoiceForText, edgeVoiceName, edgeWebsocketAllowed, ttsProviderOrder, voiceStyleForCharacter } from "@/lib/ai-live/edge-tts";
 import {
   AIRI_MAYU_VOICE,
+  NANGNANG_UNKNOWN_LANG,
   NANGNANG_XIAOYI_VOICE,
   dedicatedEdgeVoice,
   speechLangForText,
+  textLooksChinese,
   toKatakana,
   wrapAiriMayuSsml,
 } from "@/lib/ai-live/speech-lang";
@@ -27,6 +29,14 @@ test("Moco is brighter, Chloe stays tipsy-slow, AIRI is husky Mayu", () => {
   assert.deepEqual(voiceStyleForCharacter("cleo"), { pitch: "-15%", rate: "+5%" });
   assert.deepEqual(voiceStyleForCharacter("stella"), { pitch: "default", rate: "default" });
   assert.deepEqual(voiceStyleForCharacter("nangnang"), { pitch: "default", rate: "default" });
+});
+
+test("Nangnang only treats Chinese chat as her language", () => {
+  assert.equal(textLooksChinese("今天打赏好甜"), true);
+  assert.equal(textLooksChinese("안녕 낭낭"), false);
+  assert.equal(textLooksChinese("hello nangnang"), false);
+  assert.equal(textLooksChinese("こんにちは"), false);
+  assert.equal(NANGNANG_UNKNOWN_LANG, "这语言我不会，说中文。");
 });
 
 test("Nangnang uses Microsoft Xiaoyi on Edge and StreamElements", () => {

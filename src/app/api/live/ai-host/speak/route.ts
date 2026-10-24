@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const characterRaw =
     typeof rec.characterId === "string" ? rec.characterId : typeof rec.member === "string" ? rec.member : "";
   const characterId = resolveLiveAvatarId(characterRaw) ?? "zelie";
-  const plan = planHostReply(raw);
+  const plan = planHostReply(raw, characterId);
   if (plan.kind === "ignore") {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }

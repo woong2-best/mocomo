@@ -4,6 +4,7 @@ import {
   EDGE_VOICES,
   dedicatedEdgeVoice,
   isAiriCharacter,
+  isNangnangCharacter,
   speechLangForText,
   toKatakana,
   voiceStyleForCharacter,
@@ -134,7 +135,7 @@ export async function synthesizeIdolVoice(
   const line = text.replace(/\s+/g, " ").trim().slice(0, 240);
   if (!line) return null;
   const airi = isAiriCharacter(characterId);
-  const lang = airi ? "ja" : speechLangForText(line);
+  const lang = airi ? "ja" : isNangnangCharacter(characterId) ? "zh" : speechLangForText(line);
   const spoken = airi ? toKatakana(line) : line;
   const style = voiceStyleForCharacter(characterId);
   const dedicated = dedicatedEdgeVoice(characterId);

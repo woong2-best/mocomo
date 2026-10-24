@@ -1,4 +1,23 @@
-export type SpeechLang = "ko" | "en" | "ja";
+export type SpeechLang = "ko" | "en" | "ja" | "zh";
+
+/** True when the line is Chinese and not Korean or Japanese. */
+export function textLooksChinese(text: string): boolean {
+  let han = false;
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (code >= 0xac00 && code <= 0xd7a3) return false;
+    if (code >= 0x3040 && code <= 0x30ff) return false;
+    if ((code >= 0x4e00 && code <= 0x9fff) || (code >= 0x3400 && code <= 0x4dbf)) han = true;
+  }
+  return han;
+}
+
+export const NANGNANG_UNKNOWN_LANG = "这语言我不会，说中文。";
+export const NANGNANG_QUIET = "等下，嗓子哑了，再说一遍。";
+export const NANGNANG_BUSY = "现在这房间太挤了，等会儿再叫我。";
+export const NANGNANG_DEFLECT = "切，问点别的。";
+export const NANGNANG_HARD = "那种事我不聊。";
+export const NANGNANG_SNAP = ["你说什么呢？再来一句我可要踢了。", "那种话我不接。切。", "..."];
 
 function hasKana(text: string): boolean {
   for (const ch of text) {
@@ -27,6 +46,7 @@ export const EDGE_VOICES: Record<SpeechLang, { voice: string; lang: string; bcp4
   ko: { voice: "ko-KR-SunHiNeural", lang: "ko-KR", bcp47: "ko-KR" },
   en: { voice: "en-US-JennyNeural", lang: "en-US", bcp47: "en-US" },
   ja: { voice: "ja-JP-NanamiNeural", lang: "ja-JP", bcp47: "ja-JP" },
+  zh: { voice: "zh-CN-XiaoyiNeural", lang: "zh-CN", bcp47: "zh-CN" },
 };
 
 export const AIRI_MAYU_VOICE = "ja-JP-MayuNeural";

@@ -1,3 +1,5 @@
+import { isNangnangCharacter, NANGNANG_HARD, NANGNANG_SNAP } from "@/lib/ai-live/speech-lang";
+
 /**
  * First-pass live-host filter. Regex only — callers must not hit an LLM when this matches.
  * Korean literals are unicode escapes so UI catalogs stay free of Hangul source.
@@ -46,24 +48,26 @@ function pick(items: string[]): string {
   return items[Math.floor(Math.random() * items.length)] ?? "...";
 }
 
-export function angryReply(userText: string): string {
+export function angryReply(userText: string, characterId?: string | null): string {
+  if (isNangnangCharacter(characterId)) return pick(NANGNANG_SNAP);
   return pick(textHasHangul(userText) ? KO_SNAP : EN_SNAP);
 }
 
-export function hardRefusal(userText: string): string {
+export function hardRefusal(userText: string, characterId?: string | null): string {
+  if (isNangnangCharacter(characterId)) return NANGNANG_HARD;
   return textHasHangul(userText) ? KO_HARD : EN_HARD;
 }
 
 /** Null means the line may continue to the model. */
-export function classifyAiHostMessage(raw: string): AiHostBlock | null {
+export function classifyAiHostMessage(raw: string, characterId?: string | null): AiHostBlock | null {
   const text = raw.trim();
   if (!text) return null;
   const compact = text.replace(/\s+/g, "");
   if (MINOR_BLOCK.test(text) || MINOR_BLOCK.test(compact)) {
-    return { text: hardRefusal(text), blocked: true, hard: true };
+    return { text: hardRefusal(text, characterId), blocked: true, hard: true };
   }
   if (KO_BLOCK.test(compact) || EN_BLOCK.test(text)) {
-    return { text: angryReply(text), blocked: true, hard: false };
+    return { text: angryReply(text, characterId), blocked: true, hard: false };
   }
   return null;
 }
@@ -77,10 +81,10 @@ export type HostReplyPlan =
   | { kind: "model"; text: string };
 
 /** Regex gate. `blocked` and `ignore` must not call a model or a voice server. */
-export function planHostReply(raw: string): HostReplyPlan {
+export function planHostReply(raw: string, characterId?: string | null): HostReplyPlan {
   const text = raw.trim().slice(0, MAX_INPUT);
   if (!text) return { kind: "ignore" };
-  const blocked = classifyAiHostMessage(text);
+  const blocked = classifyAiHostMessage(text, characterId);
   if (blocked) return { kind: "blocked", text: blocked.text };
   return { kind: "model", text: text.slice(0, MODEL_INPUT) };
 }

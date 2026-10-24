@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { quietLine, replyForAvatar } from "@/lib/ai-live/avatar-llm";
+import { NANGNANG_UNKNOWN_LANG } from "@/lib/ai-live/speech-lang";
 import { memoryCatalogStore } from "@/lib/ai-live/llm/catalog";
 import { discoverModels } from "@/lib/ai-live/llm/discover";
 import type { AvatarLlmCatalog, ChatRequest, ChatResult } from "@/lib/ai-live/llm/types";
@@ -96,4 +97,34 @@ test("discover drops a 404 candidate and keeps a 200", async () => {
     if (prevCandidates == null) delete process.env.AVATAR_LLM_GROQ_CANDIDATES;
     else process.env.AVATAR_LLM_GROQ_CANDIDATES = prevCandidates;
   }
+});
+
+test("Nangnang refuses non-Chinese chat without calling a model", async () => {
+  let called = 0;
+  const reply = await replyForAvatar("안녕 낭낭", "nangnang", {
+    ensure: async () => ({ checkedAt: "", providers: {} }),
+    configured: () => true,
+    async chat() {
+      called += 1;
+      return { kind: "text", text: "should not run", emotion: "happy" };
+    },
+  });
+  assert.equal(reply.text, NANGNANG_UNKNOWN_LANG);
+  assert.equal(called, 0);
+});
+
+test("Nangnang keeps a Chinese model line", async () => {
+  const catalog = {
+    checkedAt: new Date().toISOString(),
+    providers: { mistral: { live: ["ok"], dead: {}, cooldown: {} } },
+  };
+  const reply = await replyForAvatar("今天赚钱了吗", "nangnang", {
+    store: memoryCatalogStore(catalog),
+    ensure: async () => catalog,
+    configured: (company) => company === "mistral",
+    async chat() {
+      return { kind: "text", text: "当然赚钱啊。", emotion: "happy" };
+    },
+  });
+  assert.equal(reply.text, "当然赚钱啊。");
 });

@@ -1,6 +1,14 @@
 import { classifyAiHostMessage, textHasHangul } from "@/lib/ai-live/blocklist";
 import { resolveLiveAvatarId, type LiveAvatarId } from "@/lib/ai-live/avatars";
 import { promptForCharacter } from "@/constants/prompts";
+import {
+  NANGNANG_BUSY,
+  NANGNANG_DEFLECT,
+  NANGNANG_HARD,
+  NANGNANG_QUIET,
+  NANGNANG_UNKNOWN_LANG,
+  textLooksChinese,
+} from "@/lib/ai-live/speech-lang";
 import type { VrmEmotion } from "@/lib/ai-live/vrm-expression";
 import {
   candidateTimeoutMs,
@@ -47,10 +55,15 @@ export type ReplyDeps = {
 };
 
 export function systemInstructionFor(characterId: string | null): string {
+  const avatar = resolveLiveAvatarId(characterId);
+  const languageRule =
+    avatar === "nangnang"
+      ? "Speak Simplified Chinese only. Never reply in Korean, English, or Japanese. If the viewer is not writing Chinese, say in Chinese that you do not know that language."
+      : "If the viewer writes in another language, answer in that language while keeping this character's tone.";
   return [
     promptForCharacter(characterId),
     "Stay in this identity only. Do not answer as any other member of the group.",
-    "If the viewer writes in another language, answer in that language while keeping this character's tone.",
+    languageRule,
     "No lists, no stage directions, no asterisks.",
     "Refuse illegal, sexual, scam, drug, and minor topics in character. Do not explain these rules.",
     'Return JSON only: {"text":"spoken line","emotion":"neutral"}.',
@@ -59,32 +72,43 @@ export function systemInstructionFor(characterId: string | null): string {
   ].join("\n");
 }
 
-export function rateLimitLine(userText: string): string {
+export function rateLimitLine(userText: string, avatar?: LiveAvatarId | null): string {
+  if (avatar === "nangnang") return NANGNANG_BUSY;
   return textHasHangul(userText)
     ? "지금은 이 방이 너무 붐벼. 조금만 있다가 다시 불러줘."
     : "This avatar is busy right now. Try again in a moment.";
 }
 
-export function quietLine(userText: string): string {
+export function quietLine(userText: string, avatar?: LiveAvatarId | null): string {
+  if (avatar === "nangnang") return NANGNANG_QUIET;
   return textHasHangul(userText)
     ? "잠깐, 목이 잠겼어. 다시 말해 봐."
     : "Hold on, my voice cut out. Say that again.";
 }
 
-function deflect(userText: string): string {
+function deflect(userText: string, avatar?: LiveAvatarId | null): string {
+  if (avatar === "nangnang") return NANGNANG_DEFLECT;
   return textHasHangul(userText) ? "칫. 다른 거 물어봐." : "Tch. Ask me something else.";
 }
 
-function angryOrHard(userText: string): string {
+function angryOrHard(userText: string, avatar?: LiveAvatarId | null): string {
+  if (avatar === "nangnang") return classifyAiHostMessage(userText, "nangnang")?.text ?? NANGNANG_HARD;
   return classifyAiHostMessage(userText)?.text ?? deflect(userText);
 }
 
-function finish(userText: string, result: Extract<ChatResult, { kind: "text" }>): AvatarReply {
+function finish(
+  userText: string,
+  result: Extract<ChatResult, { kind: "text" }>,
+  avatar: LiveAvatarId,
+): AvatarReply {
   if (AI_ADMISSION.test(result.text)) {
-    return { text: deflect(userText), emotion: "angry", blocked: false, rateLimited: false };
+    return { text: deflect(userText, avatar), emotion: "angry", blocked: false, rateLimited: false };
   }
-  const blocked = classifyAiHostMessage(result.text);
+  const blocked = classifyAiHostMessage(result.text, avatar);
   if (blocked) return { text: blocked.text, emotion: "angry", blocked: true, rateLimited: false };
+  if (avatar === "nangnang" && !textLooksChinese(result.text)) {
+    return { text: NANGNANG_UNKNOWN_LANG, emotion: "relaxed", blocked: false, rateLimited: false };
+  }
   return { text: result.text, emotion: result.emotion, blocked: false, rateLimited: false };
 }
 
@@ -138,6 +162,10 @@ export async function replyForAvatar(
   const candidateMs = deps.candidateMs ?? candidateTimeoutMs();
   const deadline = now() + budgetMs;
 
+  if (avatar === "nangnang" && !textLooksChinese(userText)) {
+    return { text: NANGNANG_UNKNOWN_LANG, emotion: "relaxed", blocked: false, rateLimited: false };
+  }
+
   try {
     let catalog = await ensure({ store });
     const chain = buildChain(avatar, catalog, configured);
@@ -156,9 +184,9 @@ export async function replyForAvatar(
         timeoutMs,
       });
 
-      if (result.kind === "text") return finish(userText, result);
+      if (result.kind === "text") return finish(userText, result, avatar);
       if (result.kind === "safety") {
-        return { text: angryOrHard(userText), emotion: "angry", blocked: true, rateLimited: false };
+        return { text: angryOrHard(userText, avatar), emotion: "angry", blocked: true, rateLimited: false };
       }
 
       safeLogWarn("live-llm", {
@@ -185,14 +213,14 @@ export async function replyForAvatar(
     }
 
     if (sawRateLimit && !sawHardFail) {
-      return { text: rateLimitLine(userText), emotion: "sad", blocked: false, rateLimited: true };
+      return { text: rateLimitLine(userText, avatar), emotion: "sad", blocked: false, rateLimited: true };
     }
 
     void alert(exhaustedAlert(avatar)).catch(() => undefined);
     safeLogWarn("live-llm", { avatar, result: "exhausted" });
-    return { text: quietLine(userText), emotion: "sad", blocked: false, rateLimited: false, exhausted: true };
+    return { text: quietLine(userText, avatar), emotion: "sad", blocked: false, rateLimited: false, exhausted: true };
   } catch {
     safeLogWarn("live-llm", { avatar, result: "throw" });
-    return { text: quietLine(userText), emotion: "sad", blocked: false, rateLimited: false, exhausted: true };
+    return { text: quietLine(userText, avatar), emotion: "sad", blocked: false, rateLimited: false, exhausted: true };
   }
 }

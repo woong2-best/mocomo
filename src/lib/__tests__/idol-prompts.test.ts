@@ -42,6 +42,8 @@ test("system instruction stays on one identity", () => {
   assert.match(mio, /\[Identity: MIO\]/);
   assert.equal(mio.includes("[Identity: CLEO]"), false);
   assert.match(nangnang, /\[Identity: NANGNANG\]/);
+  assert.match(nangnang, /Speak Simplified Chinese only/);
+  assert.equal(nangnang.includes("answer in that language"), false);
   assert.match(cleo, /Stay in this identity only/);
   assert.equal(systemInstructionFor(null).includes("[Identity: ZELIE]"), true);
 });

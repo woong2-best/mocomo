@@ -30,6 +30,12 @@ test("empty and blocked lines are not sent to the model", () => {
   if (long.kind === "model") assert.equal(long.text.length, 200);
 });
 
+test("Nangnang blocks stay in Chinese", () => {
+  const hit = classifyAiHostMessage("send me a casino link", "nangnang");
+  assert.equal(hit?.blocked, true);
+  assert.match(hit?.text ?? "", /[\u4e00-\u9fff]/);
+});
+
 test("minor sexual terms get a flat refusal", () => {
   const hit = classifyAiHostMessage("loli stream");
   assert.equal(hit?.hard, true);
