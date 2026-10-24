@@ -31,6 +31,13 @@ export const NANGNANG_DEFLECT = "切，问点别的。";
 export const NANGNANG_HARD = "那种事我不聊。";
 export const NANGNANG_SNAP = ["你说什么呢？再来一句我可要踢了。", "那种话我不接。切。", "..."];
 
+export const MIO_UNKNOWN_LANG = "その言語わかんないよぉ〜 日本語で話してぇ〜";
+export const MIO_QUIET = "ちょっと待って、声出なくなっちゃった。もう一回言って？";
+export const MIO_BUSY = "今この部屋いっぱいいっぱい〜 あとで呼んでねぇ";
+export const MIO_DEFLECT = "ちぇっ。別の話してよぉ";
+export const MIO_HARD = "そういう話はしないからぁ";
+export const MIO_SNAP = ["今なんて言ったの？変なこと言うとバンするからね！", "そういう話は受けないよぉ。ちぇっ…", "..."];
+
 function hasKana(text: string): boolean {
   for (const ch of text) {
     const code = ch.codePointAt(0) ?? 0;
@@ -65,6 +72,11 @@ export function zelieInputLang(text: string): ZelieInputLang | null {
   if (hasHangul(text)) return "ko";
   if (textLooksFrench(text)) return "fr";
   return null;
+}
+
+/** True when the line has hiragana or katakana. Kanji-only Japanese is treated as unknown. */
+export function textLooksJapanese(text: string): boolean {
+  return hasKana(text);
 }
 
 export function zelieSpeechLang(text: string): Extract<SpeechLang, "ko" | "fr"> {
@@ -110,6 +122,15 @@ export function isAiriCharacter(characterId: string | null | undefined): boolean
   return id === "airi" || id === "cleo";
 }
 
+export function isMioCharacter(characterId: string | null | undefined): boolean {
+  const id = characterId?.trim().toLowerCase();
+  return id === "mio" || id === "chloe";
+}
+
+export function usesMayuVoice(characterId: string | null | undefined): boolean {
+  return isAiriCharacter(characterId) || isMioCharacter(characterId);
+}
+
 export function isNangnangCharacter(characterId: string | null | undefined): boolean {
   const id = characterId?.trim().toLowerCase();
   return id === "nangnang" || id === "stella";
@@ -125,7 +146,7 @@ export function dedicatedEdgeVoice(
   characterId: string | null | undefined,
   lang?: SpeechLang,
 ): { voice: string; lang: string } | null {
-  if (isAiriCharacter(characterId)) return { voice: AIRI_MAYU_VOICE, lang: AIRI_MAYU_LANG };
+  if (usesMayuVoice(characterId)) return { voice: AIRI_MAYU_VOICE, lang: AIRI_MAYU_LANG };
   if (isNangnangCharacter(characterId)) return { voice: NANGNANG_XIAOYI_VOICE, lang: NANGNANG_XIAOYI_LANG };
   if (isZelieCharacter(characterId)) {
     if (lang === "fr") return { voice: ZELIE_ELOISE_VOICE, lang: ZELIE_ELOISE_LANG };

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { edgeVoiceForText, edgeVoiceName, edgeWebsocketAllowed, ttsProviderOrder, voiceStyleForCharacter } from "@/lib/ai-live/edge-tts";
 import {
   AIRI_MAYU_VOICE,
+  MIO_UNKNOWN_LANG,
   NANGNANG_UNKNOWN_LANG,
   NANGNANG_XIAOYI_VOICE,
   ZELIE_ELOISE_VOICE,
@@ -11,6 +12,7 @@ import {
   speechLangForText,
   textLooksChinese,
   textLooksFrench,
+  textLooksJapanese,
   zelieInputLang,
   toKatakana,
   wrapAiriMayuSsml,
@@ -48,10 +50,21 @@ test("Nangnang uses Microsoft Xiaoyi on Edge and StreamElements", () => {
   assert.deepEqual(dedicatedEdgeVoice("nangnang"), { voice: "zh-CN-XiaoyiNeural", lang: "zh-CN" });
   assert.deepEqual(dedicatedEdgeVoice("stella"), { voice: "zh-CN-XiaoyiNeural", lang: "zh-CN" });
   assert.deepEqual(dedicatedEdgeVoice("airi"), { voice: "ja-JP-MayuNeural", lang: "ja-JP" });
+  assert.deepEqual(dedicatedEdgeVoice("mio"), { voice: "ja-JP-MayuNeural", lang: "ja-JP" });
+  assert.deepEqual(dedicatedEdgeVoice("chloe"), { voice: "ja-JP-MayuNeural", lang: "ja-JP" });
   assert.equal(ZELIE_SEOHYEON_VOICE, "ko-KR-SeoHyeonNeural");
   assert.equal(ZELIE_ELOISE_VOICE, "fr-FR-EloiseNeural");
   assert.deepEqual(dedicatedEdgeVoice("zelie", "ko"), { voice: "ko-KR-SeoHyeonNeural", lang: "ko-KR" });
   assert.deepEqual(dedicatedEdgeVoice("moco", "fr"), { voice: "fr-FR-EloiseNeural", lang: "fr-FR" });
+});
+
+test("Mio only treats Japanese chat as her language", () => {
+  assert.equal(textLooksJapanese("こんにちは"), true);
+  assert.equal(textLooksJapanese("今日ごはん食べた？"), true);
+  assert.equal(textLooksJapanese("안녕 미오"), false);
+  assert.equal(textLooksJapanese("hello mio"), false);
+  assert.equal(textLooksJapanese("今天赚钱了吗"), false);
+  assert.equal(MIO_UNKNOWN_LANG, "その言語わかんないよぉ〜 日本語で話してぇ〜");
 });
 
 test("Zelie only treats Korean and French as her languages", () => {

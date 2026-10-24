@@ -31,9 +31,23 @@ test("empty and blocked lines are not sent to the model", () => {
 });
 
 test("Nangnang blocks stay in Chinese", () => {
-  const hit = classifyAiHostMessage("send me a casino link", "nangnang");
-  assert.equal(hit?.blocked, true);
-  assert.match(hit?.text ?? "", /[\u4e00-\u9fff]/);
+  const lines = new Set<string>();
+  for (let i = 0; i < 24; i++) {
+    const hit = classifyAiHostMessage("send me a casino link", "nangnang");
+    assert.equal(hit?.blocked, true);
+    lines.add(hit!.text);
+  }
+  assert.ok([...lines].every((line) => line === "..." || /[\u4e00-\u9fff]/.test(line)));
+});
+
+test("Mio blocks stay in Japanese", () => {
+  const lines = new Set<string>();
+  for (let i = 0; i < 24; i++) {
+    const hit = classifyAiHostMessage("send me a casino link", "mio");
+    assert.equal(hit?.blocked, true);
+    lines.add(hit!.text);
+  }
+  assert.ok([...lines].every((line) => line === "..." || /[\u3040-\u30ff]/.test(line)));
 });
 
 test("minor sexual terms get a flat refusal", () => {

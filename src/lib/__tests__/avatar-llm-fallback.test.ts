@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { quietLine, replyForAvatar } from "@/lib/ai-live/avatar-llm";
-import { NANGNANG_UNKNOWN_LANG, ZELIE_UNKNOWN_LANG } from "@/lib/ai-live/speech-lang";
+import { MIO_UNKNOWN_LANG, NANGNANG_UNKNOWN_LANG, ZELIE_UNKNOWN_LANG } from "@/lib/ai-live/speech-lang";
 import { memoryCatalogStore } from "@/lib/ai-live/llm/catalog";
 import { discoverModels } from "@/lib/ai-live/llm/discover";
 import type { AvatarLlmCatalog, ChatRequest, ChatResult } from "@/lib/ai-live/llm/types";
@@ -41,18 +41,18 @@ test("a dead first model falls through and the next candidate answers", async ()
 
 test("Workers AI answers when every company key is missing", async () => {
   const store = memoryCatalogStore({ checkedAt: new Date().toISOString(), providers: {} });
-  const reply = await replyForAvatar("hi", "mio", {
+  const reply = await replyForAvatar("こんにちは", "mio", {
     store,
     ensure: async () => (await store.load()) ?? { checkedAt: "", providers: {} },
     configured: (company) => company === "workers-ai",
     alert: async () => false,
     rediscover: async () => ({ checkedAt: "", providers: {} }),
     async chat(req): Promise<ChatResult> {
-      if (req.company === "workers-ai") return { kind: "text", text: "from workers", emotion: "neutral" };
+      if (req.company === "workers-ai") return { kind: "text", text: "えへへ、聞こえてるよぉ。", emotion: "neutral" };
       return { kind: "fail" };
     },
   });
-  assert.equal(reply.text, "from workers");
+  assert.equal(reply.text, "えへへ、聞こえてるよぉ。");
 });
 
 test("all candidates down returns the quiet line as exhausted", async () => {
@@ -127,6 +127,36 @@ test("Nangnang keeps a Chinese model line", async () => {
     },
   });
   assert.equal(reply.text, "当然赚钱啊。");
+});
+
+test("Mio refuses non-Japanese chat without calling a model", async () => {
+  let called = 0;
+  const reply = await replyForAvatar("안녕 미오", "mio", {
+    ensure: async () => ({ checkedAt: "", providers: {} }),
+    configured: () => true,
+    async chat() {
+      called += 1;
+      return { kind: "text", text: "should not run", emotion: "happy" };
+    },
+  });
+  assert.equal(reply.text, MIO_UNKNOWN_LANG);
+  assert.equal(called, 0);
+});
+
+test("Mio keeps a Japanese model line", async () => {
+  const catalog = {
+    checkedAt: new Date().toISOString(),
+    providers: { openrouter: { live: ["ok"], dead: {}, cooldown: {} } },
+  };
+  const reply = await replyForAvatar("今日ごはん食べた？", "mio", {
+    store: memoryCatalogStore(catalog),
+    ensure: async () => catalog,
+    configured: (company) => company === "openrouter",
+    async chat() {
+      return { kind: "text", text: "えへへ、お姉ちゃんが作ってあげる。", emotion: "happy" };
+    },
+  });
+  assert.equal(reply.text, "えへへ、お姉ちゃんが作ってあげる。");
 });
 
 test("Zelie refuses English without calling a model", async () => {

@@ -3,11 +3,11 @@ import { safeLogWarn } from "@/lib/safe-log";
 import {
   EDGE_VOICES,
   dedicatedEdgeVoice,
-  isAiriCharacter,
   isNangnangCharacter,
   isZelieCharacter,
   speechLangForText,
   toKatakana,
+  usesMayuVoice,
   voiceStyleForCharacter,
   zelieSpeechLang,
   type SpeechLang,
@@ -73,7 +73,7 @@ async function fromEdgeWs(
   style: VoiceStyle,
   characterId: string | null,
 ): Promise<ArrayBuffer | null> {
-  const airi = isAiriCharacter(characterId);
+  const mayu = usesMayuVoice(characterId);
   const preset = dedicatedEdgeVoice(characterId, lang) ?? EDGE_VOICES[lang];
   const tts = new EdgeTTS({
     voice: preset.voice,
@@ -83,7 +83,7 @@ async function fromEdgeWs(
     rate: style.rate,
     timeout: EDGE_DEADLINE_MS,
   });
-  const spoken = airi ? toKatakana(text) : text;
+  const spoken = mayu ? toKatakana(text) : text;
   const chunks: Buffer[] = [];
   let total = 0;
   for await (const chunk of tts.streamAudio(spoken)) {
@@ -136,15 +136,15 @@ export async function synthesizeIdolVoice(
 ): Promise<ArrayBuffer | null> {
   const line = text.replace(/\s+/g, " ").trim().slice(0, 240);
   if (!line) return null;
-  const airi = isAiriCharacter(characterId);
-  const lang = airi
+  const mayu = usesMayuVoice(characterId);
+  const lang = mayu
     ? "ja"
     : isNangnangCharacter(characterId)
       ? "zh"
       : isZelieCharacter(characterId)
         ? zelieSpeechLang(line)
         : speechLangForText(line);
-  const spoken = airi ? toKatakana(line) : line;
+  const spoken = mayu ? toKatakana(line) : line;
   const style = voiceStyleForCharacter(characterId);
   const dedicated = dedicatedEdgeVoice(characterId, lang);
   const runners: Record<"edge" | "streamelements" | "google", () => Promise<ArrayBuffer | null>> = {
