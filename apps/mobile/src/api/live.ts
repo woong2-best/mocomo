@@ -18,6 +18,7 @@ export type LiveListItem = {
   category: string;
   tags?: string[];
   broadcastMode: string | null;
+  externalProvider?: string | null;
   isNsfw?: boolean;
   contentRating?: string;
   host: LiveHost;

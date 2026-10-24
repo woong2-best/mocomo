@@ -1,14 +1,17 @@
 import { translate } from "@/i18n/runtime";
 
-/** Mobile live category pills — mirrors web LIVE_CATEGORY_ORDER (FOLLOWING first, R-18 last). */
+/**
+ * Hub tabs and row labels. Full English words — never translated, never shortened
+ * (FOL / FES / MUS were unreadable on the phone).
+ */
 export const MOBILE_LIVE_CATEGORIES = [
-  { id: "ALL", labelKey: "m.common.all" },
-  { id: "VIRTUAL", labelKey: "m.common.follow" },
-  { id: "GAME", labelKey: "m.live.gaming" },
-  { id: "JUST_CHATTING", labelKey: "m.common.chat" },
-  { id: "IRL", labelKey: "m.live.festival" },
-  { id: "MUSIC", labelKey: "m.live.music" },
-  { id: "LIVE", labelKey: "m.live.r_18" },
+  { id: "ALL", english: "ALL" },
+  { id: "VIRTUAL", english: "FOLLOW" },
+  { id: "GAME", english: "GAME" },
+  { id: "JUST_CHATTING", english: "CHAT" },
+  { id: "IRL", english: "FESTIVAL" },
+  { id: "MUSIC", english: "MUSIC" },
+  { id: "LIVE", english: "R-18" },
 ] as const;
 
 /** DB enum stays `LIVE`; display label is R-18 (age-gated). */
@@ -28,10 +31,24 @@ export function isR18LiveCategory(id: string | null | undefined): boolean {
 
 export type MobileLiveCategoryId = (typeof MOBILE_LIVE_CATEGORIES)[number]["id"];
 
-export function liveCategoryLabel(id: string | null | undefined, _locale?: string): string {
+export function liveCategoryEnglish(id: string | null | undefined): string {
   const found = MOBILE_LIVE_CATEGORIES.find((c) => c.id === id);
-  if (found) return translate(found.labelKey);
-  return translate("m.common.live");
+  return found?.english ?? "LIVE";
+}
+
+export function liveCategoryLabel(id: string | null | undefined, _locale?: string): string {
+  return liveCategoryEnglish(id);
+}
+
+/** Row subtitle: platform when the stream is YouTube or Twitch, then the category word. */
+export function liveBrowseCategoryLine(
+  category: string | null | undefined,
+  externalProvider?: string | null
+): string {
+  const cat = liveCategoryEnglish(category);
+  const provider = externalProvider?.trim();
+  if (!provider) return cat;
+  return `${providerLabel(provider)} · ${cat}`;
 }
 
 /** Folder PNGs for chrome category rail (labels drawn white on top). */

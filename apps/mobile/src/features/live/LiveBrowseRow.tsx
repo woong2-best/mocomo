@@ -4,7 +4,11 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import type { LiveListItem } from "@/api/live";
-import { formatViewerCount, formatViewerCountCompact } from "@/features/live/live-categories";
+import {
+  formatViewerCount,
+  formatViewerCountCompact,
+  liveBrowseCategoryLine,
+} from "@/features/live/live-categories";
 import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWatermark";
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { freshLiveStill } from "@/features/live/live-still";
@@ -45,6 +49,9 @@ function LiveBrowseRowInner({ item, onPress }: RowProps) {
         </View>
       </View>
       <View style={styles.meta}>
+        <Text style={styles.cat} numberOfLines={1}>
+          {liveBrowseCategoryLine(item.category, item.externalProvider)}
+        </Text>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
           {item.title}
         </Text>
@@ -100,6 +107,11 @@ function LiveBrowseHeroInner({ item, onPress }: HeroProps) {
         style={styles.heroScrim}
         pointerEvents="none"
       />
+      <View style={styles.heroCat} pointerEvents="none">
+        <Text style={styles.heroCatText}>
+          {liveBrowseCategoryLine(item.category, item.externalProvider)}
+        </Text>
+      </View>
       {isLiveAdultItem(item) ? <LiveAdultWatermark /> : null}
     </Pressable>
   );
@@ -143,6 +155,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   meta: { flex: 1, minWidth: 0, paddingTop: 1, gap: 3 },
+  cat: {
+    color: "#4da3ff",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+  },
   title: {
     color: "#FFFFFF",
     fontSize: 14,
@@ -165,6 +183,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 96,
+  },
+  heroCat: {
+    position: "absolute",
+    left: 10,
+    bottom: 10,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  heroCatText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.6,
   },
   heroTitle: {
     color: "#FFFFFF",

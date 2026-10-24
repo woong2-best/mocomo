@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { liveCategoryEnglish } from "@/features/live/live-categories";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 
@@ -33,6 +34,9 @@ function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, poster 
         </View>
       </View>
       <View style={styles.meta}>
+        <Text style={styles.cat} numberOfLines={1}>
+          {liveCategoryEnglish("JUST_CHATTING")}
+        </Text>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
           {title ?? t("m.live.ai_card_title")}
         </Text>
@@ -72,6 +76,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: "#fff", fontSize: 8, fontWeight: "900" },
   meta: { flex: 1, justifyContent: "center", gap: 3 },
+  cat: { color: "#4da3ff", fontSize: 11, fontWeight: "800", letterSpacing: 0.6 },
   title: { fontWeight: "800", fontSize: 15 },
   host: { fontWeight: "700", fontSize: 13 },
   sub: { fontWeight: "600", fontSize: 12 },

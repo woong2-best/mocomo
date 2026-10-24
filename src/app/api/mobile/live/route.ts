@@ -32,6 +32,7 @@ function mapItem(ch: LiveHubChannel, hostMap: Map<string, LiveHubHost>) {
     category: ch.category,
     tags: ch.tags ?? [],
     broadcastMode: ch.broadcastMode ?? null,
+    externalProvider: ch.externalProvider ?? null,
     isNsfw: ch.isNsfw === true,
     host: host
       ? {

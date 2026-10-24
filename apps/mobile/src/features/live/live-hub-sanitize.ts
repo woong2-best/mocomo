@@ -18,6 +18,10 @@ export function sanitizeLiveListItem(raw: LiveListItem): LiveListItem {
     category: typeof raw.category === "string" ? raw.category : "LIVE",
     tags: Array.isArray(raw.tags) ? raw.tags.filter((t) => typeof t === "string") : [],
     broadcastMode: raw.broadcastMode ?? null,
+    externalProvider:
+      typeof raw.externalProvider === "string" && raw.externalProvider.trim()
+        ? raw.externalProvider.trim()
+        : null,
     isNsfw: Boolean(raw.isNsfw),
     contentRating: typeof raw.contentRating === "string" ? raw.contentRating : "GENERAL",
     host: {

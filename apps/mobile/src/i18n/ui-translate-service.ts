@@ -9,7 +9,8 @@ import {
 import { translateMlKit } from "@/lib/translate/mlkit-client";
 import { localeToMlKit, MlLang } from "@/lib/translate/mlkit-locale";
 
-const SKIP_KEY_PREFIXES = ["legal.", "wiki.", "brand.", "m.anime."];
+/** Live copy stays English. On-device translation rewrote "is live", "Idol", and "Tipsy". */
+const SKIP_KEY_PREFIXES = ["legal.", "wiki.", "brand.", "m.anime.", "m.live."];
 
 export function uiKeyNeedsMlKit(key: string, targetLocale: Locale): boolean {
   if (targetLocale === "en") return false;

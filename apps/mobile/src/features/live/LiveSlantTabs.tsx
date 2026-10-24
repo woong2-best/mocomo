@@ -1,26 +1,15 @@
 import { memo, useMemo } from "react";
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
-import type { MobileLiveCategoryId } from "@/features/live/live-categories";
+import { MOBILE_LIVE_CATEGORIES, type MobileLiveCategoryId } from "@/features/live/live-categories";
 
 const BAR_H = 46;
 const GLOW_PAD = 8;
 const SLANT = (22 * Math.PI) / 180;
 const SHIFT = BAR_H * Math.tan(SLANT);
+const FONT = 13;
 
-const TABS: {
-  id: MobileLiveCategoryId;
-  full: string;
-  short: string;
-}[] = [
-  { id: "ALL", full: "ALL", short: "ALL" },
-  { id: "VIRTUAL", full: "FOLLOW", short: "FOL" },
-  { id: "GAME", full: "GAME", short: "GAME" },
-  { id: "JUST_CHATTING", full: "CHAT", short: "CHAT" },
-  { id: "IRL", full: "FESTIVAL", short: "FES" },
-  { id: "MUSIC", full: "MUSIC", short: "MUS" },
-  { id: "LIVE", full: "R-18", short: "R-18" },
-];
+const TABS = MOBILE_LIVE_CATEGORIES.map((tab) => ({ id: tab.id, label: tab.english }));
 
 type Props = {
   active: MobileLiveCategoryId;
@@ -29,50 +18,49 @@ type Props = {
 
 type Slot = {
   id: MobileLiveCategoryId;
-  full: string;
-  short: string;
+  label: string;
   points: string;
   left: number;
   topW: number;
   labelShift: number;
 };
 
-function buildSlots(screenW: number, active: MobileLiveCategoryId): Slot[] {
+function tabWidth(label: string): number {
+  return Math.max(54, Math.ceil(label.length * FONT * 0.72) + 20);
+}
+
+function buildSlots(screenW: number): { slots: Slot[]; contentW: number } {
   const width = Math.max(0, screenW);
-  if (width <= 0) return [];
-  const last = TABS.length - 1;
-  const weights = TABS.map((tab) => (tab.id === active ? 1.45 : 1));
-  const weightSum = weights.reduce((sum, n) => sum + n, 0);
-  const minTop = width / weightSum;
+  if (width <= 0) return { slots: [], contentW: 0 };
+  const natural = TABS.map((tab) => tabWidth(tab.label));
+  const naturalSum = natural.reduce((sum, n) => sum + n, 0);
+  const contentW = Math.max(width, naturalSum);
+  const scale = naturalSum > 0 ? contentW / naturalSum : 1;
+  const minTop = contentW / TABS.length;
   const shift = Math.min(SHIFT, minTop * 0.42);
   let x = 0;
+  const last = TABS.length - 1;
 
-  return TABS.map((tab, index) => {
-    const topW = index === last ? width - x : (width * weights[index]) / weightSum;
+  const slots = TABS.map((tab, index) => {
+    const topW = index === last ? contentW - x : natural[index] * scale;
     const left = x;
     const right = left + topW;
     x = right;
     const bottomLeft = index === 0 ? 0 : left - shift;
-    const bottomRight = index === last ? width : right - shift;
+    const bottomRight = index === last ? contentW : right - shift;
     const top = GLOW_PAD;
     const bottom = GLOW_PAD + BAR_H;
     const points = `${left},${top} ${right},${top} ${bottomRight},${bottom} ${bottomLeft},${bottom}`;
     const labelShift = index === 0 || index === last ? -shift / 4 : -shift / 2;
-    return {
-      id: tab.id,
-      full: tab.full,
-      short: tab.short,
-      points,
-      left,
-      topW,
-      labelShift,
-    };
+    return { id: tab.id, label: tab.label, points, left, topW, labelShift };
   });
+
+  return { slots, contentW };
 }
 
 export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect }: Props) {
   const { width } = useWindowDimensions();
-  const slots = useMemo(() => buildSlots(width, active), [width, active]);
+  const { slots, contentW } = useMemo(() => buildSlots(width), [width]);
   const ordered = useMemo(() => {
     const idle = slots.filter((slot) => slot.id !== active);
     const on = slots.find((slot) => slot.id === active);
@@ -82,60 +70,69 @@ export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect }: P
   if (width <= 0 || slots.length === 0) return null;
 
   return (
-    <View style={styles.bar}>
-      <Svg width={width} height={BAR_H + GLOW_PAD * 2} pointerEvents="none">
-        {slots
-          .filter((slot) => slot.id === active)
-          .map((slot) => (
-            <Polygon
-              key={`${slot.id}-glow`}
-              points={slot.points}
-              fill="#1a6aff"
-              fillOpacity={0.28}
-              stroke="#1a6aff"
-              strokeWidth={10}
-              strokeOpacity={0.95}
-              strokeLinejoin="round"
-            />
-          ))}
-        {ordered.map((slot) => {
+    <ScrollView
+      horizontal
+      nestedScrollEnabled
+      showsHorizontalScrollIndicator={false}
+      style={styles.bar}
+      contentContainerStyle={{ width: contentW }}
+    >
+      <View style={{ width: contentW, height: BAR_H + GLOW_PAD * 2 }}>
+        <Svg width={contentW} height={BAR_H + GLOW_PAD * 2} pointerEvents="none">
+          {slots
+            .filter((slot) => slot.id === active)
+            .map((slot) => (
+              <Polygon
+                key={`${slot.id}-glow`}
+                points={slot.points}
+                fill="#1a6aff"
+                fillOpacity={0.28}
+                stroke="#1a6aff"
+                strokeWidth={10}
+                strokeOpacity={0.95}
+                strokeLinejoin="round"
+              />
+            ))}
+          {ordered.map((slot) => {
+            const on = slot.id === active;
+            return (
+              <Polygon
+                key={slot.id}
+                points={slot.points}
+                fill={on ? "#000000" : "#0a0a0a"}
+                stroke={on ? "#4da3ff" : "#8A8A8A"}
+                strokeWidth={on ? 2.6 : 1.25}
+                strokeLinejoin="miter"
+              />
+            );
+          })}
+        </Svg>
+        {slots.map((slot) => {
           const on = slot.id === active;
           return (
-            <Polygon
+            <Pressable
               key={slot.id}
-              points={slot.points}
-              fill={on ? "#000000" : "#0a0a0a"}
-              stroke={on ? "#4da3ff" : "#8A8A8A"}
-              strokeWidth={on ? 2.6 : 1.25}
-              strokeLinejoin="miter"
-            />
+              accessibilityRole="button"
+              accessibilityLabel={slot.label}
+              accessibilityState={{ selected: on }}
+              onPress={() => onSelect(slot.id)}
+              style={[styles.hit, { left: slot.left, width: slot.topW }]}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  on && styles.labelOn,
+                  { transform: [{ translateX: slot.labelShift }] },
+                ]}
+                numberOfLines={1}
+              >
+                {slot.label}
+              </Text>
+            </Pressable>
           );
         })}
-      </Svg>
-      {slots.map((slot) => {
-        const on = slot.id === active;
-        return (
-          <Pressable
-            key={slot.id}
-            accessibilityRole="button"
-            accessibilityState={{ selected: on }}
-            onPress={() => onSelect(slot.id)}
-            style={[styles.hit, { left: slot.left, width: slot.topW }]}
-          >
-            <Text
-              style={[
-                styles.label,
-                on && styles.labelOn,
-                { transform: [{ translateX: slot.labelShift }] },
-              ]}
-              numberOfLines={1}
-            >
-              {on ? slot.full : slot.short}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+      </View>
+    </ScrollView>
   );
 });
 
@@ -155,7 +152,7 @@ const styles = StyleSheet.create({
   label: {
     color: "#FFFFFF",
     fontWeight: "800",
-    fontSize: 12,
+    fontSize: FONT,
     letterSpacing: 0.3,
     textAlign: "center",
     fontFamily: Platform.OS === "android" ? "sans-serif" : undefined,

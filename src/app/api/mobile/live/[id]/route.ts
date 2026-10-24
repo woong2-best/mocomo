@@ -15,6 +15,8 @@ import {
 import { resolveLiveChannelAccess } from "@/lib/live-room-access";
 import { canViewNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 import { resolveLiveStillThumb } from "@/lib/live-preview-thumb";
+import { ensureAlwaysOnChannel } from "@/lib/ai-live/official-channel";
+import { isAlwaysOnLiveChannel } from "@/lib/ai-live/official-channel-id";
 
 export async function GET(
   req: NextRequest,
@@ -27,6 +29,10 @@ export async function GET(
   const { id } = await params;
   if (!id || id.length > 64) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  if (isAlwaysOnLiveChannel(id)) {
+    await ensureAlwaysOnChannel(id);
   }
 
   const channel = await db.voiceChannel.findUnique({
