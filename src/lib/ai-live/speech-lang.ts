@@ -31,6 +31,8 @@ export const EDGE_VOICES: Record<SpeechLang, { voice: string; lang: string; bcp4
 
 export const AIRI_MAYU_VOICE = "ja-JP-MayuNeural";
 export const AIRI_MAYU_LANG = "ja-JP";
+export const NANGNANG_XIAOYI_VOICE = "zh-CN-XiaoyiNeural";
+export const NANGNANG_XIAOYI_LANG = "zh-CN";
 
 export type VoiceStyle = { pitch: string; rate: string };
 
@@ -44,6 +46,20 @@ const AIRI_STYLE: VoiceStyle = { pitch: "-15%", rate: "+5%" };
 export function isAiriCharacter(characterId: string | null | undefined): boolean {
   const id = characterId?.trim().toLowerCase();
   return id === "airi" || id === "cleo";
+}
+
+export function isNangnangCharacter(characterId: string | null | undefined): boolean {
+  const id = characterId?.trim().toLowerCase();
+  return id === "nangnang" || id === "stella";
+}
+
+/** Character-locked Microsoft Edge voice. Null means follow the spoken language. */
+export function dedicatedEdgeVoice(
+  characterId: string | null | undefined,
+): { voice: string; lang: string } | null {
+  if (isAiriCharacter(characterId)) return { voice: AIRI_MAYU_VOICE, lang: AIRI_MAYU_LANG };
+  if (isNangnangCharacter(characterId)) return { voice: NANGNANG_XIAOYI_VOICE, lang: NANGNANG_XIAOYI_LANG };
+  return null;
 }
 
 /** Hiragana → katakana so Mayu reads the Japanese line as requested. */

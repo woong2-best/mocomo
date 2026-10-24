@@ -1,9 +1,8 @@
 import { EdgeTTS } from "node-edge-tts";
 import { safeLogWarn } from "@/lib/safe-log";
 import {
-  AIRI_MAYU_LANG,
-  AIRI_MAYU_VOICE,
   EDGE_VOICES,
+  dedicatedEdgeVoice,
   isAiriCharacter,
   speechLangForText,
   toKatakana,
@@ -72,10 +71,10 @@ async function fromEdgeWs(
   characterId: string | null,
 ): Promise<ArrayBuffer | null> {
   const airi = isAiriCharacter(characterId);
-  const preset = EDGE_VOICES[lang];
+  const preset = dedicatedEdgeVoice(characterId) ?? EDGE_VOICES[lang];
   const tts = new EdgeTTS({
-    voice: airi ? AIRI_MAYU_VOICE : preset.voice,
-    lang: airi ? AIRI_MAYU_LANG : preset.lang,
+    voice: preset.voice,
+    lang: preset.lang,
     outputFormat: OUTPUT_FORMAT,
     pitch: style.pitch,
     rate: style.rate,
@@ -138,10 +137,10 @@ export async function synthesizeIdolVoice(
   const lang = airi ? "ja" : speechLangForText(line);
   const spoken = airi ? toKatakana(line) : line;
   const style = voiceStyleForCharacter(characterId);
-  const mayu = airi ? AIRI_MAYU_VOICE : undefined;
+  const dedicated = dedicatedEdgeVoice(characterId);
   const runners: Record<"edge" | "streamelements" | "google", () => Promise<ArrayBuffer | null>> = {
     edge: () => withDeadline(fromEdgeWs(spoken, lang, style, characterId), EDGE_DEADLINE_MS),
-    streamelements: () => fromStreamElements(spoken, lang, mayu),
+    streamelements: () => fromStreamElements(spoken, lang, dedicated?.voice),
     google: () => fromGoogleTranslate(spoken, lang),
   };
   const steps = ttsProviderOrder();

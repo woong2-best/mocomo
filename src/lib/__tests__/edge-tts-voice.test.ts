@@ -1,7 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { edgeVoiceForText, edgeVoiceName, edgeWebsocketAllowed, ttsProviderOrder, voiceStyleForCharacter } from "@/lib/ai-live/edge-tts";
-import { AIRI_MAYU_VOICE, speechLangForText, toKatakana, wrapAiriMayuSsml } from "@/lib/ai-live/speech-lang";
+import {
+  AIRI_MAYU_VOICE,
+  NANGNANG_XIAOYI_VOICE,
+  dedicatedEdgeVoice,
+  speechLangForText,
+  toKatakana,
+  wrapAiriMayuSsml,
+} from "@/lib/ai-live/speech-lang";
 
 test("Edge voices follow the spoken language", () => {
   assert.equal(speechLangForText("\uC548\uB155, \uBAA8\uCF54\uC57C."), "ko");
@@ -19,6 +26,15 @@ test("Moco is brighter, Chloe stays tipsy-slow, AIRI is husky Mayu", () => {
   assert.deepEqual(voiceStyleForCharacter("airi"), { pitch: "-15%", rate: "+5%" });
   assert.deepEqual(voiceStyleForCharacter("cleo"), { pitch: "-15%", rate: "+5%" });
   assert.deepEqual(voiceStyleForCharacter("stella"), { pitch: "default", rate: "default" });
+  assert.deepEqual(voiceStyleForCharacter("nangnang"), { pitch: "default", rate: "default" });
+});
+
+test("Nangnang uses Microsoft Xiaoyi on Edge and StreamElements", () => {
+  assert.equal(NANGNANG_XIAOYI_VOICE, "zh-CN-XiaoyiNeural");
+  assert.deepEqual(dedicatedEdgeVoice("nangnang"), { voice: "zh-CN-XiaoyiNeural", lang: "zh-CN" });
+  assert.deepEqual(dedicatedEdgeVoice("stella"), { voice: "zh-CN-XiaoyiNeural", lang: "zh-CN" });
+  assert.deepEqual(dedicatedEdgeVoice("airi"), { voice: "ja-JP-MayuNeural", lang: "ja-JP" });
+  assert.equal(dedicatedEdgeVoice("zelie"), null);
 });
 
 test("Vercel skips the Edge websocket so speak cannot 504", () => {
