@@ -6,7 +6,9 @@ import {
   beginPrimaryOrFallback,
   fallbackAfterQuota,
   isQuotaFailure,
+  logWorkersAiFallback,
   workersAiChat,
+  workersAiConfigured,
   type LlmProvider,
 } from "@/lib/ai-fallback";
 import { safeLogWarn } from "@/lib/safe-log";
@@ -89,7 +91,12 @@ type GeminiJson = {
   }[];
 };
 
-async function groqChat(model: string, system: string, userText: string): Promise<ModelResult> {
+async function groqChat(
+  model: string,
+  system: string,
+  userText: string,
+  jsonMode = true,
+): Promise<ModelResult> {
   const key = groqKey();
   if (!key) return { kind: "fail" };
   try {
@@ -99,12 +106,12 @@ async function groqChat(model: string, system: string, userText: string): Promis
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(12_000),
       body: JSON.stringify({
         model,
         temperature: 0.9,
-        max_tokens: 180,
-        response_format: { type: "json_object" },
+        max_tokens: 512,
+        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
         messages: [
           { role: "system", content: system },
           { role: "user", content: userText },
@@ -114,6 +121,7 @@ async function groqChat(model: string, system: string, userText: string): Promis
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       if (isQuotaFailure(res.status, body)) return { kind: "rate_limit", status: res.status };
+      if (jsonMode && res.status === 400) return groqChat(model, system, userText, false);
       return { kind: "fail", status: res.status };
     }
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
@@ -141,7 +149,7 @@ async function geminiChat(model: string, system: string, userText: string, jsonM
           contents: [{ role: "user", parts: [{ text: userText }] }],
           generationConfig: {
             temperature: 0.9,
-            maxOutputTokens: jsonMode ? 320 : 180,
+            maxOutputTokens: jsonMode ? 512 : 240,
             ...(jsonMode
               ? { responseMimeType: "application/json", responseSchema: HOST_RESPONSE_SCHEMA }
               : {}),
@@ -214,8 +222,19 @@ async function maybeWorkersAiFallback(
   system: string,
   userText: string
 ): Promise<ModelResult> {
-  if (result.kind !== "rate_limit") return result;
-  if (!fallbackAfterQuota(provider, "live-avatar", result.status ?? 429)) return result;
+  if (result.kind === "rate_limit") {
+    if (!fallbackAfterQuota(provider, "live-avatar", result.status ?? 429)) return result;
+  } else if (result.kind === "fail") {
+    if (!workersAiConfigured()) return result;
+    logWorkersAiFallback({
+      provider,
+      feature: "live-avatar",
+      reason: "primary_fail",
+      status: result.status,
+    });
+  } else {
+    return result;
+  }
   const fallback = await workersAiHostReply(system, userText);
   return fallback.kind === "text" ? fallback : result;
 }

@@ -18,12 +18,12 @@ const ALIAS: Record<string, LiveAvatarId> = {
 
 export const LIVE_AVATAR_IDS = ["zelie", "cleo", "mio", "nangnang"] as const;
 
-/** One free model per avatar. Do not share endpoints across rooms. */
+/** One live model per avatar. Do not share endpoints across rooms. */
 export const AVATAR_LLM: Record<LiveAvatarId, AvatarLlmRoute> = {
-  zelie: { platform: "groq", model: "llama-3.1-8b-instant" },
-  cleo: { platform: "google", model: "gemini-1.5-flash" },
-  mio: { platform: "groq", model: "llama-3.3-70b-versatile" },
-  nangnang: { platform: "groq", model: "gemma2-9b-it" },
+  zelie: { platform: "groq", model: "openai/gpt-oss-20b" },
+  cleo: { platform: "google", model: "gemini-2.5-flash" },
+  mio: { platform: "groq", model: "openai/gpt-oss-120b" },
+  nangnang: { platform: "groq", model: "qwen/qwen3.8-27b" },
 };
 
 export function resolveLiveAvatarId(value: string | null | undefined): LiveAvatarId | null {

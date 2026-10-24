@@ -20,11 +20,11 @@ test("each avatar has a distinct persona and model", () => {
   assert.match(CLEO_PROMPT, /귀요미/);
   assert.match(MIO_PROMPT, /마미/);
   assert.match(NANGNANG_PROMPT, /자본주의/);
-  assert.deepEqual(AVATAR_LLM.zelie, { platform: "groq", model: "llama-3.1-8b-instant" });
-  assert.deepEqual(AVATAR_LLM.cleo, { platform: "google", model: "gemini-1.5-flash" });
-  assert.deepEqual(AVATAR_LLM.mio, { platform: "groq", model: "llama-3.3-70b-versatile" });
-  assert.deepEqual(AVATAR_LLM.nangnang, { platform: "groq", model: "gemma2-9b-it" });
-  assert.equal(llmRouteForAvatar("moco").model, "llama-3.1-8b-instant");
+  assert.deepEqual(AVATAR_LLM.zelie, { platform: "groq", model: "openai/gpt-oss-20b" });
+  assert.deepEqual(AVATAR_LLM.cleo, { platform: "google", model: "gemini-2.5-flash" });
+  assert.deepEqual(AVATAR_LLM.mio, { platform: "groq", model: "openai/gpt-oss-120b" });
+  assert.deepEqual(AVATAR_LLM.nangnang, { platform: "groq", model: "qwen/qwen3.8-27b" });
+  assert.equal(llmRouteForAvatar("moco").model, "openai/gpt-oss-20b");
 });
 
 test("system instruction stays on one identity", () => {
