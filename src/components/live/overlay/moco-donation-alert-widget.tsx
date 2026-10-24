@@ -258,7 +258,12 @@ export function MocoDonationAlertWidget({
       cancelled = true;
       clearInterval(id);
     };
-    const socket = io(socketUrl, { path: "/socket.io", transports: ["websocket", "polling"] });
+    const socket = io(socketUrl, {
+      path: "/socket.io",
+      transports: ["websocket"],
+      reconnectionDelay: 5000,
+      reconnectionDelayMax: 60000,
+    });
     socketRef.current = socket;
     socket.emit("join_overlay", { channelId, token });
     socket.on("new_donation", (data: MocoDonationPayload) => {

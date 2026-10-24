@@ -22,6 +22,9 @@ export function useLiveSocket(userId: string | undefined, channelId: string | un
         auth: { token },
         transports: ["websocket"],
         upgrade: false,
+        reconnectionDelay: 5000,
+        reconnectionDelayMax: 60000,
+        randomizationFactor: 0.4,
       });
       s.on("connect", () => setConnected(true));
       s.on("disconnect", () => setConnected(false));

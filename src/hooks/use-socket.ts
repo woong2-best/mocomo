@@ -17,7 +17,12 @@ export function useSocket(userId?: string) {
     (async () => {
       const token = await fetchSocketAuthToken();
       if (cancelled || !token) return;
-      socket = io(url, { auth: { token }, transports: ["websocket", "polling"] });
+      socket = io(url, {
+        auth: { token },
+        transports: ["websocket"],
+        reconnectionDelay: 5000,
+        reconnectionDelayMax: 60000,
+      });
       socketRef.current = socket;
       socket.on("connect", () => setConnected(true));
       socket.on("disconnect", () => setConnected(false));

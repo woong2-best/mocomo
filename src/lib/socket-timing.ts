@@ -4,6 +4,12 @@ export const SOCKET_WAIT_MS = 60_000;
 export const SOCKET_ACK_MS = 15_000;
 export const SOCKET_IO_TIMEOUT_MS = 25_000;
 
+/** Failed handshakes back off. A 2s poll loop is what turns a Render 503 into 429. */
+export function socketRetryDelayMs(attempt: number): number {
+  const step = Math.min(Math.max(0, attempt), 3);
+  return Math.min(60_000, 8_000 * 2 ** step);
+}
+
 export function socketHealthUrl(baseUrl: string): string {
   return `${baseUrl.replace(/\/$/, "")}/health`;
 }

@@ -114,12 +114,8 @@ const RELAY_SECRET = process.env.SOCKET_RELAY_SECRET?.trim();
 const httpServer = createServer((req, res) => {
   if (req.method === "GET" && (req.url === "/" || req.url === "/health")) {
     const origin = req.headers.origin;
-    const allowed = socketCorsOrigins();
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (
-      origin &&
-      (allowed.includes(origin) || origin.endsWith(".vercel.app"))
-    ) {
+    if (origin && isAllowedSocketOrigin(origin)) {
       headers["Access-Control-Allow-Origin"] = origin;
       headers["Vary"] = "Origin";
     }
@@ -363,15 +359,33 @@ function socketCorsOrigins(): string[] {
     .filter(Boolean);
 }
 
+const PRODUCTION_SOCKET_HOSTS = new Set([
+  "mocomo.net",
+  "www.mocomo.net",
+  "app.mocomo.net",
+  "studio.mocomo.net",
+]);
+
+function isAllowedSocketOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (socketCorsOrigins().includes(origin)) return true;
+  try {
+    const url = new URL(origin);
+    if (PRODUCTION_SOCKET_HOSTS.has(url.hostname)) return url.protocol === "https:";
+    if (url.hostname.endsWith(".vercel.app")) return url.protocol === "https:";
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+      return url.protocol === "http:";
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
-      const allowed = socketCorsOrigins();
-      if (!origin || allowed.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-      if (origin.endsWith(".vercel.app")) {
+      if (isAllowedSocketOrigin(origin)) {
         callback(null, true);
         return;
       }

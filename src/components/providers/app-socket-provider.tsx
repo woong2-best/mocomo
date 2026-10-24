@@ -19,7 +19,7 @@ import { resolveSocketUrl } from "@/lib/socket-url";
 import {
   SOCKET_CONNECT_TIMEOUT_MS,
   SOCKET_IO_TIMEOUT_MS,
-  wakeSocketServer,
+  socketRetryDelayMs,
 } from "@/lib/socket-timing";
 
 const CONNECT_TIMEOUT_MS = SOCKET_CONNECT_TIMEOUT_MS;
@@ -41,18 +41,6 @@ const AppSocketContext = createContext<AppSocketContextValue>({
   onlineUserIds: new Set(),
   isUserOnline: () => false,
 });
-
-/** 허브 화면: cold-start wake는 백그라운드. 통화·메시지 경로는 헬스 확인 뒤에 연결 */
-async function prepareSocketServer(socketUrl: string, immediate: boolean): Promise<void> {
-  if (!immediate) {
-    void wakeSocketServer(socketUrl);
-    return;
-  }
-  const woke = await wakeSocketServer(socketUrl);
-  if (woke) return;
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-  await wakeSocketServer(socketUrl);
-}
 
 /** 로그인 사용자 — 앱 어디서든 접속 중 표시·실시간 채팅용 단일 소켓 */
 export function AppSocketProvider({ children }: { children: ReactNode }) {
@@ -113,115 +101,106 @@ export function AppSocketProvider({ children }: { children: ReactNode }) {
     let connectTimeout: number | undefined;
     let startTimer: number | undefined;
     let holdTimer: number | undefined;
-    let lastAuthRefresh = 0;
+    let failures = 0;
+
+    const scheduleRetry = () => {
+      if (holdTimer) window.clearTimeout(holdTimer);
+      const delay = socketRetryDelayMs(failures);
+      failures += 1;
+      holdTimer = window.setTimeout(() => {
+        if (disposed) return;
+        start();
+      }, delay);
+    };
 
     const start = () => {
       void import("socket.io-client").then(async ({ io }) => {
-      if (disposed) return;
-
-      await prepareSocketServer(socketUrl, needsImmediateRealtime(pathnameRef.current));
-      if (disposed) return;
-
-      const { fetchSocketAuthToken } = await import("@/lib/socket-client");
-      const token = await fetchSocketAuthToken();
-      if (disposed || !token) {
-        setRealtimeOff(true);
-        setConnectionFailed(true);
-        return;
-      }
-
-      activeSocket = io(socketUrl, {
-        auth: { token },
-        // Polling first so a cold Render websocket 503 does not fill the console.
-        // A healthy server still upgrades to websocket.
-        transports: ["polling", "websocket"],
-        reconnection: true,
-        reconnectionAttempts: Infinity,
-        reconnectionDelay: 2500,
-        reconnectionDelayMax: 30000,
-        randomizationFactor: 0.5,
-        timeout: SOCKET_IO_TIMEOUT_MS,
-      });
-
-      connectTimeout = window.setTimeout(() => {
-        if (disposed || activeSocket?.connected) return;
-        setConnectionFailed(true);
-        setSocketReady(false);
-      }, CONNECT_TIMEOUT_MS);
-
-      const refreshAuth = async () => {
-        const next = await fetchSocketAuthToken();
-        if (!next || !activeSocket) return false;
-        activeSocket.auth = { token: next };
-        return true;
-      };
-
-      tokenRefreshTimer = window.setInterval(() => {
-        void refreshAuth();
-      }, 4 * 60 * 1000);
-
-      const onPresenceChange = (payload: PresenceChangePayload) => {
-        if (!payload?.userId) return;
-        applyPresenceChange(payload.userId, !!payload.online);
-      };
-      const onPresenceSnapshot = (payload: RoomPresencePayload) => {
-        if (!Array.isArray(payload?.onlineUserIds)) return;
-        mergeOnlineIds(payload.onlineUserIds.filter(Boolean));
-      };
-
-      activeSocket.on("presence_change", onPresenceChange);
-      activeSocket.on("presence_snapshot", onPresenceSnapshot);
-      activeSocket.on("room_presence", onPresenceSnapshot);
-
-      activeSocket.on("connect", () => {
         if (disposed) return;
-        if (connectTimeout) window.clearTimeout(connectTimeout);
-        setConnectionFailed(false);
-        setSocket(activeSocket);
-        setSocketReady(true);
-        setRealtimeOff(false);
-      });
 
-      activeSocket.on("disconnect", () => {
-        setSocketReady(false);
-        setOnlineUserIds(new Set());
-      });
-
-      activeSocket.on("connect_error", (error: { message?: string; description?: unknown }) => {
-        const now = Date.now();
-        if (now - lastAuthRefresh > 30_000) {
-          lastAuthRefresh = now;
-          void refreshAuth();
+        const { fetchSocketAuthToken } = await import("@/lib/socket-client");
+        const token = await fetchSocketAuthToken();
+        if (disposed) return;
+        if (!token) {
+          setConnectionFailed(true);
+          scheduleRetry();
+          return;
         }
-        const message = String(error?.message ?? "");
-        const description = error?.description;
-        const status =
-          typeof description === "number"
-            ? description
-            : description &&
-                typeof description === "object" &&
-                "status" in description &&
-                typeof (description as { status?: unknown }).status === "number"
-              ? (description as { status: number }).status
-              : null;
-        const rateLimited = status === 429 || /429|too many/i.test(message);
-        const unavailable = status === 503 || /503|unavailable/i.test(message);
-        if ((!rateLimited && !unavailable) || !activeSocket || activeSocket.connected) return;
-        // Socket.IO is already retrying. A second connect() here is what turns 503 into 429.
-        activeSocket.io.reconnection(false);
-        if (holdTimer) window.clearTimeout(holdTimer);
-        holdTimer = window.setTimeout(() => {
-          if (disposed || !activeSocket || activeSocket.connected) return;
-          activeSocket.io.reconnection(true);
-          activeSocket.connect();
-        }, rateLimited ? 30_000 : 8_000);
-      });
 
-        activeSocket.io.on("reconnect", () => {
+        if (activeSocket) {
+          activeSocket.removeAllListeners();
+          activeSocket.close();
+          activeSocket = null;
+        }
+
+        const socket = io(socketUrl, {
+          auth: { token },
+          // WebSocket only. Polling retries Render 503s as XHRs, the 503 page has no
+          // CORS header, and the client then hammers until Render answers 429.
+          transports: ["websocket"],
+          reconnection: false,
+          timeout: SOCKET_IO_TIMEOUT_MS,
+        });
+        activeSocket = socket;
+        let gaveUp = false;
+
+        const fail = () => {
+          if (disposed || gaveUp || socket.connected) return;
+          gaveUp = true;
+          if (connectTimeout) window.clearTimeout(connectTimeout);
+          setConnectionFailed(true);
+          setSocketReady(false);
+          setSocket((current) => (current === socket ? null : current));
+          socket.removeAllListeners();
+          socket.close();
+          if (activeSocket === socket) activeSocket = null;
+          scheduleRetry();
+        };
+
+        connectTimeout = window.setTimeout(() => {
+          if (disposed || socket.connected) return;
+          fail();
+        }, CONNECT_TIMEOUT_MS);
+
+        if (tokenRefreshTimer) window.clearInterval(tokenRefreshTimer);
+        tokenRefreshTimer = window.setInterval(() => {
+          void fetchSocketAuthToken().then((next) => {
+            if (!next || !activeSocket || activeSocket !== socket) return;
+            activeSocket.auth = { token: next };
+          });
+        }, 4 * 60 * 1000);
+
+        const onPresenceChange = (payload: PresenceChangePayload) => {
+          if (!payload?.userId) return;
+          applyPresenceChange(payload.userId, !!payload.online);
+        };
+        const onPresenceSnapshot = (payload: RoomPresencePayload) => {
+          if (!Array.isArray(payload?.onlineUserIds)) return;
+          mergeOnlineIds(payload.onlineUserIds.filter(Boolean));
+        };
+
+        socket.on("presence_change", onPresenceChange);
+        socket.on("presence_snapshot", onPresenceSnapshot);
+        socket.on("room_presence", onPresenceSnapshot);
+
+        socket.on("connect", () => {
           if (disposed) return;
+          failures = 0;
+          if (connectTimeout) window.clearTimeout(connectTimeout);
           setConnectionFailed(false);
+          setSocket(socket);
           setSocketReady(true);
           setRealtimeOff(false);
+        });
+
+        socket.on("disconnect", (reason) => {
+          setSocketReady(false);
+          setOnlineUserIds(new Set());
+          if (reason === "io client disconnect") return;
+          fail();
+        });
+
+        socket.on("connect_error", () => {
+          fail();
         });
       });
     };
