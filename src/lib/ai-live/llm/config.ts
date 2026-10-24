@@ -14,14 +14,13 @@ export type ProviderConfig = {
 
 const DEFAULT_PRIMARY: Record<LiveAvatarId, AvatarLlmCompany> = {
   zelie: "groq",
-  mio: "cerebras",
+  mio: "openrouter",
   nangnang: "mistral",
-  cleo: "openrouter",
+  cleo: "gemini",
 };
 
 const DEFAULT_COMPANY_ORDER: AvatarLlmCompany[] = [
   "groq",
-  "cerebras",
   "mistral",
   "openrouter",
   "gemini",
@@ -34,12 +33,6 @@ const DEFAULT_PROVIDERS: Record<Exclude<AvatarLlmCompany, "workers-ai">, Provide
     trainsOnFreeTier: false,
     envKey: "GROQ_API_KEY",
     candidates: ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b", "qwen/qwen3.6-27b"],
-  },
-  cerebras: {
-    id: "cerebras",
-    trainsOnFreeTier: false,
-    envKey: "CEREBRAS_API_KEY",
-    candidates: [],
   },
   mistral: {
     id: "mistral",

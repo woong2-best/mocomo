@@ -19,14 +19,13 @@ const HOST_RESPONSE_SCHEMA = {
 const DEAD_BODY =
   /model_not_found|model_decommissioned|does not exist|no longer (?:supported|available)|is not found|decommissioned|unknown model/i;
 
-type CompatCompany = "groq" | "cerebras" | "mistral" | "openrouter";
+type CompatCompany = "groq" | "mistral" | "openrouter";
 
 const COMPAT: Record<
   CompatCompany,
   { baseUrl: string; envKeys: string[]; extraHeaders?: () => Record<string, string> }
 > = {
   groq: { baseUrl: "https://api.groq.com/openai/v1", envKeys: ["GROQ_API_KEY"] },
-  cerebras: { baseUrl: "https://api.cerebras.ai/v1", envKeys: ["CEREBRAS_API_KEY"] },
   mistral: { baseUrl: "https://api.mistral.ai/v1", envKeys: ["MISTRAL_API_KEY"] },
   openrouter: {
     baseUrl: "https://openrouter.ai/api/v1",

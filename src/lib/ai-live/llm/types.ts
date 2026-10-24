@@ -2,7 +2,6 @@ import type { VrmEmotion } from "@/lib/ai-live/vrm-expression";
 
 export const AVATAR_LLM_COMPANIES = [
   "groq",
-  "cerebras",
   "mistral",
   "openrouter",
   "gemini",

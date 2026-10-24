@@ -22,8 +22,8 @@ export const LIVE_AVATAR_IDS = ["zelie", "cleo", "mio", "nangnang"] as const;
 /** One primary company per avatar. Model IDs come from discovery, not this table. */
 export const AVATAR_LLM: Record<LiveAvatarId, AvatarLlmRoute> = {
   zelie: { company: "groq" },
-  cleo: { company: "openrouter" },
-  mio: { company: "cerebras" },
+  cleo: { company: "gemini" },
+  mio: { company: "openrouter" },
   nangnang: { company: "mistral" },
 };
 
