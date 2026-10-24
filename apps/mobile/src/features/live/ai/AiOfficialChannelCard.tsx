@@ -53,6 +53,22 @@ function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, poster 
 
 export const AiOfficialChannelCard = memo(AiOfficialChannelCardInner);
 
+/** Featured stage on the hub. Same crop as the room, tabs sit on its lower edge. */
+export function AiStageHero({ onPress, hint }: { onPress: () => void; hint: string }) {
+  const { width } = useWindowDimensions();
+  const height = Math.round(width * (9 / 16));
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={{ width, height, backgroundColor: "#000" }}
+    >
+      <Image source={POSTER} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <Text style={styles.heroHint}>{hint}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
@@ -80,4 +96,15 @@ const styles = StyleSheet.create({
   title: { fontWeight: "800", fontSize: 15 },
   host: { fontWeight: "700", fontSize: 13 },
   sub: { fontWeight: "600", fontSize: 12 },
+  heroHint: {
+    position: "absolute",
+    right: 16,
+    top: "38%",
+    width: "42%",
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+    textAlign: "left",
+  },
 });

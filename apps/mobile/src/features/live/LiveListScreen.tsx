@@ -10,7 +10,7 @@ import { fetchLiveHub, type LiveListItem } from "@/api/live";
 import { coerceViewerCount, type MobileLiveCategoryId } from "@/features/live/live-categories";
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
-import { AiOfficialChannelCard } from "@/features/live/ai/AiOfficialChannelCard";
+import { AiOfficialChannelCard, AiStageHero } from "@/features/live/ai/AiOfficialChannelCard";
 import { IDOL_LIVES } from "@/features/live/ai/idol-lives";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
@@ -85,11 +85,11 @@ export function LiveListScreen() {
   }, [sortedItems, searchNorm]);
 
   const hasHubPages = (query.data?.pages?.length ?? 0) > 0;
-  const hero = visibleItems[0] ?? null;
-  const rows = hero ? visibleItems.slice(1) : visibleItems;
   const waitingFirst = query.isPending && !hasHubPages;
-  const showAiCard =
-    !searchNorm && !waitingFirst && (category === "ALL" || category === "JUST_CHATTING");
+  const showAiHero = !searchNorm && (category === "ALL" || category === "JUST_CHATTING");
+  const hero = showAiHero ? null : (visibleItems[0] ?? null);
+  const rows = showAiHero ? visibleItems : hero ? visibleItems.slice(1) : visibleItems;
+  const featured = showAiHero || !!hero;
 
   const openLive = useCallback(
     (id: string) => navigation.navigate("LiveDetail", { id }),
@@ -132,7 +132,7 @@ export function LiveListScreen() {
             style={styles.backHit}
             accessibilityLabel={copy.back}
           >
-            <Ionicons name="chevron-back" size={26} color={hero ? "#FFFFFF" : colors.text} />
+            <Ionicons name="chevron-back" size={26} color={featured ? "#FFFFFF" : colors.text} />
           </Pressable>
           <LiveGlassSearch value={searchQ} onChangeText={setSearchQ} expandedWidth={searchWidth} />
         </View>
@@ -154,12 +154,19 @@ export function LiveListScreen() {
             ListHeaderComponent={
               <View
                 style={{
-                  paddingTop: hero ? insets.top : insets.top + 48,
-                  backgroundColor: hero ? "#000" : colors.background,
+                  paddingTop: featured ? insets.top : insets.top + 48,
+                  backgroundColor: featured ? "#000" : colors.background,
                 }}
               >
-                {hero ? <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} /> : null}
-                <LiveSlantTabs active={category} onSelect={selectCategory} />
+                {showAiHero ? (
+                  <AiStageHero
+                    hint={t("m.live.no_messages_yet_say_hello")}
+                    onPress={() => navigation.navigate("MocoLive")}
+                  />
+                ) : hero ? (
+                  <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} />
+                ) : null}
+                <LiveSlantTabs active={category} onSelect={selectCategory} overlay={featured} />
               </View>
             }
             style={{ backgroundColor: colors.background }}
@@ -175,17 +182,16 @@ export function LiveListScreen() {
               }
             }}
             ListEmptyComponent={
-              waitingFirst ? (
+              waitingFirst && !showAiHero ? (
                 <ActivityIndicator style={{ marginTop: 48 }} color={colors.terracotta} />
-              ) : searchNorm && !hero ? (
+              ) : searchNorm && !hero && !showAiHero ? (
                 <Text style={styles.empty}>{copy.noSearchResults}</Text>
               ) : null
             }
             ListFooterComponent={
               <View>
-                {showAiCard ? (
+                {showAiHero ? (
                   <>
-                    <AiOfficialChannelCard onPress={() => navigation.navigate("MocoLive")} />
                     {IDOL_LIVES.map((idol) => (
                       <AiOfficialChannelCard
                         key={idol.id}

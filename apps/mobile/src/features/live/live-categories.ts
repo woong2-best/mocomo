@@ -1,17 +1,17 @@
 import { translate } from "@/i18n/runtime";
 
 /**
- * Hub tabs and row labels. Full English words — never translated, never shortened
- * (FOL / FES / MUS were unreadable on the phone).
+ * Hub tabs use the short strip so all seven fit on one phone row
+ * (ALL FOL GAME CHAT FES MUS R-18). Row text stays the category word.
  */
 export const MOBILE_LIVE_CATEGORIES = [
-  { id: "ALL", english: "ALL" },
-  { id: "VIRTUAL", english: "FOLLOW" },
-  { id: "GAME", english: "GAME" },
-  { id: "JUST_CHATTING", english: "CHAT" },
-  { id: "IRL", english: "FESTIVAL" },
-  { id: "MUSIC", english: "MUSIC" },
-  { id: "LIVE", english: "R-18" },
+  { id: "ALL", english: "ALL", tab: "ALL" },
+  { id: "VIRTUAL", english: "FOLLOW", tab: "FOL" },
+  { id: "GAME", english: "GAME", tab: "GAME" },
+  { id: "JUST_CHATTING", english: "CHAT", tab: "CHAT" },
+  { id: "IRL", english: "FESTIVAL", tab: "FES" },
+  { id: "MUSIC", english: "MUSIC", tab: "MUS" },
+  { id: "LIVE", english: "R-18", tab: "R-18" },
 ] as const;
 
 /** DB enum stays `LIVE`; display label is R-18 (age-gated). */

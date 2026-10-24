@@ -59,6 +59,11 @@ type Props = {
   sidebar?: boolean;
   /** Lift the message list onto the avatar stage, right side, transparent. */
   overlayHeight?: number;
+  /**
+   * Avatar rooms talk to the same host model as the website.
+   * The line stays in this room instead of the public channel chat.
+   */
+  onLocalSend?: (text: string) => Promise<{ username: string; content: string } | null>;
 };
 
 export function LiveChatPanel({
@@ -76,6 +81,7 @@ export function LiveChatPanel({
   immersive = false,
   sidebar = false,
   overlayHeight = 0,
+  onLocalSend,
 }: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => liveUi(t), [t]);
@@ -253,6 +259,31 @@ export function LiveChatPanel({
     setError(null);
     mergeChatLine(optimistic);
 
+    if (onLocalSend) {
+      try {
+        const reply = await onLocalSend(content);
+        if (reply?.content.trim()) {
+          mergeChatLine({
+            id: `ai-${Date.now()}`,
+            userId: "ai-host",
+            username: reply.username,
+            content: reply.content,
+            at: Date.now(),
+            image: null,
+            broadcastRole: "OWNER",
+          });
+        }
+      } catch (e) {
+        let msg = copy.chatSendFailed;
+        if (e instanceof ApiError && e.status === 401) msg = t("m.common.sign_in_required");
+        setError(msg);
+      } finally {
+        sendingRef.current = false;
+        setSending(false);
+      }
+      return;
+    }
+
     try {
       const res = await sendLiveChat(channelId, content);
       if (!res?.message?.id) {
@@ -319,7 +350,9 @@ export function LiveChatPanel({
     currentUserId,
     draft,
     mergeChatLine,
+    onLocalSend,
     relayMessage,
+    t,
     user?.id,
     user?.image,
     user?.username,

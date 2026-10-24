@@ -18,6 +18,7 @@ export function IdolLiveScreen({ route }: Props) {
       title={t(idol.titleKey)}
       host={t(idol.nameKey)}
       role={t(idol.roleKey)}
+      characterId={idol.id}
     />
   );
 }
