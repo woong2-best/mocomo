@@ -5,6 +5,8 @@ import { LiveChannelGrid } from "@/components/live/live-channel-grid";
 import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { getCachedIdolBackdrops } from "@/lib/ai-live/idol-backdrop";
 import { effectiveIdolBackdropMap } from "@/lib/ai-live/idol-backdrop-shared";
+import { getCachedIdolVrms } from "@/lib/ai-live/idol-vrm";
+import { effectiveIdolVrmMap } from "@/lib/ai-live/idol-vrm-shared";
 
 /**
  * Always loads the full live feed; folder rail filters client-side
@@ -51,6 +53,9 @@ export async function LiveChannelFeed({
   const backdrops = await getCachedIdolBackdrops()
     .then(effectiveIdolBackdropMap)
     .catch(() => effectiveIdolBackdropMap({ moco: null, airi: null, chloe: null, stella: null }));
+  const vrms = await getCachedIdolVrms()
+    .then(effectiveIdolVrmMap)
+    .catch(() => effectiveIdolVrmMap({ zelie: null, cleo: null, mio: null, nangnang: null }));
 
   return (
     <LiveChannelGrid
@@ -58,6 +63,7 @@ export async function LiveChannelFeed({
       hosts={hosts}
       followedHostIds={followedHostIds}
       backdrops={backdrops}
+      vrms={vrms}
     />
   );
 }

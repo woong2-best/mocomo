@@ -20,9 +20,11 @@ export function publicStorageUrl(objectPath: string): string {
   return `${base}/storage/v1/object/public/${BUCKET}/${objectPath}`;
 }
 
+export type StorageCategory = "image" | "video" | "audio" | "model";
+
 export function storageObjectKey(
   userId: string,
-  category: "image" | "video" | "audio",
+  category: StorageCategory,
   filename: string
 ): string {
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -34,7 +36,7 @@ export async function uploadBufferToSupabase(
   buffer: Buffer,
   filename: string,
   contentType: string,
-  category: "image" | "video" | "audio"
+  category: StorageCategory
 ): Promise<{ publicUrl: string } | { error: string }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -64,7 +66,7 @@ export async function createSupabaseSignedUpload(
   userId: string,
   filename: string,
   contentType: string,
-  category: "image" | "video" | "audio"
+  category: StorageCategory
 ): Promise<{ uploadUrl: string; publicUrl: string; token: string } | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;

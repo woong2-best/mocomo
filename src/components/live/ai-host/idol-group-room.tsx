@@ -7,10 +7,12 @@ export function IdolGroupRoom({
   initial,
   channels,
   backdropUrl = null,
+  vrmUrl = null,
 }: {
   initial: IdolId;
   channels: Partial<Record<IdolId, string>>;
   backdropUrl?: string | null;
+  vrmUrl?: string | null;
 }) {
   const idol = idolById(initial) ?? IDOLS[0];
 
@@ -18,7 +20,7 @@ export function IdolGroupRoom({
     <MocoLiveRoom
       key={idol.id}
       channelId={channels[idol.id] ?? null}
-      vrmUrl={playableIdolVrmUrl(idol.vrmUrl)}
+      vrmUrl={vrmUrl || playableIdolVrmUrl(idol.vrmUrl)}
       backdropUrl={backdropUrl}
       hostUsername={idol.username}
       showVrm

@@ -36,6 +36,7 @@ export function sniffMimeFromBuffer(buf: Buffer): string | null {
   if (startsWith(buf, "OggS")) return "audio/ogg";
   if (startsWith(buf, "fLaC")) return "audio/flac";
   if (startsWith(buf, "%PDF-")) return "application/pdf";
+  if (startsWith(buf, "glTF")) return "model/gltf-binary";
 
   return null;
 }

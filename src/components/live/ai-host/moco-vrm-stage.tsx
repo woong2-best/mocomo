@@ -2,7 +2,7 @@
 
 import type { VRM } from "@pixiv/three-vrm";
 import { memo, useEffect, useMemo, useRef } from "react";
-import { IDOL_VRM_FALLBACK } from "@/lib/ai-live/idols";
+import { IDOL_VRM_DEFAULTS } from "@/lib/ai-live/idol-vrm-shared";
 import {
   applyVrmMouth,
   isChloeCharacter,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/ai-live/vrm-expression";
 import { disposeIdolVrm, loadIdolVrm, useIdolVrm } from "@/components/live/ai-host/use-idol-vrm";
 
-const DEFAULT_VRM_URL = IDOL_VRM_FALLBACK;
+const DEFAULT_VRM_URL = IDOL_VRM_DEFAULTS.zelie;
 
 export type MocoStageHandle = {
   /** Create the audio graph during the click that will play speech. */

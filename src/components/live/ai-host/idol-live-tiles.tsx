@@ -7,12 +7,15 @@ import {
   IDOL_BACKDROP_DEFAULTS,
   type IdolBackdropSlot,
 } from "@/lib/ai-live/idol-backdrop-shared";
+import { IDOL_VRM_DEFAULTS, type IdolVrmSlot } from "@/lib/ai-live/idol-vrm-shared";
 
 /** Same card chrome as a normal live. VRM + room backdrop match the live room. */
 export function IdolLiveTiles({
   backdrops,
+  vrms,
 }: {
   backdrops?: Partial<Record<IdolBackdropSlot, string | null>>;
+  vrms?: Partial<Record<IdolVrmSlot, string | null>>;
 }) {
   return (
     <>
@@ -20,7 +23,7 @@ export function IdolLiveTiles({
         <AiHostPreviewTile
           key={idol.id}
           href={`/live/${idol.id}`}
-          vrmUrl={playableIdolVrmUrl(idol.vrmUrl)}
+          vrmUrl={vrms?.[idol.id] || playableIdolVrmUrl(idol.vrmUrl) || IDOL_VRM_DEFAULTS[idol.id]}
           backdropUrl={
             backdrops?.[backdropSlotForAvatar(idol.id) ?? "airi"] ??
             IDOL_BACKDROP_DEFAULTS[backdropSlotForAvatar(idol.id) ?? "airi"]

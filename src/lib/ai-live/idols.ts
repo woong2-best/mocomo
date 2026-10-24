@@ -1,4 +1,5 @@
 import { resolveIdolId, type IdolId } from "@/lib/ai-live/avatars";
+import { IDOL_VRM_DEFAULTS, isSafeIdolVrmUrl } from "@/lib/ai-live/idol-vrm-shared";
 
 export type { IdolId } from "@/lib/ai-live/avatars";
 
@@ -21,10 +22,15 @@ export const IDOL_VRM_FALLBACK = "/avatars/default.vrm";
  * Files that exist under `public/`. Missing paths stay off this list so the browser never requests a 404.
  * Cleo is VRoid AvatarSample_B, Mio is AvatarSample_A (commercial use and redistribution allowed, credit not required).
  */
-const READY_VRM_URLS = new Set<string>(["/models/airi.vrm", "/models/chloe.vrm", "/models/nangnang.vrm"]);
+const READY_VRM_URLS = new Set<string>([
+  IDOL_VRM_DEFAULTS.zelie,
+  IDOL_VRM_DEFAULTS.cleo,
+  IDOL_VRM_DEFAULTS.mio,
+  IDOL_VRM_DEFAULTS.nangnang,
+]);
 
 export function playableIdolVrmUrl(url: string | null | undefined): string {
-  if (url && READY_VRM_URLS.has(url)) return url;
+  if (url && (READY_VRM_URLS.has(url) || isSafeIdolVrmUrl(url))) return url;
   return IDOL_VRM_FALLBACK;
 }
 

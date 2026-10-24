@@ -3,6 +3,7 @@ import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { getIdolBackdropUrl } from "@/lib/ai-live/idol-backdrop";
+import { getIdolVrmUrl } from "@/lib/ai-live/idol-vrm";
 import { ensureMocoOfficialChannel } from "@/lib/ai-live/official-channel";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +18,10 @@ export async function generateMetadata() {
 
 export default async function ZelieLivePage() {
   if (!isLiveFeatureEnabled()) return <LiveFeatureDisabledNotice />;
-  const [channel, backdropUrl] = await Promise.all([
+  const [channel, backdropUrl, vrmUrl] = await Promise.all([
     ensureMocoOfficialChannel().catch(() => null),
     getIdolBackdropUrl("zelie").catch(() => "/live/backgrounds/moco-room.jpg"),
+    getIdolVrmUrl("zelie").catch(() => "/avatars/zelie.vrm"),
   ]);
-  return <MocoLiveRoom channelId={channel?.channelId ?? null} backdropUrl={backdropUrl} />;
+  return <MocoLiveRoom channelId={channel?.channelId ?? null} backdropUrl={backdropUrl} vrmUrl={vrmUrl} />;
 }
