@@ -16,9 +16,12 @@ import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
 import { collapseMapLibreAttribution } from "@/lib/maps/maplibre-attribution";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import {
+  CLUMP_SEPARATE_MAX_ZOOM,
+  PIN_FOCUS_ZOOM,
+  clumpIsSameSpot,
+  clumpLngLatBounds,
   geoCentroid,
-  itemsNearScreenPoint,
-  nextClumpZoom,
+  pileAroundNearest,
   type ScreenPt,
 } from "@/lib/maps/pin-clump";
 import {
@@ -350,15 +353,30 @@ export function SubcultureEventsMap({
         const projected = map.project([pin.lng, pin.lat]);
         return { x: projected.x, y: projected.y };
       };
-      const pinsAtPoint = (point: ScreenPt) =>
-        itemsNearScreenPoint(pins, projectPin, point, CLUMP_RADIUS_PX);
-      const zoomIntoClump = (group: MapEventPin[]) => {
+      const pileAtPoint = (point: ScreenPt) =>
+        pileAroundNearest(pins, projectPin, point, CLUMP_RADIUS_PX);
+      const zoomToSeparatePile = (group: MapEventPin[]) => {
         const center = geoCentroid(group);
-        map.easeTo({
-          center: [center.lng, center.lat],
-          zoom: nextClumpZoom(map.getZoom(), ESRI_SATELLITE_MAX_ZOOM),
-          duration: 400,
-        });
+        const bounds = clumpLngLatBounds(group);
+        if (!bounds || clumpIsSameSpot(group)) {
+          map.easeTo({
+            center: [center.lng, center.lat],
+            zoom: Math.min(CLUMP_SEPARATE_MAX_ZOOM, ESRI_SATELLITE_MAX_ZOOM),
+            duration: 500,
+          });
+          return;
+        }
+        map.fitBounds(
+          [
+            [bounds.minLng, bounds.minLat],
+            [bounds.maxLng, bounds.maxLat],
+          ],
+          {
+            padding: 80,
+            maxZoom: CLUMP_SEPARATE_MAX_ZOOM,
+            duration: 500,
+          }
+        );
       };
       const openPin = (pin: MapEventPin) => {
         popupRef.current?.remove();
@@ -372,28 +390,36 @@ export function SubcultureEventsMap({
           .setHTML(buildPinPopupHtml(pin))
           .addTo(map);
         popupRef.current = popup;
+        map.easeTo({
+          center: [pin.lng, pin.lat],
+          zoom: Math.min(
+            ESRI_SATELLITE_MAX_ZOOM,
+            Math.max(map.getZoom(), PIN_FOCUS_ZOOM)
+          ),
+          duration: 500,
+        });
         onPinClick?.(pin);
       };
 
       map.on("mousemove", (event) => {
         if (!interactive) return;
-        map.getCanvas().style.cursor = pinsAtPoint(event.point).length > 0 ? "pointer" : "";
+        map.getCanvas().style.cursor = pileAtPoint(event.point).length > 0 ? "pointer" : "";
       });
       map.on("click", (event) => {
         if (interactive) {
-          const nearby = pinsAtPoint(event.point);
-          if (nearby.length >= 2) {
+          const pile = pileAtPoint(event.point);
+          if (pile.length >= 2) {
             popupRef.current?.remove();
             popupRef.current = null;
-            if (map.getZoom() >= ESRI_SATELLITE_MAX_ZOOM - 0.05) {
-              openPin(nearby[0]!);
+            if (map.getZoom() >= CLUMP_SEPARATE_MAX_ZOOM - 0.05) {
+              openPin(pile[0]!);
               return;
             }
-            zoomIntoClump(nearby);
+            zoomToSeparatePile(pile);
             return;
           }
-          if (nearby[0]) {
-            openPin(nearby[0]);
+          if (pile[0]) {
+            openPin(pile[0]);
             return;
           }
         }

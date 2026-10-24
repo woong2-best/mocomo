@@ -1,12 +1,9 @@
 export type ScreenPt = { x: number; y: number };
 
-/** One click on a pile should feel like 10 → 5, not a jump to street level. */
-export const CLUMP_ZOOM_STEP = 1.8;
-
-export function nextClumpZoom(currentZoom: number, maxZoom: number): number {
-  if (!Number.isFinite(currentZoom)) return Math.min(maxZoom, CLUMP_ZOOM_STEP);
-  return Math.min(maxZoom, currentZoom + CLUMP_ZOOM_STEP);
-}
+/** Zoom that splits a stacked pile into separate pins at their real spots. */
+export const CLUMP_SEPARATE_MAX_ZOOM = 16;
+/** Isolated pin click — building / rooftop. */
+export const PIN_FOCUS_ZOOM = 18;
 
 export function geoCentroid(points: { lng: number; lat: number }[]): {
   lng: number;
@@ -39,4 +36,47 @@ export function itemsNearScreenPoint<T>(
   }
   hits.sort((left, right) => left.d2 - right.d2);
   return hits.map((hit) => hit.item);
+}
+
+/** The visual blob: pins overlapping the nearest pin, not every pin near the click. */
+export function pileAroundNearest<T>(
+  items: T[],
+  project: (item: T) => ScreenPt,
+  point: ScreenPt,
+  radiusPx: number
+): T[] {
+  const nearClick = itemsNearScreenPoint(items, project, point, radiusPx);
+  const nearest = nearClick[0];
+  if (!nearest) return [];
+  return itemsNearScreenPoint(items, project, project(nearest), radiusPx);
+}
+
+export function clumpLngLatBounds(points: { lng: number; lat: number }[]): {
+  minLng: number;
+  minLat: number;
+  maxLng: number;
+  maxLat: number;
+} | null {
+  const usable = points.filter(
+    (point) => Number.isFinite(point.lng) && Number.isFinite(point.lat)
+  );
+  if (usable.length === 0) return null;
+  let minLng = usable[0]!.lng;
+  let maxLng = usable[0]!.lng;
+  let minLat = usable[0]!.lat;
+  let maxLat = usable[0]!.lat;
+  for (const point of usable) {
+    minLng = Math.min(minLng, point.lng);
+    maxLng = Math.max(maxLng, point.lng);
+    minLat = Math.min(minLat, point.lat);
+    maxLat = Math.max(maxLat, point.lat);
+  }
+  return { minLng, minLat, maxLng, maxLat };
+}
+
+/** True when the pile is basically one building — zoom cannot split it. */
+export function clumpIsSameSpot(points: { lng: number; lat: number }[]): boolean {
+  const bounds = clumpLngLatBounds(points);
+  if (!bounds) return true;
+  return bounds.maxLng - bounds.minLng < 1e-4 && bounds.maxLat - bounds.minLat < 1e-4;
 }

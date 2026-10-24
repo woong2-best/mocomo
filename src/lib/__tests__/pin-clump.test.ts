@@ -1,17 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  CLUMP_ZOOM_STEP,
+  clumpIsSameSpot,
+  clumpLngLatBounds,
   geoCentroid,
   itemsNearScreenPoint,
-  nextClumpZoom,
+  pileAroundNearest,
 } from "@/lib/maps/pin-clump";
-
-test("clump zoom steps in halfway, not all the way to max", () => {
-  assert.equal(nextClumpZoom(4, 19), 4 + CLUMP_ZOOM_STEP);
-  assert.ok(nextClumpZoom(4, 19) < 10);
-  assert.equal(nextClumpZoom(18.5, 19), 19);
-});
 
 test("nearby screen hits ignore pins outside the clump", () => {
   const pins = [
@@ -31,6 +26,24 @@ test("nearby screen hits ignore pins outside the clump", () => {
   );
 });
 
+test("pile is the blob around the nearest pin, not every pin near the click", () => {
+  const pins = [
+    { id: "daegu-a", x: 100, y: 100 },
+    { id: "daegu-b", x: 108, y: 102 },
+    { id: "seoul", x: 120, y: 100 },
+  ];
+  const pile = pileAroundNearest(
+    pins,
+    (pin) => ({ x: pin.x, y: pin.y }),
+    { x: 101, y: 100 },
+    16
+  );
+  assert.deepEqual(
+    pile.map((pin) => pin.id),
+    ["daegu-a", "daegu-b"]
+  );
+});
+
 test("geo centroid averages the clump", () => {
   assert.deepEqual(
     geoCentroid([
@@ -38,5 +51,32 @@ test("geo centroid averages the clump", () => {
       { lng: 139.8, lat: 35.8 },
     ]),
     { lng: 139.75, lat: 35.7 }
+  );
+});
+
+test("clump bounds and same-spot detection", () => {
+  const bounds = clumpLngLatBounds([
+    { lng: 128.6, lat: 35.87 },
+    { lng: 128.61, lat: 35.88 },
+  ]);
+  assert.deepEqual(bounds, {
+    minLng: 128.6,
+    minLat: 35.87,
+    maxLng: 128.61,
+    maxLat: 35.88,
+  });
+  assert.equal(
+    clumpIsSameSpot([
+      { lng: 128.6, lat: 35.87 },
+      { lng: 128.60005, lat: 35.87005 },
+    ]),
+    true
+  );
+  assert.equal(
+    clumpIsSameSpot([
+      { lng: 128.6, lat: 35.87 },
+      { lng: 128.61, lat: 35.88 },
+    ]),
+    false
   );
 });
