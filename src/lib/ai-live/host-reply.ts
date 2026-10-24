@@ -9,18 +9,20 @@ export type HostSpeech = {
   emotion: VrmEmotion;
   blocked: boolean;
   rateLimited: boolean;
+  exhausted?: boolean;
   audio: ArrayBuffer | null;
 };
 
 /** Caller must already have passed `planHostReply` and only send `kind: "model"` text. */
 export async function speakHostLine(userText: string, member: string | null = null): Promise<HostSpeech> {
   const reply = await replyForAvatar(userText, member);
-  if (reply.blocked || reply.rateLimited) {
+  if (reply.blocked || reply.rateLimited || reply.exhausted) {
     return {
       text: reply.text,
       emotion: reply.emotion,
       blocked: reply.blocked,
       rateLimited: reply.rateLimited,
+      exhausted: reply.exhausted,
       audio: null,
     };
   }

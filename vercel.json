@@ -74,6 +74,10 @@
     {
       "path": "/api/cron/legal-publish",
       "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/avatar-llm-discover",
+      "schedule": "20 4 * * *"
     }
   ],
   "functions": {
@@ -136,6 +140,9 @@
     },
     "src/app/api/cron/creator-gem-payouts/route.ts": {
       "maxDuration": 120
+    },
+    "src/app/api/cron/avatar-llm-discover/route.ts": {
+      "maxDuration": 60
     },
     "src/app/api/studio/upload/route.ts": {
       "maxDuration": 60

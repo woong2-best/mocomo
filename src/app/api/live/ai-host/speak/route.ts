@@ -48,6 +48,18 @@ export async function POST(req: NextRequest) {
       { status: 429 },
     );
   }
+  if (spoken.exhausted) {
+    return NextResponse.json(
+      {
+        text: spoken.text,
+        emotion: spoken.emotion,
+        blocked: false,
+        exhausted: true,
+        audioBase64: null,
+      },
+      { status: 502 },
+    );
+  }
   return NextResponse.json({
     text: spoken.text,
     emotion: spoken.emotion,

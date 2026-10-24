@@ -1,9 +1,10 @@
+import { primaryCompanyForAvatar, type AvatarLlmCompany } from "@/lib/ai-live/llm/config";
+
 export type LiveAvatarId = "zelie" | "cleo" | "mio" | "nangnang";
 export type IdolId = "cleo" | "mio" | "nangnang";
+export type { AvatarLlmCompany };
 
-export type AvatarLlmRoute =
-  | { platform: "groq"; model: string }
-  | { platform: "google"; model: string };
+export type AvatarLlmRoute = { company: AvatarLlmCompany };
 
 const ALIAS: Record<string, LiveAvatarId> = {
   zelie: "zelie",
@@ -18,12 +19,12 @@ const ALIAS: Record<string, LiveAvatarId> = {
 
 export const LIVE_AVATAR_IDS = ["zelie", "cleo", "mio", "nangnang"] as const;
 
-/** One live model per avatar. Do not share endpoints across rooms. */
+/** One primary company per avatar. Model IDs come from discovery, not this table. */
 export const AVATAR_LLM: Record<LiveAvatarId, AvatarLlmRoute> = {
-  zelie: { platform: "groq", model: "openai/gpt-oss-20b" },
-  cleo: { platform: "google", model: "gemini-2.5-flash" },
-  mio: { platform: "groq", model: "openai/gpt-oss-120b" },
-  nangnang: { platform: "groq", model: "qwen/qwen3.8-27b" },
+  zelie: { company: "groq" },
+  cleo: { company: "openrouter" },
+  mio: { company: "cerebras" },
+  nangnang: { company: "mistral" },
 };
 
 export function resolveLiveAvatarId(value: string | null | undefined): LiveAvatarId | null {
@@ -46,5 +47,6 @@ export function isLiveAvatarId(value: string | null | undefined): value is LiveA
 }
 
 export function llmRouteForAvatar(value: string | null | undefined): AvatarLlmRoute {
-  return AVATAR_LLM[resolveLiveAvatarId(value) ?? "zelie"];
+  const avatar = resolveLiveAvatarId(value) ?? "zelie";
+  return { company: primaryCompanyForAvatar(avatar) };
 }

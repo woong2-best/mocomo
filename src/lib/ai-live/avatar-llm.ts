@@ -1,53 +1,50 @@
 import { classifyAiHostMessage, textHasHangul } from "@/lib/ai-live/blocklist";
-import { llmRouteForAvatar, resolveLiveAvatarId, type LiveAvatarId } from "@/lib/ai-live/avatars";
+import { resolveLiveAvatarId, type LiveAvatarId } from "@/lib/ai-live/avatars";
 import { promptForCharacter } from "@/constants/prompts";
-import { readHostEmotionReply, type VrmEmotion } from "@/lib/ai-live/vrm-expression";
+import type { VrmEmotion } from "@/lib/ai-live/vrm-expression";
 import {
-  beginPrimaryOrFallback,
-  fallbackAfterQuota,
-  isQuotaFailure,
-  logWorkersAiFallback,
-  workersAiChat,
-  workersAiConfigured,
-  type LlmProvider,
-} from "@/lib/ai-fallback";
+  candidateTimeoutMs,
+  companyConfigured,
+  fallbackCompanyOrder,
+  primaryCompanyForAvatar,
+  providerConfig,
+  requestBudgetMs,
+} from "@/lib/ai-live/llm/config";
+import {
+  markModelCooldown,
+  markModelDead,
+  providerState,
+  siteSettingCatalogStore,
+  usableModels,
+} from "@/lib/ai-live/llm/catalog";
+import { deadModelAlert, exhaustedAlert, sendAvatarLlmAlert } from "@/lib/ai-live/llm/alerts";
+import { discoverModelsOnce, ensureCatalog } from "@/lib/ai-live/llm/discover";
+import { companyChat } from "@/lib/ai-live/llm/providers";
+import type { AvatarLlmCatalog, AvatarLlmCompany, CatalogStore, ChatResult } from "@/lib/ai-live/llm/types";
 import { safeLogWarn } from "@/lib/safe-log";
 
 const AI_ADMISSION =
   /\b(?:as an ai|i am an ai|i'm an ai|language model|large language model)\b/i;
-
-const HOST_RESPONSE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    text: { type: "STRING" },
-    emotion: {
-      type: "STRING",
-      enum: ["neutral", "happy", "angry", "sad", "relaxed", "surprised"],
-    },
-  },
-  required: ["text", "emotion"],
-};
 
 export type AvatarReply = {
   text: string;
   emotion: VrmEmotion;
   blocked: boolean;
   rateLimited: boolean;
+  exhausted?: boolean;
 };
 
-type ModelResult =
-  | { kind: "text"; text: string; emotion: VrmEmotion }
-  | { kind: "safety" }
-  | { kind: "rate_limit"; status?: number }
-  | { kind: "fail"; status?: number };
-
-function geminiKey() {
-  return process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() || "";
-}
-
-function groqKey() {
-  return process.env.GROQ_API_KEY?.trim() || "";
-}
+export type ReplyDeps = {
+  store?: CatalogStore;
+  chat?: typeof companyChat;
+  ensure?: typeof ensureCatalog;
+  alert?: typeof sendAvatarLlmAlert;
+  rediscover?: typeof discoverModelsOnce;
+  configured?: (company: AvatarLlmCompany) => boolean;
+  now?: () => number;
+  budgetMs?: number;
+  candidateMs?: number;
+};
 
 export function systemInstructionFor(characterId: string | null): string {
   return [
@@ -68,7 +65,7 @@ export function rateLimitLine(userText: string): string {
     : "This avatar is busy right now. Try again in a moment.";
 }
 
-function quietLine(userText: string): string {
+export function quietLine(userText: string): string {
   return textHasHangul(userText)
     ? "잠깐, 목이 잠겼어. 다시 말해 봐."
     : "Hold on, my voice cut out. Say that again.";
@@ -82,119 +79,7 @@ function angryOrHard(userText: string): string {
   return classifyAiHostMessage(userText)?.text ?? deflect(userText);
 }
 
-type GeminiPart = { text?: string; thought?: boolean };
-type GeminiJson = {
-  promptFeedback?: { blockReason?: string };
-  candidates?: {
-    finishReason?: string;
-    content?: { parts?: GeminiPart[] };
-  }[];
-};
-
-async function groqChat(
-  model: string,
-  system: string,
-  userText: string,
-  jsonMode = true,
-): Promise<ModelResult> {
-  const key = groqKey();
-  if (!key) return { kind: "fail" };
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(12_000),
-      body: JSON.stringify({
-        model,
-        temperature: 0.9,
-        max_tokens: 512,
-        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: userText },
-        ],
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      if (isQuotaFailure(res.status, body)) return { kind: "rate_limit", status: res.status };
-      if (jsonMode && res.status === 400) return groqChat(model, system, userText, false);
-      return { kind: "fail", status: res.status };
-    }
-    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const raw = json.choices?.[0]?.message?.content?.trim() ?? "";
-    const spoken = readHostEmotionReply(raw);
-    if (!spoken) return { kind: "fail" };
-    return { kind: "text", text: spoken.text, emotion: spoken.emotion };
-  } catch {
-    return { kind: "fail" };
-  }
-}
-
-async function geminiChat(model: string, system: string, userText: string, jsonMode: boolean): Promise<ModelResult> {
-  const key = geminiKey();
-  if (!key) return { kind: "fail" };
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(8_000),
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: "user", parts: [{ text: userText }] }],
-          generationConfig: {
-            temperature: 0.9,
-            maxOutputTokens: jsonMode ? 512 : 240,
-            ...(jsonMode
-              ? { responseMimeType: "application/json", responseSchema: HOST_RESPONSE_SCHEMA }
-              : {}),
-          },
-          safetySettings: [
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          ],
-        }),
-      },
-    );
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      if (isQuotaFailure(res.status, body)) return { kind: "rate_limit", status: res.status };
-      return { kind: "fail", status: res.status };
-    }
-    const json = (await res.json()) as GeminiJson;
-    if (json.promptFeedback?.blockReason) return { kind: "safety" };
-    const candidate = json.candidates?.[0];
-    if (candidate?.finishReason === "SAFETY") return { kind: "safety" };
-    const raw = (candidate?.content?.parts ?? [])
-      .filter((part) => !part.thought)
-      .map((part) => part.text ?? "")
-      .join("")
-      .trim();
-    const spoken = readHostEmotionReply(raw);
-    if (!spoken) return { kind: "fail" };
-    return { kind: "text", text: spoken.text, emotion: spoken.emotion };
-  } catch {
-    return { kind: "fail" };
-  }
-}
-
-function finish(userText: string, result: ModelResult): AvatarReply {
-  if (result.kind === "rate_limit") {
-    return { text: rateLimitLine(userText), emotion: "sad", blocked: false, rateLimited: true };
-  }
-  if (result.kind === "safety") {
-    return { text: angryOrHard(userText), emotion: "angry", blocked: true, rateLimited: false };
-  }
-  if (result.kind !== "text" || !result.text) {
-    return { text: quietLine(userText), emotion: "sad", blocked: false, rateLimited: false };
-  }
+function finish(userText: string, result: Extract<ChatResult, { kind: "text" }>): AvatarReply {
   if (AI_ADMISSION.test(result.text)) {
     return { text: deflect(userText), emotion: "angry", blocked: false, rateLimited: false };
   }
@@ -203,78 +88,111 @@ function finish(userText: string, result: ModelResult): AvatarReply {
   return { text: result.text, emotion: result.emotion, blocked: false, rateLimited: false };
 }
 
-async function workersAiHostReply(system: string, userText: string): Promise<ModelResult> {
-  const raw = await workersAiChat({
-    system,
-    user: userText,
-    temperature: 0.9,
-    maxTokens: 180,
-    timeoutMs: 8_000,
-  });
-  const spoken = readHostEmotionReply(raw ?? "");
-  if (!spoken) return { kind: "fail" };
-  return { kind: "text", text: spoken.text, emotion: spoken.emotion };
+function modelsForCompany(catalog: AvatarLlmCatalog, company: AvatarLlmCompany, limit: number): string[] {
+  if (company === "workers-ai") return ["workers-ai"];
+  const live = usableModels(catalog, company);
+  if (live.length) return live.slice(0, limit);
+  const dead = providerState(catalog, company).dead;
+  return providerConfig(company)
+    .candidates.filter((id) => !dead[id])
+    .slice(0, limit);
 }
 
-async function maybeWorkersAiFallback(
-  provider: LlmProvider,
-  result: ModelResult,
-  system: string,
-  userText: string
-): Promise<ModelResult> {
-  if (result.kind === "rate_limit") {
-    if (!fallbackAfterQuota(provider, "live-avatar", result.status ?? 429)) return result;
-  } else if (result.kind === "fail") {
-    if (!workersAiConfigured()) return result;
-    logWorkersAiFallback({
-      provider,
-      feature: "live-avatar",
-      reason: "primary_fail",
-      status: result.status,
-    });
-  } else {
-    return result;
+function buildChain(avatar: LiveAvatarId, catalog: AvatarLlmCatalog, configured: (company: AvatarLlmCompany) => boolean) {
+  const primary = primaryCompanyForAvatar(avatar);
+  const slots: { company: AvatarLlmCompany; model: string }[] = [];
+  const seen = new Set<string>();
+  const push = (company: AvatarLlmCompany, model: string) => {
+    const key = `${company}:${model}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    slots.push({ company, model });
+  };
+  if (configured(primary)) {
+    for (const model of modelsForCompany(catalog, primary, 3)) push(primary, model);
   }
-  const fallback = await workersAiHostReply(system, userText);
-  return fallback.kind === "text" ? fallback : result;
+  for (const company of fallbackCompanyOrder(primary)) {
+    if (!configured(company)) continue;
+    const limit = company === "workers-ai" ? 1 : 2;
+    for (const model of modelsForCompany(catalog, company, limit)) push(company, model);
+  }
+  return slots;
 }
 
-/** Route one line to the avatar's own model. Never share Zelie's Groq model with the others. */
-export async function replyForAvatar(userText: string, characterId: string | null): Promise<AvatarReply> {
+/** Route one line through the avatar's company, then the shared fallback chain. */
+export async function replyForAvatar(
+  userText: string,
+  characterId: string | null,
+  deps: ReplyDeps = {},
+): Promise<AvatarReply> {
   const avatar: LiveAvatarId = resolveLiveAvatarId(characterId) ?? "zelie";
-  const route = llmRouteForAvatar(avatar);
   const system = systemInstructionFor(avatar);
-  const provider: LlmProvider = route.platform === "groq" ? "groq" : "gemini";
+  const store = deps.store ?? siteSettingCatalogStore();
+  const chat = deps.chat ?? companyChat;
+  const ensure = deps.ensure ?? ensureCatalog;
+  const alert = deps.alert ?? sendAvatarLlmAlert;
+  const rediscover = deps.rediscover ?? discoverModelsOnce;
+  const configured = deps.configured ?? companyConfigured;
+  const now = deps.now ?? Date.now;
+  const budgetMs = deps.budgetMs ?? requestBudgetMs();
+  const candidateMs = deps.candidateMs ?? candidateTimeoutMs();
+  const deadline = now() + budgetMs;
 
   try {
-    if (beginPrimaryOrFallback(provider, "live-avatar") === "fallback") {
-      return finish(userText, await workersAiHostReply(system, userText));
-    }
+    let catalog = await ensure({ store });
+    const chain = buildChain(avatar, catalog, configured);
+    let sawRateLimit = false;
+    let sawHardFail = false;
 
-    if (route.platform === "groq") {
-      const result = await maybeWorkersAiFallback(
-        "groq",
-        await groqChat(route.model, system, userText),
+    for (const slot of chain) {
+      const remaining = deadline - now();
+      if (remaining < 200) break;
+      const timeoutMs = Math.min(candidateMs, remaining);
+      const result = await chat({
+        company: slot.company,
+        model: slot.model,
         system,
-        userText
-      );
-      if (result.kind === "fail") {
-        safeLogWarn("live-llm", { avatar, platform: "groq", result: "fail", status: result.status });
+        userText,
+        timeoutMs,
+      });
+
+      if (result.kind === "text") return finish(userText, result);
+      if (result.kind === "safety") {
+        return { text: angryOrHard(userText), emotion: "angry", blocked: true, rateLimited: false };
       }
-      return finish(userText, result);
+
+      safeLogWarn("live-llm", {
+        avatar,
+        company: slot.company,
+        model: slot.model,
+        result: result.kind,
+        status: "status" in result ? result.status ?? null : null,
+      });
+
+      if (result.kind === "rate_limit") {
+        sawRateLimit = true;
+        catalog = markModelCooldown(catalog, slot.company, slot.model, result.status, now());
+        await store.save(catalog).catch(() => undefined);
+        continue;
+      }
+      sawHardFail = true;
+      if (result.kind === "dead") {
+        catalog = markModelDead(catalog, slot.company, slot.model, result.status, now());
+        await store.save(catalog).catch(() => undefined);
+        void alert(deadModelAlert(slot.company, slot.model, result.status, avatar)).catch(() => undefined);
+        void rediscover({ store }).catch(() => undefined);
+      }
     }
 
-    let result = await geminiChat(route.model, system, userText, true);
-    if (result.kind === "fail" && result.status === 400) {
-      result = await geminiChat(route.model, system, userText, false);
+    if (sawRateLimit && !sawHardFail) {
+      return { text: rateLimitLine(userText), emotion: "sad", blocked: false, rateLimited: true };
     }
-    result = await maybeWorkersAiFallback("gemini", result, system, userText);
-    if (result.kind === "fail") {
-      safeLogWarn("live-llm", { avatar, platform: "google", result: "fail", status: result.status });
-    }
-    return finish(userText, result);
+
+    void alert(exhaustedAlert(avatar)).catch(() => undefined);
+    safeLogWarn("live-llm", { avatar, result: "exhausted" });
+    return { text: quietLine(userText), emotion: "sad", blocked: false, rateLimited: false, exhausted: true };
   } catch {
     safeLogWarn("live-llm", { avatar, result: "throw" });
-    return { text: quietLine(userText), emotion: "sad", blocked: false, rateLimited: false };
+    return { text: quietLine(userText), emotion: "sad", blocked: false, rateLimited: false, exhausted: true };
   }
 }

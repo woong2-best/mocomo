@@ -171,6 +171,13 @@ export function MocoLiveRoom({
           addLine("moco", t("live.aiRateLimit"), room);
           return;
         }
+        if (res.status === 502) {
+          const json = (await res.json().catch(() => null)) as { text?: unknown } | null;
+          const reply = typeof json?.text === "string" && json.text.trim() ? json.text.trim() : t("live.aiUnavailable");
+          console.error("[live-avatar]", { status: 502, exhausted: true, room });
+          addLine("moco", reply, room);
+          return;
+        }
         if (!res.ok) {
           addLine("moco", t("live.aiUnavailable"), room);
           return;

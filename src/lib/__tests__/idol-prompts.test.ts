@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CLEO_PROMPT, MIO_PROMPT, NANGNANG_PROMPT, ZELIE_PROMPT, promptForCharacter } from "@/constants/prompts";
 import { AVATAR_LLM, llmRouteForAvatar, resolveLiveAvatarId } from "@/lib/ai-live/avatars";
+import { primaryCompanyForAvatar } from "@/lib/ai-live/llm/config";
 import { systemInstructionFor } from "@/lib/ai-live/host-reply";
 
 test("each avatar has a distinct persona and model", () => {
@@ -20,11 +21,15 @@ test("each avatar has a distinct persona and model", () => {
   assert.match(CLEO_PROMPT, /귀요미/);
   assert.match(MIO_PROMPT, /마미/);
   assert.match(NANGNANG_PROMPT, /자본주의/);
-  assert.deepEqual(AVATAR_LLM.zelie, { platform: "groq", model: "openai/gpt-oss-20b" });
-  assert.deepEqual(AVATAR_LLM.cleo, { platform: "google", model: "gemini-2.5-flash" });
-  assert.deepEqual(AVATAR_LLM.mio, { platform: "groq", model: "openai/gpt-oss-120b" });
-  assert.deepEqual(AVATAR_LLM.nangnang, { platform: "groq", model: "qwen/qwen3.8-27b" });
-  assert.equal(llmRouteForAvatar("moco").model, "openai/gpt-oss-20b");
+  assert.deepEqual(AVATAR_LLM.zelie, { company: "groq" });
+  assert.deepEqual(AVATAR_LLM.cleo, { company: "openrouter" });
+  assert.deepEqual(AVATAR_LLM.mio, { company: "cerebras" });
+  assert.deepEqual(AVATAR_LLM.nangnang, { company: "mistral" });
+  assert.equal(llmRouteForAvatar("moco").company, "groq");
+  assert.equal(primaryCompanyForAvatar("zelie"), "groq");
+  assert.equal(primaryCompanyForAvatar("mio"), "cerebras");
+  assert.equal(primaryCompanyForAvatar("nangnang"), "mistral");
+  assert.equal(primaryCompanyForAvatar("cleo"), "openrouter");
 });
 
 test("system instruction stays on one identity", () => {
