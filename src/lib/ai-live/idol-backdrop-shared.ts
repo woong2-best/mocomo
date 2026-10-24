@@ -12,7 +12,7 @@ export const IDOL_BACKDROP_DEFAULTS: Record<IdolBackdropSlot, string | null> = {
   moco: "/live/backgrounds/moco-room.jpg",
   airi: "/live/backgrounds/airi-room.jpg",
   chloe: "/live/backgrounds/chloe-room.jpg",
-  stella: null,
+  stella: "/live/backgrounds/nangnang-room.jpg",
 };
 
 const DEFAULT_PATHS = new Set(
