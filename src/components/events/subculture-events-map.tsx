@@ -5,11 +5,13 @@ const i18n = createTranslator("en");
 
 import { useEffect, useRef, useState } from "react";
 import type {
+  CircleLayerSpecification,
   GeoJSONSource,
   Map as MapLibreMap,
   Popup as MapLibrePopup,
   StyleSpecification,
 } from "maplibre-gl";
+import type { FeatureCollection } from "geojson";
 import type { MapEventPin } from "@/lib/subculture-events";
 import { googleSearchUrlForEvent } from "@/lib/subculture-event-pins";
 import { eventCountryFlag } from "@/lib/subculture-event-countries";
@@ -87,13 +89,9 @@ const PIN_TOUCH_BUFFER = 20;
 /** Pins within this many screen pixels count as one clump you can spread. */
 const CLUMP_RADIUS_PX = 28;
 const HUB_HIT_RADIUS_PX = 16;
-const EMPTY_GEOJSON = {
-  type: "FeatureCollection" as const,
-  features: [] as Array<{
-    type: "Feature";
-    geometry: { type: "Point" | "LineString"; coordinates: number[] | number[][] };
-    properties: Record<string, string>;
-  }>,
+const EMPTY_GEOJSON: FeatureCollection = {
+  type: "FeatureCollection",
+  features: [],
 };
 
 type SpiderfyState = {
@@ -347,7 +345,7 @@ export function SubcultureEventsMap({
             type: "geojson",
             data: EMPTY_GEOJSON,
           });
-          const pinPaint = {
+          const pinPaint: CircleLayerSpecification["paint"] = {
             "circle-radius": pinHalo ? 8 : 7,
             "circle-color": ["get", "color"],
             "circle-stroke-width": pinHalo ? 3 : 2,
