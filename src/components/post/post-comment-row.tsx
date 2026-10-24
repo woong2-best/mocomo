@@ -56,6 +56,7 @@ export function PostCommentRow({
   isPinned = false,
   onLikeChange,
   onPinnedChange,
+  onReply,
 }: {
   comment: PostCommentRowData;
   postId: string;
@@ -65,6 +66,7 @@ export function PostCommentRow({
   isPinned?: boolean;
   onLikeChange?: (commentId: string, liked: boolean, likeCount: number) => void;
   onPinnedChange?: (commentId: string, pinned: boolean) => void;
+  onReply?: () => void;
 }) {
   const { locale, t } = useLocale();
   const session = useSession();
@@ -181,6 +183,15 @@ export function PostCommentRow({
           />
         ) : null}
         <CommentMediaThumb mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
+        {onReply && viewerId ? (
+          <button
+            type="button"
+            className="mt-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            onClick={onReply}
+          >
+            {t("ui.reply")}
+          </button>
+        ) : null}
         {likeCount > 0 ? (
           <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
             <span>{t("post.likeCount", { count: formatNumber(likeCount) })}</span>

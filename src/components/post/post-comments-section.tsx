@@ -1,11 +1,7 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
 import { auth } from "@/lib/auth";
 import { getPostCommentsPage } from "@/lib/comment-service";
 import { getServerTranslator } from "@/lib/i18n/server";
-import { CommentForm } from "@/components/post/comment-form";
-import { PostCommentsList } from "@/components/post/post-comments-list";
+import { PostCommentsBlock } from "@/components/post/post-comments-block";
 
 export async function PostCommentsSection({
   postId,
@@ -53,15 +49,15 @@ export async function PostCommentsSection({
       <h2 className="font-semibold">
         {t("post.comments")} {totalShown > 0 && totalShown}
       </h2>
-      {session?.user && <CommentForm postId={postId} className="mt-4" />}
       {loadError ? (
         <p className="text-sm text-destructive">{loadError}</p>
       ) : (
-        <PostCommentsList
+        <PostCommentsBlock
           postId={postId}
           postAuthorId={postAuthorId}
           qna={qna}
           sort={sort}
+          signedIn={!!session?.user}
           initialPinned={pinned}
           initialTop={top}
           initialComments={comments}

@@ -263,6 +263,7 @@ export async function notifyPostComment(params: {
       actorId,
       link,
       context: "Comment",
+      excludeUserIds: parentCommentAuthorId ? [parentCommentAuthorId] : [],
     });
   }
 }

@@ -18,6 +18,7 @@ export type OptimisticComment = {
   id: string;
   content: string;
   parentId?: string;
+  replyToUserId?: string;
   pending?: boolean;
   mediaType?: "NONE" | "PHOTO" | "GIF";
   mediaUrl?: string | null;

@@ -11,12 +11,13 @@ import {
   COMMENT_FAILED_EVENT,
   type OptimisticComment,
 } from "@/lib/comment-optimistic-sync";
-import type { SerializedComment } from "@/lib/comment-service";
+import type { SerializedComment, SerializedReply } from "@/lib/comment-service";
 import { useLocale } from "@/components/providers/locale-provider";
 
 type ListComment = PostCommentRowData & {
   pending?: boolean;
   isPinned?: boolean;
+  replyCount: number;
   replies: PostCommentRowData[];
 };
 
@@ -30,6 +31,7 @@ function fromSerialized(c: SerializedComment): ListComment {
     mediaType: c.mediaType,
     mediaUrl: c.mediaUrl,
     author: c.author,
+    replyCount: c.replyCount,
     replies: (c.replies ?? []).map((r) => ({
       id: r.id,
       content: r.content,
@@ -58,6 +60,7 @@ function optimisticToList(c: OptimisticComment): ListComment {
       username: c.author.username,
       supportTierSent: c.author.supportTierSent,
     },
+    replyCount: 0,
     replies: c.replies.map((r) => ({
       id: r.id,
       content: r.content,
@@ -92,6 +95,9 @@ export function PostCommentsList({
   initialCursor = null,
   emptyLabel,
   showIdHandle = true,
+  expandNonceById = {},
+  onReply,
+  onReplyPosted,
 }: {
   postId: string;
   postAuthorId: string;
@@ -103,6 +109,9 @@ export function PostCommentsList({
   initialCursor?: string | null;
   emptyLabel: string;
   showIdHandle?: boolean;
+  expandNonceById?: Record<string, number>;
+  onReply?: (target: { rootId: string; userId: string; username: string }) => void;
+  onReplyPosted?: (rootId: string) => void;
 }) {
   const { t } = useLocale();
   const session = useSession();
@@ -136,6 +145,7 @@ export function PostCommentsList({
             c.id === comment.parentId
               ? {
                   ...c,
+                  replyCount: c.replyCount + 1,
                   replies: [
                     ...c.replies,
                     {
@@ -159,6 +169,12 @@ export function PostCommentsList({
         setPinned(addReply);
         setTop(addReply);
         setComments(addReply);
+        onReplyPosted?.(comment.parentId);
+        requestAnimationFrame(() => {
+          document
+            .getElementById(`comment-${comment.id}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
         return;
       }
       const row = optimisticToList(comment);
@@ -211,7 +227,7 @@ export function PostCommentsList({
       window.removeEventListener(COMMENT_CONFIRMED_EVENT, onConfirmed);
       window.removeEventListener(COMMENT_FAILED_EVENT, onFailed);
     };
-  }, [postId, ranked]);
+  }, [onReplyPosted, postId, ranked]);
 
   async function loadMore() {
     if (!cursor || loadingMore) return;
@@ -260,33 +276,16 @@ export function PostCommentsList({
 
   function renderCard(c: ListComment) {
     return (
-      <Card key={c.id} id={`comment-${c.id}`} className={c.pending ? "opacity-70" : undefined}>
-        <CardContent className="p-4">
-          {c.isPinned ? (
-            <p className="mb-2 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-              <Pin className="h-3 w-3" />
-              {t("comments.pinned")}
-            </p>
-          ) : null}
-          <PostCommentRow
-            comment={c}
-            postId={postId}
-            showIdHandle={showIdHandle}
-            canPin={canPin}
-            isPinned={!!c.isPinned}
-            onPinnedChange={onPinnedChange}
-          />
-          {c.replies.map((r) => (
-            <PostCommentRow
-              key={r.id}
-              comment={r}
-              postId={postId}
-              showIdHandle={showIdHandle}
-              isReply
-            />
-          ))}
-        </CardContent>
-      </Card>
+      <CommentThreadCard
+        key={c.id}
+        comment={c}
+        postId={postId}
+        showIdHandle={showIdHandle}
+        canPin={canPin}
+        expandNonce={expandNonceById[c.id]}
+        onPinnedChange={onPinnedChange}
+        onReply={onReply}
+      />
     );
   }
 
@@ -330,5 +329,156 @@ export function PostCommentsList({
         </button>
       ) : null}
     </>
+  );
+}
+
+function CommentThreadCard({
+  comment,
+  postId,
+  showIdHandle,
+  canPin,
+  expandNonce,
+  onPinnedChange,
+  onReply,
+}: {
+  comment: ListComment;
+  postId: string;
+  showIdHandle: boolean;
+  canPin: boolean;
+  expandNonce?: number;
+  onPinnedChange: (id: string, nextPinned: boolean) => void;
+  onReply?: (target: { rootId: string; userId: string; username: string }) => void;
+}) {
+  const { t } = useLocale();
+  const [expanded, setExpanded] = useState(false);
+  const [replies, setReplies] = useState(comment.replies);
+  const [replyCursor, setReplyCursor] = useState<string | null>(null);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+
+  useEffect(() => {
+    if (comment.replies.length > replies.length) {
+      setReplies(comment.replies);
+    }
+  }, [comment.replies, replies.length]);
+
+  async function loadReplies(reset = false) {
+    if (loadingReplies) return;
+    setLoadingReplies(true);
+    try {
+      const qs = new URLSearchParams({ limit: "20" });
+      if (!reset && replyCursor) qs.set("cursor", replyCursor);
+      const res = await fetch(`/api/comments/${comment.id}/replies?${qs}`, {
+        credentials: "include",
+      });
+      const body = (await res.json()) as {
+        replies?: SerializedReply[];
+        nextCursor?: string | null;
+      };
+      if (!res.ok) return;
+      const next = (body.replies ?? []).map((r) => ({
+        id: r.id,
+        content: r.content,
+        likeCount: r.likeCount,
+        likedByMe: r.likedByMe,
+        mediaType: r.mediaType,
+        mediaUrl: r.mediaUrl,
+        author: r.author,
+      }));
+      setReplies((prev) => {
+        if (!reset) {
+          const seen = new Set(prev.map((r) => r.id));
+          return [...prev, ...next.filter((r) => !seen.has(r.id))];
+        }
+        const incomingIds = new Set(next.map((r) => r.id));
+        const pending = prev.filter(
+          (r) => r.id.startsWith("pending-") && !incomingIds.has(r.id)
+        );
+        return [...next, ...pending];
+      });
+      setReplyCursor(body.nextCursor ?? null);
+      setExpanded(true);
+    } finally {
+      setLoadingReplies(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!expandNonce) return;
+    setExpanded(true);
+    if (replies.length < comment.replyCount) {
+      void loadReplies(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandNonce]);
+
+  function startReply(row: PostCommentRowData) {
+    onReply?.({
+      rootId: comment.id,
+      userId: row.author.id,
+      username: row.author.username,
+    });
+  }
+
+  return (
+    <Card id={`comment-${comment.id}`} className={comment.pending ? "opacity-70" : undefined}>
+      <CardContent className="p-4">
+        {comment.isPinned ? (
+          <p className="mb-2 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+            <Pin className="h-3 w-3" />
+            {t("comments.pinned")}
+          </p>
+        ) : null}
+        <PostCommentRow
+          comment={comment}
+          postId={postId}
+          showIdHandle={showIdHandle}
+          canPin={canPin}
+          isPinned={!!comment.isPinned}
+          onPinnedChange={onPinnedChange}
+          onReply={() => startReply(comment)}
+        />
+        {comment.replyCount > 0 ? (
+          <button
+            type="button"
+            className="mt-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              if (expanded) {
+                setExpanded(false);
+                return;
+              }
+              if (replies.length === 0) void loadReplies(true);
+              else setExpanded(true);
+            }}
+          >
+            {expanded
+              ? t("comments.hideReplies")
+              : t("comments.viewReplies", { count: comment.replyCount })}
+          </button>
+        ) : null}
+        {expanded
+          ? replies.map((r) => (
+              <div key={r.id} id={`comment-${r.id}`}>
+                <PostCommentRow
+                  comment={r}
+                  postId={postId}
+                  showIdHandle={showIdHandle}
+                  isReply
+                  onReply={() => startReply(r)}
+                />
+              </div>
+            ))
+          : null}
+        {expanded && replyCursor ? (
+          <button
+            type="button"
+            className="mt-2 text-xs font-medium text-primary"
+            disabled={loadingReplies}
+            onClick={() => void loadReplies(false)}
+          >
+            {loadingReplies ? t("common.loading") : t("reels.s1vqpobh")}
+          </button>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

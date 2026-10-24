@@ -29,12 +29,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchFeedPage, type FeedPost } from "@/api/feed";
 import { fetchReelsAds } from "@/api/ads";
 import { createPostComment } from "@/api/social";
+import type { CommentReplyTarget } from "@/features/feed/CommentThreadExtras";
 import {
   parseCommentBuckets,
   postCommentsQueryKey,
   postCommentsQueryOptions,
   prefetchPostComments,
   withOptimisticComment,
+  withOptimisticReply,
   type PostCommentsResponse,
 } from "@/api/post-comments-query";
 import { ReelsCommentBackdrop } from "@/features/reels/ReelsCommentBackdrop";
@@ -492,15 +494,26 @@ export function ReelsScreen() {
     [queryClient]
   );
 
-  const submitComment = useCallback(async (media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null) => {
+  const submitComment = useCallback(async (
+    media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null,
+    reply?: CommentReplyTarget | null
+  ) => {
     if (!commentsPostId || commentBusy) return;
     if (!commentDraft.trim() && !media) return;
     setCommentBusy(true);
     try {
-      const res = await createPostComment(commentsPostId, commentDraft.trim(), media);
+      const res = await createPostComment(
+        commentsPostId,
+        commentDraft.trim(),
+        media,
+        reply ? { parentId: reply.rootId, replyToUserId: reply.userId } : null
+      );
       queryClient.setQueryData<PostCommentsResponse>(
         postCommentsQueryKey(commentsPostId),
-        (old) => withOptimisticComment(old, res.comment, "prepend")
+        (old) =>
+          reply
+            ? withOptimisticReply(old, reply.rootId, res.comment)
+            : withOptimisticComment(old, res.comment, "prepend")
       );
       setCommentDraft("");
       setHeaderCommentCount((n) => n + 1);
@@ -741,7 +754,7 @@ export function ReelsScreen() {
             canPin={canPinReels}
             copy={copy}
             onDraftChange={setCommentDraft}
-            onSubmit={() => void submitComment()}
+            onSubmit={(media, reply) => void submitComment(media, reply)}
             onClosed={closeComments}
           />
         </View>

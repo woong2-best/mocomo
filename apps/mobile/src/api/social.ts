@@ -41,6 +41,11 @@ export async function fetchPostDetail(id: string) {
 
 export type CommentMediaType = "NONE" | "PHOTO" | "GIF";
 
+export type CommentReplyToUser = {
+  id: string;
+  username: string;
+} | null;
+
 export type CommentItem = {
   id: string;
   content: string;
@@ -52,6 +57,9 @@ export type CommentItem = {
   acceptedAt?: string | null;
   mediaType?: CommentMediaType | null;
   mediaUrl?: string | null;
+  parentId?: string | null;
+  replyCount?: number;
+  replyToUser?: CommentReplyToUser;
   author: {
     id: string;
     username: string;
@@ -90,16 +98,28 @@ export async function acceptQnaAnswer(postId: string, commentId: string) {
 export async function createPostComment(
   postId: string,
   content: string,
-  media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null
+  media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null,
+  reply?: { parentId: string; replyToUserId?: string } | null
 ) {
   return apiRequest<{ comment: CommentItem }>(MobileApi.postComments(postId), {
     method: "POST",
     body: {
       content,
+      parentId: reply?.parentId,
+      replyToUserId: reply?.replyToUserId,
       mediaType: media?.mediaType ?? "NONE",
       mediaUrl: media?.mediaUrl ?? null,
     },
   });
+}
+
+export async function fetchCommentReplies(commentId: string, cursor?: string | null) {
+  const qs = new URLSearchParams({ limit: "20" });
+  if (cursor) qs.set("cursor", cursor);
+  return apiRequest<{
+    replies?: CommentItem[];
+    nextCursor?: string | null;
+  }>(`${MobileApi.commentReplies(commentId)}?${qs}`, { auth: true });
 }
 
 export type GiphyGifItem = {

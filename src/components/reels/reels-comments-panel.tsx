@@ -26,6 +26,7 @@ import {
 import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { CommentForm } from "@/components/post/comment-form";
 import { CommentMediaThumb } from "@/components/post/comment-media-view";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -308,6 +309,9 @@ function CommentRow({
   isPostOwner,
   isAdmin,
   isReply,
+  rootId,
+  expandNonce,
+  onReply,
   onPatch,
   onRemove,
 }: {
@@ -318,11 +322,13 @@ function CommentRow({
   isPostOwner: boolean;
   isAdmin: boolean;
   isReply?: boolean;
+  rootId: string;
+  expandNonce?: number;
+  onReply: (target: { rootId: string; userId: string; username: string }) => void;
   onPatch: (id: string, patch: Partial<PanelComment>) => void;
   onRemove: (id: string) => void;
 }) {
   const { locale, t } = useLocale();
-  const [replyOpen, setReplyOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(comment.content);
   const [expanded, setExpanded] = useState(false);
@@ -410,15 +416,34 @@ function CommentRow({
         nextCursor?: string | null;
       };
       if (!res.ok) return;
-      setReplies((prev) =>
-        reset ? body.replies ?? [] : [...prev, ...(body.replies ?? [])]
-      );
+      const incoming = body.replies ?? [];
+      setReplies((prev) => {
+        if (!reset) {
+          const seen = new Set(prev.map((r) => r.id));
+          return [...prev, ...incoming.filter((r) => !seen.has(r.id))];
+        }
+        const incomingIds = new Set(incoming.map((r) => r.id));
+        const pending = prev.filter(
+          (r) => r.id.startsWith("pending-") && !incomingIds.has(r.id)
+        );
+        return [...incoming, ...pending];
+      });
       setReplyCursor(body.nextCursor ?? null);
       setExpanded(true);
     } finally {
       setLoadingReplies(false);
     }
   }
+
+  useEffect(() => {
+    if (!expandNonce || isReply) return;
+    setExpanded(true);
+    if (replies.length === 0 || replies.length < replyCount) {
+      void loadReplies(true);
+    }
+    // nonce is the trigger; latest replies/count are read from this render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandNonce]);
 
   async function saveEdit() {
     const text = editText.trim();
@@ -535,9 +560,12 @@ function CommentRow({
                 </div>
               </div>
             ) : (
-              <p className="mt-0.5 text-[13px] leading-snug whitespace-pre-wrap break-words text-white">
-                {display}
-              </p>
+              <LinkifiedText
+                text={display}
+                as="p"
+                stopPropagation
+                className="mt-0.5 text-[13px] leading-snug whitespace-pre-wrap break-words text-white"
+              />
             )}
             <CommentMediaThumb mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
           </div>
@@ -593,10 +621,16 @@ function CommentRow({
             <button
               type="button"
               className="inline-flex items-center gap-1 hover:text-white/70"
-              onClick={() => setReplyOpen((v) => !v)}
+              onClick={() =>
+                onReply({
+                  rootId,
+                  userId: comment.author.id,
+                  username: comment.author.username,
+                })
+              }
             >
               <ReplyBubbleIcon className="h-3.5 w-3.5" />
-              Reply
+              {t("ui.reply")}
             </button>
           )}
           {needsTr && (
@@ -630,8 +664,8 @@ function CommentRow({
           >
             <span className="inline-block h-px w-6 bg-white/30" aria-hidden />
             {expanded
-              ? i18n("reels.s1wpsoxf")
-              : `View all ${formatNumber(replyCount)} replies`}
+              ? t("comments.hideReplies")
+              : t("comments.viewReplies", { count: formatNumber(replyCount) })}
           </button>
         )}
 
@@ -647,6 +681,8 @@ function CommentRow({
                   isPostOwner={isPostOwner}
                   isAdmin={isAdmin}
                   isReply
+                  rootId={rootId}
+                  onReply={onReply}
                   onPatch={(id, patch) => {
                     setReplies((prev) =>
                       prev.map((x) => (x.id === id ? { ...x, ...patch } : x))
@@ -673,20 +709,6 @@ function CommentRow({
           </ul>
         )}
 
-        {replyOpen && viewerId && (
-          <CommentForm
-            postId={postId}
-            parentId={comment.id}
-            placeholder={i18n("reels.s1nojek5")}
-            autoFocus
-            className="mt-2"
-            inputClassName="h-9 rounded-full border-white/15 bg-white/[0.06] text-white placeholder:text-white/35"
-            onSubmitted={() => {
-              setReplyOpen(false);
-              setExpanded(true);
-            }}
-          />
-        )}
       </div>
     </li>
   );
@@ -718,6 +740,14 @@ export function ReelsCommentsPanel({
   const [error, setError] = useState("");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const [replyTarget, setReplyTarget] = useState<{
+    rootId: string;
+    userId: string;
+    username: string;
+  } | null>(null);
+  const [expandNonceById, setExpandNonceById] = useState<Record<string, number>>({});
+  const [scrollToId, setScrollToId] = useState<string | null>(null);
   const sheet = useMobileReelsCommentSheet(open, onClose);
   const onCountChangeRef = useRef(onCountChange);
   onCountChangeRef.current = onCountChange;
@@ -725,6 +755,12 @@ export function ReelsCommentsPanel({
   totalRef.current = total;
 
   const isPostOwner = !!viewerId && !!postAuthorId && viewerId === postAuthorId;
+
+  useEffect(() => {
+    setReplyTarget(null);
+    setExpandNonceById({});
+    setScrollToId(null);
+  }, [postId]);
 
   const notifyCount = useCallback((next: number) => {
     if (totalRef.current === next) return;
@@ -964,6 +1000,12 @@ export function ReelsCommentsPanel({
         setPinned(bump);
         setTop(bump);
         setComments(bump);
+        const rootId = c.parentId;
+        setExpandNonceById((prev) => ({
+          ...prev,
+          [rootId]: (prev[rootId] ?? 0) + 1,
+        }));
+        setScrollToId(c.id);
       } else {
         const row: PanelComment = {
           id: c.id,
@@ -1060,6 +1102,15 @@ export function ReelsCommentsPanel({
   ]);
 
   useEffect(() => {
+    if (!scrollToId) return;
+    const el = document.getElementById(`comment-${scrollToId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      setScrollToId(null);
+    }
+  }, [scrollToId, comments, pinned, top]);
+
+  useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -1078,6 +1129,11 @@ export function ReelsCommentsPanel({
   const empty = !loading && !error && allComments.length === 0;
   const ranked = sort === "ranked";
 
+  function startReply(target: { rootId: string; userId: string; username: string }) {
+    setReplyTarget(target);
+    requestAnimationFrame(() => composerInputRef.current?.focus());
+  }
+
   function renderRow(c: PanelComment) {
     return (
       <CommentRow
@@ -1088,6 +1144,9 @@ export function ReelsCommentsPanel({
         postAuthorId={postAuthorId}
         isPostOwner={isPostOwner}
         isAdmin={isAdmin}
+        rootId={c.id}
+        expandNonce={expandNonceById[c.id]}
+        onReply={startReply}
         onPatch={patchComment}
         onRemove={removeComment}
       />
@@ -1200,9 +1259,18 @@ export function ReelsCommentsPanel({
         {user ? (
           <CommentForm
             postId={postId}
-            placeholder={i18n("reels.sxvvb73")}
+            parentId={replyTarget?.rootId}
+            replyToUserId={replyTarget?.userId}
+            replyToUsername={replyTarget?.username}
+            onCancelReply={() => setReplyTarget(null)}
+            placeholder={
+              replyTarget ? i18n("reels.s1nojek5") : i18n("reels.sxvvb73")
+            }
             className="mt-0"
             inputClassName="rounded-full border-white/15 bg-transparent text-white placeholder:text-white/35"
+            replyBarClassName="bg-white/[0.06] text-white/70"
+            inputRef={composerInputRef}
+            onSubmitted={() => setReplyTarget(null)}
           />
         ) : (
           <Link

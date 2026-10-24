@@ -20,6 +20,10 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { pinPostComment, type CommentItem } from "@/api/social";
+import {
+  CommentThreadExtras,
+  type CommentReplyTarget,
+} from "@/features/feed/CommentThreadExtras";
 import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
 import { TenorGifSheet } from "@/features/feed/TenorGifSheet";
 import { uploadLocalFile } from "@/api/upload-file";
@@ -63,7 +67,10 @@ type Props = {
   canPin: boolean;
   copy: ReelsUi;
   onDraftChange: (text: string) => void;
-  onSubmit: (media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null) => void;
+  onSubmit: (
+    media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null,
+    reply?: CommentReplyTarget | null
+  ) => void;
   onClosed: () => void;
 };
 
@@ -87,6 +94,9 @@ export function ReelsCommentsSheet({
 }: Props) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const inputRef = useRef<TextInput>(null);
+  const [replyTarget, setReplyTarget] = useState<CommentReplyTarget | null>(null);
+  const [expandNonceById, setExpandNonceById] = useState<Record<string, number>>({});
   const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -229,7 +239,7 @@ export function ReelsCommentsSheet({
               bounces={false}
               overScrollMode="never"
               renderItem={({ item }) => (
-                <View style={styles.commentRow}>
+                <View style={styles.commentRow} nativeID={`comment-${item.id}`}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.commentUser}>
                       {item.author.username}
@@ -241,6 +251,17 @@ export function ReelsCommentsSheet({
                       <TranslatableText text={item.content} style={styles.commentBody} lightLinks />
                     ) : null}
                     <CommentMediaBlock mediaType={item.mediaType} mediaUrl={item.mediaUrl} />
+                    <CommentThreadExtras
+                      comment={item}
+                      rootId={item.id}
+                      light
+                      expandNonce={expandNonceById[item.id]}
+                      onReply={(target) => {
+                        setReplyTarget(target);
+                        onDraftChange(`@${target.username} `);
+                        requestAnimationFrame(() => inputRef.current?.focus());
+                      }}
+                    />
                   </View>
                   {canPin && commentsPostId ? (
                     <Pressable
@@ -276,6 +297,28 @@ export function ReelsCommentsSheet({
       {attach ? (
         <View style={{ paddingBottom: 8 }}>
           <CommentMediaBlock mediaType={attach.mediaType} mediaUrl={attach.mediaUrl} />
+        </View>
+      ) : null}
+      {replyTarget ? (
+        <View style={styles.replyBar}>
+          <Text style={styles.replyBarText}>
+            {t("m.feed.replying_to", { username: replyTarget.username })}
+          </Text>
+          <Pressable
+            onPress={() => {
+              if (
+                draft === `@${replyTarget.username} ` ||
+                /^@[A-Za-z0-9_]+\s*$/.test(draft)
+              ) {
+                onDraftChange("");
+              }
+              setReplyTarget(null);
+            }}
+            hitSlop={8}
+            accessibilityLabel={t("m.feed.cancel_reply")}
+          >
+            <Ionicons name="close" size={16} color="rgba(255,255,255,0.7)" />
+          </Pressable>
         </View>
       ) : null}
       <View style={styles.commentInputRow}>
@@ -314,21 +357,38 @@ export function ReelsCommentsSheet({
           <Ionicons name="happy-outline" size={20} color="rgba(255,255,255,0.7)" />
         </Pressable>
         <TextInput
+          ref={inputRef}
           style={styles.commentInput}
-          placeholder={copy.commentPh}
+          placeholder={replyTarget ? t("m.feed.write_a_reply") : copy.commentPh}
           placeholderTextColor="rgba(255,255,255,0.45)"
           value={draft}
           onChangeText={onDraftChange}
           onSubmitEditing={() => {
-            onSubmit(attach);
+            const reply = replyTarget;
+            if (reply) {
+              setExpandNonceById((prev) => ({
+                ...prev,
+                [reply.rootId]: (prev[reply.rootId] ?? 0) + 1,
+              }));
+            }
+            onSubmit(attach, reply);
             setAttach(null);
+            setReplyTarget(null);
           }}
           returnKeyType="send"
         />
         <Pressable
           onPress={() => {
-            onSubmit(attach);
+            const reply = replyTarget;
+            if (reply) {
+              setExpandNonceById((prev) => ({
+                ...prev,
+                [reply.rootId]: (prev[reply.rootId] ?? 0) + 1,
+              }));
+            }
+            onSubmit(attach, reply);
             setAttach(null);
+            setReplyTarget(null);
           }}
           disabled={busy || uploading}
         >
@@ -386,6 +446,13 @@ const styles = StyleSheet.create({
   commentUser: { color: "#fff", fontWeight: "800", marginBottom: 4 },
   commentMeta: { color: "rgba(255,255,255,0.45)", fontWeight: "600" },
   commentBody: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 20 },
+  replyBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  replyBarText: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: "600" },
   commentInputRow: {
     flexDirection: "row",
     alignItems: "center",

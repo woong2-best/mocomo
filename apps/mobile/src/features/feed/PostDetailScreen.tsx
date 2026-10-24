@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,6 +24,10 @@ import {
   type CommentItem,
 } from "@/api/social";
 import { PostCommentOverflowMenu } from "@/features/feed/PostCommentOverflowMenu";
+import {
+  CommentThreadExtras,
+  type CommentReplyTarget,
+} from "@/features/feed/CommentThreadExtras";
 import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
 import { TenorGifSheet } from "@/features/feed/TenorGifSheet";
 import { uploadLocalFile } from "@/api/upload-file";
@@ -35,6 +39,7 @@ import {
   postCommentsQueryKey,
   postCommentsQueryOptions,
   withOptimisticComment,
+  withOptimisticReply,
   type PostCommentsResponse,
 } from "@/api/post-comments-query";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
@@ -62,6 +67,9 @@ export function PostDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [replyTarget, setReplyTarget] = useState<CommentReplyTarget | null>(null);
+  const [expandNonceById, setExpandNonceById] = useState<Record<string, number>>({});
+  const inputRef = useRef<TextInput>(null);
   const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -139,8 +147,19 @@ export function PostDetailScreen() {
   const canPinComments = !isQnaPost && !!user?.id && user.id === post?.author?.id;
 
   const commentMut = useMutation({
-    mutationFn: (input: { content: string; media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null }) =>
-      createPostComment(postId, input.content, input.media),
+    mutationFn: (input: {
+      content: string;
+      media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null;
+      reply?: CommentReplyTarget | null;
+    }) =>
+      createPostComment(
+        postId,
+        input.content,
+        input.media,
+        input.reply
+          ? { parentId: input.reply.rootId, replyToUserId: input.reply.userId }
+          : null
+      ),
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: postCommentsQueryKey(postId) });
       const previous = queryClient.getQueryData<PostCommentsResponse>(
@@ -152,6 +171,8 @@ export function PostDetailScreen() {
         createdAt: new Date().toISOString(),
         mediaType: input.media?.mediaType ?? "NONE",
         mediaUrl: input.media?.mediaUrl ?? null,
+        parentId: input.reply?.rootId ?? null,
+        replyCount: 0,
         author: {
           id: user?.id ?? "me",
           username: user?.username ?? "me",
@@ -159,13 +180,24 @@ export function PostDetailScreen() {
           image: user?.image ?? null,
         },
       };
-      queryClient.setQueryData<PostCommentsResponse>(
-        postCommentsQueryKey(postId),
-        withOptimisticComment(previous, optimistic, isQnaPost ? "append" : "prepend")
-      );
+      if (input.reply) {
+        queryClient.setQueryData<PostCommentsResponse>(
+          postCommentsQueryKey(postId),
+          withOptimisticReply(previous, input.reply.rootId, optimistic)
+        );
+        setExpandNonceById((prev) => ({
+          ...prev,
+          [input.reply!.rootId]: (prev[input.reply!.rootId] ?? 0) + 1,
+        }));
+      } else {
+        queryClient.setQueryData<PostCommentsResponse>(
+          postCommentsQueryKey(postId),
+          withOptimisticComment(previous, optimistic, isQnaPost ? "append" : "prepend")
+        );
+      }
       setDraft("");
       setAttach(null);
-      return { previous, tempId: optimistic.id };
+      return { previous, tempId: optimistic.id, replyRootId: input.reply?.rootId };
     },
     onError: (err, _content, ctx) => {
       if (ctx?.previous) {
@@ -173,7 +205,13 @@ export function PostDetailScreen() {
       }
       showIslandError(t("m.common.error"), err instanceof Error ? err.message : t("m.feed.could_not_post_comment"));
     },
-    onSuccess: (res, _content, ctx) => {
+    onSuccess: (res, input, ctx) => {
+      if (input.reply || res.comment.parentId) {
+        void queryClient.invalidateQueries({ queryKey: postCommentsQueryKey(postId) });
+        void queryClient.invalidateQueries({ queryKey: ["mobile-feed"] });
+        void queryClient.invalidateQueries({ queryKey: ["mobile-post", postId] });
+        return;
+      }
       queryClient.setQueryData<PostCommentsResponse>(postCommentsQueryKey(postId), (old) => {
         const cleaned = mapCommentBuckets(old, (c) => c);
         const recent = (cleaned.comments ?? []).filter(
@@ -223,7 +261,21 @@ export function PostDetailScreen() {
       showIslandError(t("m.common.sign_in_required"), t("m.feed.sign_in_to_comment"));
       return;
     }
-    commentMut.mutate({ content, media: attach });
+    commentMut.mutate({ content, media: attach, reply: replyTarget });
+    setReplyTarget(null);
+  }
+
+  function startReply(target: CommentReplyTarget) {
+    setReplyTarget(target);
+    setDraft(`@${target.username} `);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function cancelReply() {
+    if (replyTarget && (draft === `@${replyTarget.username} ` || /^@[A-Za-z0-9_]+\s*$/.test(draft))) {
+      setDraft("");
+    }
+    setReplyTarget(null);
   }
 
   async function acceptAnswer(item: CommentItem) {
@@ -417,6 +469,15 @@ export function PostDetailScreen() {
                     <TranslatableText text={item.content} style={styles.commentBody} />
                   ) : null}
                   <CommentMediaBlock mediaType={item.mediaType} mediaUrl={item.mediaUrl} />
+                  {user ? (
+                    <CommentThreadExtras
+                      comment={item}
+                      rootId={item.id}
+                      expandNonce={expandNonceById[item.id]}
+                      onReply={startReply}
+                      onOpenAuthor={(username) => openUserProfile({ username })}
+                    />
+                  ) : null}
                 </View>
               );
             }}
@@ -430,6 +491,16 @@ export function PostDetailScreen() {
               },
             ]}
           >
+            {replyTarget ? (
+              <View style={styles.replyBar}>
+                <Text style={styles.replyBarText}>
+                  {t("m.feed.replying_to", { username: replyTarget.username })}
+                </Text>
+                <Pressable onPress={cancelReply} hitSlop={8} accessibilityLabel={t("m.feed.cancel_reply")}>
+                  <Ionicons name="close" size={16} color={colors.textMuted} />
+                </Pressable>
+              </View>
+            ) : null}
             {attach ? (
               <View style={styles.previewRow}>
                 <CommentMediaBlock mediaType={attach.mediaType} mediaUrl={attach.mediaUrl} />
@@ -460,10 +531,17 @@ export function PostDetailScreen() {
                 <Ionicons name="happy-outline" size={22} color={attach ? colors.textMuted : colors.cobalt} />
               </Pressable>
               <TextInput
+                ref={inputRef}
                 style={styles.input}
                 value={draft}
                 onChangeText={setDraft}
-                placeholder={isQnaPost ? t("qna.write_answer") : t("m.feed.write_a_comment")}
+                placeholder={
+                  replyTarget
+                    ? t("m.feed.write_a_reply")
+                    : isQnaPost
+                      ? t("qna.write_answer")
+                      : t("m.feed.write_a_comment")
+                }
                 placeholderTextColor={colors.textMuted}
                 multiline
               />
@@ -578,6 +656,13 @@ function createThemedStyles(colors: ThemeColors) {
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,
     },
+    replyBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.sm,
+    },
+    replyBarText: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
     composerCol: {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.hairline,

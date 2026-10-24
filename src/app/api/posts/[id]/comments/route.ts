@@ -13,6 +13,7 @@ import {
 import type { PostCommentSort } from "@/lib/post-queries";
 import { assertUserBlockInteractionAllowed } from "@/lib/user-block";
 import { parseCommentMediaInput, serializeCommentMedia } from "@/lib/comment-media";
+import { resolveCommentReplyTarget } from "@/lib/comment-reply-target";
 
 function parseSort(raw: string | null, isQna: boolean): PostCommentSort {
   if (isQna) {
@@ -107,6 +108,7 @@ export async function POST(
   let body: {
     content?: string;
     parentId?: string;
+    replyToUserId?: string;
     mediaType?: string;
     mediaUrl?: string;
     media_type?: string;
@@ -124,9 +126,15 @@ export async function POST(
   }
   const content = media.content;
 
-  const parentId =
+  const requestedParentId =
     typeof body.parentId === "string" && body.parentId.length > 0 && body.parentId.length <= 64
       ? body.parentId
+      : undefined;
+  const requestedReplyToUserId =
+    typeof body.replyToUserId === "string" &&
+    body.replyToUserId.length > 0 &&
+    body.replyToUserId.length <= 64
+      ? body.replyToUserId
       : undefined;
 
   try {
@@ -143,23 +151,24 @@ export async function POST(
       return NextResponse.json({ error: errorText(blockErr.error) }, { status: 403 });
     }
 
+    let parentId: string | undefined;
+    let replyToUserId: string | undefined;
     let parentCommentAuthorId: string | undefined;
-    if (parentId) {
-      const parent = await db.comment.findFirst({
-        where: { id: parentId, postId, deletedAt: null, hiddenAt: null },
-        select: { id: true, authorId: true, parentId: true },
+    if (requestedParentId) {
+      const resolved = await resolveCommentReplyTarget({
+        postId,
+        parentId: requestedParentId,
+        replyToUserId: requestedReplyToUserId,
       });
-      if (!parent) {
-        return NextResponse.json({ error: "Not found." }, { status: 400 });
+      if (!resolved.ok) {
+        return NextResponse.json({ error: resolved.error }, { status: resolved.status });
       }
-      const parentBlockErr = await assertUserBlockInteractionAllowed(user.id, parent.authorId);
+      parentId = resolved.value.parentId;
+      replyToUserId = resolved.value.replyToUserId;
+      parentCommentAuthorId = resolved.value.notifyUserId;
+      const parentBlockErr = await assertUserBlockInteractionAllowed(user.id, parentCommentAuthorId);
       if (parentBlockErr) {
         return NextResponse.json({ error: errorText(parentBlockErr.error) }, { status: 403 });
-      }
-      // Flatten deep replies onto the top-level parent thread
-      parentCommentAuthorId = parent.authorId;
-      if (parent.parentId) {
-        // Keep reply attached to the provided parent (1-level UX still works)
       }
     }
 
@@ -174,6 +183,7 @@ export async function POST(
         authorId: user.id,
         postId,
         parentId,
+        replyToUserId,
         mediaType: media.mediaType,
         mediaUrl: media.mediaUrl,
       },
@@ -188,7 +198,9 @@ export async function POST(
         mediaUrl: true,
         authorId: true,
         parentId: true,
+        replyToUserId: true,
         author: { select: userPublicSelect },
+        replyToUser: { select: { id: true, username: true } },
       },
     });
 
@@ -223,6 +235,7 @@ export async function POST(
         isEdited: false,
         replyCount: 0,
         parentId: comment.parentId,
+        replyToUser: comment.replyToUser ?? null,
         ...serializeCommentMedia(comment),
         author: fullUser ?? comment.author,
         replies: [],

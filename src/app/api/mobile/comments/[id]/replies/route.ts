@@ -1,0 +1,48 @@
+import { NextRequest, NextResponse } from "next/server";
+import { rateLimitPublicApi } from "@/lib/api-security";
+import { db } from "@/lib/db";
+import { getMobileUserId } from "@/lib/api-mobile-auth";
+import { getCommentRepliesPage } from "@/lib/comment-service";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const limited = await rateLimitPublicApi(req, "mobile-comment-replies", 120);
+  if (limited) return limited;
+
+  const { id: parentId } = await params;
+  if (!parentId || parentId.length > 64) {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  const limitRaw = Number(req.nextUrl.searchParams.get("limit") ?? "20");
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(50, Math.max(1, Math.floor(limitRaw)))
+    : 20;
+  const cursor = req.nextUrl.searchParams.get("cursor");
+
+  const parent = await db.comment.findFirst({
+    where: { id: parentId, deletedAt: null },
+    select: {
+      id: true,
+      postId: true,
+      post: { select: { authorId: true } },
+    },
+  });
+  if (!parent) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  const viewerId = await getMobileUserId(req);
+  const page = await getCommentRepliesPage({
+    parentId,
+    postId: parent.postId,
+    postAuthorId: parent.post.authorId,
+    cursor,
+    limit,
+    viewerId,
+  });
+
+  return NextResponse.json(page);
+}

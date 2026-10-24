@@ -42,6 +42,11 @@ export type SerializedCommentAuthor = {
   supportTierSent?: string | null;
 };
 
+export type SerializedReplyToUser = {
+  id: string;
+  username: string;
+} | null;
+
 export type SerializedReply = {
   id: string;
   content: string;
@@ -52,6 +57,8 @@ export type SerializedReply = {
   likedByAuthor: boolean;
   isPostAuthor: boolean;
   isEdited: boolean;
+  parentId?: string | null;
+  replyToUser?: SerializedReplyToUser;
   author: SerializedCommentAuthor;
 } & CommentMediaPayload;
 
@@ -69,6 +76,8 @@ export type SerializedComment = {
   acceptedAt?: string | null;
   isEdited: boolean;
   replyCount: number;
+  parentId?: string | null;
+  replyToUser?: SerializedReplyToUser;
   author: SerializedCommentAuthor;
   replies: SerializedReply[];
 } & CommentMediaPayload;
@@ -108,8 +117,11 @@ const commentSelectBase = {
   mediaType: true,
   mediaUrl: true,
   authorId: true,
+  parentId: true,
+  replyToUserId: true,
   author: { select: userPublicSelect },
-  _count: { select: { replies: true } },
+  replyToUser: { select: { id: true, username: true } },
+  _count: { select: { replies: { where: visibleWhere } } },
 } as const;
 
 function encodeCursor(payload: {
@@ -208,6 +220,8 @@ async function mapComments(
     mediaType?: "PHOTO" | "GIF" | null;
     mediaUrl?: string | null;
     authorId: string;
+    parentId?: string | null;
+    replyToUserId?: string | null;
     author: {
       id: string;
       name: string | null;
@@ -215,6 +229,7 @@ async function mapComments(
       image: string | null;
       supportTierSent?: string | null;
     };
+    replyToUser?: { id: string; username: string } | null;
     _count: { replies: number };
     replies?: Array<{
       id: string;
@@ -225,6 +240,8 @@ async function mapComments(
       mediaType?: "PHOTO" | "GIF" | null;
       mediaUrl?: string | null;
       authorId: string;
+      parentId?: string | null;
+      replyToUserId?: string | null;
       author: {
         id: string;
         name: string | null;
@@ -232,6 +249,7 @@ async function mapComments(
         image: string | null;
         supportTierSent?: string | null;
       };
+      replyToUser?: { id: string; username: string } | null;
     }>;
   }>,
   postAuthorId: string,
@@ -276,6 +294,8 @@ async function mapComments(
       c.acceptedAt instanceof Date ? c.acceptedAt.toISOString() : null,
     isEdited: isEdited(c.createdAt, c.updatedAt),
     replyCount,
+    parentId: c.parentId ?? null,
+    replyToUser: c.replyToUser ?? null,
     ...serializeCommentMedia(c),
     author: serializeAuthor(c.author, { anonymous, viewerId }),
     replies: visibleReplies.map((r) => ({
@@ -288,6 +308,8 @@ async function mapComments(
       likedByAuthor: likedByAuthor.has(r.id),
       isPostAuthor: r.authorId === postAuthorId,
       isEdited: isEdited(r.createdAt, r.updatedAt),
+      parentId: r.parentId ?? c.id,
+      replyToUser: r.replyToUser ?? null,
       ...serializeCommentMedia(r),
       author: serializeAuthor(r.author, { anonymous, viewerId }),
     })),
@@ -360,27 +382,7 @@ async function getRankedCommentsPage(params: {
         }
       : visibleWhere;
 
-  const replyInclude = {
-    take: 3,
-    where: { ...authorVisibleWhere },
-    orderBy: { createdAt: "asc" as const },
-    select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      updatedAt: true,
-      likeCount: true,
-      mediaType: true,
-      mediaUrl: true,
-      authorId: true,
-      author: { select: userPublicSelect },
-    },
-  };
-
-  const selectWithReplies = {
-    ...commentSelectBase,
-    replies: replyInclude,
-  };
+  const selectWithReplies = commentSelectBase;
 
   let pinned: Awaited<ReturnType<typeof mapComments>> = [];
   if (params.includePinned) {
@@ -608,23 +610,6 @@ export async function getPostCommentsPage(params: {
         }
       : visibleWhere;
 
-  const replyInclude = {
-    take: 3,
-    where: { ...authorVisibleWhere },
-    orderBy: { createdAt: "asc" as const },
-    select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      updatedAt: true,
-      likeCount: true,
-      mediaType: true,
-      mediaUrl: true,
-      authorId: true,
-      author: { select: userPublicSelect },
-    },
-  };
-
   let pinned: Awaited<ReturnType<typeof mapComments>> = [];
   if (includePinned) {
     const pinnedRows = await db.comment.findMany({
@@ -636,10 +621,7 @@ export async function getPostCommentsPage(params: {
       },
       orderBy: [{ pinnedAt: "asc" }, { createdAt: "asc" }],
       take: MAX_PINNED_COMMENTS,
-      select: {
-        ...commentSelectBase,
-        replies: replyInclude,
-      },
+      select: commentSelectBase,
     });
     pinned = await mapComments(
       pinnedRows,
@@ -709,10 +691,7 @@ export async function getPostCommentsPage(params: {
     where: cursorWhere ? { AND: [baseWhere, cursorWhere] } : baseWhere,
     take: limit + 1,
     orderBy: orderBy as never,
-    select: {
-      ...commentSelectBase,
-      replies: replyInclude,
-    },
+    select: commentSelectBase,
   });
 
   const hasMore = rows.length > limit;
@@ -827,7 +806,10 @@ export async function getCommentRepliesPage(params: {
       mediaType: true,
       mediaUrl: true,
       authorId: true,
+      parentId: true,
+      replyToUserId: true,
       author: { select: userPublicSelect },
+      replyToUser: { select: { id: true, username: true } },
     },
   });
 
@@ -849,6 +831,8 @@ export async function getCommentRepliesPage(params: {
     likedByAuthor: likedByAuthor.has(r.id),
     isPostAuthor: r.authorId === params.postAuthorId,
     isEdited: isEdited(r.createdAt, r.updatedAt),
+    parentId: r.parentId ?? params.parentId,
+    replyToUser: r.replyToUser ?? null,
     ...serializeCommentMedia(r),
     author: serializeAuthor(r.author, {
       anonymous: params.anonymous,

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { ImageIcon, Loader2, Sticker } from "lucide-react";
+import { ImageIcon, Loader2, Sticker, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   notifyCommentAdded,
@@ -22,20 +22,30 @@ type Attach = { mediaType: "PHOTO" | "GIF"; mediaUrl: string; previewUrl: string
 export function CommentForm({
   postId,
   parentId,
+  replyToUserId,
+  replyToUsername,
+  onCancelReply,
   placeholder,
   submitLabel,
   className,
   inputClassName,
+  replyBarClassName,
   autoFocus,
+  inputRef,
   onSubmitted,
 }: {
   postId: string;
   parentId?: string;
+  replyToUserId?: string;
+  replyToUsername?: string;
+  onCancelReply?: () => void;
   placeholder?: string;
   submitLabel?: string;
   className?: string;
   inputClassName?: string;
+  replyBarClassName?: string;
   autoFocus?: boolean;
+  inputRef?: RefObject<HTMLTextAreaElement | null>;
   onSubmitted?: () => void;
 }) {
   const { t } = useLocale();
@@ -46,10 +56,33 @@ export function CommentForm({
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const localInputRef = useRef<HTMLTextAreaElement>(null);
+  const fieldRef = inputRef ?? localInputRef;
+  const lastPrefill = useRef("");
   const router = useRouter();
   const session = useSession();
   const user = session?.data?.user;
   const canSubmit = Boolean((content.trim() || attach) && user && !submitting && !uploading);
+
+  useEffect(() => {
+    if (!replyToUsername) return;
+    const mention = `@${replyToUsername} `;
+    setContent((prev) => {
+      if (!prev || prev === lastPrefill.current || /^@[A-Za-z0-9_]+\s*$/.test(prev)) {
+        return mention;
+      }
+      return mention;
+    });
+    lastPrefill.current = mention;
+    const el = fieldRef.current;
+    requestAnimationFrame(() => {
+      el?.focus();
+      if (el) {
+        const n = el.value.length;
+        el.setSelectionRange(n, n);
+      }
+    });
+  }, [fieldRef, replyToUserId, replyToUsername]);
 
   async function pickPhoto(file: File | undefined) {
     if (!file || attach || uploading) return;
@@ -91,6 +124,7 @@ export function CommentForm({
       id: pendingId,
       content: text,
       parentId,
+      replyToUserId,
       pending: true,
       mediaType: sent?.mediaType ?? "NONE",
       mediaUrl: sent?.mediaUrl ?? null,
@@ -112,6 +146,7 @@ export function CommentForm({
         body: JSON.stringify({
           content: text,
           parentId,
+          replyToUserId,
           mediaType: sent?.mediaType ?? "NONE",
           mediaUrl: sent?.mediaUrl ?? null,
         }),
@@ -124,6 +159,7 @@ export function CommentForm({
       }
       const realId = typeof body?.comment?.id === "string" ? body.comment.id : pendingId;
       notifyCommentConfirmed(postId, pendingId, realId);
+      lastPrefill.current = "";
       onSubmitted?.();
       router.refresh();
     } catch (err) {
@@ -143,6 +179,14 @@ export function CommentForm({
     }
   }
 
+  function cancelReply() {
+    if (content === lastPrefill.current || /^@[A-Za-z0-9_]+\s*$/.test(content)) {
+      setContent("");
+    }
+    lastPrefill.current = "";
+    onCancelReply?.();
+  }
+
   return (
     <form
       onSubmit={(e) => {
@@ -151,6 +195,24 @@ export function CommentForm({
       }}
       className={cn("flex flex-col gap-2", className)}
     >
+      {replyToUsername ? (
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-[12px] text-muted-foreground",
+            replyBarClassName
+          )}
+        >
+          <span>{t("comments.replyingTo", { username: replyToUsername })}</span>
+          <button
+            type="button"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-black/5"
+            aria-label={t("comments.cancelReply")}
+            onClick={cancelReply}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : null}
       {attach ? (
         <CommentAttachPreview
           url={attach.previewUrl}
@@ -189,6 +251,7 @@ export function CommentForm({
           </button>
         </div>
         <textarea
+          ref={fieldRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={onKeyDown}

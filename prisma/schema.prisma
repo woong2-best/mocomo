@@ -389,6 +389,7 @@ model User {
   postCollaborations PostCollaborator[] @relation("PostCollaboratorUser")
   postCollaboratorInvitesSent PostCollaborator[] @relation("PostCollaboratorInviter")
   comments      Comment[]
+  commentReplyTargets Comment[] @relation("CommentReplyToUser")
   commentLikes  CommentLike[]
   votes         Vote[]
   bookmarks     Bookmark[]
@@ -1421,6 +1422,8 @@ model Comment {
   authorId  String
   postId    String
   parentId  String?
+  /** User being replied to. Always the clicked author; parentId stays the root comment. */
+  replyToUserId String?
   /** One photo or one GIF. Null = text only. */
   mediaType CommentMediaType?
   mediaUrl  String?
@@ -1441,6 +1444,7 @@ model Comment {
   post     Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
   parent   Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
   replies  Comment[]     @relation("CommentReplies")
+  replyToUser User?      @relation("CommentReplyToUser", fields: [replyToUserId], references: [id], onDelete: SetNull)
   likes    CommentLike[]
   reports  Report[]
 
@@ -1449,6 +1453,7 @@ model Comment {
   @@index([postId, pinnedAt])
   @@index([postId, acceptedAt])
   @@index([authorId, createdAt(sort: Desc)])
+  @@index([replyToUserId])
 }
 
 model CommentLike {

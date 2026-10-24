@@ -66,6 +66,26 @@ export function mapCommentBuckets(
   };
 }
 
+export function withOptimisticReply(
+  old: PostCommentsResponse | undefined,
+  parentId: string,
+  reply: CommentItem
+): PostCommentsResponse {
+  const bump = (c: CommentItem) =>
+    c.id === parentId
+      ? { ...c, replyCount: (c.replyCount ?? 0) + 1 }
+      : c;
+  const buckets = parseCommentBuckets(old);
+  return {
+    ...(old ?? {}),
+    pinned: buckets.pinned.map(bump),
+    top: buckets.top.map(bump),
+    comments: buckets.recent.map(bump),
+    items: undefined,
+    total: (old?.total ?? 0) + 1,
+  };
+}
+
 export function withOptimisticComment(
   old: PostCommentsResponse | undefined,
   comment: CommentItem,
