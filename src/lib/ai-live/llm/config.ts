@@ -1,6 +1,8 @@
 import type { LiveAvatarId } from "@/lib/ai-live/avatars";
 import { AVATAR_LLM_COMPANIES, type AvatarLlmCompany } from "@/lib/ai-live/llm/types";
 
+export type { AvatarLlmCompany };
+
 export type ProviderConfig = {
   id: AvatarLlmCompany;
   trainsOnFreeTier: boolean;
