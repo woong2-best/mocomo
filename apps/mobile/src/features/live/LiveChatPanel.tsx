@@ -57,6 +57,8 @@ type Props = {
   immersive?: boolean;
   /** Narrow right-rail chat for landscape watch. */
   sidebar?: boolean;
+  /** Lift the message list onto the avatar stage, right side, transparent. */
+  overlayHeight?: number;
 };
 
 export function LiveChatPanel({
@@ -73,6 +75,7 @@ export function LiveChatPanel({
   streamStartedAt,
   immersive = false,
   sidebar = false,
+  overlayHeight = 0,
 }: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => liveUi(t), [t]);
@@ -83,8 +86,8 @@ export function LiveChatPanel({
   const { keyboardLift } = useKeyboardLift();
   const keyboardOpen = keyboardLift > 80;
   const styles = useMemo(
-    () => createStyles(colors, immersive, sidebar),
-    [colors, immersive, sidebar]
+    () => createStyles(colors, immersive, sidebar, overlayHeight),
+    [colors, immersive, sidebar, overlayHeight]
   );
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -372,7 +375,7 @@ export function LiveChatPanel({
         </View>
       ) : null}
 
-      {pinnedMessage?.trim() ? (
+      {pinnedMessage?.trim() && overlayHeight <= 0 ? (
         <View style={styles.pinned}>
           <View style={styles.pinnedAccent} />
           <Ionicons name="pin" size={12} color={immersive ? "#86efac" : colors.cobalt} />
@@ -629,8 +632,21 @@ const immersiveLine = StyleSheet.create({
     borderRadius: 3,
     overflow: "hidden",
   },
-  user: { fontSize: 13, fontWeight: "800" },
-  content: { fontSize: 13, fontWeight: "600", color: "#f3f4f6", lineHeight: 18, flexShrink: 1 },
+  user: {
+    fontSize: 13,
+    fontWeight: "800",
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowRadius: 3,
+  },
+  content: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#f3f4f6",
+    lineHeight: 18,
+    flexShrink: 1,
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowRadius: 3,
+  },
 });
 
 function SupportLine({
@@ -695,14 +711,14 @@ const supportStyles = StyleSheet.create({
   content: { fontSize: 13, fontWeight: "700", lineHeight: 18 },
 });
 
-function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false) {
+function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false, overlayHeight = 0) {
   if (immersive) {
     return StyleSheet.create({
       root: {
         flex: 1,
         minHeight: sidebar ? 0 : undefined,
         backgroundColor: "#131C2D",
-        overflow: "hidden",
+        overflow: overlayHeight > 0 ? "visible" : "hidden",
       },
       header: { display: "none" },
       headerTitle: {},
@@ -726,7 +742,17 @@ function createStyles(colors: ThemeColors, immersive: boolean, sidebar = false) 
         marginRight: 2,
       },
       pinnedText: { flex: 1, fontSize: 12, fontWeight: "600", color: "#e5e7eb", lineHeight: 17 },
-      list: { flex: 1 },
+      list:
+        overlayHeight > 0
+          ? {
+              position: "absolute",
+              top: -overlayHeight,
+              right: 0,
+              width: "42%",
+              height: overlayHeight,
+              backgroundColor: "transparent",
+            }
+          : { flex: 1 },
       listPad: { paddingHorizontal: 10, paddingVertical: 8 },
       emptyList: { flexGrow: 1, justifyContent: "center", padding: 20 },
       empty: { textAlign: "center", color: "#6b7280", fontWeight: "600", fontSize: 13 },

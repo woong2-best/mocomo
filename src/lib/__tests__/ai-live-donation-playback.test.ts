@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mocoDonationPlayMs } from "@/lib/ai-live/donation-playback";
-import { isAlwaysOnLiveChannel, isMocoOfficialChannel } from "@/lib/ai-live/official-channel-id";
+import {
+  AVATAR_ACCOUNTS,
+  isAlwaysOnLiveChannel,
+  isMocoOfficialChannel,
+} from "@/lib/ai-live/official-channel-id";
 import { idolById, playableIdolVrmUrl } from "@/lib/ai-live/idols";
 
 test("video donations stay up for their paid length and effects are short", () => {
@@ -27,4 +31,11 @@ test("official and idol channels stay on, and other rooms do not", () => {
   assert.equal(playableIdolVrmUrl("/models/nangnang.vrm"), "/models/nangnang.vrm");
   assert.equal(playableIdolVrmUrl("/models/missing.vrm"), "/avatars/default.vrm");
   assert.equal(idolById("nope"), null);
+  assert.deepEqual(
+    AVATAR_ACCOUNTS.map((row) => row.username),
+    ["zelie", "cleo", "mio", "nangnang"]
+  );
+  assert.equal(idolById("cleo")?.username, "cleo");
+  assert.equal(idolById("mio")?.username, "mio");
+  assert.equal(idolById("nangnang")?.username, "nangnang");
 });

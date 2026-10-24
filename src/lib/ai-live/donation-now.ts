@@ -4,6 +4,7 @@ import { isAlwaysOnLiveChannel, MOCO_OFFICIAL_CHANNEL_ID } from "@/lib/ai-live/o
 import { mocoDonationPlayMs } from "@/lib/ai-live/donation-playback";
 import { toMocoDonationPayload } from "@/lib/moco-donation/payload";
 import type { MocoDonationPayload } from "@/lib/moco-donation/types";
+import { creditSettlementMocoCentiInTx } from "@/lib/settlement-moco/economy";
 
 const includeUser = { user: { select: { username: true } } } as const;
 
@@ -15,9 +16,27 @@ async function finishIfDue(channelId: string): Promise<void> {
   if (!playing) return;
   const started = playing.playedAt?.getTime() ?? 0;
   if (started > 0 && Date.now() - started < mocoDonationPlayMs(playing)) return;
-  await db.mocoDonation.updateMany({
-    where: { id: playing.id, status: "PLAYING" },
-    data: { status: "COMPLETED", completedAt: new Date() },
+
+  await db.$transaction(async (tx) => {
+    const done = await tx.mocoDonation.updateMany({
+      where: { id: playing.id, status: "PLAYING" },
+      data: { status: "COMPLETED", completedAt: new Date() },
+    });
+    if (done.count !== 1) return;
+    if (playing.type !== "VIDEO" || playing.settledAt || playing.mocoCenti <= 0) return;
+    const claimed = await tx.mocoDonation.updateMany({
+      where: { id: playing.id, settledAt: null },
+      data: { settledAt: new Date() },
+    });
+    if (claimed.count !== 1) return;
+    await creditSettlementMocoCentiInTx(tx, {
+      userId: playing.streamerId,
+      centi: playing.mocoCenti,
+      reason: "Video donation settled on avatar room",
+      referenceType: "video_donation_settle",
+      referenceId: playing.id,
+      metadata: { channelId, giftEventId: playing.giftEventId },
+    });
   });
 }
 

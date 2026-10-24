@@ -104,7 +104,7 @@ export function MocoDonationStage({
   const embed = current.type === "VIDEO" ? youtubeEmbed(current) : null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-10">
+    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[38%] max-w-[280px]">
       {embed ? (
         <iframe
           key={current.id}
@@ -112,10 +112,10 @@ export function MocoDonationStage({
           src={embed}
           allow="autoplay; encrypted-media; picture-in-picture"
           referrerPolicy="strict-origin-when-cross-origin"
-          className="absolute inset-0 h-full w-full border-0"
+          className="absolute inset-x-2 top-2 aspect-video w-[calc(100%-1rem)] border-0"
         />
       ) : null}
-      <div className="absolute inset-x-3 bottom-3 text-white drop-shadow-[0_2px_0_#000]">
+      <div className="absolute inset-x-2 bottom-3 text-white drop-shadow-[0_2px_0_#000]">
         <p className="text-sm font-extrabold leading-tight sm:text-base">
           <span className="text-[#5dff6a]">{name}</span>
           <span>{t("live.szbs")} </span>

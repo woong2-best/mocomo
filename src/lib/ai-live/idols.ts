@@ -32,7 +32,7 @@ export const IDOLS: readonly IdolMember[] = [
   {
     id: "cleo",
     channelId: "idol-airi",
-    username: "idol_airi",
+    username: "cleo",
     vrmUrl: "/models/airi.vrm",
     poster: "/live/idols/airi.jpg",
     accent: "#ff4d8d",
@@ -43,7 +43,7 @@ export const IDOLS: readonly IdolMember[] = [
   {
     id: "mio",
     channelId: "idol-chloe",
-    username: "idol_chloe",
+    username: "mio",
     vrmUrl: "/models/chloe.vrm",
     poster: "/live/idols/chloe.jpg",
     accent: "#c4a574",
@@ -54,7 +54,7 @@ export const IDOLS: readonly IdolMember[] = [
   {
     id: "nangnang",
     channelId: "idol-stella",
-    username: "idol_stella",
+    username: "nangnang",
     vrmUrl: "/models/nangnang.vrm",
     poster: "/live/idols/stella.jpg",
     accent: "#3ddcff",

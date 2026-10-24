@@ -161,6 +161,23 @@ export async function fetchLiveDetail(id: string) {
   return apiRequest<{ item: LiveDetail }>(`${MobileApi.live}/${id}`, { auth: true });
 }
 
+export type LiveNowDonation = {
+  id: string;
+  type: "SFX" | "VIDEO" | string;
+  mocoLabel: string;
+  username: string;
+  message: string | null;
+  videoId: string | null;
+  videoTitle: string | null;
+  sfxSrc: string | null;
+  startSec?: number;
+  endSec?: number | null;
+};
+
+export async function fetchLiveNow(id: string) {
+  return apiRequest<{ current: LiveNowDonation | null }>(MobileApi.liveNow(id), { auth: true });
+}
+
 export async function fetchLiveToken(id: string) {
   return apiRequest<LiveToken>(`${MobileApi.live}/${id}/token`, { auth: true });
 }

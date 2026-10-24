@@ -157,6 +157,7 @@ export const MobileApi = {
   liveStudioBans: "/api/mobile/live/studio/bans",
   liveStudioSearch: "/api/mobile/live/studio/search",
   liveStudioObsChat: "/api/mobile/live/studio/obs-chat",
+  liveNow: (id: string) => `/api/mobile/live/${id}/now`,
   liveAlerts: (id: string) => `/api/mobile/live/${id}/alerts`,
   liveDonate: (id: string) => `/api/mobile/live/${id}/donate`,
   liveDonateVideoPreview: (id: string) => `/api/mobile/live/${id}/donate/video/preview`,

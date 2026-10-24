@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Image } from "expo-image";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchLiveDetail } from "@/api/live";
 import { useAuth } from "@/auth/AuthContext";
+import { AiDonationOverlay } from "@/features/live/ai/AiDonationOverlay";
 import { LiveChatPanel } from "@/features/live/LiveChatPanel";
 import { liveCategoryEnglish } from "@/features/live/live-categories";
 import { liveUi } from "@/features/live/live-ui";
@@ -35,12 +36,20 @@ export function AiLiveRoom({ channelId, poster, title, host, role }: Props) {
   });
   const item = query.data?.item;
   const category = liveCategoryEnglish(item?.category ?? "JUST_CHATTING");
+  const [stageH, setStageH] = useState(0);
 
   return (
     <View style={styles.root}>
       <View style={[styles.statusShield, { height: insets.top }]} />
-      <View style={styles.stage}>
+      <View
+        style={styles.stage}
+        onLayout={(event) => {
+          const next = Math.round(event.nativeEvent.layout.height);
+          setStageH((prev) => (prev === next ? prev : next));
+        }}
+      >
         <Image source={poster} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <AiDonationOverlay channelId={channelId} />
         <Pressable
           onPress={() => navigation.goBack()}
           hitSlop={12}
@@ -67,6 +76,7 @@ export function AiLiveRoom({ channelId, poster, title, host, role }: Props) {
         {item ? (
           <LiveChatPanel
             immersive
+            overlayHeight={stageH}
             channelId={channelId}
             viewerCount={item.viewerCount}
             isHost={false}
@@ -137,7 +147,7 @@ const styles = StyleSheet.create({
   },
   title: { color: "#f3f4f6", fontSize: 16, fontWeight: "800" },
   sub: { color: "#9ca3af", fontSize: 13, fontWeight: "600" },
-  chat: { flex: 1 },
+  chat: { flex: 1, overflow: "visible" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 20 },
   error: { color: "#f87171", fontWeight: "600", textAlign: "center" },
   spinner: { marginTop: 28 },

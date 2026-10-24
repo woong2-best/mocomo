@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Radio, Send } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { MocoStageHandle } from "@/components/live/ai-host/moco-vrm-stage";
 import { useLocale } from "@/components/providers/locale-provider";
 import { classifyAiHostMessage } from "@/lib/ai-live/blocklist";
@@ -293,81 +293,74 @@ export function MocoLiveRoom({
         <span className="ml-2 text-muted-foreground">{t(subKey)}</span>
       </p>
 
-      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-[1fr_340px] xl:gap-4">
-        <div className="min-w-0">
-          <IdolStagePane
-            showVrm={showVrm}
-            vrmUrl={vrmUrl}
-            backdropUrl={backdropUrl}
-            characterId={memberId}
-            onReady={onReady}
-            channelId={channelId}
-            donationPoll={donationPoll}
-            onDonationActive={onDonationActive}
-            onDonationLine={onDonationLine}
-          />
-        </div>
-
-        <div className="flex h-full min-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-border/60 bg-background xl:sticky xl:top-16">
-          <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-muted/30 px-3 py-2.5">
-            <span className="text-sm font-semibold">{t("live.chat.title")}</span>
-            <span className="text-xs font-medium text-muted-foreground">{hostName}</span>
-          </div>
-          <div ref={logRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
-            {lines.map((line) => (
-              <div key={line.id}>
-                <p className="text-xs font-semibold text-primary">
-                  @{line.who === "you" ? t("live.aiYou") : hostUsername}
-                </p>
-                <p className="mt-0.5 text-sm leading-snug break-words">{line.text}</p>
-              </div>
-            ))}
-          </div>
-          {signedIn ? (
-            <form onSubmit={onSubmit} className="shrink-0 space-y-2 border-t border-border/60 p-2.5">
-              <div className="flex gap-2">
-                <Input
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value.slice(0, 200))}
-                  maxLength={200}
-                  aria-label={t("live.sdp6wzr")}
-                  placeholder={t("live.sdp6wzr")}
-                  className="h-9 flex-1 rounded-lg text-sm"
-                />
-                {channelId ? (
-                  <LiveMocoDonationComposerButton
-                    channelId={channelId}
-                    hostDisplayName={hostName}
-                    buttonSize={36}
-                    className="h-9 w-9"
-                  />
-                ) : null}
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!draft.trim()}
-                  className="h-9 shrink-0 rounded-lg bg-folk-terracotta px-3 hover:bg-folk-terracotta/90"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </form>
-          ) : status === "unauthenticated" ? (
-            <p className="shrink-0 p-3 text-center text-xs text-muted-foreground">
-              <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(signInPath)}`} className="hover:underline">
-                {t("live.s1vpyvyp")}
-              </Link>
-            </p>
-          ) : (
-            <div className="h-[53px] shrink-0 border-t border-border/60" />
-          )}
-          {signedIn && channelId ? (
-            <div className="shrink-0 border-t border-border/60 px-2.5 py-2">
-              <VideoDonationRoomControls channelId={channelId} isHost={false} />
+      <IdolStagePane
+        showVrm={showVrm}
+        vrmUrl={vrmUrl}
+        backdropUrl={backdropUrl}
+        characterId={memberId}
+        onReady={onReady}
+        channelId={channelId}
+        donationPoll={donationPoll}
+        onDonationActive={onDonationActive}
+        onDonationLine={onDonationLine}
+        chat={
+          <div className="pointer-events-auto flex h-full min-h-0 flex-col justify-end">
+            <div ref={logRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 py-2">
+              {lines.map((line) => (
+                <div key={line.id}>
+                  <p className="text-xs font-semibold text-white drop-shadow-[0_1px_1px_#000]">
+                    @{line.who === "you" ? t("live.aiYou") : hostUsername}
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold leading-snug break-words text-white drop-shadow-[0_1px_1px_#000]">
+                    {line.text}
+                  </p>
+                </div>
+              ))}
             </div>
-          ) : null}
-        </div>
-      </div>
+            {signedIn ? (
+              <form onSubmit={onSubmit} className="shrink-0 space-y-2 px-2 pb-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value.slice(0, 200))}
+                    maxLength={200}
+                    aria-label={t("live.sdp6wzr")}
+                    placeholder={t("live.sdp6wzr")}
+                    className="h-9 flex-1 rounded-lg border-white/20 bg-black/35 text-sm text-white placeholder:text-white/70"
+                  />
+                  {channelId ? (
+                    <LiveMocoDonationComposerButton
+                      channelId={channelId}
+                      hostDisplayName={hostName}
+                      buttonSize={36}
+                      className="h-9 w-9"
+                    />
+                  ) : null}
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={!draft.trim()}
+                    className="h-9 shrink-0 rounded-lg bg-folk-terracotta px-3 hover:bg-folk-terracotta/90"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </form>
+            ) : status === "unauthenticated" ? (
+              <p className="shrink-0 px-2 pb-3 text-center text-xs text-white/85 drop-shadow-[0_1px_1px_#000]">
+                <Link href={`/auth/signin?callbackUrl=${encodeURIComponent(signInPath)}`} className="hover:underline">
+                  {t("live.s1vpyvyp")}
+                </Link>
+              </p>
+            ) : null}
+            {signedIn && channelId ? (
+              <div className="shrink-0 px-2 pb-2">
+                <VideoDonationRoomControls channelId={channelId} isHost={false} />
+              </div>
+            ) : null}
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -382,6 +375,7 @@ const IdolStagePane = memo(function IdolStagePane({
   donationPoll,
   onDonationActive,
   onDonationLine,
+  chat,
 }: {
   showVrm: boolean;
   vrmUrl?: string;
@@ -392,6 +386,7 @@ const IdolStagePane = memo(function IdolStagePane({
   donationPoll: string;
   onDonationActive: (active: boolean) => void;
   onDonationLine: (text: string) => void;
+  chat: ReactNode;
 }) {
   return (
     <div className="relative aspect-video overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
@@ -412,6 +407,9 @@ const IdolStagePane = memo(function IdolStagePane({
           onLine={onDonationLine}
         />
       ) : null}
+      <div className="absolute inset-y-0 right-0 z-20 w-[36%] max-w-[280px] bg-transparent">
+        {chat}
+      </div>
     </div>
   );
 });
