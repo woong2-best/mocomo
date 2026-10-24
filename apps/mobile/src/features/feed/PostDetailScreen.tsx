@@ -545,12 +545,33 @@ export function PostDetailScreen() {
                 placeholderTextColor={colors.textMuted}
                 multiline
               />
-              <FolkButton
-                label={isQnaPost ? t("qna.answer_button") : t("m.common.post")}
-                disabled={(!draft.trim() && !attach) || uploading}
-                onPress={submitComment}
-                style={{ minWidth: 88 }}
-              />
+              {isQnaPost ? (
+                <FolkButton
+                  label={t("qna.answer_button")}
+                  disabled={(!draft.trim() && !attach) || uploading}
+                  onPress={submitComment}
+                  style={{ minWidth: 88 }}
+                />
+              ) : (
+                <Pressable
+                  onPress={submitComment}
+                  disabled={(!draft.trim() && !attach) || uploading || commentMut.isPending}
+                  hitSlop={8}
+                  style={styles.sendBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("m.common.send")}
+                >
+                  {commentMut.isPending || uploading ? (
+                    <ActivityIndicator size="small" color={colors.cobalt} />
+                  ) : (
+                    <Ionicons
+                      name="paper-plane"
+                      size={22}
+                      color={draft.trim() || attach ? colors.cobalt : colors.textMuted}
+                    />
+                  )}
+                </Pressable>
+              )}
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -696,6 +717,12 @@ function createThemedStyles(colors: ThemeColors) {
       paddingVertical: 10,
       backgroundColor: colors.surfaceRaised,
       color: colors.text,
+    },
+    sendBtn: {
+      minWidth: 36,
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
     },
   });
 }

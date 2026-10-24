@@ -192,9 +192,7 @@ export function ReelsCommentsSheet({
     ],
   }));
 
-  const closeFromButton = useCallback(() => {
-    settle(true);
-  }, [settle]);
+  const canSend = Boolean(draft.trim() || attach) && !busy && !uploading;
 
   return (
     <Animated.View
@@ -215,9 +213,6 @@ export function ReelsCommentsSheet({
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>{copy.comments(commentTotal)}</Text>
-            <Pressable onPress={closeFromButton} hitSlop={10}>
-              <Ionicons name="close" size={22} color="#fff" />
-            </Pressable>
           </View>
           <Text style={styles.sheetSort}>{copy.sortNewest}</Text>
         </View>
@@ -390,9 +385,20 @@ export function ReelsCommentsSheet({
             setAttach(null);
             setReplyTarget(null);
           }}
-          disabled={busy || uploading}
+          disabled={!canSend}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("m.common.send")}
         >
-          <Text style={styles.commentSend}>{copy.postComment}</Text>
+          {busy || uploading ? (
+            <ActivityIndicator size="small" color="#6BA3E8" />
+          ) : (
+            <Ionicons
+              name="paper-plane"
+              size={22}
+              color={canSend ? "#6BA3E8" : "rgba(255,255,255,0.28)"}
+            />
+          )}
         </Pressable>
       </View>
       <TenorGifSheet
@@ -470,5 +476,4 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: "#fff",
   },
-  commentSend: { color: "#6BA3E8", fontWeight: "800" },
 });

@@ -10,7 +10,6 @@ export function reelsUi(t: TFn) {
     sortNewest: t("m.reels.top_comments"),
     noComments: t("m.common.no_comments_yet"),
     commentPh: t("m.reels.add_a_comment"),
-    postComment: t("m.common.post"),
     adCategory: t("m.common.ad"),
     learnMore: t("m.reels.learn_more"),
   };

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { StyleSheet } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
@@ -20,6 +20,8 @@ const SNAP = {
   easing: Easing.out(Easing.cubic),
 };
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 type Props = {
   progress: SharedValue<number>;
   screenHeight: SharedValue<number>;
@@ -34,7 +36,7 @@ type Props = {
 
 /**
  * Hit target for the gap and the shrunk video above the sheet.
- * A tap closes immediately. A downward drag follows the same progress as the handle.
+ * A press closes the sheet. A downward drag follows the same progress as the handle.
  * Play/pause on the reel is disabled while this layer is up.
  */
 export function ReelsCommentBackdrop({
@@ -51,6 +53,7 @@ export function ReelsCommentBackdrop({
   const pan = useMemo(
     () =>
       Gesture.Pan()
+        .minDistance(12)
         .onStart(() => {
           dragStart.value = progress.value;
         })
@@ -77,6 +80,22 @@ export function ReelsCommentBackdrop({
     [dragStart, frameHeight, onDismiss, progress, sheetHeight]
   );
 
+  const tap = useMemo(
+    () =>
+      Gesture.Tap()
+        .maxDistance(24)
+        .maxDuration(10000)
+        .onEnd(() => {
+          runOnJS(onDismiss)();
+        }),
+    [onDismiss]
+  );
+
+  const gesture = useMemo(
+    () => Gesture.Simultaneous(Gesture.Exclusive(pan, tap), Gesture.Native()),
+    [pan, tap]
+  );
+
   const clipStyle = useAnimatedStyle(() => ({
     height: reelsCommentBackdropHeight(
       screenHeight.value,
@@ -87,16 +106,13 @@ export function ReelsCommentBackdrop({
   }));
 
   return (
-    <GestureDetector gesture={pan}>
-      <Animated.View
+    <GestureDetector gesture={gesture}>
+      <AnimatedPressable
         collapsable={false}
+        onPress={onDismiss}
         accessible
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        accessibilityActions={[{ name: "activate" }]}
-        onAccessibilityAction={(e) => {
-          if (e.nativeEvent.actionName === "activate") onDismiss();
-        }}
         style={[styles.backdrop, clipStyle]}
       />
     </GestureDetector>
