@@ -1,24 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  CLUMP_ZOOM_STEP,
   geoCentroid,
   itemsNearScreenPoint,
-  spiderfyOffsets,
-} from "@/lib/maps/spiderfy";
+  nextClumpZoom,
+} from "@/lib/maps/pin-clump";
 
-test("spiderfy offsets fan out around the origin with no pile-up", () => {
-  const three = spiderfyOffsets(3);
-  assert.equal(three.length, 3);
-  for (const offset of three) {
-    assert.ok(Math.hypot(offset.x, offset.y) > 20);
-  }
-  const distances = three.map((offset) => Math.hypot(offset.x, offset.y));
-  assert.ok(Math.max(...distances) - Math.min(...distances) < 1e-6);
-
-  const many = spiderfyOffsets(16);
-  assert.equal(many.length, 16);
-  const unique = new Set(many.map((offset) => `${offset.x.toFixed(2)},${offset.y.toFixed(2)}`));
-  assert.equal(unique.size, 16);
+test("clump zoom steps in halfway, not all the way to max", () => {
+  assert.equal(nextClumpZoom(4, 19), 4 + CLUMP_ZOOM_STEP);
+  assert.ok(nextClumpZoom(4, 19) < 10);
+  assert.equal(nextClumpZoom(18.5, 19), 19);
 });
 
 test("nearby screen hits ignore pins outside the clump", () => {

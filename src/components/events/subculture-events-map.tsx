@@ -5,13 +5,10 @@ const i18n = createTranslator("en");
 
 import { useEffect, useRef, useState } from "react";
 import type {
-  CircleLayerSpecification,
-  GeoJSONSource,
   Map as MapLibreMap,
   Popup as MapLibrePopup,
   StyleSpecification,
 } from "maplibre-gl";
-import type { FeatureCollection } from "geojson";
 import type { MapEventPin } from "@/lib/subculture-events";
 import { googleSearchUrlForEvent } from "@/lib/subculture-event-pins";
 import { eventCountryFlag } from "@/lib/subculture-event-countries";
@@ -21,9 +18,9 @@ import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import {
   geoCentroid,
   itemsNearScreenPoint,
-  spiderfyOffsets,
+  nextClumpZoom,
   type ScreenPt,
-} from "@/lib/maps/spiderfy";
+} from "@/lib/maps/pin-clump";
 import {
   ESRI_SATELLITE_MAX_ZOOM,
   ESRI_WORLD_IMAGERY_TILES,
@@ -85,20 +82,8 @@ function safeHttpUrl(url: string | null | undefined): string | null {
   return null;
 }
 
-const PIN_TOUCH_BUFFER = 20;
-/** Pins within this many screen pixels count as one clump you can spread. */
+/** Pins within this many screen pixels count as one pile. */
 const CLUMP_RADIUS_PX = 28;
-const HUB_HIT_RADIUS_PX = 16;
-const EMPTY_GEOJSON: FeatureCollection = {
-  type: "FeatureCollection",
-  features: [],
-};
-
-type SpiderfyState = {
-  pins: MapEventPin[];
-  offsets: ScreenPt[];
-  center: { lng: number; lat: number };
-};
 
 function pinColor(category: string, halo: boolean) {
   if (halo) return "#ff4d9a";
@@ -157,9 +142,6 @@ function buildPinPopupHtml(pin: MapEventPin): string {
 
   return `${imageBlock}${roadViewBlock}${phaseBadge}${official}<strong class="subculture-map-popup-title">${escapeHtml(pin.title)}</strong><span class="subculture-map-popup-meta">${countryLabel} ${dateStr}${venueBlock ? ` · ${venueBlock}` : ""}</span>`;
 }
-
-/** 핀 클릭 시 위성 뷰 2단계(건물·블록 단위) 줌 */
-const PIN_FOCUS_ZOOM = 16;
 
 function fitMapToPins(
   map: MapLibreMap,
@@ -337,56 +319,15 @@ export function SubcultureEventsMap({
             type: "geojson",
             data: pinsToGeoJSON(pins, pinHalo),
           });
-          map.addSource("spiderfy-legs", {
-            type: "geojson",
-            data: EMPTY_GEOJSON,
-          });
-          map.addSource("spiderfy-pins", {
-            type: "geojson",
-            data: EMPTY_GEOJSON,
-          });
-          const pinPaint: CircleLayerSpecification["paint"] = {
-            "circle-radius": pinHalo ? 8 : 7,
-            "circle-color": ["get", "color"],
-            "circle-stroke-width": pinHalo ? 3 : 2,
-            "circle-stroke-color": "#ffffff",
-            "circle-pitch-alignment": "viewport",
-            "circle-pitch-scale": "viewport",
-          };
-          map.addLayer({
-            id: "spiderfy-legs",
-            type: "line",
-            source: "spiderfy-legs",
-            paint: {
-              "line-color": "#ffffff",
-              "line-opacity": 0.8,
-              "line-width": 1.25,
-            },
-          });
           map.addLayer({
             id: "event-pins-dot",
             type: "circle",
             source: "event-pins",
-            paint: pinPaint,
-          });
-          map.addLayer({
-            id: "spiderfy-pins-dot",
-            type: "circle",
-            source: "spiderfy-pins",
-            filter: ["==", ["get", "kind"], "pin"],
-            paint: pinPaint,
-          });
-          map.addLayer({
-            id: "spiderfy-hub",
-            type: "circle",
-            source: "spiderfy-pins",
-            filter: ["==", ["get", "kind"], "hub"],
             paint: {
-              "circle-radius": 5,
-              "circle-color": pinHalo ? "#ff4d9a" : "#7c3aed",
-              "circle-stroke-width": 2,
+              "circle-radius": pinHalo ? 8 : 7,
+              "circle-color": ["get", "color"],
+              "circle-stroke-width": pinHalo ? 3 : 2,
               "circle-stroke-color": "#ffffff",
-              "circle-opacity": 0.95,
               "circle-pitch-alignment": "viewport",
               "circle-pitch-scale": "viewport",
             },
@@ -405,120 +346,21 @@ export function SubcultureEventsMap({
       map.once("error", (event) => {
         console.error("[subculture-events-map]", event.error ?? event);
       });
-      const spiderfyRef: { current: SpiderfyState | null } = { current: null };
       const projectPin = (pin: MapEventPin): ScreenPt => {
         const projected = map.project([pin.lng, pin.lat]);
         return { x: projected.x, y: projected.y };
       };
-      const setHiddenPinIds = (hiddenIds: string[]) => {
-        if (!map.getLayer("event-pins-dot")) return;
-        if (hiddenIds.length === 0) {
-          map.setFilter("event-pins-dot", null);
-          return;
-        }
-        map.setFilter("event-pins-dot", [
-          "!",
-          ["in", ["get", "id"], ["literal", hiddenIds]],
-        ]);
-      };
-      const clearSpiderfy = () => {
-        spiderfyRef.current = null;
-        const pinsSource = map.getSource("spiderfy-pins") as GeoJSONSource | undefined;
-        const legsSource = map.getSource("spiderfy-legs") as GeoJSONSource | undefined;
-        pinsSource?.setData(EMPTY_GEOJSON);
-        legsSource?.setData(EMPTY_GEOJSON);
-        setHiddenPinIds([]);
-      };
-      const renderSpiderfy = () => {
-        const state = spiderfyRef.current;
-        const pinsSource = map.getSource("spiderfy-pins") as GeoJSONSource | undefined;
-        const legsSource = map.getSource("spiderfy-legs") as GeoJSONSource | undefined;
-        if (!state || !pinsSource || !legsSource) return;
-        const centerPx = map.project([state.center.lng, state.center.lat]);
-        const pinFeatures = state.pins.map((pin, index) => {
-          const offset = state.offsets[index] ?? { x: 0, y: 0 };
-          const lngLat = map.unproject([centerPx.x + offset.x, centerPx.y + offset.y]);
-          return {
-            type: "Feature" as const,
-            geometry: { type: "Point" as const, coordinates: [lngLat.lng, lngLat.lat] },
-            properties: {
-              id: pin.id,
-              color: pinColor(pin.category, pinHalo),
-              kind: "pin",
-            },
-          };
+      const pinsAtPoint = (point: ScreenPt) =>
+        itemsNearScreenPoint(pins, projectPin, point, CLUMP_RADIUS_PX);
+      const zoomIntoClump = (group: MapEventPin[]) => {
+        const center = geoCentroid(group);
+        map.easeTo({
+          center: [center.lng, center.lat],
+          zoom: nextClumpZoom(map.getZoom(), ESRI_SATELLITE_MAX_ZOOM),
+          duration: 400,
         });
-        const hub = {
-          type: "Feature" as const,
-          geometry: {
-            type: "Point" as const,
-            coordinates: [state.center.lng, state.center.lat],
-          },
-          properties: {
-            id: "__hub__",
-            color: pinHalo ? "#ff4d9a" : "#7c3aed",
-            kind: "hub",
-          },
-        };
-        pinsSource.setData({
-          type: "FeatureCollection",
-          features: [...pinFeatures, hub],
-        });
-        legsSource.setData({
-          type: "FeatureCollection",
-          features: pinFeatures.map((feature) => ({
-            type: "Feature" as const,
-            geometry: {
-              type: "LineString" as const,
-              coordinates: [
-                [state.center.lng, state.center.lat],
-                feature.geometry.coordinates,
-              ],
-            },
-            properties: { id: String(feature.properties.id) },
-          })),
-        });
-      };
-      const openSpiderfy = (group: MapEventPin[]) => {
-        spiderfyRef.current = {
-          pins: group,
-          offsets: spiderfyOffsets(group.length),
-          center: geoCentroid(group),
-        };
-        setHiddenPinIds(group.map((pin) => pin.id));
-        renderSpiderfy();
-      };
-      const spiderfyScreenPos = (pin: MapEventPin): ScreenPt | null => {
-        const state = spiderfyRef.current;
-        if (!state) return null;
-        const index = state.pins.findIndex((item) => item.id === pin.id);
-        if (index < 0) return null;
-        const centerPx = map.project([state.center.lng, state.center.lat]);
-        const offset = state.offsets[index] ?? { x: 0, y: 0 };
-        return { x: centerPx.x + offset.x, y: centerPx.y + offset.y };
-      };
-      const hitAtPoint = (point: ScreenPt) => {
-        const state = spiderfyRef.current;
-        if (state) {
-          const hubPx = map.project([state.center.lng, state.center.lat]);
-          if (Math.hypot(hubPx.x - point.x, hubPx.y - point.y) <= HUB_HIT_RADIUS_PX) {
-            return { kind: "hub" as const };
-          }
-          const spread = itemsNearScreenPoint(
-            state.pins,
-            (pin) => spiderfyScreenPos(pin) ?? projectPin(pin),
-            point,
-            PIN_TOUCH_BUFFER
-          );
-          if (spread[0]) return { kind: "pin" as const, pin: spread[0] };
-        }
-        const nearby = itemsNearScreenPoint(pins, projectPin, point, CLUMP_RADIUS_PX);
-        if (nearby.length >= 2) return { kind: "clump" as const, pins: nearby };
-        if (nearby[0]) return { kind: "pin" as const, pin: nearby[0] };
-        return null;
       };
       const openPin = (pin: MapEventPin) => {
-        clearSpiderfy();
         popupRef.current?.remove();
         const popup = new maplibregl.Popup({
           closeButton: false,
@@ -530,45 +372,28 @@ export function SubcultureEventsMap({
           .setHTML(buildPinPopupHtml(pin))
           .addTo(map);
         popupRef.current = popup;
-        map.flyTo({
-          center: [pin.lng, pin.lat],
-          zoom: Math.min(
-            ESRI_SATELLITE_MAX_ZOOM,
-            Math.max(map.getZoom(), PIN_FOCUS_ZOOM)
-          ),
-          duration: 700,
-          essential: true,
-        });
         onPinClick?.(pin);
       };
 
-      map.on("move", renderSpiderfy);
-      map.on("zoomstart", () => {
-        if (spiderfyRef.current) clearSpiderfy();
-      });
       map.on("mousemove", (event) => {
         if (!interactive) return;
-        map.getCanvas().style.cursor = hitAtPoint(event.point) ? "pointer" : "";
+        map.getCanvas().style.cursor = pinsAtPoint(event.point).length > 0 ? "pointer" : "";
       });
       map.on("click", (event) => {
         if (interactive) {
-          const hit = hitAtPoint(event.point);
-          if (hit?.kind === "hub") {
-            clearSpiderfy();
-            return;
-          }
-          if (hit?.kind === "pin") {
-            openPin(hit.pin);
-            return;
-          }
-          if (hit?.kind === "clump") {
+          const nearby = pinsAtPoint(event.point);
+          if (nearby.length >= 2) {
             popupRef.current?.remove();
             popupRef.current = null;
-            openSpiderfy(hit.pins);
+            if (map.getZoom() >= ESRI_SATELLITE_MAX_ZOOM - 0.05) {
+              openPin(nearby[0]!);
+              return;
+            }
+            zoomIntoClump(nearby);
             return;
           }
-          if (spiderfyRef.current) {
-            clearSpiderfy();
+          if (nearby[0]) {
+            openPin(nearby[0]);
             return;
           }
         }
