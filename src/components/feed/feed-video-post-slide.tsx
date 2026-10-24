@@ -26,7 +26,11 @@ import {
   useReelsCommentMotion,
 } from "@/components/reels/reels-comment-motion";
 import { cn } from "@/lib/utils";
-import { scrollPortToSelector } from "@/lib/reels/scroll-port";
+import { REELS_H_NAV_DURATION_MS } from "@/lib/reels/constants";
+import {
+  animateScrollPortToSelector,
+  scrollPortToSelector,
+} from "@/lib/reels/scroll-port";
 
 /** Desktop stage width — one card in the center column, no neighbor peek. */
 const DESKTOP_CARD_CLASS =
@@ -97,9 +101,7 @@ function FeedVideoPostSlideBody({
   const [videoIndex, setVideoIndex] = useState(() =>
     Math.max(0, Math.min(initialVideoIndex, group.videos.length - 1))
   );
-  const [animating, setAnimating] = useState(false);
   const startedRef = useRef(false);
-  const animTimerRef = useRef<number | null>(null);
   const distance = Math.abs(index - activeIndex);
   const isActive = index === activeIndex;
   const activeReel = group.videos[videoIndex] ?? group.videos[0]!;
@@ -175,7 +177,6 @@ function FeedVideoPostSlideBody({
       raf = requestAnimationFrame(syncFromScroll);
     };
     const onScrollEnd = () => {
-      setAnimating(false);
       syncFromScroll();
     };
     root.addEventListener("scroll", onScroll, { passive: true });
@@ -190,31 +191,21 @@ function FeedVideoPostSlideBody({
   const goH = useCallback(
     (next: number) => {
       const clamped = Math.max(0, Math.min(group.videos.length - 1, next));
-      if (clamped === videoIndex && !animating) {
-        scrollToIndex(clamped, "smooth");
+      if (clamped === videoIndex) {
+        scrollToIndex(clamped, "auto");
         return;
       }
-      setAnimating(true);
-      if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
-      animTimerRef.current = window.setTimeout(() => {
-        setAnimating(false);
-        animTimerRef.current = null;
-      }, 520);
       setVideoIndex(clamped);
       onActiveVideoChange?.(clamped);
-      // Double rAF so scale/opacity classes apply before smooth scroll
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => scrollToIndex(clamped, "smooth"));
-      });
+      animateScrollPortToSelector(
+        hScrollerRef.current,
+        `[data-feed-video-h="${clamped}"]`,
+        "x",
+        REELS_H_NAV_DURATION_MS
+      );
     },
-    [animating, group.videos.length, onActiveVideoChange, scrollToIndex, videoIndex]
+    [group.videos.length, onActiveVideoChange, scrollToIndex, videoIndex]
   );
-
-  useEffect(() => {
-    return () => {
-      if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     if (forcedVideoIndex == null) return;
@@ -289,13 +280,6 @@ function FeedVideoPostSlideBody({
           "snap-x snap-mandatory [overflow-anchor:none]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         )}
-        style={
-          multiVideo
-            ? {
-                scrollBehavior: animating ? "smooth" : undefined,
-              }
-            : undefined
-        }
         role="list"
         aria-label={t("feed.s1508wel")}
       >
@@ -429,7 +413,7 @@ function FeedVideoPostSlideBody({
         <>
           <button
             type="button"
-            disabled={!canHPrev || animating}
+            disabled={!canHPrev}
             onClick={() => goH(videoIndex - 1)}
             className={sideNavBtnClass}
             style={{
@@ -441,7 +425,7 @@ function FeedVideoPostSlideBody({
           </button>
           <button
             type="button"
-            disabled={!canHNext || animating}
+            disabled={!canHNext}
             onClick={() => goH(videoIndex + 1)}
             className={sideNavBtnClass}
             style={{

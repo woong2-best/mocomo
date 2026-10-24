@@ -33,6 +33,9 @@ export const REELS_PAGE_SIZE = 12;
 /** Prefetch next page when this many items remain. */
 export const REELS_PREFETCH_REMAINING = 4;
 
+/** Horizontal in-post reel paging (desktop chevrons). Native smooth+snap is slower. */
+export const REELS_H_NAV_DURATION_MS = 500;
+
 /** Local dismiss list for “not interested”. */
 export const REELS_DISMISSED_KEY = "mocomo_reels_dismissed";
 export const REELS_DISMISSED_MAX = 200;

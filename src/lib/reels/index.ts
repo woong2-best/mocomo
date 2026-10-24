@@ -11,6 +11,7 @@ export {
   REELS_PAGE_SIZE,
   REELS_PREFETCH_REMAINING,
   REELS_LOOP_MAX_SEC,
+  REELS_H_NAV_DURATION_MS,
 } from "@/lib/reels/constants";
 
 export { reelShouldHoldSrc } from "@/lib/reels/attach-policy";
