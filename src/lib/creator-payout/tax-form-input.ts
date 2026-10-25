@@ -177,6 +177,96 @@ export function isValidForeignTin(value: string): boolean {
   return /^[0-9]+$/.test(core);
 }
 
+export type TaxFormDraftInput = {
+  formType: TaxFormKind;
+  fullName: string;
+  businessName?: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  tin?: string;
+  citizenshipCode?: string;
+  residenceCountryCode?: string;
+  foreignTin?: string;
+  hasSignature: boolean;
+};
+
+export type TaxReviewStatusLabel = "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRED";
+
+/** Client-side reasons the Save tax form button stays off. */
+export function listTaxFormSaveIssues(input: TaxFormDraftInput): string[] {
+  const issues: string[] = [];
+  const textFields = [input.fullName, input.street, input.city, input.state];
+  const optional = input.formType === "W9" ? [input.businessName ?? ""] : [];
+  const latinFields = [...textFields, ...optional];
+  if (input.fullName.trim().length < 2) issues.push("Enter a full legal name in English.");
+  if (input.street.trim().length < 3) issues.push("Enter a street address in English.");
+  if (input.state.trim().length < 1) issues.push("Select a state or province.");
+  if (input.city.trim().length < 2) issues.push("Enter a city.");
+  if (!isValidTaxPostalCode(input.postalCode)) {
+    issues.push("Enter a postal code that includes a number.");
+  }
+  if (latinFields.some((value) => !isTaxFormEnglishText(value) || !isTaxFormTextQualityOk(value))) {
+    issues.push("Use English letters only. Do not repeat the same character 3+ times.");
+  }
+  if (input.formType === "W9") {
+    if ((input.tin ?? "").replace(/\D/g, "").length !== 9) {
+      issues.push("Enter a 9-digit SSN or EIN.");
+    }
+  } else {
+    const citizenship = (input.citizenshipCode ?? "").toUpperCase();
+    const residence = (input.residenceCountryCode ?? "").toUpperCase();
+    if (citizenship === "US" || residence === "US" || citizenship.length !== 2 || residence.length !== 2) {
+      issues.push("W-8BEN needs a non-U.S. country of citizenship and residence.");
+    }
+    if (!isValidForeignTin(input.foreignTin ?? "")) {
+      issues.push("Enter a foreign TIN using at least 4 digits.");
+    }
+  }
+  if (!input.hasSignature) issues.push("Draw a signature, then click Save tax form.");
+  return issues;
+}
+
+export function taxFormDraftStarted(input: TaxFormDraftInput): boolean {
+  return Boolean(
+    input.fullName.trim() ||
+      input.businessName?.trim() ||
+      input.street.trim() ||
+      input.city.trim() ||
+      input.state.trim() ||
+      input.postalCode.trim() ||
+      input.tin?.trim() ||
+      input.foreignTin?.trim() ||
+      input.hasSignature,
+  );
+}
+
+export function taxReviewStatusLabel(status: TaxReviewStatusLabel | null | undefined): string {
+  if (status === "VERIFIED") return "Verified";
+  if (status === "PENDING") return "Pending review";
+  if (status === "REJECTED") return "Rejected";
+  if (status === "EXPIRED") return "Expired";
+  return "Not submitted";
+}
+
+/** Section status: filling the form is not the same as saving it. */
+export function taxFormSectionStatus(input: {
+  loading?: boolean;
+  saved?: { formType: TaxFormKind; status: TaxReviewStatusLabel } | null;
+  issues: string[];
+  hasDraft: boolean;
+}): string {
+  if (input.loading) return "…";
+  if (input.saved) {
+    const form = input.saved.formType === "W9" ? "W-9" : "W-8BEN";
+    return `${form} · ${taxReviewStatusLabel(input.saved.status)}`;
+  }
+  if (input.issues.length === 0) return "Ready to save";
+  if (input.hasDraft) return "In progress — not saved";
+  return "Not submitted";
+}
+
 export function prepareForeignTinForPdf(value: unknown): string | null {
   const compact = normalizeForeignTin(typeof value === "string" ? value : "");
   if (!isValidForeignTin(compact)) return null;

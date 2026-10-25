@@ -4,18 +4,19 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatUsTinInput,
+  listTaxFormSaveIssues,
   payoutEmailsMatch,
   isTaxFormEnglishText,
   isTaxFormTextQualityOk,
   isValidAccountNumber,
-  isValidForeignTin,
   isValidSwiftCode,
-  isValidTaxPostalCode,
   sanitizeAccountNumberInput,
   sanitizeForeignTinInput,
   sanitizeSwiftInput,
   sanitizeTaxPostalInput,
   sanitizeTaxTextInput,
+  taxFormDraftStarted,
+  taxFormSectionStatus,
 } from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
@@ -88,14 +89,6 @@ function payoutLabel(quote: Quote) {
   return formatUsdFromCents(cents);
 }
 
-function statusLabel(status: TaxStatus | null | undefined) {
-  if (status === "VERIFIED") return "Verified";
-  if (status === "PENDING") return "Pending review";
-  if (status === "REJECTED") return "Rejected";
-  if (status === "EXPIRED") return "Expired";
-  return "Not submitted";
-}
-
 const fieldClass =
   "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-black placeholder:text-neutral-400";
 
@@ -138,7 +131,14 @@ export function SettlementRequestFlow() {
 
   const applyReadiness = useCallback((ready: Readiness) => {
     setReadiness(ready);
-    if (ready.tax?.formType) setFormType(ready.tax.formType);
+    if (ready.tax?.formType) {
+      setFormType(ready.tax.formType);
+    } else if (ready.method?.countryCode && ready.method.countryCode !== "US") {
+      const payoutCountry = pickW8benCountry(ready.method.countryCode);
+      setFormType("W8BEN");
+      setCitizenshipCode((code) => (code === "US" ? payoutCountry : pickW8benCountry(code)));
+      setResidenceCountryCode(payoutCountry);
+    }
     if (ready.method?.kind === "PAYONEER" || ready.method?.kind === "WISE" || ready.method?.kind === "BANK") {
       setKind(ready.method.kind);
     }
@@ -196,46 +196,44 @@ export function SettlementRequestFlow() {
   }, [formType, citizenshipCode, residenceCountryCode]);
 
   const taxReady = readiness?.tax?.status === "VERIFIED" && !editingTax;
-  const taxLatinFieldsValid = useMemo(() => {
-    const textFields = [fullName, street, city, state];
-    const optional = formType === "W9" ? [businessName] : [];
-    const latinOk = [...textFields, ...optional].every((value) => isTaxFormEnglishText(value));
-    const qualityOk = [...textFields, ...optional].every((value) => isTaxFormTextQualityOk(value));
-    const postalOk = isValidTaxPostalCode(postalCode);
-    return latinOk && qualityOk && postalOk;
-  }, [businessName, city, formType, fullName, postalCode, state, street]);
-  const canSubmitTax = useMemo(() => {
-    const base =
-      taxLatinFieldsValid &&
-      fullName.trim().length >= 2 &&
-      street.trim().length >= 3 &&
-      city.trim().length >= 2 &&
-      state.trim().length >= 1 &&
-      postalCode.trim().length >= 3 &&
-      Boolean(signaturePng);
-    if (!base) return false;
-    if (formType === "W9") return tin.replace(/\D/g, "").length === 9;
-    return (
-      citizenshipCode !== "US" &&
-      residenceCountryCode !== "US" &&
-      citizenshipCode.length === 2 &&
-      residenceCountryCode.length === 2 &&
-      isValidForeignTin(foreignTin)
-    );
-  }, [
-    citizenshipCode,
-    city,
-    foreignTin,
-    formType,
-    fullName,
-    postalCode,
-    residenceCountryCode,
-    signaturePng,
-    state,
-    street,
-    taxLatinFieldsValid,
-    tin,
-  ]);
+  const taxDraft = useMemo(
+    () => ({
+      formType,
+      fullName,
+      businessName,
+      street,
+      city,
+      state,
+      postalCode,
+      tin,
+      citizenshipCode,
+      residenceCountryCode,
+      foreignTin,
+      hasSignature: Boolean(signaturePng),
+    }),
+    [
+      businessName,
+      citizenshipCode,
+      city,
+      foreignTin,
+      formType,
+      fullName,
+      postalCode,
+      residenceCountryCode,
+      signaturePng,
+      state,
+      street,
+      tin,
+    ],
+  );
+  const taxSaveIssues = useMemo(() => listTaxFormSaveIssues(taxDraft), [taxDraft]);
+  const canSubmitTax = taxSaveIssues.length === 0;
+  const taxSectionValue = taxFormSectionStatus({
+    loading,
+    saved: readiness?.tax ?? null,
+    issues: taxSaveIssues,
+    hasDraft: taxFormDraftStarted(taxDraft),
+  });
 
   const canSaveDestination = useMemo(() => {
     if (kind === "BANK") {
@@ -307,22 +305,19 @@ export function SettlementRequestFlow() {
         expiresAt: data.expiresAt ?? null,
         countryCode: data.countryCode ?? (formType === "W9" ? "US" : residenceCountryCode),
       };
-      applyReadiness({
+      const savedReady: Readiness = {
         tax: savedTax,
         method: readiness?.method ?? null,
         canRequest: Boolean(readiness?.method) && savedTax.status === "VERIFIED",
         code: readiness?.method ? null : "PAYOUT_METHOD_REQUIRED",
-      });
+      };
+      applyReadiness(savedReady);
       setEditingTax(false);
       setNotice("Tax form saved and verified.");
-      const refreshed = await loadReadiness().catch(() => false);
-      if (!refreshed) {
-        applyReadiness({
-          tax: savedTax,
-          method: readiness?.method ?? null,
-          canRequest: Boolean(readiness?.method) && savedTax.status === "VERIFIED",
-          code: readiness?.method ? null : "PAYOUT_METHOD_REQUIRED",
-        });
+      const readyRes = await fetch("/api/settlements/payout-readiness", { cache: "no-store" }).catch(() => null);
+      if (readyRes?.ok) {
+        const next = (await readyRes.json()) as Readiness;
+        if (next.tax) applyReadiness(next);
       }
       await loadQuote().catch(() => undefined);
     } catch {
@@ -414,8 +409,6 @@ export function SettlementRequestFlow() {
     );
   }
 
-  const taxStatus = readiness?.tax?.status;
-
   return (
     <PageFrame>
       <div className="mt-6">
@@ -458,16 +451,7 @@ export function SettlementRequestFlow() {
 
           <Panel title="Section status">
             <div className="divide-y divide-neutral-200">
-              <Line
-                label="Tax form"
-                value={
-                  loading
-                    ? "…"
-                    : readiness?.tax
-                      ? `${readiness.tax.formType === "W9" ? "W-9" : "W-8BEN"} · ${statusLabel(taxStatus)}`
-                      : "Not submitted"
-                }
-              />
+              <Line label="Tax form" value={taxSectionValue} />
               <Line label="Destination" value={loading ? "…" : (readiness?.method?.hint ?? "Not saved")} />
             </div>
           </Panel>
@@ -513,6 +497,9 @@ export function SettlementRequestFlow() {
                 </>
               ) : (
                 <>
+                  <p className="text-xs leading-relaxed text-neutral-500">
+                    Filling the fields is not enough. Draw a signature, then click Save tax form. Section status only changes to Verified after that save succeeds.
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     <Choice
                       label="W-9 (US person)"
@@ -661,9 +648,21 @@ export function SettlementRequestFlow() {
                 >
                   Save tax form
                 </button>
-                <p className="text-xs leading-relaxed text-neutral-500">
-                  Draw a signature to turn the save button on.
-                </p>
+                  {canSubmitTax ? (
+                    <p className="text-xs leading-relaxed text-neutral-500">
+                      Click Save tax form. Section status only becomes Verified after this save succeeds.
+                    </p>
+                  ) : taxFormDraftStarted(taxDraft) ? (
+                    <ul className="list-disc space-y-1 pl-4 text-xs leading-relaxed text-neutral-500">
+                      {taxSaveIssues.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs leading-relaxed text-neutral-500">
+                      Complete the form and draw a signature to turn Save on.
+                    </p>
+                  )}
               </div>
             </Panel>
           ) : null}

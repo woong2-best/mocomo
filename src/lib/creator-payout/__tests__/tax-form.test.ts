@@ -4,6 +4,7 @@ import {
   formatSsnInput,
   hasTaxFormExcessiveRepeat,
   isCompletePayoutEmail,
+  listTaxFormSaveIssues,
   payoutEmailsMatch,
   isTaxFormEnglishText,
   isValidAccountNumber,
@@ -17,6 +18,8 @@ import {
   sanitizeForeignTinInput,
   sanitizeTaxPostalInput,
   sanitizeTaxTextInput,
+  taxFormDraftStarted,
+  taxFormSectionStatus,
   w8benExpiresAt,
 } from "@/lib/creator-payout/tax-form-input";
 import { generateTaxFormPdf } from "@/lib/creator-payout/tax-pdf";
@@ -131,6 +134,56 @@ describe("tax form dates and input", () => {
     expect(isValidSwiftCode("BOFAUS3NXXX")).toBe(true);
     expect(isValidSwiftCode("bo-fa")).toBe(false);
     expect(isValidSwiftCode("")).toBe(true);
+  });
+
+  it("keeps section status Not submitted until the form is actually saved", () => {
+    const empty = {
+      formType: "W8BEN" as const,
+      fullName: "",
+      street: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      citizenshipCode: "KR",
+      residenceCountryCode: "KR",
+      foreignTin: "",
+      hasSignature: false,
+    };
+    expect(taxFormDraftStarted(empty)).toBe(false);
+    expect(taxFormSectionStatus({ issues: listTaxFormSaveIssues(empty), hasDraft: false })).toBe(
+      "Not submitted",
+    );
+
+    const filled = {
+      ...empty,
+      fullName: "Kim Happy",
+      street: "1 Teheran-ro",
+      city: "Seoul",
+      state: "Seoul",
+      postalCode: "06141",
+      foreignTin: "900101-1234567",
+      hasSignature: true,
+    };
+    expect(listTaxFormSaveIssues(filled)).toEqual([]);
+    expect(taxFormSectionStatus({ issues: [], hasDraft: true })).toBe("Ready to save");
+    expect(
+      taxFormSectionStatus({
+        saved: { formType: "W8BEN", status: "VERIFIED" },
+        issues: [],
+        hasDraft: true,
+      }),
+    ).toBe("W-8BEN · Verified");
+    expect(
+      listTaxFormSaveIssues({ ...filled, hasSignature: false }).some((issue) =>
+        issue.includes("signature"),
+      ),
+    ).toBe(true);
+    expect(
+      taxFormSectionStatus({
+        issues: listTaxFormSaveIssues({ ...filled, hasSignature: false }),
+        hasDraft: true,
+      }),
+    ).toBe("In progress — not saved");
   });
 });
 
