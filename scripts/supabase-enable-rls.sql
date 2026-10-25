@@ -94,7 +94,11 @@ CREATE POLICY "mocomo_public_read_mocomo_uploads"
   ON storage.objects
   FOR SELECT
   TO public
-  USING (bucket_id = 'mocomo-uploads');
+  USING (
+    bucket_id = 'mocomo-uploads'
+    AND name NOT LIKE 'tax-forms/%'
+    AND name NOT LIKE 'kyc/%'
+  );
 
 -- Studio 전용 버킷이 있으면 동일하게 읽기만
 DROP POLICY IF EXISTS "mocomo_public_read_mocomo_studio" ON storage.objects;

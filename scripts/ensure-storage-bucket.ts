@@ -11,7 +11,8 @@ VALUES (
     'image/jpeg', 'image/png', 'image/webp', 'image/gif',
     'video/mp4', 'video/webm',
     'audio/mpeg', 'audio/webm', 'audio/ogg',
-    'model/gltf-binary', 'application/octet-stream'
+    'model/gltf-binary', 'application/octet-stream',
+    'application/pdf'
   ]
 )
 ON CONFLICT (id) DO UPDATE SET

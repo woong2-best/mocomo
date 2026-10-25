@@ -974,7 +974,8 @@ VALUES (
     'image/jpeg', 'image/png', 'image/webp', 'image/gif',
     'video/mp4', 'video/webm',
     'audio/mpeg', 'audio/webm', 'audio/ogg',
-    'model/gltf-binary', 'application/octet-stream'
+    'model/gltf-binary', 'application/octet-stream',
+    'application/pdf'
   ]
 )
 ON CONFLICT (id) DO UPDATE SET
@@ -1746,7 +1747,11 @@ END $$;
 DROP POLICY IF EXISTS "mocomo_public_read_mocomo_uploads" ON storage.objects;
 CREATE POLICY "mocomo_public_read_mocomo_uploads"
   ON storage.objects FOR SELECT TO public
-  USING (bucket_id = 'mocomo-uploads');
+  USING (
+    bucket_id = 'mocomo-uploads'
+    AND name NOT LIKE 'tax-forms/%'
+    AND name NOT LIKE 'kyc/%'
+  );
 
 DROP POLICY IF EXISTS "mocomo_public_read_mocomo_studio" ON storage.objects;
 CREATE POLICY "mocomo_public_read_mocomo_studio"

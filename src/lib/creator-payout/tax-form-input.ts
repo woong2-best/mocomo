@@ -50,7 +50,7 @@ export function normalizeAsciiDigits(value: string): string {
 }
 
 export function sanitizeTaxTextInput(value: string): string {
-  return stripTaxFormRepeats(normalizeAsciiDigits(value).replace(/[^a-zA-Z0-9\s,.\-/#']/g, ""));
+  return normalizeAsciiDigits(value).replace(/[^a-zA-Z0-9\s,.\-/#']/g, "");
 }
 
 const TAX_POSTAL = /^[A-Za-z0-9-]+$/;
@@ -119,9 +119,8 @@ export function hasTaxFormExcessiveRepeat(value: string): boolean {
   return /(.)\1{2,}/.test(value);
 }
 
-export function isTaxFormTextQualityOk(value: string): boolean {
-  if (!value.trim()) return true;
-  return !hasTaxFormExcessiveRepeat(value);
+export function isTaxFormTextQualityOk(_value: string): boolean {
+  return true;
 }
 
 function clean(value: unknown, max: number): string {
@@ -207,8 +206,8 @@ export function listTaxFormSaveIssues(input: TaxFormDraftInput): string[] {
   if (!isValidTaxPostalCode(input.postalCode)) {
     issues.push("Enter a postal code that includes a number.");
   }
-  if (latinFields.some((value) => !isTaxFormEnglishText(value) || !isTaxFormTextQualityOk(value))) {
-    issues.push("Use English letters only. Do not repeat the same character 3+ times.");
+  if (latinFields.some((value) => !isTaxFormEnglishText(value))) {
+    issues.push("Use English letters only.");
   }
   if (input.formType === "W9") {
     if ((input.tin ?? "").replace(/\D/g, "").length !== 9) {

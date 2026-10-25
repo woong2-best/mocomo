@@ -2,7 +2,12 @@ import { randomUUID } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { sniffMimeFromBuffer } from "@/lib/file-magic";
-import { getSupabaseAdmin, isSupabaseStorageConfigured } from "@/lib/supabase-storage";
+import { safeLogWarn } from "@/lib/safe-log";
+import {
+  ensureTaxPdfUploadsAllowed,
+  getSupabaseAdmin,
+  isSupabaseStorageConfigured,
+} from "@/lib/supabase-storage";
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "mocomo-uploads";
 const TAX_PREFIX = "tax-forms/";
@@ -53,11 +58,19 @@ export async function uploadTaxFormBuffer(input: {
   if (isSupabaseStorageConfigured()) {
     const supabase = getSupabaseAdmin();
     if (!supabase) return { error: "Storage configuration error" };
+    const pdfAllowed = await ensureTaxPdfUploadsAllowed();
+    if (!pdfAllowed) {
+      safeLogWarn("tax-form-storage", { reason: "pdf-mime-not-allowed" });
+      return { error: "Could not store the tax form." };
+    }
     const { error } = await supabase.storage.from(BUCKET).upload(documentKey, input.buffer, {
       contentType: inspected.mime,
       upsert: false,
     });
-    if (error) return { error: "Could not store the tax form." };
+    if (error) {
+      safeLogWarn("tax-form-storage", { reason: (error.message ?? "upload").slice(0, 80) });
+      return { error: "Could not store the tax form." };
+    }
     return { documentKey };
   }
 

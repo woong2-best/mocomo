@@ -7,6 +7,7 @@ import {
   listTaxFormSaveIssues,
   payoutEmailsMatch,
   isTaxFormEnglishText,
+  isTaxFormTextQualityOk,
   isValidAccountNumber,
   isValidForeignTin,
   isValidSwiftCode,
@@ -98,26 +99,25 @@ describe("tax form dates and input", () => {
     expect(isValidTaxPostalCode("abcdef")).toBe(false);
   });
 
-  it("strips Hangul and 3-repeat keyboard mashing from text fields", () => {
+  it("strips Hangul but keeps repeated English letters", () => {
     expect(sanitizeTaxTextInput("백권웅 Gwonung")).toBe(" Gwonung");
-    expect(sanitizeTaxTextInput("yyy")).toBe("yy");
+    expect(sanitizeTaxTextInput("yyy")).toBe("yyy");
     expect(sanitizeTaxTextInput("hello")).toBe("hello");
-    expect(hasTaxFormExcessiveRepeat("hello")).toBe(false);
+    expect(isTaxFormTextQualityOk("eee")).toBe(true);
     expect(hasTaxFormExcessiveRepeat("eee")).toBe(true);
     expect(
-      parseTaxFormPayload({
-        formType: "W8BEN",
-        fullName: "Kim Hhhhhappy",
-        street: "123 Nakdong-daero",
-        city: "Saha-gu",
-        state: "Busan",
-        postalCode: "49315",
-        citizenshipCode: "KR",
-        residenceCountryCode: "KR",
-        foreignTin: "900101-1234567",
-        signaturePng: ONE_PIXEL_PNG.toString("base64"),
+      listTaxFormSaveIssues({
+        formType: "W9",
+        fullName: "Ada Lovelace",
+        businessName: "fff",
+        street: "1 Market Street",
+        city: "San Francisco",
+        state: "California",
+        postalCode: "94105",
+        tin: "123456789",
+        hasSignature: true,
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it("formats US TINs and payout destination fields", () => {

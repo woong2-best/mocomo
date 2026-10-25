@@ -15,6 +15,7 @@ const MEDIA_MIME = [
 ] as const;
 
 const MODEL_MIME = ["model/gltf-binary", "application/octet-stream"] as const;
+const TAX_PDF_MIME = ["application/pdf"] as const;
 const MODEL_MAX_BYTES = 32 * 1024 * 1024;
 
 export function getSupabaseAdmin(): SupabaseClient | null {
@@ -103,6 +104,30 @@ export async function ensureVrmUploadsAllowed(): Promise<boolean> {
   const { error: updateError } = await supabase.storage.updateBucket(BUCKET, {
     public: row.public ?? true,
     fileSizeLimit: size,
+    allowedMimeTypes: next,
+  });
+  return !updateError;
+}
+
+/** Tax PDFs 400 until application/pdf is on the photo/video bucket allowlist. */
+export async function ensureTaxPdfUploadsAllowed(): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+  const { data, error } = await supabase.storage.getBucket(BUCKET);
+  if (error) return false;
+  const row = data as {
+    public?: boolean;
+    allowedMimeTypes?: string[] | null;
+    allowed_mime_types?: string[] | null;
+    fileSizeLimit?: number | null;
+    file_size_limit?: number | null;
+  };
+  const have = new Set<string>(row.allowedMimeTypes ?? row.allowed_mime_types ?? []);
+  if (TAX_PDF_MIME.every((mime) => have.has(mime))) return true;
+  const next: string[] = [...new Set<string>([...have, ...TAX_PDF_MIME])];
+  const { error: updateError } = await supabase.storage.updateBucket(BUCKET, {
+    public: row.public ?? true,
+    fileSizeLimit: row.fileSizeLimit ?? row.file_size_limit ?? undefined,
     allowedMimeTypes: next,
   });
   return !updateError;
