@@ -28,6 +28,7 @@ import {
   replaceRange,
   searchTitles,
   type IndexedWikiTitle,
+  type TitleContext,
   type WikiTitle,
 } from "@/lib/wiki/editorUtils";
 import type { WikiMacro } from "@/lib/wiki/macros";
