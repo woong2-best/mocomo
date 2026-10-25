@@ -10,21 +10,43 @@
 /** Matches the ruled note: 17px type on a 32px line. */
 export const NOTE_LINE_PX = 32;
 export const NOTE_INSET_PX = 12;
-export const NOTE_PAD_TOP_PX = 12;
-/** Room for the author row sitting on the bottom of the paper. */
-export const NOTE_PAD_BOTTOM_PX = 112;
-export const NOTE_PAD_LEFT_PX = 20;
-/** Clears the action rail on the right of the paper. */
-export const NOTE_PAD_RIGHT_PX = 56;
-/** One latin column. Hangul and other fullwidth glyphs count as two. */
+export const NOTE_PAD_TOP_PX = 8;
+/** Stops just above the author name. */
+export const NOTE_PAD_BOTTOM_PX = 76;
+export const NOTE_PAD_LEFT_PX = 16;
+/** Paper edge. The action rail sits on top of the last columns. */
+export const NOTE_PAD_RIGHT_PX = 12;
+/** Measured on the reel font (Geist / Pretendard, 500 17px). */
+export const NOTE_JAMO_PX = 14.7;
+export const NOTE_HANGUL_PX = 14.7;
+export const NOTE_LATIN_PX = 11.6;
+export const NOTE_SPACE_PX = 4.13;
+/** One latin column. Kept for the unit-based fallback. */
 export const NOTE_UNIT_PX = 8.5;
+
+export type NoteGlyphs = {
+  jamoPx: number;
+  hangulPx: number;
+  latinPx: number;
+  spacePx: number;
+};
 
 export type NotePageBudget = {
   unitsPerLine: number;
   linesPerPage: number;
+  /** Text column width. When set, lines wrap by measured glyph width. */
+  lineWidthPx?: number;
+  jamoPx?: number;
+  hangulPx?: number;
+  latinPx?: number;
+  spacePx?: number;
 };
 
-export function notePageBudget(frameWidth: number, frameHeight: number): NotePageBudget {
+export function notePageBudget(
+  frameWidth: number,
+  frameHeight: number,
+  glyphs?: Partial<NoteGlyphs>
+): NotePageBudget {
   const paperW = Math.max(0, frameWidth - NOTE_INSET_PX * 2);
   const paperH = Math.max(0, frameHeight - NOTE_INSET_PX * 2);
   const textW = Math.max(80, paperW - NOTE_PAD_LEFT_PX - NOTE_PAD_RIGHT_PX);
@@ -32,7 +54,49 @@ export function notePageBudget(frameWidth: number, frameHeight: number): NotePag
   return {
     unitsPerLine: Math.max(20, Math.floor(textW / NOTE_UNIT_PX)),
     linesPerPage: Math.max(8, Math.floor(textH / NOTE_LINE_PX)),
+    lineWidthPx: textW,
+    jamoPx: glyphs?.jamoPx ?? NOTE_JAMO_PX,
+    hangulPx: glyphs?.hangulPx ?? NOTE_HANGUL_PX,
+    latinPx: glyphs?.latinPx ?? NOTE_LATIN_PX,
+    spacePx: glyphs?.spacePx ?? NOTE_SPACE_PX,
   };
+}
+
+function glyphPx(ch: string, budget: NotePageBudget): number {
+  if (ch === " ") return budget.spacePx ?? NOTE_SPACE_PX;
+  const code = ch.codePointAt(0) ?? 0;
+  if (code >= 0x3130 && code <= 0x318f) return budget.jamoPx ?? NOTE_JAMO_PX;
+  if (charUnits(ch) === 2) return budget.hangulPx ?? NOTE_HANGUL_PX;
+  return budget.latinPx ?? NOTE_LATIN_PX;
+}
+
+/** Wrap one logical line to a measured pixel width. */
+function wrapReelNoteLinePx(line: string, budget: NotePageBudget): string[] {
+  const max = budget.lineWidthPx ?? 0;
+  if (line.length === 0) return [""];
+  const chars = Array.from(line);
+  const out: string[] = [];
+  let start = 0;
+  while (start < chars.length) {
+    let width = 0;
+    let end = start;
+    let lastSpace = -1;
+    while (end < chars.length) {
+      const next = glyphPx(chars[end] ?? "", budget);
+      if (width + next > max && end > start) break;
+      width += next;
+      if (chars[end] === " ") lastSpace = end;
+      end += 1;
+    }
+    if (end < chars.length && lastSpace > start) {
+      out.push(chars.slice(start, lastSpace).join("").trimEnd());
+      start = lastSpace + 1;
+    } else {
+      out.push(chars.slice(start, end).join(""));
+      start = end;
+    }
+  }
+  return out.length > 0 ? out : [""];
 }
 
 /** Desktop reel card, used until the viewer has measured the frame. */
@@ -97,7 +161,11 @@ export function paginateReelNote(raw: string, budget: NotePageBudget = NOTE_PAGE
   if (!text.trim()) return [];
   const visual: string[] = [];
   for (const line of text.split("\n")) {
-    visual.push(...wrapReelNoteLine(line, budget.unitsPerLine));
+    visual.push(
+      ...(budget.lineWidthPx != null
+        ? wrapReelNoteLinePx(line, budget)
+        : wrapReelNoteLine(line, budget.unitsPerLine))
+    );
   }
   const pages: string[] = [];
   for (let i = 0; i < visual.length; i += budget.linesPerPage) {

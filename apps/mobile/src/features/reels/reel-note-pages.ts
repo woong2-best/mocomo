@@ -5,15 +5,24 @@
 
 export const NOTE_LINE_PX = 32;
 export const NOTE_INSET_PX = 12;
-export const NOTE_PAD_TOP_PX = 12;
-export const NOTE_PAD_BOTTOM_PX = 112;
-export const NOTE_PAD_LEFT_PX = 20;
-export const NOTE_PAD_RIGHT_PX = 56;
+export const NOTE_PAD_TOP_PX = 8;
+export const NOTE_PAD_BOTTOM_PX = 76;
+export const NOTE_PAD_LEFT_PX = 16;
+export const NOTE_PAD_RIGHT_PX = 12;
+export const NOTE_JAMO_PX = 14.7;
+export const NOTE_HANGUL_PX = 14.7;
+export const NOTE_LATIN_PX = 11.6;
+export const NOTE_SPACE_PX = 4.13;
 export const NOTE_UNIT_PX = 8.5;
 
 export type NotePageBudget = {
   unitsPerLine: number;
   linesPerPage: number;
+  lineWidthPx?: number;
+  jamoPx?: number;
+  hangulPx?: number;
+  latinPx?: number;
+  spacePx?: number;
 };
 
 export function notePageBudget(frameWidth: number, frameHeight: number): NotePageBudget {
@@ -24,6 +33,11 @@ export function notePageBudget(frameWidth: number, frameHeight: number): NotePag
   return {
     unitsPerLine: Math.max(20, Math.floor(textW / NOTE_UNIT_PX)),
     linesPerPage: Math.max(8, Math.floor(textH / NOTE_LINE_PX)),
+    lineWidthPx: textW,
+    jamoPx: NOTE_JAMO_PX,
+    hangulPx: NOTE_HANGUL_PX,
+    latinPx: NOTE_LATIN_PX,
+    spacePx: NOTE_SPACE_PX,
   };
 }
 
@@ -35,6 +49,42 @@ function charUnits(ch: string): number {
   if (code >= 0xf900 && code <= 0xfaff) return 2;
   if (code >= 0xff00 && code <= 0xffef) return 2;
   return 1;
+}
+
+function glyphPx(ch: string, budget: NotePageBudget): number {
+  if (ch === " ") return budget.spacePx ?? NOTE_SPACE_PX;
+  const code = ch.codePointAt(0) ?? 0;
+  if (code >= 0x3130 && code <= 0x318f) return budget.jamoPx ?? NOTE_JAMO_PX;
+  if (charUnits(ch) === 2) return budget.hangulPx ?? NOTE_HANGUL_PX;
+  return budget.latinPx ?? NOTE_LATIN_PX;
+}
+
+function wrapReelNoteLinePx(line: string, budget: NotePageBudget): string[] {
+  const max = budget.lineWidthPx ?? 0;
+  if (line.length === 0) return [""];
+  const chars = Array.from(line);
+  const out: string[] = [];
+  let start = 0;
+  while (start < chars.length) {
+    let width = 0;
+    let end = start;
+    let lastSpace = -1;
+    while (end < chars.length) {
+      const next = glyphPx(chars[end] ?? "", budget);
+      if (width + next > max && end > start) break;
+      width += next;
+      if (chars[end] === " ") lastSpace = end;
+      end += 1;
+    }
+    if (end < chars.length && lastSpace > start) {
+      out.push(chars.slice(start, lastSpace).join("").trimEnd());
+      start = lastSpace + 1;
+    } else {
+      out.push(chars.slice(start, end).join(""));
+      start = end;
+    }
+  }
+  return out.length > 0 ? out : [""];
 }
 
 function wrapReelNoteLine(line: string, unitsPerLine: number): string[] {
@@ -81,7 +131,11 @@ export function paginateReelNote(raw: string, budget: NotePageBudget): string[] 
   if (!text.trim()) return [];
   const visual: string[] = [];
   for (const line of text.split("\n")) {
-    visual.push(...wrapReelNoteLine(line, budget.unitsPerLine));
+    visual.push(
+      ...(budget.lineWidthPx != null
+        ? wrapReelNoteLinePx(line, budget)
+        : wrapReelNoteLine(line, budget.unitsPerLine))
+    );
   }
   const pages: string[] = [];
   for (let i = 0; i < visual.length; i += budget.linesPerPage) {

@@ -30,7 +30,27 @@ import {
 } from "@/components/reels/reels-comment-motion";
 import { cn } from "@/lib/utils";
 import { REELS_H_NAV_DURATION_MS } from "@/lib/reels/constants";
-import { expandReelNoteSlides, notePageBudget } from "@/lib/reels/text-pages";
+import { expandReelNoteSlides, notePageBudget, type NoteGlyphs } from "@/lib/reels/text-pages";
+
+function measureNoteGlyphs(): NoteGlyphs | null {
+  if (typeof document === "undefined") return null;
+  const span = document.createElement("span");
+  span.style.cssText =
+    "position:fixed;left:-9999px;top:0;visibility:hidden;white-space:pre;font:500 17px/32px Geist,Pretendard,system-ui,sans-serif";
+  document.body.appendChild(span);
+  const width = (sample: string) => {
+    span.textContent = sample;
+    return span.getBoundingClientRect().width / Array.from(sample).length;
+  };
+  const glyphs = {
+    jamoPx: width("ㅎㅎㅎㅎㅎㅎㅎㅎㅎㅎㅎㅎ"),
+    hangulPx: width("가나다라마바사아자차"),
+    latinPx: width("0000000000"),
+    spacePx: width("          "),
+  };
+  span.remove();
+  return glyphs;
+}
 import {
   animateScrollPortToSelector,
   scrollPortToSelector,
@@ -133,9 +153,12 @@ function FeedVideoPostSlideBody({
     const apply = () => {
       const rect = el.getBoundingClientRect();
       if (rect.width < 80 || rect.height < 80) return;
-      const next = notePageBudget(rect.width, rect.height);
+      const next = notePageBudget(rect.width, rect.height, measureNoteGlyphs() ?? undefined);
       setBudget((prev) =>
-        prev.unitsPerLine === next.unitsPerLine && prev.linesPerPage === next.linesPerPage
+        prev.linesPerPage === next.linesPerPage &&
+        prev.lineWidthPx === next.lineWidthPx &&
+        prev.jamoPx === next.jamoPx &&
+        prev.hangulPx === next.hangulPx
           ? prev
           : next
       );

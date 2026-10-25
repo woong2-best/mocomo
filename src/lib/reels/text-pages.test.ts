@@ -36,14 +36,17 @@ test("wraps Korean sooner than latin", () => {
   assert.ok(wrapped.every((row) => Array.from(row).length <= 16));
 });
 
-test("a tall reel packs the page down to the author row", () => {
+test("a tall reel packs each line to the rail and the page to the author", () => {
   const budget = notePageBudget(420, 860);
-  assert.deepEqual(budget, { unitsPerLine: 37, linesPerPage: 22 });
-  const pages = paginateReelNote("ㅇ".repeat(500), budget);
+  assert.equal(budget.linesPerPage, 23);
+  assert.equal(budget.lineWidthPx, 368);
+  const pages = paginateReelNote("ㅇ".repeat(600), budget);
   assert.ok(pages.length > 1);
   const lines = pages[0]!.split("\n");
   assert.equal(lines.length, budget.linesPerPage);
-  assert.equal(Array.from(lines[0]!).length, Math.floor(budget.unitsPerLine / 2));
+  assert.equal(Array.from(lines[0]!).length, 25);
+  const width = 25 * 14.7;
+  assert.ok(width <= (budget.lineWidthPx ?? 0));
 });
 
 test("a shorter frame fits fewer lines so text is not clipped", () => {
