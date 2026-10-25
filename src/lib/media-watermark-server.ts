@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { buildWatermarkSvg } from "@/lib/media-watermark";
 
 /** 서버 업로드 시 이미지에 크레딧 라벨 합성 */
@@ -11,6 +10,7 @@ export async function applyImageWatermarkBuffer(
     return { buffer: input, mime };
   }
 
+  const sharp = (await import("sharp")).default;
   const image = sharp(input, { animated: false });
   const meta = await image.metadata();
   const width = meta.width ?? 1080;

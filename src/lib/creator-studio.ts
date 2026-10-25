@@ -2,7 +2,6 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { readDigitalDelivery } from "@/lib/market-tracks";
 import { createMobileUsedListing } from "@/lib/used-market-mobile";
-import { watermarkPortfolioUrl } from "@/lib/portfolio-watermark";
 import { DEFAULT_STUDIO_CATEGORY_ID, isValidStudioCategoryId } from "@/lib/creator-studio-categories";
 import {
   blockHasContent,
@@ -259,17 +258,26 @@ export async function getMyCreatorStudio(sellerId: string) {
   return publicStudio(row, counts.get(sellerId) ?? 0);
 }
 
+async function applyPortfolioWatermark(url: string, label: string, sellerId: string) {
+  try {
+    const { watermarkPortfolioUrl } = await import("@/lib/portfolio-watermark");
+    return await watermarkPortfolioUrl(url, label, sellerId);
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error("Portfolio watermark failed");
+    console.error("[creator-studio] watermark", error.message);
+    return url;
+  }
+}
+
 export async function saveCreatorStudio(sellerId: string, username: string, raw: StudioInput) {
   const parsed = parseStudioInput(raw);
   if ("error" in parsed) return parsed;
   const label = `MoCoMo · ${username}`.slice(0, 48);
-  const coverUrl = await watermarkPortfolioUrl(parsed.value.coverUrl || "", label, sellerId).catch(
-    () => parsed.value.coverUrl || ""
-  );
+  const coverUrl = await applyPortfolioWatermark(parsed.value.coverUrl || "", label, sellerId);
   const blocks: StudioPortfolioBlock[] = [];
   for (const block of parsed.value.blocks ?? []) {
     if (block.type === "image") {
-      const url = await watermarkPortfolioUrl(block.url, label, sellerId).catch(() => block.url);
+      const url = await applyPortfolioWatermark(block.url, label, sellerId);
       blocks.push({ ...block, url });
     } else {
       blocks.push(block);

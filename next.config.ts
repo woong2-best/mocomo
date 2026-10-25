@@ -64,7 +64,9 @@ const nextConfig: NextConfig = {
     }
     config.resolve.alias = {
       ...config.resolve.alias,
-      sharp$: false,
+      // Client only — a server alias would still emit `import 'sharp'` via
+      // serverExternalPackages, then Vercel 500s because traces exclude it.
+      ...(isServer ? {} : { sharp$: false }),
       "onnxruntime-node$": false,
     };
     return config;
@@ -129,6 +131,9 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     "/api/settlements/tax-form": ["./src/lib/creator-payout/templates/**/*"],
+    // sharp is excluded globally (250MB traces). Bring it back only where we watermark.
+    "/market/new/digital": ["./node_modules/sharp/**"],
+    "/api/mobile/studios/mine": ["./node_modules/sharp/**"],
   },
   experimental: {
     serverActions: { bodySizeLimit: "50mb" },

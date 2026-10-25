@@ -1,5 +1,9 @@
-import sharp from "sharp";
 import { uploadBufferToSupabase } from "@/lib/supabase-storage";
+
+async function loadSharp() {
+  const mod = await import("sharp");
+  return mod.default;
+}
 
 function escapeXml(value: string) {
   return value.replace(/[&<>"']/g, (char) => {
@@ -24,6 +28,7 @@ export function isOwnStorageUrl(url: string): boolean {
 }
 
 export async function lightPortfolioWatermark(input: Buffer, label: string): Promise<Buffer> {
+  const sharp = await loadSharp();
   const image = sharp(input, { animated: false, failOn: "none" }).rotate();
   const meta = await image.metadata();
   const width = meta.width ?? 800;
