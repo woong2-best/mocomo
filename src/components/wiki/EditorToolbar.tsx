@@ -2,7 +2,7 @@
 
 import { ImagePlus, Images, PanelsTopLeft, Video } from "lucide-react";
 import { createTranslator } from "@/lib/i18n/messages";
-import { WIKI_MACROS, type WikiMacro } from "@/lib/wiki/macros";
+import { WIKI_BODY_MACROS, WIKI_MACROS, type WikiMacro } from "@/lib/wiki/macros";
 
 const t = createTranslator("en");
 import { cn } from "@/lib/utils";
@@ -87,21 +87,17 @@ export function EditorToolbar({
           </>
         )}
       </div>
-      {bodyOnly ? null : (
-        <>
-          <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
-          <div className="flex items-center gap-1.5">
-            {WIKI_MACROS.map((macro) => (
-              <PillButton
-                key={macro.id}
-                label={macro.label}
-                title={macro.label}
-                onClick={() => onMacro(macro)}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
+      <div className="flex items-center gap-1.5">
+        {(bodyOnly ? WIKI_BODY_MACROS : [...WIKI_BODY_MACROS, ...WIKI_MACROS]).map((macro) => (
+          <PillButton
+            key={macro.id}
+            label={macro.label}
+            title={macro.label}
+            onClick={() => onMacro(macro)}
+          />
+        ))}
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ export default defineConfig({
       "src/lib/__tests__/error-text.test.ts",
       "src/lib/__tests__/used-market-query.test.ts",
       "src/lib/sponsored-ad/__tests__/refund.test.ts",
-      "src/lib/wiki/__tests__/editorUtils.test.ts",
+      "src/lib/wiki/__tests__/**/*.test.ts",
     ],
   },
 });

@@ -27,6 +27,27 @@ export const WIKI_MACROS: WikiMacro[] = [
   },
 ];
 
+export const WIKI_BODY_MACROS: WikiMacro[] = [
+  {
+    id: "heading",
+    label: "Heading",
+    template: "\n== | ==\n\n",
+  },
+  {
+    id: "infobox",
+    label: "Infobox",
+    template:
+      "\n=== Work info ===\nGenre \\| |\nStudio \\| \nNetwork \\| \nEpisodes \\| \n\n",
+    existingHeader: "=== Work info ===",
+  },
+  {
+    id: "wikilink",
+    label: "Wiki link",
+    template: "[[|]]",
+    wrapSelection: true,
+  },
+];
+
 export function getWikiMacro(id: string): WikiMacro | undefined {
-  return WIKI_MACROS.find((macro) => macro.id === id);
+  return WIKI_MACROS.find((macro) => macro.id === id) ?? WIKI_BODY_MACROS.find((macro) => macro.id === id);
 }

@@ -36,7 +36,7 @@ export default async function AnimeEditPage({ params }: { params: Promise<{ slug
     (session.user.username ? isSiteOperator(session.user as { username: string; role: string; email?: string | null }) : false);
 
   return (
-    <AppPageChrome maxWidth="3xl" spacing="sm">
+    <AppPageChrome maxWidth="5xl" spacing="sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link href={`/anime/${slug}`}>
           <Button variant="ghost" size="sm" className="gap-1">

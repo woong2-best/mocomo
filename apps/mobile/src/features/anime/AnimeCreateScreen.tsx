@@ -4,5 +4,11 @@ import type { RootStackParamList } from "@/navigation/types";
 
 export function AnimeCreateScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "AnimeCreate">>();
-  return <AnimeWikiForm mode="create" presetGenre={route.params?.genre} />;
+  return (
+    <AnimeWikiForm
+      mode="create"
+      presetGenre={route.params?.genre}
+      presetTitle={route.params?.title}
+    />
+  );
 }

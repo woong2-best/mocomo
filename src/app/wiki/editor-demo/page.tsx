@@ -14,7 +14,9 @@ export default function WikiEditorDemoPage() {
       </NativePageTitle>
       <p className="text-sm text-muted-foreground">
         Unified Culture Wiki markdown editor. Type{" "}
-        <code className="rounded bg-muted px-1 font-mono text-xs">[ちいかわ (chii</code> to open
+        <code className="rounded bg-muted px-1 font-mono text-xs">[[Chiikawa</code> to link another
+        page, or{" "}
+        <code className="rounded bg-muted px-1 font-mono text-xs">[ちいかわ (chii</code> for
         English-title suggestions.
       </p>
       <WikiEditor

@@ -5,10 +5,31 @@ import { getPopularWikiSearchQueries, logWikiSearchQuery } from "@/lib/wiki-sear
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   const popularOnly = req.nextUrl.searchParams.get("popular") === "1";
+  const titlesOnly = req.nextUrl.searchParams.get("titles") === "1";
 
   if (popularOnly) {
     const popular = await getPopularWikiSearchQueries(10);
     return NextResponse.json({ popular });
+  }
+
+  if (titlesOnly) {
+    const compact = q.replace(/\s+/g, "").toLowerCase().replace(/[\\%_]/g, "");
+    const likeCompact = `%${compact}%`;
+    const results = compact.length >= 1
+      ? await db.$queryRaw<{ slug: string; title: string; titleEn: string | null }[]>`
+          SELECT slug, title, "titleEn"
+          FROM "Anime"
+          WHERE replace(lower(title), ' ', '') LIKE ${likeCompact}
+             OR replace(lower(coalesce("titleEn", '')), ' ', '') LIKE ${likeCompact}
+          ORDER BY "viewCount" DESC, "updatedAt" DESC
+          LIMIT 10
+        `
+      : await db.anime.findMany({
+          orderBy: [{ viewCount: "desc" }, { updatedAt: "desc" }],
+          take: 8,
+          select: { slug: true, title: true, titleEn: true },
+        });
+    return NextResponse.json({ results });
   }
 
   if (q.length < 1) {

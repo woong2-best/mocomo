@@ -111,7 +111,7 @@ export type RootStackParamList = {
   StarList: undefined;
   AnimeList: undefined;
   CosplayProfiles: undefined;
-  AnimeCreate: { genre?: string } | undefined;
+  AnimeCreate: { genre?: string; title?: string } | undefined;
   AnimeEdit: { slug: string };
   AnimeHistory: { slug: string };
   AnimeDetail: { slug: string };

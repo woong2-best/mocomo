@@ -8,6 +8,7 @@ import Link from "next/link";
 import { History } from "lucide-react";
 import type { AnimeGenre } from "@prisma/client";
 import { AnimeWikiArticle } from "@/components/anime/anime-wiki-article";
+import type { WikiLinkStatusMap } from "@/lib/wiki/resolve-links";
 import { AnimeGoodsPanel } from "@/components/anime/anime-goods-panel";
 import { AnimeCommunityPanel } from "@/components/anime/anime-community-panel";
 import { Card, CardContent } from "@/components/ui/card";
@@ -76,6 +77,7 @@ export type AnimeDetailTabsProps = {
     tags: string[];
     updatedAt: string;
   };
+  wikiLinks?: WikiLinkStatusMap;
 };
 
 export function AnimeDetailTabs({
@@ -88,6 +90,7 @@ export function AnimeDetailTabs({
   goods,
   posts,
   anime,
+  wikiLinks,
 }: AnimeDetailTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>(() => normalizeTab(initialTab));
 
@@ -155,6 +158,7 @@ export function AnimeDetailTabs({
               characters={characterNames}
               tags={anime.tags}
               updatedAt={new Date(anime.updatedAt)}
+              wikiLinks={wikiLinks}
             />
             {cosplayers.length > 0 && (
               <section className="pt-4 border-t border-border/50">

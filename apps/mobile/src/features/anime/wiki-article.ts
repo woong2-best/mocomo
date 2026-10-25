@@ -68,7 +68,26 @@ export function parseWikiArticle(
     current = null;
   };
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const eq3 = line.match(/^(={3,})\s*(.+?)\s*\1\s*$/);
+    const eq2 =
+      !eq3 && !line.trim().startsWith("===") ? line.match(/^==\s*(.+?)\s*==\s*$/) : null;
+    if (eq3) {
+      const following = lines.slice(i + 1, i + 6);
+      const looksInfobox = following.some(
+        (row) => /^[^|#][^|]*\|\s*/.test(row.trim()) || row.trim().startsWith("|")
+      );
+      if (looksInfobox) continue;
+      flush();
+      current = { label: eq3[2].trim(), level: 2, body: "" };
+      continue;
+    }
+    if (eq2) {
+      flush();
+      current = { label: eq2[1].trim(), level: 1, body: "" };
+      continue;
+    }
     const h2 = line.match(/^##\s+(.+)\s*$/);
     if (h2) {
       flush();

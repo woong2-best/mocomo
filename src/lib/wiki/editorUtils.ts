@@ -8,12 +8,16 @@ export type WikiTitle = {
 
 export type IndexedWikiTitle = WikiTitle & {
   normalizedEnglish: string;
+  normalizedOriginal: string;
 };
+
+export type TitleContextKind = "paren" | "wikilink";
 
 export type TitleContext = {
   query: string;
   replaceStart: number;
   replaceEnd: number;
+  kind: TitleContextKind;
 };
 
 export type InsertResult = {
@@ -33,10 +37,42 @@ export function indexWikiTitles(titles: WikiTitle[]): IndexedWikiTitle[] {
   return titles.map((title) => ({
     ...title,
     normalizedEnglish: normalize(title.english),
+    normalizedOriginal: normalize(title.original),
   }));
 }
 
+export function detectWikiLinkContext(value: string, caret: number): TitleContext | null {
+  const safeCaret = Math.max(0, Math.min(caret, value.length));
+  const before = value.slice(0, safeCaret);
+  const open = before.lastIndexOf("[[");
+  if (open < 0) return null;
+  if (before.indexOf("]]", open) >= 0) return null;
+
+  const inner = value.slice(open + 2, safeCaret);
+  if (inner.includes("\n")) return null;
+
+  const pipe = inner.lastIndexOf("|");
+  const replaceStart = pipe >= 0 ? open + 2 + pipe + 1 : open + 2;
+  let replaceEnd = safeCaret;
+  const after = value.slice(safeCaret);
+  const close = after.indexOf("]]");
+  const newline = after.indexOf("\n");
+  if (close >= 0 && (newline < 0 || close < newline)) {
+    replaceEnd = safeCaret + close;
+  }
+
+  return {
+    query: value.slice(replaceStart, replaceEnd),
+    replaceStart,
+    replaceEnd,
+    kind: "wikilink",
+  };
+}
+
 export function detectTitleContext(value: string, caret: number): TitleContext | null {
+  const wiki = detectWikiLinkContext(value, caret);
+  if (wiki) return wiki;
+
   const safeCaret = Math.max(0, Math.min(caret, value.length));
   const lineStart = value.lastIndexOf("\n", safeCaret - 1) + 1;
   const before = value.slice(lineStart, safeCaret);
@@ -61,18 +97,24 @@ export function detectTitleContext(value: string, caret: number): TitleContext |
   const query = value.slice(replaceStart, replaceEnd);
   if (!query.trim()) return null;
 
-  return { query, replaceStart, replaceEnd };
+  return { query, replaceStart, replaceEnd, kind: "paren" };
 }
 
 export function searchTitles(titles: IndexedWikiTitle[], query: string): IndexedWikiTitle[] {
   const normalizedQuery = normalize(query);
-  if (!normalizedQuery) return [];
+  if (!normalizedQuery) return titles.slice(0, 8);
 
   const matched = titles
     .map((title) => {
-      const idx = title.normalizedEnglish.indexOf(normalizedQuery);
-      if (idx < 0) return null;
-      return { title, idx, exact: title.normalizedEnglish === normalizedQuery };
+      const idxEn = title.normalizedEnglish.indexOf(normalizedQuery);
+      const idxOrig = title.normalizedOriginal.indexOf(normalizedQuery);
+      if (idxEn < 0 && idxOrig < 0) return null;
+      const idx = idxEn >= 0 && idxOrig >= 0 ? Math.min(idxEn, idxOrig) : Math.max(idxEn, idxOrig);
+      return {
+        title,
+        idx,
+        exact: title.normalizedEnglish === normalizedQuery || title.normalizedOriginal === normalizedQuery,
+      };
     })
     .filter((row): row is { title: IndexedWikiTitle; idx: number; exact: boolean } => row !== null);
 
@@ -116,13 +158,20 @@ function caretAfterHeader(value: string, header: string): number | null {
   return caret;
 }
 
+function materializeTemplate(template: string): { inserted: string; caretOffset: number } {
+  const unescaped = template.replace(/\\\|/g, "\u0000");
+  const pipe = unescaped.indexOf("|");
+  const raw = pipe >= 0 ? unescaped.slice(0, pipe) + unescaped.slice(pipe + 1) : unescaped;
+  const inserted = raw.replace(/\u0000/g, "|");
+  const caretOffset = pipe >= 0 ? unescaped.slice(0, pipe).replace(/\u0000/g, "|").length : inserted.length;
+  return { inserted, caretOffset };
+}
+
 function wrapWithMacro(template: string, selected: string): InsertResult | null {
-  const pipe = template.indexOf("|");
-  if (pipe < 0) return null;
-  const open = template.slice(0, pipe);
-  const close = template.slice(pipe + 1);
-  const inserted = `${open}${selected}${close}`;
-  return { next: inserted, caret: inserted.length };
+  if (!template.includes("|") && !template.includes("\\|")) return null;
+  const { inserted, caretOffset } = materializeTemplate(template);
+  const next = inserted.slice(0, caretOffset) + selected + inserted.slice(caretOffset);
+  return { next, caret: next.length };
 }
 
 export function insertMacro(
@@ -154,9 +203,7 @@ export function insertMacro(
     template = template.slice(1);
   }
 
-  const pipe = template.indexOf("|");
-  const inserted = pipe >= 0 ? template.slice(0, pipe) + template.slice(pipe + 1) : template;
-  const caretOffset = pipe >= 0 ? pipe : inserted.length;
+  const { inserted, caretOffset } = materializeTemplate(template);
   return replaceRange(value, from, to, inserted, caretOffset);
 }
 
@@ -173,5 +220,11 @@ export function applyTitleSuggestion(
   context: TitleContext,
   english: string
 ): InsertResult {
+  if (context.kind === "wikilink") {
+    const after = value.slice(context.replaceEnd);
+    const needsClose = !after.startsWith("]]");
+    const inserted = needsClose ? `${english}]]` : english;
+    return replaceRange(value, context.replaceStart, context.replaceEnd, inserted, english.length);
+  }
   return replaceRange(value, context.replaceStart, context.replaceEnd, english, english.length);
 }

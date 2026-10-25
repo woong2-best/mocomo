@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAnime, updateAnime } from "@/actions/anime";
-import { AnimeInfoboxField } from "@/components/anime/anime-infobox-field";
-import { AnimeWikiField } from "@/components/anime/anime-wiki-field";
 import { AnimeImageUrlField } from "@/components/anime/anime-image-url-field";
 import { CultureWikiEditNotice } from "@/components/anime/culture-wiki-edit-notice";
 import { WikiContent } from "@/components/anime/wiki-content";
+import { WikiLinkStatusProvider } from "@/components/anime/wiki-link-context";
 import { WikiEditor } from "@/components/wiki/WikiEditor";
 import { ANIME_GENRES } from "@/lib/anime-genres";
+import {
+  DEFAULT_WIKI_DOCUMENT,
+  charactersToText,
+  composeWikiDocument,
+  extractWikiLinkTargets,
+  splitWikiDocument,
+} from "@/lib/wiki/document";
+import type { WikiLinkStatusMap } from "@/lib/wiki/resolve-links";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,12 +40,41 @@ type AnimeFormData = {
   tags?: string[];
 };
 
-function charactersToText(characters: unknown): string {
-  if (!characters || !Array.isArray(characters)) return "";
-  return characters
-    .map((c) => (typeof c === "object" && c && "name" in c ? String((c as { name: string }).name) : ""))
-    .filter(Boolean)
-    .join("\n");
+function usePreviewWikiLinks(document: string): WikiLinkStatusMap {
+  const targets = useMemo(() => extractWikiLinkTargets(document), [document]);
+  const key = targets.join("\u0001");
+  const [status, setStatus] = useState<WikiLinkStatusMap>({});
+
+  useEffect(() => {
+    if (!targets.length) {
+      setStatus({});
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void fetch("/api/anime/links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titles: targets }),
+        signal: controller.signal,
+      })
+        .then((res) => (res.ok ? res.json() : { links: {} }))
+        .then((data: { links?: WikiLinkStatusMap }) => {
+          setStatus(data.links ?? {});
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setStatus({});
+        });
+    }, 250);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+    // targets is derived from document; key is the stable dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return status;
 }
 
 export function AnimeForm({
@@ -54,7 +90,16 @@ export function AnimeForm({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [genre, setGenre] = useState<AnimeGenre>(initial?.genre ?? "OTHER");
-  const [synopsis, setSynopsis] = useState(initial?.synopsis ?? "");
+  const [document, setDocument] = useState(() => {
+    if (mode === "create") return DEFAULT_WIKI_DOCUMENT;
+    return composeWikiDocument({
+      synopsis: initial?.synopsis,
+      worldInfo: initial?.worldInfo,
+      infobox: initial?.infobox,
+      charactersText: charactersToText(initial?.characters),
+    });
+  });
+  const previewLinks = usePreviewWikiLinks(document);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,17 +107,18 @@ export function AnimeForm({
     setError("");
 
     const form = new FormData(e.currentTarget);
+    const split = splitWikiDocument(document);
     const payload = {
       title: form.get("title") as string,
       titleEn: (form.get("titleEn") as string) || undefined,
       genre,
-      synopsis: synopsis.trim() || undefined,
-      studio: (form.get("studio") as string) || undefined,
-      worldInfo: (form.get("worldInfo") as string) || undefined,
-      infobox: (form.get("infobox") as string) || undefined,
+      synopsis: split.body.trim() || undefined,
+      studio: split.studio || undefined,
+      worldInfo: undefined,
+      infobox: split.infobox,
       coverUrl: (form.get("coverUrl") as string) || undefined,
       bannerUrl: (form.get("bannerUrl") as string) || undefined,
-      charactersText: (form.get("charactersText") as string) || undefined,
+      charactersText: split.charactersText,
       tags: (form.get("tags") as string) || undefined,
       editSummary: (form.get("editSummary") as string) || undefined,
     };
@@ -90,13 +136,13 @@ export function AnimeForm({
   }
 
   return (
-    <Card className="rounded-2xl shadow-md max-w-3xl mx-auto">
-      <CardHeader>
-        <CardTitle>{mode === "create" ? t("anime.sntmi00") : t("anime.slz47qx")}</CardTitle>
-        <p className="text-sm text-muted-foreground">{t("anime.s1kbp9gt")}</p>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Card className="rounded-2xl shadow-md">
+        <CardHeader>
+          <CardTitle>{mode === "create" ? t("anime.sntmi00") : t("anime.slz47qx")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("wiki.form.metaHelp")}</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium">{t("anime.spzylzr")}</label>
             <Input name="title" defaultValue={initial?.title} required className="mt-1 rounded-xl" />
@@ -143,47 +189,6 @@ export function AnimeForm({
             uploadLabel={t("anime.szn2ekl")}
           />
           <div>
-            <label className="text-sm font-medium">{t("anime.sua6af")}</label>
-            <Input name="studio" defaultValue={initial?.studio ?? ""} className="mt-1 rounded-xl" />
-          </div>
-          <AnimeInfoboxField
-            name="infobox"
-            label={t("anime.si9t5x0")}
-            defaultValue={initial?.infobox ?? ""}
-          />
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t("anime.s6qhlci")}</label>
-            <WikiEditor
-              variant="body"
-              value={synopsis}
-              onChange={setSynopsis}
-              placeholder={t("anime.sucjpw8")}
-            />
-            {synopsis.trim() ? (
-              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 min-h-[120px] overflow-y-auto">
-                <p className="text-[10px] font-semibold text-muted-foreground mb-2">
-                  {t("anime.s1xa6ah0")}
-                </p>
-                <WikiContent source={synopsis} />
-              </div>
-            ) : null}
-          </div>
-          <AnimeWikiField
-            name="worldInfo"
-            label={t("anime.st569g")}
-            defaultValue={initial?.worldInfo ?? ""}
-            rows={5}
-          />
-          <div>
-            <label className="text-sm font-medium">{t("anime.s16cdth4")}</label>
-            <textarea
-              name="charactersText"
-              defaultValue={charactersToText(initial?.characters)}
-              rows={4}
-              className="mt-1 w-full rounded-xl border border-border bg-background p-3 text-sm"
-            />
-          </div>
-          <div>
             <label className="text-sm font-medium">{t("anime.sm1dzed")}</label>
             <Input name="tags" defaultValue={initial?.tags?.join(", ") ?? ""} className="mt-1 rounded-xl" />
           </div>
@@ -197,13 +202,39 @@ export function AnimeForm({
               />
             </div>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <CultureWikiEditNotice />
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? t("auth.saving") : mode === "create" ? t("anime.snlmhd0") : t("anime.s2tq8bs")}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl shadow-md">
+        <CardHeader>
+          <CardTitle>{t("wiki.editor.bodyLabel")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("wiki.editor.bodyHelp")}</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <WikiEditor
+            variant="body"
+            value={document}
+            onChange={setDocument}
+            placeholder={t("wiki.editor.placeholder")}
+          />
+          {document.trim() ? (
+            <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 min-h-[120px] overflow-y-auto">
+              <p className="text-[10px] font-semibold text-muted-foreground mb-2">
+                {t("wiki.editor.preview")}
+              </p>
+              <WikiLinkStatusProvider value={previewLinks}>
+                <WikiContent source={document} />
+              </WikiLinkStatusProvider>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <CultureWikiEditNotice />
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? t("auth.saving") : mode === "create" ? t("anime.snlmhd0") : t("anime.s2tq8bs")}
+      </Button>
+    </form>
   );
 }

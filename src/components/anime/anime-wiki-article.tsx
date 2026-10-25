@@ -5,8 +5,11 @@ import Link from "next/link";
 import type { AnimeGenre } from "@prisma/client";
 import { AnimeWikiInfobox } from "@/components/anime/anime-wiki-infobox";
 import { WikiContent } from "@/components/anime/wiki-content";
+import { WikiLinkStatusProvider } from "@/components/anime/wiki-link-context";
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
-import { wikiHeadingId } from "@/lib/anime-revision";
+import { wikiHeadingId, wikiLinkSlug } from "@/lib/anime-revision";
+import { extractInfoboxSource, extractWikiHeadings, hasCharactersHeading } from "@/lib/wiki/document";
+import type { WikiLinkStatusMap } from "@/lib/wiki/resolve-links";
 import { cn } from "@/lib/utils";
 import { wikiCoverDisplayUrl } from "@/lib/wiki-cover-url";
 
@@ -22,29 +25,19 @@ type AnimeWikiArticleProps = {
   characters: string[];
   tags: string[];
   updatedAt: Date;
+  wikiLinks?: WikiLinkStatusMap;
   className?: string;
 };
 
-function extractHeadings(
+function toToc(
   prefix: string,
   source: string | null | undefined
 ): { id: string; label: string; level: 2 | 3 }[] {
-  const headings: { id: string; label: string; level: 2 | 3 }[] = [];
-  if (!source) return headings;
-  for (const line of source.split("\n")) {
-    const h2 = line.match(/^##\s+(.+)$/);
-    if (h2) {
-      const label = h2[1].trim();
-      headings.push({ id: `${prefix}-${wikiHeadingId(label)}`, label, level: 2 });
-      continue;
-    }
-    const h3 = line.match(/^#\s+(.+)$/);
-    if (h3) {
-      const label = h3[1].trim();
-      headings.push({ id: `${prefix}-${wikiHeadingId(label)}`, label, level: 3 });
-    }
-  }
-  return headings;
+  return extractWikiHeadings(source).map((heading) => ({
+    id: `${prefix}-${wikiHeadingId(heading.label)}`,
+    label: heading.label,
+    level: heading.level,
+  }));
 }
 
 export function AnimeWikiArticle({
@@ -59,10 +52,15 @@ export function AnimeWikiArticle({
   characters,
   tags,
   updatedAt,
+  wikiLinks,
   className,
 }: AnimeWikiArticleProps) {
   const genreInfo = getGenreInfo(genre);
-  const headings = [...extractHeadings("syn", synopsis), ...extractHeadings("world", worldInfo)];
+  const extracted = extractInfoboxSource(synopsis ?? "");
+  const articleBody = extracted.body || synopsis;
+  const infoboxSource = infobox?.trim() ? infobox : extracted.infobox || null;
+  const headings = [...toToc("syn", articleBody), ...toToc("world", worldInfo)];
+  const showCharacterChips = characters.length > 0 && !hasCharactersHeading(articleBody);
   const formattedDate = new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "long",
@@ -70,6 +68,7 @@ export function AnimeWikiArticle({
   }).format(updatedAt);
 
   return (
+    <WikiLinkStatusProvider value={wikiLinks}>
     <article className={cn("space-y-6", className)}>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_min(100%,300px)]">
         <div className="space-y-6 min-w-0 order-2 lg:order-1">
@@ -91,9 +90,9 @@ export function AnimeWikiArticle({
             </nav>
           )}
 
-          {synopsis?.trim() ? (
+          {articleBody?.trim() ? (
             <section className="wiki-article-body">
-              <WikiContent source={synopsis} headingIdPrefix="syn" />
+              <WikiContent source={articleBody} headingIdPrefix="syn" />
             </section>
           ) : (
             <section className="rounded-2xl border border-dashed border-border/70 p-8 text-center text-sm text-muted-foreground">
@@ -107,15 +106,31 @@ export function AnimeWikiArticle({
             </section>
           )}
 
-          {characters.length > 0 && (
+          {showCharacterChips && (
             <section id="characters" className="pt-2 border-t border-border/50">
               <h2 className="text-lg font-bold mb-3">{t("anime.snnsrrs")}</h2>
               <ul className="flex flex-wrap gap-2">
-                {characters.map((name) => (
-                  <li key={name} className="text-sm px-3 py-1.5 rounded-full bg-muted/50 border border-border/40">
-                    {name}
-                  </li>
-                ))}
+                {characters.map((name) => {
+                  const resolved = wikiLinks?.[name];
+                  const exists = wikiLinks ? Boolean(resolved?.exists) : true;
+                  const slug = resolved?.slug ?? wikiLinkSlug(name);
+                  const href = exists ? `/anime/${slug}` : `/anime/new?title=${encodeURIComponent(name)}`;
+                  return (
+                    <li key={name}>
+                      <Link
+                        href={href}
+                        className={cn(
+                          "text-sm px-3 py-1.5 rounded-full border inline-block",
+                          exists
+                            ? "bg-muted/50 border-border/40 text-primary hover:underline"
+                            : "bg-red-50 border-red-200 text-[#c0392b] hover:underline"
+                        )}
+                      >
+                        {name}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}
@@ -178,9 +193,10 @@ export function AnimeWikiArticle({
             </dl>
           </div>
 
-          <AnimeWikiInfobox source={infobox} />
+          <AnimeWikiInfobox source={infoboxSource} />
         </aside>
       </div>
     </article>
+    </WikiLinkStatusProvider>
   );
 }

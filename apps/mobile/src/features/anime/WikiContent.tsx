@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ImageStyle } from "react-native";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ImageStyle } from "react-native";
 import { Image } from "expo-image";
+import { IMAGE_CACHE_POLICY, wikiMediaDecodeWidth } from "@/perf/image";
 import { WebView } from "react-native-webview";
 import { WikiInline, type FootnoteMap } from "@/features/anime/WikiInline";
 import { extractYoutubeId } from "@/features/anime/wiki-youtube";
@@ -10,17 +11,23 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 
 function WikiBodyImage({ uri, style }: { uri: string; style: StyleProp<ImageStyle> }) {
+  const { width: winW } = useWindowDimensions();
+  const decode = wikiMediaDecodeWidth(Math.max(1, winW - spacing.md * 2));
   const [ratio, setRatio] = useState<number | null>(null);
   return (
     <Image
-      source={{ uri }}
+      source={{ uri, width: decode, cacheKey: `wiki-body:${decode}:${uri}` }}
       style={[style, ratio ? { aspectRatio: ratio } : null]}
       contentFit="contain"
+      cachePolicy={IMAGE_CACHE_POLICY}
       allowDownscaling={false}
+      responsivePolicy="live"
       onLoad={(event) => {
         const width = event.source?.width;
         const height = event.source?.height;
-        if (width && height) setRatio(width / height);
+        if (!width || !height) return;
+        if (width === decode && height === decode) return;
+        setRatio(width / height);
       }}
     />
   );
@@ -139,6 +146,28 @@ export function WikiContent({ source }: { source: string }) {
             </View>
           ))}
         </View>
+      );
+      return;
+    }
+
+    const eq2 = trimmed.match(/^==\s*(.+?)\s*==$/) && !trimmed.startsWith("===")
+      ? trimmed.match(/^==\s*(.+?)\s*==$/)
+      : null;
+    if (eq2) {
+      rendered.push(
+        <Text key={`h2-${bi}`} style={styles.h2}>
+          <WikiInline text={eq2[1]} notes={notes} keyPrefix={`h2-${bi}`} />
+        </Text>
+      );
+      return;
+    }
+
+    const eq3 = trimmed.match(/^(={3,})\s*(.+?)\s*\1$/);
+    if (eq3) {
+      rendered.push(
+        <Text key={`h-${bi}`} style={styles.h1}>
+          <WikiInline text={eq3[2]} notes={notes} keyPrefix={`h-${bi}`} />
+        </Text>
       );
       return;
     }

@@ -17,7 +17,9 @@ type TitleSuggestPopoverProps = {
   tailLeft: number;
   placement: PopoverPlacement;
   listId: string;
+  mode?: "title" | "wikilink";
   onSelect: (item: IndexedWikiTitle) => void;
+  onCreate?: (query: string) => void;
   optionRefs: React.MutableRefObject<Array<HTMLButtonElement | null>>;
 };
 
@@ -31,11 +33,15 @@ export function TitleSuggestPopover({
   tailLeft,
   placement,
   listId,
+  mode = "title",
   onSelect,
+  onCreate,
   optionRefs,
 }: TitleSuggestPopoverProps) {
   const { t } = useLocale();
-  if (items.length === 0 && !isSearching) return null;
+  const createQuery = query.trim();
+  const showCreate = Boolean(onCreate && createQuery && mode === "wikilink");
+  if (items.length === 0 && !isSearching && !showCreate) return null;
 
   const normalizedQuery = normalize(query);
   const hasExact = items.some((item) => item.normalizedEnglish === normalizedQuery);
@@ -101,7 +107,19 @@ export function TitleSuggestPopover({
             );
           })}
         </div>
-        {hasExact ? (
+        {showCreate ? (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onCreate?.(createQuery)}
+            className="flex w-full items-center justify-between gap-2 border-t border-slate-200 px-3 py-2 text-left text-sm hover:bg-red-50"
+          >
+            <span className="truncate font-medium text-red-600">
+              {t("wiki.editor.createPage", { title: createQuery })}
+            </span>
+          </button>
+        ) : null}
+        {mode === "title" && hasExact ? (
           <p className="border-t border-slate-200 px-3 py-2 text-[11px] text-orange-700">
             {t("wiki.editor.duplicateEnglishTitle")}
           </p>

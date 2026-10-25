@@ -21,6 +21,7 @@ import {
   parseWikiArticle,
   type WikiArticleSection,
 } from "@/features/anime/wiki-article";
+import { extractInfoboxSource } from "@/features/anime/wiki-document";
 import { WikiContent } from "@/features/anime/WikiContent";
 import { WikiInfobox } from "@/features/anime/WikiInfobox";
 import { AppHeader } from "@/ui/AppHeader";
@@ -112,7 +113,7 @@ export function AnimeDetailScreen() {
   const cast = useMemo(() => characterNames(item?.characters), [item?.characters]);
 
   const article = useMemo(() => {
-    const syn = parseWikiArticle(item?.synopsis, "syn");
+    const syn = parseWikiArticle(extractInfoboxSource(item?.synopsis ?? "").body || item?.synopsis, "syn");
     const world = parseWikiArticle(item?.worldInfo, "world");
     const worldNumbered = continueSectionNumbers(world.sections, syn.sections);
     const sections = [...syn.sections, ...worldNumbered];
@@ -234,7 +235,7 @@ export function AnimeDetailScreen() {
                 title={item.title}
                 titleEn={item.titleEn}
                 photoUrl={photoUrl}
-                infobox={item.infobox}
+                infobox={item.infobox || extractInfoboxSource(item.synopsis ?? "").infobox || null}
                 fallbackRows={fallbackRows}
               />
               {item.creator?.username || item.createdAt || item.updatedAt ? (

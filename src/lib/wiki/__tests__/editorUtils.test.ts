@@ -36,6 +36,7 @@ describe("detectTitleContext", () => {
       query: "chii",
       replaceStart: value.lastIndexOf("(") + 1,
       replaceEnd: value.length,
+      kind: "paren",
     });
   });
 
@@ -61,6 +62,34 @@ describe("detectTitleContext", () => {
   it("returns null outside a title paren", () => {
     expect(detectTitleContext("plain chii", 10)).toBeNull();
     expect(detectTitleContext("[Genre: Slice of Life]", 10)).toBeNull();
+  });
+
+  it("triggers inside an unclosed wiki link", () => {
+    const value = "See [[Tanji";
+    const ctx = detectTitleContext(value, value.length);
+    expect(ctx).toEqual({
+      query: "Tanji",
+      replaceStart: value.lastIndexOf("[[") + 2,
+      replaceEnd: value.length,
+      kind: "wikilink",
+    });
+  });
+
+  it("reads the target after a piped wiki label", () => {
+    const value = "[[Label|Tanji";
+    const ctx = detectTitleContext(value, value.length);
+    expect(ctx?.kind).toBe("wikilink");
+    expect(ctx?.query).toBe("Tanji");
+  });
+
+  it("allows an empty wiki-link query so the picker can open", () => {
+    const value = "[[";
+    expect(detectTitleContext(value, value.length)).toEqual({
+      query: "",
+      replaceStart: 2,
+      replaceEnd: 2,
+      kind: "wikilink",
+    });
   });
 });
 
@@ -153,6 +182,15 @@ describe("replace helpers", () => {
     const result = applyTitleSuggestion(value, ctx!, "Chiikawa: Something Small and Cute");
     expect(result.next).toBe("[ちいかわ (Chiikawa: Something Small and Cute");
     expect(result.caret).toBe(result.next.length);
+  });
+
+  it("closes a wiki link when applying a title", () => {
+    const value = "See [[Tanji";
+    const ctx = detectTitleContext(value, value.length);
+    expect(ctx?.kind).toBe("wikilink");
+    const result = applyTitleSuggestion(value, ctx!, "Tanjiro Kamado");
+    expect(result.next).toBe("See [[Tanjiro Kamado]]");
+    expect(result.caret).toBe("See [[Tanjiro Kamado".length);
   });
 });
 

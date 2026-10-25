@@ -13,6 +13,8 @@ import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { Pencil, Shield } from "lucide-react";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { AnimeStarButton } from "@/components/anime/anime-star-button";
+import { extractWikiLinkTargets } from "@/lib/wiki/document";
+import { resolveWikiLinks } from "@/lib/wiki/resolve-links";
 
 export const revalidate = 120;
 
@@ -110,6 +112,12 @@ export default async function AnimeDetailPage({
         : false));
   const canEdit = isLoggedIn && (!anime.isProtected || canEditProtected);
   const characterNames = parseCharacterNames(anime.characters);
+  const wikiLinks = await resolveWikiLinks([
+    ...extractWikiLinkTargets(anime.synopsis),
+    ...extractWikiLinkTargets(anime.worldInfo),
+    ...extractWikiLinkTargets(anime.infobox),
+    ...characterNames,
+  ]);
   const starred = session?.user?.id
     ? Boolean(
         await db.animeStar.findUnique({
@@ -208,6 +216,7 @@ export default async function AnimeDetailPage({
         cosplayers={cosplayers}
         goods={goods}
         posts={posts}
+        wikiLinks={wikiLinks}
         anime={{
           id: anime.id,
           title: anime.title,

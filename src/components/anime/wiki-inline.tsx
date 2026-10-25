@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { wikiLinkSlug } from "@/lib/anime-revision";
+import { useWikiLinkStatus } from "@/components/anime/wiki-link-context";
 import { cn } from "@/lib/utils";
 
 type FootnoteMap = Map<string, string>;
@@ -20,6 +21,7 @@ export function WikiInline({
   keyPrefix?: string;
   className?: string;
 }) {
+  const linkStatus = useWikiLinkStatus();
   const parts: React.ReactNode[] = [];
   let last = 0;
   let i = 0;
@@ -40,11 +42,19 @@ export function WikiInline({
     } else if (m[0].startsWith("[[")) {
       const label = m[0].includes("|") ? m[0].slice(2, m[0].indexOf("|")) : m[3];
       const target = m[3]!.trim();
+      const resolved = linkStatus?.[target];
+      const exists = linkStatus ? Boolean(resolved?.exists) : true;
+      const slug = resolved?.slug ?? wikiLinkSlug(target);
+      const href = exists ? `/anime/${slug}` : `/anime/new?title=${encodeURIComponent(target)}`;
       parts.push(
         <Link
           key={`${keyPrefix}-wl-${i++}`}
-          href={`/anime/${wikiLinkSlug(target)}`}
-          className="text-primary font-medium hover:underline"
+          href={href}
+          title={exists ? undefined : `Create "${target}"`}
+          className={cn(
+            "font-medium hover:underline",
+            exists ? "text-primary" : "text-[#c0392b] decoration-[#c0392b]/50"
+          )}
         >
           {label.trim()}
         </Link>

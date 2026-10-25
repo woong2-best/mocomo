@@ -28,7 +28,6 @@ import {
   replaceRange,
   searchTitles,
   type IndexedWikiTitle,
-  type TitleContext,
   type WikiTitle,
 } from "@/lib/wiki/editorUtils";
 import type { WikiMacro } from "@/lib/wiki/macros";
@@ -55,6 +54,8 @@ export type WikiEditorProps = {
   /** `body` keeps image/video + [[title]] suggest; meta macros stay on the structured form. */
   variant?: "document" | "body";
   placeholder?: string;
+  /** Fetch live wiki titles while typing `[[`. */
+  liveTitles?: boolean;
 };
 
 type PopoverState = {
@@ -89,7 +90,8 @@ export function WikiEditor({
   defaultValue = "",
   onChange,
   onSubmit,
-  existingTitles = DUMMY_WIKI_TITLES,
+  existingTitles,
+  liveTitles = true,
   onUploadImage,
   onUploadVideo,
   isSearching = false,
@@ -134,13 +136,61 @@ export function WikiEditor({
   const [youtubeUrl, setYoutubeUrl] = useState("");
 
   const listId = useId();
-  const indexedTitles = useMemo(() => indexWikiTitles(existingTitles), [existingTitles]);
+  const [remoteTitles, setRemoteTitles] = useState<WikiTitle[]>([]);
+  const [liveSearching, setLiveSearching] = useState(false);
+  const catalogTitles = existingTitles ?? (liveTitles ? remoteTitles : DUMMY_WIKI_TITLES);
+  const mergedTitles = useMemo(() => {
+    const seen = new Set<string>();
+    const rows: WikiTitle[] = [];
+    for (const row of [...remoteTitles, ...catalogTitles]) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      rows.push(row);
+    }
+    return rows;
+  }, [catalogTitles, remoteTitles]);
+  const indexedTitles = useMemo(() => indexWikiTitles(mergedTitles), [mergedTitles]);
   const deferredQuery = useDeferredValue(popover?.context.query ?? "");
 
   const results = useMemo(() => {
     if (!popover || composingRef.current) return [];
     return searchTitles(indexedTitles, deferredQuery);
   }, [indexedTitles, deferredQuery, popover]);
+
+  const popoverQuery = popover?.context.query ?? "";
+  const popoverKind = popover?.context.kind;
+
+  useEffect(() => {
+    if (!liveTitles || popoverKind == null) return;
+    const query = popoverQuery.trim();
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setLiveSearching(true);
+      void fetch(`/api/anime/search?titles=1&q=${encodeURIComponent(query)}`, {
+        signal: controller.signal,
+      })
+        .then((res) => (res.ok ? res.json() : { results: [] }))
+        .then((data: { results?: Array<{ slug: string; title: string; titleEn: string | null }> }) => {
+          setRemoteTitles(
+            (data.results ?? []).map((row) => ({
+              id: row.slug,
+              original: row.title,
+              english: row.titleEn?.trim() || row.title,
+            }))
+          );
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setRemoteTitles([]);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLiveSearching(false);
+        });
+    }, DEBOUNCE_MS);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [liveTitles, popoverKind, popoverQuery]);
 
   const setText = useCallback(
     (next: string, caret?: number) => {
@@ -261,7 +311,18 @@ export function WikiEditor({
   const selectTitle = useCallback(
     (item: IndexedWikiTitle) => {
       if (!popover) return;
-      const result = applyTitleSuggestion(text, popover.context, item.english);
+      const label = popover.context.kind === "wikilink" ? item.english || item.original : item.english;
+      const result = applyTitleSuggestion(text, popover.context, label);
+      applyInsert(result);
+      closePopover();
+    },
+    [applyInsert, closePopover, popover, text]
+  );
+
+  const createWikiLink = useCallback(
+    (query: string) => {
+      if (!popover) return;
+      const result = applyTitleSuggestion(text, popover.context, query.trim());
       applyInsert(result);
       closePopover();
     },
@@ -400,7 +461,14 @@ export function WikiEditor({
     [activeIndex, closePopover, popover, results, selectTitle]
   );
 
-  const visiblePopover = popover && (results.length > 0 || isSearching) ? popover : null;
+  const visiblePopover =
+    popover &&
+    (results.length > 0 ||
+      isSearching ||
+      liveSearching ||
+      (popover.context.kind === "wikilink" && popover.context.query.trim().length > 0))
+      ? popover
+      : null;
 
   return (
     <FileDropZone
@@ -558,7 +626,7 @@ export function WikiEditor({
         placeholder={placeholder}
         className={cn(
           "w-full resize-y bg-background px-4 py-3 font-mono text-sm leading-relaxed text-foreground outline-none focus:ring-2 focus:ring-ring focus:ring-inset",
-          bodyOnly ? "min-h-[220px]" : "min-h-[480px]"
+          bodyOnly ? "min-h-[520px]" : "min-h-[480px]"
         )}
         onChange={(e) => {
           setText(e.target.value);
@@ -585,7 +653,9 @@ export function WikiEditor({
           items={results}
           activeIndex={Math.min(activeIndex, Math.max(0, results.length - 1))}
           query={visiblePopover.context.query}
-          isSearching={isSearching}
+          isSearching={isSearching || liveSearching}
+          mode={visiblePopover.context.kind === "wikilink" ? "wikilink" : "title"}
+          onCreate={createWikiLink}
           top={visiblePopover.top}
           left={visiblePopover.left}
           tailLeft={visiblePopover.tailLeft}

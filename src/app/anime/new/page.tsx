@@ -14,16 +14,17 @@ import { ChevronLeft } from "lucide-react";
 export default async function AnimeNewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ genre?: string }>;
+  searchParams: Promise<{ genre?: string; title?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin?callbackUrl=/anime/new");
 
-  const { genre: genreParam } = await searchParams;
+  const { genre: genreParam, title: titleParam } = await searchParams;
   const presetGenre = genreParam ? genreFromParam(genreParam) : null;
+  const presetTitle = titleParam?.trim() ?? "";
 
   return (
-    <AppPageChrome maxWidth="3xl" spacing="sm">
+    <AppPageChrome maxWidth="5xl" spacing="sm">
       <Link href="/anime">
         <Button variant="ghost" size="sm" className="gap-1">
           <ChevronLeft className="h-4 w-4" />
@@ -35,7 +36,14 @@ export default async function AnimeNewPage({
       </NativePageTitle>
       <AnimeForm
         mode="create"
-        initial={presetGenre ? { title: "", genre: presetGenre as AnimeGenre } : undefined}
+        initial={
+          presetGenre || presetTitle
+            ? {
+                title: presetTitle,
+                genre: (presetGenre as AnimeGenre | null) ?? "OTHER",
+              }
+            : undefined
+        }
       />
     </AppPageChrome>
   );

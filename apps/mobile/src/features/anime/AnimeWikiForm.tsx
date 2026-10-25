@@ -31,9 +31,13 @@ import {
 import { useI18n } from "@/i18n/I18nProvider";
 import { animeUi } from "@/features/anime/anime-ui";
 import { WikiContent } from "@/features/anime/WikiContent";
-import { WikiInfoboxField } from "@/features/anime/WikiInfoboxField";
 import { extractYoutubeId } from "@/features/anime/wiki-youtube";
 import { characterNames } from "@/features/anime/wiki-article";
+import {
+  DEFAULT_WIKI_DOCUMENT,
+  composeWikiDocument,
+  splitWikiDocument,
+} from "@/features/anime/wiki-document";
 import { cultureWikiEnglishOnlyViolation } from "@/lib/culture-wiki-english-only";
 import { KeyboardAwareScrollView, KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { AppHeader } from "@/ui/AppHeader";
@@ -48,6 +52,7 @@ type Props = {
   mode: "create" | "edit";
   slug?: string;
   presetGenre?: string;
+  presetTitle?: string;
   initial?: AnimeDetailItem;
 };
 
@@ -86,7 +91,7 @@ async function pickAndUploadImage(aspect?: [number, number], permDeniedMsg?: str
   return { uri: asset.uri, url };
 }
 
-export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
+export function AnimeWikiForm({ mode, slug, presetGenre, presetTitle, initial }: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => animeUi(t), [t]);
   const { colors } = useTheme();
@@ -103,15 +108,20 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
         ? (presetGenre as MobileAnimeGenreId)
         : "OTHER";
 
-  const [title, setTitle] = useState(initial?.title ?? "");
+  const [title, setTitle] = useState(initial?.title ?? presetTitle ?? "");
   const [titleEn, setTitleEn] = useState(initial?.titleEn ?? "");
   const [genre, setGenre] = useState<MobileAnimeGenreId>(initialGenre);
-  const [studio, setStudio] = useState(initial?.studio ?? "");
-  const [synopsis, setSynopsis] = useState(initial?.synopsis ?? "");
-  const [worldInfo, setWorldInfo] = useState(initial?.worldInfo ?? "");
-  const [infobox, setInfobox] = useState(initial?.infobox ?? "");
+  const [document, setDocument] = useState(() =>
+    mode === "create"
+      ? DEFAULT_WIKI_DOCUMENT
+      : composeWikiDocument({
+          synopsis: initial?.synopsis,
+          worldInfo: initial?.worldInfo,
+          infobox: initial?.infobox,
+          charactersText: characterNames(initial?.characters).join("\n"),
+        })
+  );
   const [tags, setTags] = useState(initial?.tags?.join(", ") ?? "");
-  const [charactersText, setCharactersText] = useState(characterNames(initial?.characters).join("\n"));
   const [editSummary, setEditSummary] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | null>(initial?.coverUrl ?? null);
   const [localCoverUri, setLocalCoverUri] = useState<string | null>(null);
@@ -173,7 +183,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
     try {
       const picked = await pickAndUploadImage(undefined, copy.photoLibPerm);
       if (!picked) return;
-      setSynopsis((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}![${copy.photoCaption}](${picked.url})\n\n`);
+      setDocument((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}![${copy.photoCaption}](${picked.url})\n\n`);
     } catch (e) {
       showIslandError(copy.saveFailTitle, e instanceof Error ? e.message : copy.photoFail);
     } finally {
@@ -191,7 +201,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
       showIslandError(copy.inputCheckTitle, copy.youtubeRequired);
       return;
     }
-    setSynopsis((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}${trimmed}\n\n`);
+    setDocument((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}${trimmed}\n\n`);
     setVideoUrl("");
   }
 
@@ -201,15 +211,15 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
       showIslandError(copy.inputCheckTitle, copy.titleRequired);
       return;
     }
+    const split = splitWikiDocument(document);
     const englishOnlyCode = cultureWikiEnglishOnlyViolation([
       trimmed,
       titleEn,
-      studio,
-      synopsis,
-      worldInfo,
-      infobox,
+      split.studio,
+      split.body,
+      split.infobox,
       tags,
-      charactersText,
+      split.charactersText,
     ]);
     if (englishOnlyCode) {
       showIslandError(copy.inputCheckTitle, t(englishOnlyCode));
@@ -219,12 +229,12 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
       title: trimmed,
       titleEn: titleEn.trim() || undefined,
       genre,
-      studio: studio.trim() || undefined,
-      synopsis: synopsis.trim() || undefined,
-      worldInfo: worldInfo.trim() || undefined,
-      infobox: infobox.trim() || undefined,
+      studio: split.studio,
+      synopsis: split.body.trim() || undefined,
+      worldInfo: undefined,
+      infobox: split.infobox,
       tags: tags.trim() || undefined,
-      charactersText: charactersText.trim() || undefined,
+      charactersText: split.charactersText,
       coverUrl: coverUrl || undefined,
       bannerUrl: bannerUrl || undefined,
       editSummary: mode === "edit" ? editSummary.trim() || undefined : undefined,
@@ -250,7 +260,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
         ]}
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
-          <Text style={styles.lead}>{copy.formIntro}</Text>
+          <Text style={styles.lead}>{copy.metaHelp}</Text>
           <Text style={styles.englishOnlyNotice}>{copy.englishOnlyNotice}</Text>
 
           <Label text={copy.titleLabel} colors={colors} />
@@ -342,27 +352,42 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             )}
           </Pressable>
 
-          <Label text={copy.studioLabel} colors={colors} />
-          <KeyboardAwareTextInput
-            style={styles.input}
-            value={studio}
-            onChangeText={setStudio}
-            placeholder={copy.studioPh}
-            placeholderTextColor={colors.textMuted}
-          />
-
-          <WikiInfoboxField
-            label={copy.infoboxLabel}
-            value={infobox}
-            onChange={setInfobox}
-            placeholder={copy.infoboxPh}
-          />
-
-          <Label text={copy.synopsisLabel} colors={colors} />
+          <Label text={copy.bodyLabel} colors={colors} />
+          <Text style={styles.englishOnlyNotice}>{copy.bodyHelp}</Text>
           <View style={styles.toolbar}>
             <Pressable onPress={() => void insertBodyImage()} disabled={busy} style={styles.toolBtn}>
               <Ionicons name="image-outline" size={16} color={colors.brand} />
               <Text style={styles.toolBtnText}>{copy.photoUploadBtn}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setDocument((v) => `${v.trim()}\n\n==  ==\n\n`)}
+              disabled={busy}
+              style={styles.toolBtn}
+            >
+              <Ionicons name="text-outline" size={16} color={colors.brand} />
+              <Text style={styles.toolBtnText}>{copy.headingBtn}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() =>
+                setDocument((v) =>
+                  v.includes("=== Work info ===")
+                    ? v
+                    : `=== Work info ===\nGenre | \nStudio | \nNetwork | \nEpisodes | \n\n${v}`
+                )
+              }
+              disabled={busy}
+              style={styles.toolBtn}
+            >
+              <Ionicons name="grid-outline" size={16} color={colors.brand} />
+              <Text style={styles.toolBtnText}>{copy.infoboxBtn}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setDocument((v) => `${v}[[]]`)}
+              disabled={busy}
+              style={styles.toolBtn}
+            >
+              <Ionicons name="link-outline" size={16} color={colors.brand} />
+              <Text style={styles.toolBtnText}>{copy.wikilinkBtn}</Text>
             </Pressable>
           </View>
           <View style={styles.videoRow}>
@@ -376,14 +401,14 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
               autoCorrect={false}
             />
             <Pressable onPress={insertVideoLink} style={styles.toolBtn}>
-              <Ionicons name="link-outline" size={16} color={colors.brand} />
+              <Ionicons name="logo-youtube" size={16} color={colors.brand} />
               <Text style={styles.toolBtnText}>{copy.insertBtn}</Text>
             </Pressable>
           </View>
           <KeyboardAwareTextInput
-            style={[styles.input, styles.textArea]}
-            value={synopsis}
-            onChangeText={setSynopsis}
+            style={[styles.input, styles.textAreaLg]}
+            value={document}
+            onChangeText={setDocument}
             placeholder={copy.synopsisPh}
             placeholderTextColor={colors.textMuted}
             multiline
@@ -394,44 +419,12 @@ export function AnimeWikiForm({ mode, slug, presetGenre, initial }: Props) {
             spellCheck={false}
             blurOnSubmit={false}
           />
-          {synopsis.trim() ? (
+          {document.trim() ? (
             <View style={styles.preview}>
               <Text style={styles.previewLabel}>{copy.preview}</Text>
-              <WikiContent source={synopsis} />
+              <WikiContent source={document} />
             </View>
           ) : null}
-
-          <Label text={copy.worldLabel} colors={colors} />
-          <KeyboardAwareTextInput
-            style={[styles.input, styles.textArea]}
-            value={worldInfo}
-            onChangeText={setWorldInfo}
-            placeholder={copy.worldPh}
-            placeholderTextColor={colors.textMuted}
-            multiline
-            scrollEnabled
-            nestedScrollEnabled
-            textAlignVertical="top"
-            autoCorrect={false}
-            spellCheck={false}
-            blurOnSubmit={false}
-          />
-
-          <Label text={copy.castLabel} colors={colors} />
-          <KeyboardAwareTextInput
-            style={[styles.input, styles.textAreaSm]}
-            value={charactersText}
-            onChangeText={setCharactersText}
-            placeholder={copy.castPh}
-            placeholderTextColor={colors.textMuted}
-            multiline
-            scrollEnabled
-            nestedScrollEnabled
-            textAlignVertical="top"
-            autoCorrect={false}
-            spellCheck={false}
-            blurOnSubmit={false}
-          />
 
           <Label text={copy.tagsLabel} colors={colors} />
           <KeyboardAwareTextInput
@@ -510,6 +503,13 @@ function createStyles(colors: ThemeColors) {
       minHeight: 120,
       maxHeight: 200,
       paddingTop: 10,
+    },
+    textAreaLg: {
+      minHeight: 280,
+      maxHeight: 480,
+      paddingTop: 10,
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontSize: 14,
     },
     textAreaSm: {
       minHeight: 88,
@@ -601,6 +601,7 @@ function createStyles(colors: ThemeColors) {
     },
     toolbar: {
       flexDirection: "row",
+      flexWrap: "wrap",
       gap: 8,
       marginTop: 8,
     },

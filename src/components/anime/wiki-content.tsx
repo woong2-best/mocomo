@@ -3,7 +3,8 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
-import { extractYoutubeId, wikiHeadingId } from "@/lib/anime-revision";
+import { wikiHeadingId } from "@/lib/anime-revision";
+import { parseWikiBlocks } from "@/lib/wiki/blocks";
 import { WikiInline } from "@/components/anime/wiki-inline";
 
 type FootnoteMap = Map<string, string>;
@@ -41,16 +42,6 @@ function YoutubeEmbed({ id }: { id: string }) {
   );
 }
 
-function parseTableBlock(lines: string[]): string[][] | null {
-  if (lines.length < 1 || !lines[0].includes("|")) return null;
-  const rows = lines
-    .filter((l) => l.includes("|"))
-    .map((l) => l.split("|").map((c) => c.trim()).filter((c) => c.length > 0));
-  if (rows.length < 1) return null;
-  if (rows[1]?.every((c) => /^[-:]+$/.test(c))) rows.splice(1, 1);
-  return rows;
-}
-
 function CollapseBlock({ title, body }: { title: string; body: string }) {
   return (
     <details className="my-3 rounded-xl border border-border/70 bg-muted/20 overflow-hidden">
@@ -74,32 +65,26 @@ export function WikiContent({
   headingIdPrefix?: string;
 }) {
   const { body, notes } = parseFootnotes(source);
-  const blocks = body.split(/\n{2,}/);
+  const blocks = parseWikiBlocks(body);
   const rendered: React.ReactNode[] = [];
 
   blocks.forEach((block, bi) => {
-    const trimmed = block.trim();
-    if (!trimmed) return;
-
-    const collapse = trimmed.match(/^\{\{collapse\|([^|]+)\|([\s\S]+)\}\}$/);
-    if (collapse) {
-      rendered.push(<CollapseBlock key={`c-${bi}`} title={collapse[1]} body={collapse[2]} />);
+    if (block.type === "collapse") {
+      rendered.push(<CollapseBlock key={`c-${bi}`} title={block.title} body={block.body} />);
       return;
     }
 
-    const yt = extractYoutubeId(trimmed);
-    if (yt) {
-      rendered.push(<YoutubeEmbed key={`yt-${bi}`} id={yt} />);
+    if (block.type === "youtube") {
+      rendered.push(<YoutubeEmbed key={`yt-${bi}`} id={block.id} />);
       return;
     }
 
-    const table = parseTableBlock(trimmed.split("\n"));
-    if (table && table.length > 0) {
+    if (block.type === "table") {
       rendered.push(
         <div key={`tbl-${bi}`} className="my-3 overflow-x-auto rounded-xl border border-border/60">
           <table className="w-full text-sm">
             <tbody>
-              {table.map((row, ri) => (
+              {block.rows.map((row, ri) => (
                 <tr
                   key={ri}
                   className={ri === 0 ? "bg-muted/40 font-semibold" : "border-t border-border/40"}
@@ -118,23 +103,19 @@ export function WikiContent({
       return;
     }
 
-    if (trimmed.startsWith("## ")) {
-      const label = trimmed.slice(3);
-      const id = `${headingIdPrefix}-${wikiHeadingId(label)}`;
-      rendered.push(
-        <h2 key={`h2-${bi}`} id={id} className="text-lg font-bold mt-5 mb-2 scroll-mt-24">
-          {renderInline(label, notes, `h2-${bi}`)}
-        </h2>
-      );
-      return;
-    }
-
-    if (trimmed.startsWith("# ")) {
-      const label = trimmed.slice(2);
-      const id = `${headingIdPrefix}-${wikiHeadingId(label)}`;
+    if (block.type === "heading") {
+      const id = `${headingIdPrefix}-${wikiHeadingId(block.label)}`;
+      if (block.level === 2) {
+        rendered.push(
+          <h2 key={`h2-${bi}`} id={id} className="text-lg font-bold mt-5 mb-2 scroll-mt-24">
+            {renderInline(block.label, notes, `h2-${bi}`)}
+          </h2>
+        );
+        return;
+      }
       rendered.push(
         <h3 key={`h-${bi}`} id={id} className="text-base font-bold mt-4 mb-1 scroll-mt-24">
-          {renderInline(label, notes, `h-${bi}`)}
+          {renderInline(block.label, notes, `h-${bi}`)}
         </h3>
       );
       return;
@@ -142,7 +123,7 @@ export function WikiContent({
 
     rendered.push(
       <p key={`p-${bi}`} className="text-sm leading-relaxed whitespace-pre-wrap">
-        {trimmed.split("\n").map((line, li) => (
+        {block.text.split("\n").map((line, li) => (
           <span key={li}>
             {li > 0 && <br />}
             {renderInline(line, notes, `p-${bi}-${li}`)}
