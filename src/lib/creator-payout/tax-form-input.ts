@@ -35,6 +35,52 @@ const TAX_FORM_LATIN = /^[A-Za-z0-9 ,.\-/#']*$/;
 export const TAX_FORM_ENGLISH_ONLY_MESSAGE =
   "All fields must be filled out in English. (영문으로 입력해 주세요)";
 
+export const TAX_LEGAL_NAME_ERROR =
+  "여권 또는 공식 신분증에 기재된 영문만 입력 가능합니다. (숫자, 쉼표, 특수문자 불가)";
+
+const TAX_LEGAL_NAME_CHARS = /^[A-Za-z '\-]*$/;
+const TAX_LEGAL_NAME_REPEAT = /([A-Za-z])\1{3,}/i;
+const TAX_LEGAL_NAME_MAX = 30;
+
+export function inspectTaxLegalNamePart(
+  value: unknown,
+  opts: { required: boolean; min?: number; max?: number },
+): { ok: true; value: string } | { ok: false; error: string } {
+  const min = opts.required ? (opts.min ?? 2) : 0;
+  const max = opts.max ?? TAX_LEGAL_NAME_MAX;
+  const next = typeof value === "string" ? value.replace(/[\u0000-\u001F\u007F]/g, "").trim() : "";
+  if (!next) {
+    return opts.required ? { ok: false, error: TAX_LEGAL_NAME_ERROR } : { ok: true, value: "" };
+  }
+  const compact = next.replace(/\s+/g, " ");
+  if (compact.length < min || compact.length > max) return { ok: false, error: TAX_LEGAL_NAME_ERROR };
+  if (!TAX_LEGAL_NAME_CHARS.test(compact) || !/[A-Za-z]/.test(compact) || TAX_LEGAL_NAME_REPEAT.test(compact)) {
+    return { ok: false, error: TAX_LEGAL_NAME_ERROR };
+  }
+  return { ok: true, value: compact };
+}
+
+export function isValidTaxLegalNamePart(value: string, opts: { required: boolean }): boolean {
+  return inspectTaxLegalNamePart(value, opts).ok;
+}
+
+export function taxLegalNameFieldError(value: string, opts: { required: boolean; dirty: boolean }): string | null {
+  if (!opts.dirty && !value.trim()) return null;
+  const inspected = inspectTaxLegalNamePart(value, opts);
+  return inspected.ok ? null : inspected.error;
+}
+
+export function composeTaxLegalName(firstName: string, middleName: string, lastName: string): string {
+  return [firstName, middleName, lastName]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function sanitizeTaxLegalNameInput(value: string): string {
+  return value.replace(/[\u0000-\u001F\u007F]/g, "").slice(0, TAX_LEGAL_NAME_MAX);
+}
+
 export function isTaxFormEnglishText(value: string): boolean {
   return TAX_FORM_LATIN.test(value);
 }
@@ -178,7 +224,9 @@ export function isValidForeignTin(value: string): boolean {
 
 export type TaxFormDraftInput = {
   formType: TaxFormKind;
-  fullName: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   businessName?: string;
   street: string;
   city: string;
@@ -196,10 +244,18 @@ export type TaxReviewStatusLabel = "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRE
 /** Client-side reasons the Save tax form button stays off. */
 export function listTaxFormSaveIssues(input: TaxFormDraftInput): string[] {
   const issues: string[] = [];
-  const textFields = [input.fullName, input.street, input.city, input.state];
+  const textFields = [input.street, input.city, input.state];
   const optional = input.formType === "W9" ? [input.businessName ?? ""] : [];
   const latinFields = [...textFields, ...optional];
-  if (input.fullName.trim().length < 2) issues.push("Enter a full legal name in English.");
+  if (!isValidTaxLegalNamePart(input.firstName, { required: true })) {
+    issues.push("Enter a first name using passport English.");
+  }
+  if (!isValidTaxLegalNamePart(input.middleName ?? "", { required: false })) {
+    issues.push("Enter a middle name using passport English, or leave it blank.");
+  }
+  if (!isValidTaxLegalNamePart(input.lastName, { required: true })) {
+    issues.push("Enter a last name using passport English.");
+  }
   if (input.street.trim().length < 3) issues.push("Enter a street address in English.");
   if (input.state.trim().length < 1) issues.push("Select a state or province.");
   if (input.city.trim().length < 2) issues.push("Enter a city.");
@@ -229,7 +285,9 @@ export function listTaxFormSaveIssues(input: TaxFormDraftInput): string[] {
 
 export function taxFormDraftStarted(input: TaxFormDraftInput): boolean {
   return Boolean(
-    input.fullName.trim() ||
+    input.firstName.trim() ||
+      input.middleName?.trim() ||
+      input.lastName.trim() ||
       input.businessName?.trim() ||
       input.street.trim() ||
       input.city.trim() ||
@@ -354,12 +412,18 @@ export function inspectTaxFormPayload(
   const raw = input as Record<string, unknown>;
   const kind = raw.formType === "W9" || raw.formType === "W8BEN" ? raw.formType : null;
   if (!kind) return { ok: false, error: "Choose W-9 or W-8BEN." };
-  const fullName = cleanLatin(raw.fullName, 80);
+  const firstName = inspectTaxLegalNamePart(raw.firstName, { required: true });
+  const middleName = inspectTaxLegalNamePart(raw.middleName, { required: false });
+  const lastName = inspectTaxLegalNamePart(raw.lastName, { required: true });
+  if (!firstName.ok || !middleName.ok || !lastName.ok) {
+    return { ok: false, error: TAX_LEGAL_NAME_ERROR };
+  }
+  const fullName = composeTaxLegalName(firstName.value, middleName.value, lastName.value);
   const street = cleanLatin(raw.street, 100);
   const cityLine = composeCityLine(raw);
   const signaturePng = signaturePngFromPayload(raw.signaturePng);
   if (!fullName || fullName.length < 2) {
-    return { ok: false, error: "Enter a full legal name in English." };
+    return { ok: false, error: TAX_LEGAL_NAME_ERROR };
   }
   if (!street || street.length < 3) {
     return { ok: false, error: "Enter a street address in English." };

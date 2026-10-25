@@ -19,8 +19,11 @@ import {
   sanitizeForeignTinInput,
   sanitizeTaxPostalInput,
   sanitizeTaxTextInput,
+  composeTaxLegalName,
+  inspectTaxLegalNamePart,
   taxFormDraftStarted,
   taxFormSectionStatus,
+  TAX_LEGAL_NAME_ERROR,
   w8benExpiresAt,
 } from "@/lib/creator-payout/tax-form-input";
 import { generateTaxFormPdf } from "@/lib/creator-payout/tax-pdf";
@@ -42,7 +45,8 @@ describe("tax form dates and input", () => {
       parseTaxFormPayload(
         {
           formType: "W9",
-          fullName: "Ada Lovelace",
+          firstName: "Ada",
+          lastName: "Lovelace",
           street: "1 Market Street",
           cityLine: "San Francisco, CA 94105",
           tinKind: "SSN",
@@ -52,7 +56,9 @@ describe("tax form dates and input", () => {
         signedOn,
       ),
     ).toBeNull();
-    expect(parseTaxFormPayload({ formType: "W8BEN", fullName: "Kim", street: "Road", cityLine: "Seoul" }, signedOn)).toBeNull();
+    expect(
+      parseTaxFormPayload({ formType: "W8BEN", firstName: "Kim", lastName: "Lee", street: "Road", cityLine: "Seoul" }, signedOn),
+    ).toBeNull();
   });
 
   it("rejects Hangul and other non-Latin tax form text", () => {
@@ -63,7 +69,8 @@ describe("tax form dates and input", () => {
     expect(
       parseTaxFormPayload({
         formType: "W8BEN",
-        fullName: "백권웅",
+        firstName: "백권웅",
+        lastName: "Baek",
         street: "123 Nakdong-daero",
         city: "Saha-gu",
         state: "Busan",
@@ -108,7 +115,8 @@ describe("tax form dates and input", () => {
     expect(
       listTaxFormSaveIssues({
         formType: "W9",
-        fullName: "Ada Lovelace",
+        firstName: "Ada",
+        lastName: "Lovelace",
         businessName: "fff",
         street: "1 Market Street",
         city: "San Francisco",
@@ -139,7 +147,8 @@ describe("tax form dates and input", () => {
   it("keeps section status Not submitted until the form is actually saved", () => {
     const empty = {
       formType: "W8BEN" as const,
-      fullName: "",
+      firstName: "",
+      lastName: "",
       street: "",
       city: "",
       state: "",
@@ -156,7 +165,8 @@ describe("tax form dates and input", () => {
 
     const filled = {
       ...empty,
-      fullName: "Kim Happy",
+      firstName: "Kim",
+      lastName: "Happy",
       street: "1 Teheran-ro",
       city: "Seoul",
       state: "Seoul",
@@ -184,6 +194,34 @@ describe("tax form dates and input", () => {
         hasDraft: true,
       }),
     ).toBe("In progress — not saved");
+  });
+
+  it("accepts passport-style first, middle, and last names and rejects digits or punctuation", () => {
+    expect(inspectTaxLegalNamePart("Jean-Luc", { required: true })).toEqual({ ok: true, value: "Jean-Luc" });
+    expect(inspectTaxLegalNamePart("O'Brien", { required: true })).toEqual({ ok: true, value: "O'Brien" });
+    expect(inspectTaxLegalNamePart("Mary Ann", { required: true })).toEqual({ ok: true, value: "Mary Ann" });
+    expect(inspectTaxLegalNamePart("", { required: false })).toEqual({ ok: true, value: "" });
+    expect(inspectTaxLegalNamePart("John,", { required: true }).ok).toBe(false);
+    expect(inspectTaxLegalNamePart("J.R", { required: true }).ok).toBe(false);
+    expect(inspectTaxLegalNamePart("Ada2", { required: true }).ok).toBe(false);
+    expect(inspectTaxLegalNamePart("Aaaa", { required: true }).ok).toBe(false);
+    expect(inspectTaxLegalNamePart("A", { required: true }).ok).toBe(false);
+    expect(composeTaxLegalName("Ada", "Augusta", "Lovelace")).toBe("Ada Augusta Lovelace");
+    expect(composeTaxLegalName("Kim", "", "Happy")).toBe("Kim Happy");
+    expect(
+      listTaxFormSaveIssues({
+        formType: "W9",
+        firstName: "John,",
+        lastName: "Doe",
+        street: "1 Market Street",
+        city: "San Francisco",
+        state: "California",
+        postalCode: "94105",
+        tin: "123456789",
+        hasSignature: true,
+      }).length,
+    ).toBeGreaterThan(0);
+    expect(TAX_LEGAL_NAME_ERROR).toContain("여권");
   });
 });
 

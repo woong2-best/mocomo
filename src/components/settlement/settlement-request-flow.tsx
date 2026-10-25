@@ -13,10 +13,12 @@ import {
   sanitizeAccountNumberInput,
   sanitizeForeignTinInput,
   sanitizeSwiftInput,
+  sanitizeTaxLegalNameInput,
   sanitizeTaxPostalInput,
   sanitizeTaxTextInput,
   taxFormDraftStarted,
   taxFormSectionStatus,
+  taxLegalNameFieldError,
 } from "@/lib/creator-payout/tax-form-input";
 import { ALLOWED_COUNTRIES } from "@/lib/i18n/countries";
 import { SignatureCanvas, type SignatureCanvasHandle } from "@/components/settlement/signature-canvas";
@@ -98,7 +100,10 @@ export function SettlementRequestFlow() {
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [formType, setFormType] = useState<"W9" | "W8BEN">("W9");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [nameDirty, setNameDirty] = useState({ first: false, middle: false, last: false });
   const [businessName, setBusinessName] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
@@ -199,7 +204,9 @@ export function SettlementRequestFlow() {
   const taxDraft = useMemo(
     () => ({
       formType,
-      fullName,
+      firstName,
+      middleName,
+      lastName,
       businessName,
       street,
       city,
@@ -215,9 +222,11 @@ export function SettlementRequestFlow() {
       businessName,
       citizenshipCode,
       city,
+      firstName,
       foreignTin,
       formType,
-      fullName,
+      lastName,
+      middleName,
       postalCode,
       residenceCountryCode,
       signaturePng,
@@ -265,10 +274,25 @@ export function SettlementRequestFlow() {
     setNotice(null);
     const payload =
       formType === "W9"
-        ? { formType, fullName, businessName, street, city, state, postalCode, tinKind, tin, signaturePng }
+        ? {
+            formType,
+            firstName,
+            middleName,
+            lastName,
+            businessName,
+            street,
+            city,
+            state,
+            postalCode,
+            tinKind,
+            tin,
+            signaturePng,
+          }
         : {
             formType,
-            fullName,
+            firstName,
+            middleName,
+            lastName,
             street,
             city,
             state,
@@ -525,11 +549,40 @@ export function SettlementRequestFlow() {
                       }}
                     />
                   </div>
-                  <LatinField
-                    label={formType === "W9" ? "Full name" : "Full legal name"}
-                    value={fullName}
-                    onChange={setFullName}
-                  />
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <LegalNameField
+                      label="First Name (Given Name)"
+                      required
+                      value={firstName}
+                      error={taxLegalNameFieldError(firstName, { required: true, dirty: nameDirty.first })}
+                      onChange={(value) => {
+                        setFirstName(value);
+                        setNameDirty((current) => ({ ...current, first: true }));
+                      }}
+                      onBlur={() => setFirstName((value) => value.trim())}
+                    />
+                    <LegalNameField
+                      label="Middle Name (Optional)"
+                      value={middleName}
+                      error={taxLegalNameFieldError(middleName, { required: false, dirty: nameDirty.middle })}
+                      onChange={(value) => {
+                        setMiddleName(value);
+                        setNameDirty((current) => ({ ...current, middle: true }));
+                      }}
+                      onBlur={() => setMiddleName((value) => value.trim())}
+                    />
+                    <LegalNameField
+                      label="Last Name (Family Name / Surname)"
+                      required
+                      value={lastName}
+                      error={taxLegalNameFieldError(lastName, { required: true, dirty: nameDirty.last })}
+                      onChange={(value) => {
+                        setLastName(value);
+                        setNameDirty((current) => ({ ...current, last: true }));
+                      }}
+                      onBlur={() => setLastName((value) => value.trim())}
+                    />
+                  </div>
                   {formType === "W9" ? (
                     <LatinField
                       label="Business name (optional)"
@@ -822,6 +875,47 @@ function Choice({ label, selected, onClick }: { label: string; selected: boolean
     >
       {label}
     </button>
+  );
+}
+
+function LegalNameField({
+  label,
+  value,
+  error,
+  required = false,
+  onChange,
+  onBlur,
+}: {
+  label: string;
+  value: string;
+  error: string | null;
+  required?: boolean;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+}) {
+  const invalid = Boolean(error);
+  return (
+    <label className="block space-y-1 text-sm">
+      <span className="font-semibold">
+        {label}
+        {required ? <span className="text-red-600"> *</span> : null}
+      </span>
+      <input
+        className={
+          invalid
+            ? `${fieldClass} border-red-500 focus:border-red-600 focus:outline-none`
+            : fieldClass
+        }
+        value={value}
+        maxLength={30}
+        autoComplete="off"
+        spellCheck={false}
+        aria-invalid={invalid}
+        onChange={(e) => onChange(sanitizeTaxLegalNameInput(e.target.value))}
+        onBlur={onBlur}
+      />
+      {error ? <p className="text-xs leading-relaxed text-red-600">{error}</p> : null}
+    </label>
   );
 }
 
