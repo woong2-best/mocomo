@@ -3,10 +3,15 @@ export function vrmStageDocument(opts: {
   vrmUrl: string;
   backdropUrl: string | null;
   characterId: string;
+  /** Website grid uses bust. The watch room uses stage. */
+  framing?: "bust" | "stage";
+  maxPixelRatio?: number;
 }): string {
   const vrmUrl = JSON.stringify(opts.vrmUrl);
   const backdropUrl = JSON.stringify(opts.backdropUrl ?? "");
   const characterId = JSON.stringify(opts.characterId);
+  const framing = JSON.stringify(opts.framing === "bust" ? "bust" : "stage");
+  const maxPixelRatio = Number.isFinite(opts.maxPixelRatio) ? Number(opts.maxPixelRatio) : 1.5;
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -36,6 +41,8 @@ window.mocoStop = function () { window.__mocoQueue = []; };
 const VRM_URL = ${vrmUrl};
 const BACKDROP = ${backdropUrl};
 const CHARACTER = ${characterId};
+const FRAMING = ${framing};
+const MAX_DPR = ${maxPixelRatio};
 const post = (msg) => { try { window.ReactNativeWebView.postMessage(JSON.stringify(msg)); } catch (e) {} };
 if (BACKDROP) document.body.style.backgroundImage = "url(" + JSON.stringify(BACKDROP).slice(1, -1) + ")";
 
@@ -247,7 +254,7 @@ try {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
   renderer.setClearColor(0x000000, 0);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -354,7 +361,7 @@ try {
   const visibleH = avatarH / 0.75;
   cameraTarget.set(headPos.x, hairTop + 0.12 - visibleH / 2, headPos.z);
   const fovRad = (camera.fov * Math.PI) / 180;
-  const distance = THREE.MathUtils.clamp((visibleH / 2) / Math.tan(fovRad / 2), 1.05, 1.25);
+  const distance = THREE.MathUtils.clamp((visibleH / 2) / Math.tan(fovRad / 2), FRAMING === "bust" ? 1.0 : 1.05, 1.25);
   camera.position.set(cameraTarget.x, cameraTarget.y + 0.05, cameraTarget.z + distance);
   camera.lookAt(cameraTarget);
   if (vrm.lookAt) {

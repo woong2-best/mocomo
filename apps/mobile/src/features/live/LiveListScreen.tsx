@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +11,7 @@ import { coerceViewerCount, type MobileLiveCategoryId } from "@/features/live/li
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
 import { AiOfficialChannelCard, AiStageHero } from "@/features/live/ai/AiOfficialChannelCard";
+import { fetchAiStages, stageForCharacter } from "@/features/live/ai/ai-speak";
 import { IDOL_LIVES } from "@/features/live/ai/idol-lives";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
@@ -36,6 +37,13 @@ export function LiveListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [category, setCategory] = useState<MobileLiveCategoryId>("ALL");
   const [searchQ, setSearchQ] = useState("");
+
+  const stagesQuery = useQuery({
+    queryKey: ["mobile-ai-stages"],
+    queryFn: fetchAiStages,
+    staleTime: 5 * 60_000,
+  });
+  const zelieStage = stageForCharacter("zelie", stagesQuery.data);
 
   const query = useInfiniteQuery({
     queryKey: ["mobile-live-hub", category],
@@ -161,6 +169,7 @@ export function LiveListScreen() {
                 {showAiHero ? (
                   <AiStageHero
                     hint={t("m.live.no_messages_yet_say_hello")}
+                    stage={zelieStage}
                     onPress={() => navigation.navigate("MocoLive")}
                   />
                 ) : hero ? (
@@ -196,7 +205,7 @@ export function LiveListScreen() {
                       <AiOfficialChannelCard
                         key={idol.id}
                         accent={idol.accent}
-                        poster={idol.poster}
+                        stage={stageForCharacter(idol.id, stagesQuery.data)}
                         title={t(idol.titleKey)}
                         host={t(idol.nameKey)}
                         sub={t(idol.roleKey)}

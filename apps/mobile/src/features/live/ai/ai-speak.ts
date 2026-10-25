@@ -78,6 +78,40 @@ export function defaultAiStage(characterId: string): AiStageFiles {
   return DEFAULT_STAGE[ALIAS[characterId.trim().toLowerCase()] ?? "zelie"] ?? DEFAULT_STAGE.zelie!;
 }
 
+export function stageForCharacter(
+  id: string,
+  stages?: Record<string, AiStageFiles> | null
+): AiStageFiles {
+  const fallback = defaultAiStage(id);
+  return stages?.[fallback.characterId] ?? fallback;
+}
+
+export async function fetchAiStages(): Promise<Record<string, AiStageFiles>> {
+  const next: Record<string, AiStageFiles> = {
+    zelie: defaultAiStage("zelie"),
+    cleo: defaultAiStage("cleo"),
+    mio: defaultAiStage("mio"),
+    nangnang: defaultAiStage("nangnang"),
+  };
+  try {
+    const res = await apiRequest<{ stages?: AiStageFiles[] }>("/api/mobile/live/ai-host/stage?all=1", {
+      auth: false,
+      timeoutMs: 12_000,
+    });
+    for (const row of res.stages ?? []) {
+      if (!row?.characterId || !row.vrmUrl) continue;
+      next[row.characterId] = {
+        characterId: row.characterId,
+        vrmUrl: row.vrmUrl,
+        backdropUrl: row.backdropUrl ?? next[row.characterId]?.backdropUrl ?? null,
+      };
+    }
+  } catch {
+    /* defaults still match the built-in website files */
+  }
+  return next;
+}
+
 export async function fetchAiStage(characterId: string): Promise<AiStageFiles> {
   const fallback = defaultAiStage(characterId);
   try {

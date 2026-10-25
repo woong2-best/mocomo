@@ -1,11 +1,10 @@
 import { memo } from "react";
-import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { AiVrmStage } from "@/features/live/ai/AiVrmStage";
+import type { AiStageFiles } from "@/features/live/ai/ai-speak";
 import { liveCategoryEnglish } from "@/features/live/live-categories";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
-
-const POSTER = require("../../../../assets/moco-live-poster.png");
 
 type Props = {
   onPress: () => void;
@@ -13,10 +12,10 @@ type Props = {
   host?: string;
   sub?: string;
   accent?: string;
-  poster?: number;
+  stage: AiStageFiles;
 };
 
-function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, poster }: Props) {
+function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, stage }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -26,9 +25,15 @@ function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, poster 
   return (
     <Pressable style={styles.row} onPress={onPress} accessibilityRole="button">
       <View style={[styles.thumb, { width: thumbW, height: thumbH, backgroundColor: accent ?? "#241c33" }]}>
-        {poster || !accent ? (
-          <Image source={poster ?? POSTER} style={StyleSheet.absoluteFill} contentFit="cover" />
-        ) : null}
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <AiVrmStage
+            vrmUrl={stage.vrmUrl}
+            backdropUrl={stage.backdropUrl}
+            characterId={stage.characterId}
+            framing="bust"
+            maxPixelRatio={1}
+          />
+        </View>
         <View style={styles.badge} pointerEvents="none">
           <Text style={styles.badgeText}>{t(accent ? "m.live.idol_badge" : "m.live.ai_official_badge")}</Text>
         </View>
@@ -53,17 +58,33 @@ function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, poster 
 
 export const AiOfficialChannelCard = memo(AiOfficialChannelCardInner);
 
-/** Featured stage on the hub. Same crop as the room, tabs sit on its lower edge. */
-export function AiStageHero({ onPress, hint }: { onPress: () => void; hint: string }) {
+/** Featured stage on the hub. Same model and room as the website tile. */
+export function AiStageHero({
+  onPress,
+  hint,
+  stage,
+}: {
+  onPress: () => void;
+  hint: string;
+  stage: AiStageFiles;
+}) {
   const { width } = useWindowDimensions();
   const height = Math.round(width * (9 / 16));
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      style={{ width, height, backgroundColor: "#000" }}
+      style={{ width, height, backgroundColor: "#000", overflow: "hidden" }}
     >
-      <Image source={POSTER} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <AiVrmStage
+          vrmUrl={stage.vrmUrl}
+          backdropUrl={stage.backdropUrl}
+          characterId={stage.characterId}
+          framing="bust"
+          maxPixelRatio={1.25}
+        />
+      </View>
       <Text style={styles.heroHint}>{hint}</Text>
     </Pressable>
   );

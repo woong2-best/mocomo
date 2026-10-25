@@ -15,7 +15,10 @@ type Props = {
   vrmUrl: string;
   backdropUrl: string | null;
   characterId: string;
-  poster: number;
+  /** Old still. Shown only when this stage has no room backdrop. */
+  poster?: number;
+  framing?: "bust" | "stage";
+  maxPixelRatio?: number;
 };
 
 function absUrl(url: string): string {
@@ -32,7 +35,7 @@ function NativeVoice({ uri }: { uri: string }) {
 }
 
 export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
-  { vrmUrl, backdropUrl, characterId, poster },
+  { vrmUrl, backdropUrl, characterId, poster, framing = "stage", maxPixelRatio = 1.5 },
   ref
 ) {
   const webRef = useRef<WebView>(null);
@@ -45,9 +48,12 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
         vrmUrl: absUrl(vrmUrl),
         backdropUrl: backdropUrl ? absUrl(backdropUrl) : null,
         characterId,
+        framing,
+        maxPixelRatio,
       }),
-    [backdropUrl, characterId, vrmUrl]
+    [backdropUrl, characterId, framing, maxPixelRatio, vrmUrl]
   );
+  const backdropUri = backdropUrl ? absUrl(backdropUrl) : null;
 
   useImperativeHandle(ref, () => ({
     play(audioBase64, emotion, text) {
@@ -77,7 +83,11 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Image source={poster} style={StyleSheet.absoluteFill} contentFit="cover" />
+      {backdropUri ? (
+        <Image source={{ uri: backdropUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      ) : poster != null ? (
+        <Image source={poster} style={StyleSheet.absoluteFill} contentFit="cover" />
+      ) : null}
       <WebView
         ref={webRef}
         source={{ html, baseUrl: API_BASE_URL }}
