@@ -11,6 +11,7 @@ import { AnimeAddButton } from "@/components/anime/anime-add-button";
 import { AnimeHubWidgets } from "@/components/anime/anime-hub-widgets";
 import { AnimeGenreBar } from "@/components/anime/anime-genre-bar";
 import { AnimeHubCatalog, type AnimeHubCatalogItem } from "@/components/anime/anime-hub-catalog";
+import { AnimeHubPagination } from "@/components/anime/anime-hub-pagination";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { useLocale } from "@/components/providers/locale-provider";
 
@@ -20,12 +21,20 @@ export function AnimeHubClient({
   popular,
   recent,
   newHref,
+  currentPage,
+  totalPages,
+  genreParam,
+  searchQuery,
 }: {
   activeGenre: AnimeGenre | null;
   catalog: AnimeHubCatalogItem[];
   popular: CultureWikiHubItem[];
   recent: CultureWikiHubItem[];
   newHref: string;
+  currentPage: number;
+  totalPages: number;
+  genreParam: string | null;
+  searchQuery: string;
 }) {
   const { t } = useLocale();
 
@@ -63,11 +72,20 @@ export function AnimeHubClient({
               emptyLinkHref={newHref}
               emptyLinkLabel={t("anime.catalogEmptyLink")}
             />
+
+            <AnimeHubPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              genreParam={genreParam}
+              q={searchQuery}
+            />
           </section>
         </div>
 
-        <aside className="lg:sticky lg:top-[4.5rem] lg:self-start">
-          <AnimeHubWidgets popular={popular} recent={recent} />
+        <aside className="min-w-0 lg:min-h-0">
+          <div className="lg:sticky lg:top-[calc(var(--header-h)+0.5rem)] lg:max-h-[calc(100dvh-var(--header-h)-1rem)] lg:overflow-y-auto lg:overscroll-contain">
+            <AnimeHubWidgets popular={popular} recent={recent} />
+          </div>
         </aside>
       </div>
     </AppPageChrome>

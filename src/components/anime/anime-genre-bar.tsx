@@ -21,6 +21,7 @@ export function AnimeGenreBar({ active }: Props) {
     const params = new URLSearchParams(searchParams.toString());
     if (genre) params.set("genre", genreToParam(genre));
     else params.delete("genre");
+    params.delete("page");
     const qs = params.toString();
     router.push(qs ? `/anime?${qs}` : "/anime");
   }
