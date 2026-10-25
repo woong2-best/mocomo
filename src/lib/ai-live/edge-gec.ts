@@ -52,7 +52,7 @@ function u32(n: number): number {
 }
 
 function mul32(a: number, b: number): number {
-  return Number((BigInt(u32(a)) * BigInt(u32(b))) & 0xffffffffn) >>> 0;
+  return Number((BigInt(u32(a)) * BigInt(u32(b))) & BigInt("0xffffffff")) >>> 0;
 }
 
 function rol16(value: number): number {
@@ -68,10 +68,10 @@ function sigma1(value: number): number {
 }
 
 function rotXor(word: number, shifts: number[]): number {
-  const rot = BigInt(u32(word)) * 0x100000001n;
-  let mixed = 0n;
+  const rot = BigInt(u32(word)) * BigInt("0x100000001");
+  let mixed = BigInt(0);
   for (const shift of shifts) mixed ^= rot >> BigInt(shift);
-  return Number(mixed & 0xffffffffn) >>> 0;
+  return Number(mixed & BigInt("0xffffffff")) >>> 0;
 }
 
 function wordsLe4Even(data: Buffer): number[] {
