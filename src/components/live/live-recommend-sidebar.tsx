@@ -89,7 +89,7 @@ export function LiveRecommendSidebar({
                     className="flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-muted/60 transition-colors"
                   >
                     <div className="relative h-9 w-9 shrink-0">
-                      <div className="h-9 w-9 rounded-full overflow-hidden bg-muted ring-2 ring-[hsl(var(--folk-cobalt)/0.2)]">
+                      <div className="h-9 w-9 rounded-[28%] overflow-hidden bg-muted ring-2 ring-[hsl(var(--folk-cobalt)/0.2)]">
                         {host.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={host.image} alt="" className="h-full w-full object-cover" />

@@ -64,3 +64,13 @@ export function isMocoOfficialChannel(channelId: string | null | undefined): boo
 export function isAlwaysOnLiveChannel(channelId: string | null | undefined): boolean {
   return !!channelId && (ALWAYS_ON_LIVE_CHANNEL_IDS as readonly string[]).includes(channelId);
 }
+
+/** Watch page for an always-on avatar. Regular lives stay on `/voice/[id]`. */
+export function avatarWatchPath(id: AvatarAccountId): string {
+  return `/live/${id}`;
+}
+
+export function avatarWatchPathForChannel(channelId: string | null | undefined): string | null {
+  const account = avatarAccountByChannelId(channelId);
+  return account ? avatarWatchPath(account.id) : null;
+}

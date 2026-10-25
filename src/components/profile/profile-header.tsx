@@ -92,7 +92,7 @@ export function ProfileHeader({
     (isSelf || !!user.profile?.showBirthdayOnProfile);
   const isBlocked = blockedByViewer || blockedViewer;
   const isSuspendedProfile = isReadOnlySuspended(user.accountStatus);
-  const liveHref = liveBroadcast ? `/voice/${liveBroadcast.channelId}` : null;
+  const liveHref = liveBroadcast?.watchHref ?? null;
   const showLive = !!liveBroadcast && !isBlocked;
 
   const avatar = (

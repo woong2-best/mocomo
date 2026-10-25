@@ -1,5 +1,6 @@
 import { IdolGroupRoom } from "@/components/live/ai-host/idol-group-room";
 import { LiveFeatureDisabledNotice } from "@/components/live/live-feature-disabled";
+import { getAvatarPublicProfiles } from "@/lib/ai-live/avatar-profiles";
 import { getIdolBackdropUrl } from "@/lib/ai-live/idol-backdrop";
 import { getIdolVrmUrl } from "@/lib/ai-live/idol-vrm";
 import { ensureIdolChannels } from "@/lib/ai-live/official-channel";
@@ -18,10 +19,11 @@ export async function idolGroupMetadata(member: IdolId) {
 
 export async function renderIdolGroup(member: IdolId) {
   if (!isLiveFeatureEnabled()) return <LiveFeatureDisabledNotice />;
-  const [channels, backdropUrl, vrmUrl] = await Promise.all([
+  const [channels, backdropUrl, vrmUrl, profiles] = await Promise.all([
     ensureIdolChannels().catch(() => ({})),
     getIdolBackdropUrl(member).catch(() => null),
     getIdolVrmUrl(member).catch(() => null),
+    getAvatarPublicProfiles().catch(() => null),
   ]);
   return (
     <IdolGroupRoom
@@ -30,6 +32,7 @@ export async function renderIdolGroup(member: IdolId) {
       channels={channels}
       backdropUrl={backdropUrl}
       vrmUrl={vrmUrl}
+      hostUsername={profiles?.[member]?.username}
     />
   );
 }

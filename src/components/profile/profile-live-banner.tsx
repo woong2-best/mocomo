@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronRight, Radio } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
+import { avatarShapeClass } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { ProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
 
@@ -18,7 +19,7 @@ export function ProfileLiveBanner({
   className?: string;
 }) {
   const { t } = useLocale();
-  const href = `/voice/${live.channelId}`;
+  const href = live.watchHref;
 
   return (
     <Link
@@ -94,7 +95,8 @@ export function ProfileLiveAvatarRing({
     <Link
       href={href}
       className={cn(
-        "relative inline-flex rounded-full p-[3px]",
+        "relative inline-flex p-[3px]",
+        avatarShapeClass,
         "bg-[conic-gradient(from_210deg,#ff4d4d,#ffb347,#ff4d4d,#e11d48,#ff4d4d)]",
         "shadow-[0_0_0_1px_rgba(255,77,77,0.35),0_8px_24px_rgba(194,58,34,0.35)]",
         "transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98]",
@@ -104,10 +106,13 @@ export function ProfileLiveAvatarRing({
       title={t("profile.liveNow")}
     >
       <span
-        className="absolute inset-0 rounded-full animate-[profile-live-ring_2.4s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_60%,rgba(255,255,255,0.55)_75%,transparent_90%)] opacity-70"
+        className={cn(
+          "absolute inset-0 animate-[profile-live-ring_2.4s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_60%,rgba(255,255,255,0.55)_75%,transparent_90%)] opacity-70",
+          avatarShapeClass
+        )}
         aria-hidden
       />
-      <span className="relative rounded-full bg-background p-0.5">{children}</span>
+      <span className={cn("relative bg-background p-0.5", avatarShapeClass)}>{children}</span>
     </Link>
   );
 }

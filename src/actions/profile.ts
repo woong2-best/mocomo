@@ -29,6 +29,7 @@ export async function updateProfile(data: ProfileUpdateInput) {
     usernameChanged
   ) {
     revalidateTag(FEED_POSTS_CACHE_TAG);
+    revalidatePath("/live");
     revalidatePath(`/cosplay/${user.username}`);
     if (usernameChanged && nextUsername) revalidatePath(`/cosplay/${nextUsername}`);
   }

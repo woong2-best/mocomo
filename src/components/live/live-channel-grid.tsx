@@ -8,7 +8,9 @@ import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-
 import type { LiveFolderFilter } from "@/components/live/live-folder-rail";
 import { AiLiveTile } from "@/components/live/ai-host/ai-live-tile";
 import { IdolLiveTiles } from "@/components/live/ai-host/idol-live-tiles";
+import { LiveHostAvatar } from "@/components/live/live-host-avatar";
 import { IDOLS } from "@/lib/ai-live/idols";
+import type { AvatarPublicProfile } from "@/lib/ai-live/avatar-profile-shared";
 import type { IdolBackdropSlot } from "@/lib/ai-live/idol-backdrop-shared";
 import type { IdolVrmSlot } from "@/lib/ai-live/idol-vrm-shared";
 import { LiveHubTabBar } from "@/components/live/live-hub-tab-bar";
@@ -30,32 +32,31 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
   const tags = (ch.tags ?? []).slice(0, 2);
 
   const card = (
-    <Link href={`/voice/${ch.id}`} prefetch={false} className="group block min-w-0">
-      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-sm backdrop-blur-[2px]">
-        <LiveStillPoster
-          src={thumb}
-          className="transition-transform duration-500 group-hover:scale-[1.03]"
-        />
-        {isLiveAdultChannel(ch) ? <LiveAdultWatermark /> : null}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
-        <LiveThumbnailLiveBadge className="absolute top-2.5 left-2.5" />
-        <div className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white tabular-nums">
-          <Eye className="h-3 w-3" />
-          {ch.viewerCount}
+    <div className="group min-w-0">
+      <Link href={`/voice/${ch.id}`} prefetch={false} className="block min-w-0">
+        <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-sm backdrop-blur-[2px]">
+          <LiveStillPoster
+            src={thumb}
+            className="transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+          {isLiveAdultChannel(ch) ? <LiveAdultWatermark /> : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
+          <LiveThumbnailLiveBadge className="absolute top-2.5 left-2.5" />
+          <div className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white tabular-nums">
+            <Eye className="h-3 w-3" />
+            {ch.viewerCount}
+          </div>
         </div>
-      </div>
+      </Link>
 
       <div className="mt-2.5 flex gap-2.5 min-w-0">
-        <div className="h-9 w-9 shrink-0 rounded-full overflow-hidden bg-black/40 ring-2 ring-white/15">
-          {host?.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={host.image} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-white/50">
-              <User className="h-4 w-4" />
-            </div>
-          )}
-        </div>
+        {host ? (
+          <LiveHostAvatar username={host.username} name={host.username} image={host.image} />
+        ) : (
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[28%] bg-black/40 text-white/50 ring-2 ring-white/15">
+            <User className="h-4 w-4" />
+          </div>
+        )}
         <div className="min-w-0 flex-1 space-y-0.5">
           {host ? (
             <p className="text-sm font-semibold truncate text-white">
@@ -64,10 +65,13 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
                 tier={(host.supportTierSent ?? "SEED") as SupportTierLevel}
                 compact
                 className="min-w-0"
+                profileUsername={host.username}
               />
             </p>
           ) : null}
-          <p className="text-[13px] text-white/65 line-clamp-1">{ch.name}</p>
+          <Link href={`/voice/${ch.id}`} prefetch={false} className="text-[13px] text-white/65 line-clamp-1 hover:text-white">
+            {ch.name}
+          </Link>
           <div className="flex flex-wrap gap-1 pt-0.5">
             <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/70 font-medium">
               {localizedLiveCategoryLabel(ch.category, locale)}
@@ -83,7 +87,7 @@ export function LiveStreamCard({ ch, host }: { ch: LiveHubChannel; host?: LiveHu
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 
   if (reduced) {
@@ -138,6 +142,7 @@ export function LiveChannelGrid({
   followedHostIds = [],
   backdrops,
   vrms,
+  avatarHosts,
 }: {
   channels: LiveHubChannel[];
   hosts: LiveHubHost[];
@@ -146,6 +151,7 @@ export function LiveChannelGrid({
   view?: "explore" | "following";
   backdrops?: Partial<Record<IdolBackdropSlot, string | null>>;
   vrms?: Partial<Record<IdolVrmSlot, string | null>>;
+  avatarHosts?: Partial<Record<"zelie" | "cleo" | "mio" | "nangnang", AvatarPublicProfile>>;
 }) {
   const [activeFilter, setActiveFilter] = useState<LiveFolderFilter>("ALL");
   const hostMap = Object.fromEntries(hosts.map((h) => [h.id, h]));
@@ -170,8 +176,10 @@ export function LiveChannelGrid({
           {visible.map((ch) => (
             <LiveStreamCardMemo key={ch.id} ch={ch} host={hostMap[ch.createdBy]} />
           ))}
-          {showAiTile ? <AiLiveTile backdropUrl={backdrops?.moco} vrmUrl={vrms?.zelie} /> : null}
-          {showAiTile ? <IdolLiveTiles backdrops={backdrops} vrms={vrms} /> : null}
+          {showAiTile ? (
+            <AiLiveTile backdropUrl={backdrops?.moco} vrmUrl={vrms?.zelie} host={avatarHosts?.zelie} />
+          ) : null}
+          {showAiTile ? <IdolLiveTiles backdrops={backdrops} vrms={vrms} hosts={avatarHosts} /> : null}
           {Array.from({ length: fillerCount }, (_, i) => (
             <LiveGrayPlaceholderCard key={`ph-${i}`} index={i} />
           ))}

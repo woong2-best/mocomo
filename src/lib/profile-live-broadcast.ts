@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { isLiveFeatureEnabled } from "@/lib/live-feature";
 import { liveHostBroadcastWhere } from "@/lib/live-broadcast/session-queries";
 import { filterChannelsWithPresentHost } from "@/lib/live-abandon";
-import { isAlwaysOnLiveChannel } from "@/lib/ai-live/official-channel-id";
+import { avatarWatchPathForChannel, isAlwaysOnLiveChannel } from "@/lib/ai-live/official-channel-id";
 import { resolveLiveStillThumb } from "@/lib/live-preview-thumb";
 
 export type ProfileLiveBroadcast = {
@@ -10,6 +10,7 @@ export type ProfileLiveBroadcast = {
   name: string;
   broadcastMode: string;
   thumbnailUrl: string | null;
+  watchHref: string;
 };
 
 /** 프로필에 노출할 해당 유저의 현재 공개 라이브 (호스트 부재 방송 제외) */
@@ -36,12 +37,15 @@ export async function getProfileLiveBroadcast(
     },
     orderBy: { createdAt: "desc" },
   });
-  if (!raw || isAlwaysOnLiveChannel(raw.id)) return null;
+  if (!raw) return null;
 
-  const present = await filterChannelsWithPresentHost([raw]);
-  const ch = present[0];
-  if (!ch) return null;
+  const alwaysOn = isAlwaysOnLiveChannel(raw.id);
+  if (!alwaysOn) {
+    const present = await filterChannelsWithPresentHost([raw]);
+    if (!present[0]) return null;
+  }
 
+  const ch = raw;
   return {
     channelId: ch.id,
     name: ch.name,
@@ -53,5 +57,6 @@ export async function getProfileLiveBroadcast(
       externalId: ch.externalId,
       rtmpIngressId: ch.rtmpIngressId,
     }),
+    watchHref: avatarWatchPathForChannel(ch.id) ?? `/voice/${ch.id}`,
   };
 }

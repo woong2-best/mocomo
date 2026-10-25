@@ -7,6 +7,7 @@ import { getCachedIdolBackdrops } from "@/lib/ai-live/idol-backdrop";
 import { effectiveIdolBackdropMap } from "@/lib/ai-live/idol-backdrop-shared";
 import { getCachedIdolVrms } from "@/lib/ai-live/idol-vrm";
 import { effectiveIdolVrmMap } from "@/lib/ai-live/idol-vrm-shared";
+import { getAvatarPublicProfiles } from "@/lib/ai-live/avatar-profiles";
 
 /**
  * Always loads the full live feed; folder rail filters client-side
@@ -56,6 +57,7 @@ export async function LiveChannelFeed({
   const vrms = await getCachedIdolVrms()
     .then(effectiveIdolVrmMap)
     .catch(() => effectiveIdolVrmMap({ zelie: null, cleo: null, mio: null, nangnang: null }));
+  const avatarHosts = await getAvatarPublicProfiles().catch(() => undefined);
 
   return (
     <LiveChannelGrid
@@ -64,6 +66,7 @@ export async function LiveChannelFeed({
       followedHostIds={followedHostIds}
       backdrops={backdrops}
       vrms={vrms}
+      avatarHosts={avatarHosts}
     />
   );
 }

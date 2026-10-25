@@ -296,7 +296,9 @@ export function MocoLiveRoom({
       </div>
 
       <p className="text-sm">
-        <span className="text-primary">@{hostUsername}</span>
+        <Link href={`/u/${hostUsername}`} className="text-primary hover:underline">
+          @{hostUsername}
+        </Link>
         <span className="ml-2 text-muted-foreground">{t(subKey)}</span>
       </p>
 

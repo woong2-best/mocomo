@@ -114,7 +114,7 @@ export function LiveScheduleBoard({
                   href={`/u/${entry.username}`}
                   className="flex gap-3 rounded-2xl border border-border/70 bg-card/80 p-4 hover:border-primary/30 transition-colors"
                 >
-                  <div className="h-11 w-11 rounded-full bg-muted overflow-hidden shrink-0 ring-2 ring-[hsl(var(--folk-cobalt)/0.2)]">
+                  <div className="h-11 w-11 rounded-[28%] bg-muted overflow-hidden shrink-0 ring-2 ring-[hsl(var(--folk-cobalt)/0.2)]">
                     {entry.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={entry.image} alt="" className="h-full w-full object-cover" />

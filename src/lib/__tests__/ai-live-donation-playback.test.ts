@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 import { mocoDonationPlayMs } from "@/lib/ai-live/donation-playback";
 import {
   AVATAR_ACCOUNTS,
+  avatarWatchPath,
+  avatarWatchPathForChannel,
   isAlwaysOnLiveChannel,
   isMocoOfficialChannel,
 } from "@/lib/ai-live/official-channel-id";
+import { mergeAvatarPublicProfiles } from "@/lib/ai-live/avatar-profile-shared";
 import { idolById, playableIdolVrmUrl } from "@/lib/ai-live/idols";
 
 test("video donations stay up for their paid length and effects are short", () => {
@@ -45,4 +48,23 @@ test("official and idol channels stay on, and other rooms do not", () => {
   assert.equal(idolById("cleo")?.username, "cleo");
   assert.equal(idolById("mio")?.username, "mio");
   assert.equal(idolById("nangnang")?.username, "nangnang");
+  assert.equal(avatarWatchPath("mio"), "/live/mio");
+  assert.equal(avatarWatchPathForChannel("idol-chloe"), "/live/mio");
+  assert.equal(avatarWatchPathForChannel("someone-else"), null);
+});
+
+test("avatar tiles follow the real user profile, not the hardcoded poster name", () => {
+  const profiles = mergeAvatarPublicProfiles(
+    AVATAR_ACCOUNTS,
+    [
+      { id: "u-mio", username: "mio", name: "Mio", image: "https://cdn.example/mio.png" },
+      { id: "u-cleo", username: "cleo", name: "Cleo", image: null },
+    ],
+    new Map([["idol-chloe", "u-mio"], ["idol-airi", "u-cleo"]])
+  );
+  assert.equal(profiles.mio.username, "mio");
+  assert.equal(profiles.mio.image, "https://cdn.example/mio.png");
+  assert.equal(profiles.cleo.username, "cleo");
+  assert.equal(profiles.zelie.username, "zelie");
+  assert.equal(profiles.nangnang.username, "nangnang");
 });

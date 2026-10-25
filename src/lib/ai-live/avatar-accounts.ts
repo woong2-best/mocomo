@@ -79,15 +79,15 @@ export async function ensureAvatarAccount(profile: AvatarAccountDef): Promise<st
     }
   }
 
-  const nextUsername =
-    row.username.toLowerCase() === profile.username ? row.username : profile.username;
+  const isLegacyUsername = profile.legacyUsernames.some(
+    (legacy) => row.username.trim().toLowerCase() === legacy.trim().toLowerCase()
+  );
 
   try {
     await db.user.update({
       where: { id: row.id },
       data: {
-        username: nextUsername,
-        name: profile.name,
+        ...(isLegacyUsername ? { username: profile.username } : {}),
         role: "ADMIN",
         adminDisabledAt: null,
         ...(passwordHash ? { passwordHash } : {}),
@@ -100,7 +100,6 @@ export async function ensureAvatarAccount(profile: AvatarAccountDef): Promise<st
     await db.user.update({
       where: { id: row.id },
       data: {
-        name: profile.name,
         role: "ADMIN",
         adminDisabledAt: null,
         ...(passwordHash ? { passwordHash } : {}),

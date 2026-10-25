@@ -143,7 +143,7 @@ function LiveHeroCarouselInner({
                 <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 space-y-2 pointer-events-none">
                   {host ? (
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-7 w-7 shrink-0 rounded-full overflow-hidden bg-muted ring-2 ring-white/25">
+                      <div className="h-7 w-7 shrink-0 rounded-[28%] overflow-hidden bg-muted ring-2 ring-white/25">
                         {host.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={host.image} alt="" className="h-full w-full object-cover" />

@@ -315,7 +315,7 @@ function LiveBead({ channel, host }: { channel: LiveHubChannel; host?: LiveHubHo
         </div>
       </div>
       <div className="flex items-center gap-1.5 px-1.5 py-1.5 bg-[#0F1420]">
-        <div className="h-5 w-5 shrink-0 rounded-full overflow-hidden bg-muted">
+        <div className="h-5 w-5 shrink-0 rounded-[28%] overflow-hidden bg-muted">
           {host?.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={host.image} alt="" className="h-full w-full object-cover" />

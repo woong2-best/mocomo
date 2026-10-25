@@ -8,11 +8,13 @@ export function IdolGroupRoom({
   channels,
   backdropUrl = null,
   vrmUrl = null,
+  hostUsername,
 }: {
   initial: IdolId;
   channels: Partial<Record<IdolId, string>>;
   backdropUrl?: string | null;
   vrmUrl?: string | null;
+  hostUsername?: string | null;
 }) {
   const idol = idolById(initial) ?? IDOLS[0];
 
@@ -22,7 +24,7 @@ export function IdolGroupRoom({
       channelId={channels[idol.id] ?? null}
       vrmUrl={vrmUrl || playableIdolVrmUrl(idol.vrmUrl) || idol.vrmUrl}
       backdropUrl={backdropUrl}
-      hostUsername={idol.username}
+      hostUsername={hostUsername?.trim() || idol.username}
       showVrm
       hostNameKey={idol.nameKey}
       titleKey={idol.titleKey}

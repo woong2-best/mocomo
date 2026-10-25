@@ -62,7 +62,7 @@ function LiveStreamListRowInner({
         </p>
         {host ? (
           <div className="flex items-center gap-2 min-w-0">
-            <div className="h-5 w-5 shrink-0 rounded-full overflow-hidden bg-muted ring-1 ring-border/60">
+            <div className="h-5 w-5 shrink-0 rounded-[28%] overflow-hidden bg-muted ring-1 ring-border/60">
               {host.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={host.image} alt="" className="h-full w-full object-cover" />
