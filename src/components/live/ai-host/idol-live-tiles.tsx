@@ -34,7 +34,7 @@ export function IdolLiveTiles({
               IDOL_BACKDROP_DEFAULTS[backdropSlotForAvatar(idol.id) ?? "airi"]
             }
             posterUrl={idol.poster}
-            avatarUrl={host?.image ?? idol.poster}
+            avatarUrl={host?.image}
             characterId={idol.id}
             nameKey={idol.nameKey}
             titleKey={idol.titleKey}

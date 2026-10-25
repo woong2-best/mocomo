@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { profileImageForLiveAvatar } from "@/lib/ai-live/avatar-profile-shared";
 import {
   PLATFORM_OFFICIAL_EMAIL,
   PLATFORM_OFFICIAL_USERNAME,
@@ -34,7 +35,7 @@ function isPlatformBootstrapUser(user: { username: string; email?: string | null
 async function findByUsername(username: string) {
   return db.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
-    select: { id: true, username: true, email: true, role: true, passwordHash: true },
+    select: { id: true, username: true, email: true, role: true, passwordHash: true, image: true },
   });
 }
 
@@ -82,12 +83,14 @@ export async function ensureAvatarAccount(profile: AvatarAccountDef): Promise<st
   const isLegacyUsername = profile.legacyUsernames.some(
     (legacy) => row.username.trim().toLowerCase() === legacy.trim().toLowerCase()
   );
+  const clearStockImage = !!row.image && profileImageForLiveAvatar(row.image) === null;
 
   try {
     await db.user.update({
       where: { id: row.id },
       data: {
         ...(isLegacyUsername ? { username: profile.username } : {}),
+        ...(clearStockImage ? { image: null } : {}),
         role: "ADMIN",
         adminDisabledAt: null,
         ...(passwordHash ? { passwordHash } : {}),
@@ -100,6 +103,7 @@ export async function ensureAvatarAccount(profile: AvatarAccountDef): Promise<st
     await db.user.update({
       where: { id: row.id },
       data: {
+        ...(clearStockImage ? { image: null } : {}),
         role: "ADMIN",
         adminDisabledAt: null,
         ...(passwordHash ? { passwordHash } : {}),

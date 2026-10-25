@@ -8,7 +8,7 @@ import {
   isAlwaysOnLiveChannel,
   isMocoOfficialChannel,
 } from "@/lib/ai-live/official-channel-id";
-import { mergeAvatarPublicProfiles } from "@/lib/ai-live/avatar-profile-shared";
+import { mergeAvatarPublicProfiles, profileImageForLiveAvatar } from "@/lib/ai-live/avatar-profile-shared";
 import { idolById, playableIdolVrmUrl } from "@/lib/ai-live/idols";
 
 test("video donations stay up for their paid length and effects are short", () => {
@@ -65,6 +65,10 @@ test("avatar tiles follow the real user profile, not the hardcoded poster name",
   assert.equal(profiles.mio.username, "mio");
   assert.equal(profiles.mio.image, "https://cdn.example/mio.png");
   assert.equal(profiles.cleo.username, "cleo");
+  assert.equal(profiles.cleo.image, null);
   assert.equal(profiles.zelie.username, "zelie");
   assert.equal(profiles.nangnang.username, "nangnang");
+  assert.equal(profileImageForLiveAvatar("/live/idols/airi.jpg"), null);
+  assert.equal(profileImageForLiveAvatar("/live/moco-poster.png"), null);
+  assert.equal(profileImageForLiveAvatar("https://cdn.example/cleo.png"), "https://cdn.example/cleo.png");
 });

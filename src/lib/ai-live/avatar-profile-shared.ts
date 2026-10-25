@@ -18,6 +18,20 @@ export type AvatarUserRow = {
   image: string | null;
 };
 
+/** Hardcoded live posters — never treat these as a user's profile photo. */
+const STOCK_LIVE_AVATAR_IMAGES = new Set([
+  "/live/moco-poster.png",
+  "/live/idols/airi.jpg",
+  "/live/idols/chloe.jpg",
+  "/live/idols/stella.jpg",
+]);
+
+export function profileImageForLiveAvatar(image: string | null | undefined): string | null {
+  const raw = image?.trim() || "";
+  if (!raw || STOCK_LIVE_AVATAR_IMAGES.has(raw)) return null;
+  return raw;
+}
+
 function defaultProfiles(): Record<AvatarAccountId, AvatarPublicProfile> {
   return Object.fromEntries(
     AVATAR_ACCOUNTS.map((account) => [
@@ -41,7 +55,7 @@ function applyUser(
     ...profile,
     username: user.username,
     name: user.name?.trim() || fallbackName,
-    image: user.image,
+    image: profileImageForLiveAvatar(user.image),
   };
 }
 

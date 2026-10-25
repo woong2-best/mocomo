@@ -21,7 +21,7 @@ export function AiLiveTile({
       vrmUrl={vrmUrl || IDOL_VRM_DEFAULTS.zelie}
       backdropUrl={backdropUrl ?? IDOL_BACKDROP_DEFAULTS.moco}
       posterUrl="/live/moco-poster.png"
-      avatarUrl={host?.image ?? "/live/moco-poster.png"}
+      avatarUrl={host?.image}
       characterId="zelie"
       nameKey="live.aiHostName"
       titleKey="live.aiCardTitle"
