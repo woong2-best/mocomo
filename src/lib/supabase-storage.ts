@@ -87,13 +87,21 @@ export async function ensureVrmUploadsAllowed(): Promise<boolean> {
   if (!supabase) return false;
   const { data, error } = await supabase.storage.getBucket(BUCKET);
   if (error) return false;
-  const have = new Set(data?.allowedMimeTypes ?? []);
-  const next = [...new Set([...MEDIA_MIME, ...have, ...MODEL_MIME])];
-  const size = Math.max(data?.fileSizeLimit ?? 0, MODEL_MAX_BYTES);
+  const row = data as {
+    public?: boolean;
+    allowedMimeTypes?: string[] | null;
+    allowed_mime_types?: string[] | null;
+    fileSizeLimit?: number | null;
+    file_size_limit?: number | null;
+  };
+  const have = new Set<string>(row.allowedMimeTypes ?? row.allowed_mime_types ?? []);
+  const next: string[] = [...new Set<string>([...MEDIA_MIME, ...have, ...MODEL_MIME])];
+  const currentSize = row.fileSizeLimit ?? row.file_size_limit ?? 0;
+  const size = Math.max(currentSize, MODEL_MAX_BYTES);
   const mimeReady = MODEL_MIME.every((mime) => have.has(mime));
-  if (mimeReady && (data?.fileSizeLimit ?? 0) >= MODEL_MAX_BYTES) return true;
+  if (mimeReady && currentSize >= MODEL_MAX_BYTES) return true;
   const { error: updateError } = await supabase.storage.updateBucket(BUCKET, {
-    public: data?.public ?? true,
+    public: row.public ?? true,
     fileSizeLimit: size,
     allowedMimeTypes: next,
   });
