@@ -45,7 +45,7 @@ export function vrmSlotForAvatar(value: string | null | undefined): IdolVrmSlot 
 
 export function isSafeIdolVrmUrl(url: string): boolean {
   if (!url || url.length > MAX_URL_LENGTH) return false;
-  if (DEFAULT_PATHS.has(url) || url === "/avatars/default.vrm") return true;
+  if (DEFAULT_PATHS.has(url)) return true;
   if (/[\s"'()\\<>]/.test(url)) return false;
   let parsed: URL;
   try {
@@ -62,7 +62,7 @@ export function isSafeIdolVrmUrl(url: string): boolean {
 }
 
 export function isCustomIdolVrmUrl(url: string): boolean {
-  return isSafeIdolVrmUrl(url) && !DEFAULT_PATHS.has(url) && url !== "/avatars/default.vrm";
+  return isSafeIdolVrmUrl(url) && !DEFAULT_PATHS.has(url);
 }
 
 export function emptyIdolVrmUrls(): IdolVrmUrls {

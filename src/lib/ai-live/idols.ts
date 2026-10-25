@@ -15,9 +15,6 @@ export type IdolMember = {
   roleKey: "live.idol.cleo.role" | "live.idol.mio.role" | "live.idol.nangnang.role";
 };
 
-/** Used only when a model file is not in the ready set. */
-export const IDOL_VRM_FALLBACK = "/avatars/default.vrm";
-
 /**
  * Files that exist under `public/`. Missing paths stay off this list so the browser never requests a 404.
  * Cleo is VRoid AvatarSample_B, Mio is AvatarSample_A (commercial use and redistribution allowed, credit not required).
@@ -29,9 +26,38 @@ const READY_VRM_URLS = new Set<string>([
   IDOL_VRM_DEFAULTS.nangnang,
 ]);
 
-export function playableIdolVrmUrl(url: string | null | undefined): string {
-  if (url && (READY_VRM_URLS.has(url) || isSafeIdolVrmUrl(url))) return url;
-  return IDOL_VRM_FALLBACK;
+function isBlobVrmPreviewUrl(url: string): boolean {
+  if (!url.startsWith("blob:")) return false;
+  try {
+    return new URL(url).protocol === "blob:";
+  } catch {
+    return false;
+  }
+}
+
+/** Already-uploaded public VRM, even if this bundle has no Supabase host to match. */
+function isPublicModelVrmUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash) {
+      return false;
+    }
+    const path = parsed.pathname.toLowerCase();
+    return path.includes("/storage/v1/object/public/") && path.includes("/model/") && path.endsWith(".vrm");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * URL the VRM loader may fetch. Local admin previews use `blob:`.
+ * Unknown paths are not rewritten to the old APT `default.vrm`.
+ */
+export function playableIdolVrmUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (isBlobVrmPreviewUrl(url)) return url;
+  if (READY_VRM_URLS.has(url) || isSafeIdolVrmUrl(url) || isPublicModelVrmUrl(url)) return url;
+  return null;
 }
 
 export const IDOLS: readonly IdolMember[] = [

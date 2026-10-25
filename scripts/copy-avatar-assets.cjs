@@ -1,44 +1,14 @@
 /**
- * 기본 VRM 아바타 — public/avatars/ 에 다운로드 (3D 스튜디오)
+ * Avatar part folders under public/avatars/parts.
+ * Live/studio defaults are the committed slot files (zelie.vrm etc), not the old APT sample.
  */
-const { createWriteStream, existsSync, mkdirSync } = require("node:fs");
+const { existsSync, mkdirSync } = require("node:fs");
 const { join } = require("node:path");
-const { get } = require("node:https");
 
-const root = join(__dirname, "..");
-const destDir = join(root, "public", "avatars");
-const dest = join(destDir, "default.vrm");
-const url =
-  "https://pixiv.github.io/three-vrm/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm";
+const destDir = join(__dirname, "..", "public", "avatars");
 
-function download(url, dest) {
-  return new Promise((resolve, reject) => {
-    get(url, (res) => {
-      if (res.statusCode === 302 || res.statusCode === 301) {
-        download(res.headers.location, dest).then(resolve).catch(reject);
-        return;
-      }
-      if (res.statusCode !== 200) {
-        reject(new Error(`VRM download failed: ${res.statusCode}`));
-        return;
-      }
-      const file = createWriteStream(dest);
-      res.pipe(file);
-      file.on("finish", () => file.close(() => resolve()));
-      file.on("error", reject);
-    }).on("error", reject);
-  });
-}
-
-async function main() {
-  if (existsSync(dest)) {
-    console.log("[avatar] default.vrm already present");
-  } else {
-    mkdirSync(destDir, { recursive: true });
-    await download(url, dest);
-    console.log("[avatar] default.vrm downloaded to public/avatars/");
-  }
-
+function main() {
+  mkdirSync(destDir, { recursive: true });
   const partsRoot = join(destDir, "parts");
   const categories = ["hair", "top", "bottom", "fullOutfit", "shoes", "headwear", "accessory"];
   categories.forEach((cat) => {
@@ -50,6 +20,8 @@ async function main() {
   });
 }
 
-main().catch((e) => {
-  console.warn("[avatar] VRM download skipped:", e.message);
-});
+try {
+  main();
+} catch (e) {
+  console.warn("[avatar] parts folders skipped:", e instanceof Error ? e.message : e);
+}

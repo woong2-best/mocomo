@@ -237,8 +237,9 @@ export function AdminIdolVrmForm({ initial }: { initial: IdolVrmUrls }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        VRM 파일을 올리면 해당 아바타 라이브와 허브 카드가 바뀝니다. 올리지 않으면 기본 파일이 나옵니다.
-        최대 {formatMb(IDOL_VRM_MAX_BYTES)}입니다. 기본 파일은{" "}
+        VRM 파일을 고르면 미리보기에 그 파일이 바로 나옵니다. 저장하면 라이브와 허브 카드도 바뀝니다.
+        예전 APT 기본 아바타(default.vrm)는 더 이상 쓰지 않습니다. 최대 {formatMb(IDOL_VRM_MAX_BYTES)}입니다.
+        아직 올리지 않은 슬롯의 기본 파일은{" "}
         {IDOL_VRM_SLOTS.map((slot) => IDOL_VRM_DEFAULTS[slot]).join(" · ")}
         입니다.
       </p>

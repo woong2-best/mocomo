@@ -33,7 +33,7 @@ import { avatarSculptSession } from "@/lib/virtual-avatar/avatar-sculpt";
 import { collectSceneMaterials, tickMToonMaterials } from "@/lib/virtual-avatar/material-utils";
 import { SKIN_TONES } from "@/lib/virtual-avatar/presets";
 
-const DEFAULT_VRM = "/avatars/default.vrm";
+const DEFAULT_VRM = "/avatars/zelie.vrm";
 export const DEFAULT_AVATAR_VRM_URL = DEFAULT_VRM;
 /** 발(바닥) 월드 Y — 캐릭터 전체를 이 높이로 올림 */
 const STAGE_FLOOR_Y = 0.52;

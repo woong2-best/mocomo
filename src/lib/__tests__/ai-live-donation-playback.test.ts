@@ -30,7 +30,13 @@ test("official and idol channels stay on, and other rooms do not", () => {
   assert.equal(playableIdolVrmUrl("/models/chloe.vrm"), "/models/chloe.vrm");
   assert.equal(playableIdolVrmUrl("/models/nangnang.vrm"), "/models/nangnang.vrm");
   assert.equal(playableIdolVrmUrl("/avatars/zelie.vrm"), "/avatars/zelie.vrm");
-  assert.equal(playableIdolVrmUrl("/models/missing.vrm"), "/avatars/default.vrm");
+  assert.equal(playableIdolVrmUrl("/models/missing.vrm"), null);
+  assert.equal(playableIdolVrmUrl("blob:https://mocomo.net/preview"), "blob:https://mocomo.net/preview");
+  assert.equal(playableIdolVrmUrl("/avatars/default.vrm"), null);
+  assert.equal(
+    playableIdolVrmUrl("https://xyz.supabase.co/storage/v1/object/public/mocomo-uploads/model/u/live-vrm-zelie.vrm"),
+    "https://xyz.supabase.co/storage/v1/object/public/mocomo-uploads/model/u/live-vrm-zelie.vrm",
+  );
   assert.equal(idolById("nope"), null);
   assert.deepEqual(
     AVATAR_ACCOUNTS.map((row) => row.username),

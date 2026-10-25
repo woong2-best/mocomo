@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { AdminAccessError, requireAdminPermission, requireAdminStepUp } from "@/lib/admin/access";
 import { checkRateLimit, authLimiter } from "@/lib/ratelimit";
 import {
-  getCachedIdolVrms,
+  getIdolVrmsNow,
   prepareIdolVrmSignedUpload,
   removeReplacedIdolVrm,
   setIdolVrmSlot,
@@ -64,7 +64,7 @@ export async function adminLoadIdolVrms(): Promise<
 > {
   try {
     await requireAdminPermission("live");
-    return { ok: true, data: await getCachedIdolVrms() };
+    return { ok: true, data: await getIdolVrmsNow() };
   } catch (e) {
     return { ok: false, error: errMsg(e) };
   }

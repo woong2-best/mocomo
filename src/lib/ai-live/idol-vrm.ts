@@ -21,6 +21,11 @@ async function readIdolVrms(): Promise<IdolVrmUrls> {
   return parseIdolVrmValue(row?.value);
 }
 
+/** Admin editor must see the latest upload, not the public-page cache. */
+export async function getIdolVrmsNow(): Promise<IdolVrmUrls> {
+  return readIdolVrms();
+}
+
 export const getCachedIdolVrms = unstable_cache(readIdolVrms, ["idol-vrm-v1"], {
   tags: ["idol-vrm"],
   revalidate: 3600,

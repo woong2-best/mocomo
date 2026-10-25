@@ -20,7 +20,7 @@ export function IdolGroupRoom({
     <MocoLiveRoom
       key={idol.id}
       channelId={channels[idol.id] ?? null}
-      vrmUrl={vrmUrl || playableIdolVrmUrl(idol.vrmUrl)}
+      vrmUrl={vrmUrl || playableIdolVrmUrl(idol.vrmUrl) || idol.vrmUrl}
       backdropUrl={backdropUrl}
       hostUsername={idol.username}
       showVrm

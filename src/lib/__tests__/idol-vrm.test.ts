@@ -26,6 +26,7 @@ test("idol vrm slots and defaults", () => {
 test("default vrm paths are safe and used when nothing is uploaded", () => {
   assert.equal(isSafeIdolVrmUrl("/avatars/zelie.vrm"), true);
   assert.equal(isSafeIdolVrmUrl("/models/airi.vrm"), true);
+  assert.equal(isSafeIdolVrmUrl("/avatars/default.vrm"), false);
   assert.equal(effectiveIdolVrmUrl("zelie", null), "/avatars/zelie.vrm");
   assert.equal(effectiveIdolVrmUrl("nangnang", null), "/models/nangnang.vrm");
   const map = effectiveIdolVrmMap({ zelie: null, cleo: null, mio: null, nangnang: null });
