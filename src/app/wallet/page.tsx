@@ -3,36 +3,14 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { getMyPaymentMethods } from "@/actions/payment-methods";
 import { getMyTipHistory } from "@/actions/support";
-import { getMyWallet, getMyWalletEarnings, getMyPaymentHistory } from "@/actions/wallet";
+import { getMyWallet, getMyPaymentHistory } from "@/actions/wallet";
 import { getMyGemBalance, getMyGemPurchases } from "@/actions/gems";
 import { WalletHub } from "@/components/wallet/wallet-hub";
 import { AppPageChrome, NativePageTitle } from "@/components/layout/app-page-chrome";
 import { getCreatorSettlementStatus } from "@/actions/settlement-register";
-import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import { MIN_MOCO_TOPUP_COUNT } from "@/lib/gems/constants";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { getServerTranslator } from "@/lib/i18n/server";
-
-const EMPTY_EARNINGS = (): WalletEarningsAnalytics => {
-  const year = new Date().getFullYear();
-  return {
-    year,
-    years: [year],
-    months: [],
-    transactions: [],
-    yearEarned: 0,
-    yearWithdrawn: 0,
-    yearNet: 0,
-    bySource: [],
-    summary: {
-      availableBalance: 0,
-      totalEarned: 0,
-      totalWithdrawn: 0,
-      pendingPayout: 0,
-      withdrawable: 0,
-    },
-  };
-};
 
 export default async function WalletPage({
   searchParams,
@@ -49,7 +27,6 @@ export default async function WalletPage({
 
   const results = await Promise.allSettled([
     getMyWallet(),
-    getMyWalletEarnings(),
     getMyPaymentMethods(),
     getMyTipHistory(),
     getMyPaymentHistory(),
@@ -75,25 +52,23 @@ export default async function WalletPage({
           bank: null,
           recent: [],
         };
-  const earnings =
-    results[1].status === "fulfilled" ? results[1].value : EMPTY_EARNINGS();
   const paymentData =
-    results[2].status === "fulfilled" ? results[2].value : { methods: [], configured: false };
-  const tipHistory = results[3].status === "fulfilled" ? results[3].value : null;
-  const paymentHistory = results[4].status === "fulfilled" ? results[4].value : [];
+    results[1].status === "fulfilled" ? results[1].value : { methods: [], configured: false };
+  const tipHistory = results[2].status === "fulfilled" ? results[2].value : null;
+  const paymentHistory = results[3].status === "fulfilled" ? results[3].value : [];
   const gemData =
-    results[5].status === "fulfilled"
-      ? results[5].value
+    results[4].status === "fulfilled"
+      ? results[4].value
       : {
           balance: 0,
           minTopupMoco: MIN_MOCO_TOPUP_COUNT,
           termsCopy: "",
         };
   const gemPurchases =
-    results[6].status === "fulfilled" ? results[6].value : { purchases: [], balance: 0 };
+    results[5].status === "fulfilled" ? results[5].value : { purchases: [], balance: 0 };
   const settlement =
-    results[7].status === "fulfilled"
-      ? results[7].value
+    results[6].status === "fulfilled"
+      ? results[6].value
       : {
           registered: false,
           payoutsEnabled: false,
@@ -136,7 +111,6 @@ export default async function WalletPage({
       <Suspense fallback={null}>
         <WalletHub
           data={data}
-          earnings={earnings}
           paymentMethods={paymentData.methods}
           tipHistory={tipHistory}
           paymentHistory={paymentHistory}

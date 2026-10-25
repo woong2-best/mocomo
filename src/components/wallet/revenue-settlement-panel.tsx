@@ -3,23 +3,16 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
-import { useState, useTransition } from "react";
 import Link from "next/link";
 import { WalletMembershipStrip } from "@/components/wallet/wallet-card-stack";
-import { WalletEarningsExportPanel } from "@/components/wallet/wallet-earnings-export-panel";
 import { LEDGER_LABELS } from "@/lib/wallet-labels";
 import { REWARD_TERMS_LABEL } from "@/lib/settlement-moco/constants";
 import { rewardTierProgress } from "@/lib/settlement-moco/reward-tier-table";
 import { CreatorRewardTierTable } from "@/components/wallet/creator-reward-tier-table";
 import { UnifiedSettlementHistoryPanel } from "@/components/wallet/unified-settlement-history-panel";
 import { ReceivedTipsPanel } from "@/components/wallet/received-tips-panel";
-import {
-  formatMocoDisplay,
-  formatMocoSignedFromCents,
-} from "@/lib/gems/display";
-import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
+import { formatMocoSignedFromCents } from "@/lib/gems/display";
 import type { TipHistory } from "@/actions/support";
-import { cn } from "@/lib/utils";
 
 type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWallet>>;
 
@@ -29,7 +22,6 @@ type SettlementStatus = Awaited<
 
 type Props = {
   data: WalletData;
-  earnings: WalletEarningsAnalytics;
   settlement: SettlementStatus;
   receivedTips: TipHistory["receivedTips"];
   callbackUrl?: string | null;
@@ -39,15 +31,10 @@ type Props = {
 
 export function RevenueSettlementPanel({
   data,
-  earnings: initialEarnings,
   settlement,
   receivedTips,
   postSetupReturnUrl,
 }: Props) {
-  const [earnings, setEarnings] = useState(initialEarnings);
-  const [year, setYear] = useState(initialEarnings.year);
-  const [pending, startTransition] = useTransition();
-
   const earned = settlement.settlementMocoPoints;
   const progress = rewardTierProgress(earned);
   const span = progress.nextRequiredMoco
@@ -56,15 +43,6 @@ export function RevenueSettlementPanel({
   const filled = progress.atMaxTier
     ? 1
     : Math.min(1, Math.max(0, (earned - progress.currentRequiredMoco) / span));
-
-  function changeYear(nextYear: number) {
-    setYear(nextYear);
-    startTransition(async () => {
-      const { getMyWalletEarnings } = await import("@/actions/wallet");
-      const next = await getMyWalletEarnings(nextYear);
-      setEarnings(next);
-    });
-  }
 
   return (
     <div className="space-y-4">
@@ -150,35 +128,7 @@ export function RevenueSettlementPanel({
         </div>
       ) : null}
 
-      <div className={cn("space-y-4 pt-2 border-t border-border/50", pending && "opacity-70 pointer-events-none")}>
-        <p className="text-sm font-bold px-1">{t("wallet.s10el2q8")}</p>
-        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-          {earnings.years.map((y) => (
-            <button
-              key={y}
-              type="button"
-              onClick={() => changeYear(y)}
-              className={cn(
-                "shrink-0 rounded-full px-4 py-2 text-sm font-bold border transition-colors",
-                year === y
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted/40 text-muted-foreground border-border/60"
-              )}
-            >
-              {t("wallet.settlement.yearButton", { year: String(y) })}
-            </button>
-          ))}
-        </div>
-
-        <WalletEarningsExportPanel
-          transactions={earnings.transactions ?? []}
-          months={earnings.months}
-          year={earnings.year}
-          yearNet={earnings.yearNet}
-        />
-
-        <ReceivedTipsPanel tips={receivedTips} />
-      </div>
+      <ReceivedTipsPanel tips={receivedTips} />
     </div>
   );
 }

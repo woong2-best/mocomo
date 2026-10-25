@@ -21,7 +21,6 @@ import { WalletTransferPanel } from "@/features/wallet/WalletTransferPanel";
 import { GemBalancePanel } from "@/features/wallet/GemBalancePanel";
 import { WalletMembershipStrip } from "@/features/wallet/WalletMembershipStrip";
 import { SupportTiersPanel } from "@/features/support/SupportTiersPanel";
-import { WalletEarningsExport } from "@/features/wallet/WalletEarningsExport";
 import { StripeConnectPanel } from "@/features/wallet/StripeConnectPanel";
 import { SettlementOnDemandWithdrawPanel } from "@/features/wallet/SettlementOnDemandWithdrawPanel";
 import { UnifiedSettlementHistoryPanel } from "@/features/wallet/UnifiedSettlementHistoryPanel";
@@ -224,14 +223,6 @@ export function WalletScreen() {
                   colors={colors}
                 />
               </View>
-
-              <WalletEarningsExport
-                months={earnings.months ?? []}
-                transactions={earnings.transactions ?? []}
-                year={earnings.year}
-                yearNet={earnings.yearNet ?? 0}
-                colors={colors}
-              />
 
               {(earnings.bySource ?? []).map((s) => (
                 <WalletMembershipStrip

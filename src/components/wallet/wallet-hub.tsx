@@ -13,7 +13,6 @@ import { WalletMocoTransferStation } from "@/components/wallet/wallet-moco-trans
 import { PaymentHistoryPanel } from "@/components/wallet/payment-history-panel";
 import { RevenueSettlementPanel } from "@/components/wallet/revenue-settlement-panel";
 import type { SavedPaymentMethod } from "@/lib/stripe-payment-methods";
-import type { WalletEarningsAnalytics } from "@/lib/wallet-analytics";
 import type { PaymentHistoryItem } from "@/lib/payment-history";
 import type { TipHistory } from "@/actions/support";
 import { OreTierBadgeLink } from "@/components/support/ore-tier-button";
@@ -24,7 +23,6 @@ type WalletData = Awaited<ReturnType<typeof import("@/actions/wallet").getMyWall
 
 type Props = {
   data: WalletData;
-  earnings: WalletEarningsAnalytics;
   paymentMethods: SavedPaymentMethod[];
   tipHistory: TipHistory;
   paymentHistory: PaymentHistoryItem[];
@@ -58,7 +56,6 @@ function tabFromParams(params: URLSearchParams): Tab {
 
 export function WalletHub({
   data,
-  earnings,
   tipHistory,
   paymentHistory,
   minTopupMoco,
@@ -182,7 +179,6 @@ export function WalletHub({
       ) : (
         <RevenueSettlementPanel
           data={data}
-          earnings={earnings}
           settlement={settlement}
           receivedTips={tipHistory.receivedTips}
           callbackUrl={safeCallbackUrl ?? "/wallet?tab=earnings"}
