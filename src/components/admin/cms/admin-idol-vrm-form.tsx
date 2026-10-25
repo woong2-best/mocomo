@@ -11,7 +11,6 @@ import {
   adminResetIdolVrmAction,
 } from "@/actions/admin-idol-vrm";
 import {
-  IDOL_VRM_DEFAULTS,
   IDOL_VRM_MAX_BYTES,
   IDOL_VRM_SLOTS,
   effectiveIdolVrmUrl,
@@ -47,6 +46,17 @@ function messageFor(code: string): string {
 
 function formatMb(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+async function putIdolVrm(uploadUrl: string, token: string | undefined, file: File): Promise<{ ok: boolean }> {
+  const types = ["model/gltf-binary", "application/octet-stream"] as const;
+  for (const type of types) {
+    const headers: Record<string, string> = { "Content-Type": type };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const put = await fetch(uploadUrl, { method: "PUT", body: file, headers });
+    if (put.ok) return { ok: true };
+  }
+  return { ok: false };
 }
 
 function SlotCard({
@@ -187,13 +197,7 @@ export function AdminIdolVrmForm({ initial }: { initial: IdolVrmUrls }) {
           setMsg(messageFor(prepared.error));
           return;
         }
-        const headers: Record<string, string> = { "Content-Type": "model/gltf-binary" };
-        if (prepared.token) headers.Authorization = `Bearer ${prepared.token}`;
-        const put = await fetch(prepared.uploadUrl, {
-          method: "PUT",
-          body: file,
-          headers,
-        });
+        const put = await putIdolVrm(prepared.uploadUrl, prepared.token, file);
         if (!put.ok) {
           setMsg(messageFor("IDOL_VRM_STORAGE"));
           return;
@@ -237,11 +241,8 @@ export function AdminIdolVrmForm({ initial }: { initial: IdolVrmUrls }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        VRM 파일을 고르면 미리보기에 그 파일이 바로 나옵니다. 저장하면 라이브와 허브 카드도 바뀝니다.
-        예전 APT 기본 아바타(default.vrm)는 더 이상 쓰지 않습니다. 최대 {formatMb(IDOL_VRM_MAX_BYTES)}입니다.
-        아직 올리지 않은 슬롯의 기본 파일은{" "}
-        {IDOL_VRM_SLOTS.map((slot) => IDOL_VRM_DEFAULTS[slot]).join(" · ")}
-        입니다.
+        VRM을 고른 뒤 반드시 <strong>이 파일로 저장</strong>을 누르세요. 저장 전에는 라이브가 바뀌지 않습니다.
+        미리보기에 고른 파일이 나와야 합니다. 최대 {formatMb(IDOL_VRM_MAX_BYTES)}입니다.
       </p>
       {IDOL_VRM_SLOTS.map((slot) => (
         <SlotCard

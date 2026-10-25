@@ -26,7 +26,7 @@ export function disposeIdolVrm(vrm: VRM) {
 
 export async function loadIdolVrm(loader: GLTFLoader, url: string): Promise<VRM> {
   const { VRMUtils } = await import("@pixiv/three-vrm");
-  const resolved = playableIdolVrmUrl(url);
+  const resolved = url.startsWith("blob:") ? url : playableIdolVrmUrl(url);
   if (!resolved) throw new Error("VRM_URL");
   const gltf = await loader.loadAsync(resolved);
   const vrm = gltf.userData.vrm as VRM;

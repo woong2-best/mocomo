@@ -27,12 +27,7 @@ const READY_VRM_URLS = new Set<string>([
 ]);
 
 function isBlobVrmPreviewUrl(url: string): boolean {
-  if (!url.startsWith("blob:")) return false;
-  try {
-    return new URL(url).protocol === "blob:";
-  } catch {
-    return false;
-  }
+  return url.startsWith("blob:");
 }
 
 /** Already-uploaded public VRM, even if this bundle has no Supabase host to match. */

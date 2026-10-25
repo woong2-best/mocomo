@@ -6,11 +6,12 @@ VALUES (
   'mocomo-uploads',
   'mocomo-uploads',
   true,
-  26214400,
+  33554432,
   ARRAY[
     'image/jpeg', 'image/png', 'image/webp', 'image/gif',
     'video/mp4', 'video/webm',
-    'audio/mpeg', 'audio/webm', 'audio/ogg'
+    'audio/mpeg', 'audio/webm', 'audio/ogg',
+    'model/gltf-binary', 'application/octet-stream'
   ]
 )
 ON CONFLICT (id) DO UPDATE SET
