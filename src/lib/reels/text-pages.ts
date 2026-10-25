@@ -5,11 +5,12 @@
  *
  * The server sends the full note as one slide. The viewer measures the card
  * and paginates with `notePageBudget` so each page reaches the author row.
+ * The note itself is a black card — no ruled paper.
  */
 
 /** Matches the ruled note: 17px type on a 32px line. */
 export const NOTE_LINE_PX = 32;
-export const NOTE_INSET_PX = 12;
+export const NOTE_INSET_PX = 0;
 export const NOTE_PAD_TOP_PX = 8;
 /** Stops just above the author name. */
 export const NOTE_PAD_BOTTOM_PX = 76;

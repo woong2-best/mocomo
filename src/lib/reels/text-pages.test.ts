@@ -38,20 +38,20 @@ test("wraps Korean sooner than latin", () => {
 
 test("a tall reel packs each line to the rail and the page to the author", () => {
   const budget = notePageBudget(420, 860);
-  assert.equal(budget.linesPerPage, 23);
-  assert.equal(budget.lineWidthPx, 368);
-  const pages = paginateReelNote("ㅇ".repeat(600), budget);
+  assert.equal(budget.linesPerPage, 24);
+  assert.equal(budget.lineWidthPx, 392);
+  const pages = paginateReelNote("ㅇ".repeat(800), budget);
   assert.ok(pages.length > 1);
   const lines = pages[0]!.split("\n");
   assert.equal(lines.length, budget.linesPerPage);
-  assert.equal(Array.from(lines[0]!).length, 25);
-  const width = 25 * 14.7;
+  assert.equal(Array.from(lines[0]!).length, 26);
+  const width = 26 * 14.7;
   assert.ok(width <= (budget.lineWidthPx ?? 0));
 });
 
 test("a shorter frame fits fewer lines so text is not clipped", () => {
   const budget = notePageBudget(390, 640);
-  assert.ok(budget.linesPerPage < 22);
+  assert.ok(budget.linesPerPage < 24);
   assert.ok(budget.linesPerPage >= 8);
   const page = paginateReelNote("가".repeat(400), budget)[0]!;
   assert.equal(page.split("\n").length, budget.linesPerPage);

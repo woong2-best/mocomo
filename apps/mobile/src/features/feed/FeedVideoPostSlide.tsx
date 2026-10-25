@@ -658,7 +658,7 @@ function FeedVideoPostSlideInner({
           const isPlaying = isCurrent && (isFocused || commentsOpen);
           if (item.mediaType === "NOTE") {
             return (
-              <View style={{ width: stageWidth, height, backgroundColor: "#14110e" }}>
+              <View style={{ width: stageWidth, height, backgroundColor: "#000" }}>
                 <ReelNotePage text={item.noteText ?? ""} />
               </View>
             );

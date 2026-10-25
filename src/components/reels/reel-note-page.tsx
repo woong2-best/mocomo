@@ -11,7 +11,10 @@ import {
 /** A short note stays readable. A page of text stretches until it meets the author. */
 const MAX_LINE_PX = 96;
 
-/** Ruled note that fills the reel frame. `text` is one already-wrapped page. */
+const EMOJI_RE =
+  /(\p{Extended_Pictographic}(?:\uFE0F|\u20E3)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\u20E3)?)*)/gu;
+
+/** Black note. Typed glyphs are white; emoji keep their own color. */
 export function ReelNotePage({ text }: { text: string }) {
   const paperRef = useRef<HTMLDivElement>(null);
   const lines = Math.max(1, text.split("\n").length);
@@ -32,32 +35,30 @@ export function ReelNotePage({ text }: { text: string }) {
   }, [lines]);
 
   return (
-    <div className="absolute inset-0 bg-[#14110e]">
-      <div
-        ref={paperRef}
-        className="absolute inset-3 overflow-hidden rounded-md bg-[#f6f1e4] text-[#221c16] shadow-[inset_0_0_0_1px_rgba(80,60,30,0.16)]"
+    <div ref={paperRef} className="absolute inset-0 overflow-hidden bg-black">
+      <p
+        className="whitespace-pre-wrap font-medium"
         style={{
-          backgroundImage: `repeating-linear-gradient(to bottom, transparent 0 ${linePx - 1}px, rgba(90,62,28,0.22) ${linePx - 1}px ${linePx}px)`,
-          backgroundSize: `100% ${linePx}px`,
-          backgroundPosition: `0 ${NOTE_PAD_TOP_PX}px`,
+          paddingTop: NOTE_PAD_TOP_PX,
+          paddingRight: NOTE_PAD_RIGHT_PX,
+          paddingLeft: NOTE_PAD_LEFT_PX,
+          fontSize: 17,
+          lineHeight: `${linePx}px`,
+          textAlign: "justify",
+          textAlignLast: "start",
+          textJustify: "inter-character",
         }}
       >
-        <p
-          className="whitespace-pre-wrap font-medium"
-          style={{
-            paddingTop: NOTE_PAD_TOP_PX,
-            paddingRight: NOTE_PAD_RIGHT_PX,
-            paddingLeft: NOTE_PAD_LEFT_PX,
-            fontSize: 17,
-            lineHeight: `${linePx}px`,
-            textAlign: "justify",
-            textAlignLast: "start",
-            textJustify: "inter-character",
-          }}
-        >
-          {text}
-        </p>
-      </div>
+        {text.split(EMOJI_RE).map((part, i) =>
+          i % 2 === 1 ? (
+            <span key={i}>{part}</span>
+          ) : (
+            <span key={i} className="text-white">
+              {part}
+            </span>
+          )
+        )}
+      </p>
     </div>
   );
 }

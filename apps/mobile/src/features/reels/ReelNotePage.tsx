@@ -10,39 +10,33 @@ import {
 
 const MAX_LINE_PX = 96;
 
-/** Ruled note filling the reel. `text` is already split to one page. */
+const EMOJI_RE =
+  /(\p{Extended_Pictographic}(?:\uFE0F|\u20E3)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\u20E3)?)*)/gu;
+
+/** Black note. Typed glyphs are white; emoji keep their own color. */
 export function ReelNotePage({ text }: { text: string }) {
   const lines = Math.max(1, text.split("\n").length);
   const [linePx, setLinePx] = useState(NOTE_LINE_PX);
-  const [ruleCount, setRuleCount] = useState(24);
   return (
-    <View style={styles.fill}>
-      <View
-        style={styles.paper}
-        onLayout={(e) => {
-          const textH = e.nativeEvent.layout.height - NOTE_PAD_TOP_PX - NOTE_PAD_BOTTOM_PX;
-          const next = Math.min(MAX_LINE_PX, Math.max(NOTE_LINE_PX, textH / lines));
-          setLinePx((prev) => (Math.abs(prev - next) < 0.4 ? prev : next));
-          const count = Math.max(8, Math.ceil((e.nativeEvent.layout.height - NOTE_PAD_TOP_PX) / next));
-          setRuleCount((prev) => (prev === count ? prev : count));
-        }}
-      >
-        {Array.from({ length: ruleCount }, (_, i) => (
-          <View
-            key={i}
-            pointerEvents="none"
-            style={[styles.rule, { top: NOTE_PAD_TOP_PX + (i + 1) * linePx }]}
-          />
-        ))}
-        <Text
-          style={[
-            styles.body,
-            { lineHeight: linePx, fontSize: 17 },
-          ]}
-        >
-          {text}
-        </Text>
-      </View>
+    <View
+      style={styles.fill}
+      onLayout={(e) => {
+        const textH = e.nativeEvent.layout.height - NOTE_PAD_TOP_PX - NOTE_PAD_BOTTOM_PX;
+        const next = Math.min(MAX_LINE_PX, Math.max(NOTE_LINE_PX, textH / lines));
+        setLinePx((prev) => (Math.abs(prev - next) < 0.4 ? prev : next));
+      }}
+    >
+      <Text style={[styles.body, { lineHeight: linePx }]}>
+        {text.split(EMOJI_RE).map((part, i) =>
+          i % 2 === 1 ? (
+            <Text key={i}>{part}</Text>
+          ) : (
+            <Text key={i} style={styles.plain}>
+              {part}
+            </Text>
+          )
+        )}
+      </Text>
     </View>
   );
 }
@@ -50,30 +44,17 @@ export function ReelNotePage({ text }: { text: string }) {
 const styles = StyleSheet.create({
   fill: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "#14110e",
-  },
-  paper: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    bottom: 12,
-    left: 12,
     overflow: "hidden",
-    borderRadius: 8,
-    backgroundColor: "#f6f1e4",
-  },
-  rule: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(90,62,28,0.28)",
+    backgroundColor: "#000",
   },
   body: {
     paddingTop: NOTE_PAD_TOP_PX,
     paddingLeft: NOTE_PAD_LEFT_PX,
     paddingRight: NOTE_PAD_RIGHT_PX,
-    color: "#221c16",
+    fontSize: 17,
     fontWeight: "500",
+  },
+  plain: {
+    color: "#fff",
   },
 });

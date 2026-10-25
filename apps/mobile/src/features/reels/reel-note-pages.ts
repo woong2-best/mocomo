@@ -4,7 +4,7 @@
  */
 
 export const NOTE_LINE_PX = 32;
-export const NOTE_INSET_PX = 12;
+export const NOTE_INSET_PX = 0;
 export const NOTE_PAD_TOP_PX = 8;
 export const NOTE_PAD_BOTTOM_PX = 76;
 export const NOTE_PAD_LEFT_PX = 16;
