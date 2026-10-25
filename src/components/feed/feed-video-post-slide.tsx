@@ -6,6 +6,8 @@ const t = createTranslator("en");
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -28,6 +30,7 @@ import {
 } from "@/components/reels/reels-comment-motion";
 import { cn } from "@/lib/utils";
 import { REELS_H_NAV_DURATION_MS } from "@/lib/reels/constants";
+import { expandReelNoteSlides, notePageBudget } from "@/lib/reels/text-pages";
 import {
   animateScrollPortToSelector,
   scrollPortToSelector,
@@ -98,23 +101,50 @@ function FeedVideoPostSlideBody({
   const motion = useReelsCommentMotion();
   const compact = useCompactReelsViewport();
   const hScrollerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const playerRefs = useRef<Array<ReelsPlayerHandle | null>>([]);
+  const [budget, setBudget] = useState(() => notePageBudget(420, 860));
+  const slides = useMemo(
+    () => expandReelNoteSlides(group.videos, budget),
+    [budget, group.videos]
+  );
   const [videoIndex, setVideoIndex] = useState(() =>
     Math.max(0, Math.min(initialVideoIndex, group.videos.length - 1))
   );
+  const videoIndexRef = useRef(videoIndex);
+  videoIndexRef.current = videoIndex;
   const startedRef = useRef(false);
   const distance = Math.abs(index - activeIndex);
   const isActive = index === activeIndex;
-  const activeReel = group.videos[videoIndex] ?? group.videos[0]!;
+  const activeReel = slides[videoIndex] ?? slides[0]!;
   const like = useOptimisticLike(activeReel.postId, activeReel.liked, activeReel.likeCount);
   const star = useOptimisticStar(activeReel.postId, activeReel.starred);
   const sessionState = useSession();
   const session = sessionState?.data;
   const status = sessionState?.status ?? "unauthenticated";
   const router = useRouter();
-  const multiVideo = group.videos.length > 1;
+  const multiVideo = slides.length > 1;
   const canHPrev = videoIndex > 0;
-  const canHNext = videoIndex < group.videos.length - 1;
+  const canHNext = videoIndex < slides.length - 1;
+
+  useLayoutEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const apply = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 80 || rect.height < 80) return;
+      const next = notePageBudget(rect.width, rect.height);
+      setBudget((prev) =>
+        prev.unitsPerLine === next.unitsPerLine && prev.linesPerPage === next.linesPerPage
+          ? prev
+          : next
+      );
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const showSideNav =
     isActive && multiVideo && horizontalNavEnabled && !commentsOpen;
 
@@ -135,15 +165,21 @@ function FeedVideoPostSlideBody({
     );
   }, []);
 
+  useLayoutEffect(() => {
+    const idx = Math.max(0, Math.min(videoIndexRef.current, Math.max(slides.length - 1, 0)));
+    if (idx !== videoIndexRef.current) setVideoIndex(idx);
+    scrollToIndex(idx, "instant" as ScrollBehavior);
+  }, [budget, scrollToIndex, slides.length]);
+
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    const idx = Math.max(0, Math.min(initialVideoIndex, group.videos.length - 1));
+    const idx = Math.max(0, Math.min(initialVideoIndex, slides.length - 1));
     setVideoIndex(idx);
     requestAnimationFrame(() => {
       scrollToIndex(idx, "instant" as ScrollBehavior);
     });
-  }, [initialVideoIndex, group.videos.length, scrollToIndex]);
+  }, [initialVideoIndex, scrollToIndex, slides.length]);
 
   const syncFromScroll = useCallback(() => {
     const root = hScrollerRef.current;
@@ -187,11 +223,11 @@ function FeedVideoPostSlideBody({
       root.removeEventListener("scroll", onScroll);
       root.removeEventListener("scrollend", onScrollEnd as EventListener);
     };
-  }, [syncFromScroll, group.videos.length]);
+  }, [syncFromScroll, slides.length]);
 
   const goH = useCallback(
     (next: number) => {
-      const clamped = Math.max(0, Math.min(group.videos.length - 1, next));
+      const clamped = Math.max(0, Math.min(slides.length - 1, next));
       if (clamped === videoIndex) {
         scrollToIndex(clamped, "auto");
         return;
@@ -205,7 +241,7 @@ function FeedVideoPostSlideBody({
         REELS_H_NAV_DURATION_MS
       );
     },
-    [group.videos.length, onActiveVideoChange, scrollToIndex, videoIndex]
+    [onActiveVideoChange, scrollToIndex, slides.length, videoIndex]
   );
 
   useEffect(() => {
@@ -245,12 +281,12 @@ function FeedVideoPostSlideBody({
   }, [multiVideo, scrollToIndex, videoIndex]);
 
   const handleEnded = useCallback(() => {
-    if (videoIndex < group.videos.length - 1) {
+    if (videoIndex < slides.length - 1) {
       goH(videoIndex + 1);
       return;
     }
     onEnded?.();
-  }, [goH, group.videos.length, onEnded, videoIndex]);
+  }, [goH, onEnded, slides.length, videoIndex]);
 
   const sideNavBtnClass = cn(
     "pointer-events-auto absolute top-1/2 z-40 hidden -translate-y-1/2",
@@ -264,7 +300,10 @@ function FeedVideoPostSlideBody({
 
   const videoCard = (
     <div
-      ref={motion.bindVideo}
+      ref={(node) => {
+        frameRef.current = node;
+        motion.bindVideo(node);
+      }}
       className={cn(
         "relative isolate h-full w-full overflow-hidden bg-black",
         commentsOpen
@@ -284,7 +323,7 @@ function FeedVideoPostSlideBody({
         role="list"
         aria-label={t("feed.s1508wel")}
       >
-        {group.videos.map((reel, vi) => {
+        {slides.map((reel, vi) => {
           const d = isActive ? Math.abs(vi - videoIndex) : distance + 1;
           const isCurrent = vi === videoIndex;
           return (
@@ -337,7 +376,7 @@ function FeedVideoPostSlideBody({
 
                   {multiVideo && (
                     <div className="pointer-events-none absolute inset-x-0 top-[max(3.5rem,env(safe-area-inset-top))] z-20 flex justify-center gap-1.5 px-10 lg:top-4">
-                      {group.videos.map((v, i) => (
+                      {slides.map((v, i) => (
                         <span
                           key={v.id}
                           className={cn(

@@ -49,6 +49,7 @@ import {
 import { PostShareSheet } from "@/features/share/PostShareSheet";
 import { storyPostFromReel } from "@/features/share/instagram-story-post";
 import { ReelNotePage } from "@/features/reels/ReelNotePage";
+import { expandReelNoteSlides, notePageBudget } from "@/features/reels/reel-note-pages";
 
 const FAST_PLAYBACK_RATE = 2;
 
@@ -357,6 +358,10 @@ function FeedVideoPostSlideInner({
   const stageWidth = stageWidthProp ?? width;
   const stageLeft = stageLeftProp ?? 0;
   const isWide = stageLeft > 0 || stageWidth < width;
+  const slides = useMemo(
+    () => expandReelNoteSlides(group.videos, notePageBudget(stageWidth, height)),
+    [group.videos, height, stageWidth]
+  );
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const starLock = useRef(false);
@@ -366,9 +371,11 @@ function FeedVideoPostSlideInner({
   const { user, status } = useAuth();
   const showLikeCounts = useShowLikeCounts();
   const listRef = useRef<FlatList<ReelItem>>(null);
+  const videoIndexRef = useRef(0);
   const [videoIndex, setVideoIndex] = useState(
     Math.min(Math.max(initialVideoIndex, 0), Math.max(group.videos.length - 1, 0))
   );
+  videoIndexRef.current = videoIndex;
   const [liked, setLiked] = useState(!!group.videos[0]?.liked);
   const [likeCount, setLikeCount] = useState(group.videos[0]?.likeCount ?? 0);
   const [starred, setStarred] = useState(!!group.videos[0]?.starred);
@@ -385,7 +392,7 @@ function FeedVideoPostSlideInner({
   const [pinchZooming, setPinchZooming] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const current = group.videos[videoIndex] ?? group.videos[0];
+  const current = slides[videoIndex] ?? slides[0];
   const captionText = useMemo(
     () =>
       current?.mediaType === "NOTE"
@@ -437,19 +444,24 @@ function FeedVideoPostSlideInner({
     };
   }, [onFastForwardChange]);
 
+  const slidesRef = useRef(slides);
+  slidesRef.current = slides;
   useEffect(() => {
-    const idx = Math.min(Math.max(initialVideoIndex, 0), Math.max(group.videos.length - 1, 0));
+    const count = slidesRef.current.length;
+    const idx = Math.min(Math.max(initialVideoIndex, 0), Math.max(count - 1, 0));
     setVideoIndex(idx);
     requestAnimationFrame(() => {
       listRef.current?.scrollToIndex({ index: idx, animated: false });
     });
-  }, [group.postId, initialVideoIndex, group.videos.length]);
+  }, [group.postId, initialVideoIndex]);
 
   useEffect(() => {
+    const idx = Math.min(videoIndexRef.current, Math.max(slides.length - 1, 0));
+    if (idx !== videoIndexRef.current) setVideoIndex(idx);
     requestAnimationFrame(() => {
-      listRef.current?.scrollToIndex({ index: videoIndex, animated: false });
+      listRef.current?.scrollToIndex({ index: idx, animated: false });
     });
-  }, [stageWidth]);
+  }, [stageWidth, slides.length]);
 
   useEffect(() => {
     starLock.current = false;
@@ -501,16 +513,16 @@ function FeedVideoPostSlideInner({
       const page = Math.max(stageWidth, 1);
       const x = e.nativeEvent.contentOffset.x;
       const next = Math.round(x / page);
-      const target = Math.max(0, Math.min(group.videos.length - 1, next)) * page;
+      const target = Math.max(0, Math.min(slides.length - 1, next)) * page;
       if (Math.abs(x - target) > 1.5) {
         listRef.current?.scrollToOffset({ offset: target, animated: true });
       }
-      if (next !== videoIndex && next >= 0 && next < group.videos.length) {
+      if (next !== videoIndex && next >= 0 && next < slides.length) {
         setVideoIndex(next);
         onChangeVideoIndex?.(next);
       }
     },
-    [group.videos.length, onChangeVideoIndex, stageWidth, videoIndex]
+    [slides.length, onChangeVideoIndex, stageWidth, videoIndex]
   );
 
   const onLike = useCallback(() => {
@@ -615,7 +627,7 @@ function FeedVideoPostSlideInner({
       >
       <FlatList
         ref={listRef}
-        data={group.videos}
+        data={slides}
         keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled={Platform.OS === "ios"}
@@ -637,7 +649,7 @@ function FeedVideoPostSlideInner({
           offset: stageWidth * index,
           index,
         })}
-        initialScrollIndex={Math.min(initialVideoIndex, group.videos.length - 1)}
+        initialScrollIndex={Math.min(initialVideoIndex, Math.max(slides.length - 1, 0))}
         onScrollToIndexFailed={() => {
           // ignore cold layout race
         }}
@@ -710,9 +722,9 @@ function FeedVideoPostSlideInner({
       />
 
       {/* Top segments */}
-      {!chromeHidden && group.videos.length > 1 ? (
+      {!chromeHidden && slides.length > 1 ? (
         <View style={styles.segments} pointerEvents="none">
-          {group.videos.map((v, i) => (
+          {slides.map((v, i) => (
             <View
               key={v.id}
               style={[styles.segment, i === videoIndex ? styles.segmentActive : null]}

@@ -11,7 +11,7 @@ export function ReelNotePage({ text }: { text: string }) {
           backgroundPosition: "0 12px",
         }}
       >
-        <p className="whitespace-pre-wrap px-5 pb-28 pt-3 text-[17px] font-medium leading-8">
+        <p className="whitespace-pre-wrap pb-28 pl-5 pr-14 pt-3 text-[17px] font-medium leading-8">
           {text}
         </p>
       </div>
