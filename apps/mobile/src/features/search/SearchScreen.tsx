@@ -62,7 +62,7 @@ export function SearchScreen() {
         key: `p-${p.id}`,
         kind: t("m.common.posts"),
         title: p.title || p.content.slice(0, 80) || t("m.common.post"),
-        onPress: () => navigation.navigate("PostDetail", { id: p.id }),
+        onPress: () => navigation.navigate("Reels", { postId: p.id }),
       });
     }
     for (const a of query.data.animes) {

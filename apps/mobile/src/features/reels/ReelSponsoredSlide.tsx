@@ -48,7 +48,7 @@ function ReelSponsoredSlideInner({
   const openDestination = () => {
     const postId = ad.postId?.trim() || ad.linkUrl.match(/^\/post\/([^/?#]+)/)?.[1];
     if (postId) {
-      navigation.navigate("PostDetail", { id: postId });
+      navigation.navigate("Reels", { postId });
       return;
     }
     const href = ad.linkUrl?.trim();

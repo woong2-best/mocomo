@@ -27,6 +27,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchFeedPage, type FeedPost } from "@/api/feed";
+import { fetchPostDetail } from "@/api/social";
 import { fetchReelsAds } from "@/api/ads";
 import { createPostComment } from "@/api/social";
 import type { CommentReplyTarget } from "@/features/feed/CommentThreadExtras";
@@ -135,6 +136,7 @@ export function ReelsScreen() {
   const targetPostId = route.params?.postId;
   const targetMediaId = route.params?.mediaId;
   const targetMediaIndex = route.params?.mediaIndex;
+  const didSeedRef = useRef(false);
 
   const [activeSlot, setActiveSlot] = useState(0);
   const [seedVideoByGroup, setSeedVideoByGroup] = useState<Record<string, number>>({});
@@ -213,6 +215,13 @@ export function ReelsScreen() {
     refetchOnWindowFocus: false,
   });
 
+  const targetPostQuery = useQuery({
+    queryKey: ["mobile-post", targetPostId],
+    queryFn: () => fetchPostDetail(targetPostId!),
+    enabled: !!targetPostId,
+    staleTime: 30_000,
+  });
+
   const posts = useMemo(() => {
     const list: FeedPost[] = [];
     for (const page of feedQuery.data?.pages ?? []) {
@@ -231,18 +240,35 @@ export function ReelsScreen() {
         }
       }
     }
+    const pinned = targetPostQuery.data?.post;
+    if (
+      pinned &&
+      !pinned.communityId &&
+      !pinned.community?.slug &&
+      !list.some((post) => post.id === pinned.id)
+    ) {
+      list.unshift(pinned);
+    }
     return list;
-  }, [feedQuery.data, queryClient]);
+  }, [feedQuery.data, queryClient, targetPostQuery.data]);
 
   const paymentsEnabled = feedQuery.data?.pages[0]?.paymentsEnabled ?? false;
   const groups = useMemo(() => {
-    const next = stabilizeVideoGroups(
-      groupsStableRef.current,
-      buildFeedVideoGroups(posts, paymentsEnabled)
-    );
+    const prev = groupsStableRef.current;
+    let next = stabilizeVideoGroups(prev, buildFeedVideoGroups(posts, paymentsEnabled));
+    if (targetPostId && !didSeedRef.current) {
+      const idx = next.findIndex((group) => group.postId === targetPostId);
+      const wasInPrev = prev.some((group) => group.postId === targetPostId);
+      if (idx > 0 && !wasInPrev) {
+        const copy = [...next];
+        const [hit] = copy.splice(idx, 1);
+        if (hit) copy.unshift(hit);
+        next = copy;
+      }
+    }
     groupsStableRef.current = next;
     return next;
-  }, [posts, paymentsEnabled]);
+  }, [paymentsEnabled, posts, targetPostId]);
 
   const slots = useMemo(
     () => buildReelsSlots(groups, adsQuery.data ?? []),
@@ -282,8 +308,22 @@ export function ReelsScreen() {
   );
 
   useEffect(() => {
+    const pinned = targetPostQuery.data?.post;
+    if (
+      pinned &&
+      targetPostId &&
+      pinned.id === targetPostId &&
+      (pinned.communityId || pinned.community?.slug)
+    ) {
+      navigation.replace("PostDetail", { id: pinned.id });
+    }
+  }, [navigation, targetPostId, targetPostQuery.data]);
+
+  useEffect(() => {
     if (didSeed || slots.length === 0) return;
     if (targetPostId) {
+      const pinned = targetPostQuery.data?.post;
+      if (pinned && (pinned.communityId || pinned.community?.slug)) return;
       const groupPos = findGroupOpenPosition(groups, {
         postId: targetPostId,
         mediaId: targetMediaId,
@@ -294,14 +334,27 @@ export function ReelsScreen() {
         const index = slotIndex >= 0 ? slotIndex : 0;
         setSeedVideoByGroup({ [groups[groupPos.groupIndex]!.postId]: groupPos.videoIndex });
         snapToSlot(index, false);
+        didSeedRef.current = true;
         setDidSeed(true);
         return;
       }
+      if (!targetPostQuery.isFetched) return;
     }
     const first = slots[0];
     if (first) activeIdentityRef.current = reelsSlotIdentity(first);
+    didSeedRef.current = true;
     setDidSeed(true);
-  }, [didSeed, groups, slots, snapToSlot, targetMediaId, targetMediaIndex, targetPostId]);
+  }, [
+    didSeed,
+    groups,
+    slots,
+    snapToSlot,
+    targetMediaId,
+    targetMediaIndex,
+    targetPostId,
+    targetPostQuery.data,
+    targetPostQuery.isFetched,
+  ]);
 
   // Ads / feed updates must not steal the viewport — remap to the same reel, no animation.
   useEffect(() => {

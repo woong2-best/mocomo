@@ -230,7 +230,7 @@ export function StarListScreen() {
       return (
         <Pressable
           style={{ width: cellSize, height: cellSize, marginBottom: GRID_GAP }}
-          onPress={() => navigation.navigate("PostDetail", { id: item.id })}
+          onPress={() => navigation.navigate("Reels", { postId: item.id })}
         >
           {cover?.url ? (
             <Image

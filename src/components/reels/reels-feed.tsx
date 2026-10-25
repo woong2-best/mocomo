@@ -8,6 +8,7 @@ const t = createTranslator("en");
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useTransition,
@@ -19,7 +20,8 @@ import { cn } from "@/lib/utils";
 import type { ReelItem, ReelsPageResponse } from "@/lib/reels/types";
 import { REELS_PREFETCH_REMAINING } from "@/lib/reels/constants";
 import { dismissReel, getDismissedReelIds } from "@/lib/reels/dismissed";
-import { ReelsSlide } from "@/components/reels/reels-slide";
+import { groupReelSlides } from "@/lib/reels/text-pages";
+import { FeedVideoPostSlide } from "@/components/feed/feed-video-post-slide";
 import {
   ReelsContextMenu,
   type ReelsMenuAction,
@@ -55,6 +57,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   const fetchingRef = useRef(false);
   const autoLoadBlockedRef = useRef(false);
   const jumpedToStartRef = useRef(false);
+  const groups = useMemo(() => groupReelSlides(items), [items]);
 
   useEffect(() => {
     setItems(filterDismissed(initialItems));
@@ -107,27 +110,27 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
   }, [cursor]);
 
   useEffect(() => {
-    if (items.length - activeIndex <= REELS_PREFETCH_REMAINING) {
+    if (groups.length - activeIndex <= REELS_PREFETCH_REMAINING) {
       void loadMore();
     }
-  }, [activeIndex, items.length, loadMore]);
+  }, [activeIndex, groups.length, loadMore]);
 
   useEffect(() => {
-    const postId = items[activeIndex]?.postId;
+    const postId = groups[activeIndex]?.postId;
     if (postId) prefetchPostComments(postId);
-  }, [activeIndex, items]);
+  }, [activeIndex, groups]);
 
   useEffect(() => {
-    const activePostId = items[activeIndex]?.postId;
+    const activePostId = groups[activeIndex]?.postId;
     if (commentsPanel && activePostId && commentsPanel.postId !== activePostId) {
       setCommentsPanel(null);
     }
-  }, [activeIndex, commentsPanel, items]);
+  }, [activeIndex, commentsPanel, groups]);
 
   // Jump to deep-linked post once — never again when loadMore appends items
   useEffect(() => {
-    if (jumpedToStartRef.current || !startPostId || items.length === 0) return;
-    const idx = items.findIndex((i) => i.postId === startPostId);
+    if (jumpedToStartRef.current || !startPostId || groups.length === 0) return;
+    const idx = groups.findIndex((group) => group.postId === startPostId);
     if (idx < 0) return;
     jumpedToStartRef.current = true;
     setActiveIndex(idx);
@@ -139,7 +142,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         "auto"
       );
     });
-  }, [startPostId, items]);
+  }, [startPostId, groups]);
 
   const syncActiveFromScroll = useCallback(() => {
     const root = scrollerRef.current;
@@ -176,7 +179,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
       cancelAnimationFrame(raf);
       root.removeEventListener("scroll", onScroll);
     };
-  }, [syncActiveFromScroll, items.length]);
+  }, [syncActiveFromScroll, groups.length]);
 
   // Re-snap active slide after rotate so 100dvh reflow does not leave it mid-viewport.
   useEffect(() => {
@@ -206,7 +209,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
 
   const goTo = useCallback(
     (index: number) => {
-      const clamped = Math.max(0, Math.min(items.length - 1, index));
+      const clamped = Math.max(0, Math.min(groups.length - 1, index));
       scrollPortToSelector(
         scrollerRef.current,
         `[data-reel-index="${clamped}"]`,
@@ -215,7 +218,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
       );
       setActiveIndex(clamped);
     },
-    [items.length]
+    [groups.length]
   );
 
   useEffect(() => {
@@ -276,7 +279,7 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
 
   const onMenuAction = useCallback(
     (action: ReelsMenuAction) => {
-      const reel = items[menu.index];
+      const reel = groups[menu.index]?.slides[0];
       if (!reel) return;
       if (action === "not-interested") {
         dismissReel(reel.postId);
@@ -297,10 +300,10 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         router.push(`/post/${reel.postId}?report=1`);
       }
     },
-    [items, menu.index, router, shareReel]
+    [groups, menu.index, router, shareReel]
   );
 
-  if (items.length === 0) {
+  if (groups.length === 0) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white lg:bg-background lg:text-foreground">
         <p className="font-display text-lg font-bold">{i18n("reels.sy1abv7")}</p>
@@ -318,9 +321,9 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
     );
   }
 
-  const activeReel = items[menu.index] ?? items[activeIndex];
+  const activeReel = groups[menu.index]?.slides[0] ?? groups[activeIndex]?.slides[0];
   const canPrev = activeIndex > 0;
-  const canNext = activeIndex < items.length - 1;
+  const canNext = activeIndex < groups.length - 1;
 
   return (
     <div className="absolute inset-0 flex overflow-hidden bg-black lg:bg-transparent">
@@ -350,27 +353,23 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
         role="feed"
         aria-label="Short video feed"
       >
-        {items.map((reel, index) => (
-          <ReelsSlide
-            key={reel.id}
-            reel={reel}
+        {groups.map((group, index) => (
+          <FeedVideoPostSlide
+            key={group.key}
+            group={{ postId: group.postId, videos: group.slides }}
             index={index}
             activeIndex={activeIndex}
             muted={muted}
             onMutedChange={setMuted}
             onOpenMenu={(x, y) => openMenu(index, x, y)}
-            onShare={() => void shareReel(reel)}
+            onShare={(reel) => void shareReel(reel)}
             onComment={(postId, count) => setCommentsPanel({ postId, count })}
             commentCountOverride={
-              commentsPanel?.postId === reel.postId
-                ? commentsPanel.count
-                : undefined
+              commentsPanel?.postId === group.postId ? commentsPanel.count : undefined
             }
-            commentsOpen={
-              !!commentsPanel && commentsPanel.postId === reel.postId
-            }
+            commentsOpen={!!commentsPanel && commentsPanel.postId === group.postId}
             commentsPanel={
-              commentsPanel?.postId === reel.postId ? (
+              commentsPanel?.postId === group.postId ? (
                 <ReelsCommentsPanel
                   layout="inline"
                   open

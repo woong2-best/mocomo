@@ -3,6 +3,7 @@ import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
 import type { ReelItem } from "@/lib/reels/types";
 import { mapReelCollaborators } from "@/lib/reels/collaborators";
 import { isHlsUrl } from "@/lib/reels/playback-url";
+import { reelNotePages } from "@/lib/reels/text-pages";
 
 export const FEED_VIDEO_VIEWER_HISTORY_KEY = "mocomoFeedVideoViewer";
 
@@ -95,9 +96,59 @@ export function postVideoToReelItem(
   };
 }
 
+function noteSlidesForPost(
+  post: GridPost & { createdAt: string | Date },
+  liked: boolean,
+  starred: boolean
+): ReelItem[] {
+  if (post.communityId || post.community?.slug) return [];
+  const createdAt =
+    typeof post.createdAt === "string" ? post.createdAt : post.createdAt.toISOString();
+  return reelNotePages(post.title, post.content).map((noteText, index) => {
+    const id = `${post.id}:note:${index}`;
+    return {
+      id,
+      postId: post.id,
+      title: post.title ?? null,
+      content: post.content,
+      createdAt,
+      isNsfw: post.isNsfw,
+      viewCount: post.viewCount ?? 0,
+      author: {
+        id: post.author.id,
+        username: post.author.username,
+        name: post.author.name ?? null,
+        image: post.author.image,
+      },
+      collaborators: post.isAnonymous
+        ? []
+        : mapReelCollaborators(post.author.id, post.collaborators),
+      mediaType: "NOTE",
+      noteText,
+      runId: post.id,
+      media: {
+        id,
+        url: "",
+        hlsUrl: null,
+        posterUrl: null,
+        width: null,
+        height: null,
+        duration: null,
+        priceKrw: 0,
+      },
+      likeCount: post._count?.likes ?? 0,
+      commentCount: post._count?.comments ?? 0,
+      liked,
+      starred,
+      qna: false,
+    };
+  });
+}
+
 /**
  * Group playable photos and videos by post (timeline order).
  * Vertical nav = between groups; horizontal nav = within a group.
+ * Typed text is extra sideways pages. A text-only post is a note.
  */
 export function buildFeedVideoGroups(
   items: FeedLayoutItem[],
@@ -118,6 +169,9 @@ export function buildFeedVideoGroups(
       );
       if (reel) videos.push(reel);
     }
+    videos.push(
+      ...noteSlidesForPost(post, likedIds.has(post.id), starredIds.has(post.id))
+    );
     if (videos.length > 0) {
       groups.push({ postId: post.id, videos });
     }

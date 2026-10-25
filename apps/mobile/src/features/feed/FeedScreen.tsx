@@ -424,7 +424,7 @@ export function FeedScreen() {
   }).current;
 
   const onPressPost = useCallback(
-    (id: string) => navigation.navigate("PostDetail", { id }),
+    (id: string) => navigation.navigate("Reels", { postId: id }),
     [navigation]
   );
   const onPressAuthor = useCallback(
@@ -586,7 +586,7 @@ export function FeedScreen() {
                   onPressPost={(id) => {
                     setSearchFocused(false);
                     searchRef.current?.blur();
-                    navigation.navigate("PostDetail", { id });
+                    navigation.navigate("Reels", { postId: id });
                   }}
                   onPressInUser={(user) => prefetchUserProfile(user)}
                   onPressUser={(user) => {
@@ -610,7 +610,7 @@ export function FeedScreen() {
                   onPressPost={(id) => {
                     setSearchFocused(false);
                     searchRef.current?.blur();
-                    navigation.navigate("PostDetail", { id });
+                    navigation.navigate("Reels", { postId: id });
                   }}
                 />
               )}

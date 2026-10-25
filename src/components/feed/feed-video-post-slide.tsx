@@ -18,6 +18,7 @@ import { userDisplayName } from "@/lib/user-public-select";
 import type { ReelItem } from "@/lib/reels/types";
 import type { FeedVideoGroup } from "@/lib/feed-video-viewer";
 import { ReelsPlayer, type ReelsPlayerHandle } from "@/components/reels/reels-player";
+import { ReelNotePage } from "@/components/reels/reel-note-page";
 import { ReelsActions } from "@/components/reels/reels-actions";
 import { VideoOverlayCaption } from "@/components/reels/video-overlay-caption";
 import {
@@ -293,30 +294,34 @@ function FeedVideoPostSlideBody({
               role="listitem"
               className="relative h-full w-full shrink-0 snap-center bg-black"
             >
-              <ReelsPlayer
-                ref={(el) => {
-                  playerRefs.current[vi] = el;
-                }}
-                src={reel.media.url}
-                hlsUrl={reel.media.hlsUrl}
-                poster={reel.media.posterUrl}
-                kind={reel.mediaType === "IMAGE" ? "IMAGE" : "VIDEO"}
-                mediaId={reel.media.id}
-                mediaPriceKrw={reel.media.priceKrw}
-                distance={d}
-                isActive={isActive && isCurrent}
-                muted={muted}
-                onMutedChange={onMutedChange}
-                disableLoop={disableLoop}
-                onEnded={isActive && isCurrent ? handleEnded : undefined}
-                onDoubleTapLike={() => {
-                  if (!requireLogin()) return;
-                  void like.toggle();
-                }}
-                onLongPressMenu={onOpenMenu}
-                onContextMenu={onOpenMenu}
-                gesturesDisabled={commentsOpen && compact}
-              />
+              {reel.mediaType === "NOTE" ? (
+                <ReelNotePage text={reel.noteText ?? ""} />
+              ) : (
+                <ReelsPlayer
+                  ref={(el) => {
+                    playerRefs.current[vi] = el;
+                  }}
+                  src={reel.media.url}
+                  hlsUrl={reel.media.hlsUrl}
+                  poster={reel.media.posterUrl}
+                  kind={reel.mediaType === "IMAGE" ? "IMAGE" : "VIDEO"}
+                  mediaId={reel.media.id}
+                  mediaPriceKrw={reel.media.priceKrw}
+                  distance={d}
+                  isActive={isActive && isCurrent}
+                  muted={muted}
+                  onMutedChange={onMutedChange}
+                  disableLoop={disableLoop}
+                  onEnded={isActive && isCurrent ? handleEnded : undefined}
+                  onDoubleTapLike={() => {
+                    if (!requireLogin()) return;
+                    void like.toggle();
+                  }}
+                  onLongPressMenu={onOpenMenu}
+                  onContextMenu={onOpenMenu}
+                  gesturesDisabled={commentsOpen && compact}
+                />
+              )}
 
               {isCurrent && (
                 <>
@@ -326,8 +331,8 @@ function FeedVideoPostSlideBody({
                     authorName={activeReel.author.name}
                     authorId={activeReel.author.id}
                     collaborators={activeReel.collaborators}
-                    title={activeReel.title}
-                    content={activeReel.content}
+                    title={reel.mediaType === "NOTE" ? null : activeReel.title}
+                    content={reel.mediaType === "NOTE" ? "" : activeReel.content}
                   />
 
                   {multiVideo && (
@@ -354,9 +359,13 @@ function FeedVideoPostSlideBody({
                     muted={muted}
                     onToggleMute={() => onMutedChange(!muted)}
                     onShare={() => onShare(activeReel)}
-                    onToggleExpand={() => {
-                      void playerRefs.current[videoIndex]?.enterFullscreen();
-                    }}
+                    onToggleExpand={
+                      reel.mediaType === "NOTE"
+                        ? undefined
+                        : () => {
+                            void playerRefs.current[videoIndex]?.enterFullscreen();
+                          }
+                    }
                     onComment={
                       onComment
                         ? () =>

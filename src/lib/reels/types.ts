@@ -7,7 +7,7 @@ export type ReelAuthor = {
 
 export type ReelCollaborator = ReelAuthor;
 
-export type ReelMediaKind = "IMAGE" | "VIDEO";
+export type ReelMediaKind = "IMAGE" | "VIDEO" | "NOTE";
 
 export type ReelMedia = {
   id: string;
@@ -38,6 +38,13 @@ export type ReelItem = {
   /** Invited + accepted collaborators (author excluded). */
   collaborators?: ReelCollaborator[];
   mediaType?: ReelMediaKind;
+  /**
+   * Page of typed text when `mediaType` is NOTE.
+   * Already wrapped to the reel frame.
+   */
+  noteText?: string;
+  /** Slides that share a run stay on one vertical reel and swipe sideways. */
+  runId?: string;
   media: ReelMedia;
   likeCount: number;
   commentCount: number;
@@ -56,5 +63,5 @@ export type ReelsPageResponse = {
 };
 
 export function isReelStill(reel: Pick<ReelItem, "mediaType">): boolean {
-  return reel.mediaType === "IMAGE";
+  return reel.mediaType === "IMAGE" || reel.mediaType === "NOTE";
 }

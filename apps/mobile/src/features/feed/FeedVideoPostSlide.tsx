@@ -48,6 +48,7 @@ import {
 } from "@/lib/video-preserve-pitch";
 import { PostShareSheet } from "@/features/share/PostShareSheet";
 import { storyPostFromReel } from "@/features/share/instagram-story-post";
+import { ReelNotePage } from "@/features/reels/ReelNotePage";
 
 const FAST_PLAYBACK_RATE = 2;
 
@@ -386,8 +387,11 @@ function FeedVideoPostSlideInner({
 
   const current = group.videos[videoIndex] ?? group.videos[0];
   const captionText = useMemo(
-    () => buildVideoCaptionText(current?.title, current?.content ?? ""),
-    [current?.content, current?.title]
+    () =>
+      current?.mediaType === "NOTE"
+        ? ""
+        : buildVideoCaptionText(current?.title, current?.content ?? ""),
+    [current?.content, current?.mediaType, current?.title]
   );
   const chromeHidden = fastForward || pinchZooming || commentsOpen;
 
@@ -640,6 +644,13 @@ function FeedVideoPostSlideInner({
         renderItem={({ item, index }) => {
           const isCurrent = active && index === videoIndex;
           const isPlaying = isCurrent && (isFocused || commentsOpen);
+          if (item.mediaType === "NOTE") {
+            return (
+              <View style={{ width: stageWidth, height, backgroundColor: "#14110e" }}>
+                <ReelNotePage text={item.noteText ?? ""} />
+              </View>
+            );
+          }
           return (
             <View
               style={{

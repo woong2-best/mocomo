@@ -2,7 +2,7 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PostDetailCard } from "@/components/post/post-detail-card";
 import { PostDetailActions } from "@/components/post/post-detail-actions";
 import { PostFlashHighlight } from "@/components/post/post-flash-highlight";
@@ -85,6 +85,9 @@ export default async function PostPage({
   }
 
   const post = detail as PostDetailOk;
+  if (!post.communityId) {
+    redirect(`/reels?v=${encodeURIComponent(post.id)}`);
+  }
   const realAuthorId = post.author.id;
   const displayPost = redactQnaPublicPost(post, session?.user?.id);
   const [blockPolicyPost] = await applyViewerBlockPolicyToPosts(session?.user?.id ?? null, [

@@ -34,7 +34,7 @@ function FeedAdCardInner({ ad }: { ad: FeedAd }) {
   const onPress = () => {
     const postId = postIdFromAd(ad);
     if (postId) {
-      navigation.navigate("PostDetail", { id: postId });
+      navigation.navigate("Reels", { postId });
       return;
     }
     const url = ad.linkUrl.startsWith("http")

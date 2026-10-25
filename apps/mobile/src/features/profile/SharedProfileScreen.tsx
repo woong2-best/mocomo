@@ -212,7 +212,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
         }}
         paymentsEnabled={user?.paymentsEnabled}
         onPurchaseSuccess={() => void query.refetch()}
-        onPressPost={(id) => navigation.navigate("PostDetail", { id })}
+        onPressPost={(id) => navigation.navigate("Reels", { postId: id })}
         onPressAuthor={(author) => open(author)}
         onPressVideo={(postId, mediaId, mediaIndex) =>
           navigation.navigate("Reels", { postId, mediaId, mediaIndex })
@@ -309,7 +309,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                   pinnedHighlight
                   paymentsEnabled={user?.paymentsEnabled}
                   onPurchaseSuccess={() => void query.refetch()}
-                  onPressPost={(id) => navigation.navigate("PostDetail", { id })}
+                  onPressPost={(id) => navigation.navigate("Reels", { postId: id })}
                   onPressAuthor={(author) => open(author)}
                   onPressVideo={(postId, mediaId, mediaIndex) =>
                     navigation.navigate("Reels", { postId, mediaId, mediaIndex })

@@ -23,7 +23,9 @@ export type ReelItem = {
     name: string | null;
     image: string | null;
   }[];
-  mediaType?: "IMAGE" | "VIDEO";
+  mediaType?: "IMAGE" | "VIDEO" | "NOTE";
+  /** One already-wrapped page when mediaType is NOTE. */
+  noteText?: string;
   media: {
     id: string;
     url: string;

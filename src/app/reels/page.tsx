@@ -3,7 +3,7 @@ const t = createTranslator("en");
 
 import type { Metadata } from "next";
 import { getCachedSession } from "@/lib/auth";
-import { getCachedReelsPage } from "@/lib/reels/query";
+import { fetchReelSlidesForPost, getCachedReelsPage } from "@/lib/reels/query";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { REELS_PAGE_SIZE } from "@/lib/reels/constants";
 import { ReelsFeed } from "@/components/reels/reels-feed";
@@ -22,8 +22,16 @@ export default async function ReelsPage({ searchParams }: Props) {
   const sp = (await searchParams) ?? {};
   const startPostId = typeof sp.v === "string" ? sp.v : null;
 
-  const { items, nextCursor } = await getCachedReelsPage(null, REELS_PAGE_SIZE);
   const session = await getCachedSession();
+  const [{ items: pageItems, nextCursor }, pinned] = await Promise.all([
+    getCachedReelsPage(null, REELS_PAGE_SIZE),
+    startPostId
+      ? fetchReelSlidesForPost(startPostId, session?.user?.id)
+      : Promise.resolve(null),
+  ]);
+  const items = pinned?.length
+    ? [...pinned, ...pageItems.filter((item) => item.postId !== startPostId)]
+    : pageItems;
   const postIds = items.map((i) => i.postId);
 
   const engagement =

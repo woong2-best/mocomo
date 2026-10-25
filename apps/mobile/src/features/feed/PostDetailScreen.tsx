@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -278,6 +278,11 @@ export function PostDetailScreen() {
     setReplyTarget(null);
   }
 
+  useEffect(() => {
+    if (!post || isQnaPost) return;
+    navigation.replace("Reels", { postId: post.id });
+  }, [isQnaPost, navigation, post]);
+
   async function acceptAnswer(item: CommentItem) {
     if (!user || acceptingId || !isQnaPost) return;
     setAcceptingId(item.id);
@@ -327,6 +332,8 @@ export function PostDetailScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : postQuery.isError || !post ? (
         <Text style={styles.error}>{t("m.feed.could_not_load_post")}</Text>
+      ) : !isQnaPost ? (
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.terracotta} />
       ) : (
         <KeyboardAvoidingView
           style={{ flex: 1 }}

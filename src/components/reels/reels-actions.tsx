@@ -124,7 +124,7 @@ export function ReelsActions({
         </button>
       ) : (
         <Link
-          href={`/post/${reel.postId}#comments`}
+          href={reel.qna ? `/post/${reel.postId}#comments` : `/reels?v=${reel.postId}`}
           className="flex flex-col items-center gap-0.5 min-h-11 min-w-11"
           aria-label="Comments"
         >

@@ -2,6 +2,7 @@ import type { FeedMedia, FeedPost } from "@/api/feed";
 import type { ReelItem } from "@/api/reels";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { mapReelCollaborators } from "@/features/reels/reel-collaborators";
+import { reelNotePages } from "@/features/reels/reel-note-pages";
 
 export type FeedVideoGroup = {
   postId: string;
@@ -77,7 +78,7 @@ export function postVideoToReelItem(
     },
     collaborators: post.isAnonymous
       ? []
-      : mapReelCollaborators(post.author.id, post.collaborators),
+      : (mapReelCollaborators(post.author.id, post.collaborators) as ReelItem["collaborators"]),
     media: {
       id: video.id?.trim() || id,
       url: video.url,
@@ -128,7 +129,51 @@ export function stabilizeVideoGroups(
   return out;
 }
 
-/** Vertical = post groups; horizontal = videos inside a post. */
+function noteSlidesForPost(post: FeedPost, paymentsEnabled?: boolean): ReelItem[] {
+  if (post.communityId || post.community?.slug) return [];
+  return reelNotePages(post.title, post.content).map((noteText, index) => {
+    const id = `${post.id}:note:${index}`;
+    return {
+      id,
+      postId: post.id,
+      mediaType: "NOTE",
+      noteText,
+      title: post.title ?? null,
+      content: post.content,
+      createdAt: post.createdAt,
+      isNsfw: post.isNsfw,
+      viewCount: post.viewCount ?? 0,
+      author: {
+        id: post.author.id,
+        username: post.author.username,
+        name: post.author.name ?? null,
+        image: post.author.image,
+      },
+      collaborators: post.isAnonymous
+        ? []
+        : (mapReelCollaborators(post.author.id, post.collaborators) as ReelItem["collaborators"]),
+      media: {
+        id,
+        url: "",
+        hlsUrl: null,
+        posterUrl: null,
+        width: null,
+        height: null,
+        duration: null,
+        priceKrw: 0,
+      },
+      monetization: buildMonetization(post, paymentsEnabled),
+      likeCount: post._count?.likes ?? 0,
+      commentCount: post._count?.comments ?? 0,
+      repostCount: post._count?.reposts ?? 0,
+      liked: !!post.liked,
+      starred: !!post.starred,
+      reposted: !!post.reposted,
+    };
+  });
+}
+
+/** Vertical = post groups; horizontal = videos inside a post. Text is extra pages. */
 export function buildFeedVideoGroups(
   posts: FeedPost[],
   paymentsEnabled?: boolean
@@ -140,6 +185,7 @@ export function buildFeedVideoGroups(
       const reel = postVideoToReelItem(post, m, paymentsEnabled);
       if (reel) videos.push(reel);
     }
+    videos.push(...noteSlidesForPost(post, paymentsEnabled));
     if (videos.length > 0) groups.push({ postId: post.id, videos });
   }
   return groups;

@@ -79,7 +79,7 @@ export function ChatSharedPostCard({
     return (
       <Pressable
         style={styles.card}
-        onPress={() => navigation.navigate("PostDetail", { id: postId })}
+        onPress={() => navigation.navigate("Reels", { postId })}
         onLongPress={onLongPress}
         delayLongPress={280}
       >
@@ -105,7 +105,7 @@ export function ChatSharedPostCard({
             }
             setFailed(true);
             setLoading(false);
-            navigation.navigate("PostDetail", { id: postId });
+            navigation.navigate("Reels", { postId });
           });
         }}
         onLongPress={onLongPress}
@@ -131,7 +131,7 @@ export function ChatSharedPostCard({
       onLongPress={onLongPress}
       delayLongPress={280}
     >
-      <Pressable onPress={() => navigation.navigate("PostDetail", { id: post.id })}>
+      <Pressable onPress={() => navigation.navigate("Reels", { postId: post.id })}>
         <View style={styles.authorRow}>
           <FolkAvatar uri={post.author.image} name={post.author.displayName} size={28} />
           <Text style={styles.author} numberOfLines={1}>
@@ -174,7 +174,7 @@ export function ChatSharedPostCard({
           ) : null}
         </View>
       ) : null}
-      <Pressable onPress={() => navigation.navigate("PostDetail", { id: post.id })}>
+      <Pressable onPress={() => navigation.navigate("Reels", { postId: post.id })}>
         <Text style={styles.body} numberOfLines={3}>
           {post.title?.trim() || post.content}
         </Text>
