@@ -169,6 +169,7 @@
     "three": "^0.184.0",
     "tsx": "^4.19.2",
     "web-push": "^3.6.7",
+    "ws": "^8.22.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -184,6 +185,7 @@
     "@types/textarea-caret": "^3.0.4",
     "@types/three": "^0.184.1",
     "@types/web-push": "^3.6.4",
+    "@types/ws": "^8.18.2",
     "@vitalets/google-translate-api": "^9.2.1",
     "concurrently": "^9.1.0",
     "eslint": "^9.17.0",

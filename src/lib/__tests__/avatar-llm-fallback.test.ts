@@ -173,6 +173,22 @@ test("Zelie refuses English without calling a model", async () => {
   assert.equal(called, 0);
 });
 
+test("Zelie treats Je t'aime as French and answers", async () => {
+  const catalog = {
+    checkedAt: new Date().toISOString(),
+    providers: { groq: { live: ["ok"], dead: {}, cooldown: {} } },
+  };
+  const reply = await replyForAvatar("Je t'aime", "zelie", {
+    store: memoryCatalogStore(catalog),
+    ensure: async () => catalog,
+    configured: (company) => company === "groq",
+    async chat() {
+      return { kind: "text", text: "Moi aussi.", emotion: "happy" };
+    },
+  });
+  assert.equal(reply.text, "Moi aussi.");
+});
+
 test("Zelie keeps a French model line", async () => {
   const catalog = {
     checkedAt: new Date().toISOString(),

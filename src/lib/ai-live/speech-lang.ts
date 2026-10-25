@@ -56,14 +56,16 @@ function hasHangul(text: string): boolean {
 
 const FR_MARK = /[àâäéèêëïîôùûüçœæÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ]/;
 const FR_STRONG =
-  /\b(?:bonjour|salut|merci|français|francais|pourquoi|comment|beaucoup|aujourd'hui|s'il|svp|voilà|voila)\b/i;
+  /\b(?:bonjour|bonsoir|salut|merci|français|francais|pourquoi|comment|beaucoup|aujourd['’]?hui|s['’]il|svp|voilà|voila|aime|aimer|amour|désolé|desole|pardon|allô|allo|oui)\b/i;
 const FR_WEAK =
-  /\b(?:je|tu|nous|vous|il|elle|oui|non|pas|avec|dans|pour|mais|que|qui|une|des|très|tres|ça|ca)\b/i;
+  /\b(?:je|tu|nous|vous|il|elle|on|non|pas|avec|dans|pour|mais|que|qui|une|des|très|tres|ça|ca|moi|toi|lui|est|suis|bien|aussi)\b/gi;
+const FR_CONTRACTION = /(?:^|[^a-zà-ÿ])(?:j|t|l|d|n|m|s|c|qu)['’][a-zà-ÿ]/i;
 
 export function textLooksFrench(text: string): boolean {
   if (hasHangul(text) || hasKana(text) || textLooksChinese(text)) return false;
-  if (FR_MARK.test(text) || FR_STRONG.test(text)) return true;
-  return (text.match(FR_WEAK) ?? []).length >= 2;
+  const normalized = text.replace(/[\u2018\u2019\u02bc]/g, "'");
+  if (FR_MARK.test(normalized) || FR_STRONG.test(normalized) || FR_CONTRACTION.test(normalized)) return true;
+  return [...normalized.matchAll(FR_WEAK)].length >= 2;
 }
 
 export type ZelieInputLang = "ko" | "fr";
@@ -103,7 +105,8 @@ export const AIRI_MAYU_VOICE = "ja-JP-MayuNeural";
 export const AIRI_MAYU_LANG = "ja-JP";
 export const NANGNANG_XIAOYI_VOICE = "zh-CN-XiaoyiNeural";
 export const NANGNANG_XIAOYI_LANG = "zh-CN";
-export const ZELIE_SEOHYEON_VOICE = "ko-KR-SeoHyeonNeural";
+/** SeoHyeon was retired from Edge. SunHi is the remaining Korean female Neural. */
+export const ZELIE_SEOHYEON_VOICE = "ko-KR-SunHiNeural";
 export const ZELIE_SEOHYEON_LANG = "ko-KR";
 export const ZELIE_ELOISE_VOICE = "fr-FR-EloiseNeural";
 export const ZELIE_ELOISE_LANG = "fr-FR";

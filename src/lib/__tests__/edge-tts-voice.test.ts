@@ -52,9 +52,9 @@ test("Nangnang uses Microsoft Xiaoyi on Edge and StreamElements", () => {
   assert.deepEqual(dedicatedEdgeVoice("airi"), { voice: "ja-JP-MayuNeural", lang: "ja-JP" });
   assert.deepEqual(dedicatedEdgeVoice("mio"), { voice: "ja-JP-MayuNeural", lang: "ja-JP" });
   assert.deepEqual(dedicatedEdgeVoice("chloe"), { voice: "ja-JP-MayuNeural", lang: "ja-JP" });
-  assert.equal(ZELIE_SEOHYEON_VOICE, "ko-KR-SeoHyeonNeural");
+  assert.equal(ZELIE_SEOHYEON_VOICE, "ko-KR-SunHiNeural");
   assert.equal(ZELIE_ELOISE_VOICE, "fr-FR-EloiseNeural");
-  assert.deepEqual(dedicatedEdgeVoice("zelie", "ko"), { voice: "ko-KR-SeoHyeonNeural", lang: "ko-KR" });
+  assert.deepEqual(dedicatedEdgeVoice("zelie", "ko"), { voice: "ko-KR-SunHiNeural", lang: "ko-KR" });
   assert.deepEqual(dedicatedEdgeVoice("moco", "fr"), { voice: "fr-FR-EloiseNeural", lang: "fr-FR" });
 });
 
@@ -70,17 +70,20 @@ test("Mio only treats Japanese chat as her language", () => {
 test("Zelie only treats Korean and French as her languages", () => {
   assert.equal(zelieInputLang("안녕 젤리"), "ko");
   assert.equal(zelieInputLang("bonjour ça va"), "fr");
+  assert.equal(zelieInputLang("Je t'aime"), "fr");
+  assert.equal(zelieInputLang("Je t’aime"), "fr");
   assert.equal(zelieInputLang("hello zelie"), null);
   assert.equal(zelieInputLang("こんにちは"), null);
   assert.equal(textLooksFrench("Merci beaucoup"), true);
+  assert.equal(textLooksFrench("Moi aussi."), true);
   assert.equal(textLooksFrench("hello there"), false);
 });
 
-test("Vercel skips the Edge websocket so speak cannot 504", () => {
+test("Vercel can use Edge neural voices again", () => {
   assert.equal(edgeWebsocketAllowed(""), true);
-  assert.equal(edgeWebsocketAllowed("1"), false);
+  assert.equal(edgeWebsocketAllowed("1"), true);
   assert.deepEqual(ttsProviderOrder(""), ["edge", "streamelements", "google"]);
-  assert.deepEqual(ttsProviderOrder("1"), ["streamelements", "google"]);
+  assert.deepEqual(ttsProviderOrder("1"), ["edge", "streamelements", "google"]);
 });
 
 test("AIRI SSML uses Mayu with a lowered pitch", () => {
