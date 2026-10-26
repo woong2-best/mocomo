@@ -51,7 +51,7 @@ export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }:
         parts.push(
           <Text
             key={`${key}-url-${ti}`}
-            style={styles.link}
+            style={styles.hyperlink}
             onPress={() => void Linking.openURL(token.href)}
           >
             {token.label}
@@ -98,7 +98,7 @@ export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }:
       parts.push(
         <Text
           key={`${keyPrefix}-ext-${i++}`}
-          style={styles.link}
+          style={styles.hyperlink}
           onPress={() => void Linking.openURL(href)}
         >
           {m[4]}
@@ -146,7 +146,7 @@ export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }:
             token.type === "link" ? (
               <Text
                 key={`${keyPrefix}-solo-${ti}`}
-                style={styles.link}
+                style={styles.hyperlink}
                 onPress={() => void Linking.openURL(token.href)}
               >
                 {token.label}
@@ -171,6 +171,13 @@ function createStyles(colors: ThemeColors) {
     text: { color: colors.text, fontSize: 15, lineHeight: 24, fontWeight: "400" },
     bold: { color: colors.text, fontSize: 15, lineHeight: 24, fontWeight: "800" },
     link: { color: colors.brand, fontSize: 15, lineHeight: 24, fontWeight: "700" },
+    hyperlink: {
+      color: colors.success,
+      fontSize: 15,
+      lineHeight: 24,
+      fontWeight: "700",
+      textDecorationLine: "underline",
+    },
     badge: {
       color: colors.gold,
       fontSize: 12,

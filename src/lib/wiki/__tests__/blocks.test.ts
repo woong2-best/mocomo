@@ -28,7 +28,11 @@ https://www.youtube.com/watch?v=s2muG5yqdSc
 `);
     expect(blocks).toEqual([
       { type: "heading", level: 2, label: "Theme songs" },
-      { type: "youtube", id: "s2muG5yqdSc" },
+      {
+        type: "youtube",
+        id: "s2muG5yqdSc",
+        source: "https://www.youtube.com/watch?v=s2muG5yqdSc",
+      },
     ]);
   });
 });

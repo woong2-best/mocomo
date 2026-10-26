@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
 import type { WikiVideo } from "@/lib/wiki/media";
+import { cn } from "@/lib/utils";
 
 function EmbedFrame({ src, title }: { src: string; title: string }) {
   return (
@@ -16,12 +17,13 @@ function EmbedFrame({ src, title }: { src: string; title: string }) {
   );
 }
 
-export function WikiVideoPlayer({ video }: { video: WikiVideo }) {
+export function WikiVideoPlayer({ video, className }: { video: WikiVideo; className?: string }) {
   const [playing, setPlaying] = useState(false);
+  const frame = cn("my-3 overflow-hidden rounded-xl border border-border/60 bg-black", className);
 
   if (video.kind === "file") {
     return (
-      <div className="my-3 overflow-hidden rounded-xl border border-border/60 bg-black">
+      <div className={frame}>
         <video src={video.url} className="aspect-video w-full" controls preload="metadata" playsInline />
       </div>
     );
@@ -34,14 +36,14 @@ export function WikiVideoPlayer({ video }: { video: WikiVideo }) {
 
   if (playing) {
     return (
-      <div className="my-3 aspect-video overflow-hidden rounded-xl border border-border/60 bg-black">
+      <div className={cn(frame, "aspect-video")}>
         <EmbedFrame src={embedSrc} title={title} />
       </div>
     );
   }
 
   return (
-    <div className="my-3 overflow-hidden rounded-xl border border-border/60 bg-black">
+    <div className={frame}>
       <button
         type="button"
         onClick={() => setPlaying(true)}

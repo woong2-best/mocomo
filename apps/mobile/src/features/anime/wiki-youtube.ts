@@ -120,6 +120,28 @@ export function extractWikiVideos(text: string): WikiVideo[] {
   return videos;
 }
 
+export function wikiVideoLink(source: string, fallbackHref: string): { href: string; label: string } {
+  const trimmed = source.trim();
+  const markdown = trimmed.match(MARKDOWN_LINK_RE);
+  if (markdown && !trimmed.startsWith("![")) {
+    const href = markdown[2].trim() || fallbackHref;
+    const label = markdown[1].trim() || href;
+    return { href, label };
+  }
+  const tagged = trimmed.match(VIDEO_TAG_RE);
+  if (tagged?.[2]) {
+    const href = tagged[2].trim();
+    return { href, label: href };
+  }
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("www.")) {
+    return {
+      href: trimmed.startsWith("www.") ? `https://${trimmed}` : trimmed,
+      label: trimmed,
+    };
+  }
+  return { href: fallbackHref, label: fallbackHref };
+}
+
 export function splitAutolinkParts(text: string): Array<{ type: "text"; value: string } | { type: "link"; href: string; label: string }> {
   const parts: Array<{ type: "text"; value: string } | { type: "link"; href: string; label: string }> = [];
   let last = 0;

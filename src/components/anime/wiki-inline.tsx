@@ -8,6 +8,31 @@ import { cn } from "@/lib/utils";
 
 type FootnoteMap = Map<string, string>;
 
+export const WIKI_HYPERLINK_CLASS =
+  "text-emerald-600 dark:text-emerald-400 font-medium underline underline-offset-2 hover:text-emerald-500 dark:hover:text-emerald-300 inline-flex items-center gap-0.5 break-all";
+
+export function WikiExternalLink({
+  href,
+  children,
+  className,
+}: {
+  href: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const external = isExternalHref(href) || /^https?:\/\//i.test(href);
+  return (
+    <a
+      href={href}
+      className={cn(WIKI_HYPERLINK_CLASS, className)}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+    >
+      {children}
+      {external && <span className="text-[10px] opacity-70">↗</span>}
+    </a>
+  );
+}
+
 const INLINE_RE =
   /(\{\{([^}]+)\}\}|\[\[(?:[^\]|]+\|)?([^\]|]+)\]\]|\[([^\]]+)\]\(([^)]+)\)|\[\^(\d+)\]|!\[([^\]]*)\]\(([^)]+)\)|\*\*([^*]+)\*\*)/g;
 
@@ -39,17 +64,10 @@ export function WikiInline({
     }
     tokens.forEach((token, ti) => {
       if (token.type === "link") {
-        const external = isExternalHref(token.href);
         parts.push(
-          <a
-            key={`${key}-url-${ti}`}
-            href={token.href}
-            className="text-primary hover:underline inline-flex items-center gap-0.5"
-            {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-          >
+          <WikiExternalLink key={`${key}-url-${ti}`} href={token.href}>
             {token.label}
-            {external && <span className="text-[10px] opacity-60">↗</span>}
-          </a>
+          </WikiExternalLink>
         );
         return;
       }
@@ -91,17 +109,10 @@ export function WikiInline({
       );
     } else if (m[4] !== undefined && m[5]) {
       const href = m[5].trim();
-      const external = /^https?:\/\//i.test(href);
       parts.push(
-        <a
-          key={`${keyPrefix}-ext-${i++}`}
-          href={href}
-          className="text-primary hover:underline inline-flex items-center gap-0.5"
-          {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-        >
+        <WikiExternalLink key={`${keyPrefix}-ext-${i++}`} href={href}>
           {m[4]}
-          {external && <span className="text-[10px] opacity-60">↗</span>}
-        </a>
+        </WikiExternalLink>
       );
     } else if (m[6]) {
       const id = m[6];

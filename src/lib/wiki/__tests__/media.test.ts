@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { extractWikiVideos, parseWikiVideoLine, parseWikiVideoUrl } from "@/lib/wiki/media";
+import {
+  extractWikiVideos,
+  parseWikiVideoLine,
+  parseWikiVideoUrl,
+  wikiVideoLink,
+} from "@/lib/wiki/media";
 
 describe("parseWikiVideoLine", () => {
   it("reads a pasted YouTube watch URL", () => {
@@ -43,6 +48,15 @@ describe("extractWikiVideos", () => {
     const videos = extractWikiVideos("Listen here https://www.youtube.com/watch?v=s2muG5yqdSc now.");
     expect(videos).toHaveLength(1);
     expect(videos[0]).toMatchObject({ kind: "youtube", id: "s2muG5yqdSc" });
+  });
+});
+
+describe("wikiVideoLink", () => {
+  it("keeps a pasted YouTube URL clickable", () => {
+    expect(wikiVideoLink("https://www.youtube.com/watch?v=s2muG5yqdSc", "https://fallback")).toEqual({
+      href: "https://www.youtube.com/watch?v=s2muG5yqdSc",
+      label: "https://www.youtube.com/watch?v=s2muG5yqdSc",
+    });
   });
 });
 

@@ -7,6 +7,7 @@ import { WikiInline, type FootnoteMap } from "@/features/anime/WikiInline";
 import {
   extractWikiVideos,
   parseWikiVideoLine,
+  wikiVideoLink,
   type WikiVideo,
 } from "@/features/anime/wiki-youtube";
 import { animeUi } from "@/features/anime/anime-ui";
@@ -67,22 +68,19 @@ function parseTableBlock(lines: string[]): string[][] | null {
   return rows;
 }
 
-function WikiVideoCard({ video }: { video: WikiVideo }) {
+function WikiVideoCard({ video, source }: { video: WikiVideo; source?: string }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [playing, setPlaying] = useState(false);
   const label = video.kind === "file" ? "Video" : video.kind === "youtube" ? "YouTube" : "Vimeo";
+  const link = source ? wikiVideoLink(source, video.url) : null;
 
-  if (video.kind === "file") {
-    return (
+  const card =
+    video.kind === "file" ? (
       <View style={styles.video}>
         <WebView source={{ uri: video.url }} style={styles.videoInner} allowsFullscreenVideo />
       </View>
-    );
-  }
-
-  if (playing) {
-    return (
+    ) : playing ? (
       <View style={styles.video}>
         <WebView
           source={{ uri: `${video.embedSrc}${video.embedSrc.includes("?") ? "&" : "?"}autoplay=1` }}
@@ -90,26 +88,33 @@ function WikiVideoCard({ video }: { video: WikiVideo }) {
           allowsFullscreenVideo
         />
       </View>
+    ) : (
+      <Pressable
+        onPress={() => setPlaying(true)}
+        onLongPress={() => void Linking.openURL(video.url)}
+        style={styles.video}
+      >
+        {video.kind === "youtube" ? (
+          <Image source={{ uri: video.thumbnail }} style={styles.videoThumb} contentFit="cover" />
+        ) : (
+          <View style={styles.videoThumb} />
+        )}
+        <View style={styles.videoScrim} />
+        <View style={styles.videoPlay}>
+          <Text style={styles.videoPlayIcon}>▶</Text>
+        </View>
+        <Text style={styles.videoBadge}>{label}</Text>
+      </Pressable>
     );
-  }
 
+  if (!link) return card;
   return (
-    <Pressable
-      onPress={() => setPlaying(true)}
-      onLongPress={() => void Linking.openURL(video.url)}
-      style={styles.video}
-    >
-      {video.kind === "youtube" ? (
-        <Image source={{ uri: video.thumbnail }} style={styles.videoThumb} contentFit="cover" />
-      ) : (
-        <View style={styles.videoThumb} />
-      )}
-      <View style={styles.videoScrim} />
-      <View style={styles.videoPlay}>
-        <Text style={styles.videoPlayIcon}>▶</Text>
-      </View>
-      <Text style={styles.videoBadge}>{label}</Text>
-    </Pressable>
+    <View>
+      <Text style={styles.hyperlink} onPress={() => void Linking.openURL(link.href)}>
+        {link.label}
+      </Text>
+      {card}
+    </View>
   );
 }
 
@@ -156,7 +161,7 @@ export function WikiContent({ source }: { source: string }) {
 
     const wholeVideo = parseWikiVideoLine(trimmed);
     if (wholeVideo) {
-      rendered.push(<WikiVideoCard key={`yt-${bi}`} video={wholeVideo} />);
+      rendered.push(<WikiVideoCard key={`yt-${bi}`} video={wholeVideo} source={trimmed} />);
       return;
     }
 
@@ -268,7 +273,7 @@ export function WikiContent({ source }: { source: string }) {
       const lineVideo = parseWikiVideoLine(line);
       if (lineVideo) {
         flushPara(`pre-${li}`);
-        rendered.push(<WikiVideoCard key={`lnvid-${bi}-${li}`} video={lineVideo} />);
+        rendered.push(<WikiVideoCard key={`lnvid-${bi}-${li}`} video={lineVideo} source={line} />);
         return;
       }
       const heading = matchLineHeading(line);
@@ -372,6 +377,14 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: "#000",
     },
     videoInner: { flex: 1, backgroundColor: "#000" },
+    hyperlink: {
+      color: colors.success,
+      fontSize: 15,
+      lineHeight: 24,
+      fontWeight: "700",
+      textDecorationLine: "underline",
+      marginBottom: 6,
+    },
     videoThumb: { ...StyleSheet.absoluteFillObject, backgroundColor: "#111" },
     videoScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.25)" },
     videoPlay: {

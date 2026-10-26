@@ -5,8 +5,8 @@ const t = createTranslator("en");
 
 import { wikiHeadingId } from "@/lib/anime-revision";
 import { parseWikiBlocks } from "@/lib/wiki/blocks";
-import { extractWikiVideos } from "@/lib/wiki/media";
-import { WikiInline } from "@/components/anime/wiki-inline";
+import { extractWikiVideos, wikiVideoLink, type WikiVideo } from "@/lib/wiki/media";
+import { WikiExternalLink, WikiInline } from "@/components/anime/wiki-inline";
 import { WikiVideoPlayer } from "@/components/anime/wiki-video";
 
 type FootnoteMap = Map<string, string>;
@@ -28,6 +28,18 @@ function parseFootnotes(source: string): { body: string; notes: FootnoteMap } {
 
 function renderInline(text: string, notes: FootnoteMap, keyPrefix: string) {
   return <WikiInline text={text} notes={notes} keyPrefix={keyPrefix} />;
+}
+
+function WikiLinkedVideo({ source, video }: { source: string; video: WikiVideo }) {
+  const link = wikiVideoLink(source, video.url);
+  return (
+    <div className="my-3 space-y-1.5">
+      <p className="text-sm leading-relaxed">
+        <WikiExternalLink href={link.href}>{link.label}</WikiExternalLink>
+      </p>
+      <WikiVideoPlayer video={video} className="my-0" />
+    </div>
+  );
 }
 
 function youtubeVideo(id: string) {
@@ -73,12 +85,16 @@ export function WikiContent({
     }
 
     if (block.type === "youtube") {
-      rendered.push(<WikiVideoPlayer key={`yt-${bi}`} video={youtubeVideo(block.id)} />);
+      rendered.push(
+        <WikiLinkedVideo key={`yt-${bi}`} source={block.source} video={youtubeVideo(block.id)} />
+      );
       return;
     }
 
     if (block.type === "video") {
-      rendered.push(<WikiVideoPlayer key={`vid-${bi}`} video={block.video} />);
+      rendered.push(
+        <WikiLinkedVideo key={`vid-${bi}`} source={block.source} video={block.video} />
+      );
       return;
     }
 

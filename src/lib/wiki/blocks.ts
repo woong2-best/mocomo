@@ -3,8 +3,8 @@ import { parseWikiVideoLine, type WikiVideo } from "@/lib/wiki/media";
 
 export type WikiBlock =
   | { type: "heading"; level: 2 | 3; label: string }
-  | { type: "youtube"; id: string }
-  | { type: "video"; video: WikiVideo }
+  | { type: "youtube"; id: string; source: string }
+  | { type: "video"; video: WikiVideo; source: string }
   | { type: "table"; rows: string[][] }
   | { type: "collapse"; title: string; body: string }
   | { type: "paragraph"; text: string };
@@ -90,9 +90,9 @@ export function parseWikiBlocks(source: string): WikiBlock[] {
     if (video) {
       flushPara();
       if (video.kind === "youtube") {
-        blocks.push({ type: "youtube", id: video.id });
+        blocks.push({ type: "youtube", id: video.id, source: trimmed });
       } else {
-        blocks.push({ type: "video", video });
+        blocks.push({ type: "video", video, source: trimmed });
       }
       i += 1;
       continue;
