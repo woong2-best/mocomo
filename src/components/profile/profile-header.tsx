@@ -21,10 +21,7 @@ import { userAvatarFallbackInitial, userDisplayName } from "@/lib/user-public-se
 import { DEFAULT_LANDING_PATH } from "@/lib/site-routes";
 import { ProfileHeaderFeedActions } from "@/components/profile/profile-header-feed-actions";
 import { ProfileFollowCounts } from "@/components/profile/profile-follow-counts";
-import {
-  ProfileLiveAvatarRing,
-  ProfileLiveBanner,
-} from "@/components/profile/profile-live-banner";
+import { ProfileLiveBanner } from "@/components/profile/profile-live-banner";
 import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
 import type { ProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
 import { ProfileStreamingChannelButtons } from "@/components/profile/profile-streaming-channel-buttons";
@@ -92,7 +89,6 @@ export function ProfileHeader({
     (isSelf || !!user.profile?.showBirthdayOnProfile);
   const isBlocked = blockedByViewer || blockedViewer;
   const isSuspendedProfile = isReadOnlySuspended(user.accountStatus);
-  const liveHref = liveBroadcast?.watchHref ?? null;
   const showLive = !!liveBroadcast && !isBlocked;
 
   const avatar = (
@@ -130,15 +126,6 @@ export function ProfileHeader({
               <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-label={t("settings.postsLockOn")} />
             ) : null}
             <CreatorFollowerBadge badge={creatorBadge} size="sm" showLabel={false} />
-            {showLive ? (
-              <Link
-                href={liveHref!}
-                className="live-badge ml-0.5 !py-0 hover:brightness-110"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                LIVE
-              </Link>
-            ) : null}
           </div>
           <p className="text-xs text-muted-foreground">{user._count.posts}개 게시물</p>
         </div>
@@ -165,11 +152,7 @@ export function ProfileHeader({
 
       <div className="px-4 pb-4">
         <div className="-mt-14 sm:-mt-16 flex items-end justify-between gap-2 sm:gap-3">
-          {showLive && liveHref ? (
-            <ProfileLiveAvatarRing href={liveHref}>{avatar}</ProfileLiveAvatarRing>
-          ) : (
-            avatar
-          )}
+          {avatar}
 
           {!isBlocked && (
             <div className="mb-1 flex min-w-0 max-w-[min(100%,20rem)] flex-wrap items-center justify-end gap-2 sm:max-w-none">
