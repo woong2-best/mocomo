@@ -1,14 +1,8 @@
-import { parseWikiInfobox } from "@/lib/anime-wiki-infobox";
+import { parseWikiInfobox, DEFAULT_WIKI_INFOBOX } from "@/lib/anime-wiki-infobox";
 
-export const DEFAULT_WIKI_INFOBOX = `=== Work info ===
-Genre | 
-Studio | 
-Network | 
-Episodes | `;
+export { DEFAULT_WIKI_INFOBOX };
 
-export const DEFAULT_WIKI_DOCUMENT = `${DEFAULT_WIKI_INFOBOX}
-
-== Overview ==
+export const DEFAULT_WIKI_BODY = `== Overview ==
 
 == Synopsis ==
 
@@ -18,6 +12,10 @@ export const DEFAULT_WIKI_DOCUMENT = `${DEFAULT_WIKI_INFOBOX}
 
 == Trivia ==
 `;
+
+export const DEFAULT_WIKI_DOCUMENT = `${DEFAULT_WIKI_INFOBOX}
+
+${DEFAULT_WIKI_BODY}`;
 
 const WIKI_LINK_RE = /\[\[(?:([^\]|]+)\|)?([^\]|]+)\]\]/g;
 const CHARACTERS_HEADER_RE = /^==\s*(characters|cast)\s*==$/i;

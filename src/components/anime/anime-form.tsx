@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAnime, updateAnime } from "@/actions/anime";
 import { AnimeImageUrlField } from "@/components/anime/anime-image-url-field";
 import { CultureWikiEditNotice } from "@/components/anime/culture-wiki-edit-notice";
+import { WikiArticleInfoCard } from "@/components/anime/wiki-article-info-card";
 import { WikiContent } from "@/components/anime/wiki-content";
+import { WikiInfoboxEditor } from "@/components/anime/wiki-infobox-editor";
 import { WikiLinkStatusProvider } from "@/components/anime/wiki-link-context";
 import { WikiEditor } from "@/components/wiki/WikiEditor";
 import { ANIME_GENRES } from "@/lib/anime-genres";
+import { DEFAULT_WIKI_INFOBOX, mergeStudioIntoInfobox } from "@/lib/anime-wiki-infobox";
 import {
+  DEFAULT_WIKI_BODY,
   DEFAULT_WIKI_DOCUMENT,
   charactersToText,
   composeWikiDocument,
@@ -87,18 +91,44 @@ export function AnimeForm({
   initial?: Partial<AnimeFormData>;
 }) {
   const router = useRouter();
+  const infoboxRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [genre, setGenre] = useState<AnimeGenre>(initial?.genre ?? "OTHER");
-  const [document, setDocument] = useState(() => {
-    if (mode === "create") return DEFAULT_WIKI_DOCUMENT;
-    return composeWikiDocument({
-      synopsis: initial?.synopsis,
-      worldInfo: initial?.worldInfo,
-      infobox: initial?.infobox,
-      charactersText: charactersToText(initial?.characters),
-    });
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [titleEn, setTitleEn] = useState(initial?.titleEn ?? "");
+  const [coverUrl, setCoverUrl] = useState(initial?.coverUrl ?? "");
+  const [body, setBody] = useState(() => {
+    const composed =
+      mode === "create"
+        ? DEFAULT_WIKI_DOCUMENT
+        : composeWikiDocument({
+            synopsis: initial?.synopsis,
+            worldInfo: initial?.worldInfo,
+            infobox: initial?.infobox,
+            charactersText: charactersToText(initial?.characters),
+          });
+    return splitWikiDocument(composed).body || DEFAULT_WIKI_BODY;
   });
+  const [infobox, setInfobox] = useState(() => {
+    const composed =
+      mode === "create"
+        ? DEFAULT_WIKI_DOCUMENT
+        : composeWikiDocument({
+            synopsis: initial?.synopsis,
+            worldInfo: initial?.worldInfo,
+            infobox: initial?.infobox,
+            charactersText: charactersToText(initial?.characters),
+          });
+    return mergeStudioIntoInfobox(
+      splitWikiDocument(composed).infobox || initial?.infobox || DEFAULT_WIKI_INFOBOX,
+      initial?.studio
+    );
+  });
+  const document = useMemo(
+    () => composeWikiDocument({ synopsis: body, infobox }),
+    [body, infobox]
+  );
   const previewLinks = usePreviewWikiLinks(document);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -109,8 +139,8 @@ export function AnimeForm({
     const form = new FormData(e.currentTarget);
     const split = splitWikiDocument(document);
     const payload = {
-      title: form.get("title") as string,
-      titleEn: (form.get("titleEn") as string) || undefined,
+      title: title.trim() || (form.get("title") as string),
+      titleEn: titleEn.trim() || (form.get("titleEn") as string) || undefined,
       genre,
       synopsis: split.body.trim() || undefined,
       studio: split.studio || undefined,
@@ -145,11 +175,22 @@ export function AnimeForm({
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium">{t("anime.spzylzr")}</label>
-            <Input name="title" defaultValue={initial?.title} required className="mt-1 rounded-xl" />
+            <Input
+              name="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              className="mt-1 rounded-xl"
+            />
           </div>
           <div>
             <label className="text-sm font-medium">{t("anime.sghpkl2")}</label>
-            <Input name="titleEn" defaultValue={initial?.titleEn ?? ""} className="mt-1 rounded-xl" />
+            <Input
+              name="titleEn"
+              value={titleEn}
+              onChange={(e) => setTitleEn(e.target.value)}
+              className="mt-1 rounded-xl"
+            />
           </div>
           <div>
             <label className="text-sm font-medium">{t("anime.spxo9fd")}</label>
@@ -180,6 +221,7 @@ export function AnimeForm({
             defaultValue={initial?.coverUrl ?? ""}
             previewAspect="square"
             uploadLabel={t("anime.sce7mwp")}
+            onUrlChange={setCoverUrl}
           />
           <AnimeImageUrlField
             name="bannerUrl"
@@ -205,6 +247,28 @@ export function AnimeForm({
         </CardContent>
       </Card>
 
+      <Card id="wiki-article-info-editor" className="rounded-2xl shadow-md scroll-mt-24">
+        <CardHeader>
+          <CardTitle>{t("anime.s1a3gksb")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("wiki.infobox.editorHelp")}</p>
+        </CardHeader>
+        <CardContent ref={infoboxRef} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+          <WikiInfoboxEditor value={infobox} onChange={setInfobox} />
+          <div className="min-w-0">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("wiki.infobox.preview")}
+            </p>
+            <WikiArticleInfoCard
+              title={title}
+              titleEn={titleEn}
+              genre={genre}
+              coverUrl={coverUrl}
+              infobox={infobox}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle>{t("wiki.editor.bodyLabel")}</CardTitle>
@@ -213,17 +277,18 @@ export function AnimeForm({
         <CardContent className="space-y-4">
           <WikiEditor
             variant="body"
-            value={document}
-            onChange={setDocument}
+            value={body}
+            onChange={setBody}
             placeholder={t("wiki.editor.placeholder")}
+            onInfobox={() => infoboxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
           />
-          {document.trim() ? (
+          {body.trim() ? (
             <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 min-h-[120px] overflow-y-auto">
               <p className="text-[10px] font-semibold text-muted-foreground mb-2">
                 {t("wiki.editor.preview")}
               </p>
               <WikiLinkStatusProvider value={previewLinks}>
-                <WikiContent source={document} />
+                <WikiContent source={body} />
               </WikiLinkStatusProvider>
             </div>
           ) : null}

@@ -63,6 +63,8 @@ export type WikiEditorProps = {
   placeholder?: string;
   /** Fetch live wiki titles while typing `[[`. */
   liveTitles?: boolean;
+  /** Open the structured Article info editor instead of inserting raw infobox markup. */
+  onInfobox?: () => void;
 };
 
 type PopoverState = {
@@ -110,6 +112,7 @@ export function WikiEditor({
   initialBannerUrl,
   variant = "document",
   placeholder,
+  onInfobox,
 }: WikiEditorProps) {
   const bodyOnly = variant === "body";
   const isControlled = value !== undefined;
@@ -570,6 +573,7 @@ export function WikiEditor({
       <EditorToolbar
         variant={variant}
         onMacro={handleMacro}
+        onInfobox={onInfobox}
         onPickImage={() => {
           caretForInsert();
           imageInputRef.current?.click();

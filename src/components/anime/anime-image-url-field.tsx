@@ -16,6 +16,7 @@ export function AnimeImageUrlField({
   defaultValue = "",
   previewAspect = "square",
   uploadLabel = t("anime.s1rw0t19"),
+  onUrlChange,
 }: {
   name: string;
   label: string;
@@ -23,8 +24,13 @@ export function AnimeImageUrlField({
   placeholder?: string;
   previewAspect?: "square" | "banner";
   uploadLabel?: string;
+  onUrlChange?: (url: string) => void;
 }) {
   const [url, setUrl] = useState(defaultValue);
+  function updateUrl(next: string) {
+    setUrl(next);
+    onUrlChange?.(next);
+  }
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
@@ -34,7 +40,7 @@ export function AnimeImageUrlField({
     try {
       const prepared = await prepareWikiImageForUpload(file);
       const uploaded = await uploadImageBlob(prepared, prepared.name || `${name}.webp`);
-      setUrl(uploaded);
+      updateUrl(uploaded);
     } catch {
       setUploadError(t("anime.s27xnoi"));
     } finally {
@@ -84,7 +90,7 @@ export function AnimeImageUrlField({
             variant="ghost"
             size="sm"
             className="h-9 gap-1 rounded-xl text-muted-foreground"
-            onClick={() => setUrl("")}
+            onClick={() => updateUrl("")}
           >
             <X className="h-3.5 w-3.5" />
             {t("collab.remove")}

@@ -3,16 +3,15 @@ const t = createTranslator("en");
 
 import Link from "next/link";
 import type { AnimeGenre } from "@prisma/client";
-import { AnimeWikiInfobox } from "@/components/anime/anime-wiki-infobox";
+import { WikiArticleInfoCard } from "@/components/anime/wiki-article-info-card";
 import { WikiContent } from "@/components/anime/wiki-content";
 import { WikiLinkStatusProvider } from "@/components/anime/wiki-link-context";
 import { WikiStickyToc } from "@/components/anime/wiki-sticky-toc";
-import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { wikiHeadingId, wikiLinkSlug } from "@/lib/anime-revision";
 import { extractInfoboxSource, extractWikiHeadings, hasCharactersHeading } from "@/lib/wiki/document";
+import { mergeStudioIntoInfobox } from "@/lib/anime-wiki-infobox";
 import type { WikiLinkStatusMap } from "@/lib/wiki/resolve-links";
 import { cn } from "@/lib/utils";
-import { wikiCoverDisplayUrl } from "@/lib/wiki-cover-url";
 
 type AnimeWikiArticleProps = {
   title: string;
@@ -56,17 +55,14 @@ export function AnimeWikiArticle({
   wikiLinks,
   className,
 }: AnimeWikiArticleProps) {
-  const genreInfo = getGenreInfo(genre);
   const extracted = extractInfoboxSource(synopsis ?? "");
   const articleBody = extracted.body || synopsis;
-  const infoboxSource = infobox?.trim() ? infobox : extracted.infobox || null;
+  const infoboxSource = mergeStudioIntoInfobox(
+    infobox?.trim() ? infobox : extracted.infobox || null,
+    studio
+  );
   const headings = [...toToc("syn", articleBody), ...toToc("world", worldInfo)];
   const showCharacterChips = characters.length > 0 && !hasCharactersHeading(articleBody);
-  const formattedDate = new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(updatedAt);
 
   return (
     <WikiLinkStatusProvider value={wikiLinks}>
@@ -151,53 +147,14 @@ export function AnimeWikiArticle({
           <div className="hidden lg:block">
             <WikiStickyToc headings={headings} title={t("anime.swvbz")} />
           </div>
-          <div className="rounded-2xl border border-border/70 bg-card/80 overflow-hidden shadow-sm">
-            <div className="px-3 py-2 border-b border-border/60 bg-muted/30 text-center">
-              <p className="text-xs font-semibold text-muted-foreground">{t("anime.s1a3gksb")}</p>
-            </div>
-            {coverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={wikiCoverDisplayUrl(coverUrl) ?? coverUrl}
-                alt={title}
-                className="w-full aspect-[3/4] object-cover"
-              />
-            ) : (
-              <div className="w-full aspect-[3/4] bg-muted/40 flex items-center justify-center text-5xl">
-                {genreInfo.emoji}
-              </div>
-            )}
-            <dl className="px-3 py-3 space-y-2 text-sm border-b border-border/50">
-              <div>
-                <dt className="text-xs text-muted-foreground">{t("cosplay.sz28d")}</dt>
-                <dd className="font-semibold leading-snug">{title}</dd>
-                {titleEn && <dd className="text-xs text-muted-foreground mt-0.5">{titleEn}</dd>}
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{t("anime.sx93o")}</dt>
-                <dd>
-                  <Link
-                    href={`/anime/list/${genreToParam(genre)}`}
-                    className="inline-flex items-center gap-1 text-primary hover:underline"
-                  >
-                    {genreInfo.emoji} {genreInfo.label}
-                  </Link>
-                </dd>
-              </div>
-              {studio && (
-                <div>
-                  <dt className="text-xs text-muted-foreground">{t("anime.sua6af")}</dt>
-                  <dd>{studio}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-xs text-muted-foreground">{t("anime.s17kxw59")}</dt>
-                <dd className="text-xs">{formattedDate}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <AnimeWikiInfobox source={infoboxSource} />
+          <WikiArticleInfoCard
+            title={title}
+            titleEn={titleEn}
+            genre={genre}
+            coverUrl={coverUrl}
+            infobox={infoboxSource}
+            updatedAt={updatedAt}
+          />
         </aside>
       </div>
     </article>

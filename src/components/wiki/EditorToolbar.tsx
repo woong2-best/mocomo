@@ -42,6 +42,7 @@ type EditorToolbarProps = {
   onPickVideo: () => void;
   onPickCover: () => void;
   onPickBanner: () => void;
+  onInfobox?: () => void;
   imageBusy?: boolean;
   videoBusy?: boolean;
 };
@@ -111,6 +112,7 @@ export function EditorToolbar({
   onPickVideo,
   onPickCover,
   onPickBanner,
+  onInfobox,
   imageBusy,
   videoBusy,
 }: EditorToolbarProps) {
@@ -208,14 +210,19 @@ export function EditorToolbar({
         </div>
         <div className="mx-1 h-5 w-px shrink-0 bg-border" aria-hidden />
         <div className="flex items-center gap-1.5">
-          {(bodyOnly ? WIKI_BODY_MACROS : [...WIKI_BODY_MACROS, ...WIKI_MACROS]).map((macro) => (
-            <PillButton
-              key={macro.id}
-              label={macro.label}
-              title={macro.label}
-              onClick={() => onMacro(macro)}
-            />
-          ))}
+          {(bodyOnly ? WIKI_BODY_MACROS : [...WIKI_BODY_MACROS, ...WIKI_MACROS])
+            .filter((macro) => !(macro.id === "infobox" && onInfobox))
+            .map((macro) => (
+              <PillButton
+                key={macro.id}
+                label={macro.label}
+                title={macro.label}
+                onClick={() => onMacro(macro)}
+              />
+            ))}
+          {onInfobox ? (
+            <PillButton label={t("wiki.editor.infobox")} title={t("wiki.editor.infobox")} onClick={onInfobox} />
+          ) : null}
         </div>
       </div>
 
