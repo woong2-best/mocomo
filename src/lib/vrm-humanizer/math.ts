@@ -79,18 +79,22 @@ export function cartoonSlerpAlpha(elapsed: number, duration: number, style: Cart
   return cartoonEase(elapsed / duration, style);
 }
 
+export const TOON_BOP_MAX = 0.012;
+export const TOON_NOD_MAX = 0.055;
+export const TOON_SWAY_MAX = 0.045;
+
 /** hips.y offset. Negative sine = down, so a nod can lock to the same phase. */
 export function toonBopOffset(time: number, speed: number, amplitude: number, phase = 0): number {
-  return Math.sin(time * speed + phase) * amplitude;
+  return clamp(Math.sin(time * speed + phase) * amplitude, -TOON_BOP_MAX, TOON_BOP_MAX);
 }
 
 /** When hips drop, head pitch goes down. */
 export function toonNodPitch(bopSine: number, nodAmp: number): number {
-  return -bopSine * nodAmp;
+  return clamp(-bopSine * nodAmp, -TOON_NOD_MAX, TOON_NOD_MAX);
 }
 
 export function toonSwayRoll(time: number, speed: number, amplitude: number): number {
-  return Math.sin(time * speed) * amplitude;
+  return clamp(Math.sin(time * speed) * amplitude, -TOON_SWAY_MAX, TOON_SWAY_MAX);
 }
 
 /** Squash at the bottom of the bop. `amount` 1 → scale (1.02, 0.98). */

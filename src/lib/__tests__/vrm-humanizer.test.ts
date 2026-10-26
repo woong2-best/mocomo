@@ -5,6 +5,9 @@ import {
   breathingScale,
   cartoonEase,
   cartoonSlerpAlpha,
+  TOON_BOP_MAX,
+  TOON_NOD_MAX,
+  TOON_SWAY_MAX,
   resolveFsmState,
   rmsAmplitudeScale,
   shouldBoostSaccade,
@@ -13,6 +16,7 @@ import {
   toonBopOffset,
   toonNodPitch,
   toonSquashScale,
+  toonSwayRoll,
 } from "@/lib/vrm-humanizer/math";
 
 test("character aliases resolve to the four live avatars", () => {
@@ -49,9 +53,11 @@ test("each avatar keeps a distinct posture and habit profile", () => {
 });
 
 test("each avatar has a distinct Animal Crossing toon profile", () => {
-  assert.ok(CHARACTER_CONFIGS.zelie.toon.swayAmp > 0.03);
+  assert.ok(CHARACTER_CONFIGS.zelie.toon.swayAmp > 0.02);
   assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle < CHARACTER_CONFIGS.nangnang.toon.bopAmpIdle);
-  assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle >= 0.018);
+  assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle < 0.012);
+  assert.ok(CHARACTER_CONFIGS.nangnang.toon.swayAmp <= 0.04);
+  assert.ok(CHARACTER_CONFIGS.nangnang.toon.nodAmp <= TOON_NOD_MAX);
   assert.equal(CHARACTER_CONFIGS.cleo.toon.swayAmp, 0);
   assert.ok(CHARACTER_CONFIGS.cleo.toon.bopPhase > 1);
   assert.ok(CHARACTER_CONFIGS.mio.toon.bopSpeedIdle > CHARACTER_CONFIGS.zelie.toon.bopSpeedIdle * 2);
@@ -90,9 +96,11 @@ test("cartoon easing starts fast and overshoots before settling", () => {
 
 test("toon bop nods down when the hips drop and squashes at RMS peak", () => {
   const down = toonBopOffset(Math.PI / 2 / 2, 2, 0.02, 0);
-  assert.ok(Math.abs(down - 0.02) < 1e-9);
+  assert.equal(down, TOON_BOP_MAX);
   assert.ok(toonNodPitch(-1, 0.05) > 0);
   assert.ok(toonNodPitch(1, 0.05) < 0);
+  assert.equal(toonNodPitch(-1, 2), TOON_NOD_MAX);
+  assert.equal(toonSwayRoll(Math.PI / 2, 1, 2), TOON_SWAY_MAX);
   const squash = toonSquashScale(-1, 1, 1);
   assert.ok(Math.abs(squash.x - 1.02) < 1e-9);
   assert.ok(Math.abs(squash.y - 0.98) < 1e-9);

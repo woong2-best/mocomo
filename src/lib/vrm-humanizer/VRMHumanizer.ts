@@ -7,8 +7,10 @@ import {
   breathingHeadPitch,
   breathingScale,
   cartoonSlerpAlpha,
+  clamp,
   clamp01,
   degToRad,
+  TOON_BOP_MAX,
   intervalFromUnit,
   lerp,
   toonBopOffset,
@@ -25,7 +27,12 @@ type BoneCopy = {
   rest: THREE.Quaternion;
   restScale: THREE.Vector3;
   restPos: THREE.Vector3;
+  layerQuat: THREE.Quaternion;
+  layerPos: THREE.Vector3;
+  layerScale: THREE.Vector3;
 };
+
+const TOON_BONES = ["hips", "spine", "chest", "upperChest", "neck", "head"] as const;
 
 type TrackedBone = {
   copies: BoneCopy[];
@@ -77,6 +84,9 @@ export class VRMHumanizer {
   private readonly eMicro = new THREE.Euler(0, 0, 0, "XYZ");
   private readonly ePosture = new THREE.Euler(0, 0, 0, "XYZ");
   private readonly eShift = new THREE.Euler(0, 0, 0, "XYZ");
+  private readonly qSway = new THREE.Quaternion();
+  private readonly axisX = new THREE.Vector3(1, 0, 0);
+  private readonly axisZ = new THREE.Vector3(0, 0, 1);
   private shiftFrom = new THREE.Quaternion();
   private shiftTo = new THREE.Quaternion();
   private shiftElapsed = 0;
@@ -171,20 +181,18 @@ export class VRMHumanizer {
     this.tickWeightShift(dt);
     if (!this.vrm) return;
     this.applyBody();
+    this.stashLayerPose();
     this.applyToonBounciness(dt, this.rms, this.state);
   }
 
   /**
    * Last additive layer. Animal Crossing bop / nod / sway / squash.
-   * Does not replace posture, breath, or noise — only offsets the finished pose.
+   * Always starts from the stashed base pose so offsets never accumulate.
    */
   applyToonBounciness(delta: number, audioRMS: number, currentState: FsmState) {
     const dt = Math.min(Math.max(delta, 0), 0.08);
     this.snapElapsed += dt;
-    const head = this.body.get("head");
-    const hips = this.body.get("hips");
-    if (head) for (const copy of head.copies) copy.node.scale.copy(copy.restScale);
-    if (hips) for (const copy of hips.copies) copy.node.position.copy(copy.restPos);
+    this.restoreLayerPose();
 
     const toon = this.config.toon;
     const mute = this.reduced ? 0.55 : 1;
@@ -196,22 +204,23 @@ export class VRMHumanizer {
     const offset = toonBopOffset(this.time, speed, amp, toon.bopPhase);
     const wave = amp > 1e-8 ? offset / amp : 0;
     const snap = Math.exp(-this.snapElapsed * 7.2) * Math.sin(this.snapElapsed * 17) * toon.snapAmp * amp;
+    const bop = clamp(offset + snap, -TOON_BOP_MAX, TOON_BOP_MAX);
+    const nod = toonNodPitch(wave, toon.nodAmp * (0.4 + speakMix * 0.6) * mute);
+    const sway = toonSwayRoll(this.time, toon.swaySpeed, toon.swayAmp * (0.65 + speakMix * 0.55) * mute);
 
-    if (hips) {
-      for (const copy of hips.copies) copy.node.position.y = copy.restPos.y + offset + snap;
-    }
-
-    this.addLocalRot("head", toonNodPitch(wave, toon.nodAmp * (0.4 + speakMix * 0.6) * mute), 0, 0);
-    const sway = toonSwayRoll(this.time, toon.swaySpeed, toon.swayAmp) * (0.65 + speakMix * 0.55) * mute;
+    this.addToonBop("hips", bop);
+    this.multiplyToonAxis("head", this.axisX, nod);
     if (toon.swayAmp > 0) {
-      this.addLocalRot("spine", 0, 0, sway);
-      this.addLocalRot("chest", 0, 0, sway * 0.72);
+      this.multiplyToonAxis("spine", this.axisZ, sway);
+      this.multiplyToonAxis("chest", this.axisZ, sway * 0.72);
     }
 
+    const head = this.body.get("head");
     if (head && currentState === "speaking" && toon.squash > 0) {
       const squash = toonSquashScale(wave, rms, toon.squash);
-      for (const copy of head.copies) {
-        copy.node.scale.set(copy.restScale.x * squash.x, copy.restScale.y * squash.y, copy.restScale.z);
+      const copy = head.copies[0];
+      if (copy) {
+        copy.node.scale.set(copy.layerScale.x * squash.x, copy.layerScale.y * squash.y, copy.layerScale.z);
       }
     }
   }
@@ -243,6 +252,9 @@ export class VRMHumanizer {
         rest: node.quaternion.clone(),
         restScale: node.scale.clone(),
         restPos: node.position.clone(),
+        layerQuat: node.quaternion.clone(),
+        layerPos: node.position.clone(),
+        layerScale: node.scale.clone(),
       })),
     });
   }
@@ -402,17 +414,58 @@ export class VRMHumanizer {
     this.qPosture.setFromEuler(this.ePosture);
     this.eMicro.set(extraX + extraPitch, extraY, extraZ);
     this.qMicro.setFromEuler(this.eMicro);
-    for (const copy of tracked.copies) {
-      copy.node.quaternion.copy(copy.rest).multiply(this.qPosture).multiply(shift).multiply(this.qMicro);
+    const copy = tracked.copies[0];
+    if (!copy) return;
+    copy.node.quaternion.copy(copy.rest).multiply(this.qPosture).multiply(shift).multiply(this.qMicro);
+    copy.node.rotation.setFromQuaternion(copy.node.quaternion);
+  }
+
+  private stashLayerPose() {
+    for (const name of TOON_BONES) {
+      const tracked = this.body.get(name);
+      if (!tracked) continue;
+      for (const copy of tracked.copies) {
+        copy.layerQuat.copy(copy.node.quaternion);
+        copy.layerPos.copy(copy.node.position);
+        copy.layerScale.copy(copy.node.scale);
+      }
     }
+  }
+
+  private restoreLayerPose() {
+    for (const name of TOON_BONES) {
+      const tracked = this.body.get(name);
+      if (!tracked) continue;
+      for (const copy of tracked.copies) {
+        copy.node.quaternion.copy(copy.layerQuat);
+        copy.node.position.copy(copy.layerPos);
+        copy.node.scale.copy(copy.layerScale);
+        copy.node.rotation.setFromQuaternion(copy.layerQuat);
+      }
+    }
+  }
+
+  private addToonBop(name: BoneName, offsetY: number) {
+    const copy = this.body.get(name)?.copies[0];
+    if (!copy) return;
+    copy.node.position.copy(copy.layerPos);
+    copy.node.position.y = copy.layerPos.y + offsetY;
+  }
+
+  private multiplyToonAxis(name: BoneName, axis: THREE.Vector3, angle: number) {
+    const copy = this.body.get(name)?.copies[0];
+    if (!copy || Math.abs(angle) < 1e-6) return;
+    this.qSway.setFromAxisAngle(axis, angle);
+    copy.node.quaternion.copy(copy.layerQuat).multiply(this.qSway);
+    copy.node.rotation.setFromQuaternion(copy.node.quaternion);
   }
 
   private applyChestScale(scale: number) {
     const chest = this.body.get("chest") ?? this.body.get("upperChest");
     if (!chest) return;
-    for (const copy of chest.copies) {
-      copy.node.scale.set(copy.restScale.x, copy.restScale.y * scale, copy.restScale.z * scale);
-    }
+    const copy = chest.copies[0];
+    if (!copy) return;
+    copy.node.scale.set(copy.restScale.x, copy.restScale.y * scale, copy.restScale.z * scale);
   }
 
   private neckCrackEuler(): { x: number; y: number; z: number } {
@@ -453,14 +506,6 @@ export class VRMHumanizer {
     const tracked = this.arms.get(name);
     if (!tracked) return;
     for (const copy of tracked.copies) copy.node.quaternion.copy(copy.rest);
-  }
-
-  private addLocalRot(name: BoneName, x: number, y: number, z: number) {
-    const tracked = this.body.get(name);
-    if (!tracked || (Math.abs(x) < 1e-6 && Math.abs(y) < 1e-6 && Math.abs(z) < 1e-6)) return;
-    this.eMicro.set(x, y, z);
-    this.qMicro.setFromEuler(this.eMicro);
-    for (const copy of tracked.copies) copy.node.quaternion.multiply(this.qMicro);
   }
 
   private addLocal(name: BoneName, x: number, y: number, z: number, weight: number) {
