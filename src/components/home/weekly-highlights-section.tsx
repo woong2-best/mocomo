@@ -140,7 +140,7 @@ export function WeeklyHighlightsSection({
   const viewsTitle = t("home.viewsTop");
 
   return (
-    <section className="my-6">
+    <section className="mb-4">
       <div className="w-full overflow-hidden rounded-2xl border border-border bg-card">
         <div className="grid grid-cols-1 lg:grid-cols-2">
           <HighlightColumn

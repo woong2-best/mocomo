@@ -51,11 +51,8 @@ export function HomePageClient({
       {hasDbPosts ? (
         <section>
           <h2 className="text-sm font-semibold text-white mb-3">{t("feed.title")}</h2>
-          <FeedInfinite
-            initialItems={visibleItems}
-            initialCursor={nextCursor}
-            afterFirstPost={highlights}
-          />
+          {highlights}
+          <FeedInfinite initialItems={visibleItems} initialCursor={nextCursor} />
         </section>
       ) : isLoggedIn ? (
         <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { FeedAdCard } from "@/components/feed/feed-ad-card";
 import { FeedPostCardInteractive } from "@/components/feed/feed-post-card-interactive";
 import type { GridPost } from "@/components/feed/feed-post-card";
@@ -28,7 +28,6 @@ export function FeedDualColumnLayout({
   repostedIds,
   paymentsEnabled = false,
   qnaPreview = false,
-  afterFirstPost = null,
 }: {
   items: FeedLayoutItem[];
   likedIds: Set<string>;
@@ -36,7 +35,6 @@ export function FeedDualColumnLayout({
   repostedIds: Set<string>;
   paymentsEnabled?: boolean;
   qnaPreview?: boolean;
-  afterFirstPost?: ReactNode;
 }) {
   function renderItem(item: FeedLayoutItem, keySuffix: string, index: number) {
     const wrap = (node: ReactNode, key: string) => (
@@ -64,22 +62,9 @@ export function FeedDualColumnLayout({
     );
   }
 
-  const firstPostIndex = items.findIndex((item) => item.type === "post");
-  const insertAfterIndex = firstPostIndex >= 0 ? firstPostIndex : 0;
-
   return (
     <div className={cn("mx-auto flex w-full flex-col")}>
-      {items.map((item, i) => {
-        const card = renderItem(item, `feed-${i}`, i);
-        if (!afterFirstPost || i !== insertAfterIndex) return card;
-        return (
-          <Fragment key={`feed-with-slot-${i}`}>
-            {card}
-            {afterFirstPost}
-          </Fragment>
-        );
-      })}
-      {afterFirstPost && items.length === 0 ? afterFirstPost : null}
+      {items.map((item, i) => renderItem(item, `feed-${i}`, i))}
     </div>
   );
 }

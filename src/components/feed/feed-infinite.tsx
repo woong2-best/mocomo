@@ -5,7 +5,7 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { errorText } from "@/lib/i18n/error-text";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FeedDualColumnLayout,
   type FeedLayoutItem,
@@ -42,7 +42,6 @@ export function FeedInfinite({
   initialStarredIds = [],
   initialRepostedIds = [],
   paymentsEnabled = false,
-  afterFirstPost = null,
 }: {
   initialItems: FeedItem[];
   initialCursor: string | null;
@@ -50,7 +49,6 @@ export function FeedInfinite({
   initialStarredIds?: string[];
   initialRepostedIds?: string[];
   paymentsEnabled?: boolean;
-  afterFirstPost?: ReactNode;
 }) {
   const [items, setItems] = useState(initialItems);
   const [likedIds, setLikedIds] = useState(() => new Set(initialLikedIds));
@@ -243,7 +241,6 @@ export function FeedInfinite({
         starredIds={starredIds}
         repostedIds={repostedIds}
         paymentsEnabled={paymentsEnabled}
-        afterFirstPost={afterFirstPost}
       />
       <div ref={sentinelRef} className="flex flex-col items-center gap-2 py-8">
         {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}

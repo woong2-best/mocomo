@@ -57,7 +57,13 @@ export function HomeFeedClient({
     <>
       <FeedScrollTopOnMount />
       <FolkBrushDivider className="mb-5 opacity-40" />
-      <PageSection title={t("feed.title")} description={t("feed.tabs")} titleClassName="text-white">
+      <PageSection
+        title={t("feed.title")}
+        description={t("feed.tabs")}
+        titleClassName="text-white"
+        headerClassName="mb-4"
+      >
+        {highlights}
         <FeedInfinite
           initialItems={visibleItems}
           initialCursor={nextCursor}
@@ -65,7 +71,6 @@ export function HomeFeedClient({
           initialStarredIds={starredIds}
           initialRepostedIds={repostedIds}
           paymentsEnabled={paymentsEnabled}
-          afterFirstPost={highlights}
         />
       </PageSection>
     </>
