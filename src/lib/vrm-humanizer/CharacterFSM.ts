@@ -60,6 +60,10 @@ export class CharacterFSM {
     return this.state;
   }
 
+  hasActiveAction(): boolean {
+    return Boolean(this.current?.isRunning());
+  }
+
   /** Returns true when a named clip exists and a crossfade started. */
   playHabit(name: HabitName): boolean {
     return this.crossFade(name, 0.28);

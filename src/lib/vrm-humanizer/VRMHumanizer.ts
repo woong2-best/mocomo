@@ -30,6 +30,9 @@ type BoneCopy = {
   layerQuat: THREE.Quaternion;
   layerPos: THREE.Vector3;
   layerScale: THREE.Vector3;
+  mixerQuat: THREE.Quaternion;
+  mixerPos: THREE.Vector3;
+  mixerScale: THREE.Vector3;
 };
 
 const TOON_BONES = ["hips", "spine", "chest", "upperChest", "neck", "head"] as const;
@@ -105,6 +108,7 @@ export class VRMHumanizer {
   private pendingHabit: HabitName | null = null;
   private checkingPhone = false;
   private snapElapsed = 1;
+  private mixerLive = false;
 
   constructor(config: CharacterConfig, noise: ContinuousNoise = createContinuousNoise()) {
     this.config = config;
@@ -151,6 +155,10 @@ export class VRMHumanizer {
     this.reduced = reduced;
   }
 
+  setMixerLive(live: boolean) {
+    this.mixerLive = live;
+  }
+
   consumeHabitTrigger(): HabitName | null {
     const next = this.pendingHabit;
     this.pendingHabit = null;
@@ -180,6 +188,7 @@ export class VRMHumanizer {
     this.tickHabits(dt);
     this.tickWeightShift(dt);
     if (!this.vrm) return;
+    this.stashMixerPose();
     this.applyBody();
     this.stashLayerPose();
     this.applyToonBounciness(dt, this.rms, this.state);
@@ -198,7 +207,7 @@ export class VRMHumanizer {
     const mute = this.reduced ? 0.55 : 1;
     const rms = clamp01(audioRMS);
     const speakMix =
-      currentState === "speaking" ? clamp01(0.28 + rms * 0.72) : currentState === "thinking" ? 0.12 : 0;
+      currentState === "speaking" ? clamp01(rms) * 0.4 : currentState === "thinking" ? 0.05 : 0;
     const speed = lerp(toon.bopSpeedIdle, toon.bopSpeedSpeak, speakMix);
     const amp = lerp(toon.bopAmpIdle, toon.bopAmpSpeak, speakMix) * mute;
     const offset = toonBopOffset(this.time, speed, amp, toon.bopPhase);
@@ -255,6 +264,9 @@ export class VRMHumanizer {
         layerQuat: node.quaternion.clone(),
         layerPos: node.position.clone(),
         layerScale: node.scale.clone(),
+        mixerQuat: node.quaternion.clone(),
+        mixerPos: node.position.clone(),
+        mixerScale: node.scale.clone(),
       })),
     });
   }
@@ -416,8 +428,21 @@ export class VRMHumanizer {
     this.qMicro.setFromEuler(this.eMicro);
     const copy = tracked.copies[0];
     if (!copy) return;
-    copy.node.quaternion.copy(copy.rest).multiply(this.qPosture).multiply(shift).multiply(this.qMicro);
+    const base = this.mixerLive ? copy.mixerQuat : copy.rest;
+    copy.node.quaternion.copy(base).multiply(this.qPosture).multiply(shift).multiply(this.qMicro);
     copy.node.rotation.setFromQuaternion(copy.node.quaternion);
+  }
+
+  private stashMixerPose() {
+    for (const name of BODY_BONES) {
+      const tracked = this.body.get(name);
+      if (!tracked) continue;
+      for (const copy of tracked.copies) {
+        copy.mixerQuat.copy(copy.node.quaternion);
+        copy.mixerPos.copy(copy.node.position);
+        copy.mixerScale.copy(copy.node.scale);
+      }
+    }
   }
 
   private stashLayerPose() {
@@ -465,7 +490,8 @@ export class VRMHumanizer {
     if (!chest) return;
     const copy = chest.copies[0];
     if (!copy) return;
-    copy.node.scale.set(copy.restScale.x, copy.restScale.y * scale, copy.restScale.z * scale);
+    const base = this.mixerLive ? copy.mixerScale : copy.restScale;
+    copy.node.scale.set(base.x, base.y * scale, base.z * scale);
   }
 
   private neckCrackEuler(): { x: number; y: number; z: number } {

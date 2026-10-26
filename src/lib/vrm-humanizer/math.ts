@@ -43,9 +43,17 @@ export function slerpAlpha(elapsed: number, duration: number): number {
   return smoothstep(elapsed / duration);
 }
 
-export type CartoonEase = "elastic" | "bounce";
+export type CartoonEase = "sine" | "quad" | "elastic" | "bounce";
 
-/** Fast start, overshoot, then settle — cartoon settle, not a linear blend. */
+export function easeOutSine(t: number): number {
+  return Math.sin((clamp01(t) * Math.PI) / 2);
+}
+
+export function easeOutQuad(t: number): number {
+  const x = 1 - clamp01(t);
+  return 1 - x * x;
+}
+
 export function easeOutElastic(t: number): number {
   const x = clamp01(t);
   if (x === 0 || x === 1) return x;
@@ -70,18 +78,21 @@ export function easeOutBounce(t: number): number {
   return n1 * x * x + 0.984375;
 }
 
-export function cartoonEase(t: number, style: CartoonEase = "elastic"): number {
-  return style === "bounce" ? easeOutBounce(t) : easeOutElastic(t);
+export function cartoonEase(t: number, style: CartoonEase = "sine"): number {
+  if (style === "quad") return easeOutQuad(t);
+  if (style === "elastic") return easeOutElastic(t);
+  if (style === "bounce") return easeOutBounce(t);
+  return easeOutSine(t);
 }
 
-export function cartoonSlerpAlpha(elapsed: number, duration: number, style: CartoonEase = "elastic"): number {
+export function cartoonSlerpAlpha(elapsed: number, duration: number, style: CartoonEase = "sine"): number {
   if (duration <= 1e-5) return 1;
   return cartoonEase(elapsed / duration, style);
 }
 
-export const TOON_BOP_MAX = 0.012;
-export const TOON_NOD_MAX = 0.055;
-export const TOON_SWAY_MAX = 0.045;
+export const TOON_BOP_MAX = 0.0035;
+export const TOON_NOD_MAX = 0.022;
+export const TOON_SWAY_MAX = 0.016;
 
 /** hips.y offset. Negative sine = down, so a nod can lock to the same phase. */
 export function toonBopOffset(time: number, speed: number, amplitude: number, phase = 0): number {

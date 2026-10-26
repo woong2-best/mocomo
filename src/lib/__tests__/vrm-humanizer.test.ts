@@ -53,10 +53,10 @@ test("each avatar keeps a distinct posture and habit profile", () => {
 });
 
 test("each avatar has a distinct Animal Crossing toon profile", () => {
-  assert.ok(CHARACTER_CONFIGS.zelie.toon.swayAmp > 0.02);
+  assert.ok(CHARACTER_CONFIGS.zelie.toon.swayAmp > 0);
   assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle < CHARACTER_CONFIGS.nangnang.toon.bopAmpIdle);
-  assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle < 0.012);
-  assert.ok(CHARACTER_CONFIGS.nangnang.toon.swayAmp <= 0.04);
+  assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle < 0.003);
+  assert.ok(CHARACTER_CONFIGS.nangnang.toon.swayAmp <= TOON_SWAY_MAX);
   assert.ok(CHARACTER_CONFIGS.nangnang.toon.nodAmp <= TOON_NOD_MAX);
   assert.equal(CHARACTER_CONFIGS.cleo.toon.swayAmp, 0);
   assert.ok(CHARACTER_CONFIGS.cleo.toon.bopPhase > 1);
@@ -64,6 +64,8 @@ test("each avatar has a distinct Animal Crossing toon profile", () => {
   assert.ok(CHARACTER_CONFIGS.nangnang.toon.bopAmpSpeak > CHARACTER_CONFIGS.zelie.toon.bopAmpSpeak);
   assert.ok(CHARACTER_CONFIGS.nangnang.toon.swayAmp > CHARACTER_CONFIGS.zelie.toon.swayAmp);
   assert.equal(CHARACTER_CONFIGS.zelie.toon.bopSpeedSpeak, CHARACTER_CONFIGS.zelie.toon.bopSpeedIdle * 2);
+  assert.equal(CHARACTER_CONFIGS.zelie.toon.easing, "sine");
+  assert.equal(CHARACTER_CONFIGS.nangnang.toon.easing, "sine");
 });
 
 test("speaking wins over thinking in the FSM", () => {
@@ -85,13 +87,12 @@ test("weight-shift slerp uses a smoothstep envelope", () => {
   assert.ok(slerpAlpha(1, 2) > 0.4 && slerpAlpha(1, 2) < 0.6);
 });
 
-test("cartoon easing starts fast and overshoots before settling", () => {
-  assert.equal(cartoonEase(0, "elastic"), 0);
-  assert.equal(cartoonEase(1, "elastic"), 1);
-  assert.ok(cartoonSlerpAlpha(0.15, 1, "elastic") > slerpAlpha(0.15, 1));
-  assert.ok(cartoonEase(0.45, "elastic") > 1);
-  assert.equal(cartoonEase(0, "bounce"), 0);
-  assert.ok(cartoonEase(1, "bounce") > 0.98);
+test("cartoon easing uses a soft sine settle without overshoot", () => {
+  assert.equal(cartoonEase(0, "sine"), 0);
+  assert.equal(cartoonEase(1, "sine"), 1);
+  assert.ok(cartoonEase(0.5, "sine") > 0.7 && cartoonEase(0.5, "sine") < 0.75);
+  assert.ok(cartoonEase(0.45, "sine") < 1);
+  assert.ok(cartoonSlerpAlpha(0.5, 1, "quad") > 0.7);
 });
 
 test("toon bop nods down when the hips drop and squashes at RMS peak", () => {

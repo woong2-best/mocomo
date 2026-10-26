@@ -89,6 +89,7 @@ export class VrmHumanizerRuntime {
     this.syncState();
     this.humanizer.setAmplitudeScale(this.reflex.amplitudeScale());
     this.fsm.update(delta);
+    this.humanizer.setMixerLive(this.fsm.hasActiveAction());
     this.humanizer.update(delta);
     const habit = this.humanizer.consumeHabitTrigger();
     if (habit && !this.fsm.playHabit(habit)) this.humanizer.startHabit(habit);
