@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { wikiLinkSlug } from "@/lib/anime-revision";
 import { useWikiLinkStatus } from "@/components/anime/wiki-link-context";
+import { isExternalHref, parseLinkifyParts } from "@/lib/linkify";
 import { cn } from "@/lib/utils";
 
 type FootnoteMap = Map<string, string>;
@@ -27,8 +28,37 @@ export function WikiInline({
   let i = 0;
   let m: RegExpExecArray | null;
 
+  INLINE_RE.lastIndex = 0;
+
+  const pushPlain = (value: string, key: string) => {
+    if (!value) return;
+    const tokens = parseLinkifyParts(value);
+    if (tokens.length === 1 && tokens[0]?.type === "text") {
+      parts.push(value);
+      return;
+    }
+    tokens.forEach((token, ti) => {
+      if (token.type === "link") {
+        const external = isExternalHref(token.href);
+        parts.push(
+          <a
+            key={`${key}-url-${ti}`}
+            href={token.href}
+            className="text-primary hover:underline inline-flex items-center gap-0.5"
+            {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          >
+            {token.label}
+            {external && <span className="text-[10px] opacity-60">↗</span>}
+          </a>
+        );
+        return;
+      }
+      parts.push(token.type === "text" ? token.value : token.label);
+    });
+  };
+
   while ((m = INLINE_RE.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
+    if (m.index > last) pushPlain(text.slice(last, m.index), `${keyPrefix}-pre-${i}`);
 
     if (m[2] !== undefined) {
       parts.push(
@@ -100,7 +130,7 @@ export function WikiInline({
     last = m.index + m[0].length;
   }
 
-  if (last < text.length) parts.push(text.slice(last));
+  if (last < text.length) pushPlain(text.slice(last), `${keyPrefix}-tail`);
 
   if (!parts.length) return <span className={className}>{text}</span>;
   return <span className={cn(className)}>{parts}</span>;

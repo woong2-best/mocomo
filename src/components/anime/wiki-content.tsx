@@ -5,7 +5,9 @@ const t = createTranslator("en");
 
 import { wikiHeadingId } from "@/lib/anime-revision";
 import { parseWikiBlocks } from "@/lib/wiki/blocks";
+import { extractWikiVideos } from "@/lib/wiki/media";
 import { WikiInline } from "@/components/anime/wiki-inline";
+import { WikiVideoPlayer } from "@/components/anime/wiki-video";
 
 type FootnoteMap = Map<string, string>;
 
@@ -28,18 +30,14 @@ function renderInline(text: string, notes: FootnoteMap, keyPrefix: string) {
   return <WikiInline text={text} notes={notes} keyPrefix={keyPrefix} />;
 }
 
-function YoutubeEmbed({ id }: { id: string }) {
-  return (
-    <div className="my-3 aspect-video rounded-xl overflow-hidden border border-border/60 bg-black">
-      <iframe
-        title="YouTube"
-        src={`https://www.youtube.com/embed/${id}`}
-        className="h-full w-full"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
-    </div>
-  );
+function youtubeVideo(id: string) {
+  return {
+    kind: "youtube" as const,
+    id,
+    url: `https://www.youtube.com/watch?v=${id}`,
+    thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+    embedSrc: `https://www.youtube-nocookie.com/embed/${id}?rel=0`,
+  };
 }
 
 function CollapseBlock({ title, body }: { title: string; body: string }) {
@@ -75,7 +73,12 @@ export function WikiContent({
     }
 
     if (block.type === "youtube") {
-      rendered.push(<YoutubeEmbed key={`yt-${bi}`} id={block.id} />);
+      rendered.push(<WikiVideoPlayer key={`yt-${bi}`} video={youtubeVideo(block.id)} />);
+      return;
+    }
+
+    if (block.type === "video") {
+      rendered.push(<WikiVideoPlayer key={`vid-${bi}`} video={block.video} />);
       return;
     }
 
@@ -121,6 +124,7 @@ export function WikiContent({
       return;
     }
 
+    const inlineVideos = extractWikiVideos(block.text);
     rendered.push(
       <p key={`p-${bi}`} className="text-sm leading-relaxed whitespace-pre-wrap">
         {block.text.split("\n").map((line, li) => (
@@ -131,6 +135,9 @@ export function WikiContent({
         ))}
       </p>
     );
+    inlineVideos.forEach((video, vi) => {
+      rendered.push(<WikiVideoPlayer key={`pvid-${bi}-${vi}`} video={video} />);
+    });
   });
 
   if (notes.size > 0) {

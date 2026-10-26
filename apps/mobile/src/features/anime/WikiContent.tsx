@@ -1,10 +1,14 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ImageStyle } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, useWindowDimensions, View, type StyleProp, type ImageStyle } from "react-native";
 import { Image } from "expo-image";
 import { IMAGE_CACHE_POLICY, wikiMediaDecodeWidth } from "@/perf/image";
 import { WebView } from "react-native-webview";
 import { WikiInline, type FootnoteMap } from "@/features/anime/WikiInline";
-import { extractYoutubeId } from "@/features/anime/wiki-youtube";
+import {
+  extractWikiVideos,
+  parseWikiVideoLine,
+  type WikiVideo,
+} from "@/features/anime/wiki-youtube";
 import { animeUi } from "@/features/anime/anime-ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
@@ -63,6 +67,52 @@ function parseTableBlock(lines: string[]): string[][] | null {
   return rows;
 }
 
+function WikiVideoCard({ video }: { video: WikiVideo }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const [playing, setPlaying] = useState(false);
+  const label = video.kind === "file" ? "Video" : video.kind === "youtube" ? "YouTube" : "Vimeo";
+
+  if (video.kind === "file") {
+    return (
+      <View style={styles.video}>
+        <WebView source={{ uri: video.url }} style={styles.videoInner} allowsFullscreenVideo />
+      </View>
+    );
+  }
+
+  if (playing) {
+    return (
+      <View style={styles.video}>
+        <WebView
+          source={{ uri: `${video.embedSrc}${video.embedSrc.includes("?") ? "&" : "?"}autoplay=1` }}
+          style={styles.videoInner}
+          allowsFullscreenVideo
+        />
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={() => setPlaying(true)}
+      onLongPress={() => void Linking.openURL(video.url)}
+      style={styles.video}
+    >
+      {video.kind === "youtube" ? (
+        <Image source={{ uri: video.thumbnail }} style={styles.videoThumb} contentFit="cover" />
+      ) : (
+        <View style={styles.videoThumb} />
+      )}
+      <View style={styles.videoScrim} />
+      <View style={styles.videoPlay}>
+        <Text style={styles.videoPlayIcon}>▶</Text>
+      </View>
+      <Text style={styles.videoBadge}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function CollapseBlock({ title, body }: { title: string; body: string }) {
   const { t } = useI18n();
   const copy = useMemo(() => animeUi(t), [t]);
@@ -104,17 +154,9 @@ export function WikiContent({ source }: { source: string }) {
       return;
     }
 
-    const yt = extractYoutubeId(trimmed);
-    if (yt) {
-      rendered.push(
-        <View key={`yt-${bi}`} style={styles.video}>
-          <WebView
-            source={{ uri: `https://www.youtube.com/embed/${yt}` }}
-            style={styles.videoInner}
-            allowsFullscreenVideo
-          />
-        </View>
-      );
+    const wholeVideo = parseWikiVideoLine(trimmed);
+    if (wholeVideo) {
+      rendered.push(<WikiVideoCard key={`yt-${bi}`} video={wholeVideo} />);
       return;
     }
 
@@ -190,16 +232,58 @@ export function WikiContent({ source }: { source: string }) {
       return;
     }
 
-    rendered.push(
-      <Text key={`p-${bi}`} style={styles.para}>
-        {trimmed.split("\n").map((line, li) => (
-          <Text key={li}>
-            {li > 0 ? "\n" : ""}
-            <WikiInline text={line} notes={notes} keyPrefix={`p-${bi}-${li}`} />
+    const lines = trimmed.split("\n");
+    const para: string[] = [];
+    const flushPara = (suffix: string) => {
+      const text = para.join("\n").trim();
+      para.length = 0;
+      if (!text) return;
+      rendered.push(
+        <Text key={`p-${bi}-${suffix}`} style={styles.para}>
+          {text.split("\n").map((line, li) => (
+            <Text key={li}>
+              {li > 0 ? "\n" : ""}
+              <WikiInline text={line} notes={notes} keyPrefix={`p-${bi}-${suffix}-${li}`} />
+            </Text>
+          ))}
+        </Text>
+      );
+      extractWikiVideos(text).forEach((video, vi) => {
+        rendered.push(<WikiVideoCard key={`pvid-${bi}-${suffix}-${vi}`} video={video} />);
+      });
+    };
+
+    const matchLineHeading = (line: string) => {
+      const value = line.trim();
+      const eq2 = /^==\s*(.+?)\s*==$/.exec(value);
+      if (eq2 && !value.startsWith("===")) return { level: 2 as const, label: eq2[1] };
+      const eq3 = /^(={3,})\s*(.+?)\s*\1$/.exec(value);
+      if (eq3) return { level: 3 as const, label: eq3[2] };
+      if (value.startsWith("## ")) return { level: 2 as const, label: value.slice(3) };
+      if (value.startsWith("# ")) return { level: 3 as const, label: value.slice(2) };
+      return null;
+    };
+
+    lines.forEach((line, li) => {
+      const lineVideo = parseWikiVideoLine(line);
+      if (lineVideo) {
+        flushPara(`pre-${li}`);
+        rendered.push(<WikiVideoCard key={`lnvid-${bi}-${li}`} video={lineVideo} />);
+        return;
+      }
+      const heading = matchLineHeading(line);
+      if (heading) {
+        flushPara(`pre-h-${li}`);
+        rendered.push(
+          <Text key={`h-${bi}-${li}`} style={heading.level === 2 ? styles.h2 : styles.h1}>
+            <WikiInline text={heading.label} notes={notes} keyPrefix={`h-${bi}-${li}`} />
           </Text>
-        ))}
-      </Text>
-    );
+        );
+        return;
+      }
+      para.push(line);
+    });
+    flushPara("tail");
   });
 
   if (notes.size > 0) {
@@ -288,6 +372,38 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: "#000",
     },
     videoInner: { flex: 1, backgroundColor: "#000" },
+    videoThumb: { ...StyleSheet.absoluteFillObject, backgroundColor: "#111" },
+    videoScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.25)" },
+    videoPlay: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    videoPlayIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      overflow: "hidden",
+      textAlign: "center",
+      textAlignVertical: "center",
+      lineHeight: 56,
+      fontSize: 22,
+      color: "#fff",
+      backgroundColor: "rgba(0,0,0,0.7)",
+    },
+    videoBadge: {
+      position: "absolute",
+      left: 8,
+      bottom: 8,
+      color: "#fff",
+      fontSize: 10,
+      fontWeight: "800",
+      textTransform: "uppercase",
+      backgroundColor: "rgba(0,0,0,0.7)",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
     inlineImage: {
       width: "100%",
       aspectRatio: 16 / 10,

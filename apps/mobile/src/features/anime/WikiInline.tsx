@@ -3,6 +3,7 @@ import { Linking, StyleSheet, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { wikiLinkSlug } from "@/features/anime/wiki-link-slug";
+import { splitAutolinkParts } from "@/features/anime/wiki-youtube";
 import { animeUi } from "@/features/anime/anime-ui";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
@@ -34,13 +35,43 @@ export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }:
   let m: RegExpExecArray | null;
   const re = new RegExp(INLINE_RE.source, INLINE_RE.flags);
 
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) {
+  const pushPlain = (value: string, key: string) => {
+    if (!value) return;
+    const tokens = splitAutolinkParts(value);
+    if (tokens.length === 1 && tokens[0]?.type === "text") {
       parts.push(
-        <Text key={`${keyPrefix}-t-${i++}`} style={styles.text}>
-          {text.slice(last, m.index)}
+        <Text key={key} style={styles.text}>
+          {value}
         </Text>
       );
+      return;
+    }
+    tokens.forEach((token, ti) => {
+      if (token.type === "link") {
+        parts.push(
+          <Text
+            key={`${key}-url-${ti}`}
+            style={styles.link}
+            onPress={() => void Linking.openURL(token.href)}
+          >
+            {token.label}
+          </Text>
+        );
+        return;
+      }
+      if (token.value) {
+        parts.push(
+          <Text key={`${key}-t-${ti}`} style={styles.text}>
+            {token.value}
+          </Text>
+        );
+      }
+    });
+  };
+
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) {
+      pushPlain(text.slice(last, m.index), `${keyPrefix}-t-${i++}`);
     }
 
     if (m[2] !== undefined) {
@@ -103,14 +134,32 @@ export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }:
   }
 
   if (last < text.length) {
-    parts.push(
-      <Text key={`${keyPrefix}-tail`} style={styles.text}>
-        {text.slice(last)}
-      </Text>
-    );
+    pushPlain(text.slice(last), `${keyPrefix}-tail`);
   }
 
   if (!parts.length) {
+    const tokens = splitAutolinkParts(text);
+    if (tokens.some((token) => token.type === "link")) {
+      return (
+        <Text style={[styles.text, style]}>
+          {tokens.map((token, ti) =>
+            token.type === "link" ? (
+              <Text
+                key={`${keyPrefix}-solo-${ti}`}
+                style={styles.link}
+                onPress={() => void Linking.openURL(token.href)}
+              >
+                {token.label}
+              </Text>
+            ) : (
+              <Text key={`${keyPrefix}-solo-${ti}`} style={styles.text}>
+                {token.value}
+              </Text>
+            )
+          )}
+        </Text>
+      );
+    }
     return <Text style={[styles.text, style]}>{text}</Text>;
   }
 

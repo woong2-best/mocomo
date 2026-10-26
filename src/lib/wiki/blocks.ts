@@ -1,9 +1,10 @@
-import { extractYoutubeId } from "@/lib/anime-revision";
 import { isInfoboxAhead, matchWikiHeading, skipInfoboxBlock } from "@/lib/wiki/document";
+import { parseWikiVideoLine, type WikiVideo } from "@/lib/wiki/media";
 
 export type WikiBlock =
   | { type: "heading"; level: 2 | 3; label: string }
   | { type: "youtube"; id: string }
+  | { type: "video"; video: WikiVideo }
   | { type: "table"; rows: string[][] }
   | { type: "collapse"; title: string; body: string }
   | { type: "paragraph"; text: string };
@@ -85,10 +86,14 @@ export function parseWikiBlocks(source: string): WikiBlock[] {
       continue;
     }
 
-    const youtube = extractYoutubeId(trimmed);
-    if (youtube && !trimmed.includes(" ")) {
+    const video = parseWikiVideoLine(trimmed);
+    if (video) {
       flushPara();
-      blocks.push({ type: "youtube", id: youtube });
+      if (video.kind === "youtube") {
+        blocks.push({ type: "youtube", id: video.id });
+      } else {
+        blocks.push({ type: "video", video });
+      }
       i += 1;
       continue;
     }
