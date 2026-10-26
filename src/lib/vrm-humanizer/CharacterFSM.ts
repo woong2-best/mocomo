@@ -78,7 +78,7 @@ export class CharacterFSM {
   }
 
   private playState(state: FsmState) {
-    this.crossFade(state, 0.4);
+    this.crossFade(state, 0.26);
   }
 
   private crossFade(name: ClipName, fade: number): boolean {

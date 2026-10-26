@@ -8,8 +8,14 @@ export { VRMHumanizer } from "@/lib/vrm-humanizer/VRMHumanizer";
 export { VrmHumanizerRuntime } from "@/lib/vrm-humanizer/runtime";
 export type { HumanizerFace } from "@/lib/vrm-humanizer/runtime";
 export {
+  cartoonEase,
+  cartoonSlerpAlpha,
   resolveFsmState,
   rmsAmplitudeScale,
   shouldBoostSaccade,
+  toonBopOffset,
+  toonNodPitch,
+  toonSquashScale,
+  type CartoonEase,
   type FsmState,
 } from "@/lib/vrm-humanizer/math";

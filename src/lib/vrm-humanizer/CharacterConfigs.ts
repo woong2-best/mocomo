@@ -1,5 +1,5 @@
 import { resolveLiveAvatarId, type LiveAvatarId } from "@/lib/ai-live/avatars";
-import type { FsmState } from "@/lib/vrm-humanizer/math";
+import type { CartoonEase, FsmState } from "@/lib/vrm-humanizer/math";
 
 export type { FsmState, LiveAvatarId };
 
@@ -77,6 +77,19 @@ export type CharacterConfig = {
     checkPhoneSilenceSec: number;
     checkPhoneJoy: number;
   };
+  toon: {
+    bopSpeedIdle: number;
+    bopAmpIdle: number;
+    bopSpeedSpeak: number;
+    bopAmpSpeak: number;
+    bopPhase: number;
+    nodAmp: number;
+    swaySpeed: number;
+    swayAmp: number;
+    squash: number;
+    snapAmp: number;
+    easing: CartoonEase;
+  };
   clips: Partial<Record<FsmState | HabitName, string>>;
 };
 
@@ -129,6 +142,19 @@ export const CHARACTER_CONFIGS: Record<LiveAvatarId, CharacterConfig> = {
       bodySwayAmp: 0.008,
       checkPhoneSilenceSec: 0,
       checkPhoneJoy: 0,
+    },
+    toon: {
+      bopSpeedIdle: 2.15,
+      bopAmpIdle: 0.0055,
+      bopSpeedSpeak: 4.3,
+      bopAmpSpeak: 0.015,
+      bopPhase: 0,
+      nodAmp: 0.05,
+      swaySpeed: 1.65,
+      swayAmp: 0.046,
+      squash: 0.32,
+      snapAmp: 0.7,
+      easing: "elastic",
     },
     clips: {
       idle: "idle",
@@ -185,6 +211,19 @@ export const CHARACTER_CONFIGS: Record<LiveAvatarId, CharacterConfig> = {
       checkPhoneSilenceSec: 0,
       checkPhoneJoy: 0,
     },
+    toon: {
+      bopSpeedIdle: 3.35,
+      bopAmpIdle: 0.008,
+      bopSpeedSpeak: 6.7,
+      bopAmpSpeak: 0.022,
+      bopPhase: 1.15,
+      nodAmp: 0.038,
+      swaySpeed: 1.6,
+      swayAmp: 0,
+      squash: 0.48,
+      snapAmp: 0.85,
+      easing: "bounce",
+    },
     clips: {
       idle: "idle",
       thinking: "thinking",
@@ -240,6 +279,19 @@ export const CHARACTER_CONFIGS: Record<LiveAvatarId, CharacterConfig> = {
       checkPhoneSilenceSec: 0,
       checkPhoneJoy: 0,
     },
+    toon: {
+      bopSpeedIdle: 6.9,
+      bopAmpIdle: 0.0038,
+      bopSpeedSpeak: 11.2,
+      bopAmpSpeak: 0.013,
+      bopPhase: 0,
+      nodAmp: 0.028,
+      swaySpeed: 2.15,
+      swayAmp: 0.016,
+      squash: 0.55,
+      snapAmp: 0.55,
+      easing: "elastic",
+    },
     clips: {
       idle: "idle",
       thinking: "thinking",
@@ -292,6 +344,19 @@ export const CHARACTER_CONFIGS: Record<LiveAvatarId, CharacterConfig> = {
       bodySwayAmp: 0.038,
       checkPhoneSilenceSec: 15,
       checkPhoneJoy: 0.3,
+    },
+    toon: {
+      bopSpeedIdle: 4.7,
+      bopAmpIdle: 0.014,
+      bopSpeedSpeak: 9.4,
+      bopAmpSpeak: 0.04,
+      bopPhase: 0.18,
+      nodAmp: 0.09,
+      swaySpeed: 2.35,
+      swayAmp: 0.082,
+      squash: 0.88,
+      snapAmp: 1.15,
+      easing: "bounce",
     },
     clips: {
       idle: "idle",

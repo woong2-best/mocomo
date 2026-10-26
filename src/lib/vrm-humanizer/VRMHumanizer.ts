@@ -6,10 +6,15 @@ import type { FsmState } from "@/lib/vrm-humanizer/math";
 import {
   breathingHeadPitch,
   breathingScale,
+  cartoonSlerpAlpha,
+  clamp01,
   degToRad,
   intervalFromUnit,
   lerp,
-  slerpAlpha,
+  toonBopOffset,
+  toonNodPitch,
+  toonSquashScale,
+  toonSwayRoll,
 } from "@/lib/vrm-humanizer/math";
 import { createContinuousNoise, type ContinuousNoise } from "@/lib/vrm-humanizer/noise";
 
@@ -19,6 +24,7 @@ type TrackedBone = {
   node: THREE.Object3D;
   rest: THREE.Quaternion;
   restScale: THREE.Vector3;
+  restPos: THREE.Vector3;
 };
 
 const BODY_BONES = [
@@ -79,6 +85,7 @@ export class VRMHumanizer {
   private nextWristShake = 25;
   private pendingHabit: HabitName | null = null;
   private checkingPhone = false;
+  private snapElapsed = 1;
 
   constructor(config: CharacterConfig, noise: ContinuousNoise = createContinuousNoise()) {
     this.config = config;
@@ -111,6 +118,7 @@ export class VRMHumanizer {
   setState(state: FsmState) {
     if (this.state === state) return;
     this.state = state;
+    this.snapElapsed = 0;
     if (state !== "idle") this.checkingPhone = false;
     if (state === "thinking" && this.config.habits.lipTouch) {
       this.pendingHabit = "lip_touch";
@@ -154,6 +162,45 @@ export class VRMHumanizer {
     this.tickWeightShift(dt);
     if (!this.vrm) return;
     this.applyBody();
+    this.applyToonBounciness(dt, this.rms, this.state);
+  }
+
+  /**
+   * Last additive layer. Animal Crossing bop / nod / sway / squash.
+   * Does not replace posture, breath, or noise — only offsets the finished pose.
+   */
+  applyToonBounciness(delta: number, audioRMS: number, currentState: FsmState) {
+    const dt = Math.min(Math.max(delta, 0), 0.08);
+    this.snapElapsed += dt;
+    const head = this.body.get("head");
+    if (head) head.node.scale.copy(head.restScale);
+    const hips = this.body.get("hips");
+    if (hips) hips.node.position.copy(hips.restPos);
+    if (this.reduced) return;
+
+    const toon = this.config.toon;
+    const rms = clamp01(audioRMS);
+    const speakMix =
+      currentState === "speaking" ? clamp01(0.28 + rms * 0.72) : currentState === "thinking" ? 0.12 : 0;
+    const speed = lerp(toon.bopSpeedIdle, toon.bopSpeedSpeak, speakMix);
+    const amp = lerp(toon.bopAmpIdle, toon.bopAmpSpeak, speakMix);
+    const offset = toonBopOffset(this.time, speed, amp, toon.bopPhase);
+    const wave = amp > 1e-8 ? offset / amp : 0;
+    const snap = Math.exp(-this.snapElapsed * 7.2) * Math.sin(this.snapElapsed * 17) * toon.snapAmp * amp;
+
+    if (hips) hips.node.position.y = hips.restPos.y + offset + snap;
+
+    this.addLocalRot("head", toonNodPitch(wave, toon.nodAmp * (0.4 + speakMix * 0.6)), 0, 0);
+    const sway = toonSwayRoll(this.time, toon.swaySpeed, toon.swayAmp) * (0.65 + speakMix * 0.55);
+    if (toon.swayAmp > 0) {
+      this.addLocalRot("spine", 0, 0, sway);
+      this.addLocalRot("chest", 0, 0, sway * 0.72);
+    }
+
+    if (head && currentState === "speaking" && toon.squash > 0) {
+      const squash = toonSquashScale(wave, rms, toon.squash);
+      head.node.scale.set(head.restScale.x * squash.x, head.restScale.y * squash.y, head.restScale.z);
+    }
   }
 
   /** Arm / hand layer. Call after hung-arm restore so habits win. */
@@ -181,6 +228,7 @@ export class VRMHumanizer {
       node,
       rest: node.quaternion.clone(),
       restScale: node.scale.clone(),
+      restPos: node.position.clone(),
     });
   }
 
@@ -257,6 +305,7 @@ export class VRMHumanizer {
     this.shiftTo.setFromEuler(this.eShift);
     this.shiftDuration = intervalFromUnit(this.noise.unit(this.time, 34), cfg.slerpSecMin, cfg.slerpSecMax);
     this.shiftElapsed = 0;
+    this.snapElapsed = 0;
     this.nextShiftIn = intervalFromUnit(this.noise.unit(this.time, 35), cfg.intervalMinSec, cfg.intervalMaxSec);
   }
 
@@ -265,7 +314,7 @@ export class VRMHumanizer {
     const breath = this.config.breathing;
     const scale = this.reduced ? 1 : breathingScale(this.time, breath.speed, breath.chestScaleMin, breath.chestScaleMax);
     const nod = breathingHeadPitch(this.time, breath.speed, breath.headPitchAmp) * amp;
-    const shiftAlpha = this.reduced ? 0 : slerpAlpha(this.shiftElapsed, this.shiftDuration);
+    const shiftAlpha = this.reduced ? 0 : cartoonSlerpAlpha(this.shiftElapsed, this.shiftDuration, this.config.toon.easing);
     this.qShift.slerpQuaternions(this.shiftFrom, this.shiftTo, shiftAlpha);
     const bob =
       !this.reduced && this.shiftElapsed < this.shiftDuration
@@ -384,6 +433,14 @@ export class VRMHumanizer {
   private resetArm(name: BoneName) {
     const tracked = this.arms.get(name);
     if (tracked) tracked.node.quaternion.copy(tracked.rest);
+  }
+
+  private addLocalRot(name: BoneName, x: number, y: number, z: number) {
+    const tracked = this.body.get(name);
+    if (!tracked || (Math.abs(x) < 1e-6 && Math.abs(y) < 1e-6 && Math.abs(z) < 1e-6)) return;
+    this.eMicro.set(x, y, z);
+    this.qMicro.setFromEuler(this.eMicro);
+    tracked.node.quaternion.multiply(this.qMicro);
   }
 
   private addLocal(name: BoneName, x: number, y: number, z: number, weight: number) {

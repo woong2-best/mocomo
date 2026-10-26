@@ -3,11 +3,16 @@ import assert from "node:assert/strict";
 import { CHARACTER_CONFIGS, resolveCharacterConfig } from "@/lib/vrm-humanizer/CharacterConfigs";
 import {
   breathingScale,
+  cartoonEase,
+  cartoonSlerpAlpha,
   resolveFsmState,
   rmsAmplitudeScale,
   shouldBoostSaccade,
   shouldTriggerReflexBlink,
   slerpAlpha,
+  toonBopOffset,
+  toonNodPitch,
+  toonSquashScale,
 } from "@/lib/vrm-humanizer/math";
 
 test("character aliases resolve to the four live avatars", () => {
@@ -43,6 +48,17 @@ test("each avatar keeps a distinct posture and habit profile", () => {
   assert.ok(CHARACTER_CONFIGS.nangnang.habits.bodySwayAmp > CHARACTER_CONFIGS.zelie.habits.bodySwayAmp);
 });
 
+test("each avatar has a distinct Animal Crossing toon profile", () => {
+  assert.ok(CHARACTER_CONFIGS.zelie.toon.swayAmp > 0.03);
+  assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle < CHARACTER_CONFIGS.nangnang.toon.bopAmpIdle);
+  assert.equal(CHARACTER_CONFIGS.cleo.toon.swayAmp, 0);
+  assert.ok(CHARACTER_CONFIGS.cleo.toon.bopPhase > 1);
+  assert.ok(CHARACTER_CONFIGS.mio.toon.bopSpeedIdle > CHARACTER_CONFIGS.zelie.toon.bopSpeedIdle * 2);
+  assert.ok(CHARACTER_CONFIGS.nangnang.toon.bopAmpSpeak > CHARACTER_CONFIGS.zelie.toon.bopAmpSpeak);
+  assert.ok(CHARACTER_CONFIGS.nangnang.toon.swayAmp > CHARACTER_CONFIGS.zelie.toon.swayAmp);
+  assert.equal(CHARACTER_CONFIGS.zelie.toon.bopSpeedSpeak, CHARACTER_CONFIGS.zelie.toon.bopSpeedIdle * 2);
+});
+
 test("speaking wins over thinking in the FSM", () => {
   assert.equal(resolveFsmState(false, false), "idle");
   assert.equal(resolveFsmState(false, true), "thinking");
@@ -60,6 +76,28 @@ test("weight-shift slerp uses a smoothstep envelope", () => {
   assert.equal(slerpAlpha(0, 2), 0);
   assert.equal(slerpAlpha(2, 2), 1);
   assert.ok(slerpAlpha(1, 2) > 0.4 && slerpAlpha(1, 2) < 0.6);
+});
+
+test("cartoon easing starts fast and overshoots before settling", () => {
+  assert.equal(cartoonEase(0, "elastic"), 0);
+  assert.equal(cartoonEase(1, "elastic"), 1);
+  assert.ok(cartoonSlerpAlpha(0.15, 1, "elastic") > slerpAlpha(0.15, 1));
+  assert.ok(cartoonEase(0.45, "elastic") > 1);
+  assert.equal(cartoonEase(0, "bounce"), 0);
+  assert.ok(cartoonEase(1, "bounce") > 0.98);
+});
+
+test("toon bop nods down when the hips drop and squashes at RMS peak", () => {
+  const down = toonBopOffset(Math.PI / 2 / 2, 2, 0.02, 0);
+  assert.ok(Math.abs(down - 0.02) < 1e-9);
+  assert.ok(toonNodPitch(-1, 0.05) > 0);
+  assert.ok(toonNodPitch(1, 0.05) < 0);
+  const squash = toonSquashScale(-1, 1, 1);
+  assert.ok(Math.abs(squash.x - 1.02) < 1e-9);
+  assert.ok(Math.abs(squash.y - 0.98) < 1e-9);
+  const rest = toonSquashScale(1, 1, 1);
+  assert.equal(rest.x, 1);
+  assert.equal(rest.y, 1);
 });
 
 test("RMS tension scales amplitude and Mio explodes past the threshold", () => {

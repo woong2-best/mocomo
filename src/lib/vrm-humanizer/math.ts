@@ -43,6 +43,62 @@ export function slerpAlpha(elapsed: number, duration: number): number {
   return smoothstep(elapsed / duration);
 }
 
+export type CartoonEase = "elastic" | "bounce";
+
+/** Fast start, overshoot, then settle — cartoon settle, not a linear blend. */
+export function easeOutElastic(t: number): number {
+  const x = clamp01(t);
+  if (x === 0 || x === 1) return x;
+  const c4 = (2 * Math.PI) / 3;
+  return 2 ** (-10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
+}
+
+export function easeOutBounce(t: number): number {
+  let x = clamp01(t);
+  const n1 = 7.5625;
+  const d1 = 2.75;
+  if (x < 1 / d1) return n1 * x * x;
+  if (x < 2 / d1) {
+    x -= 1.5 / d1;
+    return n1 * x * x + 0.75;
+  }
+  if (x < 2.5 / d1) {
+    x -= 2.25 / d1;
+    return n1 * x * x + 0.9375;
+  }
+  x -= 2.625 / d1;
+  return n1 * x * x + 0.984375;
+}
+
+export function cartoonEase(t: number, style: CartoonEase = "elastic"): number {
+  return style === "bounce" ? easeOutBounce(t) : easeOutElastic(t);
+}
+
+export function cartoonSlerpAlpha(elapsed: number, duration: number, style: CartoonEase = "elastic"): number {
+  if (duration <= 1e-5) return 1;
+  return cartoonEase(elapsed / duration, style);
+}
+
+/** hips.y offset. Negative sine = down, so a nod can lock to the same phase. */
+export function toonBopOffset(time: number, speed: number, amplitude: number, phase = 0): number {
+  return Math.sin(time * speed + phase) * amplitude;
+}
+
+/** When hips drop, head pitch goes down. */
+export function toonNodPitch(bopSine: number, nodAmp: number): number {
+  return -bopSine * nodAmp;
+}
+
+export function toonSwayRoll(time: number, speed: number, amplitude: number): number {
+  return Math.sin(time * speed) * amplitude;
+}
+
+/** Squash at the bottom of the bop. `amount` 1 → scale (1.02, 0.98). */
+export function toonSquashScale(bopSine: number, rms: number, amount: number): { x: number; y: number } {
+  const squash = Math.max(0, -bopSine) * clamp01(rms) * clamp01(amount);
+  return { x: 1 + 0.02 * squash, y: 1 - 0.02 * squash };
+}
+
 export function angularVelocity(angleRad: number, delta: number): number {
   if (delta <= 1e-5) return 0;
   return Math.abs(angleRad) / delta;
