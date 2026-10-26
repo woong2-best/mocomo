@@ -8,15 +8,25 @@ describe("parseWikiVideoLine", () => {
   });
 
   it("reads shorts, youtu.be, and [youtube:] tags", () => {
-    expect(parseWikiVideoLine("https://youtu.be/s2muG5yqdSc")?.id).toBe("s2muG5yqdSc");
-    expect(parseWikiVideoLine("https://www.youtube.com/shorts/s2muG5yqdSc")?.id).toBe("s2muG5yqdSc");
-    expect(parseWikiVideoLine("[youtube:s2muG5yqdSc]")?.id).toBe("s2muG5yqdSc");
+    expect(parseWikiVideoLine("https://youtu.be/s2muG5yqdSc")).toMatchObject({
+      kind: "youtube",
+      id: "s2muG5yqdSc",
+    });
+    expect(parseWikiVideoLine("https://www.youtube.com/shorts/s2muG5yqdSc")).toMatchObject({
+      kind: "youtube",
+      id: "s2muG5yqdSc",
+    });
+    expect(parseWikiVideoLine("[youtube:s2muG5yqdSc]")).toMatchObject({
+      kind: "youtube",
+      id: "s2muG5yqdSc",
+    });
   });
 
   it("reads a markdown YouTube link and an uploaded file tag", () => {
-    expect(parseWikiVideoLine("[OP](https://www.youtube.com/watch?v=s2muG5yqdSc)")?.id).toBe(
-      "s2muG5yqdSc"
-    );
+    expect(parseWikiVideoLine("[OP](https://www.youtube.com/watch?v=s2muG5yqdSc)")).toMatchObject({
+      kind: "youtube",
+      id: "s2muG5yqdSc",
+    });
     expect(parseWikiVideoLine("[Video: https://cdn.mocomo.net/theme.mp4]")).toEqual({
       kind: "file",
       url: "https://cdn.mocomo.net/theme.mp4",
