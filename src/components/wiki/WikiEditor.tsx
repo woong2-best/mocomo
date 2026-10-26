@@ -812,30 +812,33 @@ function WikiEditorInlineMedia({
   onRemove: () => void;
 }) {
   return (
-    <div className="relative my-2 w-fit max-w-full">
+    <div
+      className={cn(
+        "relative my-2 w-fit max-w-full self-start overflow-hidden rounded-xl border border-border/70",
+        item.kind === "video" ? "w-[min(100%,320px)] bg-black" : "bg-muted/40"
+      )}
+    >
       {item.kind === "image" ? (
-        <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/40">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.url}
-            alt=""
-            className="block h-auto max-h-40 w-auto max-w-[280px] object-contain"
-          />
-        </div>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.url}
+          alt=""
+          className="block h-auto max-h-40 w-auto max-w-[280px] object-contain"
+        />
       ) : (
-        <div className="relative w-[min(100%,320px)] overflow-hidden rounded-xl border border-border/70 bg-black">
+        <>
           {item.thumb ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.thumb} alt="" className="aspect-video w-full object-cover opacity-90" />
           ) : (
             <span className="block aspect-video w-full bg-gradient-to-br from-zinc-800 to-black" />
           )}
-          <span className="absolute inset-0 flex items-center justify-center">
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white">
               <Play className="ml-0.5 h-4 w-4 fill-current" />
             </span>
           </span>
-        </div>
+        </>
       )}
       <button
         type="button"
@@ -843,9 +846,9 @@ function WikiEditorInlineMedia({
         aria-label={t("wiki.editor.removePreview")}
         onMouseDown={(e) => e.preventDefault()}
         onClick={onRemove}
-        className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/75 text-white shadow"
+        className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/80 text-white shadow"
       >
-        <X className="h-3 w-3" />
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );
