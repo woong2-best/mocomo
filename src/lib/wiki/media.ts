@@ -246,7 +246,20 @@ export function splitWikiEditorParts(source: string): WikiEditorPart[] {
 }
 
 export function joinWikiEditorParts(parts: WikiEditorPart[]): string {
-  return parts.map((part) => (part.type === "text" ? part.value : part.item.snippet)).join("");
+  let out = "";
+  for (let i = 0; i < parts.length; i += 1) {
+    const part = parts[i];
+    if (part.type === "text") {
+      out += part.value;
+      continue;
+    }
+    if (out && !out.endsWith("\n")) out += "\n";
+    out += part.item.snippet;
+    const next = parts[i + 1];
+    if (next?.type === "text" && next.value && !next.value.startsWith("\n")) out += "\n";
+    else if (next?.type === "media" && !out.endsWith("\n")) out += "\n";
+  }
+  return out;
 }
 
 export function replaceWikiEditorPartText(source: string, partIndex: number, value: string): string {

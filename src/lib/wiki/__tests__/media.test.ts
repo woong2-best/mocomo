@@ -7,6 +7,7 @@ import {
   parseWikiVideoLine,
   parseWikiVideoUrl,
   removeWikiEditorPart,
+  replaceWikiEditorPartText,
   splitWikiEditorParts,
   wikiVideoLink,
 } from "@/lib/wiki/media";
@@ -117,5 +118,13 @@ describe("wiki editor inline media", () => {
     const next = insertWikiEditorMediaInPart(source, 0, caret, caret, image);
     expect(next).toBe(`== Overview ==\n${image}\n== Synopsis ==\n`);
     expect(removeWikiEditorPart(next, 1)).toBe("== Overview ==\n\n== Synopsis ==\n");
+  });
+
+  it("keeps a typed heading from swallowing the video URL", () => {
+    const source = `== Overview ==\n${youtube}\n== Synopsis ==`;
+    const glued = replaceWikiEditorPartText(source, 0, "== Overview ==\n+GGGGGV");
+    expect(glued).toBe(`== Overview ==\n+GGGGGV\n${youtube}\n== Synopsis ==`);
+    expect(extractWikiEditorMedia(glued)).toHaveLength(1);
+    expect(extractWikiEditorMedia(glued)[0]?.snippet).toBe(youtube);
   });
 });
