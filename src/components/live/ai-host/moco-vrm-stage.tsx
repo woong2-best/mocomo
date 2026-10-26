@@ -11,6 +11,7 @@ import {
   setupChloeDrunkState,
 } from "@/lib/ai-live/vrm-expression";
 import { disposeIdolVrm, loadIdolVrm, useIdolVrm } from "@/components/live/ai-host/use-idol-vrm";
+import { VrmHumanizerRuntime } from "@/lib/vrm-humanizer";
 
 const DEFAULT_VRM_URL = IDOL_VRM_DEFAULTS.zelie;
 
@@ -18,12 +19,14 @@ export type MocoStageHandle = {
   /** Create the audio graph during the click that will play speech. */
   prime: () => void;
   /** Play speech. `emotion` stays at 1 until the clip ends, then the face returns to neutral. */
-  playVoice: (bytes: ArrayBuffer, emotion?: string) => Promise<void>;
+  playVoice: (bytes: ArrayBuffer, emotion?: string, text?: string) => Promise<void>;
   /** Browser voice when the server did not return MP3. */
   speakText: (text: string, emotion?: string) => Promise<void>;
   stopVoice: () => void;
   /** Swap a clothing material's texture without reloading the VRM. */
   changeClothing: (materialName: string, textureUrl: string) => void;
+  /** Look-away / lip-touch while the host is generating a reply. */
+  setThinking: (thinking: boolean) => void;
 };
 
 type PaintableMaterial = import("three").Material & { map?: import("three").Texture | null };
@@ -116,6 +119,7 @@ function MocoVrmStageView({
   urlRef.current = vrmUrl;
   const characterIdRef = useRef(characterId);
   characterIdRef.current = characterId;
+  const thinkingRef = useRef(false);
   const { phase, swapRef, armed, setPhaseRef } = useIdolVrm(vrmUrl);
   const voiceRef = useRef<MocoStageHandle>({
     prime() {},
@@ -123,15 +127,17 @@ function MocoVrmStageView({
     speakText: async () => {},
     stopVoice() {},
     changeClothing() {},
+    setThinking() {},
   });
 
   const handle = useMemo<MocoStageHandle>(
     () => ({
       prime: () => voiceRef.current.prime(),
-      playVoice: (bytes, emotion) => voiceRef.current.playVoice(bytes, emotion),
+      playVoice: (bytes, emotion, text) => voiceRef.current.playVoice(bytes, emotion, text),
       speakText: (text, emotion) => voiceRef.current.speakText(text, emotion),
       stopVoice: () => voiceRef.current.stopVoice(),
       changeClothing: (materialName, textureUrl) => voiceRef.current.changeClothing(materialName, textureUrl),
+      setThinking: (thinking) => voiceRef.current.setThinking(thinking),
     }),
     []
   );
@@ -147,6 +153,7 @@ function MocoVrmStageView({
     let alive = true;
     let dispose = () => {};
     let audioCtx: AudioContext | null = null;
+    const humanizerRef: { current: VrmHumanizerRuntime | null } = { current: null };
     let source: AudioBufferSourceNode | null = null;
     let playDone: (() => void) | null = null;
     let voiceSession = 0;
@@ -184,10 +191,11 @@ function MocoVrmStageView({
       void audioCtx.resume();
     };
 
-    const playVoice = async (bytes: ArrayBuffer, emotion?: string) => {
+    const playVoice = async (bytes: ArrayBuffer, emotion?: string, text?: string) => {
       stopVoice();
       const token = voiceSession;
       const mood = parseVrmEmotion(emotion);
+      humanizerRef.current?.notifySpeech(text, mood);
       prime();
       if (!audioCtx || bytes.byteLength < 64) return;
       try {
@@ -232,6 +240,7 @@ function MocoVrmStageView({
       stopVoice();
       const token = voiceSession;
       const mood = parseVrmEmotion(emotion);
+      humanizerRef.current?.notifySpeech(line, mood);
       const { speechLangForText, EDGE_VOICES } = await import("@/lib/ai-live/speech-lang");
       const want = EDGE_VOICES[speechLangForText(line)].bcp47;
       const voices = await new Promise<SpeechSynthesisVoice[]>((resolve) => {
@@ -281,7 +290,12 @@ function MocoVrmStageView({
       void changeClothingTexture(shown.current, materialName, textureUrl);
     };
 
-    voiceRef.current = { prime, playVoice, speakText, stopVoice, changeClothing };
+    const setThinking = (thinking: boolean) => {
+      thinkingRef.current = thinking;
+      humanizerRef.current?.setThinking(thinking);
+    };
+
+    voiceRef.current = { prime, playVoice, speakText, stopVoice, changeClothing, setThinking };
 
     void (async () => {
       const THREE = await import("three");
@@ -402,7 +416,9 @@ function MocoVrmStageView({
         camera.lookAt(cameraTarget);
         camera.updateMatrixWorld(true);
         camera.updateProjectionMatrix();
-        if (vrm.lookAt) {
+        if (humanizerRef.current) {
+          humanizerRef.current.saccade.bindLookAt();
+        } else if (vrm.lookAt) {
           vrm.lookAt.autoUpdate = true;
           vrm.lookAt.target = camera;
         }
@@ -473,9 +489,14 @@ function MocoVrmStageView({
             return false;
           }
           if (poseRef.current) disposeIdolVrm(poseRef.current.vrm);
+          humanizerRef.current?.dispose();
+          humanizerRef.current = null;
           scene.add(vrm.scene);
           shown.current = vrm;
           poseRef.current = rememberPose(vrm);
+          humanizerRef.current = VrmHumanizerRuntime.attach(vrm, characterIdRef.current, camera);
+          humanizerRef.current.setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+          humanizerRef.current.setThinking(thinkingRef.current);
           if (isChloeCharacter(characterIdRef.current)) setupChloeDrunkState(vrm);
           loadedUrl = url;
           frameCamera(vrm);
@@ -502,37 +523,18 @@ function MocoVrmStageView({
 
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      let blinkAt = performance.now() + 1600;
-      let blinking = false;
-      let blinkUntil = 0;
       let raf = 0;
       const clock = new THREE.Clock();
 
       const loop = () => {
         const dt = Math.min(clock.getDelta(), 0.05);
-        const time = clock.elapsedTime;
         const pose = poseRef.current;
-        if (pose) {
-          const drunk = isChloeCharacter(characterIdRef.current);
-          const sway = drunk ? 0.085 : 0.03;
-          const swayY = drunk ? 0.04 : 0.01;
-          const swayZ = drunk ? 0.035 : 0;
-          const tempo = drunk ? 1.35 : 2;
-          if (!reduced && pose.spine) {
-            pose.spine.rotation.x = pose.spineRestX + Math.sin(time * tempo) * sway;
-            pose.spine.rotation.y = pose.spineRestY + Math.cos(time * 1.5) * swayY;
-            pose.spine.rotation.z = pose.spineRestZ + Math.sin(time * 0.9) * swayZ;
-          }
-          if (!reduced && pose.chest) {
-            pose.chest.rotation.x = pose.chestRestX + Math.sin(time * tempo) * (drunk ? 0.055 : 0.02);
-            pose.chest.rotation.y = pose.chestRestY + Math.cos(time * 1.5) * (drunk ? 0.025 : 0.008);
-            pose.chest.rotation.z = pose.chestRestZ + Math.sin(time * 0.9) * swayZ * 0.6;
-          }
-          if (!reduced && pose.headBone) {
-            pose.headBone.rotation.x = pose.headRestX + (drunk ? Math.sin(time * 0.8) * 0.03 : 0);
-            pose.headBone.rotation.y = pose.headRestY + Math.sin(time * 1.5) * (drunk ? 0.09 : 0.05);
-            pose.headBone.rotation.z = pose.headRestZ + Math.cos(time * 1.2) * (drunk ? 0.05 : 0.02);
-          }
+        const humanizer = humanizerRef.current;
+        if (humanizer) {
+          humanizer.setCharacter(characterIdRef.current);
+          humanizer.setReducedMotion(reduced);
+          humanizer.setThinking(thinkingRef.current);
+          humanizer.setSpeaking(lip.active);
         }
 
         let aa = 0;
@@ -546,33 +548,30 @@ function MocoVrmStageView({
           // Edge-TTS speech sits lower in the analyser than a studio WAV. /40 reaches aa.
           aa = Math.min(sum / bins.length / 40, 1);
         }
-
-        const now = performance.now();
-        if (!blinking && now >= blinkAt) {
-          blinking = true;
-          blinkUntil = now + 110;
-        }
-        if (blinking && now >= blinkUntil) {
-          blinking = false;
-          blinkAt = now + 2000 + Math.random() * 3000;
-        }
+        humanizer?.setRms(aa);
 
         camera.lookAt(cameraTarget);
         camera.updateMatrixWorld(true);
         const vrm = pose?.vrm;
         if (vrm) {
+          humanizer?.beforeVrmUpdate(dt, camera);
           vrm.update(dt);
           if (pose) {
             for (const arm of pose.hung) arm.bone.quaternion.copy(arm.quat);
             vrm.scene.updateMatrixWorld(true);
           }
+          const face = humanizer?.afterVrmUpdate(dt);
           const expressions = vrm.expressionManager;
           if (expressions) {
-            expressions.setValue("blink", blinking ? 1 : 0);
+            expressions.setValue("blink", face?.blink ?? 0);
             applyVrmMouth(vrm, aa);
             setVrmEmotion(vrm, lip.active ? lip.emotion : "neutral");
             if (!lip.active && isChloeCharacter(characterIdRef.current)) {
               setupChloeDrunkState(vrm);
+            }
+            if (face && face.joy > 0) {
+              if (expressions.getExpression("joy")) expressions.setValue("joy", face.joy);
+              if (expressions.getExpression("happy")) expressions.setValue("happy", face.joy);
             }
             expressions.update();
           }
@@ -594,6 +593,8 @@ function MocoVrmStageView({
         cancelAnimationFrame(raf);
         loadGen += 1;
         shown.current = null;
+        humanizerRef.current?.dispose();
+        humanizerRef.current = null;
         if (poseRef.current) disposeIdolVrm(poseRef.current.vrm);
         ro.disconnect();
         env.dispose();
@@ -615,6 +616,7 @@ function MocoVrmStageView({
         speakText: async () => {},
         stopVoice() {},
         changeClothing() {},
+        setThinking() {},
       };
       dispose();
     };

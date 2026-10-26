@@ -30,6 +30,7 @@ export async function loadIdolVrm(loader: GLTFLoader, url: string): Promise<VRM>
   if (!resolved) throw new Error("VRM_URL");
   const gltf = await loader.loadAsync(resolved);
   const vrm = gltf.userData.vrm as VRM;
+  vrm.scene.userData.mocoClips = gltf.animations ?? [];
   VRMUtils.removeUnnecessaryVertices(vrm.scene);
   const utils = VRMUtils as { combineSkeletons?: (root: unknown) => void };
   utils.combineSkeletons?.(vrm.scene);

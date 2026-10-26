@@ -110,7 +110,7 @@ export function MocoLiveRoom({
     const token = queueRef.current.epoch;
     try {
       if (job.audio && job.audio.byteLength >= 64) {
-        await stageRef.current?.playVoice(job.audio, job.emotion);
+        await stageRef.current?.playVoice(job.audio, job.emotion, job.text);
       } else if (job.text) {
         await stageRef.current?.speakText(job.text, job.emotion);
       }
@@ -152,6 +152,7 @@ export function MocoLiveRoom({
 
   const ask = useCallback(
     async (text: string, room: ChatRoomId) => {
+      stageRef.current?.setThinking(true);
       try {
         const res = await fetch("/api/live/ai-host/speak", {
           method: "POST",
@@ -197,6 +198,8 @@ export function MocoLiveRoom({
         }
       } catch {
         if (aliveRef.current && roomRef.current === room) addLine("moco", t("live.aiUnavailable"), room);
+      } finally {
+        stageRef.current?.setThinking(false);
       }
     },
     [addLine, pushAudio, t]
