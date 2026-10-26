@@ -53,7 +53,7 @@ export type LiveChatMessage = {
   content: string;
   at: number;
   image?: string | null;
-  supportTierSent?: SupportTierLevel;
+  supportTierSent?: SupportTierLevel | null;
   broadcastRole?: EffectiveBroadcastRole;
   /** MoCoMo DB chat vs imported platform chat */
   source?: "MOCOMO" | "TWITCH" | "YOUTUBE" | "CHZZK";
@@ -94,7 +94,7 @@ function LiveChatInner({
   hostUserId?: string;
   hostUsername?: string;
   hostDisplayName?: string;
-  viewerSupportTier?: SupportTierLevel;
+  viewerSupportTier?: SupportTierLevel | null;
   viewerSupportTotal?: number;
   paymentsEnabled?: boolean;
   /** Streamer pinned notice (links OK) — external live chat header */
@@ -188,7 +188,7 @@ function LiveChatInner({
       content,
       at: Date.now(),
       image: session.user.image ?? null,
-      supportTierSent: viewerSupportTier ?? "SEED",
+      supportTierSent: viewerSupportTier ?? null,
     };
 
     setSending(true);
@@ -469,8 +469,9 @@ function ChatUsernameRow({ message }: { message: LiveChatMessage }) {
     <DisplayNameWithSupportTier
       name={nameEl}
       profileUsername={message.username}
-      tier={message.supportTierSent ?? "SEED"}
+      tier={message.supportTierSent ?? null}
       compact
+      liveHostBadge
       className="flex-wrap"
     />
   );

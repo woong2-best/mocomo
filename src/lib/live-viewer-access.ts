@@ -14,11 +14,11 @@ export async function getSupporterTierToCreator(
   creatorId: string
 ): Promise<SupportTierLevel> {
   try {
-    const sum = await db.tip.aggregate({
-      where: { senderId, receiverId: creatorId },
-      _sum: { amount: true },
+    const row = await db.creatorSupport.findUnique({
+      where: { supporterId_creatorId: { supporterId: senderId, creatorId } },
+      select: { totalAmount: true },
     });
-    return tierFromAmount(sum._sum.amount ?? 0);
+    return tierFromAmount(row?.totalAmount ?? 0);
   } catch {
     return "SEED";
   }

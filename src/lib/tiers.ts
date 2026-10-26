@@ -73,8 +73,27 @@ export function parseSupportTierSlug(raw: string): SupportTierLevel | null {
 
 export const SUPPORT_TIERS_PAGE_PATH = "/support/tiers";
 
-export function supportTierPath(_level?: SupportTierLevel): string {
-  return SUPPORT_TIERS_PAGE_PATH;
+export function supportTierPath(level?: SupportTierLevel): string {
+  return level ? `${SUPPORT_TIERS_PAGE_PATH}?tier=${level}` : SUPPORT_TIERS_PAGE_PATH;
+}
+
+/** Inclusive lower / exclusive upper MOCO bounds for a per-creator tier list. Seed excludes 0. */
+export function supportTierAmountBounds(level: SupportTierLevel): {
+  minInclusive: number;
+  maxExclusive: number | null;
+} {
+  const viewed = getTierInfo(level);
+  const next = getTierAfter(level);
+  if (viewed.minAmount <= 0) {
+    return { minInclusive: 1, maxExclusive: next?.minAmount ?? null };
+  }
+  return { minInclusive: viewed.minAmount, maxExclusive: next?.minAmount ?? null };
+}
+
+/** Live chat badge: hide when this viewer never donated to the host. */
+export function liveChatSupportTierFromAmount(amount: number): SupportTierLevel | null {
+  if (amount <= 0) return null;
+  return tierFromAmount(amount);
 }
 
 /** 등급 상세 — 이 등급 기준 다음 목표·진행률 */

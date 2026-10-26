@@ -26,10 +26,11 @@ const TIER_META: Record<
 };
 
 export function SupportTierBadge({
-  tier = "SEED",
+  tier,
 }: {
-  tier?: string;
+  tier?: string | null;
 }) {
+  if (!tier) return null;
   const info = TIER_META[tier] ?? TIER_META.SEED;
   return (
     <View style={[styles.badge, { borderColor: `${info.color}55`, backgroundColor: `${info.color}18` }]}>

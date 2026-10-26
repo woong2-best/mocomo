@@ -119,7 +119,7 @@ export default async function VoiceRoomPage({
     );
   }
 
-  const { channel, host, tipTotalKrw, tipRanking, hostFollowing, hostPinnedMessage } = meta;
+  const { channel, host, tipTotalKrw, tipRanking, hostFollowing, hostPinnedMessage, viewerSupport } = meta;
   const paymentsEnabled = isPaymentsConfigured();
 
   const isExternal =
@@ -183,8 +183,8 @@ export default async function VoiceRoomPage({
           isHost={isHost}
           paymentsEnabled={paymentsEnabled}
           hostFollowing={hostFollowing}
-          viewerSupportTier={host.supportTierReceived}
-          viewerSupportTotal={host.totalSupportReceived}
+          viewerSupportTier={viewerSupport?.tier ?? null}
+          viewerSupportTotal={viewerSupport?.totalAmount}
         />
       </LiveRoomPageShell>
     );

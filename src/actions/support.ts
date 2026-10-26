@@ -9,7 +9,8 @@ import {
   SUPPORT_RANKING_DEMO_ENTRIES,
   type SupportRankingRow,
 } from "@/lib/support-ranking";
-import { getTierInfo, getNextTierInfo, tierFromAmount } from "@/lib/tiers";
+import { getTierInfo, getNextTierInfo, parseSupportTierSlug } from "@/lib/tiers";
+import { listCreatorsISupportedAtTier, type SupportedUserAtTier } from "@/lib/creator-support";
 import { revalidatePath } from "next/cache";
 import { SupportTierLevel } from "@prisma/client";
 
@@ -209,6 +210,18 @@ export async function getSupportDashboard() {
 }
 
 export type SupportDashboard = NonNullable<Awaited<ReturnType<typeof getSupportDashboard>>>;
+
+export async function getMySupportedUsersAtTier(tierSlug: string): Promise<{
+  tier: SupportTierLevel;
+  users: SupportedUserAtTier[];
+} | null> {
+  const session = await getCachedSession();
+  if (!session?.user?.id) return null;
+  const tier = parseSupportTierSlug(tierSlug);
+  if (!tier) return null;
+  const users = await listCreatorsISupportedAtTier(session.user.id, tier);
+  return { tier, users };
+}
 
 export async function getMyTipHistory() {
   const session = await getCachedSession();

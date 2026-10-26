@@ -32,7 +32,7 @@ export function LiveMobileOverlayChat({
   hostUsername?: string;
   hostDisplayName?: string;
   paymentsEnabled?: boolean;
-  viewerSupportTier?: SupportTierLevel;
+  viewerSupportTier?: SupportTierLevel | null;
   viewerSupportTotal?: number;
   showMessages?: boolean;
 }) {
@@ -62,7 +62,7 @@ export function LiveMobileOverlayChat({
       content,
       at: Date.now(),
       image: session.user.image ?? null,
-      supportTierSent: viewerSupportTier ?? "SEED",
+      supportTierSent: viewerSupportTier ?? null,
     });
 
     setSending(true);

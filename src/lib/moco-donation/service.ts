@@ -16,6 +16,7 @@ import { toMocoDonationPayload } from "@/lib/moco-donation/payload";
 import { prepareMocoVideoDonation } from "@/lib/moco-donation/prepare-video-donation";
 import { isValidDonationSfxKey, resolveDonationSfx } from "@/lib/moco-donation/sfx-catalog";
 import { mocoToTenths, parseSpendableMoco, splitUnsignedTenths } from "@/lib/moco/decimal-amount";
+import { applyCreatorSupportDelta, mocoDonationSupportUnits } from "@/lib/creator-support";
 
 export type CreateMocoDonationInput = {
   userId: string;
@@ -225,6 +226,15 @@ export async function createMocoDonation(
     const balance = await syncUserGemBalance(input.userId);
     const payload = toMocoDonationPayload(donation);
 
+    const supportUnits = mocoDonationSupportUnits(donation);
+    if (supportUnits > 0) {
+      try {
+        await applyCreatorSupportDelta(input.userId, target.streamerId, supportUnits);
+      } catch (err) {
+        console.error("[createMocoDonation] creator support", err);
+      }
+    }
+
     void relayMocoDonationEvent(target.channelId, { event: "new_donation", donation: payload });
 
     return {
@@ -335,6 +345,15 @@ async function refundPendingVideoDonation(
     return true;
   });
   if (!updated) return { ok: false, error: "This donation is no longer in the queue." };
+
+  const refundUnits = mocoDonationSupportUnits(row);
+  if (refundUnits > 0) {
+    try {
+      await applyCreatorSupportDelta(row.userId, row.streamerId, -refundUnits);
+    } catch (err) {
+      console.error("[refundPendingVideoDonation] creator support", err);
+    }
+  }
 
   const fresh = await db.mocoDonation.findUnique({
     where: { id: row.id },

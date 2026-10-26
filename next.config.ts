@@ -108,7 +108,7 @@ const nextConfig: NextConfig = {
       { source: "/market/received", destination: "/support?tab=gifts", permanent: true },
       {
         source: `/support/tiers/:tier(${SUPPORT_TIER_SLUG_PATTERN})`,
-        destination: "/support/tiers",
+        destination: "/support/tiers?tier=:tier",
         permanent: true,
       },
     ];

@@ -475,7 +475,7 @@ export function LiveChatPanel({
                             : "VIP"}
                       </Text>
                     ) : (
-                      <SupportTierBadge tier={item.supportTierSent ?? "SEED"} />
+                      <SupportTierBadge tier={item.supportTierSent} />
                     )}
                   </View>
                   <Text
@@ -635,7 +635,7 @@ function ImmersiveChatLine({ message }: { message: LiveChatMessage }) {
               : "VIP"}
         </Text>
       ) : (
-        <SupportTierBadge tier={message.supportTierSent ?? "SEED"} />
+        <SupportTierBadge tier={message.supportTierSent} />
       )}
       <Text style={[immersiveLine.user, { color: roleColor(message) }]}>
         {message.username}

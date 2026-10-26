@@ -49,28 +49,10 @@ import { assertLiveHostEligible, fetchLiveHostEligibility } from "@/lib/live-hos
 import { assertFirstPartyLiveEnabled } from "@/lib/live-feature";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 import { requireBroadcastPermission } from "@/lib/live-broadcast/permissions";
-
-function mapLiveChatMessage(m: {
-  id: string;
-  content: string;
-  createdAt: Date;
-  user: {
-    id: string;
-    username: string;
-    image: string | null;
-    supportTierSent: SupportTierLevel;
-  };
-}) {
-  return {
-    id: m.id,
-    userId: m.user.id,
-    username: m.user.username,
-    image: m.user.image,
-    supportTierSent: m.user.supportTierSent,
-    content: m.content,
-    at: m.createdAt.getTime(),
-  };
-}
+import {
+  mapLiveChatMessagesWithRoles,
+  mapSingleLiveChatMessage,
+} from "@/lib/live-broadcast/map-chat";
 
 /** 방송 만들기 자격 (팔로워 제한 없음) */
 export async function getLiveHostEligibilityAction() {
@@ -306,7 +288,7 @@ export async function getLiveChannelRoomMeta(channelId: string, viewerId?: strin
     const needFollow =
       !!viewerId && viewerId !== channel.createdBy;
 
-    const [host, tips, followRow, streamerProfile] = await Promise.all([
+    const [host, tips, followRow, streamerProfile, viewerSupportRow] = await Promise.all([
       db.user.findUnique({
         where: { id: channel.createdBy },
         select: {
@@ -334,6 +316,17 @@ export async function getLiveChannelRoomMeta(channelId: string, viewerId?: strin
         where: { userId: channel.createdBy },
         select: { announcement: true },
       }),
+      viewerId && viewerId !== channel.createdBy
+        ? db.creatorSupport.findUnique({
+            where: {
+              supporterId_creatorId: {
+                supporterId: viewerId,
+                creatorId: channel.createdBy,
+              },
+            },
+            select: { tier: true, totalAmount: true },
+          })
+        : Promise.resolve(null),
     ]);
 
     if (!host) return null;
@@ -345,6 +338,10 @@ export async function getLiveChannelRoomMeta(channelId: string, viewerId?: strin
       tipRanking: tips.tipRanking,
       hostFollowing: !!followRow,
       hostPinnedMessage: streamerProfile?.announcement?.trim() || null,
+      viewerSupport:
+        viewerSupportRow && viewerSupportRow.totalAmount > 0
+          ? { tier: viewerSupportRow.tier, totalAmount: viewerSupportRow.totalAmount }
+          : null,
     };
   } catch (e) {
     console.error("[getLiveChannelRoomMeta]", e);
@@ -666,7 +663,7 @@ export async function sendLiveChatMessage(channelId: string, content: string) {
         user: { select: userPublicSelectMinimal },
       },
     });
-    return { message: mapLiveChatMessage(msg) };
+    return { message: await mapSingleLiveChatMessage(channelId, msg) };
   } catch (e) {
     console.error("[sendLiveChatMessage]", e);
     const msg = e instanceof Error ? e.message : "";
@@ -738,7 +735,7 @@ export async function getLiveStreamSync(channelId: string, since?: string) {
     isLive: channel?.isLive ?? false,
     isHost: access.isHost,
     hostUserId: access.hostUserId,
-    messages: messages.map(mapLiveChatMessage),
+    messages: await mapLiveChatMessagesWithRoles(channelId, messages),
     deletedIds,
     recentTips,
   };
@@ -877,7 +874,7 @@ export async function loadLiveChatHistory(channelId: string) {
       take: 80,
       include: { user: { select: userPublicSelectMinimal } },
     });
-    return { messages: messages.reverse().map(mapLiveChatMessage) };
+    return { messages: await mapLiveChatMessagesWithRoles(channelId, messages.reverse()) };
   } catch (e) {
     console.error("[loadLiveChatHistory]", e);
     return { error: "CHAT_DB" as const };

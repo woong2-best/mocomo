@@ -1,6 +1,6 @@
 import type { SupportTierLevel } from "@prisma/client";
 import { db } from "@/lib/db";
-import { tierRank } from "@/lib/tiers";
+import { tierFromAmount, tierRank } from "@/lib/tiers";
 import {
   getEffectiveBroadcastRole,
   hasBroadcastPermission,
@@ -79,14 +79,16 @@ export async function assertCanSendLiveChat(input: {
   });
   if (!channel) return { ok: false, error: "Stream not found." };
 
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { supportTierSent: true },
-  });
+  const support = channel.chatMinTierExempt
+    ? await db.creatorSupport.findUnique({
+        where: { supporterId_creatorId: { supporterId: userId, creatorId: hostUserId } },
+        select: { totalAmount: true },
+      })
+    : null;
+  const viewerTier = tierFromAmount(support?.totalAmount ?? 0);
   const tierExempt =
-    channel.chatMinTierExempt &&
-    user &&
-    tierRank(user.supportTierSent) >= tierRank(channel.chatMinTierExempt);
+    !!channel.chatMinTierExempt &&
+    tierRank(viewerTier) >= tierRank(channel.chatMinTierExempt);
 
   if (tierExempt) return { ok: true, role };
 

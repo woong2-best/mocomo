@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { SupportTierLevel } from "@prisma/client";
-import { formatTierThreshold, getTierInfo, SUPPORT_TIERS_PAGE_PATH } from "@/lib/tiers";
+import { formatTierThreshold, getTierInfo, supportTierPath } from "@/lib/tiers";
 import { OreIcon } from "@/components/support/ore-icon";
 import { cn } from "@/lib/utils";
 /** 등급 안내·선택용 — 버튼 안에 광석 + 글자 */
@@ -52,7 +52,7 @@ export function OreTierButton({
 
   if (linkToDetail) {
     return (
-      <Link href={SUPPORT_TIERS_PAGE_PATH} className={sharedClass} style={sharedStyle}>
+      <Link href={supportTierPath(tier)} className={sharedClass} style={sharedStyle}>
         {body}
       </Link>
     );
@@ -122,7 +122,7 @@ export function OreTierBadgeLink({
 
   return (
     <Link
-      href={SUPPORT_TIERS_PAGE_PATH}
+      href={supportTierPath(tier)}
       className={cn(
         "inline-flex shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className

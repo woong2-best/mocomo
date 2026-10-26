@@ -7,7 +7,7 @@ export type LiveChatRelayPayload = {
   content: string;
   at: number;
   image?: string | null;
-  supportTierSent?: string;
+  supportTierSent?: string | null;
   broadcastRole?: string;
   messageKind?: string;
   eventType?: string;

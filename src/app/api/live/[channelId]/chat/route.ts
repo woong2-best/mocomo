@@ -10,7 +10,7 @@ import { ensureStringArray } from "@/lib/ensure-array";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import {
   mapLiveChatMessagesWithRoles,
-  type LiveChatMessageDto,
+  mapSingleLiveChatMessage,
 } from "@/lib/live-broadcast/map-chat";
 import { assertCanSendLiveChat } from "@/lib/live-broadcast/chat-access";
 import { getEffectiveBroadcastRole, hasBroadcastPermission } from "@/lib/live-broadcast/permissions";
@@ -178,16 +178,8 @@ export async function POST(
       data: { channelId, userId: session.user.id, content: filtered.text },
       include: { user: { select: userPublicSelectMinimal } },
     });
-    const mapped: LiveChatMessageDto = {
-      id: msg.id,
-      userId: msg.user.id,
-      username: msg.user.username,
-      content: msg.content,
-      at: msg.createdAt.getTime(),
-      image: msg.user.image,
-      supportTierSent: msg.user.supportTierSent,
-      broadcastRole: modRole !== "VIEWER" ? modRole : undefined,
-    };
+    const mapped = await mapSingleLiveChatMessage(channelId, msg);
+    if (modRole !== "VIEWER") mapped.broadcastRole = modRole;
     void relayLiveChatToSocket(channelId, mapped);
     return NextResponse.json({ ok: true, message: mapped });
   } catch (e) {

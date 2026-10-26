@@ -70,8 +70,9 @@ export function LiveOverlayCommentFeed({
           >
             <DisplayNameWithSupportTier
               name={<span className="font-bold">{m.username}</span>}
-              tier={m.supportTierSent ?? "SEED"}
+              tier={m.supportTierSent ?? null}
               compact
+              liveHostBadge
               className="inline-flex mr-1.5 align-baseline"
             />
             <span className="font-normal align-baseline">{m.content}</span>

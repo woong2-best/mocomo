@@ -8,7 +8,9 @@ import {
   getNextTierInfo,
   getTierInfo,
   getTierDetailProgress,
+  parseSupportTierSlug,
 } from "@/lib/tiers";
+import { listCreatorsISupportedAtTier } from "@/lib/creator-support";
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "mobile-support-tiers", 60);
@@ -27,6 +29,10 @@ export async function GET(req: NextRequest) {
   const info = getTierInfo(level);
   const next = getNextTierInfo(total);
   const progress = getTierDetailProgress(level, total);
+  const selectedTier = parseSupportTierSlug(req.nextUrl.searchParams.get("tier") ?? "");
+  const supportedUsers = selectedTier
+    ? await listCreatorsISupportedAtTier(auth.user.id, selectedTier)
+    : [];
 
   return NextResponse.json({
     totalSupportSent: total,
@@ -35,13 +41,15 @@ export async function GET(req: NextRequest) {
     current: info,
     next,
     progress,
-    tiers: SUPPORT_TIERS.map((t) => ({
-      level: t.level,
-      label: t.label,
-      labelKo: t.labelKo,
-      minAmount: t.minAmount,
-      color: t.color,
-      iconUrl: `https://mocomo.net${t.iconSrc}`,
+    selectedTier,
+    supportedUsers,
+    tiers: SUPPORT_TIERS.map((tierDef) => ({
+      level: tierDef.level,
+      label: tierDef.label,
+      labelKo: tierDef.labelKo,
+      minAmount: tierDef.minAmount,
+      color: tierDef.color,
+      iconUrl: `https://mocomo.net${tierDef.iconSrc}`,
     })),
   });
 }
