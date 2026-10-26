@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  appendWikiEditorMedia,
+  composeWikiEditorMedia,
+  extractWikiEditorMedia,
   extractWikiVideos,
   parseWikiVideoLine,
   parseWikiVideoUrl,
+  removeWikiEditorMedia,
+  stripWikiEditorMedia,
   wikiVideoLink,
 } from "@/lib/wiki/media";
 
@@ -66,5 +71,43 @@ describe("parseWikiVideoUrl", () => {
       kind: "vimeo",
       id: "123456789",
     });
+  });
+});
+
+describe("wiki editor media dock", () => {
+  const image = "![image](https://cdn.mocomo.net/shot.jpg)";
+  const youtube = "https://www.youtube.com/watch?v=s2muG5yqdSc";
+
+  it("extracts images and standalone videos, then hides them from the textarea", () => {
+    const source = `Intro\n${image}\n${youtube}\nOutro`;
+    expect(extractWikiEditorMedia(source)).toEqual([
+      {
+        kind: "image",
+        snippet: image,
+        url: "https://cdn.mocomo.net/shot.jpg",
+        thumb: "https://cdn.mocomo.net/shot.jpg",
+        alt: "image",
+      },
+      {
+        kind: "video",
+        snippet: youtube,
+        url: youtube,
+        thumb: "https://i.ytimg.com/vi/s2muG5yqdSc/hqdefault.jpg",
+      },
+    ]);
+    expect(stripWikiEditorMedia(source)).toBe("Intro\n\nOutro");
+  });
+
+  it("leaves an in-sentence YouTube URL in the textarea", () => {
+    const source = "Watch https://www.youtube.com/watch?v=s2muG5yqdSc later.";
+    expect(extractWikiEditorMedia(source)).toEqual([]);
+    expect(stripWikiEditorMedia(source)).toBe(source);
+  });
+
+  it("appends, composes, and removes snippets without leaving markdown in the display", () => {
+    const next = appendWikiEditorMedia("Hello", image);
+    expect(next).toBe(`Hello\n${image}\n`);
+    expect(composeWikiEditorMedia("Hello", extractWikiEditorMedia(next))).toBe(`Hello\n${image}\n`);
+    expect(removeWikiEditorMedia(next, image)).toBe("Hello");
   });
 });

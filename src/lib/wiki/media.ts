@@ -145,3 +145,78 @@ export function wikiVideoLink(source: string, fallbackHref: string): { href: str
   }
   return { href: fallbackHref, label: fallbackHref };
 }
+
+const WIKI_EDITOR_IMAGE_RE = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g;
+
+export type WikiEditorMedia = {
+  kind: "image" | "video";
+  snippet: string;
+  url: string;
+  thumb?: string;
+  alt?: string;
+};
+
+function collapseWikiGaps(source: string): string {
+  return source.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n");
+}
+
+export function extractWikiEditorMedia(source: string): WikiEditorMedia[] {
+  const items: WikiEditorMedia[] = [];
+  for (const line of source.split("\n")) {
+    const imageRe = new RegExp(WIKI_EDITOR_IMAGE_RE.source, "g");
+    for (const match of line.matchAll(imageRe)) {
+      items.push({
+        kind: "image",
+        snippet: match[0],
+        url: match[2],
+        thumb: match[2],
+        alt: match[1],
+      });
+    }
+    const leftover = line.replace(new RegExp(WIKI_EDITOR_IMAGE_RE.source, "g"), "").trim();
+    const video = parseWikiVideoLine(leftover);
+    if (!video) continue;
+    items.push({
+      kind: "video",
+      snippet: leftover,
+      url: video.url,
+      thumb: video.kind === "youtube" ? video.thumbnail : undefined,
+    });
+  }
+  return items;
+}
+
+export function stripWikiEditorMedia(source: string): string {
+  return collapseWikiGaps(
+    source
+      .replace(new RegExp(WIKI_EDITOR_IMAGE_RE.source, "g"), "")
+      .split("\n")
+      .filter((line) => !parseWikiVideoLine(line))
+      .join("\n")
+  );
+}
+
+export function composeWikiEditorMedia(display: string, media: WikiEditorMedia[]): string {
+  const body = display.replace(/\s+$/, "");
+  const snippets = media.map((item) => item.snippet).filter(Boolean).join("\n");
+  if (!body) return snippets ? `${snippets}\n` : "";
+  if (!snippets) return display;
+  return `${body}\n${snippets}\n`;
+}
+
+export function appendWikiEditorMedia(source: string, snippet: string): string {
+  const trimmed = snippet.trim();
+  if (!trimmed) return source;
+  const base = source.replace(/\s+$/, "");
+  return base ? `${base}\n${trimmed}\n` : `${trimmed}\n`;
+}
+
+export function removeWikiEditorMedia(source: string, snippet: string): string {
+  const idx = source.indexOf(snippet);
+  if (idx < 0) return source;
+  let start = idx;
+  let end = idx + snippet.length;
+  if (source[end] === "\n") end += 1;
+  else if (start > 0 && source[start - 1] === "\n") start -= 1;
+  return collapseWikiGaps(`${source.slice(0, start)}${source.slice(end)}`).replace(/\s+$/, "");
+}

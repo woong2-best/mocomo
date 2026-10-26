@@ -35,7 +35,7 @@ function renderInline(text: string, notes: FootnoteMap, keyPrefix: string) {
 function WikiLinkedVideo({ source, video }: { source: string; video: WikiVideo }) {
   const link = wikiVideoLink(source, video.url);
   return (
-    <div className="my-3 space-y-1.5">
+    <div className="my-3 max-w-[480px] space-y-1.5">
       <p className="text-sm leading-relaxed">
         <WikiExternalLink href={link.href}>{link.label}</WikiExternalLink>
       </p>

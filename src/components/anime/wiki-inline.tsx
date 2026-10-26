@@ -107,7 +107,7 @@ function renderNodes(
             key={key}
             src={node.src}
             alt={node.alt}
-            className="my-2 max-w-full rounded-lg border border-border/60"
+            className="my-2 block h-auto w-auto max-h-60 max-w-[280px] rounded-lg border border-border/60 md:max-w-[320px]"
             loading="lazy"
           />
         );

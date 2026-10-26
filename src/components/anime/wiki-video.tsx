@@ -19,7 +19,10 @@ function EmbedFrame({ src, title }: { src: string; title: string }) {
 
 export function WikiVideoPlayer({ video, className }: { video: WikiVideo; className?: string }) {
   const [playing, setPlaying] = useState(false);
-  const frame = cn("my-3 overflow-hidden rounded-xl border border-border/60 bg-black", className);
+  const frame = cn(
+    "my-3 w-full max-w-[480px] overflow-hidden rounded-xl border border-border/60 bg-black",
+    className
+  );
 
   if (video.kind === "file") {
     return (

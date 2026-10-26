@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 import { getCaretCoordinates } from "@/lib/wiki/caret";
-import { X } from "lucide-react";
+import { Play, X } from "lucide-react";
 import { EditorToolbar } from "@/components/wiki/EditorToolbar";
 import { TitleSuggestPopover, type PopoverPlacement } from "@/components/wiki/TitleSuggestPopover";
 import { createTranslator } from "@/lib/i18n/messages";
@@ -25,13 +25,19 @@ import {
   indexWikiTitles,
   insertMacro,
   insertOrFocusToken,
-  replaceRange,
   searchTitles,
   type IndexedWikiTitle,
   type TitleContext,
   type WikiTitle,
 } from "@/lib/wiki/editorUtils";
 import type { WikiMacro } from "@/lib/wiki/macros";
+import {
+  appendWikiEditorMedia,
+  composeWikiEditorMedia,
+  extractWikiEditorMedia,
+  removeWikiEditorMedia,
+  stripWikiEditorMedia,
+} from "@/lib/wiki/media";
 import { cn } from "@/lib/utils";
 import { FileDropZone } from "@/components/media/file-drop-zone";
 import { isGalleryImageFile } from "@/lib/gallery-image-upload";
@@ -109,6 +115,8 @@ export function WikiEditor({
   const isControlled = value !== undefined;
   const [inner, setInner] = useState(defaultValue);
   const text = isControlled ? value : inner;
+  const editorMedia = useMemo(() => extractWikiEditorMedia(text), [text]);
+  const display = useMemo(() => stripWikiEditorMedia(text), [text]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -210,22 +218,22 @@ export function WikiEditor({
     ta.focus();
     ta.setSelectionRange(pos, pos);
     scrollTextareaToCaret(ta, pos);
-  }, [text]);
-
-  const applyInsert = useCallback(
-    (result: { next: string; caret: number }) => {
-      setText(result.next, result.caret);
-    },
-    [setText]
-  );
+  }, [display]);
 
   const selection = useCallback(() => {
     const ta = textareaRef.current;
     return {
-      start: ta?.selectionStart ?? text.length,
-      end: ta?.selectionEnd ?? text.length,
+      start: ta?.selectionStart ?? display.length,
+      end: ta?.selectionEnd ?? display.length,
     };
-  }, [text.length]);
+  }, [display.length]);
+
+  const applyDisplay = useCallback(
+    (nextDisplay: string, caret?: number) => {
+      setText(composeWikiEditorMedia(nextDisplay, extractWikiEditorMedia(text)), caret);
+    },
+    [setText, text]
+  );
 
   const closePopover = useCallback(() => {
     setPopover(null);
@@ -241,7 +249,7 @@ export function WikiEditor({
       return;
     }
     const caret = ta.selectionStart ?? 0;
-    const ctx = detectTitleContext(text, caret);
+    const ctx = detectTitleContext(display, caret);
     if (!ctx) {
       closePopover();
       return;
@@ -276,7 +284,7 @@ export function WikiEditor({
       placement,
     });
     setActiveIndex(0);
-  }, [closePopover, text]);
+  }, [closePopover, display]);
 
   const scheduleEvaluate = useCallback(() => {
     if (debounceTimer.current) window.clearTimeout(debounceTimer.current);
@@ -313,37 +321,44 @@ export function WikiEditor({
     (item: IndexedWikiTitle) => {
       if (!popover) return;
       const label = popover.context.kind === "wikilink" ? item.english || item.original : item.english;
-      const result = applyTitleSuggestion(text, popover.context, label);
-      applyInsert(result);
+      const result = applyTitleSuggestion(display, popover.context, label);
+      applyDisplay(result.next, result.caret);
       closePopover();
     },
-    [applyInsert, closePopover, popover, text]
+    [applyDisplay, closePopover, display, popover]
   );
 
   const createWikiLink = useCallback(
     (query: string) => {
       if (!popover) return;
-      const result = applyTitleSuggestion(text, popover.context, query.trim());
-      applyInsert(result);
+      const result = applyTitleSuggestion(display, popover.context, query.trim());
+      applyDisplay(result.next, result.caret);
       closePopover();
     },
-    [applyInsert, closePopover, popover, text]
+    [applyDisplay, closePopover, display, popover]
   );
 
   const handleMacro = useCallback(
     (macro: WikiMacro) => {
       const { start, end } = selection();
-      applyInsert(insertMacro(text, start, end, macro));
+      const result = insertMacro(display, start, end, macro);
+      applyDisplay(result.next, result.caret);
     },
-    [applyInsert, selection, text]
+    [applyDisplay, display, selection]
   );
 
   const insertMediaSnippet = useCallback(
     (snippet: string) => {
-      const { start, end } = selection();
-      applyInsert(replaceRange(text, start, end, snippet, snippet.length));
+      setText(appendWikiEditorMedia(text, snippet));
     },
-    [applyInsert, selection, text]
+    [setText, text]
+  );
+
+  const removeMediaSnippet = useCallback(
+    (snippet: string) => {
+      setText(removeWikiEditorMedia(text, snippet));
+    },
+    [setText, text]
   );
 
   const handleInlineImage = useCallback(
@@ -355,15 +370,14 @@ export function WikiEditor({
         const { uploadImageBlob } = await import("@/lib/client-upload");
         const prepared = await prepareWikiImageForUpload(file);
         const url = await uploadImageBlob(prepared, prepared.name || "wiki.webp");
-        const alt = file.name.replace(/\.[^.]+$/, "");
-        insertMediaSnippet(`![${alt}](${url})`);
+        insertMediaSnippet(`![image](${url})`);
       } catch {
         setMediaError(t("wiki.editor.uploadFailed"));
       } finally {
         setImageBusy(false);
       }
     },
-    [insertMediaSnippet, t]
+    [insertMediaSnippet]
   );
 
   const handleVideoFile = useCallback(
@@ -406,7 +420,8 @@ export function WikiEditor({
     async (file: File, kind: "cover" | "banner") => {
       const token = kind === "cover" ? "[Cover Image]" : "[Banner Image]";
       const { start, end } = selection();
-      applyInsert(insertOrFocusToken(text, start, end, token));
+      const result = insertOrFocusToken(display, start, end, token);
+      applyDisplay(result.next, result.caret);
 
       const local = URL.createObjectURL(file);
       setPreviews((prev) => {
@@ -420,7 +435,7 @@ export function WikiEditor({
         setMediaError(t("wiki.editor.uploadFailed"));
       }
     },
-    [applyInsert, onUploadImage, selection, t, text]
+    [applyDisplay, display, onUploadImage, selection, t]
   );
 
   const removePreview = useCallback((kind: "cover" | "banner") => {
@@ -617,9 +632,48 @@ export function WikiEditor({
         </p>
       ) : null}
 
+      {editorMedia.length > 0 ? (
+        <div className="flex flex-wrap gap-2 border-b border-border/70 bg-muted/20 px-3 py-2">
+          {editorMedia.map((item, index) => (
+            <div key={`${item.kind}-${item.snippet}-${index}`} className="relative">
+              {item.kind === "image" ? (
+                <div className="h-24 w-24 overflow-hidden rounded-xl border border-border/70 bg-muted/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.url} alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div className="relative h-24 w-40 overflow-hidden rounded-xl border border-border/70 bg-black">
+                  {item.thumb ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.thumb} alt="" className="h-full w-full object-cover opacity-90" />
+                  ) : (
+                    <span className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-black" />
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white">
+                      <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
+                    </span>
+                  </span>
+                </div>
+              )}
+              <button
+                type="button"
+                title={t("wiki.editor.removePreview")}
+                aria-label={t("wiki.editor.removePreview")}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => removeMediaSnippet(item.snippet)}
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/75 text-white shadow"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <textarea
         ref={textareaRef}
-        value={text}
+        value={display}
         spellCheck={false}
         aria-autocomplete="list"
         aria-controls={visiblePopover ? listId : undefined}
@@ -630,7 +684,7 @@ export function WikiEditor({
           bodyOnly ? "min-h-[520px]" : "min-h-[480px]"
         )}
         onChange={(e) => {
-          setText(e.target.value);
+          applyDisplay(e.target.value);
           if (!composingRef.current) scheduleEvaluate();
         }}
         onKeyDown={onTextareaKeyDown}
