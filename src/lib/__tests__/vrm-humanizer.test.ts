@@ -51,6 +51,7 @@ test("each avatar keeps a distinct posture and habit profile", () => {
 test("each avatar has a distinct Animal Crossing toon profile", () => {
   assert.ok(CHARACTER_CONFIGS.zelie.toon.swayAmp > 0.03);
   assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle < CHARACTER_CONFIGS.nangnang.toon.bopAmpIdle);
+  assert.ok(CHARACTER_CONFIGS.zelie.toon.bopAmpIdle >= 0.018);
   assert.equal(CHARACTER_CONFIGS.cleo.toon.swayAmp, 0);
   assert.ok(CHARACTER_CONFIGS.cleo.toon.bopPhase > 1);
   assert.ok(CHARACTER_CONFIGS.mio.toon.bopSpeedIdle > CHARACTER_CONFIGS.zelie.toon.bopSpeedIdle * 2);

@@ -20,11 +20,15 @@ import { createContinuousNoise, type ContinuousNoise } from "@/lib/vrm-humanizer
 
 type BoneName = VRMHumanBoneName;
 
-type TrackedBone = {
+type BoneCopy = {
   node: THREE.Object3D;
   rest: THREE.Quaternion;
   restScale: THREE.Vector3;
   restPos: THREE.Vector3;
+};
+
+type TrackedBone = {
+  copies: BoneCopy[];
 };
 
 const BODY_BONES = [
@@ -47,8 +51,13 @@ const ARM_BONES = [
   "rightHand",
 ] as const satisfies readonly BoneName[];
 
-function findBone(vrm: VRM, name: BoneName): THREE.Object3D | null {
-  return vrm.humanoid?.getNormalizedBoneNode(name) ?? vrm.humanoid?.getRawBoneNode(name) ?? null;
+function findBones(vrm: VRM, name: BoneName): THREE.Object3D[] {
+  const normalized = vrm.humanoid?.getNormalizedBoneNode(name) ?? null;
+  const raw = vrm.humanoid?.getRawBoneNode(name) ?? null;
+  const nodes: THREE.Object3D[] = [];
+  if (normalized) nodes.push(normalized);
+  if (raw && raw !== normalized) nodes.push(raw);
+  return nodes;
 }
 
 /**
@@ -173,25 +182,27 @@ export class VRMHumanizer {
     const dt = Math.min(Math.max(delta, 0), 0.08);
     this.snapElapsed += dt;
     const head = this.body.get("head");
-    if (head) head.node.scale.copy(head.restScale);
     const hips = this.body.get("hips");
-    if (hips) hips.node.position.copy(hips.restPos);
-    if (this.reduced) return;
+    if (head) for (const copy of head.copies) copy.node.scale.copy(copy.restScale);
+    if (hips) for (const copy of hips.copies) copy.node.position.copy(copy.restPos);
 
     const toon = this.config.toon;
+    const mute = this.reduced ? 0.55 : 1;
     const rms = clamp01(audioRMS);
     const speakMix =
       currentState === "speaking" ? clamp01(0.28 + rms * 0.72) : currentState === "thinking" ? 0.12 : 0;
     const speed = lerp(toon.bopSpeedIdle, toon.bopSpeedSpeak, speakMix);
-    const amp = lerp(toon.bopAmpIdle, toon.bopAmpSpeak, speakMix);
+    const amp = lerp(toon.bopAmpIdle, toon.bopAmpSpeak, speakMix) * mute;
     const offset = toonBopOffset(this.time, speed, amp, toon.bopPhase);
     const wave = amp > 1e-8 ? offset / amp : 0;
     const snap = Math.exp(-this.snapElapsed * 7.2) * Math.sin(this.snapElapsed * 17) * toon.snapAmp * amp;
 
-    if (hips) hips.node.position.y = hips.restPos.y + offset + snap;
+    if (hips) {
+      for (const copy of hips.copies) copy.node.position.y = copy.restPos.y + offset + snap;
+    }
 
-    this.addLocalRot("head", toonNodPitch(wave, toon.nodAmp * (0.4 + speakMix * 0.6)), 0, 0);
-    const sway = toonSwayRoll(this.time, toon.swaySpeed, toon.swayAmp) * (0.65 + speakMix * 0.55);
+    this.addLocalRot("head", toonNodPitch(wave, toon.nodAmp * (0.4 + speakMix * 0.6) * mute), 0, 0);
+    const sway = toonSwayRoll(this.time, toon.swaySpeed, toon.swayAmp) * (0.65 + speakMix * 0.55) * mute;
     if (toon.swayAmp > 0) {
       this.addLocalRot("spine", 0, 0, sway);
       this.addLocalRot("chest", 0, 0, sway * 0.72);
@@ -199,13 +210,15 @@ export class VRMHumanizer {
 
     if (head && currentState === "speaking" && toon.squash > 0) {
       const squash = toonSquashScale(wave, rms, toon.squash);
-      head.node.scale.set(head.restScale.x * squash.x, head.restScale.y * squash.y, head.restScale.z);
+      for (const copy of head.copies) {
+        copy.node.scale.set(copy.restScale.x * squash.x, copy.restScale.y * squash.y, copy.restScale.z);
+      }
     }
   }
 
   /** Arm / hand layer. Call after hung-arm restore so habits win. */
   updateHands(delta: number) {
-    if (!this.vrm || this.reduced) return;
+    if (!this.vrm) return;
     const dt = Math.min(Math.max(delta, 0), 0.08);
     if (this.habit) {
       this.habit.t += dt;
@@ -222,13 +235,15 @@ export class VRMHumanizer {
 
   private capture(map: Map<BoneName, TrackedBone>, name: BoneName) {
     if (!this.vrm) return;
-    const node = findBone(this.vrm, name);
-    if (!node) return;
+    const nodes = findBones(this.vrm, name);
+    if (nodes.length === 0) return;
     map.set(name, {
-      node,
-      rest: node.quaternion.clone(),
-      restScale: node.scale.clone(),
-      restPos: node.position.clone(),
+      copies: nodes.map((node) => ({
+        node,
+        rest: node.quaternion.clone(),
+        restScale: node.scale.clone(),
+        restPos: node.position.clone(),
+      })),
     });
   }
 
@@ -387,13 +402,17 @@ export class VRMHumanizer {
     this.qPosture.setFromEuler(this.ePosture);
     this.eMicro.set(extraX + extraPitch, extraY, extraZ);
     this.qMicro.setFromEuler(this.eMicro);
-    tracked.node.quaternion.copy(tracked.rest).multiply(this.qPosture).multiply(shift).multiply(this.qMicro);
+    for (const copy of tracked.copies) {
+      copy.node.quaternion.copy(copy.rest).multiply(this.qPosture).multiply(shift).multiply(this.qMicro);
+    }
   }
 
   private applyChestScale(scale: number) {
     const chest = this.body.get("chest") ?? this.body.get("upperChest");
     if (!chest) return;
-    chest.node.scale.set(chest.restScale.x, chest.restScale.y * scale, chest.restScale.z * scale);
+    for (const copy of chest.copies) {
+      copy.node.scale.set(copy.restScale.x, copy.restScale.y * scale, copy.restScale.z * scale);
+    }
   }
 
   private neckCrackEuler(): { x: number; y: number; z: number } {
@@ -432,7 +451,8 @@ export class VRMHumanizer {
 
   private resetArm(name: BoneName) {
     const tracked = this.arms.get(name);
-    if (tracked) tracked.node.quaternion.copy(tracked.rest);
+    if (!tracked) return;
+    for (const copy of tracked.copies) copy.node.quaternion.copy(copy.rest);
   }
 
   private addLocalRot(name: BoneName, x: number, y: number, z: number) {
@@ -440,7 +460,7 @@ export class VRMHumanizer {
     if (!tracked || (Math.abs(x) < 1e-6 && Math.abs(y) < 1e-6 && Math.abs(z) < 1e-6)) return;
     this.eMicro.set(x, y, z);
     this.qMicro.setFromEuler(this.eMicro);
-    tracked.node.quaternion.multiply(this.qMicro);
+    for (const copy of tracked.copies) copy.node.quaternion.multiply(this.qMicro);
   }
 
   private addLocal(name: BoneName, x: number, y: number, z: number, weight: number) {
@@ -448,7 +468,7 @@ export class VRMHumanizer {
     if (!tracked || weight <= 1e-4) return;
     this.eMicro.set(x * weight, y * weight, z * weight);
     this.qMicro.setFromEuler(this.eMicro);
-    tracked.node.quaternion.multiply(this.qMicro);
+    for (const copy of tracked.copies) copy.node.quaternion.multiply(this.qMicro);
   }
 
   private applyHairTuck(w: number) {

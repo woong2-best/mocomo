@@ -495,7 +495,6 @@ function MocoVrmStageView({
           shown.current = vrm;
           poseRef.current = rememberPose(vrm);
           humanizerRef.current = VrmHumanizerRuntime.attach(vrm, characterIdRef.current, camera);
-          humanizerRef.current.setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
           humanizerRef.current.setThinking(thinkingRef.current);
           if (isChloeCharacter(characterIdRef.current)) setupChloeDrunkState(vrm);
           loadedUrl = url;
@@ -521,8 +520,6 @@ function MocoVrmStageView({
       swapRef.current = swap;
       armed.current = true;
 
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
       let raf = 0;
       const clock = new THREE.Clock();
 
@@ -532,7 +529,6 @@ function MocoVrmStageView({
         const humanizer = humanizerRef.current;
         if (humanizer) {
           humanizer.setCharacter(characterIdRef.current);
-          humanizer.setReducedMotion(reduced);
           humanizer.setThinking(thinkingRef.current);
           humanizer.setSpeaking(lip.active);
         }
@@ -555,12 +551,14 @@ function MocoVrmStageView({
         const vrm = pose?.vrm;
         if (vrm) {
           humanizer?.beforeVrmUpdate(dt, camera);
+          vrm.humanoid?.update();
           vrm.update(dt);
           if (pose) {
             for (const arm of pose.hung) arm.bone.quaternion.copy(arm.quat);
             vrm.scene.updateMatrixWorld(true);
           }
           const face = humanizer?.afterVrmUpdate(dt);
+          vrm.humanoid?.update();
           const expressions = vrm.expressionManager;
           if (expressions) {
             expressions.setValue("blink", face?.blink ?? 0);
