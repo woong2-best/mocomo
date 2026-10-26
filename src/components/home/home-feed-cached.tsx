@@ -5,7 +5,7 @@ import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
 import { errorText } from "@/lib/i18n/error-text";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HomeFeedClient } from "@/components/home/home-feed-client";
 import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
@@ -56,7 +56,7 @@ function HomeFeedSkeleton() {
   );
 }
 
-export function HomeFeedCached() {
+export function HomeFeedCached({ highlights }: { highlights?: ReactNode }) {
   const queryClient = useQueryClient();
   const { session, authenticated, pending } = useAuthReady();
   const viewerId = homeFeedViewerKey(session?.user?.id);
@@ -121,9 +121,12 @@ export function HomeFeedCached() {
 
   if (!hasCachedPaint && query.isError) {
     return (
-      <p className="text-xs text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded-xl px-3 py-2 mb-4">
-        {t("home.s15xfz79")}
-      </p>
+      <>
+        <p className="text-xs text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded-xl px-3 py-2 mb-4">
+          {t("home.s15xfz79")}
+        </p>
+        {highlights}
+      </>
     );
   }
 
@@ -138,6 +141,7 @@ export function HomeFeedCached() {
       feedItems={page?.items ?? []}
       nextCursor={page?.nextCursor ?? null}
       hasDbPosts={(page?.items.length ?? 0) > 0}
+      highlights={highlights}
     />
   );
 }

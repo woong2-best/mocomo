@@ -12,8 +12,7 @@ export function HomeClientFrame({ children }: { children: React.ReactNode }) {
   return (
     <>
       <HomeStaticSection isLoggedIn={false} />
-      <HomeFeedCached />
-      {children}
+      <HomeFeedCached highlights={children} />
     </>
   );
 }

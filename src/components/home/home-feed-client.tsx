@@ -3,6 +3,7 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
+import type { ReactNode } from "react";
 import { FolkBrushDivider } from "@/components/brand/folk-decor";
 import { PageSection } from "@/components/layout/page-section";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -21,6 +22,7 @@ export function HomeFeedClient({
   starredIds = [],
   repostedIds = [],
   paymentsEnabled = false,
+  highlights = null,
 }: {
   feedItems: FeedLayoutItem[];
   nextCursor: string | null;
@@ -31,19 +33,23 @@ export function HomeFeedClient({
   starredIds?: string[];
   repostedIds?: string[];
   paymentsEnabled?: boolean;
+  highlights?: ReactNode;
 }) {
   const { t } = useLocale();
   const visibleItems = isPremium ? feedItems.filter((item) => item.type !== "ad") : feedItems;
 
   if (!hasDbPosts) {
-    if (!isLoggedIn) return null;
+    if (!isLoggedIn) return highlights;
     return (
-      <div className="text-center py-12 rounded-2xl border border-dashed">
-        <p className="text-muted-foreground mb-4">{t("feed.emptyPrompt")}</p>
-        <ComposeOpenButton className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          {t("feed.compose")}
-        </ComposeOpenButton>
-      </div>
+      <>
+        <div className="text-center py-12 rounded-2xl border border-dashed">
+          <p className="text-muted-foreground mb-4">{t("feed.emptyPrompt")}</p>
+          <ComposeOpenButton className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            {t("feed.compose")}
+          </ComposeOpenButton>
+        </div>
+        {highlights}
+      </>
     );
   }
 
@@ -59,6 +65,7 @@ export function HomeFeedClient({
           initialStarredIds={starredIds}
           initialRepostedIds={repostedIds}
           paymentsEnabled={paymentsEnabled}
+          afterFirstPost={highlights}
         />
       </PageSection>
     </>

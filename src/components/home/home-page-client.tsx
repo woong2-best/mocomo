@@ -33,6 +33,10 @@ export function HomePageClient({
   const isLoggedIn = !!session?.user;
   const isPremium = session?.user?.premiumTier === "PREMIUM";
   const visibleItems = isPremium ? feedItems.filter((item) => item.type !== "ad") : feedItems;
+  const highlights =
+    dbOk && (topLiked.length > 0 || topViewed.length > 0) ? (
+      <WeeklyHighlightsSection topLiked={topLiked} topViewed={topViewed} />
+    ) : null;
 
   return (
     <div className="p-4 lg:p-6 max-w-5xl mx-auto">
@@ -47,19 +51,24 @@ export function HomePageClient({
       {hasDbPosts ? (
         <section>
           <h2 className="text-sm font-semibold text-white mb-3">{t("feed.title")}</h2>
-          <FeedInfinite initialItems={visibleItems} initialCursor={nextCursor} />
+          <FeedInfinite
+            initialItems={visibleItems}
+            initialCursor={nextCursor}
+            afterFirstPost={highlights}
+          />
         </section>
       ) : isLoggedIn ? (
-        <div className="text-center py-12 rounded-2xl border border-dashed">
-          <p className="text-muted-foreground mb-4">{t("feed.emptyPrompt")}</p>
-          <ComposeOpenButton className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-            {t("nav.compose")}
-          </ComposeOpenButton>
-        </div>
-      ) : null}
-
-      {dbOk && (topLiked.length > 0 || topViewed.length > 0) && (
-        <WeeklyHighlightsSection topLiked={topLiked} topViewed={topViewed} />
+        <>
+          <div className="text-center py-12 rounded-2xl border border-dashed">
+            <p className="text-muted-foreground mb-4">{t("feed.emptyPrompt")}</p>
+            <ComposeOpenButton className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+              {t("nav.compose")}
+            </ComposeOpenButton>
+          </div>
+          {highlights}
+        </>
+      ) : (
+        highlights
       )}
     </div>
   );
