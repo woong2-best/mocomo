@@ -34,6 +34,12 @@ describe("parseWikiInline", () => {
     expect(nodes[0]).toMatchObject({ type: "color", color: "#ff0000" });
   });
 
+  it("parses wrapped and namu-style color so toolbar markup is not eaten as a badge", () => {
+    expect(parseWikiInline("{#red}빨간{/}")[0]).toMatchObject({ type: "color", color: "#ef4444" });
+    expect(parseWikiInline("{{{#blue 파란}}}")[0]).toMatchObject({ type: "color", color: "#3b82f6" });
+    expect(parseWikiInline("{##ff0000 빨간}")[0]).toMatchObject({ type: "color", color: "#ff0000" });
+  });
+
   it("keeps pasted URLs as link nodes", () => {
     const nodes = parseWikiInline("See https://www.youtube.com/watch?v=s2muG5yqdSc");
     expect(nodes.some((node) => node.type === "link")).toBe(true);

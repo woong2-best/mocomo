@@ -12,8 +12,44 @@ import type { RootStackParamList } from "@/navigation/types";
 
 type FootnoteMap = Map<string, string>;
 
-const INLINE_RE =
-  /(\{\{([^}]+)\}\}|\[\[(?:[^\]|]+\|)?([^\]|]+)\]\]|\[([^\]]+)\]\(([^)]+)\)|\[\^(\d+)\]|!\[([^\]]*)\]\(([^)]+)\)|\*\*([^*]+)\*\*)/g;
+const COLOR_TOKEN = "(?:#{0,1}[0-9a-fA-F]{3,8}|[A-Za-z]+)";
+const INLINE_RE = new RegExp(
+  `(\\{\\{\\{#${COLOR_TOKEN}\\s+[\\s\\S]+?\\}\\}\\}|\\{#${COLOR_TOKEN}\\}[\\s\\S]*?\\{\\/\\}|\\{#${COLOR_TOKEN}\\s+[^}]+\\}|\\{\\{([^}]+)\\}\\}|\\[\\[(?:[^\\]|]+\\|)?([^\\]|]+)\\]\\]|\\[([^\\]]+)\\]\\(([^)]+)\\)|\\[\\^(\\d+)\\]|!\\[([^\\]]*)\\]\\(([^)]+)\\)|\\*\\*([^*]+)\\*\\*)`,
+  "g"
+);
+
+const NAMED_COLORS: Record<string, string> = {
+  red: "#ef4444",
+  blue: "#3b82f6",
+  green: "#22c55e",
+  yellow: "#eab308",
+  orange: "#f97316",
+  purple: "#a855f7",
+  pink: "#ec4899",
+  gray: "#6b7280",
+  grey: "#6b7280",
+  black: "#111827",
+  white: "#f8fafc",
+  aqua: "#06b6d4",
+  brown: "#92400e",
+  gold: "#d4a63a",
+};
+
+function wikiColorValue(token: string): string {
+  const cleaned = token.startsWith("#") ? token : /^[0-9a-fA-F]{3,8}$/i.test(token) ? `#${token}` : token;
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(cleaned)) return cleaned;
+  return NAMED_COLORS[cleaned.toLowerCase()] ?? cleaned;
+}
+
+function parseColorMarkup(raw: string): { color: string; text: string } | null {
+  const namu = raw.match(/^\{\{\{#(#{0,1}[0-9a-fA-F]{3,8}|[A-Za-z]+)\s+([\s\S]+)\}\}\}$/);
+  if (namu) return { color: wikiColorValue(namu[1]), text: namu[2] };
+  const wrapped = raw.match(/^\{#(#{0,1}[0-9a-fA-F]{3,8}|[A-Za-z]+)\}([\s\S]*)\{\/\}$/);
+  if (wrapped) return { color: wikiColorValue(wrapped[1]), text: wrapped[2] };
+  const inline = raw.match(/^\{#(#{0,1}[0-9a-fA-F]{3,8}|[A-Za-z]+)\s+([^}]+)\}$/);
+  if (inline) return { color: wikiColorValue(inline[1]), text: inline[2] };
+  return null;
+}
 
 type Props = {
   text: string;
@@ -74,7 +110,14 @@ export function WikiInline({ text, notes = new Map(), keyPrefix = "wi", style }:
       pushPlain(text.slice(last, m.index), `${keyPrefix}-t-${i++}`);
     }
 
-    if (m[2] !== undefined) {
+    const colored = parseColorMarkup(m[0]);
+    if (colored) {
+      parts.push(
+        <Text key={`${keyPrefix}-color-${i++}`} style={[styles.text, { color: colored.color }]}>
+          {colored.text}
+        </Text>
+      );
+    } else if (m[2] !== undefined) {
       parts.push(
         <Text key={`${keyPrefix}-badge-${i++}`} style={styles.badge}>
           {m[2].trim()}

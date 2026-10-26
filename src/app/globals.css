@@ -80,6 +80,12 @@
     @apply bg-background text-foreground antialiased;
     min-height: 100dvh;
   }
+  .wiki-colored-text {
+    color: var(--wiki-color, inherit) !important;
+  }
+  .wiki-colored-text * {
+    color: inherit !important;
+  }
   h1,
   h2,
   h3,

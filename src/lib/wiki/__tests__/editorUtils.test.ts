@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { WIKI_MACROS, getWikiMacro } from "@/lib/wiki/macros";
+import { WIKI_MACROS, colorMacro, getWikiMacro } from "@/lib/wiki/macros";
 import { DUMMY_WIKI_TITLES } from "@/lib/wiki/dummyTitles";
 import {
   applyTitleSuggestion,
@@ -140,6 +140,9 @@ describe("insertMacro", () => {
 
     const spoiler = insertMacro("keep secret end", 5, 11, byId("spoiler"));
     expect(spoiler.next).toBe("keep ||secret|| end");
+
+    const color = insertMacro("keep Chiikawa end", 5, 13, colorMacro("red"));
+    expect(color.next).toBe("keep {#red}Chiikawa{/} end");
   });
 
   it("inserts Genre / Studio / Tags with the caret after the colon", () => {

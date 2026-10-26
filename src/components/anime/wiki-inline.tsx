@@ -67,7 +67,11 @@ function renderNodes(
         return <sub key={key}>{kids}</sub>;
       case "color":
         return (
-          <span key={key} style={{ color: node.color }}>
+          <span
+            key={key}
+            className="wiki-colored-text"
+            style={{ color: node.color, ["--wiki-color" as string]: node.color }}
+          >
             {kids}
           </span>
         );

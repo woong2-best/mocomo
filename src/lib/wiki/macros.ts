@@ -72,7 +72,7 @@ export const WIKI_FORMAT_MACROS: WikiMacro[] = [
 ];
 
 export function colorMacro(color: string): WikiMacro {
-  return { id: `color-${color}`, label: "Color", template: `{#${color} |}`, wrapSelection: true };
+  return { id: `color-${color}`, label: "Color", template: `{#${color}}|{/}`, wrapSelection: true };
 }
 
 export function highlightMacro(color: string): WikiMacro {

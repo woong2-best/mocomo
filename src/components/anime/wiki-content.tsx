@@ -92,11 +92,9 @@ export function WikiContent({
           key={`q-${bi}`}
           className="my-3 rounded-r-xl border-l-4 border-[hsl(var(--folk-terracotta))] bg-[hsl(var(--folk-cream)/0.35)] px-3 py-2 text-sm italic dark:bg-muted/30"
         >
-          {block.text.split("\n").map((line, li) => (
-            <span key={li} className="block leading-relaxed">
-              {renderInline(line, notes, `q-${bi}-${li}`)}
-            </span>
-          ))}
+          <span className="block leading-relaxed whitespace-pre-wrap">
+            {renderInline(block.text, notes, `q-${bi}`)}
+          </span>
         </blockquote>
       );
       return;
@@ -175,12 +173,7 @@ export function WikiContent({
     const inlineVideos = extractWikiVideos(block.text);
     rendered.push(
       <p key={`p-${bi}`} className="text-sm leading-relaxed whitespace-pre-wrap">
-        {block.text.split("\n").map((line, li) => (
-          <span key={li}>
-            {li > 0 && <br />}
-            {renderInline(line, notes, `p-${bi}-${li}`)}
-          </span>
-        ))}
+        {renderInline(block.text, notes, `p-${bi}`)}
       </p>
     );
     inlineVideos.forEach((video, vi) => {

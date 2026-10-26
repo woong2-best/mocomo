@@ -176,21 +176,13 @@ function matchInline(source: string, i: number): { node: WikiInlineNode; next: n
     }
   }
 
+  const colorSpan = parseColorSpan(source, i);
+  if (colorSpan) return colorSpan;
+
   if (source.startsWith("{{", i)) {
     const taken = takeUntil(source, i + 2, "}}");
     if (!taken || taken.inner.includes("\n")) return null;
     return { node: { type: "badge", value: taken.inner.trim() }, next: taken.next };
-  }
-
-  if (source.startsWith("{#", i)) {
-    const color = source.slice(i).match(/^\{#([0-9a-fA-F]{3,8}|[A-Za-z]+)\s+([^}]+)\}/);
-    if (!color) return null;
-    const token = color[1];
-    const resolved = resolveWikiColor(/^[0-9a-fA-F]{3,8}$/i.test(token) ? `#${token}` : token);
-    return {
-      node: { type: "color", color: resolved ?? token, children: parseWikiInline(color[2]) },
-      next: i + color[0].length,
-    };
   }
 
   if ((source.startsWith("{+", i) || source.startsWith("{-", i)) && /[1-3]/.test(source[i + 2] ?? "")) {
@@ -219,6 +211,42 @@ function matchInline(source: string, i: number): { node: WikiInlineNode; next: n
   }
   if (ch === "*" && next !== "*") {
     return parseDelimited(source, i, "*", "*", "italic");
+  }
+
+  return null;
+}
+
+const COLOR_TOKEN = "#{0,1}[0-9a-fA-F]{3,8}|[A-Za-z]+";
+
+function wikiColorValue(token: string): string {
+  const cleaned = token.startsWith("#") ? token : /^[0-9a-fA-F]{3,8}$/i.test(token) ? `#${token}` : token;
+  return resolveWikiColor(cleaned) ?? (cleaned.startsWith("#") ? cleaned : token);
+}
+
+function parseColorSpan(source: string, i: number): { node: WikiInlineNode; next: number } | null {
+  const rest = source.slice(i);
+  const namu = rest.match(new RegExp(`^\\{\\{\\{#(${COLOR_TOKEN})\\s+([\\s\\S]+?)\\}\\}\\}`));
+  if (namu) {
+    return {
+      node: { type: "color", color: wikiColorValue(namu[1]), children: parseWikiInline(namu[2]) },
+      next: i + namu[0].length,
+    };
+  }
+
+  const wrapped = rest.match(new RegExp(`^\\{#(${COLOR_TOKEN})\\}([\\s\\S]*?)\\{\\/\\}`));
+  if (wrapped) {
+    return {
+      node: { type: "color", color: wikiColorValue(wrapped[1]), children: parseWikiInline(wrapped[2]) },
+      next: i + wrapped[0].length,
+    };
+  }
+
+  const inline = rest.match(new RegExp(`^\\{#(${COLOR_TOKEN})\\s+([^}]+)\\}`));
+  if (inline) {
+    return {
+      node: { type: "color", color: wikiColorValue(inline[1]), children: parseWikiInline(inline[2]) },
+      next: i + inline[0].length,
+    };
   }
 
   return null;
