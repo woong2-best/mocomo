@@ -134,6 +134,12 @@ describe("insertMacro", () => {
     const category = insertMacro("keep Anime end", 5, 10, byId("category"));
     expect(category.next).toBe("keep {Anime} end");
     expect(category.caret).toBe(12);
+
+    const bold = insertMacro("keep Chiikawa end", 5, 13, byId("bold"));
+    expect(bold.next).toBe("keep **Chiikawa** end");
+
+    const spoiler = insertMacro("keep secret end", 5, 11, byId("spoiler"));
+    expect(spoiler.next).toBe("keep ||secret|| end");
   });
 
   it("inserts Genre / Studio / Tags with the caret after the colon", () => {

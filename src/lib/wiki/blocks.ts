@@ -1,12 +1,16 @@
 import { isInfoboxAhead, matchWikiHeading, skipInfoboxBlock } from "@/lib/wiki/document";
+import { parseTweetUrl } from "@/lib/wiki/markup";
 import { parseWikiVideoLine, type WikiVideo } from "@/lib/wiki/media";
 
 export type WikiBlock =
   | { type: "heading"; level: 2 | 3; label: string }
   | { type: "youtube"; id: string; source: string }
   | { type: "video"; video: WikiVideo; source: string }
+  | { type: "tweet"; url: string; handle: string; id: string }
   | { type: "table"; rows: string[][] }
   | { type: "collapse"; title: string; body: string }
+  | { type: "fold"; title: string; body: string }
+  | { type: "quote"; text: string }
   | { type: "paragraph"; text: string };
 
 function isMarkdownTableLine(line: string): boolean {
@@ -43,6 +47,18 @@ function readCollapse(lines: string[], start: number): { block: WikiBlock; next:
   return { block: { type: "collapse", title: match[1], body: match[2] }, next: i + 1 };
 }
 
+function readFold(lines: string[], start: number): { block: WikiBlock; next: number } | null {
+  const open = lines[start].trim().match(/^\[fold:(.+)\]$/i);
+  if (!open) return null;
+  const body: string[] = [];
+  let i = start + 1;
+  while (i < lines.length && !/^\[\/fold\]$/i.test(lines[i].trim())) {
+    body.push(lines[i]);
+    i += 1;
+  }
+  return { block: { type: "fold", title: open[1].trim(), body: body.join("\n") }, next: i < lines.length ? i + 1 : i };
+}
+
 export function parseWikiBlocks(source: string): WikiBlock[] {
   const lines = source.replace(/\r\n/g, "\n").split("\n");
   const blocks: WikiBlock[] = [];
@@ -73,6 +89,25 @@ export function parseWikiBlocks(source: string): WikiBlock[] {
       continue;
     }
 
+    const fold = readFold(lines, i);
+    if (fold) {
+      flushPara();
+      blocks.push(fold.block);
+      i = fold.next;
+      continue;
+    }
+
+    if (trimmed.startsWith(">")) {
+      flushPara();
+      const quote: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith(">")) {
+        quote.push(lines[i].trim().replace(/^>\s?/, ""));
+        i += 1;
+      }
+      blocks.push({ type: "quote", text: quote.join("\n") });
+      continue;
+    }
+
     const heading = matchWikiHeading(trimmed);
     if (heading) {
       if (heading.level === 3 && isInfoboxAhead(lines, i)) {
@@ -82,6 +117,14 @@ export function parseWikiBlocks(source: string): WikiBlock[] {
       }
       flushPara();
       blocks.push({ type: "heading", level: heading.level, label: heading.label });
+      i += 1;
+      continue;
+    }
+
+    const tweet = !trimmed.includes(" ") ? parseTweetUrl(trimmed) : null;
+    if (tweet) {
+      flushPara();
+      blocks.push({ type: "tweet", ...tweet });
       i += 1;
       continue;
     }

@@ -5,8 +5,10 @@ const t = createTranslator("en");
 
 import { wikiHeadingId } from "@/lib/anime-revision";
 import { parseWikiBlocks } from "@/lib/wiki/blocks";
+import { collectStarFootnotes } from "@/lib/wiki/markup";
 import { extractWikiVideos, wikiVideoLink, type WikiVideo } from "@/lib/wiki/media";
 import { WikiExternalLink, WikiInline } from "@/components/anime/wiki-inline";
+import { WikiTweetCard } from "@/components/anime/wiki-tweet-card";
 import { WikiVideoPlayer } from "@/components/anime/wiki-video";
 
 type FootnoteMap = Map<string, string>;
@@ -23,7 +25,7 @@ function parseFootnotes(source: string): { body: string; notes: FootnoteMap } {
     }
     bodyLines.push(line);
   }
-  return { body: bodyLines.join("\n"), notes };
+  return { body: collectStarFootnotes(bodyLines.join("\n"), notes), notes };
 }
 
 function renderInline(text: string, notes: FootnoteMap, keyPrefix: string) {
@@ -79,8 +81,29 @@ export function WikiContent({
   const rendered: React.ReactNode[] = [];
 
   blocks.forEach((block, bi) => {
-    if (block.type === "collapse") {
+    if (block.type === "collapse" || block.type === "fold") {
       rendered.push(<CollapseBlock key={`c-${bi}`} title={block.title} body={block.body} />);
+      return;
+    }
+
+    if (block.type === "quote") {
+      rendered.push(
+        <blockquote
+          key={`q-${bi}`}
+          className="my-3 rounded-r-xl border-l-4 border-[hsl(var(--folk-terracotta))] bg-[hsl(var(--folk-cream)/0.35)] px-3 py-2 text-sm italic dark:bg-muted/30"
+        >
+          {block.text.split("\n").map((line, li) => (
+            <span key={li} className="block leading-relaxed">
+              {renderInline(line, notes, `q-${bi}-${li}`)}
+            </span>
+          ))}
+        </blockquote>
+      );
+      return;
+    }
+
+    if (block.type === "tweet") {
+      rendered.push(<WikiTweetCard key={`tw-${bi}`} url={block.url} handle={block.handle} />);
       return;
     }
 
@@ -100,14 +123,23 @@ export function WikiContent({
 
     if (block.type === "table") {
       rendered.push(
-        <div key={`tbl-${bi}`} className="my-3 overflow-x-auto rounded-xl border border-border/60">
-          <table className="w-full text-sm">
+        <div key={`tbl-${bi}`} className="my-3 overflow-x-auto rounded-xl border border-border/70">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-muted/70 dark:bg-muted/40">
+                {block.rows[0]?.map((cell, ci) => (
+                  <th
+                    key={ci}
+                    className="border-b border-border/70 px-3 py-2 text-left font-semibold"
+                  >
+                    {renderInline(cell, notes, `th-${bi}-${ci}`)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
             <tbody>
-              {block.rows.map((row, ri) => (
-                <tr
-                  key={ri}
-                  className={ri === 0 ? "bg-muted/40 font-semibold" : "border-t border-border/40"}
-                >
+              {block.rows.slice(1).map((row, ri) => (
+                <tr key={ri} className="border-t border-border/40 even:bg-muted/20">
                   {row.map((cell, ci) => (
                     <td key={ci} className="px-3 py-2 align-top">
                       {renderInline(cell, notes, `t-${bi}-${ri}-${ci}`)}

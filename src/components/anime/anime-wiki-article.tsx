@@ -6,6 +6,7 @@ import type { AnimeGenre } from "@prisma/client";
 import { AnimeWikiInfobox } from "@/components/anime/anime-wiki-infobox";
 import { WikiContent } from "@/components/anime/wiki-content";
 import { WikiLinkStatusProvider } from "@/components/anime/wiki-link-context";
+import { WikiStickyToc } from "@/components/anime/wiki-sticky-toc";
 import { getGenreInfo, genreToParam } from "@/lib/anime-genres";
 import { wikiHeadingId, wikiLinkSlug } from "@/lib/anime-revision";
 import { extractInfoboxSource, extractWikiHeadings, hasCharactersHeading } from "@/lib/wiki/document";
@@ -75,7 +76,7 @@ export function AnimeWikiArticle({
           {headings.length > 0 && (
             <nav
               aria-label={t("anime.swvbz")}
-              className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm"
+              className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm lg:hidden"
             >
               <p className="font-semibold mb-2 text-foreground">{t("anime.swvbz")}</p>
               <ol className="space-y-1 list-none pl-0">
@@ -147,6 +148,9 @@ export function AnimeWikiArticle({
         </div>
 
         <aside className="order-1 lg:order-2 lg:sticky lg:top-[5rem] lg:self-start space-y-3">
+          <div className="hidden lg:block">
+            <WikiStickyToc headings={headings} title={t("anime.swvbz")} />
+          </div>
           <div className="rounded-2xl border border-border/70 bg-card/80 overflow-hidden shadow-sm">
             <div className="px-3 py-2 border-b border-border/60 bg-muted/30 text-center">
               <p className="text-xs font-semibold text-muted-foreground">{t("anime.s1a3gksb")}</p>

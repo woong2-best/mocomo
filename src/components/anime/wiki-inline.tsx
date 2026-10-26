@@ -1,9 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { wikiLinkSlug } from "@/lib/anime-revision";
 import { useWikiLinkStatus } from "@/components/anime/wiki-link-context";
-import { isExternalHref, parseLinkifyParts } from "@/lib/linkify";
+import { WikiFootnote } from "@/components/anime/wiki-footnote";
+import { WikiLinkPreview } from "@/components/anime/wiki-link-preview";
+import { WikiSpoiler } from "@/components/anime/wiki-spoiler";
+import { isExternalHref } from "@/lib/linkify";
+import { parseWikiInline, wikiSizeClass, type WikiInlineNode } from "@/lib/wiki/markup";
 import { cn } from "@/lib/utils";
 
 type FootnoteMap = Map<string, string>;
@@ -33,8 +36,97 @@ export function WikiExternalLink({
   );
 }
 
-const INLINE_RE =
-  /(\{\{([^}]+)\}\}|\[\[(?:[^\]|]+\|)?([^\]|]+)\]\]|\[([^\]]+)\]\(([^)]+)\)|\[\^(\d+)\]|!\[([^\]]*)\]\(([^)]+)\)|\*\*([^*]+)\*\*)/g;
+function renderNodes(
+  nodes: WikiInlineNode[],
+  notes: FootnoteMap,
+  keyPrefix: string,
+  linkStatus: ReturnType<typeof useWikiLinkStatus>
+): React.ReactNode[] {
+  return nodes.map((node, index) => {
+    const key = `${keyPrefix}-${index}`;
+    const kids = "children" in node ? renderNodes(node.children, notes, key, linkStatus) : null;
+
+    switch (node.type) {
+      case "text":
+        return <span key={key}>{node.value}</span>;
+      case "bold":
+        return <strong key={key}>{kids}</strong>;
+      case "italic":
+        return <em key={key}>{kids}</em>;
+      case "strike":
+        return (
+          <s key={key} className="text-muted-foreground">
+            {kids}
+          </s>
+        );
+      case "spoiler":
+        return <WikiSpoiler key={key}>{kids}</WikiSpoiler>;
+      case "sup":
+        return <sup key={key}>{kids}</sup>;
+      case "sub":
+        return <sub key={key}>{kids}</sub>;
+      case "color":
+        return (
+          <span key={key} style={{ color: node.color }}>
+            {kids}
+          </span>
+        );
+      case "size":
+        return (
+          <span key={key} className={wikiSizeClass(node.step)}>
+            {kids}
+          </span>
+        );
+      case "highlight":
+        return (
+          <mark key={key} className="rounded-sm px-0.5" style={{ backgroundColor: node.color }}>
+            {kids}
+          </mark>
+        );
+      case "wikilink": {
+        const resolved = linkStatus?.[node.target];
+        const exists = linkStatus ? Boolean(resolved?.exists) : true;
+        const slug = resolved?.slug ?? wikiLinkSlug(node.target);
+        const href = exists ? `/anime/${slug}` : `/anime/new?title=${encodeURIComponent(node.target)}`;
+        return (
+          <WikiLinkPreview key={key} href={href} title={node.target} exists={exists}>
+            {node.label}
+          </WikiLinkPreview>
+        );
+      }
+      case "link":
+        return (
+          <WikiExternalLink key={key} href={node.href}>
+            {node.label}
+          </WikiExternalLink>
+        );
+      case "image":
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={key}
+            src={node.src}
+            alt={node.alt}
+            className="my-2 max-w-full rounded-lg border border-border/60"
+            loading="lazy"
+          />
+        );
+      case "footnote":
+        return <WikiFootnote key={key} id={node.id} preview={notes.get(node.id)} />;
+      case "badge":
+        return (
+          <span
+            key={key}
+            className="mx-0.5 inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-300"
+          >
+            {node.value}
+          </span>
+        );
+      default:
+        return null;
+    }
+  });
+}
 
 export function WikiInline({
   text,
@@ -48,101 +140,9 @@ export function WikiInline({
   className?: string;
 }) {
   const linkStatus = useWikiLinkStatus();
-  const parts: React.ReactNode[] = [];
-  let last = 0;
-  let i = 0;
-  let m: RegExpExecArray | null;
-
-  INLINE_RE.lastIndex = 0;
-
-  const pushPlain = (value: string, key: string) => {
-    if (!value) return;
-    const tokens = parseLinkifyParts(value);
-    if (tokens.length === 1 && tokens[0]?.type === "text") {
-      parts.push(value);
-      return;
-    }
-    tokens.forEach((token, ti) => {
-      if (token.type === "link") {
-        parts.push(
-          <WikiExternalLink key={`${key}-url-${ti}`} href={token.href}>
-            {token.label}
-          </WikiExternalLink>
-        );
-        return;
-      }
-      parts.push(token.type === "text" ? token.value : token.label);
-    });
-  };
-
-  while ((m = INLINE_RE.exec(text)) !== null) {
-    if (m.index > last) pushPlain(text.slice(last, m.index), `${keyPrefix}-pre-${i}`);
-
-    if (m[2] !== undefined) {
-      parts.push(
-        <span
-          key={`${keyPrefix}-badge-${i++}`}
-          className="inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-300 mx-0.5"
-        >
-          {m[2].trim()}
-        </span>
-      );
-    } else if (m[0].startsWith("[[")) {
-      const label = m[0].includes("|") ? m[0].slice(2, m[0].indexOf("|")) : m[3];
-      const target = m[3]!.trim();
-      const resolved = linkStatus?.[target];
-      const exists = linkStatus ? Boolean(resolved?.exists) : true;
-      const slug = resolved?.slug ?? wikiLinkSlug(target);
-      const href = exists ? `/anime/${slug}` : `/anime/new?title=${encodeURIComponent(target)}`;
-      parts.push(
-        <Link
-          key={`${keyPrefix}-wl-${i++}`}
-          href={href}
-          title={exists ? undefined : `Create "${target}"`}
-          className={cn(
-            "font-medium hover:underline",
-            exists ? "text-primary" : "text-[#c0392b] decoration-[#c0392b]/50"
-          )}
-        >
-          {label.trim()}
-        </Link>
-      );
-    } else if (m[4] !== undefined && m[5]) {
-      const href = m[5].trim();
-      parts.push(
-        <WikiExternalLink key={`${keyPrefix}-ext-${i++}`} href={href}>
-          {m[4]}
-        </WikiExternalLink>
-      );
-    } else if (m[6]) {
-      const id = m[6];
-      parts.push(
-        <sup key={`${keyPrefix}-fn-${i++}`} className="text-primary">
-          <a href={`#wiki-fn-${id}`} id={`wiki-fn-ref-${id}`} className="hover:underline">
-            [{id}]
-          </a>
-        </sup>
-      );
-    } else if (m[7] !== undefined && m[8]) {
-      parts.push(
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={`${keyPrefix}-img-${i++}`}
-          src={m[8]}
-          alt={m[7]}
-          className="rounded-lg max-w-full my-2 border border-border/60"
-          loading="lazy"
-        />
-      );
-    } else if (m[9]) {
-      parts.push(<strong key={`${keyPrefix}-b-${i++}`}>{m[9]}</strong>);
-    }
-
-    last = m.index + m[0].length;
+  const nodes = parseWikiInline(text);
+  if (nodes.length === 1 && nodes[0]?.type === "text") {
+    return <span className={className}>{nodes[0].value}</span>;
   }
-
-  if (last < text.length) pushPlain(text.slice(last), `${keyPrefix}-tail`);
-
-  if (!parts.length) return <span className={className}>{text}</span>;
-  return <span className={cn(className)}>{parts}</span>;
+  return <span className={cn(className)}>{renderNodes(nodes, notes, keyPrefix, linkStatus)}</span>;
 }

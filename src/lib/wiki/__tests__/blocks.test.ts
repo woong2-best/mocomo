@@ -22,6 +22,19 @@ Text
     expect(blocks[0]).toMatchObject({ type: "heading", label: "Synopsis" });
   });
 
+  it("reads fold, quote, and tweet blocks", () => {
+    const blocks = parseWikiBlocks(`[fold:Hidden]
+secret
+[/fold]
+
+> cited line
+
+https://x.com/mocomo/status/1234567890
+`);
+    expect(blocks.map((block) => block.type)).toEqual(["fold", "quote", "tweet"]);
+    expect(blocks[0]).toMatchObject({ type: "fold", title: "Hidden", body: "secret" });
+  });
+
   it("turns a pasted YouTube URL under a heading into a video block", () => {
     const blocks = parseWikiBlocks(`== Theme songs ==
 https://www.youtube.com/watch?v=s2muG5yqdSc

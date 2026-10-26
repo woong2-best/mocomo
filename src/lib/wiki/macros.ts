@@ -48,6 +48,46 @@ export const WIKI_BODY_MACROS: WikiMacro[] = [
   },
 ];
 
+export const WIKI_FORMAT_MACROS: WikiMacro[] = [
+  { id: "bold", label: "Bold", template: "**|**", wrapSelection: true },
+  { id: "italic", label: "Italic", template: "*|*", wrapSelection: true },
+  { id: "strike", label: "Strike", template: "~~|~~", wrapSelection: true },
+  { id: "spoiler", label: "Spoiler", template: "\\|\\||\\|\\|", wrapSelection: true },
+  { id: "sup", label: "Superscript", template: "^^|^^", wrapSelection: true },
+  { id: "sub", label: "Subscript", template: ",,|,,", wrapSelection: true },
+  { id: "quote", label: "Quote", template: "\n> |", wrapSelection: true },
+  { id: "footnote", label: "Footnote", template: "[* |]", wrapSelection: true },
+  {
+    id: "fold",
+    label: "Folding",
+    template: "\n[fold:Title]\n|\n[/fold]\n",
+    wrapSelection: true,
+  },
+  {
+    id: "table",
+    label: "Table",
+    template: "\n| | | |\n| --- | --- |\n|  |  |\n",
+    wrapSelection: true,
+  },
+];
+
+export function colorMacro(color: string): WikiMacro {
+  return { id: `color-${color}`, label: "Color", template: `{#${color} |}`, wrapSelection: true };
+}
+
+export function highlightMacro(color: string): WikiMacro {
+  return { id: `bg-${color}`, label: "Highlight", template: `[bg:${color} |]`, wrapSelection: true };
+}
+
+export function sizeMacro(step: number): WikiMacro {
+  const sign = step > 0 ? `+${step}` : `${step}`;
+  return { id: `size-${sign}`, label: "Size", template: `{${sign} |}`, wrapSelection: true };
+}
+
 export function getWikiMacro(id: string): WikiMacro | undefined {
-  return WIKI_MACROS.find((macro) => macro.id === id) ?? WIKI_BODY_MACROS.find((macro) => macro.id === id);
+  return (
+    WIKI_MACROS.find((macro) => macro.id === id) ??
+    WIKI_BODY_MACROS.find((macro) => macro.id === id) ??
+    WIKI_FORMAT_MACROS.find((macro) => macro.id === id)
+  );
 }
