@@ -32,11 +32,11 @@ import {
 } from "@/lib/wiki/editorUtils";
 import type { WikiMacro } from "@/lib/wiki/macros";
 import {
-  appendWikiEditorMedia,
-  composeWikiEditorMedia,
-  extractWikiEditorMedia,
-  removeWikiEditorMedia,
-  stripWikiEditorMedia,
+  insertWikiEditorMediaInPart,
+  removeWikiEditorPart,
+  replaceWikiEditorPartText,
+  splitWikiEditorParts,
+  type WikiEditorMedia,
 } from "@/lib/wiki/media";
 import { cn } from "@/lib/utils";
 import { FileDropZone } from "@/components/media/file-drop-zone";
@@ -115,12 +115,15 @@ export function WikiEditor({
   const isControlled = value !== undefined;
   const [inner, setInner] = useState(defaultValue);
   const text = isControlled ? value : inner;
-  const editorMedia = useMemo(() => extractWikiEditorMedia(text), [text]);
-  const display = useMemo(() => stripWikiEditorMedia(text), [text]);
+  const parts = useMemo(() => splitWikiEditorParts(text), [text]);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const pendingCaretRef = useRef<number | null>(null);
+  const focusedPartRef = useRef(0);
+  const caretStartRef = useRef(0);
+  const caretEndRef = useRef(0);
+  const hasCaretRef = useRef(false);
+  const pendingCaretRef = useRef<{ partIndex: number; pos: number } | null>(null);
   const composingRef = useRef(false);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const debounceTimer = useRef<number | null>(null);
@@ -202,35 +205,62 @@ export function WikiEditor({
   }, [liveTitles, popoverKind, popoverQuery]);
 
   const setText = useCallback(
-    (next: string, caret?: number) => {
+    (next: string, caret?: { partIndex: number; pos: number }) => {
       if (!isControlled) setInner(next);
       onChange?.(next);
-      if (caret !== undefined) pendingCaretRef.current = caret;
+      if (caret) pendingCaretRef.current = caret;
     },
     [isControlled, onChange]
   );
 
+  const rememberCaret = useCallback((partIndex?: number) => {
+    const index = partIndex ?? focusedPartRef.current;
+    const ta = textareaRefs.current[index];
+    focusedPartRef.current = index;
+    hasCaretRef.current = true;
+    if (!ta) return;
+    caretStartRef.current = ta.selectionStart ?? ta.value.length;
+    caretEndRef.current = ta.selectionEnd ?? caretStartRef.current;
+  }, []);
+
+  const caretForInsert = useCallback(() => {
+    if (hasCaretRef.current) {
+      rememberCaret();
+      return;
+    }
+    let lastText = 0;
+    parts.forEach((part, index) => {
+      if (part.type === "text") lastText = index;
+    });
+    focusedPartRef.current = lastText;
+    const part = parts[lastText];
+    const len = part?.type === "text" ? part.value.length : 0;
+    caretStartRef.current = len;
+    caretEndRef.current = len;
+  }, [parts, rememberCaret]);
+
   useLayoutEffect(() => {
-    const pos = pendingCaretRef.current;
-    const ta = textareaRef.current;
-    if (pos === null || !ta) return;
+    textareaRefs.current.forEach((ta) => {
+      if (!ta) return;
+      ta.style.height = "auto";
+      ta.style.height = `${Math.max(ta.scrollHeight, 24)}px`;
+    });
+    const pending = pendingCaretRef.current;
+    if (!pending) return;
+    const ta = textareaRefs.current[pending.partIndex];
     pendingCaretRef.current = null;
+    if (!ta) return;
     ta.focus();
-    ta.setSelectionRange(pos, pos);
-    scrollTextareaToCaret(ta, pos);
-  }, [display]);
+    ta.setSelectionRange(pending.pos, pending.pos);
+    scrollTextareaToCaret(ta, pending.pos);
+  }, [parts]);
 
-  const selection = useCallback(() => {
-    const ta = textareaRef.current;
-    return {
-      start: ta?.selectionStart ?? display.length,
-      end: ta?.selectionEnd ?? display.length,
-    };
-  }, [display.length]);
-
-  const applyDisplay = useCallback(
-    (nextDisplay: string, caret?: number) => {
-      setText(composeWikiEditorMedia(nextDisplay, extractWikiEditorMedia(text)), caret);
+  const applyPartText = useCallback(
+    (partIndex: number, nextValue: string, caret?: number) => {
+      setText(
+        replaceWikiEditorPartText(text, partIndex, nextValue),
+        caret === undefined ? undefined : { partIndex, pos: caret }
+      );
     },
     [setText, text]
   );
@@ -242,22 +272,25 @@ export function WikiEditor({
 
   const evaluateContext = useCallback(() => {
     if (composingRef.current) return;
-    const ta = textareaRef.current;
+    const ta = textareaRefs.current[focusedPartRef.current];
     const wrap = wrapperRef.current;
-    if (!ta || !wrap) {
+    const part = parts[focusedPartRef.current];
+    if (!ta || !wrap || part?.type !== "text") {
       closePopover();
       return;
     }
     const caret = ta.selectionStart ?? 0;
-    const ctx = detectTitleContext(display, caret);
+    const ctx = detectTitleContext(part.value, caret);
     if (!ctx) {
       closePopover();
       return;
     }
 
     const coords = getCaretCoordinates(ta, caret);
-    const caretTop = coords.top - ta.scrollTop + ta.offsetTop;
-    const caretLeft = coords.left - ta.scrollLeft + ta.offsetLeft;
+    const taRect = ta.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const caretTop = coords.top - ta.scrollTop + (taRect.top - wrapRect.top);
+    const caretLeft = coords.left - ta.scrollLeft + (taRect.left - wrapRect.left);
     const lineHeight = coords.height || 18;
     const wrapW = wrap.clientWidth;
     const wrapH = wrap.clientHeight;
@@ -284,7 +317,7 @@ export function WikiEditor({
       placement,
     });
     setActiveIndex(0);
-  }, [closePopover, display]);
+  }, [closePopover, parts]);
 
   const scheduleEvaluate = useCallback(() => {
     if (debounceTimer.current) window.clearTimeout(debounceTimer.current);
@@ -321,44 +354,67 @@ export function WikiEditor({
     (item: IndexedWikiTitle) => {
       if (!popover) return;
       const label = popover.context.kind === "wikilink" ? item.english || item.original : item.english;
-      const result = applyTitleSuggestion(display, popover.context, label);
-      applyDisplay(result.next, result.caret);
+      const partIndex = focusedPartRef.current;
+      const part = parts[partIndex];
+      if (part?.type !== "text") return;
+      const result = applyTitleSuggestion(part.value, popover.context, label);
+      applyPartText(partIndex, result.next, result.caret);
       closePopover();
     },
-    [applyDisplay, closePopover, display, popover]
+    [applyPartText, closePopover, parts, popover]
   );
 
   const createWikiLink = useCallback(
     (query: string) => {
       if (!popover) return;
-      const result = applyTitleSuggestion(display, popover.context, query.trim());
-      applyDisplay(result.next, result.caret);
+      const partIndex = focusedPartRef.current;
+      const part = parts[partIndex];
+      if (part?.type !== "text") return;
+      const result = applyTitleSuggestion(part.value, popover.context, query.trim());
+      applyPartText(partIndex, result.next, result.caret);
       closePopover();
     },
-    [applyDisplay, closePopover, display, popover]
+    [applyPartText, closePopover, parts, popover]
   );
 
   const handleMacro = useCallback(
     (macro: WikiMacro) => {
-      const { start, end } = selection();
-      const result = insertMacro(display, start, end, macro);
-      applyDisplay(result.next, result.caret);
+      rememberCaret();
+      const partIndex = focusedPartRef.current;
+      const part = parts[partIndex];
+      if (part?.type !== "text") return;
+      const result = insertMacro(part.value, caretStartRef.current, caretEndRef.current, macro);
+      applyPartText(partIndex, result.next, result.caret);
     },
-    [applyDisplay, display, selection]
+    [applyPartText, parts, rememberCaret]
   );
 
   const insertMediaSnippet = useCallback(
     (snippet: string) => {
-      setText(appendWikiEditorMedia(text, snippet));
+      const partIndex = focusedPartRef.current;
+      setText(
+        insertWikiEditorMediaInPart(
+          text,
+          partIndex,
+          caretStartRef.current,
+          caretEndRef.current,
+          snippet
+        ),
+        { partIndex: partIndex + 2, pos: 0 }
+      );
     },
     [setText, text]
   );
 
-  const removeMediaSnippet = useCallback(
-    (snippet: string) => {
-      setText(removeWikiEditorMedia(text, snippet));
+  const removeMediaPart = useCallback(
+    (partIndex: number) => {
+      const previous = parts[partIndex - 1];
+      setText(removeWikiEditorPart(text, partIndex), {
+        partIndex: Math.max(0, partIndex - 1),
+        pos: previous?.type === "text" ? previous.value.length : 0,
+      });
     },
-    [setText, text]
+    [parts, setText, text]
   );
 
   const handleInlineImage = useCallback(
@@ -410,18 +466,23 @@ export function WikiEditor({
       setMediaError(t("anime.s1qniagj"));
       return;
     }
+    caretForInsert();
     insertMediaSnippet(`${trimmed}\n`);
     setYoutubeUrl("");
     setYoutubeOpen(false);
     setMediaError("");
-  }, [insertMediaSnippet, t, youtubeUrl]);
+  }, [caretForInsert, insertMediaSnippet, t, youtubeUrl]);
 
   const handleCoverOrBanner = useCallback(
     async (file: File, kind: "cover" | "banner") => {
       const token = kind === "cover" ? "[Cover Image]" : "[Banner Image]";
-      const { start, end } = selection();
-      const result = insertOrFocusToken(display, start, end, token);
-      applyDisplay(result.next, result.caret);
+      caretForInsert();
+      const partIndex = focusedPartRef.current;
+      const part = parts[partIndex];
+      if (part?.type === "text") {
+        const result = insertOrFocusToken(part.value, caretStartRef.current, caretEndRef.current, token);
+        applyPartText(partIndex, result.next, result.caret);
+      }
 
       const local = URL.createObjectURL(file);
       setPreviews((prev) => {
@@ -435,7 +496,7 @@ export function WikiEditor({
         setMediaError(t("wiki.editor.uploadFailed"));
       }
     },
-    [applyDisplay, display, onUploadImage, selection, t]
+    [applyPartText, caretForInsert, onUploadImage, parts, t]
   );
 
   const removePreview = useCallback((kind: "cover" | "banner") => {
@@ -496,6 +557,7 @@ export function WikiEditor({
       disabled={imageBusy || videoBusy}
       hint={t("media.dropHint")}
       onFiles={(files) => {
+        caretForInsert();
         const image = files.find((file) => isGalleryImageFile(file, true));
         if (image) {
           void handleInlineImage(image);
@@ -508,8 +570,12 @@ export function WikiEditor({
       <EditorToolbar
         variant={variant}
         onMacro={handleMacro}
-        onPickImage={() => imageInputRef.current?.click()}
+        onPickImage={() => {
+          caretForInsert();
+          imageInputRef.current?.click();
+        }}
         onPickVideo={() => {
+          caretForInsert();
           if (onUploadVideo) videoInputRef.current?.click();
           else setYoutubeOpen((open) => !open);
         }}
@@ -632,76 +698,77 @@ export function WikiEditor({
         </p>
       ) : null}
 
-      {editorMedia.length > 0 ? (
-        <div className="flex flex-wrap gap-2 border-b border-border/70 bg-muted/20 px-3 py-2">
-          {editorMedia.map((item, index) => (
-            <div key={`${item.kind}-${item.snippet}-${index}`} className="relative">
-              {item.kind === "image" ? (
-                <div className="h-24 w-24 overflow-hidden rounded-xl border border-border/70 bg-muted/40">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.url} alt="" className="h-full w-full object-cover" />
-                </div>
-              ) : (
-                <div className="relative h-24 w-40 overflow-hidden rounded-xl border border-border/70 bg-black">
-                  {item.thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.thumb} alt="" className="h-full w-full object-cover opacity-90" />
-                  ) : (
-                    <span className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-black" />
-                  )}
-                  <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white">
-                      <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
-                    </span>
-                  </span>
-                </div>
-              )}
-              <button
-                type="button"
-                title={t("wiki.editor.removePreview")}
-                aria-label={t("wiki.editor.removePreview")}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => removeMediaSnippet(item.snippet)}
-                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/75 text-white shadow"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <textarea
-        ref={textareaRef}
-        value={display}
-        spellCheck={false}
-        aria-autocomplete="list"
-        aria-controls={visiblePopover ? listId : undefined}
-        aria-expanded={Boolean(visiblePopover)}
-        placeholder={placeholder}
+      <div
         className={cn(
-          "w-full resize-y bg-background px-4 py-3 font-mono text-sm leading-relaxed text-foreground outline-none focus:ring-2 focus:ring-ring focus:ring-inset",
+          "flex w-full flex-col bg-background px-4 py-3",
           bodyOnly ? "min-h-[520px]" : "min-h-[480px]"
         )}
-        onChange={(e) => {
-          applyDisplay(e.target.value);
-          if (!composingRef.current) scheduleEvaluate();
-        }}
-        onKeyDown={onTextareaKeyDown}
-        onKeyUp={() => {
-          if (!composingRef.current) scheduleEvaluate();
-        }}
-        onClick={() => scheduleEvaluate()}
-        onSelect={() => scheduleEvaluate()}
-        onScroll={() => evaluateContext()}
-        onCompositionStart={() => {
-          composingRef.current = true;
-        }}
-        onCompositionEnd={() => {
-          composingRef.current = false;
-          scheduleEvaluate();
-        }}
-      />
+      >
+        {parts.map((part, index) =>
+          part.type === "text" ? (
+            <textarea
+              key={`text-${index}`}
+              ref={(el) => {
+                textareaRefs.current[index] = el;
+              }}
+              value={part.value}
+              spellCheck={false}
+              aria-autocomplete="list"
+              aria-controls={visiblePopover && focusedPartRef.current === index ? listId : undefined}
+              aria-expanded={visiblePopover && focusedPartRef.current === index ? true : undefined}
+              placeholder={index === 0 && parts.length === 1 ? placeholder : undefined}
+              rows={1}
+              className={cn(
+                "w-full resize-none overflow-hidden bg-transparent font-mono text-sm leading-relaxed text-foreground outline-none",
+                "focus:ring-0",
+                parts.length === 1
+                  ? bodyOnly
+                    ? "min-h-[496px]"
+                    : "min-h-[456px]"
+                  : part.value
+                    ? "min-h-[1.5rem]"
+                    : "min-h-6"
+              )}
+              onFocus={() => {
+                focusedPartRef.current = index;
+                rememberCaret(index);
+              }}
+              onChange={(e) => {
+                applyPartText(index, e.target.value);
+                if (!composingRef.current) scheduleEvaluate();
+              }}
+              onKeyDown={onTextareaKeyDown}
+              onKeyUp={() => {
+                rememberCaret(index);
+                if (!composingRef.current) scheduleEvaluate();
+              }}
+              onClick={() => {
+                rememberCaret(index);
+                scheduleEvaluate();
+              }}
+              onSelect={() => {
+                rememberCaret(index);
+                scheduleEvaluate();
+              }}
+              onScroll={() => evaluateContext()}
+              onCompositionStart={() => {
+                composingRef.current = true;
+              }}
+              onCompositionEnd={() => {
+                composingRef.current = false;
+                rememberCaret(index);
+                scheduleEvaluate();
+              }}
+            />
+          ) : (
+            <WikiEditorInlineMedia
+              key={`media-${index}-${part.item.snippet}`}
+              item={part.item}
+              onRemove={() => removeMediaPart(index)}
+            />
+          )
+        )}
+      </div>
 
       {visiblePopover ? (
         <TitleSuggestPopover
@@ -734,5 +801,52 @@ export function WikiEditor({
         </div>
       ) : null}
     </FileDropZone>
+  );
+}
+
+function WikiEditorInlineMedia({
+  item,
+  onRemove,
+}: {
+  item: WikiEditorMedia;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="relative my-2 w-fit max-w-full">
+      {item.kind === "image" ? (
+        <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/40">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.url}
+            alt=""
+            className="block h-auto max-h-40 w-auto max-w-[280px] object-contain"
+          />
+        </div>
+      ) : (
+        <div className="relative w-[min(100%,320px)] overflow-hidden rounded-xl border border-border/70 bg-black">
+          {item.thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.thumb} alt="" className="aspect-video w-full object-cover opacity-90" />
+          ) : (
+            <span className="block aspect-video w-full bg-gradient-to-br from-zinc-800 to-black" />
+          )}
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white">
+              <Play className="ml-0.5 h-4 w-4 fill-current" />
+            </span>
+          </span>
+        </div>
+      )}
+      <button
+        type="button"
+        title={t("wiki.editor.removePreview")}
+        aria-label={t("wiki.editor.removePreview")}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onRemove}
+        className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/75 text-white shadow"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
   );
 }

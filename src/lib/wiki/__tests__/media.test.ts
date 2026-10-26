@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  appendWikiEditorMedia,
-  composeWikiEditorMedia,
   extractWikiEditorMedia,
   extractWikiVideos,
+  insertWikiEditorMediaInPart,
+  joinWikiEditorParts,
   parseWikiVideoLine,
   parseWikiVideoUrl,
-  removeWikiEditorMedia,
-  stripWikiEditorMedia,
+  removeWikiEditorPart,
+  splitWikiEditorParts,
   wikiVideoLink,
 } from "@/lib/wiki/media";
 
@@ -74,11 +74,11 @@ describe("parseWikiVideoUrl", () => {
   });
 });
 
-describe("wiki editor media dock", () => {
+describe("wiki editor inline media", () => {
   const image = "![image](https://cdn.mocomo.net/shot.jpg)";
   const youtube = "https://www.youtube.com/watch?v=s2muG5yqdSc";
 
-  it("extracts images and standalone videos, then hides them from the textarea", () => {
+  it("keeps images and standalone videos in document order", () => {
     const source = `Intro\n${image}\n${youtube}\nOutro`;
     expect(extractWikiEditorMedia(source)).toEqual([
       {
@@ -95,19 +95,27 @@ describe("wiki editor media dock", () => {
         thumb: "https://i.ytimg.com/vi/s2muG5yqdSc/hqdefault.jpg",
       },
     ]);
-    expect(stripWikiEditorMedia(source)).toBe("Intro\n\nOutro");
+    expect(joinWikiEditorParts(splitWikiEditorParts(source))).toBe(source);
+    expect(splitWikiEditorParts(source).map((part) => part.type)).toEqual([
+      "text",
+      "media",
+      "text",
+      "media",
+      "text",
+    ]);
   });
 
   it("leaves an in-sentence YouTube URL in the textarea", () => {
     const source = "Watch https://www.youtube.com/watch?v=s2muG5yqdSc later.";
     expect(extractWikiEditorMedia(source)).toEqual([]);
-    expect(stripWikiEditorMedia(source)).toBe(source);
+    expect(splitWikiEditorParts(source)).toEqual([{ type: "text", value: source }]);
   });
 
-  it("appends, composes, and removes snippets without leaving markdown in the display", () => {
-    const next = appendWikiEditorMedia("Hello", image);
-    expect(next).toBe(`Hello\n${image}\n`);
-    expect(composeWikiEditorMedia("Hello", extractWikiEditorMedia(next))).toBe(`Hello\n${image}\n`);
-    expect(removeWikiEditorMedia(next, image)).toBe("Hello");
+  it("inserts a photo at the caret between headings", () => {
+    const source = "== Overview ==\n\n== Synopsis ==\n";
+    const caret = source.indexOf("\n\n") + 1;
+    const next = insertWikiEditorMediaInPart(source, 0, caret, caret, image);
+    expect(next).toBe(`== Overview ==\n${image}\n== Synopsis ==\n`);
+    expect(removeWikiEditorPart(next, 1)).toBe("== Overview ==\n\n== Synopsis ==\n");
   });
 });
