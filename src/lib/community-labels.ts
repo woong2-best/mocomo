@@ -21,17 +21,17 @@ const CATEGORY_EMOJI: Record<CommunityCategory, string> = {
   IT: "💻",
   FOOD: "🍜",
   LAW: "⚖️",
-  TRAVEL: "✈️",
+  TRAVEL: "🎫",
   POLITICS: "🏛️",
   MEDICAL: "🏥",
   INFO: "❓",
   CUSTOM: "➕",
-  ANIME: "✨",
-  COMIC: "✨",
-  COSPLAY: "✨",
-  GOODS: "✨",
-  FIGURE: "✨",
-  VTUBER: "📡",
+  ANIME: "📺",
+  COMIC: "📺",
+  COSPLAY: "👗",
+  GOODS: "🛍️",
+  FIGURE: "🛍️",
+  VTUBER: "🎙️",
   AI: "📡",
   UTAITE: "🎵",
   VOCALOID: "🎵",
@@ -40,19 +40,19 @@ const CATEGORY_EMOJI: Record<CommunityCategory, string> = {
 
 const MAIN_COMMUNITY_CATEGORIES: CommunityCategory[] = [
   "FREE",
-  "HUMOR",
+  "ANIME",
   "GAME",
-  "SPORTS",
+  "GOODS",
   "CREATOR",
   "MUSIC",
   "CREATIVE",
-  "SUBCULTURE",
+  "VTUBER",
   "IT",
   "FOOD",
   "LAW",
   "TRAVEL",
   "POLITICS",
-  "MEDICAL",
+  "COSPLAY",
   "INFO",
 ];
 
@@ -102,19 +102,36 @@ export function qnaCreateSelectionToApi(selection: QnaCreateCategorySelection): 
   return { category: selection, isNsfw: false };
 }
 
-/** Legacy taxonomy → v3 mapping (pre-migration display). */
+/** Legacy taxonomy → current QnA tabs (display + URL normalization). */
 const LEGACY_COMMUNITY_CATEGORY_MAP: Partial<Record<CommunityCategory, CommunityCategory>> = {
-  ANIME: "SUBCULTURE",
-  COMIC: "SUBCULTURE",
-  COSPLAY: "SUBCULTURE",
-  GOODS: "SUBCULTURE",
-  FIGURE: "SUBCULTURE",
-  VTUBER: "CREATOR",
+  HUMOR: "ANIME",
+  SUBCULTURE: "VTUBER",
+  SPORTS: "GOODS",
+  MEDICAL: "COSPLAY",
+  COMIC: "ANIME",
+  FIGURE: "GOODS",
   AI: "CREATOR",
   UTAITE: "MUSIC",
   VOCALOID: "MUSIC",
   FANART: "CREATIVE",
 };
+
+/** DB categories included when filtering a QnA tab (includes retired tab ids). */
+const QNA_CATEGORY_FILTER_ALIASES: Partial<Record<CommunityCategory, CommunityCategory[]>> = {
+  ANIME: ["ANIME", "HUMOR", "COMIC"],
+  VTUBER: ["VTUBER", "SUBCULTURE"],
+  GOODS: ["GOODS", "SPORTS", "FIGURE"],
+  COSPLAY: ["COSPLAY", "MEDICAL"],
+  CREATOR: ["CREATOR", "AI"],
+  MUSIC: ["MUSIC", "UTAITE", "VOCALOID"],
+  CREATIVE: ["CREATIVE", "FANART"],
+};
+
+export function communityCategoriesForQnaFilter(
+  category: CommunityCategory
+): CommunityCategory[] {
+  return QNA_CATEGORY_FILTER_ALIASES[category] ?? [category];
+}
 
 export const COMMUNITY_CATEGORY_IDS: readonly CommunityCategory[] = [
   ...COMMUNITY_CATEGORY_OPTIONS.map((c) => c.id),

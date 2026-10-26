@@ -1,5 +1,6 @@
 import type { CommunityCategory, Prisma } from "@prisma/client";
 import {
+  communityCategoriesForQnaFilter,
   isCommunityCategory,
   normalizeCommunityCategory,
 } from "@/lib/community-labels";
@@ -90,7 +91,9 @@ export function qnaFeedWhere(opts: {
 
   const community: Prisma.CommunityWhereInput = {
     ...nsfwGate(opts.canViewNsfw),
-    ...(opts.category ? { category: opts.category } : {}),
+    ...(opts.category
+      ? { category: { in: communityCategoriesForQnaFilter(opts.category) } }
+      : {}),
   };
 
   const search = qnaSearchOr(q);

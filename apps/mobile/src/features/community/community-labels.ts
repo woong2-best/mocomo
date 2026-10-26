@@ -4,19 +4,19 @@ import { translate } from "@/i18n/runtime";
 const CATEGORY_META = [
   { id: "ALL", emoji: "" },
   { id: "FREE", emoji: "💬" },
-  { id: "HUMOR", emoji: "😂" },
+  { id: "ANIME", emoji: "📺" },
   { id: "GAME", emoji: "🎮" },
-  { id: "SPORTS", emoji: "⚽" },
+  { id: "GOODS", emoji: "🛍️" },
   { id: "CREATOR", emoji: "📡" },
   { id: "MUSIC", emoji: "🎵" },
   { id: "CREATIVE", emoji: "🎨" },
-  { id: "SUBCULTURE", emoji: "✨" },
+  { id: "VTUBER", emoji: "🎙️" },
   { id: "IT", emoji: "💻" },
   { id: "FOOD", emoji: "🍜" },
   { id: "LAW", emoji: "⚖️" },
-  { id: "TRAVEL", emoji: "✈️" },
+  { id: "TRAVEL", emoji: "🎫" },
   { id: "POLITICS", emoji: "🏛️" },
-  { id: "MEDICAL", emoji: "🏥" },
+  { id: "COSPLAY", emoji: "👗" },
   { id: "INFO", emoji: "❓" },
 ] as const;
 
@@ -75,12 +75,12 @@ export function qnaCreateSelectionToApi(selection: QnaCreateCategorySelection): 
 }
 
 const LEGACY_COMMUNITY_CATEGORY_MAP: Partial<Record<string, CommunityCategoryId>> = {
-  ANIME: "SUBCULTURE",
-  COMIC: "SUBCULTURE",
-  COSPLAY: "SUBCULTURE",
-  GOODS: "SUBCULTURE",
-  FIGURE: "SUBCULTURE",
-  VTUBER: "CREATOR",
+  HUMOR: "ANIME",
+  SUBCULTURE: "VTUBER",
+  SPORTS: "GOODS",
+  MEDICAL: "COSPLAY",
+  COMIC: "ANIME",
+  FIGURE: "GOODS",
   AI: "CREATOR",
   UTAITE: "MUSIC",
   VOCALOID: "MUSIC",

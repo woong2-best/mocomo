@@ -10,7 +10,8 @@ test("parseQnaCategoryParam treats empty and ALL as every category", () => {
 
 test("parseQnaCategoryParam accepts current taxonomy and maps legacy ids", () => {
   assert.equal(parseQnaCategoryParam("GAME"), "GAME");
-  assert.equal(parseQnaCategoryParam("ANIME"), "SUBCULTURE");
+  assert.equal(parseQnaCategoryParam("ANIME"), "ANIME");
+  assert.equal(parseQnaCategoryParam("HUMOR"), "ANIME");
 });
 
 test("parseQnaCategoryParam accepts NSFW hub tab", () => {
@@ -46,8 +47,19 @@ test("qnaFeedWhere always scopes to public community posts", () => {
 
 test("qnaFeedWhere filters by category and search when provided", () => {
   const where = qnaFeedWhere({ category: "GAME", q: "원신", canViewNsfw: true });
-  assert.equal((where.community as { category?: string } | undefined)?.category, "GAME");
+  assert.deepEqual((where.community as { category?: { in: string[] } } | undefined)?.category, {
+    in: ["GAME"],
+  });
   assert.ok(Array.isArray(where.OR));
+});
+
+test("qnaFeedWhere expands anime tab to legacy humor posts", () => {
+  const where = qnaFeedWhere({ category: "ANIME", q: "", canViewNsfw: true });
+  assert.deepEqual((where.community as { category?: { in: string[] } }).category?.in, [
+    "ANIME",
+    "HUMOR",
+    "COMIC",
+  ]);
 });
 
 test("qnaFeedWhere NSFW tab requires adult viewer and scopes to nsfw posts", () => {
