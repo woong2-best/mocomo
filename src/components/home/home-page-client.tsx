@@ -38,10 +38,6 @@ export function HomePageClient({
     <div className="p-4 lg:p-6 max-w-5xl mx-auto">
       <HomeStaticSection isLoggedIn={isLoggedIn} />
 
-      {dbOk && (topLiked.length > 0 || topViewed.length > 0) && (
-        <WeeklyHighlightsSection topLiked={topLiked} topViewed={topViewed} />
-      )}
-
       {!dbOk && (
         <p className="text-xs text-amber-700 bg-amber-500/15 border border-amber-500/40 rounded-xl px-3 py-2 mb-4">
           {t("home.s15xfz79")}
@@ -61,6 +57,10 @@ export function HomePageClient({
           </ComposeOpenButton>
         </div>
       ) : null}
+
+      {dbOk && (topLiked.length > 0 || topViewed.length > 0) && (
+        <WeeklyHighlightsSection topLiked={topLiked} topViewed={topViewed} />
+      )}
     </div>
   );
 }
