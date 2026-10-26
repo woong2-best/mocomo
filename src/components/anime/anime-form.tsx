@@ -247,12 +247,13 @@ export function AnimeForm({
         </CardContent>
       </Card>
 
-      <Card id="wiki-article-info-editor" className="rounded-2xl shadow-md scroll-mt-24">
+      <div id="wiki-article-info-editor" ref={infoboxRef} className="scroll-mt-24">
+      <Card className="rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle>{t("anime.s1a3gksb")}</CardTitle>
           <p className="text-sm text-muted-foreground">{t("wiki.infobox.editorHelp")}</p>
         </CardHeader>
-        <CardContent ref={infoboxRef} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+        <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
           <WikiInfoboxEditor value={infobox} onChange={setInfobox} />
           <div className="min-w-0">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -268,6 +269,7 @@ export function AnimeForm({
           </div>
         </CardContent>
       </Card>
+      </div>
 
       <Card className="rounded-2xl shadow-md">
         <CardHeader>
