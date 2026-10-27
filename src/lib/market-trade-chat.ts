@@ -14,6 +14,7 @@ import {
   serializeChatMessageForRelay,
 } from "@/lib/chat-message-serialize";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
+import { reactivateChatMember, reactivateChatMembers } from "@/lib/chat-exit";
 
 /** 판매 완료된 상품 대화에는 새 메시지를 넣지 않는다. 예약 중은 그대로 보낸다. */
 export async function usedListingChatSendBlock(roomId: string) {
@@ -56,6 +57,7 @@ export async function openMarketListingChat(actorId: string, listingId: string) 
     select: { roomId: true },
   });
   if (existing) {
+    await reactivateChatMember(existing.roomId, actorId);
     await db.chatRoom.update({
       where: { id: existing.roomId },
       data: { updatedAt: new Date() },
@@ -210,6 +212,7 @@ export async function announceAuctionLeader(input: {
       include: chatMessageInclude,
     });
     await db.chatRoom.update({ where: { id: roomId }, data: { updatedAt: new Date() } });
+    await reactivateChatMembers(roomId);
     void notifyChatMessage({
       roomId,
       senderId: input.bidderId,

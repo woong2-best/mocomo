@@ -39,8 +39,9 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
     redirect("/messages");
   }
 
-  const isMember = room.members.some((m) => m.userId === session.user.id);
-  if (!isMember) notFound();
+  const myMembership = room.members.find((m) => m.userId === session.user.id);
+  if (!myMembership) notFound();
+  if (!myMembership.isActive) redirect("/messages");
 
   const locale = await getRequestLocale();
   const meta = getConversationMeta(room, session.user.id, locale);

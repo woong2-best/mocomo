@@ -29,7 +29,7 @@ export async function listRecentDmPartners(): Promise<DmUserSearchHit[]> {
     where: {
       type: "DM",
       communityId: null,
-      members: { some: { userId: user.id } },
+      members: { some: { userId: user.id, isActive: true } },
     },
     take: RECENT_LIMIT,
     orderBy: { updatedAt: "desc" },

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuthMinimal } from "@/lib/auth";
 import { userPublicSelectMinimal } from "@/lib/user-public-select";
 import { orderedPair } from "@/lib/discovery/matching";
+import { reactivateChatMember } from "@/lib/chat-exit";
 
 /** 매칭된 상대와 DM — 코스플레이어 후원 티어 제한 우회 */
 export async function getOrCreateDiscoveryDM(otherUserId: string) {
@@ -26,7 +27,10 @@ export async function getOrCreateDiscoveryDM(otherUserId: string) {
       members: { include: { user: { select: { ...userPublicSelectMinimal, name: true } } } },
     },
   });
-  if (existing) return { room: existing, roomId: existing.id };
+  if (existing) {
+    await reactivateChatMember(existing.id, user.id);
+    return { room: existing, roomId: existing.id };
+  }
 
   const room = await db.chatRoom.create({
     data: {

@@ -29,7 +29,7 @@ export function buildMessagesInboxWhere(
 ): Prisma.ChatRoomWhereInput {
   const types = opts?.mobile ? MOBILE_MESSAGES_INBOX_TYPES : WEB_MESSAGES_INBOX_TYPES;
   const where: Prisma.ChatRoomWhereInput = {
-    members: { some: { userId } },
+    members: { some: { userId, isActive: true } },
     type: { in: types },
     communityId: null,
     voiceChannelId: null,

@@ -30,6 +30,7 @@ import { addChatMemberByUsername } from "@/lib/chat-group-invite";
 import { dmSendBlockReason, incomingContactDecision } from "@/lib/contact-audience";
 import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 import { usedListingChatSendBlock } from "@/lib/market-trade-chat";
+import { exitChatForUser, reactivateChatMember, reactivateChatMembers } from "@/lib/chat-exit";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -91,7 +92,10 @@ export async function getOrCreateDM(otherUserId: string) {
       messages: { take: 50, orderBy: { createdAt: "desc" }, include: { sender: true, attachments: true } },
     },
   });
-  if (existing) return { room: existing };
+  if (existing) {
+    await reactivateChatMember(existing.id, user.id);
+    return { room: existing };
+  }
 
   const decision = await incomingContactDecision(user.id, otherUserId, "message");
   if (!decision.allowed) return { error: decision.error };
@@ -244,6 +248,7 @@ export async function sendMessage(data: {
       where: { id: data.roomId },
       data: { updatedAt: new Date() },
     });
+    await reactivateChatMembers(data.roomId, tx);
     return msg;
   });
 
@@ -262,6 +267,11 @@ export async function sendMessage(data: {
     message: serializeChatMessage(message, { viewerId: user.id, purchasedAttachmentIds: purchasedIds }),
     contentFiltered: filtered.wasFiltered,
   };
+}
+
+export async function exitChat(roomId: string) {
+  const user = await requireAuth({ writeKind: "dm" });
+  return exitChatForUser(user.id, roomId);
 }
 
 export async function addChatMemberByHandle(roomId: string, handle: string) {

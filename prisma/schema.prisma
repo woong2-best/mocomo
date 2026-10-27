@@ -1714,10 +1714,14 @@ model ChatMember {
   role     String   @default("member")
   joinedAt DateTime @default(now())
   lastReadAt DateTime?
+  /** Instagram-style soft leave: room stays; only this user's inbox hides. */
+  isActive Boolean  @default(true)
+  leftAt   DateTime?
   room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([roomId, userId])
   @@index([userId])
+  @@index([userId, isActive])
 }
 
 enum MessageAttachmentType {

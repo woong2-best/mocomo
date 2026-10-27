@@ -20,17 +20,28 @@ import { contactPermissions, dmSendBlockReason, incomingContactDecision } from "
 import { areUsersBlocked, filterDmInboxByBlock, getBlockedUserIdSet } from "@/lib/user-block";
 import { presentMobileUsedListingMessages } from "@/lib/used-listing-share-card";
 import { usedListingChatSendBlock } from "@/lib/market-trade-chat";
+import { reactivateChatMember, reactivateChatMembers } from "@/lib/chat-exit";
 
-async function assertRoomMember(roomId: string, userId: string) {
+async function assertRoomMember(
+  roomId: string,
+  userId: string,
+  opts?: { requireActive?: boolean }
+) {
   const member = await db.chatMember.findUnique({
     where: { roomId_userId: { roomId, userId } },
-    select: { userId: true },
+    select: { userId: true, isActive: true },
   });
-  return !!member;
+  if (!member) return false;
+  if (opts?.requireActive !== false && !member.isActive) return false;
+  return true;
 }
 
 /** DM and add-by-username GROUP when a member; FANDOM when community member (upserts chatMember). */
-async function assertMobileChatAccess(roomId: string, userId: string) {
+async function assertMobileChatAccess(
+  roomId: string,
+  userId: string,
+  opts?: { requireActive?: boolean }
+) {
   const room = await db.chatRoom.findUnique({
     where: { id: roomId },
     select: { id: true, type: true, communityId: true, name: true },
@@ -38,7 +49,7 @@ async function assertMobileChatAccess(roomId: string, userId: string) {
   if (!room) return { error: "NOT_FOUND" as const };
 
   if (room.type === "DM" || room.type === "GROUP" || room.type === "MARKET") {
-    if (!(await assertRoomMember(roomId, userId))) {
+    if (!(await assertRoomMember(roomId, userId, opts))) {
       return { error: "FORBIDDEN" as const };
     }
     return { room };
@@ -167,7 +178,10 @@ export async function getOrCreateDmForUser(actorId: string, otherUserId: string)
     },
     select: { id: true },
   });
-  if (existing) return { roomId: existing.id };
+  if (existing) {
+    await reactivateChatMember(existing.id, actorId);
+    return { roomId: existing.id };
+  }
 
   const decision = await incomingContactDecision(actorId, otherUserId, "message");
   if (!decision.allowed) return { error: decision.error };
@@ -363,7 +377,7 @@ export async function sendMobileDmMessage(
     }[];
   }
 ) {
-  const access = await assertMobileChatAccess(data.roomId, userId);
+  const access = await assertMobileChatAccess(data.roomId, userId, { requireActive: false });
   if ("error" in access) {
     return {
       error:
@@ -436,6 +450,7 @@ export async function sendMobileDmMessage(
       where: { id: data.roomId },
       data: { updatedAt: new Date() },
     });
+    await reactivateChatMembers(data.roomId, tx);
     return msg;
   });
 
