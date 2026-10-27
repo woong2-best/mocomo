@@ -27,6 +27,11 @@ import { FileDropZone } from "@/components/media/file-drop-zone";
 import { isGalleryImageFile } from "@/lib/gallery-image-upload";
 import { QnaBountyField } from "@/components/qna/qna-bounty-field";
 import { parseQnaBountyInput } from "@/lib/qna-bounty-format";
+import {
+  QNA_DETAIL_LINK_CLASS,
+  QnaDetailLinkTextarea,
+} from "@/components/communities/qna-detail-link-textarea";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 
 const CREATE_CATEGORY_OPTIONS = COMMUNITY_CATEGORY_OPTIONS.filter((o) => o.id !== "INFO");
 
@@ -287,9 +292,13 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
               <div className="file-drop-zone__pad min-h-[180px] space-y-2.5">
                 {detailBlocks.map((block) =>
                   block.kind === "text" ? (
-                    <p key={block.id} className="text-sm whitespace-pre-wrap">
-                      {block.text}
-                    </p>
+                    <LinkifiedText
+                      key={block.id}
+                      text={block.text}
+                      as="p"
+                      className="text-sm whitespace-pre-wrap"
+                      linkClassName={QNA_DETAIL_LINK_CLASS}
+                    />
                   ) : (
                     <div key={block.id} className="relative w-full">
                       <Image
@@ -312,14 +321,13 @@ export function CommunityCreateForm({ embedded = false }: { embedded?: boolean }
                     </div>
                   )
                 )}
-                <textarea
+                <QnaDetailLinkTextarea
                   id="community-detail"
                   value={detailDraft}
-                  onChange={(e) => setDetailDraft(e.target.value)}
+                  onChange={setDetailDraft}
                   placeholder="Type your question"
                   maxLength={500}
                   disabled={loading}
-                  className="w-full min-h-[120px] text-sm outline-none resize-y bg-transparent disabled:opacity-60"
                 />
               </div>
               </FileDropZone>

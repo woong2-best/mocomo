@@ -18,12 +18,14 @@ import { cn } from "@/lib/utils";
 export function TranslatableText({
   text,
   className,
+  linkClassName,
   as = "span",
   stopPropagation = false,
   showLinkPreview = true,
 }: {
   text: string;
   className?: string;
+  linkClassName?: string;
   as?: "p" | "span" | "div";
   stopPropagation?: boolean;
   /** 본문 첫 URL의 OG/유튜브 카드 (기본 on) */
@@ -70,6 +72,7 @@ export function TranslatableText({
         text={showTranslate ? displayText : text}
         as={as}
         className={cn(className, showingTranslation && "text-foreground")}
+        linkClassName={linkClassName}
         stopPropagation={stopPropagation}
       />
     </div>
@@ -90,6 +93,7 @@ export function TranslatableText({
         text={text}
         as={as}
         className={className}
+        linkClassName={linkClassName}
         stopPropagation={stopPropagation}
       />
     );

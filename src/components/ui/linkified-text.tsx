@@ -16,11 +16,13 @@ const mentionLikeClass =
 export function LinkifiedText({
   text,
   className,
+  linkClassName,
   as: Tag = "span",
   stopPropagation = false,
 }: {
   text: string;
   className?: string;
+  linkClassName?: string;
   as?: "p" | "span" | "div";
   /** 부모 Link/버튼 안에 있을 때 링크 클릭이 상위로 전파되지 않게 */
   stopPropagation?: boolean;
@@ -71,13 +73,16 @@ export function LinkifiedText({
         }
         // Avoid nested <a> inside feed post Links — browsers rewrite the DOM and
         // the URL text appears to grow/shrink while React reconciles.
+        const linkClass =
+          linkClassName ?? "text-primary hover:underline break-all";
+
         if (stopPropagation && isExternalHref(part.href)) {
           return (
             <span
               key={i}
               role="link"
               tabIndex={0}
-              className="text-primary hover:underline break-all cursor-pointer"
+              className={cn(linkClass, "cursor-pointer")}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -102,7 +107,7 @@ export function LinkifiedText({
             {...(isExternalHref(part.href)
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
-            className="text-primary hover:underline break-all"
+            className={linkClass}
           >
             {part.label}
           </a>

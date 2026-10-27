@@ -66,6 +66,9 @@ import { communityUi } from "@/features/community/community-ui";
 import { useI18n } from "@/i18n/I18nProvider";
 
 import { useScrollFieldAboveKeyboard } from "@/lib/use-scroll-field-above-keyboard";
+import { LinkifiedText } from "@/ui/LinkifiedText";
+
+const QNA_DETAIL_LINK_COLOR = "#16a34a";
 
 import { AppHeader } from "@/ui/AppHeader";
 
@@ -595,11 +598,12 @@ export function CommunityCreateScreen() {
 
                   block.kind === "text" ? (
 
-                    <Text key={block.id} style={styles.detailTextBlock}>
-
-                      {block.text}
-
-                    </Text>
+                    <LinkifiedText
+                      key={block.id}
+                      text={block.text}
+                      style={styles.detailTextBlock}
+                      linkStyle={styles.detailLink}
+                    />
 
                   ) : (
 
@@ -641,35 +645,63 @@ export function CommunityCreateScreen() {
 
                 )}
 
-                <TextInput
+                <View style={styles.detailInputWrap}>
 
-                  ref={detailRef}
+                  {detailDraft.trim() ? (
 
-                  value={detailDraft}
+                    <View style={styles.detailInputMirror} pointerEvents="box-none">
 
-                  onChangeText={setDetailDraft}
+                      <LinkifiedText
 
-                  onFocus={() => onInputFocus(detailRef.current)}
+                        text={detailDraft}
 
-                  onContentSizeChange={() => {
+                        style={styles.detailTextBlock}
 
-                    if (detailRef.current?.isFocused()) onInputFocus(detailRef.current);
+                        linkStyle={styles.detailLink}
 
-                  }}
+                      />
 
-                  placeholder="Type your question"
+                    </View>
 
-                  placeholderTextColor={colors.textMuted}
+                  ) : null}
 
-                  style={styles.detailInput}
+                  <TextInput
 
-                  multiline
+                    ref={detailRef}
 
-                  maxLength={500}
+                    value={detailDraft}
 
-                  editable={!create.isPending}
+                    onChangeText={setDetailDraft}
 
-                />
+                    onFocus={() => onInputFocus(detailRef.current)}
+
+                    onContentSizeChange={() => {
+
+                      if (detailRef.current?.isFocused()) onInputFocus(detailRef.current);
+
+                    }}
+
+                    placeholder="Type your question"
+
+                    placeholderTextColor={colors.textMuted}
+
+                    style={[
+
+                      styles.detailInput,
+
+                      detailDraft.trim() ? styles.detailInputTransparent : null,
+
+                    ]}
+
+                    multiline
+
+                    maxLength={500}
+
+                    editable={!create.isPending}
+
+                  />
+
+                </View>
 
               </View>
 
@@ -861,6 +893,34 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       lineHeight: 21,
 
       color: colors.text,
+
+    },
+
+    detailLink: {
+
+      color: QNA_DETAIL_LINK_COLOR,
+
+      textDecorationLine: "underline",
+
+    },
+
+    detailInputWrap: {
+
+      position: "relative",
+
+      minHeight: 120,
+
+    },
+
+    detailInputMirror: {
+
+      ...StyleSheet.absoluteFillObject,
+
+    },
+
+    detailInputTransparent: {
+
+      color: "transparent",
 
     },
 

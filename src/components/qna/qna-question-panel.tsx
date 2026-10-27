@@ -10,6 +10,7 @@ import { PostDetailMedia } from "@/components/post/post-detail-media";
 import { PostViewCount } from "@/components/post/post-view-count";
 import { PostViewTracker } from "@/components/post/post-view-tracker";
 import { TranslatableText } from "@/components/ui/translatable-text";
+import { QNA_DETAIL_LINK_CLASS } from "@/components/communities/qna-detail-link-textarea";
 import { useOptimisticStar } from "@/lib/use-optimistic-engage";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -92,7 +93,12 @@ export function QnaQuestionPanel({
       </p>
 
       {post.content && post.content.trim() !== title ? (
-        <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap text-[15px] leading-7" />
+        <TranslatableText
+          text={post.content}
+          as="p"
+          className="whitespace-pre-wrap text-[15px] leading-7"
+          linkClassName={QNA_DETAIL_LINK_CLASS}
+        />
       ) : null}
 
       <PostDetailMedia

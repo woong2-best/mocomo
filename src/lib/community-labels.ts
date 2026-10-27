@@ -44,11 +44,11 @@ const MAIN_COMMUNITY_CATEGORIES: CommunityCategory[] = [
   "GAME",
   "GOODS",
   "CREATOR",
-  "MUSIC",
+  "UTAITE",
   "CREATIVE",
   "VTUBER",
   "IT",
-  "FOOD",
+  "VOCALOID",
   "LAW",
   "TRAVEL",
   "POLITICS",
@@ -111,8 +111,8 @@ const LEGACY_COMMUNITY_CATEGORY_MAP: Partial<Record<CommunityCategory, Community
   COMIC: "ANIME",
   FIGURE: "GOODS",
   AI: "CREATOR",
-  UTAITE: "MUSIC",
-  VOCALOID: "MUSIC",
+  FOOD: "VOCALOID",
+  MUSIC: "UTAITE",
   FANART: "CREATIVE",
 };
 
@@ -123,7 +123,8 @@ const QNA_CATEGORY_FILTER_ALIASES: Partial<Record<CommunityCategory, CommunityCa
   GOODS: ["GOODS", "SPORTS", "FIGURE"],
   COSPLAY: ["COSPLAY", "MEDICAL"],
   CREATOR: ["CREATOR", "AI"],
-  MUSIC: ["MUSIC", "UTAITE", "VOCALOID"],
+  UTAITE: ["UTAITE", "MUSIC"],
+  VOCALOID: ["VOCALOID", "FOOD"],
   CREATIVE: ["CREATIVE", "FANART"],
 };
 
