@@ -22,6 +22,7 @@ import {
   type WikiArticleSection,
 } from "@/features/anime/wiki-article";
 import { extractInfoboxSource } from "@/features/anime/wiki-document";
+import { mergeStudioIntoInfobox } from "@/features/anime/wiki-infobox";
 import { WikiContent } from "@/features/anime/WikiContent";
 import { WikiInfobox } from "@/features/anime/WikiInfobox";
 import { AppHeader } from "@/ui/AppHeader";
@@ -235,7 +236,10 @@ export function AnimeDetailScreen() {
                 title={item.title}
                 titleEn={item.titleEn}
                 photoUrl={photoUrl}
-                infobox={item.infobox || extractInfoboxSource(item.synopsis ?? "").infobox || null}
+                infobox={mergeStudioIntoInfobox(
+                  item.infobox || extractInfoboxSource(item.synopsis ?? "").infobox || null,
+                  item.studio
+                )}
                 fallbackRows={fallbackRows}
               />
               {item.creator?.username || item.createdAt || item.updatedAt ? (

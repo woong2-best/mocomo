@@ -72,3 +72,70 @@ export function parseWikiInfobox(
 
   return sections.filter((s) => s.rows.length > 0);
 }
+
+export const DEFAULT_WIKI_INFOBOX_TITLE = "Work info";
+
+export const DEFAULT_WIKI_INFOBOX = `=== ${DEFAULT_WIKI_INFOBOX_TITLE} ===
+Studio | 
+Network | 
+Episodes | `;
+
+export function defaultWikiInfoboxSections(): WikiInfoboxSection[] {
+  return [
+    {
+      title: DEFAULT_WIKI_INFOBOX_TITLE,
+      rows: [
+        { label: "Studio", value: "" },
+        { label: "Network", value: "" },
+        { label: "Episodes", value: "" },
+      ],
+    },
+  ];
+}
+
+export function serializeWikiInfobox(sections: WikiInfoboxSection[]): string {
+  return sections
+    .map((section) => {
+      const title = section.title.trim() || DEFAULT_WIKI_INFOBOX_TITLE;
+      const rows = section.rows
+        .filter((row) => row.label.trim())
+        .map((row) => {
+          const lines = (row.value ?? "").split("\n");
+          return lines
+            .map((line, index) => (index === 0 ? `${row.label.trim()} | ${line}` : `| ${line}`))
+            .join("\n");
+        });
+      if (rows.length === 0) return "";
+      return `=== ${title} ===\n${rows.join("\n")}`;
+    })
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+export function infoboxSectionsFromSource(
+  source: string | null | undefined,
+  locale?: string
+): WikiInfoboxSection[] {
+  const parsed = parseWikiInfobox(source, locale);
+  return parsed.length > 0 ? parsed : defaultWikiInfoboxSections();
+}
+
+export function mergeStudioIntoInfobox(
+  source: string | null | undefined,
+  studio: string | null | undefined,
+  locale?: string
+): string {
+  const value = studio?.trim() ?? "";
+  const sections = infoboxSectionsFromSource(source, locale);
+  const studioRow = sections
+    .flatMap((section) => section.rows)
+    .find((row) => row.label.trim().toLowerCase() === "studio");
+  if (studioRow) {
+    if (!studioRow.value.trim() && value) studioRow.value = value;
+    return serializeWikiInfobox(sections);
+  }
+  if (!value) return serializeWikiInfobox(sections);
+  sections[0] ??= { title: DEFAULT_WIKI_INFOBOX_TITLE, rows: [] };
+  sections[0].rows.unshift({ label: "Studio", value });
+  return serializeWikiInfobox(sections);
+}

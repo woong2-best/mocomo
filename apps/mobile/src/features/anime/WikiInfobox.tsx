@@ -80,13 +80,31 @@ export function WikiInfobox({ title, titleEn, photoUrl, infobox, fallbackRows }:
   const copy = useMemo(() => animeUi(t), [t]);
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
-  const parsed = useMemo(() => parseWikiInfobox(infobox, locale), [infobox, locale]);
+  const parsed = useMemo(
+    () =>
+      parseWikiInfobox(infobox, locale)
+        .map((section) => ({
+          ...section,
+          rows: section.rows.filter((row) => row.value.trim()),
+        }))
+        .filter((section) => section.rows.length > 0),
+    [infobox, locale]
+  );
   const [aspect, setAspect] = useState(3 / 4);
+  const extraFallback = fallbackRows.filter((row) => {
+    if (!row.value.trim()) return false;
+    const label = row.label.trim().toLowerCase();
+    return !parsed.some((section) =>
+      section.rows.some((current) => current.label.trim().toLowerCase() === label)
+    );
+  });
   const sections =
     parsed.length > 0
-      ? parsed
-      : fallbackRows.length > 0
-        ? [{ title: copy.defaultInfoboxTitle, rows: fallbackRows }]
+      ? extraFallback.length
+        ? [{ ...parsed[0], rows: [...extraFallback, ...parsed[0].rows] }, ...parsed.slice(1)]
+        : parsed
+      : extraFallback.length > 0
+        ? [{ title: copy.defaultInfoboxTitle, rows: extraFallback }]
         : [];
 
   return (

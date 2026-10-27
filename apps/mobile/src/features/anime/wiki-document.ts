@@ -1,10 +1,8 @@
-export const DEFAULT_WIKI_DOCUMENT = `=== Work info ===
-Genre | 
-Studio | 
-Network | 
-Episodes | 
+import { DEFAULT_WIKI_INFOBOX } from "@/features/anime/wiki-infobox";
 
-== Overview ==
+export { DEFAULT_WIKI_INFOBOX };
+
+export const DEFAULT_WIKI_BODY = `== Overview ==
 
 == Synopsis ==
 
@@ -14,6 +12,10 @@ Episodes |
 
 == Trivia ==
 `;
+
+export const DEFAULT_WIKI_DOCUMENT = `${DEFAULT_WIKI_INFOBOX}
+
+${DEFAULT_WIKI_BODY}`;
 
 function matchHeading(line: string): { level: 2 | 3; label: string } | null {
   const trimmed = line.trim();
