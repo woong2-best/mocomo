@@ -297,7 +297,13 @@ function MessageBubbleInner({
 
   const callEvent = parseCallEvent(message.content);
   if (callEvent) {
-    return <ChatCallEventCard event={callEvent} createdAt={message.createdAt} />;
+    return (
+      <ChatCallEventCard
+        event={callEvent}
+        createdAt={message.createdAt}
+        align={callEvent.phase === "ended" ? "right" : "left"}
+      />
+    );
   }
 
   const listingCard = message.usedListing ?? null;
