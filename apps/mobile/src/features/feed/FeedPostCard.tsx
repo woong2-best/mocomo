@@ -35,6 +35,7 @@ import { profileDisplayTier } from "@/lib/support-tier-display";
 import { useUserProfileNav, type UserProfileSeed, userProfileQueryKey } from "@/features/profile/user-profile-nav";
 import { useI18n } from "@/i18n/I18nProvider";
 import { qnaListTitle } from "@/features/community/qna-list-title";
+import { qnaDetailLinkTextStyle } from "@/features/community/qna-link-styles";
 import { PostShareSheet } from "@/features/share/PostShareSheet";
 import { storyPostFromFeedPost } from "@/features/share/instagram-story-post";
 
@@ -475,6 +476,7 @@ function FeedPostCardInner({
         <TranslatableText
           text={post.content}
           style={styles.content}
+          linkStyle={isQna ? qnaDetailLinkTextStyle : undefined}
           numberOfLines={expandBody ? undefined : 8}
           onBackgroundPress={onPressPost ? openPost : undefined}
           translateActive

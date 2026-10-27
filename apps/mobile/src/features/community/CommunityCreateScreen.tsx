@@ -67,8 +67,10 @@ import { useI18n } from "@/i18n/I18nProvider";
 
 import { useScrollFieldAboveKeyboard } from "@/lib/use-scroll-field-above-keyboard";
 import { LinkifiedText } from "@/ui/LinkifiedText";
-
-const QNA_DETAIL_LINK_COLOR = "#16a34a";
+import {
+  qnaDetailLinkTextStyle,
+  textHasAutoLink,
+} from "@/features/community/qna-link-styles";
 
 import { AppHeader } from "@/ui/AppHeader";
 
@@ -202,6 +204,7 @@ export function CommunityCreateScreen() {
   const [detailBlocks, setDetailBlocks] = useState<DetailBlock[]>([]);
 
   const [detailDraft, setDetailDraft] = useState("");
+  const [detailFocused, setDetailFocused] = useState(false);
   const [bounty, setBounty] = useState("");
 
   const nameRef = useRef<TextInput>(null);
@@ -602,7 +605,7 @@ export function CommunityCreateScreen() {
                       key={block.id}
                       text={block.text}
                       style={styles.detailTextBlock}
-                      linkStyle={styles.detailLink}
+                      linkStyle={qnaDetailLinkTextStyle}
                     />
 
                   ) : (
@@ -645,63 +648,42 @@ export function CommunityCreateScreen() {
 
                 )}
 
-                <View style={styles.detailInputWrap}>
-
-                  {detailDraft.trim() ? (
-
-                    <View style={styles.detailInputMirror} pointerEvents="box-none">
-
-                      <LinkifiedText
-
-                        text={detailDraft}
-
-                        style={styles.detailTextBlock}
-
-                        linkStyle={styles.detailLink}
-
-                      />
-
-                    </View>
-
-                  ) : null}
-
+                {detailFocused ||
+                !detailDraft.trim() ||
+                !textHasAutoLink(detailDraft) ? (
                   <TextInput
-
                     ref={detailRef}
-
                     value={detailDraft}
-
                     onChangeText={setDetailDraft}
-
-                    onFocus={() => onInputFocus(detailRef.current)}
-
-                    onContentSizeChange={() => {
-
-                      if (detailRef.current?.isFocused()) onInputFocus(detailRef.current);
-
+                    onFocus={() => {
+                      setDetailFocused(true);
+                      onInputFocus(detailRef.current);
                     }}
-
+                    onBlur={() => setDetailFocused(false)}
+                    onContentSizeChange={() => {
+                      if (detailRef.current?.isFocused()) onInputFocus(detailRef.current);
+                    }}
                     placeholder="Type your question"
-
                     placeholderTextColor={colors.textMuted}
-
-                    style={[
-
-                      styles.detailInput,
-
-                      detailDraft.trim() ? styles.detailInputTransparent : null,
-
-                    ]}
-
+                    style={styles.detailInput}
                     multiline
-
                     maxLength={500}
-
                     editable={!create.isPending}
-
                   />
-
-                </View>
+                ) : (
+                  <LinkifiedText
+                    text={detailDraft}
+                    style={styles.detailTextBlock}
+                    linkStyle={qnaDetailLinkTextStyle}
+                    onBackgroundPress={() => {
+                      setDetailFocused(true);
+                      requestAnimationFrame(() => {
+                        detailRef.current?.focus();
+                        onInputFocus(detailRef.current);
+                      });
+                    }}
+                  />
+                )}
 
               </View>
 
@@ -893,34 +875,6 @@ function createStyles(colors: ThemeColors, isDark: boolean) {
       lineHeight: 21,
 
       color: colors.text,
-
-    },
-
-    detailLink: {
-
-      color: QNA_DETAIL_LINK_COLOR,
-
-      textDecorationLine: "underline",
-
-    },
-
-    detailInputWrap: {
-
-      position: "relative",
-
-      minHeight: 120,
-
-    },
-
-    detailInputMirror: {
-
-      ...StyleSheet.absoluteFillObject,
-
-    },
-
-    detailInputTransparent: {
-
-      color: "transparent",
 
     },
 

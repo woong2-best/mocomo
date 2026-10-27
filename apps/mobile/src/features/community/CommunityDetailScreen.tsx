@@ -37,6 +37,8 @@ import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
 import { communityUi } from "@/features/community/community-ui";
+import { LinkifiedText } from "@/ui/LinkifiedText";
+import { qnaDetailLinkTextStyle } from "@/features/community/qna-link-styles";
 
 function apiErrorMessage(err: unknown, fallback: string) {
   if (
@@ -236,7 +238,13 @@ export function CommunityDetailScreen() {
               </View>
             </View>
 
-            {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
+            {item.description ? (
+              <LinkifiedText
+                text={item.description}
+                style={styles.desc}
+                linkStyle={qnaDetailLinkTextStyle}
+              />
+            ) : null}
 
             {(item.canEditIcon || item.canEditBanner) && (
               <View style={styles.brandingCard}>
