@@ -64,6 +64,8 @@ type Props = {
    * The line stays in this room instead of the public channel chat.
    */
   onLocalSend?: (text: string) => Promise<{ username: string; content: string } | null>;
+  /** Per-host donation tier for optimistic send. Hidden when null. */
+  viewerSupportTier?: string | null;
 };
 
 export function LiveChatPanel({
@@ -82,6 +84,7 @@ export function LiveChatPanel({
   sidebar = false,
   overlayHeight = 0,
   onLocalSend,
+  viewerSupportTier,
 }: Props) {
   const { t } = useI18n();
   const copy = useMemo(() => liveUi(t), [t]);
@@ -251,6 +254,7 @@ export function LiveChatPanel({
       content,
       at: Date.now(),
       image: user?.image ?? null,
+      supportTierSent: viewerSupportTier ?? null,
     };
 
     sendingRef.current = true;
@@ -356,6 +360,7 @@ export function LiveChatPanel({
     user?.id,
     user?.image,
     user?.username,
+    viewerSupportTier,
   ]);
 
   const onSupportRefresh = useCallback(() => {

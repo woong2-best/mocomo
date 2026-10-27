@@ -582,6 +582,7 @@ export function LiveDetailScreen() {
             pinnedMessage={item.pinnedMessage}
             currentUserId={user?.id}
             streamStartedAt={item.streamStartedAt}
+            viewerSupportTier={item.viewerSupportTier ?? null}
           />
         </View>
       ) : !inPip && !landscape ? (

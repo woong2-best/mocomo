@@ -17,6 +17,7 @@ import { canViewNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
 import { resolveLiveStillThumb } from "@/lib/live-preview-thumb";
 import { ensureAlwaysOnChannel } from "@/lib/ai-live/official-channel";
 import { isAlwaysOnLiveChannel } from "@/lib/ai-live/official-channel-id";
+import { getSupportTiersToCreator } from "@/lib/creator-support";
 
 export async function GET(
   req: NextRequest,
@@ -143,7 +144,7 @@ export async function GET(
   const platformDescription = external?.platformDescription?.trim() || null;
 
   const needFollow = !!viewerId && channel.createdBy !== viewerId;
-  const [{ tipTotalKrw, tipRanking }, followRow, streamerProfile] = await Promise.all([
+  const [{ tipTotalKrw, tipRanking }, followRow, streamerProfile, viewerTierMap] = await Promise.all([
     getCachedLiveTipsForChannel(channel.createdBy, channel.createdAt),
     needFollow
       ? db.follow.findUnique({
@@ -160,7 +161,12 @@ export async function GET(
       where: { userId: channel.createdBy },
       select: { announcement: true },
     }),
+    viewerId && viewerId !== channel.createdBy
+      ? getSupportTiersToCreator(channel.createdBy, [viewerId])
+      : Promise.resolve(null),
   ]);
+  const viewerSupportTier =
+    viewerId && viewerTierMap ? (viewerTierMap.get(viewerId) ?? null) : null;
 
   return NextResponse.json({
     item: {
@@ -197,6 +203,7 @@ export async function GET(
       tipRanking,
       pinnedMessage: streamerProfile?.announcement?.trim() || null,
       hostFollowing: !!followRow,
+      viewerSupportTier,
       host: host
         ? {
             id: host.id,

@@ -99,6 +99,8 @@ export type LiveDetail = LiveListItem & {
   tipRanking?: { username: string; amount: number }[];
   pinnedMessage?: string | null;
   hostFollowing?: boolean;
+  /** Per-host donation tier for the signed-in viewer. Null if they never supported this host. */
+  viewerSupportTier?: string | null;
 };
 
 export type LiveToken = {
@@ -117,7 +119,7 @@ export type LiveChatMessage = {
   content: string;
   at: number;
   image: string | null;
-  supportTierSent?: string;
+  supportTierSent?: string | null;
   broadcastRole?: "OWNER" | "MANAGER" | "MODERATOR" | "VIP" | "VIEWER";
   messageKind?: "support" | "tip" | "mission";
   eventType?: string;

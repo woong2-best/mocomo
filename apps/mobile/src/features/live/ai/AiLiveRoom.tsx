@@ -108,6 +108,7 @@ export function AiLiveRoom({ channelId, poster, title: _title, host, role: _role
           pinnedMessage={item?.pinnedMessage}
           currentUserId={user?.id}
           streamStartedAt={item?.streamStartedAt}
+          viewerSupportTier={item?.viewerSupportTier ?? null}
           onLocalSend={onLocalSend}
         />
       </View>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSupportTiers } from "@/api/support";
@@ -9,12 +9,15 @@ import { SupportTierBadge } from "@/ui/SupportTierBadge";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 
 /** Native parity with web `/support/tiers` — embedded in wallet or full screen. */
 export function SupportTiersPanel() {
   const { t } = useI18n();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
+  const listRef = useRef<FlatList>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
   const query = useQuery({
@@ -39,6 +42,7 @@ export function SupportTiersPanel() {
 
   return (
     <FlatList
+      ref={listRef}
       data={data.tiers}
       keyExtractor={(tier) => tier.level}
       contentContainerStyle={{ padding: spacing.md, paddingBottom: 40, gap: 10 }}
@@ -88,40 +92,60 @@ export function SupportTiersPanel() {
           {selectedMeta ? (
             <FolkCard style={styles.usersCard}>
               <Text style={[styles.usersTitle, { color: selectedMeta.color }]}>
-                {selectedMeta.label} — users you supported
+                {t("m.support.users_supported_at_this_tier", { tier: selectedMeta.label })}
               </Text>
               {query.isFetching && !supportedUsers.length ? (
                 <ActivityIndicator color={colors.cobalt} />
               ) : supportedUsers.length === 0 ? (
-                <Text style={styles.mutedInline}>
-                  No users at this tier. Never-donated users are hidden. Seed is more than 0 and under 10 MOCO.
-                </Text>
+                <Text style={styles.mutedInline}>{t("m.support.no_users_at_this_tier")}</Text>
               ) : (
                 supportedUsers.map((user) => (
-                  <View key={user.id} style={styles.userRow}>
+                  <Pressable
+                    key={user.id}
+                    style={styles.userRow}
+                    onPressIn={() =>
+                      prefetchUserProfile({
+                        username: user.username,
+                        name: user.name,
+                        image: user.image,
+                      })
+                    }
+                    onPress={() =>
+                      openUserProfile({
+                        username: user.username,
+                        name: user.name,
+                        image: user.image,
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`@${user.username}`}
+                  >
                     <FolkAvatar uri={user.image} name={user.username} size={36} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.userName}>@{user.username}</Text>
                     </View>
                     <Text style={styles.userAmount}>{user.totalAmount.toLocaleString()} MOCO</Text>
-                  </View>
+                  </Pressable>
                 ))
               )}
             </FolkCard>
           ) : null}
 
           <Text style={styles.sectionLabel}>{t("m.support.all_tiers")}</Text>
-          <Text style={styles.sectionHint}>
-            Tap a tier to see users you supported at that level.
-          </Text>
+          <Text style={styles.sectionHint}>{t("m.support.tap_a_tier_to_see_supported_users")}</Text>
         </>
       }
       renderItem={({ item }) => {
         const active = item.level === (selectedTier ?? data.current.level);
         return (
           <Pressable
-            onPress={() => setSelectedTier((prev) => (prev === item.level ? null : item.level))}
+            onPress={() => {
+              setSelectedTier((prev) => (prev === item.level ? null : item.level));
+              listRef.current?.scrollToOffset({ offset: 0, animated: true });
+            }}
             style={[styles.tierRow, active && styles.tierRowActive]}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
           >
             <OreIcon uri={item.iconUrl} size={22} />
             <View style={{ flex: 1 }}>
