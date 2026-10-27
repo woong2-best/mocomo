@@ -113,7 +113,7 @@ export function ProfileMarketGrid({
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0 border-y border-border/60">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0 border-b border-border/60">
         {items.map((item) => (
           <UsedListingCard
             key={item.id}

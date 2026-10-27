@@ -58,13 +58,8 @@ export function ProfileTabs({
         </nav>
       </div>
 
-      {isMedia ? (
+      {isMedia || isMarket ? (
         <div className="relative z-10 -mb-11 flex items-center px-3 pt-2 pb-1">
-          <ProfileFeedControls />
-        </div>
-      ) : null}
-      {isMarket ? (
-        <div className="flex items-center justify-end px-3 py-2">
           <ProfileFeedControls />
         </div>
       ) : null}
