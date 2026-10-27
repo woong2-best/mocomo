@@ -9,6 +9,7 @@ import { API_BASE_URL } from "@/config/env";
 export type AiVrmHandle = {
   play: (audioBase64: string | null, emotion: string, text: string) => void;
   stop: () => void;
+  setThinking: (thinking: boolean) => void;
 };
 
 type Props = {
@@ -42,6 +43,7 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
   const [ready, setReady] = useState(false);
   const [nativePlay, setNativePlay] = useState<{ id: number; uri: string } | null>(null);
   const lastAudio = useRef<string | null>(null);
+  const thinkingRef = useRef(false);
   const html = useMemo(
     () =>
       vrmStageDocument({
@@ -66,6 +68,10 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
       setNativePlay(null);
       webRef.current?.injectJavaScript("window.mocoStop && window.mocoStop(); true;");
     },
+    setThinking(thinking) {
+      thinkingRef.current = thinking;
+      webRef.current?.injectJavaScript(`window.mocoSetThinking && window.mocoSetThinking(${thinking ? "true" : "false"}); true;`);
+    },
   }));
 
   const onMessage = (event: WebViewMessageEvent) => {
@@ -75,7 +81,12 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
     } catch {
       return;
     }
-    if (msg?.type === "ready") setReady(true);
+    if (msg?.type === "ready") {
+      setReady(true);
+      if (thinkingRef.current) {
+        webRef.current?.injectJavaScript("window.mocoSetThinking && window.mocoSetThinking(true); true;");
+      }
+    }
     if (msg?.type === "audio-fallback" && lastAudio.current) {
       setNativePlay({ id: Date.now(), uri: `data:audio/mpeg;base64,${lastAudio.current}` });
     }

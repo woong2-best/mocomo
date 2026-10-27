@@ -1,3 +1,5 @@
+import { VRM_HUMANIZER_EMBED } from "@/features/live/ai/vrm-humanizer-embed";
+
 /** Same studio stage as the website room: idle motion, blink, emotion, lip sync. */
 export function vrmStageDocument(opts: {
   vrmUrl: string;
@@ -34,8 +36,10 @@ export function vrmStageDocument(opts: {
 <body>
 <script>
 window.__mocoQueue = [];
+window.__mocoThinking = false;
 window.mocoPlay = function (audio, emotion, text) { window.__mocoQueue.push([audio, emotion, text]); };
 window.mocoStop = function () { window.__mocoQueue = []; };
+window.mocoSetThinking = function (on) { window.__mocoThinking = !!on; };
 </script>
 <script type="module">
 const VRM_URL = ${vrmUrl};
@@ -231,6 +235,7 @@ async function drain() {
 }
 window.mocoPlay = (audio, emotion, text) => {
   prime();
+  if (window.__mocoNotifySpeech) window.__mocoNotifySpeech(text || "", emotion || "neutral");
   queue.push({ audio: audio || "", emotion: emotion || "neutral", text: text || "" });
   if (queue.length > 3) queue.splice(0, queue.length - 3);
   void drain();
@@ -306,9 +311,9 @@ try {
     }
   }
   if (humanoid) humanoid.autoUpdateHumanBones = false;
+  vrm.scene.userData.mocoClips = gltf.animations || [];
   scene.add(vrm.scene);
 
-  const node = (name) => humanoid?.getNormalizedBoneNode(name) || humanoid?.getRawBoneNode(name) || null;
   const hung = [];
   const hungSeen = new Set();
   const hangBone = (bone, goal) => {
@@ -340,15 +345,6 @@ try {
     hangBone(humanoid?.getNormalizedBoneNode(name), goal);
     hangBone(humanoid?.getRawBoneNode(name), goal);
   }
-  const spine = node("spine");
-  const chest = node("chest");
-  const headBone = node("head");
-  const rest = {
-    spineX: spine?.rotation.x || 0, spineY: spine?.rotation.y || 0, spineZ: spine?.rotation.z || 0,
-    chestX: chest?.rotation.x || 0, chestY: chest?.rotation.y || 0, chestZ: chest?.rotation.z || 0,
-    headX: headBone?.rotation.x || 0, headY: headBone?.rotation.y || 0, headZ: headBone?.rotation.z || 0,
-  };
-
   vrm.scene.updateMatrixWorld(true);
   const head = humanoid?.getNormalizedBoneNode("head");
   const chestNode = humanoid?.getNormalizedBoneNode("upperChest") || humanoid?.getNormalizedBoneNode("chest");
@@ -369,33 +365,17 @@ try {
     vrm.lookAt.target = camera;
   }
 
+  ${VRM_HUMANIZER_EMBED}
+  const { VrmHumanizerRuntime } = createMocoHumanizer(THREE);
+  const humanizer = VrmHumanizerRuntime.attach(vrm, CHARACTER, camera);
+  window.__mocoNotifySpeech = (text, emotion) => humanizer.notifySpeech(text, emotion);
   const drunk = isMio(CHARACTER);
   const clock = new THREE.Clock();
-  let blinkAt = performance.now() + 1600;
-  let blinking = false;
-  let blinkUntil = 0;
   const loop = () => {
     const dt = Math.min(clock.getDelta(), 0.05);
-    const time = clock.elapsedTime;
-    const sway = drunk ? 0.085 : 0.03;
-    const swayY = drunk ? 0.04 : 0.01;
-    const swayZ = drunk ? 0.035 : 0;
-    const tempo = drunk ? 1.35 : 2;
-    if (spine) {
-      spine.rotation.x = rest.spineX + Math.sin(time * tempo) * sway;
-      spine.rotation.y = rest.spineY + Math.cos(time * 1.5) * swayY;
-      spine.rotation.z = rest.spineZ + Math.sin(time * 0.9) * swayZ;
-    }
-    if (chest) {
-      chest.rotation.x = rest.chestX + Math.sin(time * tempo) * (drunk ? 0.055 : 0.02);
-      chest.rotation.y = rest.chestY + Math.cos(time * 1.5) * (drunk ? 0.025 : 0.008);
-      chest.rotation.z = rest.chestZ + Math.sin(time * 0.9) * swayZ * 0.6;
-    }
-    if (headBone) {
-      headBone.rotation.x = rest.headX + (drunk ? Math.sin(time * 0.8) * 0.03 : 0);
-      headBone.rotation.y = rest.headY + Math.sin(time * 1.5) * (drunk ? 0.09 : 0.05);
-      headBone.rotation.z = rest.headZ + Math.cos(time * 1.2) * (drunk ? 0.05 : 0.02);
-    }
+    humanizer.setCharacter(CHARACTER);
+    humanizer.setThinking(!!window.__mocoThinking);
+    humanizer.setSpeaking(lip.active);
     let level = 0;
     if (lip.active && lip.pulse != null) level = lip.pulse;
     else if (lip.active && lip.analyser && lip.bins) {
@@ -404,20 +384,24 @@ try {
       for (let i = 0; i < lip.bins.length; i += 1) sum += lip.bins[i] || 0;
       level = Math.min(sum / lip.bins.length / 40, 1);
     }
-    const now = performance.now();
-    if (!blinking && now >= blinkAt) { blinking = true; blinkUntil = now + 110; }
-    if (blinking && now >= blinkUntil) {
-      blinking = false;
-      blinkAt = now + 2000 + Math.random() * 3000;
-    }
+    humanizer.setRms(level);
+    humanizer.beforeVrmUpdate(dt, camera);
+    if (humanoid && typeof humanoid.update === "function") humanoid.update();
     vrm.update(dt);
     for (const arm of hung) arm.bone.quaternion.copy(arm.quat);
+    vrm.scene.updateMatrixWorld(true);
+    const face = humanizer.afterVrmUpdate(dt);
+    if (humanoid && typeof humanoid.update === "function") humanoid.update();
     const expressions = vrm.expressionManager;
     if (expressions) {
-      expressions.setValue("blink", blinking ? 1 : 0);
+      expressions.setValue("blink", face && face.blink != null ? face.blink : 0);
       applyMouth(expressions, level);
       setEmotion(expressions, lip.active ? lip.emotion : "neutral");
       if (!lip.active && drunk) drunkFace(expressions);
+      if (face && face.joy > 0) {
+        if (expressions.getExpression && expressions.getExpression("joy")) expressions.setValue("joy", face.joy);
+        if (expressions.getExpression && expressions.getExpression("happy")) expressions.setValue("happy", face.joy);
+      }
       expressions.update();
     }
     renderer.render(scene, camera);
