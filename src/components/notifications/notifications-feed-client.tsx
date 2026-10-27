@@ -22,6 +22,7 @@ import {
 import { dispatchNotificationsRead } from "@/lib/notification-read-sync";
 import { resolveNotificationPath } from "@/lib/notification-routing";
 import { CollabInviteNotificationActions } from "@/components/notifications/collab-invite-notification-actions";
+import { FollowRequestNotificationActions } from "@/components/notifications/follow-request-notification-actions";
 
 const FILTERS: { id: string; label: string; category: string | null }[] = [
   { id: "all", label: i18n("lib.live.categories.s934dd25ec5"), category: null },
@@ -207,6 +208,18 @@ export function NotificationsFeedClient({
                   </p>
                   {n.type === "post_collab_invite" ? (
                     <CollabInviteNotificationActions link={n.link} />
+                  ) : null}
+                  {n.type === "follow_request" ? (
+                    <FollowRequestNotificationActions
+                      requesterId={n.actor?.id}
+                      onDone={() =>
+                        setItems((prev) =>
+                          prev.map((row) =>
+                            row.id === n.id ? { ...row, type: "follow_request_done", read: true } : row
+                          )
+                        )
+                      }
+                    />
                   ) : null}
                 </div>
                 {!n.read && (

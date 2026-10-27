@@ -308,6 +308,9 @@ export type ProfileUser = {
   paymentsEnabled?: boolean;
   creatorSubscriptionPriceKrw?: number | null;
   mutedByViewer?: boolean;
+  postsLocked?: boolean;
+  followRequested?: boolean;
+  canViewPosts?: boolean;
 };
 
 export async function fetchUserProfile(username: string) {
@@ -344,13 +347,15 @@ export async function fetchUserConnections(
 }
 
 export async function toggleFollowUser(userId: string) {
-  return apiRequest<{ following?: boolean; pending?: boolean; error?: string }>(
-    MobileApi.follow,
-    {
-      method: "POST",
-      body: { userId },
-    }
-  );
+  return apiRequest<{
+    following?: boolean;
+    requested?: boolean;
+    pending?: boolean;
+    error?: string;
+  }>(MobileApi.follow, {
+    method: "POST",
+    body: { userId },
+  });
 }
 
 export type IncomingFollowRequest = {

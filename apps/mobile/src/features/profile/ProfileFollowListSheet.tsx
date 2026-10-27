@@ -63,6 +63,7 @@ export function ProfileFollowListSheet({
   const { user: authUser } = useAuth();
   const { open: openProfile } = useUserProfileNav();
   const [followOverrides, setFollowOverrides] = useState<Record<string, boolean>>({});
+  const [requestedOverrides, setRequestedOverrides] = useState<Record<string, boolean>>({});
 
   const listQuery = useInfiniteQuery({
     queryKey: ["mobile-user-connections", username, tab],
@@ -75,7 +76,10 @@ export function ProfileFollowListSheet({
   });
 
   useEffect(() => {
-    if (!visible) setFollowOverrides({});
+    if (!visible) {
+      setFollowOverrides({});
+      setRequestedOverrides({});
+    }
   }, [visible, tab, username]);
 
   const users = useMemo(() => {
@@ -98,9 +102,12 @@ export function ProfileFollowListSheet({
     mutationFn: (target: ConnectionListUser) => toggleFollowUser(target.id),
     onMutate: async (target) => {
       const current = followOverrides[target.id] ?? target.viewerFollows;
-      const next = !current;
-      setFollowOverrides((prev) => ({ ...prev, [target.id]: next }));
-      if (next) {
+      const currentRequested = requestedOverrides[target.id] ?? false;
+      const willUnfollow = current || currentRequested;
+      setFollowOverrides((prev) => ({ ...prev, [target.id]: false }));
+      setRequestedOverrides((prev) => ({ ...prev, [target.id]: false }));
+      if (!willUnfollow) {
+        setFollowOverrides((prev) => ({ ...prev, [target.id]: true }));
         await upsertFollowingDmUser(queryClient, {
           id: target.id,
           username: target.username,
@@ -110,23 +117,20 @@ export function ProfileFollowListSheet({
       } else {
         await removeFollowingDmUser(queryClient, target.id);
       }
-      return { prev: current };
+      return { prev: current, prevRequested: currentRequested };
     },
     onSuccess: (res, target) => {
-      if (typeof res.following === "boolean") {
-        setFollowOverrides((prev) => ({ ...prev, [target.id]: res.following! }));
-        if (res.following) {
-          void upsertFollowingDmUser(queryClient, {
-            id: target.id,
-            username: target.username,
-            name: target.name,
-            image: target.image,
-          });
-        } else {
-          void removeFollowingDmUser(queryClient, target.id);
-        }
-      } else if (res.pending && !res.following) {
-        setFollowOverrides((prev) => ({ ...prev, [target.id]: false }));
+      const requestedNow = !!(res.requested ?? res.pending) && res.following !== true;
+      setFollowOverrides((prev) => ({ ...prev, [target.id]: res.following === true }));
+      setRequestedOverrides((prev) => ({ ...prev, [target.id]: requestedNow }));
+      if (res.following === true) {
+        void upsertFollowingDmUser(queryClient, {
+          id: target.id,
+          username: target.username,
+          name: target.name,
+          image: target.image,
+        });
+      } else {
         void removeFollowingDmUser(queryClient, target.id);
       }
       void queryClient.invalidateQueries({ queryKey: FOLLOWING_DM_QUERY_KEY });
@@ -134,6 +138,9 @@ export function ProfileFollowListSheet({
     onError: (_err, target, ctx) => {
       if (ctx?.prev !== undefined) {
         setFollowOverrides((prev) => ({ ...prev, [target.id]: ctx.prev }));
+      }
+      if (ctx?.prevRequested !== undefined) {
+        setRequestedOverrides((prev) => ({ ...prev, [target.id]: ctx.prevRequested }));
       }
     },
   });
@@ -145,6 +152,7 @@ export function ProfileFollowListSheet({
       const display = item.name?.trim() || item.username;
       const isSelf = authUser?.id === item.id;
       const following = item.viewerFollows;
+      const requested = requestedOverrides[item.id] ?? false;
 
       return (
         <View style={styles.row}>
@@ -168,21 +176,33 @@ export function ProfileFollowListSheet({
           </Pressable>
           {!isSelf ? (
             <Pressable
-              style={[styles.followBtn, following ? null : styles.followBtnPrimary]}
+              style={[styles.followBtn, following || requested ? null : styles.followBtnPrimary]}
               onPress={() => followMut.mutate(item)}
               disabled={followMut.isPending}
               accessibilityRole="button"
-              accessibilityLabel={following ? t("m.common.following") : t("m.common.follow")}
+              accessibilityLabel={
+                following
+                  ? t("m.common.following")
+                  : requested
+                    ? t("m.common.requested")
+                    : t("m.common.follow")
+              }
             >
-              <Text style={[styles.followBtnText, following ? null : styles.followBtnTextPrimary]}>
-                {following ? t("m.common.following") : t("m.common.follow")}
+              <Text
+                style={[styles.followBtnText, following || requested ? null : styles.followBtnTextPrimary]}
+              >
+                {following
+                  ? t("m.common.following")
+                  : requested
+                    ? t("m.common.requested")
+                    : t("m.common.follow")}
               </Text>
             </Pressable>
           ) : null}
         </View>
       );
     },
-    [authUser?.id, followMut, onClose, openProfile, styles, t]
+    [authUser?.id, followMut, onClose, openProfile, requestedOverrides, styles, t]
   );
 
   const empty =

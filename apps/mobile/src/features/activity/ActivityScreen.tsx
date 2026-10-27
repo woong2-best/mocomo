@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -19,6 +19,8 @@ import {
 } from "@/api/notifications";
 import { clearNotificationBadges } from "@/push/clear-notification-badge";
 import { handleNotificationPress } from "@/features/activity/handleNotificationPress";
+import { actOnFollowRequest } from "@/api/social";
+import { showIslandError } from "@/ui/IslandToast";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkButton } from "@/ui/FolkButton";
 import { Screen } from "@/ui/Screen";
@@ -36,6 +38,7 @@ export function ActivityScreen() {
   const styles = useMemo(() => createThemedStyles(colors, isDark), [colors, isDark]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
+  const [resolvedFollowRequests, setResolvedFollowRequests] = useState<Record<string, true>>({});
   const query = useQuery({
     queryKey: QUERY_KEY,
     queryFn: fetchNotifications,
@@ -124,6 +127,23 @@ export function ActivityScreen() {
               colors={colors}
               locale={locale}
               t={t}
+              showFollowActions={item.type === "follow_request" && !resolvedFollowRequests[item.id]}
+              onFollowAction={async (action) => {
+                const requesterId = item.actor?.id;
+                if (!requesterId) return;
+                try {
+                  await actOnFollowRequest(requesterId, action);
+                  setResolvedFollowRequests((prev) => ({ ...prev, [item.id]: true }));
+                  if (!item.read) markOne.mutate(item.id);
+                  void queryClient.invalidateQueries({ queryKey: ["mobile-follow-requests"] });
+                } catch (e) {
+                  setResolvedFollowRequests((prev) => ({ ...prev, [item.id]: true }));
+                  showIslandError(
+                    t("m.common.error"),
+                    e instanceof Error ? e.message : t("m.common.error")
+                  );
+                }
+              }}
               onPress={() => {
                 if (!item.read) markOne.mutate(item.id);
                 handleNotificationPress(item, navigation);
@@ -143,6 +163,8 @@ function AlarmRow({
   locale,
   t,
   onPress,
+  showFollowActions,
+  onFollowAction,
 }: {
   item: NotificationItem;
   styles: ReturnType<typeof createThemedStyles>;
@@ -150,6 +172,8 @@ function AlarmRow({
   locale: string;
   t: TFn;
   onPress: () => void;
+  showFollowActions?: boolean;
+  onFollowAction?: (action: "approve" | "reject") => void;
 }) {
   const { isDark } = useTheme();
   const visual = alarmVisual(item.type);
@@ -177,6 +201,26 @@ function AlarmRow({
           </Text>
         ) : null}
         {item.actor?.username ? <Text style={styles.actor}>@{item.actor.username}</Text> : null}
+        {showFollowActions && onFollowAction ? (
+          <View style={styles.followActions}>
+            <Pressable
+              style={[styles.followActBtn, { backgroundColor: colors.cobalt }]}
+              onPress={() => onFollowAction("approve")}
+              accessibilityRole="button"
+              accessibilityLabel={t("m.live.accept")}
+            >
+              <Ionicons name="checkmark" size={18} color="#fff" />
+            </Pressable>
+            <Pressable
+              style={[styles.followActBtn, styles.followActDecline]}
+              onPress={() => onFollowAction("reject")}
+              accessibilityRole="button"
+              accessibilityLabel={t("m.messages.decline")}
+            >
+              <Ionicons name="close" size={18} color={colors.text} />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
       {!item.read ? <View style={[styles.dot, { backgroundColor: colors.terracotta }]} /> : null}
     </Pressable>
@@ -270,6 +314,19 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
     time: { color: colors.textMuted, fontSize: 12, fontWeight: "700" },
     rowBody: { color: colors.text, lineHeight: 20, fontWeight: "600", marginTop: 4 },
     actor: { marginTop: 4, color: colors.textMuted, fontWeight: "700", fontSize: 12 },
+    followActions: { flexDirection: "row", gap: 8, marginTop: 10 },
+    followActBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    followActDecline: {
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceRaised,
+    },
     dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
     empty: { alignItems: "center", paddingTop: 56, paddingHorizontal: 28 },
     emptyTitle: { marginTop: 14, fontWeight: "900", fontSize: 17, color: colors.cobalt },

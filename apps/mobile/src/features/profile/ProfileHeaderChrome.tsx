@@ -75,8 +75,8 @@ type Props = {
   followLoading?: boolean;
   following?: boolean;
   onOpenChat?: (roomId: string) => void;
-  onRequestCommission?: () => void;
   onOpenFollowList?: (tab: "followers" | "following") => void;
+  requested?: boolean;
   /** Header identity is known; bio, counts, follow, and banner are still loading. */
   pending?: boolean;
   /** Extend banner under the status bar (overlay nav sits on top). */
@@ -94,8 +94,8 @@ export function ProfileHeaderChrome({
   followLoading,
   following,
   onOpenChat,
-  onRequestCommission,
   onOpenFollowList,
+  requested = false,
   pending = false,
   bannerTopInset = 0,
 }: Props) {
@@ -149,24 +149,23 @@ export function ProfileHeaderChrome({
             ) : (
               <>
                 <Pressable
-                  style={[styles.outlineBtn, following ? null : styles.followPrimary]}
+                  style={[styles.outlineBtn, following || requested ? null : styles.followPrimary]}
                   onPress={onFollow}
                   disabled={followLoading}
                 >
                   <Text
                     style={[
                       styles.outlineBtnText,
-                      following ? null : styles.followPrimaryText,
+                      following || requested ? null : styles.followPrimaryText,
                     ]}
                   >
-                    {following ? t("m.common.following") : t("m.common.follow")}
+                    {following
+                      ? t("m.common.following")
+                      : requested
+                        ? t("m.common.requested")
+                        : t("m.common.follow")}
                   </Text>
                 </Pressable>
-                {onRequestCommission ? (
-                  <Pressable style={styles.outlineBtn} onPress={onRequestCommission}>
-                    <Text style={styles.outlineBtnText}>{t("m.commission.request")}</Text>
-                  </Pressable>
-                ) : null}
                 {onOpenChat && user.canMessage !== false ? (
                   <Pressable
                     style={styles.chatBtn}
@@ -195,6 +194,9 @@ export function ProfileHeaderChrome({
           </Text>
           {user.countryCode ? (
             <Text style={styles.flag}>{countryFlagEmoji(user.countryCode)}</Text>
+          ) : null}
+          {user.postsLocked ? (
+            <Ionicons name="lock-closed" size={16} color={colors.textMuted} />
           ) : null}
         </View>
         <Text style={styles.handle}>@{user.username}</Text>

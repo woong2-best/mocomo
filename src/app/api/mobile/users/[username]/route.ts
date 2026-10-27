@@ -80,6 +80,7 @@ export async function GET(
       createdAt: true,
       countryCode: true,
       creatorSubscriptionPriceKrw: true,
+      postsLocked: true,
       profileMainPostId: true,
       profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true } },
       _count: { select: { posts: true, followers: true, following: true } },
@@ -91,15 +92,24 @@ export async function GET(
   }
 
   let following = false;
+  let followRequested = false;
   let subscribed = false;
   if (viewerId && viewerId !== user.id) {
-    const [edge, sub] = await Promise.all([
+    const [edge, pendingRequest, sub] = await Promise.all([
       db.follow.findUnique({
         where: {
           followerId_followingId: { followerId: viewerId, followingId: user.id },
         },
         select: { id: true },
       }),
+      user.postsLocked
+        ? db.followRequest.findUnique({
+            where: {
+              requesterId_targetId: { requesterId: viewerId, targetId: user.id },
+            },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
       db.subscription.findUnique({
         where: {
           subscriberId_creatorId: { subscriberId: viewerId, creatorId: user.id },
@@ -108,6 +118,7 @@ export async function GET(
       }),
     ]);
     following = !!edge;
+    followRequested = !!pendingRequest && !following;
     subscribed = sub ? isSubscriptionActive(sub) : false;
   }
 
@@ -136,8 +147,9 @@ export async function GET(
         : null;
 
   const profileBlocked = !isSelf && isProfileBlocked(relationship);
+  const canViewPosts = isSelf || !user.postsLocked || following;
 
-  const posts = profileBlocked
+  const posts = profileBlocked || !canViewPosts
     ? []
     : await db.post.findMany({
         where: {
@@ -152,7 +164,7 @@ export async function GET(
         select: profileTimelinePostSelect,
       });
 
-  const reposts = profileBlocked
+  const reposts = profileBlocked || !canViewPosts
     ? []
     : await db.repost.findMany({
     where: {
@@ -205,7 +217,7 @@ export async function GET(
     .slice(0, 40);
 
   const pinnedRaw =
-    profileBlocked || !pinnedPostId
+    profileBlocked || !canViewPosts || !pinnedPostId
       ? null
       : await db.post.findFirst({
           where: {
@@ -270,6 +282,9 @@ export async function GET(
         following: user._count.following,
       },
       following,
+      followRequested,
+      postsLocked: user.postsLocked,
+      canViewPosts,
       subscribed,
       isSelf: viewerId === user.id,
       canMessage: perms.canMessage,

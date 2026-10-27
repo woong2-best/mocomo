@@ -142,16 +142,20 @@ export function PostsLockSettingsCard() {
                   </Text>
                 </View>
                 <Pressable
-                  style={[styles.actBtn, { backgroundColor: colors.cobalt }]}
+                  style={[styles.actIconBtn, { backgroundColor: colors.cobalt }]}
                   onPress={() => void act(req.user.id, "approve")}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("m.live.accept")}
                 >
-                  <Text style={styles.actBtnText}>{t("m.live.accept")}</Text>
+                  <Ionicons name="checkmark" size={18} color="#fff" />
                 </Pressable>
                 <Pressable
-                  style={[styles.actBtn, { borderColor: colors.border, borderWidth: 1 }]}
+                  style={[styles.actIconBtn, styles.actIconDecline]}
                   onPress={() => void act(req.user.id, "reject")}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("m.messages.decline")}
                 >
-                  <Text style={[styles.actBtnText, { color: colors.text }]}>{t("m.messages.decline")}</Text>
+                  <Ionicons name="close" size={18} color={colors.text} />
                 </Pressable>
               </View>
             ))
@@ -188,11 +192,17 @@ function createStyles(colors: ThemeColors) {
     requestText: { flex: 1, minWidth: 0 },
     requestName: { fontSize: 14, fontWeight: "800", color: colors.text },
     requestHandle: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
-    actBtn: {
-      borderRadius: radii.pill,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
+    actIconBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
     },
-    actBtnText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+    actIconDecline: {
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceRaised,
+    },
   });
 }

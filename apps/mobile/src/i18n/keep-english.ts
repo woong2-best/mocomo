@@ -5,6 +5,7 @@
 export const KEEP_ENGLISH_UI_KEYS = new Set([
   "m.common.following",
   "m.common.followers",
+  "m.common.requested",
   "m.nav.following_v",
   "m.nav.followers_v",
   "m.common.live",
@@ -23,4 +24,4 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
 ]);
 
 export const KEEP_ENGLISH_TOKENS_RE =
-  /\b(Following|Followers|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories)\b/g;
+  /\b(Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories)\b/g;

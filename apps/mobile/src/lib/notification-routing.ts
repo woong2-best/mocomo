@@ -65,7 +65,7 @@ export function resolveMobileNotificationRoute(
 
   const type = input.type ?? "";
   if (
-    (type === "dm" || type === "dm_group" || type === "mention") &&
+    (type === "dm" || type === "dm_group" || type === "mention" || type === "follow_request" || type === "follow") &&
     input.actor?.username
   ) {
     return { name: "UserProfile", params: { username: input.actor.username } };

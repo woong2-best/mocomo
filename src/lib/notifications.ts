@@ -377,7 +377,7 @@ export async function notifyFollowRequest(targetUserId: string, actorId: string)
     type: "follow_request",
     title: "Follow request",
     body: `${actorLabel(actor)}님이 팔로우를 요청했습니다.`,
-    link: "/settings?tab=follow-requests",
+    link: actor?.username ? `/u/${actor.username}` : "/settings",
   });
 }
 

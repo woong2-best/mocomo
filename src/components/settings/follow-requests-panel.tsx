@@ -6,6 +6,7 @@ const t = createTranslator("en");
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Check, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { approveFollowRequest, rejectFollowRequest } from "@/actions/social";
@@ -68,21 +69,23 @@ export function FollowRequestsPanel({
             </div>
             <div className="flex gap-2 shrink-0">
               <Button
-                size="sm"
-                className="rounded-full"
+                size="icon"
+                className="h-9 w-9 rounded-full"
                 disabled={pending}
+                aria-label={t("collab.accept")}
                 onClick={() => act(req.user.id, "approve")}
               >
-                {t("collab.accept")}
+                <Check className="h-4 w-4" strokeWidth={2.5} />
               </Button>
               <Button
-                size="sm"
+                size="icon"
                 variant="outline"
-                className="rounded-full"
+                className="h-9 w-9 rounded-full"
                 disabled={pending}
+                aria-label={t("collab.reject")}
                 onClick={() => act(req.user.id, "reject")}
               >
-                {t("collab.reject")}
+                <X className="h-4 w-4" strokeWidth={2.5} />
               </Button>
             </div>
           </li>

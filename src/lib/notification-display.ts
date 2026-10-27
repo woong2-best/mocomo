@@ -64,6 +64,8 @@ export function notificationIcon(type: string): {
     case "listing_like":
       return { Icon: Heart, className: "text-folk-terracotta" };
     case "follow":
+    case "follow_request":
+    case "follow_accepted":
       return { Icon: UserPlus, className: "text-sky-500" };
     case "dm":
     case "dm_group":
@@ -97,7 +99,7 @@ export function notificationIcon(type: string): {
 }
 
 export function notificationCategoryForType(type: string): string {
-  if (["like", "comment", "comment_reply", "comment_like", "comment_author_like", "comment_pin", "mention", "repost", "quote", "qna_answer", "listing_like", "follow", "vote"].includes(type)) {
+  if (["like", "comment", "comment_reply", "comment_like", "comment_author_like", "comment_pin", "mention", "repost", "quote", "qna_answer", "listing_like", "follow", "follow_request", "follow_accepted", "vote"].includes(type)) {
     return "social";
   }
   if (["dm", "dm_group", "call"].includes(type)) return "messages";

@@ -31,7 +31,6 @@ import {
 import { ProfileCalendarSheet } from "@/features/profile/ProfileCalendarSheet";
 import { ProfileOptionsSheet } from "@/features/profile/ProfileOptionsSheet";
 import { ProfileFollowListSheet } from "@/features/profile/ProfileFollowListSheet";
-import { CommissionRequestSheet } from "@/features/marketplace/CommissionRequestSheet";
 import type { FollowListTab } from "@/api/social";
 import {
   USER_PROFILE_STALE_MS,
@@ -115,7 +114,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [followListTab, setFollowListTab] = useState<FollowListTab | null>(null);
-  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestedLocal, setRequestedLocal] = useState<boolean | null>(null);
 
   const query = useQuery({
     queryKey: userProfileQueryKey(handle),
@@ -137,11 +136,14 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
     mutationFn: () => toggleFollowUser(query.data!.user.id),
     onMutate: async () => {
       const profile = query.data?.user;
-      const current = followingLocal ?? profile?.following ?? false;
-      const next = !current;
-      setFollowingLocal(next);
+      const currentFollowing = followingLocal ?? profile?.following ?? false;
+      const currentRequested = requestedLocal ?? profile?.followRequested ?? false;
+      const willUnfollow = currentFollowing || currentRequested;
+      const willRequest = !willUnfollow && !!profile?.postsLocked;
+      setFollowingLocal(!willUnfollow && !willRequest);
+      setRequestedLocal(willRequest);
       const snapshot = profile
-        ? next
+        ? !willUnfollow && !willRequest
           ? await upsertFollowingDmUser(queryClient, {
               id: profile.id,
               username: profile.username,
@@ -153,18 +155,18 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
       return { snapshot };
     },
     onSuccess: (res) => {
+      const requestedNow = !!(res.requested ?? res.pending) && res.following !== true;
       if (typeof res.following === "boolean") setFollowingLocal(res.following);
+      setRequestedLocal(requestedNow);
       const profile = query.data?.user;
-      if (profile && res.following === false) {
-        void removeFollowingDmUser(queryClient, profile.id);
-      } else if (profile && res.following === true) {
+      if (profile && res.following === true) {
         void upsertFollowingDmUser(queryClient, {
           id: profile.id,
           username: profile.username,
           name: profile.name,
           image: profile.image,
         });
-      } else if (profile && res.pending && !res.following) {
+      } else if (profile) {
         void removeFollowingDmUser(queryClient, profile.id);
       }
       void queryClient.invalidateQueries({ queryKey: userProfileQueryKey(handle) });
@@ -172,6 +174,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
     },
     onError: (_err, _vars, ctx) => {
       setFollowingLocal(null);
+      setRequestedLocal(null);
       if (ctx?.snapshot) restoreFollowingDmUsers(queryClient, ctx.snapshot);
     },
   });
@@ -181,6 +184,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
   const knownSelf = self || (!!authUser?.username && authUser.username === handle);
   const headerUser = user ?? seedProfileUser(handle, preview, knownSelf);
   const following = followingLocal ?? user?.following ?? false;
+  const requested = requestedLocal ?? user?.followRequested ?? false;
 
   const pinnedPost = query.data?.pinnedPost ?? null;
 
@@ -197,10 +201,13 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
   const emptyMessage = useMemo(() => {
     if (tab === "replies") return t("m.profile.replies_tab_coming_soon");
     if (tab === "wiki") return t("m.profile.no_wiki_contributions_yet");
+    if (user && user.canViewPosts === false && !user.isSelf) {
+      return t("m.profile.these_posts_are_locked");
+    }
     if (tab === "likes") return t("m.profile.no_liked_posts_yet");
     if (tab === "media") return t("m.profile.no_media_yet");
     return t("m.common.no_posts_yet");
-  }, [tab, t]);
+  }, [tab, t, user]);
 
   const renderItem = useCallback(
     ({ item }: { item: FeedPost }) => (
@@ -246,6 +253,7 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                 onFollow={user && !user.isSelf ? () => followMut.mutate() : undefined}
                 followLoading={followMut.isPending}
                 following={following}
+                requested={requested}
                 onOpenChat={
                   user && !user.isSelf
                     ? (roomId) =>
@@ -255,7 +263,6 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                         })
                     : undefined
                 }
-                onRequestCommission={user && !user.isSelf ? () => setRequestOpen(true) : undefined}
                 onOpenFollowList={
                   user ? (tab) => setFollowListTab(tab) : undefined
                 }
@@ -326,10 +333,6 @@ export function SharedProfileScreen({ username, showBack = true, preview, self =
                 onClose={() => setFollowListTab(null)}
               />
             ) : null}
-            {user && !user.isSelf ? (
-              <CommissionRequestSheet visible={requestOpen} sellerId={user.id} onClose={() => setRequestOpen(false)} />
-            ) : null}
-
             {isSelf ? (
               <ProfileCalendarSheet
                 visible={calendarOpen}

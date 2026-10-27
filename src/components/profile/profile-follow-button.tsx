@@ -18,7 +18,7 @@ export function ProfileFollowButton({
   onFollowingChange,
   followLabel = t("profile.svtgiw"),
   followingLabel = t("lib.user.connections.s44bb989270"),
-  requestLabel = t("profile.sywex"),
+  requestLabel = t("profile.svtgiw"),
   requestedLabel = t("profile.su2wfj"),
   syncFollowingOnMount = false,
   listOwnerUsername,
