@@ -17,7 +17,7 @@ export function FollowRequestNotificationActions({
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [done, setDone] = useState<"approve" | "reject" | null>(null);
 
-  const id = requesterId?.trim();
+  const id = requesterId?.trim() ?? "";
   if (!id || done) return null;
 
   async function act(kind: "approve" | "reject") {
