@@ -13,13 +13,15 @@ import { LiveAdultWatermark, isLiveAdultItem } from "@/features/live/LiveAdultWa
 import { IMAGE_CACHE_POLICY, feedMediaDecodeWidth } from "@/perf/image";
 import { freshLiveStill } from "@/features/live/live-still";
 import { useTheme } from "@/theme/ThemeContext";
+import { FolkAvatar } from "@/ui/FolkAvatar";
 
 type RowProps = {
   item: LiveListItem;
   onPress: () => void;
+  onPressHost?: () => void;
 };
 
-function LiveBrowseRowInner({ item, onPress }: RowProps) {
+function LiveBrowseRowInner({ item, onPress, onPressHost }: RowProps) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const thumbW = Math.round(Math.min(width * 0.42, 188));
@@ -27,8 +29,8 @@ function LiveBrowseRowInner({ item, onPress }: RowProps) {
   const thumb = freshLiveStill(item.thumbnailUrl);
 
   return (
-    <Pressable style={styles.row} onPress={onPress}>
-      <View style={[styles.thumbWrap, { width: thumbW }]}>
+    <View style={styles.row}>
+      <Pressable onPress={onPress} style={[styles.thumbWrap, { width: thumbW }]}>
         {thumb ? (
           <Image
             source={{ uri: thumb, width: decode, height: Math.round(decode * (9 / 16)) }}
@@ -47,22 +49,36 @@ function LiveBrowseRowInner({ item, onPress }: RowProps) {
         <View style={styles.duration}>
           <Text style={styles.durationText}>{formatViewerCountCompact(item.viewerCount)}</Text>
         </View>
-      </View>
+      </Pressable>
       <View style={styles.meta}>
         <Text style={styles.cat} numberOfLines={1}>
           {liveBrowseCategoryLine(item.category, item.externalProvider)}
         </Text>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={[styles.host, { color: colors.textSecondary }]} numberOfLines={1}>
-          {item.host?.username ?? "live"}
-        </Text>
+        <Pressable onPress={onPress}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
+            {item.title}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onPressHost ?? onPress}
+          style={styles.hostRow}
+          accessibilityRole="button"
+        >
+          <FolkAvatar
+            uri={item.host?.image}
+            name={item.host?.username ?? "?"}
+            size={22}
+            framed={false}
+          />
+          <Text style={[styles.host, { color: colors.textSecondary }]} numberOfLines={1}>
+            {item.host?.username ?? "live"}
+          </Text>
+        </Pressable>
         <Text style={[styles.sub, { color: colors.textMuted }]} numberOfLines={1}>
           {formatViewerCount(item.viewerCount)}
         </Text>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -167,7 +183,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 19,
   },
+  hostRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   host: {
+    flexShrink: 1,
     color: "#B5B5B5",
     fontSize: 12,
     fontWeight: "600",

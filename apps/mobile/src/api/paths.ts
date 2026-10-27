@@ -64,6 +64,7 @@ export const MobileApi = {
   callAccept: (id: string) => `/api/mobile/calls/${id}/accept`,
   callEnd: (id: string) => `/api/mobile/calls/${id}/end`,
   live: "/api/mobile/live",
+  liveAvatars: "/api/mobile/live/avatars",
   marketplace: "/api/mobile/marketplace",
   commissions: "/api/mobile/commissions",
   studios: "/api/mobile/studios",

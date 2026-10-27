@@ -12,6 +12,7 @@ import {
 } from "@/lib/live-hub-data";
 import { isR18LiveCategory, parseLiveCategoryParam } from "@/lib/live-categories";
 import { filterNsfwChannels, resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { getAvatarPublicProfiles } from "@/lib/ai-live/avatar-profiles";
 
 const CATEGORY_ORDER: LiveStreamCategory[] = [
   "IRL",
@@ -84,13 +85,15 @@ export async function GET(req: NextRequest) {
       nextOffset: offset,
       categoryRows: [],
       r18Blocked: true,
+      avatarHosts: {},
     });
   }
 
-  const [page, allFeed, staticData] = await Promise.all([
+  const [page, allFeed, staticData, avatarHosts] = await Promise.all([
     getLiveHubChannelFeedPage(category, "all", offset, limit),
     category && offset === 0 ? getLiveHubChannelFeed(undefined, "all") : Promise.resolve(null),
     offset === 0 ? getLiveHubStaticData(userId) : Promise.resolve(null),
+    offset === 0 ? getAvatarPublicProfiles().catch(() => null) : Promise.resolve(null),
   ]);
 
   const hostMap = new Map(page.hosts.map((h) => [h.id, h]));
@@ -181,5 +184,6 @@ export async function GET(req: NextRequest) {
     hasMore: page.hasMore,
     nextOffset: page.nextOffset,
     categoryRows,
+    avatarHosts: avatarHosts ?? {},
   });
 }

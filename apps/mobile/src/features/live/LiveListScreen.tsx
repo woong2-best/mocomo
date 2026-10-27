@@ -6,13 +6,13 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { fetchLiveHub, type LiveListItem } from "@/api/live";
+import { fetchLiveAvatarHosts, fetchLiveHub, type LiveListItem } from "@/api/live";
 import { coerceViewerCount, type MobileLiveCategoryId } from "@/features/live/live-categories";
 import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
 import { AiOfficialChannelCard, AiStageHero } from "@/features/live/ai/AiOfficialChannelCard";
 import { fetchAiStages, stageForCharacter } from "@/features/live/ai/ai-speak";
-import { IDOL_LIVES } from "@/features/live/ai/idol-lives";
+import { hostFromAvatarMap, IDOL_LIVES } from "@/features/live/ai/idol-lives";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
 import { sanitizeLiveListItems } from "@/features/live/live-hub-sanitize";
@@ -44,6 +44,11 @@ export function LiveListScreen() {
     staleTime: 5 * 60_000,
   });
   const zelieStage = stageForCharacter("zelie", stagesQuery.data);
+  const avatarsQuery = useQuery({
+    queryKey: ["mobile-live-avatars"],
+    queryFn: fetchLiveAvatarHosts,
+    staleTime: 30_000,
+  });
 
   const query = useInfiniteQuery({
     queryKey: ["mobile-live-hub", category],
@@ -98,11 +103,23 @@ export function LiveListScreen() {
   const hero = showAiHero ? null : (visibleItems[0] ?? null);
   const rows = showAiHero ? visibleItems : hero ? visibleItems.slice(1) : visibleItems;
   const featured = showAiHero || !!hero;
+  const avatarHosts = avatarsQuery.data?.hosts ?? query.data?.pages[0]?.avatarHosts;
 
   const openLive = useCallback(
     (id: string) => navigation.navigate("LiveDetail", { id }),
     [navigation]
   );
+
+  const openProfile = useCallback(
+    (username: string, name?: string | null, image?: string | null) => {
+      const handle = username.trim();
+      if (!handle) return;
+      navigation.navigate("UserProfile", { username: handle, name, image });
+    },
+    [navigation]
+  );
+
+  const zelieHost = hostFromAvatarMap(avatarHosts, "zelie", "zelie", t("m.live.ai_host_name"));
 
   const onRefresh = useCallback(() => {
     void query.refetch();
@@ -122,9 +139,13 @@ export function LiveListScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: LiveListItem }) => (
-      <LiveBrowseRow item={item} onPress={() => openLive(item.id)} />
+      <LiveBrowseRow
+        item={item}
+        onPress={() => openLive(item.id)}
+        onPressHost={() => openProfile(item.host?.username, item.host?.username, item.host?.image)}
+      />
     ),
-    [openLive]
+    [openLive, openProfile]
   );
 
   return (
@@ -170,7 +191,11 @@ export function LiveListScreen() {
                   <AiStageHero
                     hint={t("m.live.no_messages_yet_say_hello")}
                     stage={zelieStage}
+                    host={zelieHost.name}
+                    hostUsername={zelieHost.username}
+                    hostImage={zelieHost.image}
                     onPress={() => navigation.navigate("MocoLive")}
+                    onPressHost={() => openProfile(zelieHost.username, zelieHost.name, zelieHost.image)}
                   />
                 ) : hero ? (
                   <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} />
@@ -201,17 +226,28 @@ export function LiveListScreen() {
               <View>
                 {showAiHero ? (
                   <>
-                    {IDOL_LIVES.map((idol) => (
-                      <AiOfficialChannelCard
-                        key={idol.id}
-                        accent={idol.accent}
-                        stage={stageForCharacter(idol.id, stagesQuery.data)}
-                        title={t(idol.titleKey)}
-                        host={t(idol.nameKey)}
-                        sub={t(idol.roleKey)}
-                        onPress={() => navigation.navigate("IdolLive", { member: idol.id })}
-                      />
-                    ))}
+                    {IDOL_LIVES.map((idol) => {
+                      const host = hostFromAvatarMap(
+                        avatarHosts,
+                        idol.avatarId,
+                        idol.username,
+                        t(idol.nameKey)
+                      );
+                      return (
+                        <AiOfficialChannelCard
+                          key={idol.id}
+                          accent={idol.accent}
+                          stage={stageForCharacter(idol.id, stagesQuery.data)}
+                          title={t(idol.titleKey)}
+                          host={host.name}
+                          hostUsername={host.username}
+                          hostImage={host.image}
+                          sub={t(idol.roleKey)}
+                          onPress={() => navigation.navigate("IdolLive", { member: idol.id })}
+                          onPressHost={() => openProfile(host.username, host.name, host.image)}
+                        />
+                      );
+                    })}
                   </>
                 ) : null}
                 {query.isFetchingNextPage ? (

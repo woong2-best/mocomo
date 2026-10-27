@@ -5,26 +5,45 @@ import type { AiStageFiles } from "@/features/live/ai/ai-speak";
 import { liveCategoryEnglish } from "@/features/live/live-categories";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
+import { FolkAvatar } from "@/ui/FolkAvatar";
 
 type Props = {
   onPress: () => void;
+  onPressHost?: () => void;
   title?: string;
   host?: string;
+  hostUsername?: string;
+  hostImage?: string | null;
   sub?: string;
   accent?: string;
   stage: AiStageFiles;
 };
 
-function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, stage }: Props) {
+function AiOfficialChannelCardInner({
+  onPress,
+  onPressHost,
+  title,
+  host,
+  hostUsername,
+  hostImage,
+  sub,
+  accent,
+  stage,
+}: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const thumbW = Math.round(Math.min(width * 0.42, 188));
   const thumbH = Math.round(thumbW * (9 / 16));
+  const displayName = host ?? t("m.live.ai_host_name");
 
   return (
-    <Pressable style={styles.row} onPress={onPress} accessibilityRole="button">
-      <View style={[styles.thumb, { width: thumbW, height: thumbH, backgroundColor: accent ?? "#241c33" }]}>
+    <View style={styles.row}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        style={[styles.thumb, { width: thumbW, height: thumbH, backgroundColor: accent ?? "#241c33" }]}
+      >
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           <AiVrmStage
             vrmUrl={stage.vrmUrl}
@@ -37,22 +56,39 @@ function AiOfficialChannelCardInner({ onPress, title, host, sub, accent, stage }
         <View style={styles.badge} pointerEvents="none">
           <Text style={styles.badgeText}>{t(accent ? "m.live.idol_badge" : "m.live.ai_official_badge")}</Text>
         </View>
-      </View>
+      </Pressable>
       <View style={styles.meta}>
         <Text style={styles.cat} numberOfLines={1}>
           {liveCategoryEnglish("JUST_CHATTING")}
         </Text>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
-          {title ?? t("m.live.ai_card_title")}
-        </Text>
-        <Text style={[styles.host, { color: colors.textSecondary }]} numberOfLines={1}>
-          {host ?? t("m.live.ai_host_name")}
-        </Text>
+        <Pressable onPress={onPress} accessibilityRole="button">
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
+            {title ?? t("m.live.ai_card_title")}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onPressHost ?? onPress}
+          style={styles.hostRow}
+          accessibilityRole="button"
+          accessibilityLabel={hostUsername ? `@${hostUsername}` : displayName}
+        >
+          <FolkAvatar uri={hostImage} name={displayName} size={28} framed={false} />
+          <View style={styles.hostText}>
+            <Text style={[styles.host, { color: colors.textSecondary }]} numberOfLines={1}>
+              {displayName}
+            </Text>
+            {hostUsername ? (
+              <Text style={[styles.handle, { color: colors.textMuted }]} numberOfLines={1}>
+                @{hostUsername}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
         <Text style={[styles.sub, { color: colors.textMuted }]} numberOfLines={1}>
           {sub ?? t("m.live.ai_card_sub")}
         </Text>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -61,32 +97,52 @@ export const AiOfficialChannelCard = memo(AiOfficialChannelCardInner);
 /** Featured stage on the hub. Same model and room as the website tile. */
 export function AiStageHero({
   onPress,
+  onPressHost,
   hint,
   stage,
+  host,
+  hostUsername,
+  hostImage,
 }: {
   onPress: () => void;
+  onPressHost?: () => void;
   hint: string;
   stage: AiStageFiles;
+  host?: string;
+  hostUsername?: string;
+  hostImage?: string | null;
 }) {
   const { width } = useWindowDimensions();
   const height = Math.round(width * (9 / 16));
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      style={{ width, height, backgroundColor: "#000", overflow: "hidden" }}
-    >
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <AiVrmStage
-          vrmUrl={stage.vrmUrl}
-          backdropUrl={stage.backdropUrl}
-          characterId={stage.characterId}
-          framing="bust"
-          maxPixelRatio={1.25}
-        />
-      </View>
-      <Text style={styles.heroHint}>{hint}</Text>
-    </Pressable>
+    <View style={{ width, height, backgroundColor: "#000", overflow: "hidden" }}>
+      <Pressable onPress={onPress} accessibilityRole="button" style={StyleSheet.absoluteFill}>
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <AiVrmStage
+            vrmUrl={stage.vrmUrl}
+            backdropUrl={stage.backdropUrl}
+            characterId={stage.characterId}
+            framing="bust"
+            maxPixelRatio={1.25}
+          />
+        </View>
+        <Text style={styles.heroHint}>{hint}</Text>
+      </Pressable>
+      {host || hostUsername ? (
+        <Pressable
+          onPress={onPressHost ?? onPress}
+          style={styles.heroHost}
+          accessibilityRole="button"
+          accessibilityLabel={hostUsername ? `@${hostUsername}` : host}
+        >
+          <FolkAvatar uri={hostImage} name={host ?? hostUsername ?? "?"} size={32} framed={false} />
+          <View style={styles.hostText}>
+            {host ? <Text style={styles.heroHostName}>{host}</Text> : null}
+            {hostUsername ? <Text style={styles.heroHandle}>@{hostUsername}</Text> : null}
+          </View>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -115,7 +171,10 @@ const styles = StyleSheet.create({
   meta: { flex: 1, justifyContent: "center", gap: 3 },
   cat: { color: "#4da3ff", fontSize: 11, fontWeight: "800", letterSpacing: 0.6 },
   title: { fontWeight: "800", fontSize: 15 },
+  hostRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 2 },
+  hostText: { flex: 1, minWidth: 0 },
   host: { fontWeight: "700", fontSize: 13 },
+  handle: { fontWeight: "600", fontSize: 11 },
   sub: { fontWeight: "600", fontSize: 12 },
   heroHint: {
     position: "absolute",
@@ -128,4 +187,20 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: "left",
   },
+  heroHost: {
+    position: "absolute",
+    left: 12,
+    bottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    maxWidth: "55%",
+    paddingRight: 10,
+    paddingVertical: 4,
+    paddingLeft: 4,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  heroHostName: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  heroHandle: { color: "rgba(255,255,255,0.78)", fontWeight: "600", fontSize: 11 },
 });

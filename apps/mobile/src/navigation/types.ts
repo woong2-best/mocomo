@@ -56,7 +56,7 @@ export type RootStackParamList = {
   Discover: undefined;
   LiveList: undefined;
   MocoLive: undefined;
-  IdolLive: { member: "airi" | "chloe" | "stella" };
+  IdolLive: { member: "airi" | "chloe" | "stella" | "cleo" | "mio" | "nangnang" };
   LiveDetail: { id: string };
   LiveGoLive: undefined;
   LiveStudio: undefined;

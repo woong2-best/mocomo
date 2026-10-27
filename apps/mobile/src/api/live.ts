@@ -47,6 +47,15 @@ export type LiveScheduledItem = {
   hostId: string;
 };
 
+export type LiveAvatarId = "zelie" | "cleo" | "mio" | "nangnang";
+
+export type LiveAvatarHost = {
+  id: LiveAvatarId;
+  username: string;
+  name: string;
+  image: string | null;
+};
+
 export type LiveHubResponse = {
   items: LiveListItem[];
   heroItems: LiveListItem[];
@@ -59,6 +68,7 @@ export type LiveHubResponse = {
   hasMore: boolean;
   nextOffset: number;
   categoryRows: LiveCategoryRow[];
+  avatarHosts?: Partial<Record<LiveAvatarId, LiveAvatarHost>>;
 };
 
 export type LiveCategoryRow = {
@@ -147,6 +157,13 @@ export async function fetchLiveHub(opts?: {
   if (opts?.limit != null) params.set("limit", String(opts.limit));
   const suffix = params.toString() ? `?${params}` : "";
   return apiRequest<LiveHubResponse>(`${MobileApi.live}${suffix}`, { auth: true, timeoutMs: 25_000 });
+}
+
+export async function fetchLiveAvatarHosts() {
+  return apiRequest<{ hosts: Partial<Record<LiveAvatarId, LiveAvatarHost>> | null }>(
+    MobileApi.liveAvatars,
+    { auth: true, timeoutMs: 15_000 }
+  );
 }
 
 export async function fetchLivePlayback(id: string) {

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { setAudioModeAsync } from "expo-audio";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,6 +15,8 @@ import { defaultAiStage, fetchAiStage, speakAiHost, type AiStageFiles } from "@/
 import { LiveChatPanel } from "@/features/live/LiveChatPanel";
 import { liveUi } from "@/features/live/live-ui";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { RootStackParamList } from "@/navigation/types";
+import { FolkAvatar } from "@/ui/FolkAvatar";
 
 type Props = {
   channelId: string;
@@ -30,7 +33,7 @@ type Props = {
  * The stage is the website VRM (motion + voice), not a still poster.
  */
 export function AiLiveRoom({ channelId, poster, title: _title, host, role: _role, characterId = "zelie" }: Props) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   const copy = useMemo(() => liveUi(t), [t]);
@@ -43,6 +46,9 @@ export function AiLiveRoom({ channelId, poster, title: _title, host, role: _role
     staleTime: 15_000,
   });
   const item = query.data?.item;
+  const profileUsername = item?.host.username?.trim() || "";
+  const profileName = item?.host.name?.trim() || host;
+  const profileImage = item?.host.image ?? null;
 
   useEffect(() => {
     let alive = true;
@@ -58,6 +64,7 @@ export function AiLiveRoom({ channelId, poster, title: _title, host, role: _role
   const onLocalSend = useCallback(
     async (text: string) => {
       const who = stage?.characterId ?? characterId;
+      stageRef.current?.setThinking(true);
       try {
         const spoken = await speakAiHost(text, who);
         stageRef.current?.play(spoken.audioBase64, spoken.emotion, spoken.text);
@@ -67,6 +74,8 @@ export function AiLiveRoom({ channelId, poster, title: _title, host, role: _role
           return { username: host, content: t("m.common.sign_in_required") };
         }
         return { username: host, content: t("m.live.could_not_connect_to_the_live") };
+      } finally {
+        stageRef.current?.setThinking(false);
       }
     },
     [characterId, host, stage?.characterId, t]
@@ -94,6 +103,23 @@ export function AiLiveRoom({ channelId, poster, title: _title, host, role: _role
         >
           <Ionicons name="chevron-back" size={30} color="#fff" />
         </Pressable>
+        {profileUsername ? (
+          <Pressable
+            onPress={() =>
+              navigation.navigate("UserProfile", {
+                username: profileUsername,
+                name: profileName,
+                image: profileImage,
+              })
+            }
+            style={styles.hostChip}
+            accessibilityRole="button"
+            accessibilityLabel={`@${profileUsername}`}
+          >
+            <FolkAvatar uri={profileImage} name={profileName} size={26} framed={false} />
+            <Text style={styles.hostChipText}>@{profileUsername}</Text>
+          </Pressable>
+        ) : null}
       </View>
       <View style={styles.chat}>
         <LiveChatPanel
@@ -102,9 +128,9 @@ export function AiLiveRoom({ channelId, poster, title: _title, host, role: _role
           viewerCount={item?.viewerCount ?? 0}
           isHost={false}
           paymentsEnabled={item?.paymentsEnabled}
-          hostDisplayName={host}
+          hostDisplayName={profileName}
           hostUserId={item?.host.id}
-          hostUsername={item?.host.username ?? host}
+          hostUsername={profileUsername || host}
           pinnedMessage={item?.pinnedMessage}
           currentUserId={user?.id}
           streamStartedAt={item?.streamStartedAt}
@@ -132,5 +158,21 @@ const styles = StyleSheet.create({
     padding: 4,
     zIndex: 5,
   },
+  hostChip: {
+    position: "absolute",
+    left: 8,
+    bottom: 8,
+    zIndex: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    maxWidth: "70%",
+    paddingVertical: 4,
+    paddingLeft: 4,
+    paddingRight: 10,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  hostChipText: { color: "#fff", fontWeight: "800", fontSize: 13 },
   chat: { flex: 1, overflow: "visible" },
 });
