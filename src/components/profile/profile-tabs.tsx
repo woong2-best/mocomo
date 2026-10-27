@@ -10,8 +10,8 @@ import { useProfileTab } from "@/components/profile/profile-tab-context";
 
 const tabs: { id: ProfileTab; label: string }[] = [
   { id: "posts", label: t("lib.post.share.s0131626e0e") },
-  { id: "replies", label: t("profile.sve7f") },
   { id: "media", label: t("profile.ssf1g8") },
+  { id: "market", label: t("profile.tab.market") },
   { id: "wiki", label: t("anime.badgeAnime") },
   { id: "likes", label: t("lib.notifications.s224a288614") },
 ];
@@ -25,6 +25,7 @@ export function ProfileTabs({
 }) {
   const { tab: active, navigate, prefetchQuery } = useProfileTab();
   const isMedia = active === "media";
+  const isMarket = active === "market";
 
   return (
     <div className="sticky top-[var(--profile-compact-h)] z-20">
@@ -57,9 +58,13 @@ export function ProfileTabs({
         </nav>
       </div>
 
-      {/* Media kind filter overlays the grid — no hollow bar under tabs */}
       {isMedia ? (
         <div className="relative z-10 -mb-11 flex items-center px-3 pt-2 pb-1">
+          <ProfileFeedControls />
+        </div>
+      ) : null}
+      {isMarket ? (
+        <div className="flex items-center justify-end px-3 py-2">
           <ProfileFeedControls />
         </div>
       ) : null}

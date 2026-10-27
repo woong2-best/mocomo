@@ -7,11 +7,17 @@ const t = createTranslator("en");
 import { errorText } from "@/lib/i18n/error-text";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { ProfileGridMediaItem, ProfileTabContentMeta, ProfileTabInitialPayload } from "@/actions/profile-page";
+import type {
+  ProfileGridMediaItem,
+  ProfileMarketListingItem,
+  ProfileTabContentMeta,
+  ProfileTabInitialPayload,
+} from "@/actions/profile-page";
 import { ProfileMediaGrid } from "@/components/profile/profile-media-grid";
+import { ProfileMarketGrid } from "@/components/profile/profile-market-grid";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
-import type { ProfileMediaKind, ProfileSort, ProfileTab } from "@/lib/profile-queries";
+import type { ProfileKind, ProfileSort, ProfileTab } from "@/lib/profile-queries";
 import { Button } from "@/components/ui/button";
 import { ProfileTimelineSkeleton } from "@/components/ui/content-skeletons";
 
@@ -32,6 +38,13 @@ type TabPayload =
       repostedIds?: string[];
     }
   | { kind: "media"; items: ProfileGridMediaItem[]; nextCursor: string | null }
+  | {
+      kind: "market";
+      items: ProfileMarketListingItem[];
+      nextCursor: string | null;
+      viewerUserId: string | null;
+      viewerShowNsfw: boolean;
+    }
   | { kind: "wiki"; data: WikiData };
 
 function initialPayloadToTabPayload(initial: ProfileTabInitialPayload): TabPayload {
@@ -40,6 +53,15 @@ function initialPayloadToTabPayload(initial: ProfileTabInitialPayload): TabPaylo
   }
   if (initial.kind === "media") {
     return { kind: "media", items: initial.items, nextCursor: initial.nextCursor };
+  }
+  if (initial.kind === "market") {
+    return {
+      kind: "market",
+      items: initial.items,
+      nextCursor: initial.nextCursor,
+      viewerUserId: initial.viewerUserId,
+      viewerShowNsfw: initial.viewerShowNsfw,
+    };
   }
   return {
     kind: "timeline",
@@ -55,16 +77,17 @@ const emptyMessages: Record<ProfileTab, string> = {
   posts: t("profile.s10mkyr2"),
   replies: t("profile.sjm9kzf"),
   media: t("profile.s4yj3g1"),
+  market: t("profile.market.empty"),
   likes: t("profile.s1fug18q"),
   wiki: t("profile.svzcahz"),
 };
 
-function queryKey(tab: ProfileTab, sort: ProfileSort, kind: ProfileMediaKind) {
+function queryKey(tab: ProfileTab, sort: ProfileSort, kind: ProfileKind) {
   return `${tab}:${sort}:${kind}`;
 }
 
-function parseQueryKey(key: string): { tab: ProfileTab; sort: ProfileSort; kind: ProfileMediaKind } {
-  const [tab, sort, kind] = key.split(":") as [ProfileTab, ProfileSort, ProfileMediaKind];
+function parseQueryKey(key: string): { tab: ProfileTab; sort: ProfileSort; kind: ProfileKind } {
+  const [tab, sort, kind] = key.split(":") as [ProfileTab, ProfileSort, ProfileKind];
   return { tab, sort, kind };
 }
 
@@ -164,14 +187,18 @@ export function ProfileTabContent({
     const params = new URLSearchParams();
     if (effectiveTab !== "posts") params.set("tab", effectiveTab);
     if (sort !== "new") params.set("sort", sort);
-    if (effectiveTab === "media" && kind !== "all") params.set("kind", kind);
+    if ((effectiveTab === "media" || effectiveTab === "market") && kind !== "all") {
+      params.set("kind", kind);
+    }
 
     const url =
       effectiveTab === "wiki"
         ? `/api/profile/${username}/wiki`
         : effectiveTab === "media"
           ? `/api/profile/${username}/media?${params.toString()}`
-          : `/api/profile/${username}/timeline?${params.toString()}`;
+          : effectiveTab === "market"
+            ? `/api/profile/${username}/market?${params.toString()}`
+            : `/api/profile/${username}/timeline?${params.toString()}`;
 
     fetch(url)
       .then(async (res) => {
@@ -187,6 +214,14 @@ export function ProfileTabContent({
             kind: "media",
             items: json.items as ProfileGridMediaItem[],
             nextCursor: json.nextCursor ?? null,
+          };
+        } else if (effectiveTab === "market") {
+          next = {
+            kind: "market",
+            items: json.items as ProfileMarketListingItem[],
+            nextCursor: json.nextCursor ?? null,
+            viewerUserId: (json.viewerUserId as string | null) ?? null,
+            viewerShowNsfw: Boolean(json.viewerShowNsfw),
           };
         } else {
           next = {
@@ -256,11 +291,24 @@ export function ProfileTabContent({
             key={display.key}
             username={username}
             sort={shown.sort}
-            mediaKind={shown.kind}
+            mediaKind={shown.kind === "photo" || shown.kind === "video" ? shown.kind : "all"}
             initialItems={payload.items}
             initialCursor={payload.nextCursor}
             emptyMessage={emptyMessage}
             paymentsEnabled={meta.paymentsEnabled}
+          />
+        ) : payload.kind === "market" ? (
+          <ProfileMarketGrid
+            key={display.key}
+            username={username}
+            track={
+              shown.kind === "physical" || shown.kind === "digital" ? shown.kind : "all"
+            }
+            initialItems={payload.items}
+            initialCursor={payload.nextCursor}
+            emptyMessage={emptyMessage}
+            viewerUserId={payload.viewerUserId}
+            viewerShowNsfw={payload.viewerShowNsfw}
           />
         ) : (
           <ProfileTimeline

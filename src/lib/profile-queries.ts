@@ -32,14 +32,20 @@ export function attachProfilePostAuthor<T extends { authorId: string; author?: U
   }));
 }
 
-export type ProfileTab = "posts" | "replies" | "media" | "likes" | "wiki";
+export type ProfileTab = "posts" | "replies" | "media" | "market" | "likes" | "wiki";
 
 export type ProfileSort = "new" | "popular" | "oldest";
 
 export type ProfileMediaKind = "all" | "photo" | "video";
 
+export type ProfileMarketTrack = "all" | "physical" | "digital";
+
+export type ProfileKind = ProfileMediaKind | ProfileMarketTrack;
+
 export function parseProfileTab(tab?: string | null): ProfileTab {
-  if (tab === "replies" || tab === "media" || tab === "likes" || tab === "wiki") return tab;
+  if (tab === "replies" || tab === "media" || tab === "market" || tab === "likes" || tab === "wiki") {
+    return tab;
+  }
   return "posts";
 }
 
@@ -52,6 +58,16 @@ export function parseProfileSort(sort?: string | null): ProfileSort {
 export function parseProfileMediaKind(kind?: string | null): ProfileMediaKind {
   if (kind === "photo" || kind === "video") return kind;
   return "all";
+}
+
+export function parseProfileMarketTrack(kind?: string | null): ProfileMarketTrack {
+  if (kind === "physical" || kind === "digital") return kind;
+  return "all";
+}
+
+export function parseProfileKind(kind?: string | null, tab?: ProfileTab | null): ProfileKind {
+  if (tab === "market") return parseProfileMarketTrack(kind);
+  return parseProfileMediaKind(kind);
 }
 
 /** Append non-default sort to URLSearchParams (default = new). */

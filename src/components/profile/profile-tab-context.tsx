@@ -13,10 +13,10 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  parseProfileMediaKind,
+  parseProfileKind,
   parseProfileSort,
   parseProfileTab,
-  type ProfileMediaKind,
+  type ProfileKind,
   type ProfileSort,
   type ProfileTab,
 } from "@/lib/profile-queries";
@@ -24,7 +24,7 @@ import {
 type ProfileTabQuery = {
   tab: ProfileTab;
   sort: ProfileSort;
-  kind: ProfileMediaKind;
+  kind: ProfileKind;
 };
 
 type ProfileTabContextValue = ProfileTabQuery & {
@@ -39,10 +39,11 @@ type ProfileTabContextValue = ProfileTabQuery & {
 const ProfileTabContext = createContext<ProfileTabContextValue | null>(null);
 
 function readQuery(searchParams: URLSearchParams): ProfileTabQuery {
+  const tab = parseProfileTab(searchParams.get("tab"));
   return {
-    tab: parseProfileTab(searchParams.get("tab")),
+    tab,
     sort: parseProfileSort(searchParams.get("sort")),
-    kind: parseProfileMediaKind(searchParams.get("kind")),
+    kind: parseProfileKind(searchParams.get("kind"), tab),
   };
 }
 
@@ -50,7 +51,9 @@ function buildProfileHref(basePath: string, query: ProfileTabQuery) {
   const params = new URLSearchParams();
   if (query.tab !== "posts") params.set("tab", query.tab);
   if (query.sort !== "new") params.set("sort", query.sort);
-  if (query.tab === "media" && query.kind !== "all") params.set("kind", query.kind);
+  if ((query.tab === "media" || query.tab === "market") && query.kind !== "all") {
+    params.set("kind", query.kind);
+  }
   const q = params.toString();
   return q ? `${basePath}?${q}` : basePath;
 }
@@ -97,10 +100,18 @@ export function ProfileTabProvider({
         sort: patch.sort ?? base.sort,
         kind: patch.kind ?? base.kind,
       };
-      if (next.tab !== "media") {
+      if (next.tab === "media") {
+        if (patch.tab === "media" && !patch.kind) next.kind = "photo";
+        if (next.kind !== "all" && next.kind !== "photo" && next.kind !== "video") {
+          next.kind = "photo";
+        }
+      } else if (next.tab === "market") {
+        if (patch.tab === "market" && !patch.kind) next.kind = "all";
+        if (next.kind !== "all" && next.kind !== "physical" && next.kind !== "digital") {
+          next.kind = "all";
+        }
+      } else {
         next.kind = "all";
-      } else if (patch.tab === "media" && !patch.kind) {
-        next.kind = "photo";
       }
       return next;
     },
@@ -116,7 +127,7 @@ export function ProfileTabProvider({
 
   // Twitter-style: prefetch adjacent tabs only when idle — not all 15 combos on mount.
   useEffect(() => {
-    const tabs: ProfileTab[] = ["posts", "replies", "media", "wiki", "likes"];
+    const tabs: ProfileTab[] = ["posts", "media", "market", "wiki", "likes"];
     const idx = tabs.indexOf(active.tab);
     const neighbors = [tabs[idx - 1], tabs[idx + 1]].filter(
       (tab): tab is ProfileTab => tab != null

@@ -3,6 +3,7 @@ const t = createTranslator("en");
 
 import {
   getProfileHeader,
+  getProfileMarketGrid,
   getProfileMediaGrid,
   getProfileTimeline,
   getViewerCreatorSubscription,
@@ -12,9 +13,15 @@ import { creatorSubscriptionPriceForUser } from "@/lib/creator-subscription";
 import { isPaymentsConfigured } from "@/lib/payments";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { ProfileWikiContributions } from "@/components/profile/profile-wiki-contributions";
-import { parseProfileMediaKind, parseProfileSort, parseProfileTab } from "@/lib/profile-queries";
+import {
+  parseProfileMarketTrack,
+  parseProfileMediaKind,
+  parseProfileSort,
+  parseProfileTab,
+} from "@/lib/profile-queries";
 import { ProfileTimeline, type TimelineItem } from "@/components/profile/profile-timeline";
 import { ProfileMediaGrid } from "@/components/profile/profile-media-grid";
+import { ProfileMarketGrid } from "@/components/profile/profile-market-grid";
 
 function timelinePostIds(items: { type: string; post: { id: string } }[]) {
   return [...new Set(items.map((item) => item.post.id))];
@@ -24,6 +31,7 @@ const emptyMessages: Record<string, string> = {
   posts: t("profile.s10mkyr2"),
   replies: t("profile.sjm9kzf"),
   media: t("profile.s4yj3g1"),
+  market: t("profile.market.empty"),
   likes: t("profile.s1fug18q"),
   wiki: t("profile.svzcahz"),
 };
@@ -61,6 +69,27 @@ export async function ProfileTimelineAsync({
 
   if (effectiveTab === "wiki") {
     return <ProfileWikiContributions userId={header.user.id} />;
+  }
+
+  if (effectiveTab === "market") {
+    const marketGrid =
+      profileBlocked
+        ? { items: [], nextCursor: null, viewerUserId: null, viewerShowNsfw: false }
+        : await getProfileMarketGrid(header.user.id, undefined, {
+            track: parseProfileMarketTrack(kindParam),
+          });
+
+    return (
+      <ProfileMarketGrid
+        username={username}
+        track={parseProfileMarketTrack(kindParam)}
+        initialItems={marketGrid.items}
+        initialCursor={marketGrid.nextCursor}
+        emptyMessage={profileBlocked ? blockedEmptyMessage : emptyMessages.market}
+        viewerUserId={marketGrid.viewerUserId}
+        viewerShowNsfw={marketGrid.viewerShowNsfw}
+      />
+    );
   }
 
   if (effectiveTab === "media") {

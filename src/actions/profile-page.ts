@@ -31,14 +31,24 @@ import { getUserWikiContributions } from "@/actions/anime";
 import {
   attachProfilePostAuthor,
   profilePostIncludeLight,
+  parseProfileKind,
   parseProfileMediaKind,
+  parseProfileMarketTrack,
   parseProfileSort,
   parseProfileTab,
   profilePostsOrderBy,
   type ProfileTab,
+  type ProfileKind,
+  type ProfileMarketTrack,
   type ProfileMediaKind,
   type ProfileSort,
 } from "@/lib/profile-queries";
+import { listingImages } from "@/lib/used-market";
+import { marketTrackWhere } from "@/lib/market-tracks";
+import {
+  buildScopedUsedListingWhere,
+  resolveUsedMarketScope,
+} from "@/lib/used-market-locale-scope";
 import { profilePostsOwnedOrCollabWhere } from "@/lib/post-collaborator-select";
 import { platformPostWhere } from "@/lib/post-scope";
 import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
@@ -55,6 +65,7 @@ import {
 
 const PAGE_SIZE = 10;
 const MEDIA_GRID_PAGE_SIZE = 30;
+const MARKET_GRID_PAGE_SIZE = 24;
 
 export type ProfileGridMediaItem = {
   id: string;
@@ -68,6 +79,32 @@ export type ProfileGridMediaItem = {
   locked: boolean;
   lockReason: ContentLockReason;
   instantPurchasePriceKrw: number;
+};
+
+export type ProfileMarketListingItem = {
+  id: string;
+  title: string;
+  price: number;
+  currency: string | null;
+  region: string;
+  status: string;
+  images: string[];
+  createdAt: string;
+  saleType?: string;
+  auctionEndsAt?: string | null;
+  currentBidAmount?: number | null;
+  bidCount?: number;
+  auctionState?: string | null;
+  bidIncrement?: number | null;
+  buyNowPrice?: number | null;
+  reservePrice?: number | null;
+  currentBidderId?: string | null;
+  antiSnipeMinutes?: number;
+  isNsfw?: boolean;
+  sellerId?: string;
+  viewCount?: number;
+  favoriteCount?: number;
+  starred?: boolean;
 };
 
 const profileUserSelect = {
@@ -439,6 +476,10 @@ export async function getProfileTimeline(
     };
   }
 
+  if (tab === "market" || tab === "wiki") {
+    return { items: [], nextCursor: null };
+  }
+
   if (tab === "replies") {
     const comments = await db.comment.findMany({
       where: { authorId: userId, parentId: null, post: { communityId: null } },
@@ -715,7 +756,124 @@ export async function getProfileMediaGrid(
   };
 }
 
-function profileTabQueryKey(tab: ProfileTab, sort: ProfileSort, kind: ProfileMediaKind) {
+export async function getProfileMarketGrid(
+  userId: string,
+  cursor?: string,
+  options?: { track?: ProfileMarketTrack }
+) {
+  const viewerId = await getAuthUserId();
+  if (viewerId && viewerId !== userId) {
+    const relationship = await getUserRelationship(viewerId, userId);
+    if (isProfileBlocked(relationship)) {
+      return {
+        items: [] as ProfileMarketListingItem[],
+        nextCursor: null,
+        viewerUserId: viewerId,
+        viewerShowNsfw: false,
+      };
+    }
+  }
+
+  const isSelf = viewerId === userId;
+  const track = options?.track ?? "all";
+  const andFilters: Prisma.UsedListingWhereInput[] = [
+    { sellerId: userId },
+    { status: "SELLING" },
+    { removedAt: null },
+  ];
+  if (track === "physical" || track === "digital") {
+    andFilters.push(marketTrackWhere(track));
+  }
+  if (!isSelf) {
+    const locality = await resolveUsedMarketScope({ userId: viewerId });
+    andFilters.push(buildScopedUsedListingWhere(locality));
+  }
+
+  const [rows, viewer] = await Promise.all([
+    db.usedListing.findMany({
+      where: { AND: andFilters },
+      take: MARKET_GRID_PAGE_SIZE,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        currency: true,
+        region: true,
+        status: true,
+        images: true,
+        createdAt: true,
+        saleType: true,
+        auctionEndsAt: true,
+        currentBidAmount: true,
+        bidCount: true,
+        auctionState: true,
+        bidIncrement: true,
+        buyNowPrice: true,
+        reservePrice: true,
+        currentBidderId: true,
+        antiSnipeMinutes: true,
+        isNsfw: true,
+        sellerId: true,
+        viewCount: true,
+        _count: { select: { favorites: true } },
+      },
+    }),
+    viewerId
+      ? db.user.findUnique({
+          where: { id: viewerId },
+          select: { showNsfw: true },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  const starredIds =
+    viewerId && rows.length > 0
+      ? (
+          await db.usedListingStar.findMany({
+            where: { userId: viewerId, listingId: { in: rows.map((row) => row.id) } },
+            select: { listingId: true },
+          })
+        ).map((row) => row.listingId)
+      : [];
+  const starredSet = new Set(starredIds);
+
+  const items: ProfileMarketListingItem[] = rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    price: row.price,
+    currency: row.currency,
+    region: row.region,
+    status: row.status,
+    images: listingImages(row.images),
+    createdAt: row.createdAt.toISOString(),
+    saleType: row.saleType,
+    auctionEndsAt: row.auctionEndsAt ? row.auctionEndsAt.toISOString() : null,
+    currentBidAmount: row.currentBidAmount,
+    bidCount: row.bidCount,
+    auctionState: row.auctionState,
+    bidIncrement: row.bidIncrement,
+    buyNowPrice: row.buyNowPrice,
+    reservePrice: row.reservePrice,
+    currentBidderId: row.currentBidderId,
+    antiSnipeMinutes: row.antiSnipeMinutes,
+    isNsfw: row.isNsfw,
+    sellerId: row.sellerId,
+    viewCount: row.viewCount,
+    favoriteCount: row._count.favorites,
+    starred: starredSet.has(row.id),
+  }));
+
+  return {
+    items,
+    nextCursor: rows.length === MARKET_GRID_PAGE_SIZE ? rows[rows.length - 1]?.id ?? null : null,
+    viewerUserId: viewerId,
+    viewerShowNsfw: viewer?.showNsfw ?? false,
+  };
+}
+
+function profileTabQueryKey(tab: ProfileTab, sort: ProfileSort, kind: ProfileKind) {
   return `${tab}:${sort}:${kind}`;
 }
 
@@ -741,6 +899,14 @@ export type ProfileTabInitialPayload =
     }
   | {
       key: string;
+      kind: "market";
+      items: ProfileMarketListingItem[];
+      nextCursor: string | null;
+      viewerUserId: string | null;
+      viewerShowNsfw: boolean;
+    }
+  | {
+      key: string;
       kind: "wiki";
       data: {
         created: { slug: string; title: string; updatedAt: string }[];
@@ -761,11 +927,11 @@ export const getProfileTabInitialPayload = cache(async function getProfileTabIni
   const tab = parseProfileTab(tabParam);
   const effectiveTab = tab === "likes" && !header.isSelf ? "posts" : tab;
   const sort = parseProfileSort(sortParam);
-  const mediaKind = parseProfileMediaKind(kindParam);
+  const filterKind = parseProfileKind(kindParam, effectiveTab);
   const key = profileTabQueryKey(
     effectiveTab,
     sort,
-    effectiveTab === "media" ? mediaKind : "all"
+    effectiveTab === "media" || effectiveTab === "market" ? filterKind : "all"
   );
 
   const profileBlocked = !header.isSelf && header.relationship.blockedByViewer;
@@ -791,9 +957,19 @@ export const getProfileTabInitialPayload = cache(async function getProfileTabIni
     };
   }
 
-  if (profileBlocked || postsLockedFromViewer) {
+  if (profileBlocked || (postsLockedFromViewer && effectiveTab !== "market")) {
     if (effectiveTab === "media") {
       return { key, kind: "media", items: [], nextCursor: null };
+    }
+    if (effectiveTab === "market") {
+      return {
+        key,
+        kind: "market",
+        items: [],
+        nextCursor: null,
+        viewerUserId: null,
+        viewerShowNsfw: false,
+      };
     }
     return {
       key,
@@ -806,10 +982,34 @@ export const getProfileTabInitialPayload = cache(async function getProfileTabIni
     };
   }
 
+  if (effectiveTab === "market") {
+    if (profileBlocked) {
+      return {
+        key,
+        kind: "market",
+        items: [],
+        nextCursor: null,
+        viewerUserId: null,
+        viewerShowNsfw: false,
+      };
+    }
+    const marketGrid = await getProfileMarketGrid(header.user.id, undefined, {
+      track: parseProfileMarketTrack(kindParam),
+    });
+    return {
+      key,
+      kind: "market",
+      items: marketGrid.items,
+      nextCursor: marketGrid.nextCursor,
+      viewerUserId: marketGrid.viewerUserId,
+      viewerShowNsfw: marketGrid.viewerShowNsfw,
+    };
+  }
+
   if (effectiveTab === "media") {
     const mediaGrid = await getProfileMediaGrid(header.user.id, header.author, undefined, {
       sort,
-      mediaKind,
+      mediaKind: parseProfileMediaKind(kindParam),
     });
     return {
       key,

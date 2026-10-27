@@ -3,10 +3,10 @@
 import { createTranslator } from "@/lib/i18n/messages";
 const t = createTranslator("en");
 
-import { Film, ImageIcon, LayoutGrid } from "lucide-react";
+import { Film, ImageIcon, LayoutGrid, Package, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfileTab } from "@/components/profile/profile-tab-context";
-import type { ProfileMediaKind, ProfileSort } from "@/lib/profile-queries";
+import type { ProfileKind, ProfileMarketTrack, ProfileMediaKind, ProfileSort } from "@/lib/profile-queries";
 
 const SORT_OPTIONS: { id: ProfileSort; label: string }[] = [
   { id: "new", label: t("profile.st4za8") },
@@ -53,28 +53,37 @@ const KIND_OPTIONS: {
   { id: "video", label: t("profile.ssr5jo"), Icon: Film },
 ];
 
+const MARKET_OPTIONS: {
+  id: ProfileMarketTrack;
+  label: string;
+  Icon: typeof LayoutGrid;
+}[] = [
+  { id: "all", label: t("lib.live.categories.s934dd25ec5"), Icon: LayoutGrid },
+  { id: "physical", label: t("market.scope.physical"), Icon: Package },
+  { id: "digital", label: t("market.scope.digital"), Icon: Sparkles },
+];
+
 /**
- * Media kind filters (전체 / 사진 / 비디오).
- * Renders the glass pill only — parent owns overlay positioning so the
- * 3-col media grid stays edge-to-edge underneath.
+ * Media: 전체 / 사진 / 비디오.
+ * Market: All / Physical / Digital — selling listings.
  */
 export function ProfileFeedControls() {
   const { tab, kind, navigate, prefetchQuery } = useProfileTab();
 
-  if (tab !== "media") return null;
+  if (tab !== "media" && tab !== "market") return null;
 
-  const setKind = (nextKind: ProfileMediaKind) => navigate({ kind: nextKind });
+  const options = tab === "market" ? MARKET_OPTIONS : KIND_OPTIONS;
+  const setKind = (nextKind: ProfileKind) => navigate({ kind: nextKind });
 
   return (
     <div className="liquid-glass-wrap min-w-0">
-      {/* Neutral color-correction layer — blur samples this instead of raw cream/terracotta */}
       <div aria-hidden className="liquid-glass-tone" />
       <div
         role="tablist"
-        aria-label={t("profile.s5az1q3")}
+        aria-label={tab === "market" ? t("profile.market.filters") : t("profile.s5az1q3")}
         className="liquid-glass liquid-glass-pill inline-flex max-w-full p-1"
       >
-        {KIND_OPTIONS.map(({ id, label, Icon }) => {
+        {options.map(({ id, label, Icon }) => {
           const active = kind === id;
           return (
             <button
