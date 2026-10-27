@@ -5,6 +5,7 @@ const t = createTranslator("en");
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LiveHeaderMenu } from "@/components/layout/live-header-menu";
 import { ProfileMenu } from "@/components/layout/profile-menu";
 import { NotificationBellLink } from "@/components/notifications/notification-bell-link";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -42,6 +43,7 @@ export function HeaderAuth({ compact = false }: { compact?: boolean }) {
   if (authenticated && session?.user) {
     return (
       <>
+        {!compact ? <LiveHeaderMenu /> : null}
         <NotificationBellLink />
         <ProfileMenu />
       </>
