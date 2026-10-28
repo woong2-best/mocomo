@@ -7,7 +7,7 @@ import type { MapEventPin } from "@/api/events";
 import { eventPinColor } from "@/features/events/event-map-colors";
 import type { Locale } from "@/i18n";
 import { translate } from "@/i18n/runtime";
-import { MAPLIBRE_GLYPHS_URL, MAPLIBRE_LABEL_FONTS } from "@/maps/map-styles";
+import { MAPLIBRE_GLYPHS_URL } from "@/maps/map-styles";
 
 const MAPLIBRE_VERSION = "6.1.0";
 
@@ -85,7 +85,8 @@ const COUNTRY_GLOBE_CENTER: Record<string, { lat: number; lng: number }> = {
  */
 const GLOBE_ZOOM = 4.12;
 const GLOBE_PITCH = 40;
-const PIN_FOCUS_ZOOM = 16;
+const CLUMP_SEPARATE_MAX_ZOOM = 16;
+const PIN_FOCUS_ZOOM = 18;
 /** Same Esri cap as EventsNativeMap — z20+ is the gray "not yet available" tile. */
 const ESRI_SATELLITE_MAX_ZOOM = 19;
 
@@ -450,90 +451,77 @@ if (!maplibregl) {
     map.setProjection({ type: "globe" });
     map.resize();
   };
-  const PIN_BUFFER = 20;
-  const CLUSTER_RADIUS = 50;
-  const CLUSTER_MAX_ZOOM = 16;
+  const PIN_BUFFER = 28;
   const circlePitch = {
     "circle-pitch-alignment": "viewport",
     "circle-pitch-scale": "viewport"
   };
-  const queryNear = (layers) => {
-    const present = layers.filter((id) => map.getLayer(id));
-    if (!present.length) return [];
-    try {
-      return map.queryRenderedFeatures(
-        [[pointScratch.x - PIN_BUFFER, pointScratch.y - PIN_BUFFER], [pointScratch.x + PIN_BUFFER, pointScratch.y + PIN_BUFFER]],
-        { layers: present }
-      );
-    } catch (e) {
-      return [];
-    }
+  const projectPin = (pin) => {
+    try { return map.project([pin.lng, pin.lat]); } catch (e) { return null; }
   };
-  let pointScratch = { x: 0, y: 0 };
-  const nearestRendered = (features, point) => {
-    let best = null;
+  const pileAtPoint = (point) => {
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return [];
+    const pool = visiblePins.length ? visiblePins : allPins;
+    let nearest = null;
+    let nearestPt = null;
     let bestDist = Infinity;
-    for (const feature of features) {
-      const geom = feature.geometry;
-      if (!geom || geom.type !== "Point") continue;
-      let projected;
-      try { projected = map.project(geom.coordinates); } catch (e) { continue; }
+    for (const pin of pool) {
+      const projected = projectPin(pin);
       if (!projected || !Number.isFinite(projected.x) || !Number.isFinite(projected.y)) continue;
       const dist = Math.hypot(projected.x - point.x, projected.y - point.y);
       if (dist < bestDist) {
         bestDist = dist;
-        best = feature;
+        nearest = pin;
+        nearestPt = projected;
       }
     }
-    return best;
+    if (!nearest || !nearestPt || bestDist > PIN_BUFFER) return [];
+    const pile = [];
+    for (const pin of pool) {
+      const projected = projectPin(pin);
+      if (!projected) continue;
+      if (Math.hypot(projected.x - nearestPt.x, projected.y - nearestPt.y) <= PIN_BUFFER) {
+        pile.push(pin);
+      }
+    }
+    return pile;
   };
-  const expandCluster = (feature) => {
-    const geom = feature.geometry;
-    if (!geom || geom.type !== "Point") return;
-    const coords = geom.coordinates;
-    const clusterId = Number(feature.properties && feature.properties.cluster_id);
-    const source = map.getSource("event-pins");
-    const fallback = () => {
+  const zoomToSeparatePile = (group) => {
+    if (!group.length) return;
+    let minLng = group[0].lng;
+    let maxLng = group[0].lng;
+    let minLat = group[0].lat;
+    let maxLat = group[0].lat;
+    let lng = 0;
+    let lat = 0;
+    for (const pin of group) {
+      minLng = Math.min(minLng, pin.lng);
+      maxLng = Math.max(maxLng, pin.lng);
+      minLat = Math.min(minLat, pin.lat);
+      maxLat = Math.max(maxLat, pin.lat);
+      lng += pin.lng;
+      lat += pin.lat;
+    }
+    const center = [lng / group.length, lat / group.length];
+    const sameSpot = maxLng - minLng < 1e-4 && maxLat - minLat < 1e-4;
+    dismissPopup();
+    if (sameSpot) {
       map.easeTo({
-        center: coords,
-        zoom: Math.min(${ESRI_SATELLITE_MAX_ZOOM}, Math.max(map.getZoom() + 1.6, ${GLOBE_ZOOM} + 1)),
-        duration: 450,
+        center,
+        zoom: Math.min(${CLUMP_SEPARATE_MAX_ZOOM}, ${ESRI_SATELLITE_MAX_ZOOM}),
+        pitch: 0,
+        bearing: 0,
+        duration: 500,
         essential: true
       });
-    };
-    if (!source || typeof source.getClusterExpansionZoom !== "function" || !Number.isFinite(clusterId)) {
-      fallback();
       return;
     }
-    Promise.resolve(source.getClusterExpansionZoom(clusterId)).then((zoom) => {
-      const next = Math.min(${ESRI_SATELLITE_MAX_ZOOM}, Math.max(Number(zoom) + 0.15, map.getZoom() + 1.4));
-      map.easeTo({ center: coords, zoom: next, duration: 450, essential: true });
-    }).catch(fallback);
-  };
-  const nearestPinFromPoint = (point) => {
-    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
-    pointScratch = point;
-    const cluster = nearestRendered(queryNear(["event-clusters", "event-cluster-count"]), point);
-    if (cluster) return { kind: "cluster", feature: cluster };
-    const pinFeatures = nearestRendered(queryNear(["event-pins-dot"]), point);
-    if (pinFeatures) {
-      const raw = pinFeatures.properties && pinFeatures.properties.id != null ? pinFeatures.properties.id : pinFeatures.id;
-      const pin = pinIndex.get(raw == null ? "" : String(raw));
-      if (pin) return { kind: "pin", pin };
-    }
-    let best = null;
-    let bestDist = Infinity;
-    for (const pin of visiblePins) {
-      let projected;
-      try { projected = map.project([pin.lng, pin.lat]); } catch (e) { continue; }
-      if (!projected || !Number.isFinite(projected.x) || !Number.isFinite(projected.y)) continue;
-      const dist = Math.hypot(projected.x - point.x, projected.y - point.y);
-      if (dist < bestDist && dist <= PIN_BUFFER) {
-        bestDist = dist;
-        best = pin;
-      }
-    }
-    return best ? { kind: "pin", pin: best } : null;
+    map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
+      padding: 80,
+      maxZoom: ${CLUMP_SEPARATE_MAX_ZOOM},
+      duration: 500,
+      essential: true
+    });
   };
   const canvasPoint = (touch) => {
     const canvas = map.getCanvas();
@@ -544,73 +532,30 @@ if (!maplibregl) {
     };
   };
   const selectPinAtPoint = (point) => {
-    const hit = nearestPinFromPoint(point);
-    if (!hit) return false;
+    const pile = pileAtPoint(point);
+    if (!pile.length) return false;
     lastEmptyTap = 0;
-    if (hit.kind === "cluster") {
+    if (pile.length >= 2 && map.getZoom() < ${CLUMP_SEPARATE_MAX_ZOOM} - 0.05) {
       pinTapAt = Date.now();
-      dismissPopup();
-      expandCluster(hit.feature);
+      zoomToSeparatePile(pile);
       return true;
     }
-    if (openPinId === hit.pin.id && Date.now() - pinTapAt < 400) return true;
+    const pin = pile[0];
+    if (openPinId === pin.id && Date.now() - pinTapAt < 400) return true;
     pinTapAt = Date.now();
-    showPin(hit.pin);
+    showPin(pin);
     return true;
   };
   map.on("load", () => {
     frame();
     map.addSource("event-pins", {
       type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-      cluster: true,
-      clusterRadius: CLUSTER_RADIUS,
-      clusterMaxZoom: CLUSTER_MAX_ZOOM
-    });
-    map.addLayer({
-      id: "event-clusters",
-      type: "circle",
-      source: "event-pins",
-      filter: ["has", "point_count"],
-      paint: Object.assign({
-        "circle-color": "#7c3aed",
-        "circle-stroke-width": 2,
-        "circle-stroke-color": "#ffffff",
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          1,
-          ["min", ["step", ["get", "point_count"], 10, 10, 12, 50, 14], 8],
-          3,
-          ["min", ["step", ["get", "point_count"], 10, 10, 12, 50, 14], 11],
-          6,
-          ["min", ["step", ["get", "point_count"], 10, 10, 12, 50, 14], 14]
-        ]
-      }, circlePitch)
-    });
-    map.addLayer({
-      id: "event-cluster-count",
-      type: "symbol",
-      source: "event-pins",
-      filter: ["has", "point_count"],
-      layout: {
-        "text-field": ["get", "point_count_abbreviated"],
-        "text-size": 11,
-        "text-font": ${JSON.stringify([...MAPLIBRE_LABEL_FONTS])},
-        "text-anchor": "center",
-        "text-justify": "center",
-        "text-offset": [0, 0],
-        "text-allow-overlap": true,
-        "text-ignore-placement": true
-      },
-      paint: { "text-color": "#ffffff" }
+      data: { type: "FeatureCollection", features: [] }
     });
     map.addLayer({
       id: "event-pins-dot",
       type: "circle",
       source: "event-pins",
-      filter: ["!", ["has", "point_count"]],
       paint: Object.assign({
         "circle-radius": 7,
         "circle-color": ["get", "color"],
