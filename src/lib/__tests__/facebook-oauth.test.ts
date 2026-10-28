@@ -29,9 +29,8 @@ test("Facebook OAuth state is signed", () => {
 });
 
 test("buildFacebookAuthorizeUrl uses Facebook dialog and public_profile scope", () => {
-  process.env.FACEBOOK_CLIENT_ID = "1412207774406610";
-  process.env.FACEBOOK_CLIENT_SECRET = "test-secret";
-  process.env.FACEBOOK_REDIRECT_URI = "https://mocomo.net/api/auth/facebook/callback";
+  process.env.FACEBOOK_APP_ID = "1412207774406610";
+  process.env.FACEBOOK_APP_SECRET = "test-secret";
   const url = new URL(buildFacebookAuthorizeUrl("abc.def"));
   assert.equal(url.hostname, "www.facebook.com");
   assert.equal(url.pathname, "/v21.0/dialog/oauth");

@@ -36,8 +36,14 @@ export async function GET(req: NextRequest) {
     facebookRedirectPresent: status.facebookRedirectPresent,
     facebookCallback:
       process.env.FACEBOOK_REDIRECT_URI?.trim() ||
+      "https://mocomo.net/api/auth/facebook/callback",
+    instagramOAuth: status.instagramOAuth,
+    instagramIdPresent: status.instagramIdPresent,
+    instagramSecretPresent: status.instagramSecretPresent,
+    instagramRedirectPresent: status.instagramRedirectPresent,
+    instagramCallback:
       process.env.INSTAGRAM_REDIRECT_URI?.trim() ||
-      null,
+      "https://mocomo.net/api/auth/instagram/callback",
     vercelEnv: status.vercelEnv,
   });
 }

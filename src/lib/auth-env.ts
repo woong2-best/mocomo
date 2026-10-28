@@ -1,4 +1,5 @@
 import { isFacebookOAuthConfigured, resolveFacebookEnvKeys } from "@/lib/facebook-oauth";
+import { isInstagramOAuthConfigured, resolveInstagramEnvKeys } from "@/lib/instagram-oauth";
 
 const MIN_SECRET_LENGTH = 32;
 
@@ -22,6 +23,7 @@ export function getAuthConfigStatus() {
   const googleSecret =
     process.env.AUTH_GOOGLE_SECRET?.trim() || process.env.GOOGLE_CLIENT_SECRET?.trim();
   const facebookEnv = resolveFacebookEnvKeys();
+  const instagramEnv = resolveInstagramEnvKeys();
 
   return {
     secretConfigured: secretLength > 0,
@@ -34,11 +36,13 @@ export function getAuthConfigStatus() {
     googleIdLength: googleId?.length ?? 0,
     googleSecretLength: googleSecret?.length ?? 0,
     facebookOAuth: isFacebookOAuthConfigured(),
-    facebookIdPresent: !!facebookEnv.clientId,
-    facebookSecretPresent: !!facebookEnv.clientSecret,
+    facebookIdPresent: !!facebookEnv.appId,
+    facebookSecretPresent: !!facebookEnv.appSecret,
     facebookRedirectPresent: !!facebookEnv.redirectUri,
-    /** @deprecated use facebookOAuth */
-    instagramOAuth: isFacebookOAuthConfigured(),
+    instagramOAuth: isInstagramOAuthConfigured(),
+    instagramIdPresent: !!instagramEnv.appId,
+    instagramSecretPresent: !!instagramEnv.appSecret,
+    instagramRedirectPresent: !!instagramEnv.redirectUri,
     discordOAuth: false,
     twitterOAuth: false,
     lineOAuth: false,
@@ -75,6 +79,9 @@ export function getProductionSecurityStatus(): ProductionSecurityStatus {
   }
   if (auth.facebookOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
     issues.push("OAUTH_ENCRYPTION_KEY missing while Facebook OAuth enabled");
+  }
+  if (auth.instagramOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
+    issues.push("OAUTH_ENCRYPTION_KEY missing while Instagram OAuth enabled");
   }
   if (
     !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||

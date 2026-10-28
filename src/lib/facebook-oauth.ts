@@ -1,14 +1,20 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import {
+  safeOAuthReturnTo,
+  type GraphErrorBody,
+  tokenErrorMessage,
+} from "@/lib/meta-oauth-shared";
 
 const GRAPH_VERSION = "v21.0";
 const STATE_TTL_MS = 15 * 60 * 1000;
-/** Facebook Login — standard user auth (not Instagram Login). */
 export const FACEBOOK_OAUTH_SCOPE = "public_profile,email";
 export const FACEBOOK_PROVIDER = "facebook" as const;
+export const DEFAULT_FACEBOOK_REDIRECT_URI =
+  "https://mocomo.net/api/auth/facebook/callback";
 
 export type FacebookEnv = {
-  clientId: string;
-  clientSecret: string;
+  appId: string;
+  appSecret: string;
   redirectUri: string;
 };
 
@@ -26,6 +32,8 @@ export type FacebookProfile = {
 };
 
 export type FacebookOAuthState = {
+  v: 1;
+  provider: "facebook";
   nonce: string;
   exp: number;
   returnTo?: string;
@@ -36,44 +44,40 @@ function readEnv(key: string): string | undefined {
   return process.env[key]?.trim() || undefined;
 }
 
-/** Supports FACEBOOK_* with legacy INSTAGRAM_* fallback during env migration. */
 export function resolveFacebookEnvKeys(): {
-  clientId?: string;
-  clientSecret?: string;
+  appId?: string;
+  appSecret?: string;
   redirectUri?: string;
 } {
   return {
-    clientId: readEnv("FACEBOOK_CLIENT_ID") ?? readEnv("INSTAGRAM_CLIENT_ID"),
-    clientSecret:
-      readEnv("FACEBOOK_CLIENT_SECRET") ?? readEnv("INSTAGRAM_CLIENT_SECRET"),
+    appId: readEnv("FACEBOOK_APP_ID") ?? readEnv("FACEBOOK_CLIENT_ID"),
+    appSecret:
+      readEnv("FACEBOOK_APP_SECRET") ?? readEnv("FACEBOOK_CLIENT_SECRET"),
     redirectUri:
-      readEnv("FACEBOOK_REDIRECT_URI") ?? readEnv("INSTAGRAM_REDIRECT_URI"),
+      readEnv("FACEBOOK_REDIRECT_URI") ?? DEFAULT_FACEBOOK_REDIRECT_URI,
   };
 }
 
 export function isFacebookOAuthConfigured(): boolean {
-  const { clientId, clientSecret, redirectUri } = resolveFacebookEnvKeys();
-  return Boolean(clientId && clientSecret && redirectUri);
+  const { appId, appSecret, redirectUri } = resolveFacebookEnvKeys();
+  return Boolean(appId && appSecret && redirectUri);
 }
 
 export function requireFacebookEnv(): FacebookEnv {
-  const { clientId, clientSecret, redirectUri } = resolveFacebookEnvKeys();
-  if (!clientId || !clientSecret || !redirectUri) {
-    throw new Error(
-      "FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, FACEBOOK_REDIRECT_URI are required"
-    );
+  const { appId, appSecret, redirectUri } = resolveFacebookEnvKeys();
+  if (!appId || !appSecret || !redirectUri) {
+    throw new Error("FACEBOOK_APP_ID, FACEBOOK_APP_SECRET are required");
   }
-  return { clientId, clientSecret, redirectUri };
+  return { appId, appSecret, redirectUri };
 }
 
 function stateSecret(): string {
   const s =
     readEnv("FACEBOOK_OAUTH_STATE_SECRET") ??
-    readEnv("INSTAGRAM_OAUTH_STATE_SECRET") ??
     readEnv("AUTH_SECRET") ??
     readEnv("NEXTAUTH_SECRET");
   if (!s) throw new Error("AUTH_SECRET or FACEBOOK_OAUTH_STATE_SECRET required");
-  return s;
+  return `facebook-oauth:${s}`;
 }
 
 function sign(data: string): string {
@@ -81,9 +85,7 @@ function sign(data: string): string {
 }
 
 export function safeFacebookReturnTo(raw: string | null | undefined): string | undefined {
-  const path = raw?.trim();
-  if (!path?.startsWith("/") || path.startsWith("//")) return undefined;
-  return path;
+  return safeOAuthReturnTo(raw);
 }
 
 export function mintFacebookOAuthState(opts?: {
@@ -91,9 +93,11 @@ export function mintFacebookOAuthState(opts?: {
   addAccount?: boolean;
 }): string {
   const payload: FacebookOAuthState = {
+    v: 1,
+    provider: "facebook",
     nonce: randomBytes(16).toString("hex"),
     exp: Date.now() + STATE_TTL_MS,
-    returnTo: safeFacebookReturnTo(opts?.returnTo),
+    returnTo: safeOAuthReturnTo(opts?.returnTo),
     addAccount: opts?.addAccount || undefined,
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
@@ -119,14 +123,17 @@ export function verifyFacebookOAuthState(
     const payload = JSON.parse(
       Buffer.from(body, "base64url").toString("utf8")
     ) as FacebookOAuthState;
+    if (payload.provider !== "facebook") return { error: "Invalid OAuth state." };
     if (!payload.nonce || typeof payload.exp !== "number") {
       return { error: "Could not parse OAuth state." };
     }
     if (payload.exp < Date.now()) return { error: "OAuth session expired." };
     return {
+      v: 1,
+      provider: "facebook",
       nonce: payload.nonce,
       exp: payload.exp,
-      returnTo: safeFacebookReturnTo(payload.returnTo),
+      returnTo: safeOAuthReturnTo(payload.returnTo),
       addAccount: Boolean(payload.addAccount),
     };
   } catch {
@@ -135,9 +142,9 @@ export function verifyFacebookOAuthState(
 }
 
 export function buildFacebookAuthorizeUrl(state: string): string {
-  const { clientId, redirectUri } = requireFacebookEnv();
+  const { appId, redirectUri } = requireFacebookEnv();
   const params = new URLSearchParams({
-    client_id: clientId,
+    client_id: appId,
     redirect_uri: redirectUri,
     response_type: "code",
     scope: FACEBOOK_OAUTH_SCOPE,
@@ -146,27 +153,13 @@ export function buildFacebookAuthorizeUrl(state: string): string {
   return `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth?${params.toString()}`;
 }
 
-export function normalizeOAuthCode(raw: string | null): string | null {
-  if (!raw) return null;
-  return raw.replace(/#_+$/, "").trim() || null;
-}
-
-type GraphErrorBody = {
-  error?: { message?: string; type?: string; code?: number };
-  error_message?: string;
-};
-
-function tokenErrorMessage(data: GraphErrorBody, status: number): string {
-  return data.error?.message ?? data.error_message ?? `Token exchange failed (${status})`;
-}
-
 export async function exchangeFacebookCodeForToken(
   code: string
 ): Promise<FacebookTokenResponse> {
-  const { clientId, clientSecret, redirectUri } = requireFacebookEnv();
+  const { appId, appSecret, redirectUri } = requireFacebookEnv();
   const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/oauth/access_token`);
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("client_secret", clientSecret);
+  url.searchParams.set("client_id", appId);
+  url.searchParams.set("client_secret", appSecret);
   url.searchParams.set("grant_type", "authorization_code");
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("code", code);
@@ -208,11 +201,11 @@ export async function fetchFacebookProfile(accessToken: string): Promise<Faceboo
 export async function exchangeLongLivedFacebookToken(
   shortLivedToken: string
 ): Promise<FacebookTokenResponse> {
-  const { clientId, clientSecret } = requireFacebookEnv();
+  const { appId, appSecret } = requireFacebookEnv();
   const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/oauth/access_token`);
   url.searchParams.set("grant_type", "fb_exchange_token");
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("client_secret", clientSecret);
+  url.searchParams.set("client_id", appId);
+  url.searchParams.set("client_secret", appSecret);
   url.searchParams.set("fb_exchange_token", shortLivedToken);
 
   const res = await fetch(url.toString(), { cache: "no-store" });
@@ -226,3 +219,5 @@ export async function exchangeLongLivedFacebookToken(
 export function facebookDisplayName(profile: FacebookProfile): string | null {
   return profile.name?.trim() || null;
 }
+
+export { normalizeOAuthCode } from "@/lib/meta-oauth-shared";

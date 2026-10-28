@@ -23,7 +23,7 @@ const credentialsProvider = Credentials({
 
 /**
  * Public signup/login: Google OAuth + credentials (username/email + password).
- * Facebook Login uses dedicated /api/auth/facebook routes (identify by Facebook user id).
+ * Facebook Login → /api/auth/facebook (FACEBOOK_APP_ID). Instagram Login → /api/auth/instagram (INSTAGRAM_APP_ID).
  * Credentials remain for legacy accounts and the sign-in form.
  * Live streaming OAuth (YouTube / Twitch / CHZZK) is separate — do not add here.
  */
