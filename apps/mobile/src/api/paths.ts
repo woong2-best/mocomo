@@ -50,6 +50,7 @@ export const MobileApi = {
   cosplayApply: "/api/mobile/cosplay/apply",
   me: "/api/mobile/me",
   profileSocialConnect: "/api/mobile/profile/social/connect",
+  profileSocialDisplay: "/api/mobile/profile/social/display",
   notificationSettings: "/api/mobile/me/notification-settings",
   user: (username: string) => `/api/mobile/users/${encodeURIComponent(username)}`,
   userConnections: (username: string) =>

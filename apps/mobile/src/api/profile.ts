@@ -30,6 +30,7 @@ export type ProfileEditState = {
   settings: ProfileSettings | null;
   socialConnected?: ProfileSocialId[];
   socialAvailable?: Record<ProfileSocialId, boolean>;
+  socialItems?: { id: ProfileSocialId; href: string | null; displayed: boolean }[];
 };
 
 export async function fetchProfileEditState() {
@@ -68,6 +69,14 @@ export async function startProfileSocialConnect(provider: ProfileSocialId) {
   return apiRequest<{ url: string }>(MobileApi.profileSocialConnect, {
     method: "POST",
     body: { provider },
+    auth: true,
+  });
+}
+
+export async function setProfileSocialDisplay(provider: ProfileSocialId, displayed: boolean) {
+  return apiRequest<{ ok: boolean }>(MobileApi.profileSocialDisplay, {
+    method: "POST",
+    body: { provider, displayed },
     auth: true,
   });
 }

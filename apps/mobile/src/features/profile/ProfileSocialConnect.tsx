@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { Image, Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Image, Linking, Pressable, Text, useWindowDimensions, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
-import { startProfileSocialConnect } from "@/api/profile";
+import { setProfileSocialDisplay, startProfileSocialConnect } from "@/api/profile";
 import {
   PROFILE_SOCIAL_IDS,
   PROFILE_SOCIAL_META,
@@ -16,13 +16,17 @@ import {
 
 const OAUTH_REDIRECT = "mocomo://oauth";
 
+type SocialItem = { id: ProfileSocialId; href: string | null; displayed: boolean };
+
 export function ProfileSocialConnect({
   connected,
   available,
+  items,
   onConnected,
 }: {
   connected: ProfileSocialId[];
   available: Record<ProfileSocialId, boolean>;
+  items: SocialItem[];
   onConnected?: () => void;
 }) {
   const { t } = useI18n();
@@ -32,9 +36,10 @@ export function ProfileSocialConnect({
   const gap = Math.max(10, Math.round(size * 0.32));
   const [busy, setBusy] = useState<ProfileSocialId | null>(null);
   const connectedSet = useMemo(() => new Set(connected), [connected]);
+  const itemById = useMemo(() => new Map(items.map((row) => [row.id, row])), [items]);
 
   async function connect(id: ProfileSocialId) {
-    if (busy || connectedSet.has(id) || !available[id]) return;
+    if (busy || !available[id]) return;
     setBusy(id);
     try {
       const { url } = await startProfileSocialConnect(id);
@@ -53,30 +58,65 @@ export function ProfileSocialConnect({
     }
   }
 
+  async function openPage(href: string | null) {
+    if (!href) return;
+    await Linking.openURL(href);
+  }
+
+  async function toggleDisplay(id: ProfileSocialId, displayed: boolean) {
+    if (busy) return;
+    setBusy(id);
+    try {
+      await setProfileSocialDisplay(id, displayed);
+      onConnected?.();
+    } catch (e) {
+      showIslandError(
+        t("m.common.error"),
+        e instanceof Error ? e.message : t("m.profile.could_not_connect_social")
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <FolkCard>
       <Text style={{ fontSize: 16, fontWeight: "800", color: colors.brand, marginBottom: 12 }}>
         More Connect Moment
       </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", gap }}>
         {PROFILE_SOCIAL_IDS.map((id) => {
           const meta = PROFILE_SOCIAL_META[id];
           const isOn = connectedSet.has(id);
-          const disabled = !available[id] || isOn || busy !== null;
+          const item = itemById.get(id);
           return (
-            <Pressable
-              key={id}
-              onPress={() => void connect(id)}
-              disabled={disabled && !isOn}
-              accessibilityRole="button"
-              accessibilityLabel={isOn ? `${meta.label} connected` : `Connect ${meta.label}`}
-            >
-              <Image
-                source={meta.icon}
-                style={{ width: size, height: size }}
-                resizeMode="contain"
-              />
-            </Pressable>
+            <View key={id} style={{ alignItems: "center", gap: 6 }}>
+              <Pressable
+                onPress={() =>
+                  isOn ? void openPage(item?.href ?? null) : void connect(id)
+                }
+                disabled={!isOn && (!available[id] || busy !== null)}
+                accessibilityRole="button"
+                accessibilityLabel={meta.label}
+              >
+                <Image
+                  source={meta.icon}
+                  style={{ width: size, height: size }}
+                  resizeMode="contain"
+                />
+              </Pressable>
+              {isOn ? (
+                <Pressable
+                  onPress={() => void toggleDisplay(id, !item?.displayed)}
+                  disabled={busy === id}
+                  hitSlop={6}
+                >
+                  <Text style={{ color: colors.brand, fontSize: 12, fontWeight: "700" }}>
+                    {item?.displayed ? t("m.profile.hide_on_profile") : t("m.profile.show_on_profile")}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
           );
         })}
       </View>

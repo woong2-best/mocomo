@@ -34,6 +34,7 @@ import { evaluateMoneyAge, toPublicMoneyAge } from "@/lib/money-age-policy";
 import {
   getProfileSocialConnectAvailability,
   listConnectedProfileSocialIds,
+  listProfileSocialManageItems,
 } from "@/lib/profile-social";
 
 const meSelect = {
@@ -95,9 +96,10 @@ export async function GET(req: NextRequest) {
   const readOnly = isReadOnlySuspended(refreshed?.accountStatus ?? user.accountStatus);
 
   const settings = await getProfileSettingsForUser(userId);
-  const [socialConnected, socialAvailable] = await Promise.all([
+  const [socialConnected, socialAvailable, socialItems] = await Promise.all([
     listConnectedProfileSocialIds(userId),
     Promise.resolve(getProfileSocialConnectAvailability()),
+    listProfileSocialManageItems(userId),
   ]);
   const storedImage = user.image;
   if (storedImage && !isPublicHttpUrl(storedImage)) {
@@ -134,6 +136,11 @@ export async function GET(req: NextRequest) {
       hasPassword: Boolean(user.passwordHash),
       socialConnected,
       socialAvailable,
+      socialItems: socialItems.map((item) => ({
+        id: item.id,
+        href: item.href,
+        displayed: item.displayed,
+      })),
       settings: settings
         ? {
             mainCharacter: settings.mainCharacter,

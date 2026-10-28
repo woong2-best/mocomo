@@ -108,6 +108,7 @@ export async function completeNaverProfileConnect(opts: {
       data: {
         access_token: tokens.accessToken,
         refresh_token: tokens.refreshToken ?? null,
+        id_token: profile.name,
       },
     });
   } else {
@@ -119,6 +120,7 @@ export async function completeNaverProfileConnect(opts: {
         providerAccountId: profile.id,
         access_token: tokens.accessToken,
         refresh_token: tokens.refreshToken ?? null,
+        id_token: profile.name,
       },
     });
   }

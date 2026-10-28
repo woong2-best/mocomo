@@ -74,20 +74,52 @@ export function getProfileSocialConnectAvailability() {
   };
 }
 
-export async function listProfileSocialLinks(userId: string): Promise<ProfileSocialLink[]> {
-  const rows = await db.account.findMany({
-    where: { userId, provider: { in: [...PROFILE_SOCIAL_PROVIDERS] } },
-    select: {
-      provider: true,
-      providerAccountId: true,
-      encryptedGoogleData: true,
-      encryptionIv: true,
-      encryptionAuthTag: true,
-      encryptionKeyId: true,
-    },
-  });
+export type ProfileSocialItem = ProfileSocialLink & {
+  displayed: boolean;
+};
 
-  const links: ProfileSocialLink[] = [];
+type SnsBlob = {
+  location?: string;
+  website?: string;
+  showSocial?: Partial<Record<ProfileSocialId, boolean>>;
+};
+
+function asSnsBlob(raw: unknown): SnsBlob {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return raw as SnsBlob;
+}
+
+export function readSocialDisplay(raw: unknown): Record<ProfileSocialId, boolean> {
+  const shown = asSnsBlob(raw).showSocial ?? {};
+  return {
+    facebook: shown.facebook === true,
+    instagram: shown.instagram === true,
+    twitter: shown.twitter === true,
+    naver: shown.naver === true,
+  };
+}
+
+async function loadConnectedSocialItems(userId: string): Promise<ProfileSocialItem[]> {
+  const [rows, profile] = await Promise.all([
+    db.account.findMany({
+      where: { userId, provider: { in: [...PROFILE_SOCIAL_PROVIDERS] } },
+      select: {
+        provider: true,
+        providerAccountId: true,
+        id_token: true,
+        encryptedGoogleData: true,
+        encryptionIv: true,
+        encryptionAuthTag: true,
+        encryptionKeyId: true,
+      },
+    }),
+    db.profile.findUnique({
+      where: { userId },
+      select: { snsLinks: true },
+    }),
+  ]);
+  const displayed = readSocialDisplay(profile?.snsLinks);
+  const items: ProfileSocialItem[] = [];
   for (const id of PROFILE_SOCIAL_PROVIDERS) {
     const row = rows.find((r) => r.provider === id);
     if (!row) continue;
@@ -99,14 +131,26 @@ export async function listProfileSocialLinks(userId: string): Promise<ProfileSoc
       handle = payload?.name ?? null;
     } else {
       sub = row.providerAccountId;
+      handle = row.id_token?.trim() || null;
     }
-    links.push({
+    items.push({
       id,
       href: hrefFor(id, sub, handle),
+      displayed: displayed[id],
       ...META[id],
     });
   }
-  return links;
+  return items;
+}
+
+export async function listProfileSocialLinks(userId: string): Promise<ProfileSocialLink[]> {
+  return (await loadConnectedSocialItems(userId))
+    .filter((item) => item.displayed)
+    .map(({ displayed: _shown, ...link }) => link);
+}
+
+export async function listProfileSocialManageItems(userId: string): Promise<ProfileSocialItem[]> {
+  return loadConnectedSocialItems(userId);
 }
 
 export async function listConnectedProfileSocialIds(userId: string): Promise<ProfileSocialId[]> {
@@ -115,6 +159,29 @@ export async function listConnectedProfileSocialIds(userId: string): Promise<Pro
     select: { provider: true },
   });
   return PROFILE_SOCIAL_PROVIDERS.filter((id) => rows.some((r) => r.provider === id));
+}
+
+export async function setProfileSocialDisplayed(
+  userId: string,
+  id: ProfileSocialId,
+  displayed: boolean
+): Promise<void> {
+  const profile = await db.profile.findUnique({
+    where: { userId },
+    select: { snsLinks: true },
+  });
+  const blob = asSnsBlob(profile?.snsLinks);
+  const showSocial = { ...(blob.showSocial ?? {}), [id]: displayed };
+  await db.profile.upsert({
+    where: { userId },
+    create: {
+      userId,
+      snsLinks: { ...blob, showSocial },
+    },
+    update: {
+      snsLinks: { ...blob, showSocial },
+    },
+  });
 }
 
 export const PROFILE_SOCIAL_CONNECT_PATH: Record<ProfileSocialId, string> = {

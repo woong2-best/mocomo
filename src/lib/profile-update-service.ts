@@ -194,6 +194,23 @@ export async function applyProfileUpdateForUser(
     }
   }
 
+  if (profileData.snsLinks) {
+    const current = await db.profile.findUnique({
+      where: { userId: user.id },
+      select: { snsLinks: true },
+    });
+    const stored =
+      current?.snsLinks && typeof current.snsLinks === "object" && !Array.isArray(current.snsLinks)
+        ? (current.snsLinks as Record<string, unknown>)
+        : {};
+    const incoming = profileData.snsLinks as Record<string, unknown>;
+    profileData.snsLinks = {
+      ...stored,
+      ...incoming,
+      ...(stored.showSocial && !incoming.showSocial ? { showSocial: stored.showSocial } : {}),
+    } as Prisma.InputJsonObject;
+  }
+
   const profilePayload: Prisma.ProfileUpdateInput = { ...profileData };
   if (bannerUrl !== undefined) {
     if (!bannerUrl) {

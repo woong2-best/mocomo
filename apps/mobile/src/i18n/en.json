@@ -2289,6 +2289,8 @@
   "m.profile.media": "Media",
   "m.profile.more_connect_moment": "More Connect Moment",
   "m.profile.more_connect_hint": "Connect Facebook, Instagram, X, or CHZZK. Icons appear on your profile.",
+  "m.profile.show_on_profile": "표시하기",
+  "m.profile.hide_on_profile": "숨기기",
   "m.profile.social_connected": "Connected.",
   "m.profile.could_not_connect_social": "Could not connect this account.",
   "m.profile.memo_for_this_day": "Memo for this day…",

@@ -104,6 +104,9 @@ export function ProfileEditScreen() {
     twitter: true,
     naver: true,
   });
+  const [socialItems, setSocialItems] = useState<
+    { id: ProfileSocialId; href: string | null; displayed: boolean }[]
+  >([]);
 
   const keyboardInset = useKeyboardBottomInset();
   const { scrollRef, frameRef, keyboardLift, onScrollOffset, onInputFocus } =
@@ -148,6 +151,7 @@ export function ProfileEditScreen() {
     if (!query.data) return;
     setSocialConnected(query.data.socialConnected ?? []);
     if (query.data.socialAvailable) setSocialAvailable(query.data.socialAvailable);
+    setSocialItems(query.data.socialItems ?? []);
   }, [query.data]);
 
   const publishMedia = useCallback(
@@ -423,6 +427,7 @@ export function ProfileEditScreen() {
           <ProfileSocialConnect
             connected={socialConnected}
             available={socialAvailable}
+            items={socialItems}
             onConnected={() => {
               void query.refetch();
               if (authUser?.username) {

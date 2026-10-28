@@ -96,7 +96,7 @@ async function persistInstagramAccount(opts: {
     userId: opts.userId,
     sub: opts.profile.id,
     email: null,
-    name: instagramDisplayName(opts.profile),
+    name: opts.profile.username?.trim() || instagramDisplayName(opts.profile),
     image: opts.profile.profile_picture_url?.trim() || null,
     accessToken: opts.accessToken,
     expiresAt: opts.expiresIn ? Math.floor(Date.now() / 1000) + opts.expiresIn : null,

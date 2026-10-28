@@ -13,6 +13,7 @@ import { listUserStreamingAccounts } from "@/lib/streaming-accounts/service";
 import {
   getProfileSocialConnectAvailability,
   listConnectedProfileSocialIds,
+  listProfileSocialManageItems,
 } from "@/lib/profile-social";
 
 export default async function ProfileSettingsPage() {
@@ -45,9 +46,10 @@ export default async function ProfileSettingsPage() {
   const resetAt = usernameChangeResetAt(recentUsernameChanges);
 
   const streamingAccounts = await listUserStreamingAccounts(user.id);
-  const [socialConnected, socialAvailable] = await Promise.all([
+  const [socialConnected, socialAvailable, socialItems] = await Promise.all([
     listConnectedProfileSocialIds(user.id),
     Promise.resolve(getProfileSocialConnectAvailability()),
+    listProfileSocialManageItems(user.id),
   ]);
 
   const cosplayPhotos: CosplayGalleryPhoto[] =
@@ -89,6 +91,7 @@ export default async function ProfileSettingsPage() {
       streamingAccounts={streamingAccounts}
       socialConnected={socialConnected}
       socialAvailable={socialAvailable}
+      socialItems={socialItems}
     />
   );
 }
