@@ -46,8 +46,14 @@ function hrefFor(id: ProfileSocialId, sub: string | null, handle: string | null)
       ? `https://chzzk.naver.com/search?query=${encodeURIComponent(handle)}`
       : "https://chzzk.naver.com";
   }
-  if (id === "tiktok" && handle) {
-    return `https://www.tiktok.com/@${encodeURIComponent(handle.replace(/^@/, ""))}`;
+  if (id === "tiktok") {
+    const raw = handle?.replace(/^@/, "").trim() ?? "";
+    if (raw && /^[A-Za-z0-9._]+$/.test(raw)) {
+      return `https://www.tiktok.com/@${encodeURIComponent(raw)}`;
+    }
+    return raw
+      ? `https://www.tiktok.com/search/user?q=${encodeURIComponent(raw)}`
+      : "https://www.tiktok.com";
   }
   return null;
 }
@@ -72,8 +78,11 @@ export function isNaverOAuthConfigured(): boolean {
 
 export function isTikTokOAuthConfigured(): boolean {
   return Boolean(
-    (process.env.AUTH_TIKTOK_ID?.trim() || process.env.TIKTOK_CLIENT_ID?.trim()) &&
-      (process.env.AUTH_TIKTOK_SECRET?.trim() || process.env.TIKTOK_CLIENT_SECRET?.trim())
+    (process.env.TIKTOK_CLIENT_KEY?.trim() ||
+      process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY?.trim() ||
+      process.env.AUTH_TIKTOK_ID?.trim() ||
+      process.env.TIKTOK_CLIENT_ID?.trim()) &&
+      (process.env.TIKTOK_CLIENT_SECRET?.trim() || process.env.AUTH_TIKTOK_SECRET?.trim())
   );
 }
 

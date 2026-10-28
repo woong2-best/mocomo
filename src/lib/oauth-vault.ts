@@ -17,6 +17,7 @@ export const OAUTH_VAULT_PROVIDERS = [
   "line",
   "facebook",
   "instagram",
+  "tiktok",
 ] as const;
 export type OAuthVaultProvider = (typeof OAUTH_VAULT_PROVIDERS)[number];
 

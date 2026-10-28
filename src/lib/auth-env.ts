@@ -43,6 +43,12 @@ export function getAuthConfigStatus() {
     instagramIdPresent: !!instagramEnv.appId,
     instagramSecretPresent: !!instagramEnv.appSecret,
     instagramRedirectPresent: !!instagramEnv.redirectUri,
+    tiktokOAuth: Boolean(
+      (process.env.TIKTOK_CLIENT_KEY?.trim() ||
+        process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY?.trim() ||
+        process.env.AUTH_TIKTOK_ID?.trim()) &&
+        (process.env.TIKTOK_CLIENT_SECRET?.trim() || process.env.AUTH_TIKTOK_SECRET?.trim())
+    ),
     discordOAuth: false,
     twitterOAuth: false,
     lineOAuth: false,
@@ -82,6 +88,9 @@ export function getProductionSecurityStatus(): ProductionSecurityStatus {
   }
   if (auth.instagramOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
     issues.push("OAUTH_ENCRYPTION_KEY missing while Instagram OAuth enabled");
+  }
+  if (auth.tiktokOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
+    issues.push("OAUTH_ENCRYPTION_KEY missing while TikTok OAuth enabled");
   }
   if (
     !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||

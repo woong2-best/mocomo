@@ -9,6 +9,13 @@ import {
 } from "@/lib/naver-oauth";
 import { findOAuthAccountBySub, persistEncryptedOAuthAccount } from "@/lib/oauth-vault";
 import {
+  exchangeTikTokCode,
+  fetchTikTokProfile,
+  TIKTOK_OAUTH_SCOPE,
+  TIKTOK_PROVIDER,
+  type TikTokOAuthState,
+} from "@/lib/tiktok-oauth";
+import {
   exchangeTwitterCode,
   fetchTwitterProfile,
   TWITTER_PROVIDER,
@@ -68,6 +75,52 @@ export async function completeTwitterProfileConnect(opts: {
     expiresAt: tokens.expiresIn ? Math.floor(Date.now() / 1000) + tokens.expiresIn : null,
     tokenType: "bearer",
     scope: "users.read tweet.read offline.access",
+  });
+
+  return { ok: true, redirectTo: dest(opts.state.returnTo) };
+}
+
+export async function completeTikTokProfileConnect(opts: {
+  code: string;
+  state: TikTokOAuthState;
+}): Promise<ProfileSocialConnectResult> {
+  const session = await getCachedSession();
+  const userId = session?.user?.id ?? opts.state.linkUserId;
+  if (!userId) {
+    return { ok: false, redirectTo: "/auth/signin?callbackUrl=/settings/profile" };
+  }
+  if (!isOAuthEncryptionConfigured()) {
+    return { ok: false, redirectTo: fail("oauth_failed") };
+  }
+
+  const tokens = await exchangeTikTokCode(opts.code);
+  const profile = await fetchTikTokProfile(tokens.accessToken);
+  const linked = await findOAuthAccountBySub(TIKTOK_PROVIDER, profile.openId);
+  if (linked && linked.userId !== userId) {
+    return { ok: false, redirectTo: fail("account_exists") };
+  }
+
+  const already = await db.account.findFirst({
+    where: { userId, provider: TIKTOK_PROVIDER },
+    select: { id: true },
+  });
+  if (already && !linked) {
+    return { ok: false, redirectTo: fail("account_exists") };
+  }
+
+  await persistEncryptedOAuthAccount({
+    provider: TIKTOK_PROVIDER,
+    accountId: linked?.id,
+    userId,
+    sub: profile.openId,
+    email: null,
+    name: profile.username || profile.name,
+    image: profile.image,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken ?? null,
+    expiresAt: tokens.expiresIn ? Math.floor(Date.now() / 1000) + tokens.expiresIn : null,
+    tokenType: "bearer",
+    scope: TIKTOK_OAUTH_SCOPE,
   });
 
   return { ok: true, redirectTo: dest(opts.state.returnTo) };
