@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, Text, useWindowDimensions, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
@@ -13,7 +13,6 @@ import {
   socialIconSize,
   type ProfileSocialId,
 } from "@/features/profile/profile-social";
-import { ProfileSocialMark } from "@/features/profile/ProfileSocialMark";
 
 const OAUTH_REDIRECT = "mocomo://oauth";
 
@@ -71,9 +70,12 @@ export function ProfileSocialConnect({
               disabled={disabled && !isOn}
               accessibilityRole="button"
               accessibilityLabel={isOn ? `${meta.label} connected` : `Connect ${meta.label}`}
-              style={{ opacity: isOn ? 1 : available[id] ? 0.85 : 0.4 }}
             >
-              <ProfileSocialMark id={id} size={size} />
+              <Image
+                source={meta.icon}
+                style={{ width: size, height: size }}
+                resizeMode="contain"
+              />
             </Pressable>
           );
         })}

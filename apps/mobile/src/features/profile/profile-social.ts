@@ -1,5 +1,3 @@
-import { API_BASE_URL } from "@/config/env";
-
 export const PROFILE_SOCIAL_IDS = ["facebook", "instagram", "twitter", "naver"] as const;
 export type ProfileSocialId = (typeof PROFILE_SOCIAL_IDS)[number];
 
@@ -12,23 +10,23 @@ export type ProfileSocialLink = {
 
 export const PROFILE_SOCIAL_META: Record<
   ProfileSocialId,
-  { label: string; iconSrc: string }
+  { label: string; icon: number }
 > = {
   facebook: {
     label: "Facebook",
-    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/facebook.svg`,
+    icon: require("../../../assets/brand/facebook.png"),
   },
   instagram: {
     label: "Instagram",
-    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/instagram.svg`,
+    icon: require("../../../assets/brand/instagram.png"),
   },
   twitter: {
     label: "X",
-    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/twitter.svg`,
+    icon: require("../../../assets/brand/twitter.png"),
   },
   naver: {
     label: "CHZZK",
-    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/chzzk.png`,
+    icon: require("../../../assets/brand/chzzk.png"),
   },
 };
 

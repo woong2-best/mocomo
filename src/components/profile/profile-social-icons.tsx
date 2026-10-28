@@ -1,12 +1,5 @@
 import type { ProfileSocialLink } from "@/lib/profile-social";
 
-const ICON_SRC: Record<ProfileSocialLink["id"], string> = {
-  facebook: "/brand/facebook.svg",
-  instagram: "/brand/instagram.svg",
-  twitter: "/brand/twitter.svg",
-  naver: "/brand/chzzk.png",
-};
-
 export function ProfileSocialIcons({
   links,
   className = "",
@@ -17,14 +10,14 @@ export function ProfileSocialIcons({
   if (links.length === 0) return null;
 
   return (
-    <div className={`flex shrink-0 items-center gap-2 ${className}`}>
+    <div className={`flex shrink-0 items-center gap-2.5 ${className}`}>
       {links.map((link) => {
         const inner = (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={ICON_SRC[link.id]}
+            src={link.iconSrc}
             alt=""
-            className="h-8 w-8 rounded-lg object-contain sm:h-9 sm:w-9"
+            className="h-8 w-8 object-contain sm:h-9 sm:w-9"
             width={36}
             height={36}
             decoding="async"
@@ -45,7 +38,7 @@ export function ProfileSocialIcons({
             rel="noopener noreferrer"
             title={link.label}
             aria-label={link.label}
-            className="inline-flex shrink-0 touch-manipulation items-center justify-center transition hover:opacity-90"
+            className="inline-flex shrink-0 touch-manipulation items-center justify-center"
           >
             {inner}
           </a>
