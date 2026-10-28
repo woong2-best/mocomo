@@ -53,9 +53,6 @@ function AiOfficialChannelCardInner({
             maxPixelRatio={1}
           />
         </View>
-        <View style={styles.badge} pointerEvents="none">
-          <Text style={styles.badgeText}>{t(accent ? "m.live.idol_badge" : "m.live.ai_official_badge")}</Text>
-        </View>
       </Pressable>
       <View style={styles.meta}>
         <Text style={styles.cat} numberOfLines={1}>
@@ -97,20 +94,10 @@ export const AiOfficialChannelCard = memo(AiOfficialChannelCardInner);
 /** Featured stage on the hub. Same model and room as the website tile. */
 export function AiStageHero({
   onPress,
-  onPressHost,
-  hint,
   stage,
-  host,
-  hostUsername,
-  hostImage,
 }: {
   onPress: () => void;
-  onPressHost?: () => void;
-  hint: string;
   stage: AiStageFiles;
-  host?: string;
-  hostUsername?: string;
-  hostImage?: string | null;
 }) {
   const { width } = useWindowDimensions();
   const height = Math.round(width * (9 / 16));
@@ -126,22 +113,7 @@ export function AiStageHero({
             maxPixelRatio={1.25}
           />
         </View>
-        <Text style={styles.heroHint}>{hint}</Text>
       </Pressable>
-      {host || hostUsername ? (
-        <Pressable
-          onPress={onPressHost ?? onPress}
-          style={styles.heroHost}
-          accessibilityRole="button"
-          accessibilityLabel={hostUsername ? `@${hostUsername}` : host}
-        >
-          <FolkAvatar uri={hostImage} name={host ?? hostUsername ?? "?"} size={32} framed={false} />
-          <View style={styles.hostText}>
-            {host ? <Text style={styles.heroHostName}>{host}</Text> : null}
-            {hostUsername ? <Text style={styles.heroHandle}>@{hostUsername}</Text> : null}
-          </View>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
@@ -158,16 +130,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#241c33",
   },
-  badge: {
-    position: "absolute",
-    top: 6,
-    left: 6,
-    backgroundColor: "#1a4fa0",
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  badgeText: { color: "#fff", fontSize: 8, fontWeight: "900" },
   meta: { flex: 1, justifyContent: "center", gap: 3 },
   cat: { color: "#4da3ff", fontSize: 11, fontWeight: "800", letterSpacing: 0.6 },
   title: { fontWeight: "800", fontSize: 15 },
@@ -176,31 +138,4 @@ const styles = StyleSheet.create({
   host: { fontWeight: "700", fontSize: 13 },
   handle: { fontWeight: "600", fontSize: 11 },
   sub: { fontWeight: "600", fontSize: 12 },
-  heroHint: {
-    position: "absolute",
-    right: 16,
-    top: "38%",
-    width: "42%",
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 18,
-    textAlign: "left",
-  },
-  heroHost: {
-    position: "absolute",
-    left: 12,
-    bottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    maxWidth: "55%",
-    paddingRight: 10,
-    paddingVertical: 4,
-    paddingLeft: 4,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.55)",
-  },
-  heroHostName: { color: "#fff", fontWeight: "800", fontSize: 13 },
-  heroHandle: { color: "rgba(255,255,255,0.78)", fontWeight: "600", fontSize: 11 },
 });

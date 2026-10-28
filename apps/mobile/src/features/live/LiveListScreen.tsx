@@ -119,8 +119,6 @@ export function LiveListScreen() {
     [navigation]
   );
 
-  const zelieHost = hostFromAvatarMap(avatarHosts, "zelie", "zelie", t("m.live.ai_host_name"));
-
   const onRefresh = useCallback(() => {
     void query.refetch();
   }, [query]);
@@ -183,24 +181,19 @@ export function LiveListScreen() {
             ListHeaderComponent={
               <View
                 style={{
-                  paddingTop: featured ? insets.top : insets.top + 48,
+                  paddingTop: featured ? 0 : insets.top + 48,
                   backgroundColor: featured ? "#000" : colors.background,
                 }}
               >
                 {showAiHero ? (
                   <AiStageHero
-                    hint={t("m.live.no_messages_yet_say_hello")}
                     stage={zelieStage}
-                    host={zelieHost.name}
-                    hostUsername={zelieHost.username}
-                    hostImage={zelieHost.image}
                     onPress={() => navigation.navigate("MocoLive")}
-                    onPressHost={() => openProfile(zelieHost.username, zelieHost.name, zelieHost.image)}
                   />
                 ) : hero ? (
                   <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} />
                 ) : null}
-                <LiveSlantTabs active={category} onSelect={selectCategory} overlay={featured} />
+                <LiveSlantTabs active={category} onSelect={selectCategory} />
               </View>
             }
             style={{ backgroundColor: colors.background }}

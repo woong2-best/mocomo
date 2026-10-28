@@ -14,8 +14,6 @@ const TABS = MOBILE_LIVE_CATEGORIES.map((tab) => ({ id: tab.id, label: tab.tab }
 type Props = {
   active: MobileLiveCategoryId;
   onSelect: (id: MobileLiveCategoryId) => void;
-  /** Sit on top of the featured stage instead of a solid black bar. */
-  overlay?: boolean;
 };
 
 type Slot = {
@@ -60,7 +58,7 @@ function buildSlots(screenW: number): { slots: Slot[]; contentW: number } {
   return { slots, contentW };
 }
 
-export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect, overlay = false }: Props) {
+export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect }: Props) {
   const { width } = useWindowDimensions();
   const { slots, contentW } = useMemo(() => buildSlots(width), [width]);
   const ordered = useMemo(() => {
@@ -76,7 +74,7 @@ export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect, ove
       horizontal
       nestedScrollEnabled
       showsHorizontalScrollIndicator={false}
-      style={[styles.bar, overlay && styles.barOverlay]}
+      style={styles.bar}
       contentContainerStyle={{ width: contentW }}
     >
       <View style={{ width: contentW, height: BAR_H + GLOW_PAD * 2 }}>
@@ -143,10 +141,6 @@ const styles = StyleSheet.create({
     height: BAR_H + GLOW_PAD * 2,
     width: "100%",
     backgroundColor: "#000",
-  },
-  barOverlay: {
-    backgroundColor: "transparent",
-    marginTop: -36,
   },
   hit: {
     position: "absolute",
