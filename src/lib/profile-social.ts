@@ -158,9 +158,7 @@ async function loadConnectedSocialItems(userId: string): Promise<ProfileSocialIt
 }
 
 export async function listProfileSocialLinks(userId: string): Promise<ProfileSocialLink[]> {
-  return (await loadConnectedSocialItems(userId))
-    .filter((item) => item.displayed)
-    .map(({ displayed: _shown, ...link }) => link);
+  return (await loadConnectedSocialItems(userId)).map(({ displayed: _shown, ...link }) => link);
 }
 
 export async function listProfileSocialManageItems(userId: string): Promise<ProfileSocialItem[]> {

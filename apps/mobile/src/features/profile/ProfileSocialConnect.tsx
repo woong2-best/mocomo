@@ -6,7 +6,7 @@ import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
-import { setProfileSocialDisplay, startProfileSocialConnect } from "@/api/profile";
+import { startProfileSocialConnect } from "@/api/profile";
 import {
   PROFILE_SOCIAL_IDS,
   PROFILE_SOCIAL_META,
@@ -16,7 +16,7 @@ import {
 
 const OAUTH_REDIRECT = "mocomo://oauth";
 
-type SocialItem = { id: ProfileSocialId; href: string | null; displayed: boolean };
+type SocialItem = { id: ProfileSocialId; href: string | null };
 
 export function ProfileSocialConnect({
   connected,
@@ -63,22 +63,6 @@ export function ProfileSocialConnect({
     await Linking.openURL(href);
   }
 
-  async function toggleDisplay(id: ProfileSocialId, displayed: boolean) {
-    if (busy) return;
-    setBusy(id);
-    try {
-      await setProfileSocialDisplay(id, displayed);
-      onConnected?.();
-    } catch (e) {
-      showIslandError(
-        t("m.common.error"),
-        e instanceof Error ? e.message : t("m.profile.could_not_connect_social")
-      );
-    } finally {
-      setBusy(null);
-    }
-  }
-
   return (
     <FolkCard>
       <Text style={{ fontSize: 16, fontWeight: "800", color: colors.brand, marginBottom: 12 }}>
@@ -89,38 +73,27 @@ export function ProfileSocialConnect({
           const meta = PROFILE_SOCIAL_META[id];
           const isOn = connectedSet.has(id);
           const item = itemById.get(id);
+          const canConnect = available[id];
           return (
-            <View key={id} style={{ alignItems: "center", gap: 6 }}>
-              <Pressable
-                onPress={() =>
-                  isOn ? void openPage(item?.href ?? null) : void connect(id)
-                }
-                disabled={!isOn && (!available[id] || busy !== null)}
-                accessibilityRole="button"
-                accessibilityLabel={meta.label}
-              >
-                <Image
-                  source={meta.icon}
-                  style={{
-                    width: size,
-                    height: size,
-                    opacity: isOn || available[id] ? 1 : 0.4,
-                  }}
-                  resizeMode="contain"
-                />
-              </Pressable>
-              {isOn ? (
-                <Pressable
-                  onPress={() => void toggleDisplay(id, !item?.displayed)}
-                  disabled={busy === id}
-                  hitSlop={6}
-                >
-                  <Text style={{ color: colors.brand, fontSize: 12, fontWeight: "700" }}>
-                    {item?.displayed ? t("m.profile.hide_on_profile") : t("m.profile.show_on_profile")}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
+            <Pressable
+              key={id}
+              onPress={() =>
+                canConnect ? void connect(id) : void openPage(item?.href ?? null)
+              }
+              disabled={(!canConnect && !item?.href) || busy !== null}
+              accessibilityRole="button"
+              accessibilityLabel={meta.label}
+            >
+              <Image
+                source={meta.icon}
+                style={{
+                  width: size,
+                  height: size,
+                  opacity: canConnect || isOn ? 1 : 0.4,
+                }}
+                resizeMode="contain"
+              />
+            </Pressable>
           );
         })}
       </View>
