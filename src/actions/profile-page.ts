@@ -62,6 +62,7 @@ import {
   getVisibleProfileStreamingLinks,
   type ProfileStreamingChannelLink,
 } from "@/lib/profile-public-streaming";
+import { listProfileSocialLinks } from "@/lib/profile-social";
 
 const PAGE_SIZE = 10;
 const MEDIA_GRID_PAGE_SIZE = 30;
@@ -309,6 +310,7 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
   const streamingChannelLinks: ProfileStreamingChannelLink[] = profileBlocked
     ? []
     : await getVisibleProfileStreamingLinks(user.id, user.profile);
+  const socialLinks = profileBlocked ? [] : await listProfileSocialLinks(user.id);
 
   return {
     user: shownUser,
@@ -321,6 +323,7 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     relationship,
     hasPayoutAccount,
     streamingChannelLinks,
+    socialLinks,
   };
 });
 

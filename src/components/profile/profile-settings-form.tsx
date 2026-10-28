@@ -34,7 +34,9 @@ import Link from "next/link";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { sanitizeBirthDigitInput } from "@/lib/birth-date";
 import { ProfileStreamingSettings } from "@/components/profile/profile-streaming-settings";
+import { ProfileSocialConnect } from "@/components/profile/profile-social-connect";
 import type { StreamingAccountPublic } from "@/lib/streaming-accounts/types";
+import type { ProfileSocialId } from "@/lib/profile-social";
 
 function clampBirthDigits(e: React.FormEvent<HTMLInputElement>, maxLength: number) {
   const el = e.currentTarget;
@@ -68,10 +70,14 @@ export function ProfileSettingsForm({
   initial,
   cosplayerProfile,
   streamingAccounts = [],
+  socialConnected = [],
+  socialAvailable,
 }: {
   initial: Initial;
   cosplayerProfile: { username: string; photos: CosplayGalleryPhoto[] } | null;
   streamingAccounts?: StreamingAccountPublic[];
+  socialConnected?: ProfileSocialId[];
+  socialAvailable?: Record<ProfileSocialId, boolean>;
 }) {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -194,6 +200,11 @@ export function ProfileSettingsForm({
           </div>
         </CardContent>
       </Card>
+
+      <ProfileSocialConnect
+        connected={socialConnected}
+        available={socialAvailable ?? { facebook: true, instagram: true, twitter: true, naver: true }}
+      />
 
       <ProfileStreamingSettings
         accounts={streamingAccounts}

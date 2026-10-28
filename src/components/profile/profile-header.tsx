@@ -25,7 +25,9 @@ import { ProfileLiveBanner } from "@/components/profile/profile-live-banner";
 import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
 import type { ProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
 import { ProfileStreamingChannelButtons } from "@/components/profile/profile-streaming-channel-buttons";
+import { ProfileSocialIcons } from "@/components/profile/profile-social-icons";
 import type { ProfileStreamingChannelLink } from "@/lib/profile-public-streaming";
+import type { ProfileSocialLink } from "@/lib/profile-social";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
 
@@ -40,6 +42,7 @@ export function ProfileHeader({
   actionBar,
   liveBroadcast = null,
   streamingChannelLinks = [],
+  socialLinks = [],
 }: {
   user: {
     id: string;
@@ -80,6 +83,7 @@ export function ProfileHeader({
   actionBar?: ReactNode | null;
   liveBroadcast?: ProfileLiveBroadcast | null;
   streamingChannelLinks?: ProfileStreamingChannelLink[];
+  socialLinks?: ProfileSocialLink[];
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
   const displayName = userDisplayName(user);
@@ -228,7 +232,8 @@ export function ProfileHeader({
           </p>
         )}
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-muted-foreground">
+        <div className="mt-3 flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
           {sns.location && (
             <span className="flex items-center gap-1">
               <MapPin className="h-4 w-4 shrink-0" />
@@ -256,6 +261,8 @@ export function ProfileHeader({
             <Calendar className="h-4 w-4 shrink-0" />
             {format(user.createdAt, t("profile.yyyy_m"), { locale: ko })} 가입
           </span>
+          </div>
+          {!isBlocked && socialLinks.length > 0 ? <ProfileSocialIcons links={socialLinks} /> : null}
         </div>
 
         {user.profile?.mainCharacter && (
