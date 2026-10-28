@@ -558,16 +558,14 @@ function CommentRow({
                   </button>
                 </div>
               </div>
-            ) : (
-              {display.trim() ? (
+            ) : display.trim() ? (
               <LinkifiedText
                 text={display}
                 as="p"
                 stopPropagation
                 className="mt-0.5 text-[14px] leading-snug whitespace-pre-wrap break-words text-white"
               />
-              ) : null}
-            )}
+            ) : null}
             <CommentMediaThumb mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
           </div>
 
