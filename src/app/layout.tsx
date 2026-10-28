@@ -46,6 +46,11 @@ export const metadata: Metadata = {
     description: BRAND.description,
     images: [{ url: BRAND.logoSrc, alt: BRAND.name }],
   },
+  verification: {
+    other: {
+      "facebook-domain-verification": "xtpsn7hqqmm7azrga6m4zjoeumye9t",
+    },
+  },
 };
 
 export const viewport: Viewport = {
