@@ -13,6 +13,7 @@ export type TwitterOAuthState = {
   nonce: string;
   exp: number;
   returnTo?: string;
+  linkUserId?: string;
 };
 
 function readEnv(key: string): string | undefined {
@@ -39,13 +40,17 @@ function sign(data: string): string {
   return createHmac("sha256", stateSecret()).update(data).digest("base64url");
 }
 
-export function mintTwitterOAuthState(returnTo?: string | null): string {
+export function mintTwitterOAuthState(
+  returnTo?: string | null,
+  linkUserId?: string | null
+): string {
   const payload: TwitterOAuthState = {
     v: 1,
     provider: "twitter",
     nonce: randomBytes(16).toString("hex"),
     exp: Date.now() + STATE_TTL_MS,
     returnTo: safeOAuthReturnTo(returnTo),
+    linkUserId: linkUserId || undefined,
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}.${sign(body)}`;
@@ -81,10 +86,13 @@ function pkcePair() {
   return { verifier, challenge };
 }
 
-export async function buildTwitterAuthorizeUrl(returnTo?: string | null): Promise<string> {
+export async function buildTwitterAuthorizeUrl(
+  returnTo?: string | null,
+  linkUserId?: string | null
+): Promise<string> {
   const { clientId, redirectUri } = requireTwitterEnv();
   const { verifier, challenge } = pkcePair();
-  const state = mintTwitterOAuthState(returnTo);
+  const state = mintTwitterOAuthState(returnTo, linkUserId);
   const jar = await cookies();
   const secure = process.env.NODE_ENV === "production";
   jar.set(PKCE_COOKIE, verifier, {

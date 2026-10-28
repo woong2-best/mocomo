@@ -32,7 +32,7 @@ export async function completeTwitterProfileConnect(opts: {
   state: TwitterOAuthState;
 }): Promise<ProfileSocialConnectResult> {
   const session = await getCachedSession();
-  const userId = session?.user?.id;
+  const userId = session?.user?.id ?? opts.state.linkUserId;
   if (!userId) {
     return { ok: false, redirectTo: "/auth/signin?callbackUrl=/settings/profile" };
   }
@@ -79,7 +79,7 @@ export async function completeNaverProfileConnect(opts: {
   rawState: string;
 }): Promise<ProfileSocialConnectResult> {
   const session = await getCachedSession();
-  const userId = session?.user?.id;
+  const userId = session?.user?.id ?? opts.state.linkUserId;
   if (!userId) {
     return { ok: false, redirectTo: "/auth/signin?callbackUrl=/settings/profile" };
   }

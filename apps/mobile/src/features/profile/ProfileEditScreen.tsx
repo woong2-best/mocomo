@@ -29,6 +29,8 @@ import {
   prepareProfileBannerImage,
 } from "@/lib/prepare-profile-media";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
+import { ProfileSocialConnect } from "@/features/profile/ProfileSocialConnect";
+import type { ProfileSocialId } from "@/features/profile/profile-social";
 import { userProfileQueryKey } from "@/features/profile/user-profile-nav";
 import { AppHeader } from "@/ui/AppHeader";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -95,6 +97,13 @@ export function ProfileEditScreen() {
   const [hydrated, setHydrated] = useState(false);
   const [birthLocked, setBirthLocked] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "banner" | "video" | null>(null);
+  const [socialConnected, setSocialConnected] = useState<ProfileSocialId[]>([]);
+  const [socialAvailable, setSocialAvailable] = useState<Record<ProfileSocialId, boolean>>({
+    facebook: true,
+    instagram: true,
+    twitter: true,
+    naver: true,
+  });
 
   const keyboardInset = useKeyboardBottomInset();
   const { scrollRef, frameRef, keyboardLift, onScrollOffset, onInputFocus } =
@@ -134,6 +143,12 @@ export function ProfileEditScreen() {
     setUsernameChangesRemaining(s?.usernameChangesRemaining ?? 2);
     setHydrated(true);
   }, [query.data, hydrated]);
+
+  useEffect(() => {
+    if (!query.data) return;
+    setSocialConnected(query.data.socialConnected ?? []);
+    if (query.data.socialAvailable) setSocialAvailable(query.data.socialAvailable);
+  }, [query.data]);
 
   const publishMedia = useCallback(
     async (patch: { image?: string | null; bannerUrl?: string | null; bannerVideoUrl?: string | null }) => {
@@ -404,6 +419,17 @@ export function ProfileEditScreen() {
               </View>
             </View>
           </FolkCard>
+
+          <ProfileSocialConnect
+            connected={socialConnected}
+            available={socialAvailable}
+            onConnected={() => {
+              void query.refetch();
+              if (authUser?.username) {
+                void queryClient.invalidateQueries({ queryKey: userProfileQueryKey(authUser.username) });
+              }
+            }}
+          />
 
           <FolkCard>
             <Text style={styles.sectionTitle}>{t("m.profile.banner_photo_or_video")}</Text>

@@ -311,6 +311,9 @@ export type ProfileUser = {
   postsLocked?: boolean;
   followRequested?: boolean;
   canViewPosts?: boolean;
+  location?: string | null;
+  website?: string | null;
+  socialLinks?: import("@/features/profile/profile-social").ProfileSocialLink[];
 };
 
 export async function fetchUserProfile(username: string) {

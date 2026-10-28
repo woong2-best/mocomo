@@ -31,6 +31,10 @@ import { setPostsLockedForUser } from "@/lib/posts-lock-settings";
 import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 import { isPublicHttpUrl } from "@/lib/displayable-image-url";
 import { evaluateMoneyAge, toPublicMoneyAge } from "@/lib/money-age-policy";
+import {
+  getProfileSocialConnectAvailability,
+  listConnectedProfileSocialIds,
+} from "@/lib/profile-social";
 
 const meSelect = {
   id: true,
@@ -91,6 +95,10 @@ export async function GET(req: NextRequest) {
   const readOnly = isReadOnlySuspended(refreshed?.accountStatus ?? user.accountStatus);
 
   const settings = await getProfileSettingsForUser(userId);
+  const [socialConnected, socialAvailable] = await Promise.all([
+    listConnectedProfileSocialIds(userId),
+    Promise.resolve(getProfileSocialConnectAvailability()),
+  ]);
   const storedImage = user.image;
   if (storedImage && !isPublicHttpUrl(storedImage)) {
     void db.user.update({ where: { id: user.id }, data: { image: null } }).catch(() => undefined);
@@ -124,6 +132,8 @@ export async function GET(req: NextRequest) {
         following: user._count.following,
       },
       hasPassword: Boolean(user.passwordHash),
+      socialConnected,
+      socialAvailable,
       settings: settings
         ? {
             mainCharacter: settings.mainCharacter,

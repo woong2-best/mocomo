@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +16,7 @@ import { AVATAR_CACHE_LAYOUT } from "@/perf/image";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { showIslandError } from "@/ui/IslandToast";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
+import { ProfileSocialIcons } from "@/features/profile/ProfileSocialIcons";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -101,6 +104,7 @@ export function ProfileHeaderChrome({
 }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors, bannerTopInset), [colors, bannerTopInset]);
   const display = user.name || user.username;
   const joined = formatJoined(user.createdAt, t);
@@ -210,12 +214,42 @@ export function ProfileHeaderChrome({
         ) : null}
         {pending ? (
           <View style={styles.boneJoined} />
-        ) : joined ? (
-          <View style={styles.joinedRow}>
-            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.joined}>{joined}</Text>
+        ) : (
+          <View style={styles.metaRow}>
+            <View style={styles.metaFacts}>
+              {user.location ? (
+                <View style={styles.joinedRow}>
+                  <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                  <Text style={styles.joined}>{user.location}</Text>
+                </View>
+              ) : null}
+              {user.website ? (
+                <Pressable
+                  onPress={() =>
+                    void Linking.openURL(
+                      user.website!.startsWith("http") ? user.website! : `https://${user.website}`
+                    )
+                  }
+                  style={styles.joinedRow}
+                >
+                  <Ionicons name="link-outline" size={14} color={colors.textMuted} />
+                  <Text style={[styles.joined, { color: colors.brand }]} numberOfLines={1}>
+                    {user.website.replace(/^https?:\/\//, "")}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {joined ? (
+                <View style={styles.joinedRow}>
+                  <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                  <Text style={styles.joined}>{joined}</Text>
+                </View>
+              ) : null}
+            </View>
+            {user.socialLinks && user.socialLinks.length > 0 ? (
+              <ProfileSocialIcons links={user.socialLinks} screenWidth={width} />
+            ) : null}
           </View>
-        ) : null}
+        )}
       </View>
 
       <View style={styles.countsRow}>
@@ -366,11 +400,22 @@ function createStyles(colors: ThemeColors, bannerTopInset: number) {
     flag: { fontSize: 16 },
     handle: { color: colors.textMuted, fontWeight: "600", fontSize: 15 },
     bio: { color: colors.text, fontSize: 15, lineHeight: 21, marginTop: 4 },
+    metaRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: 10,
+      marginTop: 6,
+    },
+    metaFacts: {
+      flex: 1,
+      minWidth: 0,
+      gap: 4,
+    },
     joinedRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      marginTop: 6,
     },
     joined: { color: colors.textMuted, fontSize: 13, fontWeight: "600" },
     countsRow: {

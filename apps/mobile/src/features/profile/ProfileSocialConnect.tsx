@@ -1,0 +1,104 @@
+import { useMemo, useState } from "react";
+import { Image, Pressable, Text, useWindowDimensions, View } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { FolkCard } from "@/ui/FolkCard";
+import { showIslandError, showIslandToast } from "@/ui/IslandToast";
+import { useTheme } from "@/theme/ThemeContext";
+import { radii, spacing } from "@/theme/tokens";
+import { useI18n } from "@/i18n/I18nProvider";
+import { startProfileSocialConnect } from "@/api/profile";
+import {
+  PROFILE_SOCIAL_IDS,
+  PROFILE_SOCIAL_META,
+  socialIconSize,
+  type ProfileSocialId,
+} from "@/features/profile/profile-social";
+
+const OAUTH_REDIRECT = "mocomo://oauth";
+
+export function ProfileSocialConnect({
+  connected,
+  available,
+  onConnected,
+}: {
+  connected: ProfileSocialId[];
+  available: Record<ProfileSocialId, boolean>;
+  onConnected?: () => void;
+}) {
+  const { t } = useI18n();
+  const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const size = socialIconSize(width);
+  const gap = Math.max(10, Math.round(size * 0.32));
+  const [busy, setBusy] = useState<ProfileSocialId | null>(null);
+  const connectedSet = useMemo(() => new Set(connected), [connected]);
+
+  async function connect(id: ProfileSocialId) {
+    if (busy || connectedSet.has(id) || !available[id]) return;
+    setBusy(id);
+    try {
+      const { url } = await startProfileSocialConnect(id);
+      const result = await WebBrowser.openAuthSessionAsync(url, OAUTH_REDIRECT);
+      if (result.type === "success") {
+        showIslandToast("Saved", t("m.profile.social_connected"));
+        onConnected?.();
+      }
+    } catch (e) {
+      showIslandError(
+        t("m.common.error"),
+        e instanceof Error ? e.message : t("m.profile.could_not_connect_social")
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <FolkCard>
+      <Text style={{ fontSize: 16, fontWeight: "800", color: colors.brand, marginBottom: 12 }}>
+        More Connect Moment
+      </Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap }}>
+        {PROFILE_SOCIAL_IDS.map((id) => {
+          const meta = PROFILE_SOCIAL_META[id];
+          const isOn = connectedSet.has(id);
+          const disabled = !available[id] || isOn || busy !== null;
+          return (
+            <Pressable
+              key={id}
+              onPress={() => void connect(id)}
+              disabled={disabled && !isOn}
+              accessibilityRole="button"
+              accessibilityLabel={isOn ? `${meta.label} connected` : `Connect ${meta.label}`}
+              style={{
+                width: size + 8,
+                height: size + 8,
+                borderRadius: radii.md,
+                backgroundColor: meta.darkChip ? "#000" : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: isOn ? 1 : available[id] ? 0.45 : 0.28,
+              }}
+            >
+              <Image
+                source={{ uri: meta.iconSrc }}
+                style={{ width: size, height: size }}
+                resizeMode="contain"
+              />
+            </Pressable>
+          );
+        })}
+      </View>
+      <Text
+        style={{
+          marginTop: spacing.sm,
+          fontSize: 12,
+          color: colors.textMuted,
+          fontWeight: "600",
+        }}
+      >
+        {t("m.profile.more_connect_hint")}
+      </Text>
+    </FolkCard>
+  );
+}

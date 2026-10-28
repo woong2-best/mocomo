@@ -21,6 +21,7 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "m.star.clear_all",
   "m.star.clear_all_saves",
   "m.feed.instagram_stories",
+  "m.profile.more_connect_moment",
   "m.feed.gif_powered",
 ]);
 

@@ -38,6 +38,7 @@ export type FacebookOAuthState = {
   exp: number;
   returnTo?: string;
   addAccount?: boolean;
+  linkUserId?: string;
 };
 
 function readEnv(key: string): string | undefined {
@@ -91,6 +92,7 @@ export function safeFacebookReturnTo(raw: string | null | undefined): string | u
 export function mintFacebookOAuthState(opts?: {
   returnTo?: string | null;
   addAccount?: boolean;
+  linkUserId?: string | null;
 }): string {
   const payload: FacebookOAuthState = {
     v: 1,
@@ -99,6 +101,7 @@ export function mintFacebookOAuthState(opts?: {
     exp: Date.now() + STATE_TTL_MS,
     returnTo: safeOAuthReturnTo(opts?.returnTo),
     addAccount: opts?.addAccount || undefined,
+    linkUserId: opts?.linkUserId || undefined,
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}.${sign(body)}`;
@@ -135,6 +138,7 @@ export function verifyFacebookOAuthState(
       exp: payload.exp,
       returnTo: safeOAuthReturnTo(payload.returnTo),
       addAccount: Boolean(payload.addAccount),
+      linkUserId: payload.linkUserId,
     };
   } catch {
     return { error: "Could not parse OAuth state." };

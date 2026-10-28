@@ -207,7 +207,7 @@ export async function completeInstagramLogin(opts: {
 
   const linked = await findOAuthAccountBySub(INSTAGRAM_PROVIDER, profile.id);
   const session = await getCachedSession();
-  const currentUserId = session?.user?.id ?? null;
+  const currentUserId = session?.user?.id ?? opts.state.linkUserId ?? null;
 
   if (linked?.userId) {
     if (currentUserId && currentUserId !== linked.userId && addAccount) {

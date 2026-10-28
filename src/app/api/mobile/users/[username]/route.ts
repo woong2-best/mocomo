@@ -14,6 +14,7 @@ import { hydrateViewerPollVotes, mapPostPollRow, postPollSelect } from "@/lib/po
 import { contactPermissions } from "@/lib/contact-audience";
 import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import { quotedPostPreviewSelect } from "@/lib/quoted-post";
+import { listProfileSocialLinks } from "@/lib/profile-social";
 
 const profileTimelinePostSelect = {
   id: true,
@@ -82,7 +83,7 @@ export async function GET(
       creatorSubscriptionPriceKrw: true,
       postsLocked: true,
       profileMainPostId: true,
-      profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true } },
+      profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true, snsLinks: true } },
       _count: { select: { posts: true, followers: true, following: true } },
     },
   });
@@ -264,6 +265,8 @@ export async function GET(
     email: user.email,
     passwordHash: user.passwordHash,
   });
+  const sns = (user.profile?.snsLinks ?? {}) as { location?: string; website?: string };
+  const socialLinks = profileBlocked ? [] : await listProfileSocialLinks(user.id);
 
   return NextResponse.json({
     user: {
@@ -275,6 +278,9 @@ export async function GET(
       bannerUrl: user.profile?.bannerUrl ?? null,
       bannerVideoUrl: user.profile?.bannerVideoUrl ?? null,
       countryCode: user.countryCode ?? null,
+      location: sns.location ?? null,
+      website: sns.website ?? null,
+      socialLinks,
       createdAt: toIsoDate(user.createdAt),
       counts: {
         posts: user._count.posts,

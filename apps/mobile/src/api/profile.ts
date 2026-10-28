@@ -1,5 +1,6 @@
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
+import type { ProfileSocialId } from "@/features/profile/profile-social";
 
 export type ProfileSettings = {
   mainCharacter: string;
@@ -27,6 +28,8 @@ export type ProfileEditState = {
   countryCode: string;
   timeZone: string;
   settings: ProfileSettings | null;
+  socialConnected?: ProfileSocialId[];
+  socialAvailable?: Record<ProfileSocialId, boolean>;
 };
 
 export async function fetchProfileEditState() {
@@ -57,6 +60,14 @@ export async function patchProfile(body: PatchProfileBody) {
   return apiRequest<{ ok: boolean }>(MobileApi.me, {
     method: "PATCH",
     body,
+    auth: true,
+  });
+}
+
+export async function startProfileSocialConnect(provider: ProfileSocialId) {
+  return apiRequest<{ url: string }>(MobileApi.profileSocialConnect, {
+    method: "POST",
+    body: { provider },
     auth: true,
   });
 }

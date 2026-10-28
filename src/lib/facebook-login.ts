@@ -204,7 +204,7 @@ export async function completeFacebookLogin(opts: {
 
   const linked = await findOAuthAccountBySub(FACEBOOK_PROVIDER, profile.id);
   const session = await getCachedSession();
-  const currentUserId = session?.user?.id ?? null;
+  const currentUserId = session?.user?.id ?? opts.state.linkUserId ?? null;
 
   if (linked?.userId) {
     if (currentUserId && currentUserId !== linked.userId && addAccount) {

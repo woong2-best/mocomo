@@ -40,6 +40,7 @@ export type InstagramOAuthState = {
   exp: number;
   returnTo?: string;
   addAccount?: boolean;
+  linkUserId?: string;
 };
 
 function readEnv(key: string): string | undefined {
@@ -93,6 +94,7 @@ export function safeInstagramReturnTo(raw: string | null | undefined): string | 
 export function mintInstagramOAuthState(opts?: {
   returnTo?: string | null;
   addAccount?: boolean;
+  linkUserId?: string | null;
 }): string {
   const payload: InstagramOAuthState = {
     v: 1,
@@ -101,6 +103,7 @@ export function mintInstagramOAuthState(opts?: {
     exp: Date.now() + STATE_TTL_MS,
     returnTo: safeOAuthReturnTo(opts?.returnTo),
     addAccount: opts?.addAccount || undefined,
+    linkUserId: opts?.linkUserId || undefined,
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}.${sign(body)}`;
@@ -137,6 +140,7 @@ export function verifyInstagramOAuthState(
       exp: payload.exp,
       returnTo: safeOAuthReturnTo(payload.returnTo),
       addAccount: Boolean(payload.addAccount),
+      linkUserId: payload.linkUserId,
     };
   } catch {
     return { error: "Could not parse OAuth state." };

@@ -6,6 +6,7 @@ import {
   mintFacebookOAuthState,
   safeFacebookReturnTo,
 } from "@/lib/facebook-oauth";
+import { MOBILE_SOCIAL_RETURN_TO, ticketFromRequest } from "@/lib/profile-social-ticket";
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitPublicApi(req, "auth-facebook-start", 20);
@@ -22,9 +23,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const returnTo = safeFacebookReturnTo(req.nextUrl.searchParams.get("returnTo"));
+    const ticket = ticketFromRequest(req, "facebook");
+    const returnTo =
+      ticket != null
+        ? MOBILE_SOCIAL_RETURN_TO
+        : safeFacebookReturnTo(req.nextUrl.searchParams.get("returnTo"));
     const addAccount = req.nextUrl.searchParams.get("addAccount") === "1";
-    const state = mintFacebookOAuthState({ returnTo, addAccount });
+    const state = mintFacebookOAuthState({
+      returnTo,
+      addAccount,
+      linkUserId: ticket?.userId,
+    });
     const authorizeUrl = buildFacebookAuthorizeUrl(state);
 
     if (req.nextUrl.searchParams.get("json") === "1") {

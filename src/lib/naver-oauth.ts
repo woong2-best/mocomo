@@ -11,6 +11,7 @@ export type NaverOAuthState = {
   nonce: string;
   exp: number;
   returnTo?: string;
+  linkUserId?: string;
 };
 
 function readEnv(key: string): string | undefined {
@@ -41,13 +42,17 @@ function sign(data: string): string {
   return createHmac("sha256", stateSecret()).update(data).digest("base64url");
 }
 
-export function mintNaverOAuthState(returnTo?: string | null): string {
+export function mintNaverOAuthState(
+  returnTo?: string | null,
+  linkUserId?: string | null
+): string {
   const payload: NaverOAuthState = {
     v: 1,
     provider: "naver",
     nonce: randomBytes(16).toString("hex"),
     exp: Date.now() + STATE_TTL_MS,
     returnTo: safeOAuthReturnTo(returnTo),
+    linkUserId: linkUserId || undefined,
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}.${sign(body)}`;
@@ -77,9 +82,12 @@ export function verifyNaverOAuthState(state: string): NaverOAuthState | { error:
   }
 }
 
-export function buildNaverAuthorizeUrl(returnTo?: string | null): string {
+export function buildNaverAuthorizeUrl(
+  returnTo?: string | null,
+  linkUserId?: string | null
+): string {
   const { clientId, redirectUri } = requireNaverEnv();
-  const state = mintNaverOAuthState(returnTo);
+  const state = mintNaverOAuthState(returnTo, linkUserId);
   const params = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
