@@ -151,7 +151,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       function oauthProviderEmailVerified(): boolean {
         if (account?.provider === "naver") return Boolean(user.email?.trim());
-        // X/Twitter and LINE do not return email — account was already matched by provider id.
+        // X/Twitter, LINE, and Instagram do not return email — match by provider id.
         if (isProviderWithoutEmail(account?.provider)) return true;
         const claims = profile as
           | { email_verified?: boolean; verified_email?: boolean; verified?: boolean }
@@ -163,7 +163,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       function isProviderWithoutEmail(provider: string | undefined): boolean {
-        return provider === "twitter" || provider === "line";
+        return provider === "twitter" || provider === "line" || provider === "instagram";
       }
 
       async function isAddAccountOAuthFlow(): Promise<boolean> {
@@ -212,7 +212,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return mobileOptsFromAuthCallbackUrl(callbackUrl);
       }
 
-      type OAuthSignupProvider = "discord" | "twitter" | "line" | "naver" | "google";
+      type OAuthSignupProvider = "discord" | "twitter" | "line" | "naver" | "google" | "instagram";
 
       function isOAuthSignupProvider(
         provider: string | undefined
@@ -222,7 +222,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           provider === "twitter" ||
           provider === "line" ||
           provider === "naver" ||
-          provider === "google"
+          provider === "google" ||
+          provider === "instagram"
         );
       }
 
