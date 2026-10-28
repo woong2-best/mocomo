@@ -5,6 +5,12 @@ const STATE_TTL_MS = 15 * 60 * 1000;
 export const TIKTOK_PROVIDER = "tiktok" as const;
 export const TIKTOK_OAUTH_SCOPE = "user.info.basic";
 export const DEFAULT_TIKTOK_REDIRECT_URI = "https://mocomo.net/api/auth/callback/tiktok";
+export const TIKTOK_REGISTERED_REDIRECT_URIS = [
+  "https://mocomo.net/api/auth/callback/tiktok",
+  "https://www.mocomo.net/api/auth/callback/tiktok",
+  "http://localhost:3000/api/auth/callback/tiktok",
+  "https://localhost:3000/api/auth/callback/tiktok",
+] as const;
 
 export type TikTokOAuthState = {
   v: 1;
@@ -13,6 +19,7 @@ export type TikTokOAuthState = {
   exp: number;
   returnTo?: string;
   linkUserId?: string;
+  redirectUri?: string;
 };
 
 function readEnv(key: string): string | undefined {
@@ -26,11 +33,40 @@ export function requireTikTokEnv() {
     readEnv("AUTH_TIKTOK_ID") ??
     readEnv("TIKTOK_CLIENT_ID");
   const clientSecret = readEnv("TIKTOK_CLIENT_SECRET") ?? readEnv("AUTH_TIKTOK_SECRET");
-  const redirectUri = readEnv("TIKTOK_REDIRECT_URI") ?? DEFAULT_TIKTOK_REDIRECT_URI;
+  const redirectUri = resolveTikTokRedirectUri();
   if (!clientKey || !clientSecret) {
     throw new Error("TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET are required");
   }
   return { clientKey, clientSecret, redirectUri };
+}
+
+export function isAllowedTikTokRedirectUri(uri: string): boolean {
+  const extra = readEnv("TIKTOK_REDIRECT_URI");
+  return (
+    (TIKTOK_REGISTERED_REDIRECT_URIS as readonly string[]).includes(uri) ||
+    (extra != null && extra === uri)
+  );
+}
+
+export function resolveTikTokRedirectUri(requestOrigin?: string | null): string {
+  const extra = readEnv("TIKTOK_REDIRECT_URI");
+  const origin = requestOrigin?.trim() || "";
+  const host = (() => {
+    try {
+      return origin ? new URL(origin).hostname : "";
+    } catch {
+      return "";
+    }
+  })();
+  if (host === "localhost" || host === "127.0.0.1") {
+    return origin.startsWith("https://")
+      ? "https://localhost:3000/api/auth/callback/tiktok"
+      : "http://localhost:3000/api/auth/callback/tiktok";
+  }
+  if (extra && isAllowedTikTokRedirectUri(extra) && !extra.includes("localhost")) {
+    return extra;
+  }
+  return DEFAULT_TIKTOK_REDIRECT_URI;
 }
 
 function stateSecret(): string {
@@ -45,8 +81,12 @@ function sign(data: string): string {
 
 export function mintTikTokOAuthState(
   returnTo?: string | null,
-  linkUserId?: string | null
+  linkUserId?: string | null,
+  redirectUri?: string | null
 ): string {
+  const resolved = redirectUri && isAllowedTikTokRedirectUri(redirectUri)
+    ? redirectUri
+    : resolveTikTokRedirectUri();
   const payload: TikTokOAuthState = {
     v: 1,
     provider: "tiktok",
@@ -54,6 +94,7 @@ export function mintTikTokOAuthState(
     exp: Date.now() + STATE_TTL_MS,
     returnTo: safeOAuthReturnTo(returnTo),
     linkUserId: linkUserId || undefined,
+    redirectUri: resolved,
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}.${sign(body)}`;
@@ -85,10 +126,12 @@ export function verifyTikTokOAuthState(state: string): TikTokOAuthState | { erro
 
 export function buildTikTokAuthorizeUrl(
   returnTo?: string | null,
-  linkUserId?: string | null
+  linkUserId?: string | null,
+  requestOrigin?: string | null
 ): string {
-  const { clientKey, redirectUri } = requireTikTokEnv();
-  const state = mintTikTokOAuthState(returnTo, linkUserId);
+  const { clientKey } = requireTikTokEnv();
+  const redirectUri = resolveTikTokRedirectUri(requestOrigin);
+  const state = mintTikTokOAuthState(returnTo, linkUserId, redirectUri);
   const params = new URLSearchParams({
     client_key: clientKey,
     scope: TIKTOK_OAUTH_SCOPE,
@@ -99,19 +142,24 @@ export function buildTikTokAuthorizeUrl(
   return `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
 }
 
-export async function exchangeTikTokCode(code: string): Promise<{
+export async function exchangeTikTokCode(
+  code: string,
+  redirectUri?: string | null
+): Promise<{
   accessToken: string;
   refreshToken?: string;
   expiresIn?: number;
   openId?: string;
 }> {
-  const { clientKey, clientSecret, redirectUri } = requireTikTokEnv();
+  const { clientKey, clientSecret, redirectUri: fallbackRedirect } = requireTikTokEnv();
+  const usedRedirect =
+    redirectUri && isAllowedTikTokRedirectUri(redirectUri) ? redirectUri : fallbackRedirect;
   const body = new URLSearchParams({
     client_key: clientKey,
     client_secret: clientSecret,
     code,
     grant_type: "authorization_code",
-    redirect_uri: redirectUri,
+    redirect_uri: usedRedirect,
   });
   const res = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
     method: "POST",

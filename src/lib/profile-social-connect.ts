@@ -93,7 +93,7 @@ export async function completeTikTokProfileConnect(opts: {
     return { ok: false, redirectTo: fail("oauth_failed") };
   }
 
-  const tokens = await exchangeTikTokCode(opts.code);
+  const tokens = await exchangeTikTokCode(opts.code, opts.state.redirectUri);
   const profile = await fetchTikTokProfile(tokens.accessToken);
   const linked = await findOAuthAccountBySub(TIKTOK_PROVIDER, profile.openId);
   if (linked && linked.userId !== userId) {

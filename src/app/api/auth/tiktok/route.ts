@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
     const returnTo = ticket
       ? MOBILE_SOCIAL_RETURN_TO
       : safeOAuthReturnTo(req.nextUrl.searchParams.get("returnTo")) ?? "/settings/profile";
-    return NextResponse.redirect(buildTikTokAuthorizeUrl(returnTo, ticket?.userId));
+    return NextResponse.redirect(
+      buildTikTokAuthorizeUrl(returnTo, ticket?.userId, req.nextUrl.origin)
+    );
   } catch {
     return NextResponse.redirect(new URL("/settings/profile?reason=oauth_failed", req.url));
   }
