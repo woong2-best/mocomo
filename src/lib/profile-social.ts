@@ -23,9 +23,9 @@ const META: Record<
   ProfileSocialId,
   { label: string; iconSrc: string }
 > = {
-  facebook: { label: "Facebook", iconSrc: "/brand/facebook.png" },
-  instagram: { label: "Instagram", iconSrc: "/brand/instagram.png" },
-  twitter: { label: "X", iconSrc: "/brand/twitter.png" },
+  facebook: { label: "Facebook", iconSrc: "/brand/facebook.svg" },
+  instagram: { label: "Instagram", iconSrc: "/brand/instagram.svg" },
+  twitter: { label: "X", iconSrc: "/brand/twitter.svg" },
   naver: { label: "CHZZK", iconSrc: "/brand/chzzk.png" },
 };
 

@@ -1,5 +1,12 @@
 import type { ProfileSocialLink } from "@/lib/profile-social";
 
+const ICON_SRC: Record<ProfileSocialLink["id"], string> = {
+  facebook: "/brand/facebook.svg",
+  instagram: "/brand/instagram.svg",
+  twitter: "/brand/twitter.svg",
+  naver: "/brand/chzzk.png",
+};
+
 export function ProfileSocialIcons({
   links,
   className = "",
@@ -10,25 +17,18 @@ export function ProfileSocialIcons({
   if (links.length === 0) return null;
 
   return (
-    <div className={`flex shrink-0 items-center gap-2.5 ${className}`}>
+    <div className={`flex shrink-0 items-center gap-2 ${className}`}>
       {links.map((link) => {
-        const darkChip = link.id === "facebook" || link.id === "twitter";
         const inner = (
-          <span
-            className={`inline-flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9 ${
-              darkChip ? "rounded-lg bg-black p-1" : ""
-            }`}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={link.iconSrc}
-              alt=""
-              className="h-full w-full object-contain"
-              width={32}
-              height={32}
-              decoding="async"
-            />
-          </span>
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={ICON_SRC[link.id]}
+            alt=""
+            className="h-8 w-8 rounded-lg object-contain sm:h-9 sm:w-9"
+            width={36}
+            height={36}
+            decoding="async"
+          />
         );
         if (!link.href) {
           return (
@@ -45,7 +45,7 @@ export function ProfileSocialIcons({
             rel="noopener noreferrer"
             title={link.label}
             aria-label={link.label}
-            className="inline-flex shrink-0 touch-manipulation items-center justify-center opacity-90 transition hover:opacity-100"
+            className="inline-flex shrink-0 touch-manipulation items-center justify-center transition hover:opacity-90"
           >
             {inner}
           </a>

@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { Image, Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
-import { radii, spacing } from "@/theme/tokens";
+import { spacing } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
 import { startProfileSocialConnect } from "@/api/profile";
 import {
@@ -13,6 +13,7 @@ import {
   socialIconSize,
   type ProfileSocialId,
 } from "@/features/profile/profile-social";
+import { ProfileSocialMark } from "@/features/profile/ProfileSocialMark";
 
 const OAUTH_REDIRECT = "mocomo://oauth";
 
@@ -70,21 +71,9 @@ export function ProfileSocialConnect({
               disabled={disabled && !isOn}
               accessibilityRole="button"
               accessibilityLabel={isOn ? `${meta.label} connected` : `Connect ${meta.label}`}
-              style={{
-                width: size + 8,
-                height: size + 8,
-                borderRadius: radii.md,
-                backgroundColor: meta.darkChip ? "#000" : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: isOn ? 1 : available[id] ? 0.45 : 0.28,
-              }}
+              style={{ opacity: isOn ? 1 : available[id] ? 0.85 : 0.4 }}
             >
-              <Image
-                source={{ uri: meta.iconSrc }}
-                style={{ width: size, height: size }}
-                resizeMode="contain"
-              />
+              <ProfileSocialMark id={id} size={size} />
             </Pressable>
           );
         })}

@@ -12,21 +12,19 @@ export type ProfileSocialLink = {
 
 export const PROFILE_SOCIAL_META: Record<
   ProfileSocialId,
-  { label: string; iconSrc: string; darkChip?: boolean }
+  { label: string; iconSrc: string }
 > = {
   facebook: {
     label: "Facebook",
-    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/facebook.png`,
-    darkChip: true,
+    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/facebook.svg`,
   },
   instagram: {
     label: "Instagram",
-    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/instagram.png`,
+    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/instagram.svg`,
   },
   twitter: {
     label: "X",
-    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/twitter.png`,
-    darkChip: true,
+    iconSrc: `${API_BASE_URL.replace(/\/$/, "")}/brand/twitter.svg`,
   },
   naver: {
     label: "CHZZK",
