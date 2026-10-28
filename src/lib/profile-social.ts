@@ -8,6 +8,7 @@ export const PROFILE_SOCIAL_PROVIDERS = [
   "instagram",
   "twitter",
   "naver",
+  "tiktok",
 ] as const;
 
 export type ProfileSocialId = (typeof PROFILE_SOCIAL_PROVIDERS)[number];
@@ -27,6 +28,7 @@ const META: Record<
   instagram: { label: "Instagram", iconSrc: "/brand/instagram.png" },
   twitter: { label: "X", iconSrc: "/brand/twitter.png" },
   naver: { label: "CHZZK", iconSrc: "/brand/chzzk.png" },
+  tiktok: { label: "TikTok", iconSrc: "/brand/tiktok.png" },
 };
 
 function hrefFor(id: ProfileSocialId, sub: string | null, handle: string | null): string | null {
@@ -43,6 +45,9 @@ function hrefFor(id: ProfileSocialId, sub: string | null, handle: string | null)
     return handle
       ? `https://chzzk.naver.com/search?query=${encodeURIComponent(handle)}`
       : "https://chzzk.naver.com";
+  }
+  if (id === "tiktok" && handle) {
+    return `https://www.tiktok.com/@${encodeURIComponent(handle.replace(/^@/, ""))}`;
   }
   return null;
 }
@@ -65,12 +70,20 @@ export function isNaverOAuthConfigured(): boolean {
   );
 }
 
+export function isTikTokOAuthConfigured(): boolean {
+  return Boolean(
+    (process.env.AUTH_TIKTOK_ID?.trim() || process.env.TIKTOK_CLIENT_ID?.trim()) &&
+      (process.env.AUTH_TIKTOK_SECRET?.trim() || process.env.TIKTOK_CLIENT_SECRET?.trim())
+  );
+}
+
 export function getProfileSocialConnectAvailability() {
   return {
     facebook: isFacebookOAuthConfigured(),
     instagram: isInstagramOAuthConfigured(),
     twitter: isTwitterOAuthConfigured(),
     naver: isNaverOAuthConfigured(),
+    tiktok: isTikTokOAuthConfigured(),
   };
 }
 
@@ -96,6 +109,7 @@ export function readSocialDisplay(raw: unknown): Record<ProfileSocialId, boolean
     instagram: shown.instagram === true,
     twitter: shown.twitter === true,
     naver: shown.naver === true,
+    tiktok: shown.tiktok === true,
   };
 }
 
@@ -189,4 +203,5 @@ export const PROFILE_SOCIAL_CONNECT_PATH: Record<ProfileSocialId, string> = {
   instagram: "/api/auth/instagram",
   twitter: "/api/auth/twitter",
   naver: "/api/auth/naver",
+  tiktok: "/api/auth/tiktok",
 };

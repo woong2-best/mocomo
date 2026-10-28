@@ -9,7 +9,7 @@ import {
 import { mintProfileSocialTicket } from "@/lib/profile-social-ticket";
 
 const bodySchema = z.object({
-  provider: z.enum(["facebook", "instagram", "twitter", "naver"]),
+  provider: z.enum(["facebook", "instagram", "twitter", "naver", "tiktok"]),
 });
 
 export async function POST(req: NextRequest) {

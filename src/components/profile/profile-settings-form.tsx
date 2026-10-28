@@ -205,7 +205,15 @@ export function ProfileSettingsForm({
 
       <ProfileSocialConnect
         connected={socialConnected}
-        available={socialAvailable ?? { facebook: true, instagram: true, twitter: true, naver: true }}
+        available={
+          socialAvailable ?? {
+            facebook: true,
+            instagram: true,
+            twitter: true,
+            naver: true,
+            tiktok: false,
+          }
+        }
         items={socialItems}
       />
 

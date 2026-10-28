@@ -7,7 +7,7 @@ import { profileUserCacheTag } from "@/lib/cache-tags";
 import { setProfileSocialDisplayed } from "@/lib/profile-social";
 
 const bodySchema = z.object({
-  provider: z.enum(["facebook", "instagram", "twitter", "naver"]),
+  provider: z.enum(["facebook", "instagram", "twitter", "naver", "tiktok"]),
   displayed: z.boolean(),
 });
 

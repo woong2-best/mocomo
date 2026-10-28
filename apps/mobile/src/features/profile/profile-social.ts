@@ -1,4 +1,4 @@
-export const PROFILE_SOCIAL_IDS = ["facebook", "instagram", "twitter", "naver"] as const;
+export const PROFILE_SOCIAL_IDS = ["facebook", "instagram", "twitter", "naver", "tiktok"] as const;
 export type ProfileSocialId = (typeof PROFILE_SOCIAL_IDS)[number];
 
 export type ProfileSocialLink = {
@@ -27,6 +27,10 @@ export const PROFILE_SOCIAL_META: Record<
   naver: {
     label: "CHZZK",
     icon: require("../../../assets/brand/chzzk.png"),
+  },
+  tiktok: {
+    label: "TikTok",
+    icon: require("../../../assets/brand/tiktok.png"),
   },
 };
 

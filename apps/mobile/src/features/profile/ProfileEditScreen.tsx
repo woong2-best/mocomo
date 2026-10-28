@@ -103,6 +103,7 @@ export function ProfileEditScreen() {
     instagram: true,
     twitter: true,
     naver: true,
+    tiktok: false,
   });
   const [socialItems, setSocialItems] = useState<
     { id: ProfileSocialId; href: string | null; displayed: boolean }[]

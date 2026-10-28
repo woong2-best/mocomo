@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { setSocialDisplayed } from "@/actions/profile-social";
 
-type ProfileSocialId = "facebook" | "instagram" | "twitter" | "naver";
+type ProfileSocialId = "facebook" | "instagram" | "twitter" | "naver" | "tiktok";
 
 type ManageItem = {
   id: ProfileSocialId;
@@ -18,6 +18,7 @@ const CONNECT_PATH: Record<ProfileSocialId, string> = {
   instagram: "/api/auth/instagram",
   twitter: "/api/auth/twitter",
   naver: "/api/auth/naver",
+  tiktok: "/api/auth/tiktok",
 };
 
 const BUTTONS: { id: ProfileSocialId; label: string; iconSrc: string }[] = [
@@ -25,6 +26,7 @@ const BUTTONS: { id: ProfileSocialId; label: string; iconSrc: string }[] = [
   { id: "instagram", label: "Instagram", iconSrc: "/brand/instagram.png" },
   { id: "twitter", label: "X", iconSrc: "/brand/twitter.png" },
   { id: "naver", label: "CHZZK", iconSrc: "/brand/chzzk.png" },
+  { id: "tiktok", label: "TikTok", iconSrc: "/brand/tiktok.png" },
 ];
 
 export function ProfileSocialConnect({

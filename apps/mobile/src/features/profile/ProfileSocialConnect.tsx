@@ -101,7 +101,11 @@ export function ProfileSocialConnect({
               >
                 <Image
                   source={meta.icon}
-                  style={{ width: size, height: size }}
+                  style={{
+                    width: size,
+                    height: size,
+                    opacity: isOn || available[id] ? 1 : 0.4,
+                  }}
                   resizeMode="contain"
                 />
               </Pressable>
