@@ -19,7 +19,13 @@ import { ApiError } from "@/api/client";
 import { isStripeAccountNotReady } from "@/lib/creator-payout";
 import { showIslandError } from "@/ui/IslandToast";
 import { transferMoco } from "@/api/moco-transfer";
-import { appendMocoDecimalChar, formatMocoCount, parseSpendableMoco } from "@/lib/moco-amount";
+import {
+  appendMocoDecimalChar,
+  formatMocoCount,
+  parseSpendableMoco,
+  sanitizeMocoDecimalInput,
+} from "@/lib/moco-amount";
+import { FolkButton } from "@/ui/FolkButton";
 import { ATM_LETTER_MESSAGE_MAX } from "@/lib/chat-atm-letter";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -31,6 +37,14 @@ const LOGO = require("../../../assets/icon.png");
 const DOT_COUNT = 5;
 
 type Overlay = "success" | "failure" | null;
+
+/** ATM chrome + keypad stay in this file; do not render on the transfer tab. */
+function showAtmChrome(): boolean {
+  return false;
+}
+function showAtmKeypad(): boolean {
+  return false;
+}
 
 function TransferDots({ active }: { active: boolean }) {
   const [phase, setPhase] = useState(0);
@@ -254,180 +268,231 @@ export function WalletTransferPanel() {
     mutation.mutate();
   }
 
+  const sendDisabled =
+    pending || !!overlay || !username.trim() || parsed == null || parsed < 0.1;
+
+  const earthForm = (
+    <View style={styles.earthForm}>
+      <Text style={styles.fieldKicker}>{t("m.wallet.purchased_moco_you_can_send")}</Text>
+      <Text style={styles.balanceLine}>{formatMocoCount(held)} MOCO</Text>
+
+      <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.recipient_username")}</Text>
+      <TextInput
+        value={username}
+        editable={!pending && !overlay}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder="@username"
+        placeholderTextColor="rgba(0,0,0,0.35)"
+        onChangeText={(v) => {
+          setUsername(v.replace(/\s/g, ""));
+          if (error) setError("");
+        }}
+        style={styles.usernameInput}
+      />
+
+      <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.letter")}</Text>
+      <TextInput
+        value={letter}
+        editable={!pending && !overlay}
+        multiline
+        maxLength={ATM_LETTER_MESSAGE_MAX}
+        placeholder={t("m.wallet.message_for_the_letter")}
+        placeholderTextColor="rgba(0,0,0,0.35)"
+        onChangeText={(v) => {
+          setLetter(v.slice(0, ATM_LETTER_MESSAGE_MAX));
+          if (error) setError("");
+        }}
+        style={styles.letterInput}
+      />
+      <Text style={styles.letterCount}>
+        {letter.length}/{ATM_LETTER_MESSAGE_MAX}
+      </Text>
+
+      {showAtmKeypad() ? (
+        <View style={styles.amountSlot}>
+          <Text style={styles.amountDisplay} numberOfLines={1}>
+            {displayAmount}
+          </Text>
+          <Text style={styles.amountUnit}>MOCO</Text>
+        </View>
+      ) : (
+        <View style={styles.amountSlot}>
+          <TextInput
+            value={amount}
+            editable={!pending && !overlay}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor="rgba(0,0,0,0.25)"
+            onChangeText={(v) => {
+              setAmount(sanitizeMocoDecimalInput(v));
+              if (error) setError("");
+              setStatusLine(t("m.wallet.confirm_amount_and_username_then_tap"));
+            }}
+            style={styles.amountInput}
+          />
+          <Text style={styles.amountUnit}>MOCO</Text>
+        </View>
+      )}
+
+      {showAtmKeypad() ? null : (
+        <View style={styles.sendBtnWrap}>
+          <FolkButton
+            label={t("m.common.send")}
+            loading={pending}
+            disabled={sendDisabled}
+            onPress={send}
+          />
+        </View>
+      )}
+    </View>
+  );
+
+  const earthCard = (
+    <View style={styles.earthCard}>
+      <View style={styles.earthHero}>
+        <ImageBackground source={EARTH_BG} style={StyleSheet.absoluteFill} imageStyle={styles.earthImage}>
+          <View style={styles.transferRow}>
+            <View style={styles.iconBox}>
+              <FolkAvatar uri={user?.image ?? null} name={user?.username ?? "me"} size={44} framed={false} />
+            </View>
+            <TransferDots active={pending} />
+            <View style={[styles.iconBox, styles.iconLogoBox]}>
+              <Image source={LOGO} style={styles.logoImg} resizeMode="contain" />
+            </View>
+          </View>
+        </ImageBackground>
+      </View>
+      {earthForm}
+    </View>
+  );
+
+  const overlayLayer = overlay ? (
+    <Pressable style={styles.overlay} onPress={() => setOverlay(null)}>
+      <View
+        style={[
+          styles.overlayIcon,
+          overlay === "success" ? styles.overlayIconOk : styles.overlayIconFail,
+        ]}
+      >
+        <Ionicons
+          name={overlay === "success" ? "checkmark" : "close"}
+          size={36}
+          color={overlay === "success" ? "#6ee7b7" : "#fca5a5"}
+        />
+      </View>
+      <Text style={[styles.overlayTitle, overlay === "success" ? styles.overlayOk : styles.overlayFail]}>
+        {overlay === "success" ? t("m.common.sent") : t("m.wallet.failed")}
+      </Text>
+      <Text style={styles.overlayDismiss}>{t("m.common.close")}</Text>
+    </Pressable>
+  ) : null;
+
+  const keypad = showAtmKeypad() ? (
+    <LinearGradient colors={["#b8bcc4", "#9ca3af"]} style={styles.keypadWell}>
+      <View style={styles.keypadRow}>
+        <View style={styles.keypadMain}>
+          <View style={styles.keyRow}>
+            <AtmNumKey label="1" disabled={pending || !!overlay} onPress={() => appendDigit("1")} />
+            <AtmNumKey label="2" disabled={pending || !!overlay} onPress={() => appendDigit("2")} />
+            <AtmNumKey label="3" disabled={pending || !!overlay} onPress={() => appendDigit("3")} />
+          </View>
+          <View style={styles.keyRow}>
+            <AtmNumKey label="4" disabled={pending || !!overlay} onPress={() => appendDigit("4")} />
+            <AtmNumKey label="5" disabled={pending || !!overlay} onPress={() => appendDigit("5")} />
+            <AtmNumKey label="6" disabled={pending || !!overlay} onPress={() => appendDigit("6")} />
+          </View>
+          <View style={styles.keyRow}>
+            <AtmNumKey label="7" disabled={pending || !!overlay} onPress={() => appendDigit("7")} />
+            <AtmNumKey label="8" disabled={pending || !!overlay} onPress={() => appendDigit("8")} />
+            <AtmNumKey label="9" disabled={pending || !!overlay} onPress={() => appendDigit("9")} />
+          </View>
+          <View style={styles.keyRow}>
+            <AtmNumKey label="." disabled={pending || !!overlay} onPress={() => appendDigit(".")} />
+            <AtmNumKey label="0" disabled={pending || !!overlay} onPress={() => appendDigit("0")} />
+            <View style={styles.numKeySpacer} />
+          </View>
+        </View>
+        <View style={styles.keypadSide}>
+          <AtmActionKey
+            label={t("m.wallet.clear")}
+            subLabel="←"
+            tone="clear"
+            disabled={pending || !!overlay || !amount}
+            tall
+            onPress={backspace}
+          />
+          <AtmActionKey
+            label={t("m.common.send")}
+            subLabel="SEND"
+            tone="confirm"
+            disabled={sendDisabled}
+            tall
+            onPress={send}
+          />
+        </View>
+      </View>
+    </LinearGradient>
+  ) : null;
+
+  const footer = error ? (
+    <Text style={showAtmChrome() ? styles.error : styles.errorPlain}>{error}</Text>
+  ) : (
+    <Text style={showAtmChrome() ? styles.hint : styles.hintPlain}>
+      {t("m.wallet.example_sending_100_moco_adds_100")}
+    </Text>
+  );
+
+  const stationBody = (
+    <>
+      <View style={showAtmChrome() ? styles.screenWrap : styles.screenWrapPlain}>
+        {overlayLayer}
+        {earthCard}
+      </View>
+      {statusLine || pending ? (
+        <View style={showAtmChrome() ? styles.ticker : styles.tickerPlain}>
+          {pending ? (
+            <View style={styles.tickerPending}>
+              <ActivityIndicator size="small" color={showAtmChrome() ? "#fcd34d" : "#94a3b8"} />
+              <Text style={showAtmChrome() ? styles.tickerText : styles.tickerTextPlain}>
+                {t("m.common.processing")}
+              </Text>
+            </View>
+          ) : (
+            <Text style={showAtmChrome() ? styles.tickerText : styles.tickerTextPlain}>{statusLine}</Text>
+          )}
+        </View>
+      ) : null}
+      {keypad}
+      {footer}
+    </>
+  );
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.intro}>
         {t("m.wallet.you_can_send_purchased_moco_from")}
       </Text>
 
-      <LinearGradient colors={["#d1d5db", "#aeb4bd", "#8b939e"]} style={styles.atmShell}>
-        <View style={styles.atmBody}>
-          <View style={styles.atmHeader}>
-            <View style={styles.atmHeaderLeft}>
-              <View style={styles.statusDot} />
-              <Text style={styles.atmBrand}>MoCoMo ATM</Text>
+      {showAtmChrome() ? (
+        <LinearGradient colors={["#d1d5db", "#aeb4bd", "#8b939e"]} style={styles.atmShell}>
+          <View style={styles.atmBody}>
+            <View style={styles.atmHeader}>
+              <View style={styles.atmHeaderLeft}>
+                <View style={styles.statusDot} />
+                <Text style={styles.atmBrand}>MoCoMo ATM</Text>
+              </View>
+              <View style={styles.atmHeaderRight}>
+                <Ionicons name="shield-checkmark" size={14} color="#64748b" />
+                <Text style={styles.atmMode}>TRANSFER</Text>
+              </View>
             </View>
-            <View style={styles.atmHeaderRight}>
-              <Ionicons name="shield-checkmark" size={14} color="#64748b" />
-              <Text style={styles.atmMode}>TRANSFER</Text>
-            </View>
+            {stationBody}
           </View>
-
-          <View style={styles.screenWrap}>
-            {overlay ? (
-              <Pressable style={styles.overlay} onPress={() => setOverlay(null)}>
-                <View
-                  style={[
-                    styles.overlayIcon,
-                    overlay === "success" ? styles.overlayIconOk : styles.overlayIconFail,
-                  ]}
-                >
-                  <Ionicons
-                    name={overlay === "success" ? "checkmark" : "close"}
-                    size={36}
-                    color={overlay === "success" ? "#6ee7b7" : "#fca5a5"}
-                  />
-                </View>
-                <Text style={[styles.overlayTitle, overlay === "success" ? styles.overlayOk : styles.overlayFail]}>
-                  {overlay === "success" ? t("m.common.sent") : t("m.wallet.failed")}
-                </Text>
-                <Text style={styles.overlayDismiss}>{t("m.common.close")}</Text>
-              </Pressable>
-            ) : null}
-
-            <View style={styles.earthCard}>
-              <View style={styles.earthHero}>
-                <ImageBackground source={EARTH_BG} style={StyleSheet.absoluteFill} imageStyle={styles.earthImage}>
-                  <View style={styles.transferRow}>
-                    <View style={styles.iconBox}>
-                      <FolkAvatar uri={user?.image ?? null} name={user?.username ?? "me"} size={44} framed={false} />
-                    </View>
-                    <TransferDots active={pending} />
-                    <View style={[styles.iconBox, styles.iconLogoBox]}>
-                      <Image source={LOGO} style={styles.logoImg} resizeMode="contain" />
-                    </View>
-                  </View>
-                </ImageBackground>
-              </View>
-
-              <View style={styles.earthForm}>
-                <Text style={styles.fieldKicker}>{t("m.wallet.purchased_moco_you_can_send")}</Text>
-                <Text style={styles.balanceLine}>{formatMocoCount(held)} MOCO</Text>
-
-                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.recipient_username")}</Text>
-                <TextInput
-                  value={username}
-                  editable={!pending && !overlay}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholder="@username"
-                  placeholderTextColor="rgba(0,0,0,0.35)"
-                  onChangeText={(v) => {
-                    setUsername(v.replace(/\s/g, ""));
-                    if (error) setError("");
-                  }}
-                  style={styles.usernameInput}
-                />
-
-                <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.letter")}</Text>
-                <TextInput
-                  value={letter}
-                  editable={!pending && !overlay}
-                  multiline
-                  maxLength={ATM_LETTER_MESSAGE_MAX}
-                  placeholder={t("m.wallet.message_for_the_letter")}
-                  placeholderTextColor="rgba(0,0,0,0.35)"
-                  onChangeText={(v) => {
-                    setLetter(v.slice(0, ATM_LETTER_MESSAGE_MAX));
-                    if (error) setError("");
-                  }}
-                  style={styles.letterInput}
-                />
-                <Text style={styles.letterCount}>
-                  {letter.length}/{ATM_LETTER_MESSAGE_MAX}
-                </Text>
-
-                <View style={styles.amountSlot}>
-                  <Text style={styles.amountDisplay} numberOfLines={1}>
-                    {displayAmount}
-                  </Text>
-                  <Text style={styles.amountUnit}>MOCO</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.ticker}>
-            {pending ? (
-              <View style={styles.tickerPending}>
-                <ActivityIndicator size="small" color="#fcd34d" />
-                <Text style={styles.tickerText}>{t("m.common.processing")}</Text>
-              </View>
-            ) : (
-              <Text style={styles.tickerText}>{statusLine}</Text>
-            )}
-          </View>
-
-          <LinearGradient colors={["#b8bcc4", "#9ca3af"]} style={styles.keypadWell}>
-            <View style={styles.keypadRow}>
-              <View style={styles.keypadMain}>
-                <View style={styles.keyRow}>
-                  <AtmNumKey label="1" disabled={pending || !!overlay} onPress={() => appendDigit("1")} />
-                  <AtmNumKey label="2" disabled={pending || !!overlay} onPress={() => appendDigit("2")} />
-                  <AtmNumKey label="3" disabled={pending || !!overlay} onPress={() => appendDigit("3")} />
-                </View>
-                <View style={styles.keyRow}>
-                  <AtmNumKey label="4" disabled={pending || !!overlay} onPress={() => appendDigit("4")} />
-                  <AtmNumKey label="5" disabled={pending || !!overlay} onPress={() => appendDigit("5")} />
-                  <AtmNumKey label="6" disabled={pending || !!overlay} onPress={() => appendDigit("6")} />
-                </View>
-                <View style={styles.keyRow}>
-                  <AtmNumKey label="7" disabled={pending || !!overlay} onPress={() => appendDigit("7")} />
-                  <AtmNumKey label="8" disabled={pending || !!overlay} onPress={() => appendDigit("8")} />
-                  <AtmNumKey label="9" disabled={pending || !!overlay} onPress={() => appendDigit("9")} />
-                </View>
-                <View style={styles.keyRow}>
-                  <AtmNumKey label="." disabled={pending || !!overlay} onPress={() => appendDigit(".")} />
-                  <AtmNumKey label="0" disabled={pending || !!overlay} onPress={() => appendDigit("0")} />
-                  <View style={styles.numKeySpacer} />
-                </View>
-              </View>
-              <View style={styles.keypadSide}>
-                <AtmActionKey
-                  label={t("m.wallet.clear")}
-                  subLabel="←"
-                  tone="clear"
-                  disabled={pending || !!overlay || !amount}
-                  tall
-                  onPress={backspace}
-                />
-                <AtmActionKey
-                  label={t("m.common.send")}
-                  subLabel="SEND"
-                  tone="confirm"
-                  disabled={
-                    pending ||
-                    !!overlay ||
-                    !username.trim() ||
-                    parsed == null ||
-                    parsed < 0.1
-                  }
-                  tall
-                  onPress={send}
-                />
-              </View>
-            </View>
-          </LinearGradient>
-
-          {error ? (
-            <Text style={styles.error}>{error}</Text>
-          ) : (
-            <Text style={styles.hint}>
-              {t("m.wallet.example_sending_100_moco_adds_100")}
-            </Text>
-          )}
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      ) : (
+        stationBody
+      )}
       <Modal visible={confirmOpen} transparent animationType="fade" onRequestClose={() => setConfirmOpen(false)}>
         <View style={styles.confirmBackdrop}>
           <View style={styles.confirmCard}>
@@ -724,6 +789,52 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#171717",
     fontVariant: ["tabular-nums"],
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#171717",
+    fontVariant: ["tabular-nums"],
+    padding: 0,
+  },
+  sendBtnWrap: {
+    marginTop: 12,
+  },
+  screenWrapPlain: {
+    position: "relative",
+  },
+  tickerPlain: {
+    marginTop: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.35)",
+    backgroundColor: "rgba(15, 23, 42, 0.35)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  tickerTextPlain: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#94a3b8",
+    fontVariant: ["tabular-nums"],
+  },
+  errorPlain: {
+    marginTop: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: "#fca5a5",
+  },
+  hintPlain: {
+    marginTop: 12,
+    fontSize: 11,
+    lineHeight: 16,
+    color: "#94a3b8",
   },
   amountUnit: {
     fontSize: 14,
