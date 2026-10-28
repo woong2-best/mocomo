@@ -50,7 +50,7 @@ export type MobileOAuthTokensHandoff = {
 
 export type MobileOAuthSignupHandoff = {
   kind: "needsSignup";
-  provider: "discord" | "twitter" | "line" | "naver" | "google" | "instagram";
+  provider: "discord" | "twitter" | "line" | "naver" | "google" | "facebook" | "instagram";
   sub: string;
   profile: {
     email: string | null;

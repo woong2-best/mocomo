@@ -29,7 +29,7 @@ export default async function SignInPage({
   const sp = await searchParams;
   const fromMobile = sp.from === "mobile";
   const platform = sp.platform === "ios" ? "ios" : "android";
-  const { googleOAuth, instagramOAuth } = getAuthConfigStatus();
+  const { googleOAuth, facebookOAuth } = getAuthConfigStatus();
 
   const callbackUrl = fromMobile
     ? mobileAuthCompletePath(platform)
@@ -42,7 +42,7 @@ export default async function SignInPage({
       </Suspense>
       <SignInForm
         googleOAuth={googleOAuth}
-        instagramOAuth={instagramOAuth}
+        facebookOAuth={facebookOAuth}
         callbackUrl={callbackUrl}
         errorParam={sp.error ?? null}
         reasonParam={sp.reason?.trim() || null}

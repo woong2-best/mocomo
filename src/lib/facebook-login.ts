@@ -5,16 +5,16 @@ import { getCachedSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isOAuthEncryptionConfigured } from "@/lib/encryption";
 import {
-  exchangeInstagramCodeForToken,
-  exchangeLongLivedInstagramToken,
-  fetchInstagramProfile,
-  instagramDisplayName,
-  INSTAGRAM_OAUTH_SCOPE,
-  INSTAGRAM_PROVIDER,
-  type InstagramOAuthState,
-  type InstagramProfile,
-  type InstagramTokenResponse,
-} from "@/lib/instagram-oauth";
+  exchangeFacebookCodeForToken,
+  exchangeLongLivedFacebookToken,
+  facebookDisplayName,
+  FACEBOOK_OAUTH_SCOPE,
+  FACEBOOK_PROVIDER,
+  fetchFacebookProfile,
+  type FacebookOAuthState,
+  type FacebookProfile,
+  type FacebookTokenResponse,
+} from "@/lib/facebook-oauth";
 import type { CreatedOAuthUser } from "@/lib/oauth-signup-completion";
 import { findOAuthAccountBySub, persistEncryptedOAuthAccount } from "@/lib/oauth-vault";
 import { recordUserAccessLog } from "@/lib/user-access-log";
@@ -43,7 +43,7 @@ const SESSION_USER_SELECT = {
   scheduledPurgeAt: true,
 } as const;
 
-export type InstagramLoginResult =
+export type FacebookLoginResult =
   | { ok: true; redirectTo: string }
   | { ok: false; redirectTo: string };
 
@@ -53,10 +53,10 @@ function signinError(reason: string, extra?: Record<string, string>): string {
 }
 
 async function resolveTokens(
-  short: InstagramTokenResponse
+  short: FacebookTokenResponse
 ): Promise<{ accessToken: string; expiresIn?: number; tokenType?: string }> {
   try {
-    const long = await exchangeLongLivedInstagramToken(short.access_token);
+    const long = await exchangeLongLivedFacebookToken(short.access_token);
     return {
       accessToken: long.access_token,
       expiresIn: long.expires_in,
@@ -71,18 +71,18 @@ async function resolveTokens(
   }
 }
 
-function profileForVault(profile: InstagramProfile) {
+function profileForVault(profile: FacebookProfile) {
   return {
-    email: null as string | null,
-    name: instagramDisplayName(profile),
-    image: profile.profile_picture_url?.trim() || null,
+    email: profile.email ?? null,
+    name: facebookDisplayName(profile),
+    image: profile.pictureUrl ?? null,
   };
 }
 
-async function persistInstagramAccount(opts: {
+async function persistFacebookAccount(opts: {
   userId: string;
   accountId?: string;
-  profile: InstagramProfile;
+  profile: FacebookProfile;
   accessToken: string;
   expiresIn?: number;
   tokenType?: string;
@@ -91,17 +91,17 @@ async function persistInstagramAccount(opts: {
     throw new Error("OAuth isn't configured.");
   }
   await persistEncryptedOAuthAccount({
-    provider: INSTAGRAM_PROVIDER,
+    provider: FACEBOOK_PROVIDER,
     accountId: opts.accountId,
     userId: opts.userId,
     sub: opts.profile.id,
-    email: null,
-    name: instagramDisplayName(opts.profile),
-    image: opts.profile.profile_picture_url?.trim() || null,
+    email: opts.profile.email ?? null,
+    name: facebookDisplayName(opts.profile),
+    image: opts.profile.pictureUrl ?? null,
     accessToken: opts.accessToken,
     expiresAt: opts.expiresIn ? Math.floor(Date.now() / 1000) + opts.expiresIn : null,
     tokenType: opts.tokenType ?? "bearer",
-    scope: INSTAGRAM_OAUTH_SCOPE,
+    scope: FACEBOOK_OAUTH_SCOPE,
   });
 }
 
@@ -132,7 +132,7 @@ async function loadSessionUser(userId: string): Promise<CreatedOAuthUser | null>
 async function signInExistingUser(
   userId: string,
   dest: string
-): Promise<InstagramLoginResult> {
+): Promise<FacebookLoginResult> {
   const row = await db.user.findUnique({
     where: { id: userId },
     select: SESSION_USER_SELECT,
@@ -163,19 +163,19 @@ async function signInExistingUser(
     email: sessionUser.email,
     success: true,
     channel: "web",
-    provider: INSTAGRAM_PROVIDER,
+    provider: FACEBOOK_PROVIDER,
   });
 
   return { ok: true, redirectTo: dest };
 }
 
 async function startPendingSignup(
-  profile: InstagramProfile,
+  profile: FacebookProfile,
   dest: string,
   addAccount: boolean
-): Promise<InstagramLoginResult> {
+): Promise<FacebookLoginResult> {
   const handoff = sealWebOAuthPendingSignup({
-    provider: INSTAGRAM_PROVIDER,
+    provider: FACEBOOK_PROVIDER,
     sub: profile.id,
     profile: profileForVault(profile),
   });
@@ -187,23 +187,22 @@ async function startPendingSignup(
   return { ok: true, redirectTo: `/auth/complete-oauth-signup${suffix}` };
 }
 
-export async function completeInstagramLogin(opts: {
+/** Account lookup uses Facebook user id (`profile.id`); email is optional profile data only. */
+export async function completeFacebookLogin(opts: {
   code: string;
-  state: InstagramOAuthState;
-}): Promise<InstagramLoginResult> {
+  state: FacebookOAuthState;
+}): Promise<FacebookLoginResult> {
   const dest = opts.state.returnTo ?? "/";
   const addAccount = Boolean(opts.state.addAccount);
 
-  const short = await exchangeInstagramCodeForToken(opts.code);
+  const short = await exchangeFacebookCodeForToken(opts.code);
   const tokens = await resolveTokens(short);
-  const profile = await fetchInstagramProfile(tokens.accessToken);
-  const instagramId = profile.id || (short.user_id != null ? String(short.user_id) : "");
-  if (!instagramId) {
+  const profile = await fetchFacebookProfile(tokens.accessToken);
+  if (!profile.id) {
     return { ok: false, redirectTo: signinError("oauth_failed") };
   }
-  profile.id = instagramId;
 
-  const linked = await findOAuthAccountBySub(INSTAGRAM_PROVIDER, profile.id);
+  const linked = await findOAuthAccountBySub(FACEBOOK_PROVIDER, profile.id);
   const session = await getCachedSession();
   const currentUserId = session?.user?.id ?? null;
 
@@ -212,7 +211,7 @@ export async function completeInstagramLogin(opts: {
       return { ok: false, redirectTo: signinError("account_exists") };
     }
     try {
-      await persistInstagramAccount({
+      await persistFacebookAccount({
         userId: linked.userId,
         accountId: linked.id,
         profile,
@@ -221,21 +220,21 @@ export async function completeInstagramLogin(opts: {
         tokenType: tokens.tokenType,
       });
     } catch {
-      // Login still works from the existing Instagram id link.
+      /* existing link is enough to sign in */
     }
     return signInExistingUser(linked.userId, dest);
   }
 
   if (currentUserId) {
     const already = await db.account.findFirst({
-      where: { userId: currentUserId, provider: INSTAGRAM_PROVIDER },
+      where: { userId: currentUserId, provider: FACEBOOK_PROVIDER },
       select: { id: true },
     });
     if (already) {
       return { ok: false, redirectTo: signinError("account_exists") };
     }
     try {
-      await persistInstagramAccount({
+      await persistFacebookAccount({
         userId: currentUserId,
         profile,
         accessToken: tokens.accessToken,

@@ -12,7 +12,7 @@ type SocialAuthButtonsProps = {
   mode?: "signup" | "signin";
   callbackUrl?: string;
   googleOAuth: boolean;
-  instagramOAuth?: boolean;
+  facebookOAuth?: boolean;
   /** MoCoMo app AuthSession — use server OAuth redirect (Custom Tabs CSRF-safe). */
   fromMobile?: boolean;
   platform?: "android" | "ios";
@@ -21,12 +21,12 @@ type SocialAuthButtonsProps = {
   className?: string;
 };
 
-function InstagramIcon({ className }: { className?: string }) {
+function FacebookIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden>
       <path
         fill="currentColor"
-        d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9A5.5 5.5 0 0 1 16.5 22h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2Zm0 2A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9a3.5 3.5 0 0 0 3.5-3.5v-9A3.5 3.5 0 0 0 16.5 4h-9Zm9.25 1.75a1 1 0 1 1 0 2 1 1 0 0 1 0-2ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"
+        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
       />
     </svg>
   );
@@ -47,7 +47,7 @@ export function SocialAuthButtons({
   mode = "signin",
   callbackUrl = DEFAULT_LANDING_PATH,
   googleOAuth,
-  instagramOAuth = false,
+  facebookOAuth = false,
   fromMobile = false,
   platform = "android",
   addAccount = false,
@@ -57,8 +57,8 @@ export function SocialAuthButtons({
   const { t } = useLocale();
   const flow = mode === "signup" ? "signup" : "signin";
   const googleLabel = t(mode === "signup" ? "auth.signUpGoogle" : "auth.continueWithGoogle");
-  const instagramLabel = t(
-    mode === "signup" ? "auth.signUpInstagram" : "auth.continueWithInstagram"
+  const facebookLabel = t(
+    mode === "signup" ? "auth.signUpFacebook" : "auth.continueWithFacebook"
   );
 
   function handleGoogle() {
@@ -76,12 +76,12 @@ export function SocialAuthButtons({
     );
   }
 
-  function handleInstagram() {
-    if (!instagramOAuth) return;
+  function handleFacebook() {
+    if (!facebookOAuth) return;
     const params = new URLSearchParams();
     if (callbackUrl) params.set("returnTo", callbackUrl);
     if (addAccount) params.set("addAccount", "1");
-    window.location.assign(`/api/auth/instagram?${params.toString()}`);
+    window.location.assign(`/api/auth/facebook?${params.toString()}`);
   }
 
   return (
@@ -91,7 +91,6 @@ export function SocialAuthButtons({
         disabled={!googleOAuth}
         className={cn(
           "w-full h-11 rounded-xl font-medium gap-3",
-          // White Google CTA — force black label (dark theme text-foreground is invisible).
           "bg-white hover:bg-neutral-50 !text-neutral-900 border border-neutral-200 shadow-sm",
           !googleOAuth && "opacity-50 cursor-not-allowed"
         )}
@@ -102,16 +101,16 @@ export function SocialAuthButtons({
       </Button>
       <Button
         type="button"
-        disabled={!instagramOAuth}
+        disabled={!facebookOAuth}
         className={cn(
           "w-full h-11 rounded-xl font-medium gap-3",
-          "bg-[#111] hover:bg-black !text-white border border-neutral-800 shadow-sm",
-          !instagramOAuth && "opacity-50 cursor-not-allowed"
+          "bg-[#1877F2] hover:bg-[#166FE5] !text-white border border-[#1877F2] shadow-sm",
+          !facebookOAuth && "opacity-50 cursor-not-allowed"
         )}
-        onClick={handleInstagram}
+        onClick={handleFacebook}
       >
-        <InstagramIcon className="h-5 w-5 shrink-0 text-white" />
-        <span className="text-white">{instagramLabel}</span>
+        <FacebookIcon className="h-5 w-5 shrink-0 text-white" />
+        <span className="text-white">{facebookLabel}</span>
       </Button>
     </div>
   );

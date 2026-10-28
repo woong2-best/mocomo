@@ -23,7 +23,14 @@ import { applyLatestTermsOnSignup } from "@/lib/legal/terms-agreement";
 
 const OAUTH_SIGNUP_BCRYPT_ROUNDS = 10;
 
-export type OAuthSignupProvider = "google" | "discord" | "twitter" | "line" | "naver" | "instagram";
+export type OAuthSignupProvider =
+  | "google"
+  | "discord"
+  | "twitter"
+  | "line"
+  | "naver"
+  | "facebook"
+  | "instagram";
 
 export type OAuthSignupProfile = {
   email: string | null;

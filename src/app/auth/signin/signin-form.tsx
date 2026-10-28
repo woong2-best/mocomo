@@ -62,7 +62,7 @@ function normalizeLoginId(raw: string): string {
 
 export function SignInForm({
   googleOAuth,
-  instagramOAuth = false,
+  facebookOAuth = false,
   callbackUrl: callbackUrlProp,
   errorParam,
   reasonParam = null,
@@ -74,7 +74,7 @@ export function SignInForm({
   pickAccount = false,
 }: {
   googleOAuth: boolean;
-  instagramOAuth?: boolean;
+  facebookOAuth?: boolean;
   callbackUrl: string;
   errorParam?: string | null;
   reasonParam?: string | null;
@@ -334,7 +334,7 @@ export function SignInForm({
               mode={oauthMode}
               callbackUrl={oauthCallbackUrl}
               googleOAuth={googleOAuth}
-              instagramOAuth={instagramOAuth}
+              facebookOAuth={facebookOAuth}
               fromMobile={isMobile}
               platform={resolvedPlatform}
               addAccount={addAccount}

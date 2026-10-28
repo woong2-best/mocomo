@@ -1,3 +1,5 @@
+import { isFacebookOAuthConfigured, resolveFacebookEnvKeys } from "@/lib/facebook-oauth";
+
 const MIN_SECRET_LENGTH = 32;
 
 export function getAuthSecret(): string | undefined {
@@ -19,9 +21,7 @@ export function getAuthConfigStatus() {
     process.env.AUTH_GOOGLE_ID?.trim() || process.env.GOOGLE_CLIENT_ID?.trim();
   const googleSecret =
     process.env.AUTH_GOOGLE_SECRET?.trim() || process.env.GOOGLE_CLIENT_SECRET?.trim();
-  const instagramId = process.env.INSTAGRAM_CLIENT_ID?.trim();
-  const instagramSecret = process.env.INSTAGRAM_CLIENT_SECRET?.trim();
-  const instagramRedirect = process.env.INSTAGRAM_REDIRECT_URI?.trim();
+  const facebookEnv = resolveFacebookEnvKeys();
 
   return {
     secretConfigured: secretLength > 0,
@@ -33,11 +33,12 @@ export function getAuthConfigStatus() {
     googleSecretPresent: !!googleSecret,
     googleIdLength: googleId?.length ?? 0,
     googleSecretLength: googleSecret?.length ?? 0,
-    instagramOAuth: !!(instagramId && instagramSecret && instagramRedirect),
-    instagramIdPresent: !!instagramId,
-    instagramSecretPresent: !!instagramSecret,
-    instagramRedirectPresent: !!instagramRedirect,
-    // Public auth is Google + Instagram — keep unused flags for health/UI callers.
+    facebookOAuth: isFacebookOAuthConfigured(),
+    facebookIdPresent: !!facebookEnv.clientId,
+    facebookSecretPresent: !!facebookEnv.clientSecret,
+    facebookRedirectPresent: !!facebookEnv.redirectUri,
+    /** @deprecated use facebookOAuth */
+    instagramOAuth: isFacebookOAuthConfigured(),
     discordOAuth: false,
     twitterOAuth: false,
     lineOAuth: false,
@@ -72,8 +73,8 @@ export function getProductionSecurityStatus(): ProductionSecurityStatus {
   if (auth.googleOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
     issues.push("OAUTH_ENCRYPTION_KEY missing while Google OAuth enabled");
   }
-  if (auth.instagramOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
-    issues.push("OAUTH_ENCRYPTION_KEY missing while Instagram OAuth enabled");
+  if (auth.facebookOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
+    issues.push("OAUTH_ENCRYPTION_KEY missing while Facebook OAuth enabled");
   }
   if (
     !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||

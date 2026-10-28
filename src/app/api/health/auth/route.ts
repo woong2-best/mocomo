@@ -30,11 +30,14 @@ export async function GET(req: NextRequest) {
     googleCallback: status.authUrl
       ? `${status.authUrl}/api/auth/callback/google`
       : null,
-    instagramOAuth: status.instagramOAuth,
-    instagramIdPresent: status.instagramIdPresent,
-    instagramSecretPresent: status.instagramSecretPresent,
-    instagramRedirectPresent: status.instagramRedirectPresent,
-    instagramCallback: process.env.INSTAGRAM_REDIRECT_URI?.trim() || null,
+    facebookOAuth: status.facebookOAuth,
+    facebookIdPresent: status.facebookIdPresent,
+    facebookSecretPresent: status.facebookSecretPresent,
+    facebookRedirectPresent: status.facebookRedirectPresent,
+    facebookCallback:
+      process.env.FACEBOOK_REDIRECT_URI?.trim() ||
+      process.env.INSTAGRAM_REDIRECT_URI?.trim() ||
+      null,
     vercelEnv: status.vercelEnv,
   });
 }
