@@ -248,25 +248,52 @@ window.mocoStop = () => {
   stopVoice();
 };
 
-try {
-  const THREE = await import("three");
-  const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
-  const { RoomEnvironment } = await import("three/addons/environments/RoomEnvironment.js");
-  const { VRMLoaderPlugin, VRMUtils } = await import("@pixiv/three-vrm");
+async function importRetry(spec, tries) {
+  let last = null;
+  for (let i = 0; i < tries; i += 1) {
+    try { return await import(spec); }
+    catch (err) {
+      last = err;
+      await new Promise((resolve) => setTimeout(resolve, 400 * (i + 1)));
+    }
+  }
+  throw last;
+}
+async function cachedBlobUrl(url) {
+  try {
+    if (self.caches) {
+      const cache = await caches.open("moco-vrm-v2");
+      let res = await cache.match(url);
+      if (!res) {
+        res = await fetch(url);
+        if (res.ok) { try { await cache.put(url, res.clone()); } catch (e) {} }
+      }
+      if (res && res.ok) return URL.createObjectURL(await res.blob());
+    }
+  } catch (e) {}
+  return url;
+}
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+try {
+  const THREE = await importRetry("three", 3);
+  const { GLTFLoader } = await importRetry("three/addons/loaders/GLTFLoader.js", 3);
+  const { VRMLoaderPlugin, VRMUtils } = await importRetry("@pixiv/three-vrm", 3);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: "low-power", preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
   renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
   document.body.appendChild(renderer.domElement);
+  renderer.domElement.addEventListener("webglcontextlost", (ev) => {
+    ev.preventDefault();
+    post({ type: "contextlost" });
+  });
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 20);
   const cameraTarget = new THREE.Vector3(0, 1.2, 0);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.add(new THREE.AmbientLight(0xfff5e6, 0.55));
   const key = new THREE.DirectionalLight(0xfff5e6, 1.15);
   key.position.set(0.6, 1.4, 1.2);
@@ -290,7 +317,19 @@ try {
 
   const loader = new GLTFLoader();
   loader.register((parser) => new VRMLoaderPlugin(parser));
-  const gltf = await loader.loadAsync(VRM_URL);
+  let gltf = null;
+  let lastLoadErr = null;
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      gltf = await loader.loadAsync(i === 0 ? await cachedBlobUrl(VRM_URL) : VRM_URL);
+      lastLoadErr = null;
+      break;
+    } catch (err) {
+      lastLoadErr = err;
+      await new Promise((resolve) => setTimeout(resolve, 500 * (i + 1)));
+    }
+  }
+  if (!gltf) throw lastLoadErr || new Error("vrm-load");
   const vrm = gltf.userData.vrm;
   VRMUtils.removeUnnecessaryVertices(vrm.scene);
   if (typeof VRMUtils.combineSkeletons === "function") VRMUtils.combineSkeletons(vrm.scene);
@@ -371,7 +410,33 @@ try {
   window.__mocoNotifySpeech = (text, emotion) => humanizer.notifySpeech(text, emotion);
   const drunk = isMio(CHARACTER);
   const clock = new THREE.Clock();
+  let postedReady = false;
+  let readyFrames = 0;
+  let pageVisible = document.visibilityState !== "hidden";
+  document.addEventListener("visibilitychange", () => {
+    pageVisible = document.visibilityState !== "hidden";
+  });
+  function captureStill() {
+    const canvas = renderer.domElement;
+    const snap = document.createElement("canvas");
+    snap.width = canvas.width;
+    snap.height = canvas.height;
+    const ctx = snap.getContext("2d");
+    if (!ctx) return;
+    const finish = () => {
+      try { ctx.drawImage(canvas, 0, 0); } catch (e) {}
+      try { post({ type: "snapshot", dataUrl: snap.toDataURL("image/jpeg", 0.82) }); } catch (e) {}
+    };
+    if (!BACKDROP) { finish(); return; }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => { try { ctx.drawImage(img, 0, 0, snap.width, snap.height); } catch (e) {} finish(); };
+    img.onerror = finish;
+    img.src = BACKDROP;
+  }
   const loop = () => {
+    requestAnimationFrame(loop);
+    if (!pageVisible) return;
     const dt = Math.min(clock.getDelta(), 0.05);
     humanizer.setCharacter(CHARACTER);
     humanizer.setThinking(!!window.__mocoThinking);
@@ -405,10 +470,16 @@ try {
       expressions.update();
     }
     renderer.render(scene, camera);
-    requestAnimationFrame(loop);
+    if (!postedReady) {
+      readyFrames += 1;
+      if (readyFrames >= 3) {
+        postedReady = true;
+        captureStill();
+        post({ type: "ready" });
+      }
+    }
   };
   loop();
-  post({ type: "ready" });
 } catch (err) {
   post({ type: "error", message: String(err && err.message || err) });
 }

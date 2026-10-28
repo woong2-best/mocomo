@@ -114,11 +114,15 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
+    const week = [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }];
     return [
       {
         source: "/(.*)",
         headers: SECURITY_HEADERS,
       },
+      { source: "/avatars/:path*", headers: week },
+      { source: "/models/:path*", headers: week },
+      { source: "/live/backgrounds/:path*", headers: week },
     ];
   },
   images: {

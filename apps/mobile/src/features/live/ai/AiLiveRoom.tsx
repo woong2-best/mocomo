@@ -87,7 +87,6 @@ export function AiLiveRoom({ channelId, poster, title: _title, host, role: _role
       <View style={styles.stage}>
         <AiVrmStage
           ref={stageRef}
-          key={stage.vrmUrl}
           vrmUrl={stage.vrmUrl}
           backdropUrl={stage.backdropUrl}
           characterId={stage.characterId}

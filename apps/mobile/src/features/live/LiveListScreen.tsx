@@ -12,6 +12,8 @@ import { ensureR18LiveAccess } from "@/features/live/ensure-r18-access";
 import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
 import { AiOfficialChannelCard, AiStageHero } from "@/features/live/ai/AiOfficialChannelCard";
 import { fetchAiStages, stageForCharacter } from "@/features/live/ai/ai-speak";
+import { hydrateVrmStills } from "@/features/live/ai/vrm-still-cache";
+import { VrmStillWarmer } from "@/features/live/ai/VrmStillWarmer";
 import { hostFromAvatarMap, IDOL_LIVES } from "@/features/live/ai/idol-lives";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
@@ -38,12 +40,20 @@ export function LiveListScreen() {
   const [category, setCategory] = useState<MobileLiveCategoryId>("ALL");
   const [searchQ, setSearchQ] = useState("");
 
+  useEffect(() => {
+    void hydrateVrmStills();
+  }, []);
+
   const stagesQuery = useQuery({
     queryKey: ["mobile-ai-stages"],
     queryFn: fetchAiStages,
     staleTime: 5 * 60_000,
   });
   const zelieStage = stageForCharacter("zelie", stagesQuery.data);
+  const warmStages = useMemo(
+    () => ["zelie", "cleo", "mio", "nangnang"].map((id) => stageForCharacter(id, stagesQuery.data)),
+    [stagesQuery.data]
+  );
   const avatarsQuery = useQuery({
     queryKey: ["mobile-live-avatars"],
     queryFn: fetchLiveAvatarHosts,
@@ -104,6 +114,7 @@ export function LiveListScreen() {
   const rows = showAiHero ? visibleItems : hero ? visibleItems.slice(1) : visibleItems;
   const featured = showAiHero || !!hero;
   const avatarHosts = avatarsQuery.data?.hosts ?? query.data?.pages[0]?.avatarHosts;
+  const zelieHost = hostFromAvatarMap(avatarHosts, "zelie", "zelie", t("m.live.ai_host_name"));
 
   const openLive = useCallback(
     (id: string) => navigation.navigate("LiveDetail", { id }),
@@ -187,8 +198,13 @@ export function LiveListScreen() {
               >
                 {showAiHero ? (
                   <AiStageHero
+                    hint={t("m.live.no_messages_yet_say_hello")}
                     stage={zelieStage}
+                    host={zelieHost.name}
+                    hostUsername={zelieHost.username}
+                    hostImage={zelieHost.image}
                     onPress={() => navigation.navigate("MocoLive")}
+                    onPressHost={() => openProfile(zelieHost.username, zelieHost.name, zelieHost.image)}
                   />
                 ) : hero ? (
                   <LiveBrowseHero item={hero} onPress={() => openLive(hero.id)} />
@@ -250,6 +266,7 @@ export function LiveListScreen() {
             }
           />
         )}
+        {showAiHero ? <VrmStillWarmer stages={warmStages} /> : null}
       </View>
     </ScreenErrorBoundary>
   );
