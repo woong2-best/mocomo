@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { fetchCommentReplies, type CommentItem } from "@/api/social";
+import { CommentAvatar } from "@/features/feed/CommentAvatar";
 import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
 import { TranslatableText } from "@/ui/TranslatableText";
+import { formatCommentTimeAgo } from "@/lib/format-relative-time";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export type CommentReplyTarget = {
@@ -20,6 +22,10 @@ type Props = {
   onOpenAuthor?: (username: string) => void;
 };
 
+function replyName(reply: CommentItem, fallback: string) {
+  return reply.author.username?.trim() || reply.author.name?.trim() || fallback;
+}
+
 export function CommentThreadExtras({
   comment,
   rootId,
@@ -34,7 +40,8 @@ export function CommentThreadExtras({
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const replyCount = comment.replyCount ?? 0;
-  const color = light ? "rgba(255,255,255,0.55)" : undefined;
+  const muted = light ? "rgba(255,255,255,0.4)" : undefined;
+  const unknown = t("m.feed.unknown_user");
 
   async function load(reset = false) {
     if (loading) return;
@@ -70,7 +77,7 @@ export function CommentThreadExtras({
         hitSlop={8}
         style={styles.replyBtn}
       >
-        <Text style={[styles.replyLabel, color ? { color } : null]}>{t("m.feed.reply")}</Text>
+        <Text style={[styles.replyLabel, muted ? { color: muted } : null]}>{t("m.feed.reply")}</Text>
       </Pressable>
       {replyCount > 0 ? (
         <Pressable
@@ -85,7 +92,7 @@ export function CommentThreadExtras({
           hitSlop={8}
           style={styles.toggle}
         >
-          <Text style={[styles.toggleLabel, color ? { color } : null]}>
+          <Text style={[styles.toggleLabel, muted ? { color: muted } : null]}>
             {expanded
               ? t("m.feed.hide_replies")
               : t("m.feed.view_replies", { count: String(replyCount) })}
@@ -93,44 +100,71 @@ export function CommentThreadExtras({
         </Pressable>
       ) : null}
       {expanded
-        ? replies.map((reply) => (
-            <View key={reply.id} style={styles.replyRow} nativeID={`comment-${reply.id}`}>
-              <Pressable onPress={() => onOpenAuthor?.(reply.author.username)}>
-                <Text style={[styles.replyUser, light && { color: "#fff" }]}>
-                  {reply.author.username}
-                </Text>
-              </Pressable>
-              {reply.content ? (
-                <TranslatableText
-                  text={reply.content}
-                  style={[styles.replyBody, light && { color: "rgba(255,255,255,0.9)" }]}
-                  lightLinks={light}
-                />
-              ) : null}
-              <CommentMediaBlock mediaType={reply.mediaType} mediaUrl={reply.mediaUrl} />
-              <Pressable
-                onPress={() =>
-                  onReply({
-                    rootId,
-                    userId: reply.author.id,
-                    username: reply.author.username,
-                  })
-                }
-                hitSlop={8}
-              >
-                <Text style={[styles.replyLabel, color ? { color } : null]}>
-                  {t("m.feed.reply")}
-                </Text>
-              </Pressable>
-            </View>
-          ))
+        ? replies.map((reply) => {
+            const nickname = replyName(reply, unknown);
+            const timeLabel = formatCommentTimeAgo(reply.createdAt);
+            return (
+              <View key={reply.id} style={styles.replyRow} nativeID={`comment-${reply.id}`}>
+                <Pressable
+                  onPress={() => onOpenAuthor?.(reply.author.username)}
+                  disabled={!onOpenAuthor}
+                  hitSlop={4}
+                >
+                  <CommentAvatar uri={reply.author.image} name={nickname} size={28} />
+                </Pressable>
+                <View style={styles.replyContent}>
+                  <View style={styles.replyNameRow}>
+                    <Pressable
+                      onPress={() => onOpenAuthor?.(reply.author.username)}
+                      disabled={!onOpenAuthor}
+                    >
+                      <Text
+                        style={[styles.replyUser, light && styles.replyUserLight]}
+                        numberOfLines={1}
+                      >
+                        {nickname}
+                      </Text>
+                    </Pressable>
+                    {timeLabel ? (
+                      <Text style={[styles.replyTime, muted ? { color: muted } : null]}>
+                        {timeLabel}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {reply.content ? (
+                    <TranslatableText
+                      text={reply.content}
+                      style={[styles.replyBody, light && styles.replyBodyLight]}
+                      lightLinks={light}
+                    />
+                  ) : null}
+                  <CommentMediaBlock mediaType={reply.mediaType} mediaUrl={reply.mediaUrl} />
+                  <Pressable
+                    onPress={() =>
+                      onReply({
+                        rootId,
+                        userId: reply.author.id,
+                        username: reply.author.username,
+                      })
+                    }
+                    hitSlop={8}
+                    style={styles.replyBtn}
+                  >
+                    <Text style={[styles.replyLabel, muted ? { color: muted } : null]}>
+                      {t("m.feed.reply")}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })
         : null}
       {expanded && cursor ? (
         <Pressable onPress={() => void load(false)} disabled={loading} hitSlop={8}>
           {loading ? (
             <ActivityIndicator size="small" color={light ? "#fff" : undefined} />
           ) : (
-            <Text style={[styles.toggleLabel, color ? { color } : null]}>
+            <Text style={[styles.toggleLabel, muted ? { color: muted } : null]}>
               {t("m.feed.view_replies", { count: String(replyCount) })}
             </Text>
           )}
@@ -142,16 +176,35 @@ export function CommentThreadExtras({
 
 const styles = StyleSheet.create({
   replyBtn: { marginTop: 6, alignSelf: "flex-start" },
-  replyLabel: { fontSize: 12, fontWeight: "700", color: "#6B7280" },
+  replyLabel: { fontSize: 12, fontWeight: "600", color: "#9CA3AF" },
   toggle: { marginTop: 8, alignSelf: "flex-start" },
   toggleLabel: { fontSize: 12, fontWeight: "700", color: "#6B7280" },
   replyRow: {
-    marginTop: 10,
-    marginLeft: 20,
-    paddingLeft: 12,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: "rgba(128,128,128,0.35)",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 12,
+    width: "100%",
   },
-  replyUser: { fontWeight: "800", marginBottom: 2 },
+  replyContent: {
+    flex: 1,
+    flexDirection: "column",
+    marginLeft: 10,
+    minWidth: 0,
+  },
+  replyNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: 2,
+  },
+  replyUser: { fontWeight: "700", fontSize: 13, marginBottom: 0 },
+  replyUserLight: { color: "#fff" },
+  replyTime: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#9CA3AF",
+    marginLeft: 6,
+  },
   replyBody: { fontSize: 14, lineHeight: 20 },
+  replyBodyLight: { color: "#fff" },
 });

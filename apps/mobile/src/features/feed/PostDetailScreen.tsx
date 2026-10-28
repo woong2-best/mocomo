@@ -510,7 +510,11 @@ export function PostDetailScreen() {
             ) : null}
             {attach ? (
               <View style={styles.previewRow}>
-                <CommentMediaBlock mediaType={attach.mediaType} mediaUrl={attach.mediaUrl} />
+                <CommentMediaBlock
+                  mediaType={attach.mediaType}
+                  mediaUrl={attach.mediaUrl}
+                  variant="preview"
+                />
                 <Pressable onPress={() => setAttach(null)} style={styles.clearAttach}>
                   <Ionicons name="close" size={16} color={colors.text} />
                 </Pressable>

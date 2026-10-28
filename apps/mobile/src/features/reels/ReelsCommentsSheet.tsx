@@ -19,21 +19,23 @@ import Animated, {
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { pinPostComment, type CommentItem } from "@/api/social";
-import {
-  CommentThreadExtras,
-  type CommentReplyTarget,
-} from "@/features/feed/CommentThreadExtras";
+import { pinPostComment, toggleCommentLike, type CommentItem } from "@/api/social";
+import { type CommentReplyTarget } from "@/features/feed/CommentThreadExtras";
+import { CommentAvatar } from "@/features/feed/CommentAvatar";
 import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
+import { ReelsCommentRow } from "@/features/reels/ReelsCommentRow";
 import { TenorGifSheet } from "@/features/feed/TenorGifSheet";
 import { uploadLocalFile } from "@/api/upload-file";
 import * as ImagePicker from "expo-image-picker";
 import {
+  mapCommentBuckets,
   moveCommentPin,
   postCommentsQueryKey,
   type PostCommentsResponse,
 } from "@/api/post-comments-query";
-import { TranslatableText } from "@/ui/TranslatableText";
+import { useAuth } from "@/auth/AuthContext";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
+import { showIslandError } from "@/ui/IslandToast";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
 import type { ReelsUi } from "@/features/reels/reels-ui";
@@ -93,6 +95,8 @@ export function ReelsCommentsSheet({
   onClosed,
 }: Props) {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const { open: openUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
   const inputRef = useRef<TextInput>(null);
   const [replyTarget, setReplyTarget] = useState<CommentReplyTarget | null>(null);
@@ -100,6 +104,7 @@ export function ReelsCommentsSheet({
   const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const keyboardOverlap = useKeyboardBottomInset();
   const restingLayerRef = useRef(layerHeight);
@@ -193,6 +198,74 @@ export function ReelsCommentsSheet({
   }));
 
   const canSend = Boolean(draft.trim() || attach) && !busy && !uploading;
+  const meName = user?.username || user?.name || t("m.feed.unknown_user");
+
+  const sendNow = useCallback(
+    (media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null) => {
+      const reply = replyTarget;
+      if (reply) {
+        setExpandNonceById((prev) => ({
+          ...prev,
+          [reply.rootId]: (prev[reply.rootId] ?? 0) + 1,
+        }));
+      }
+      onSubmit(media ?? attach, reply);
+      setAttach(null);
+      setReplyTarget(null);
+    },
+    [attach, onSubmit, replyTarget]
+  );
+
+  const toggleLike = useCallback(
+    async (item: CommentItem) => {
+      if (!user || likeBusyId || !commentsPostId) return;
+      const liked = Boolean(item.liked);
+      const prevCount = item.likeCount ?? 0;
+      const nextLiked = !liked;
+      const nextCount = Math.max(0, prevCount + (nextLiked ? 1 : -1));
+      setLikeBusyId(item.id);
+      const patch = (likedVal: boolean, count: number) =>
+        queryClient.setQueryData<PostCommentsResponse>(
+          postCommentsQueryKey(commentsPostId),
+          (old) =>
+            mapCommentBuckets(old, (c) =>
+              c.id === item.id ? { ...c, liked: likedVal, likeCount: count } : c
+            )
+        );
+      patch(nextLiked, nextCount);
+      try {
+        const res = await toggleCommentLike(item.id, liked);
+        patch(res.liked, res.likeCount);
+      } catch (err) {
+        patch(liked, prevCount);
+        showIslandError(
+          t("m.common.error"),
+          err instanceof Error ? err.message : t("m.feed.could_not_like_comment")
+        );
+      } finally {
+        setLikeBusyId(null);
+      }
+    },
+    [commentsPostId, likeBusyId, queryClient, t, user]
+  );
+
+  const togglePin = useCallback(
+    (item: CommentItem) => {
+      if (!commentsPostId) return;
+      const next = !item.isPinned;
+      queryClient.setQueryData<PostCommentsResponse>(
+        postCommentsQueryKey(commentsPostId),
+        (old) => moveCommentPin(old, item.id, next)
+      );
+      void pinPostComment(item.id, next).catch(() => {
+        queryClient.setQueryData<PostCommentsResponse>(
+          postCommentsQueryKey(commentsPostId),
+          (old) => moveCommentPin(old, item.id, !next)
+        );
+      });
+    },
+    [commentsPostId, queryClient]
+  );
 
   return (
     <Animated.View
@@ -233,56 +306,23 @@ export function ReelsCommentsSheet({
               scrollEventThrottle={16}
               bounces={false}
               overScrollMode="never"
+              extraData={`${likeBusyId ?? ""}:${Object.values(expandNonceById).join(",")}`}
               renderItem={({ item }) => (
-                <View style={styles.commentRow} nativeID={`comment-${item.id}`}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.commentUser}>
-                      {item.author.username}
-                      {item.isPinned ? (
-                        <Text style={styles.commentMeta}> · {t("m.feed.pinned_comments")}</Text>
-                      ) : null}
-                    </Text>
-                    {item.content ? (
-                      <TranslatableText text={item.content} style={styles.commentBody} lightLinks />
-                    ) : null}
-                    <CommentMediaBlock mediaType={item.mediaType} mediaUrl={item.mediaUrl} />
-                    <CommentThreadExtras
-                      comment={item}
-                      rootId={item.id}
-                      light
-                      expandNonce={expandNonceById[item.id]}
-                      onReply={(target) => {
-                        setReplyTarget(target);
-                        onDraftChange(`@${target.username} `);
-                        requestAnimationFrame(() => inputRef.current?.focus());
-                      }}
-                    />
-                  </View>
-                  {canPin && commentsPostId ? (
-                    <Pressable
-                      onPress={() => {
-                        const next = !item.isPinned;
-                        queryClient.setQueryData<PostCommentsResponse>(
-                          postCommentsQueryKey(commentsPostId),
-                          (old) => moveCommentPin(old, item.id, next)
-                        );
-                        void pinPostComment(item.id, next).catch(() => {
-                          queryClient.setQueryData<PostCommentsResponse>(
-                            postCommentsQueryKey(commentsPostId),
-                            (old) => moveCommentPin(old, item.id, !next)
-                          );
-                        });
-                      }}
-                      hitSlop={8}
-                    >
-                      <Ionicons
-                        name={item.isPinned ? "pin" : "pin-outline"}
-                        size={16}
-                        color="rgba(255,255,255,0.55)"
-                      />
-                    </Pressable>
-                  ) : null}
-                </View>
+                <ReelsCommentRow
+                  comment={item}
+                  expandNonce={expandNonceById[item.id]}
+                  canPin={canPin && !!commentsPostId}
+                  canLike={!!user}
+                  likeBusy={likeBusyId === item.id}
+                  onReply={(target) => {
+                    setReplyTarget(target);
+                    onDraftChange(`@${target.username} `);
+                    requestAnimationFrame(() => inputRef.current?.focus());
+                  }}
+                  onLike={(row) => void toggleLike(row)}
+                  onPin={togglePin}
+                  onOpenAuthor={(username) => openUserProfile({ username })}
+                />
               )}
               ListEmptyComponent={<Text style={styles.muted}>{copy.noComments}</Text>}
             />
@@ -290,8 +330,20 @@ export function ReelsCommentsSheet({
         </GestureDetector>
       )}
       {attach ? (
-        <View style={{ paddingBottom: 8 }}>
-          <CommentMediaBlock mediaType={attach.mediaType} mediaUrl={attach.mediaUrl} />
+        <View style={styles.attachPreview}>
+          <CommentMediaBlock
+            mediaType={attach.mediaType}
+            mediaUrl={attach.mediaUrl}
+            variant="preview"
+          />
+          <Pressable
+            onPress={() => setAttach(null)}
+            style={styles.clearAttach}
+            hitSlop={8}
+            accessibilityLabel={t("m.common.close")}
+          >
+            <Ionicons name="close" size={14} color="#fff" />
+          </Pressable>
         </View>
       ) : null}
       {replyTarget ? (
@@ -317,6 +369,17 @@ export function ReelsCommentsSheet({
         </View>
       ) : null}
       <View style={styles.commentInputRow}>
+        <CommentAvatar uri={user?.image} name={meName} size={32} />
+        <TextInput
+          ref={inputRef}
+          style={styles.commentInput}
+          placeholder={replyTarget ? t("m.feed.write_a_reply") : copy.commentPh}
+          placeholderTextColor="rgba(255,255,255,0.45)"
+          value={draft}
+          onChangeText={onDraftChange}
+          onSubmitEditing={() => sendNow()}
+          returnKeyType="send"
+        />
         <Pressable
           onPress={() => {
             void (async () => {
@@ -350,7 +413,7 @@ export function ReelsCommentsSheet({
         </Pressable>
         <Pressable
           onPress={() => setGifOpen(true)}
-          disabled={!!attach || uploading}
+          disabled={!!attach || uploading || busy}
           hitSlop={8}
           accessibilityLabel={t("m.feed.attach_gif")}
         >
@@ -358,40 +421,8 @@ export function ReelsCommentsSheet({
             <Text style={[styles.gifChipText, attach ? styles.gifChipTextOff : null]}>GIF</Text>
           </View>
         </Pressable>
-        <TextInput
-          ref={inputRef}
-          style={styles.commentInput}
-          placeholder={replyTarget ? t("m.feed.write_a_reply") : copy.commentPh}
-          placeholderTextColor="rgba(255,255,255,0.45)"
-          value={draft}
-          onChangeText={onDraftChange}
-          onSubmitEditing={() => {
-            const reply = replyTarget;
-            if (reply) {
-              setExpandNonceById((prev) => ({
-                ...prev,
-                [reply.rootId]: (prev[reply.rootId] ?? 0) + 1,
-              }));
-            }
-            onSubmit(attach, reply);
-            setAttach(null);
-            setReplyTarget(null);
-          }}
-          returnKeyType="send"
-        />
         <Pressable
-          onPress={() => {
-            const reply = replyTarget;
-            if (reply) {
-              setExpandNonceById((prev) => ({
-                ...prev,
-                [reply.rootId]: (prev[reply.rootId] ?? 0) + 1,
-              }));
-            }
-            onSubmit(attach, reply);
-            setAttach(null);
-            setReplyTarget(null);
-          }}
+          onPress={() => sendNow()}
           disabled={!canSend}
           hitSlop={8}
           accessibilityRole="button"
@@ -411,7 +442,10 @@ export function ReelsCommentsSheet({
       <TenorGifSheet
         visible={gifOpen}
         onClose={() => setGifOpen(false)}
-        onPick={(url) => setAttach({ mediaType: "GIF", mediaUrl: url })}
+        onPick={(url) => {
+          if (busy || uploading) return;
+          sendNow({ mediaType: "GIF", mediaUrl: url });
+        }}
       />
     </Animated.View>
   );
@@ -447,18 +481,22 @@ const styles = StyleSheet.create({
   sheetTitle: { color: "#fff", fontSize: 16, fontWeight: "800" },
   sheetSort: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 4, marginBottom: 8 },
   listWrap: { flex: 1, minHeight: 80 },
-  muted: { color: "rgba(255,255,255,0.7)", textAlign: "center", padding: 24 },
-  commentRow: {
+  muted: { color: "rgba(255,255,255,0.45)", textAlign: "center", padding: 24 },
+  attachPreview: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 8,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.08)",
+    paddingBottom: 4,
   },
-  commentUser: { color: "#fff", fontWeight: "800", marginBottom: 4 },
-  commentMeta: { color: "rgba(255,255,255,0.45)", fontWeight: "600" },
-  commentBody: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 20 },
+  clearAttach: {
+    marginLeft: 8,
+    marginTop: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
   replyBar: {
     flexDirection: "row",
     alignItems: "center",
