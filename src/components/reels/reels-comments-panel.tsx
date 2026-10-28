@@ -23,11 +23,10 @@ import {
   Pin,
   X,
 } from "lucide-react";
-import { ReplyBubbleIcon } from "@/components/icons/reply-bubble-icon";
 import { CommentForm } from "@/components/post/comment-form";
 import { CommentMediaThumb } from "@/components/post/comment-media-view";
+import { CommentCircleAvatar, commentDisplayName } from "@/components/post/comment-circle-avatar";
 import { LinkifiedText } from "@/components/ui/linkified-text";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,10 +103,10 @@ function formatRelativeKo(iso?: string): string {
 
 function SkeletonRows() {
   return (
-    <ul className="space-y-5 py-2" aria-hidden>
+    <ul className="space-y-3.5 py-2" aria-hidden>
       {Array.from({ length: 5 }).map((_, i) => (
-        <li key={i} className="flex animate-pulse gap-3">
-          <div className="h-8 w-8 shrink-0 rounded-full bg-white/10" />
+        <li key={i} className="flex animate-pulse gap-3 py-3">
+          <div className="h-9 w-9 shrink-0 rounded-full bg-white/10" />
           <div className="flex-1 space-y-2 pt-1">
             <div className="h-3 w-28 rounded bg-white/10" />
             <div className="h-3 w-full rounded bg-white/10" />
@@ -353,6 +352,7 @@ function CommentRow({
     [comment.content, locale]
   );
   const display = showTranslated && translated ? translated : comment.content;
+  const nickname = commentDisplayName(comment.author, t("comments.unknownUser"));
   const replyCount = "replyCount" in comment ? comment.replyCount : 0;
   const isPinned = "isPinned" in comment && comment.isPinned;
   const liked = comment.likedByMe;
@@ -493,37 +493,36 @@ function CommentRow({
     <li
       id={`comment-${comment.id}`}
       className={cn(
-        "flex gap-3 transition-opacity duration-200",
+        "flex items-start gap-3 py-3 transition-opacity duration-200",
         "pending" in comment && comment.pending && "opacity-60"
       )}
     >
       <Link href={`/u/${comment.author.username}`} className="shrink-0 self-start">
-        <Avatar className="!h-8 !w-8">
-          <AvatarImage src={comment.author.image ?? undefined} alt="" />
-          <AvatarFallback className="bg-neutral-700 text-[11px] text-white">
-            {(comment.author.name || comment.author.username).slice(0, 1).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <CommentCircleAvatar
+          image={comment.author.image}
+          name={nickname}
+          size={isReply ? 28 : 36}
+        />
       </Link>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-1">
-          <div className="min-w-0 flex-1 pr-1">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
             {isPinned && (
               <p className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-white/45">
                 <Pin className="h-3 w-3" />
                 {i18n("comments.pinned")}
               </p>
             )}
-            <p className="text-[13px] leading-snug">
+            <p className="mb-0.5 text-[13px] leading-snug">
               <Link
                 href={`/u/${comment.author.username}`}
-                className="font-semibold text-white hover:text-white/90"
+                className="font-bold text-white hover:text-white/90"
               >
-                {comment.author.username}
+                {nickname}
               </Link>
               {comment.isPostAuthor ? <AuthorBadge /> : null}
-              <span className="ml-1.5 text-white/40 tabular-nums">
+              <span className="ml-1.5 text-xs font-medium text-white/40 tabular-nums">
                 {formatRelativeKo(comment.createdAt)}
               </span>
               {comment.isEdited ? (
@@ -560,17 +559,19 @@ function CommentRow({
                 </div>
               </div>
             ) : (
+              {display.trim() ? (
               <LinkifiedText
                 text={display}
                 as="p"
                 stopPropagation
-                className="mt-0.5 text-[13px] leading-snug whitespace-pre-wrap break-words text-white"
+                className="mt-0.5 text-[14px] leading-snug whitespace-pre-wrap break-words text-white"
               />
+              ) : null}
             )}
             <CommentMediaThumb mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
           </div>
 
-          <div className="flex shrink-0 flex-col items-center gap-1">
+          <div className="ml-1 flex shrink-0 flex-col items-center gap-1 pt-0.5">
             {viewerId ? (
               <CommentMenu
                 comment={comment}
@@ -594,7 +595,7 @@ function CommentRow({
             ) : null}
             <button
               type="button"
-              className="p-1 text-white/45 transition-transform active:scale-90 hover:text-white"
+              className="p-1 text-white/40 transition-transform active:scale-90 hover:text-white"
               aria-label={liked ? i18n("reels.su52o21") : i18n("lib.notifications.s224a288614")}
               aria-pressed={liked}
               disabled={!viewerId || likeBusy}
@@ -603,24 +604,26 @@ function CommentRow({
               <Heart
                 className={cn(
                   "h-3.5 w-3.5 transition-colors",
-                  liked && "fill-red-500 text-red-500"
+                  liked && "fill-[#FF4D6D] text-[#FF4D6D]"
                 )}
               />
             </button>
+            {likeCount > 0 ? (
+              <span className={cn("text-[11px] font-semibold tabular-nums", liked ? "text-[#FF4D6D]" : "text-white/40")}>
+                {formatNumber(likeCount)}
+              </span>
+            ) : null}
           </div>
         </div>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/40">
-          {likeCount > 0 && (
-            <span className="tabular-nums">{formatNumber(likeCount)} likes</span>
-          )}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-white/40">
           {comment.likedByAuthor && (
             <span className="text-amber-300/80">{i18n("reels.s167wbcv")}</span>
           )}
           {viewerId && (
             <button
               type="button"
-              className="inline-flex items-center gap-1 hover:text-white/70"
+              className="hover:text-white/70"
               onClick={() =>
                 onReply({
                   rootId,
@@ -629,7 +632,6 @@ function CommentRow({
                 })
               }
             >
-              <ReplyBubbleIcon className="h-3.5 w-3.5" />
               {t("ui.reply")}
             </button>
           )}
@@ -1225,7 +1227,7 @@ export function ReelsCommentsPanel({
             No comments yet. Be the first to comment.
           </p>
         ) : (
-          <ul className="space-y-5 pb-4">
+          <ul className="space-y-0 pb-4">
             {ranked ? (
               <>
                 {pinned.map(renderRow)}
@@ -1266,8 +1268,9 @@ export function ReelsCommentsPanel({
             placeholder={
               replyTarget ? i18n("reels.s1nojek5") : i18n("reels.sxvvb73")
             }
+            variant="reels"
             className="mt-0"
-            inputClassName="rounded-full border-white/15 bg-transparent text-white placeholder:text-white/35"
+            inputClassName="rounded-full border-white/15 bg-white/[0.08] text-white placeholder:text-white/35"
             replyBarClassName="bg-white/[0.06] text-white/70"
             inputRef={composerInputRef}
             onSubmitted={() => setReplyTarget(null)}

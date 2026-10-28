@@ -29,7 +29,9 @@ function MediaFrame({
   const [failed, setFailed] = useState(false);
   const source = gif ? commentGifDisplayUrl(url) : url;
   const fit = contain ? "object-contain" : "object-cover";
-  const common = cn("block h-full w-full", fit);
+  const common = contain
+    ? cn("block max-h-[90vh] max-w-[90vw]", fit)
+    : cn("absolute inset-0 h-full w-full", fit);
   const useVideo = gif && isCommentGifPlaybackUrl(source) && !failed;
 
   if (useVideo) {
@@ -83,8 +85,8 @@ export function CommentMediaThumb({ mediaType, mediaUrl, className }: CommentMed
         role="button"
         tabIndex={0}
         className={cn(
-          "relative mt-2 block aspect-square w-[min(100%,200px)] max-h-[250px] max-w-[250px]",
-          "cursor-zoom-in overflow-hidden rounded-[12px] bg-muted",
+          "relative mt-2 mb-1 block h-[140px] w-[220px] max-w-full shrink-0",
+          "cursor-zoom-in overflow-hidden rounded-[12px] bg-neutral-800",
           className,
         )}
         onClick={() => setOpen(true)}
@@ -175,11 +177,9 @@ export function CommentAttachPreview({
 }) {
   const { t } = useLocale();
   return (
-    <div className="relative mt-1 inline-block max-w-[160px]">
-      <div className="relative overflow-hidden rounded-[12px] bg-muted">
-        <div className="relative aspect-square w-36">
-          <MediaFrame url={url} gif={gif} />
-        </div>
+    <div className="relative mt-1 inline-block max-w-full">
+      <div className="relative h-20 w-[120px] overflow-hidden rounded-[12px] bg-neutral-800">
+        <MediaFrame url={url} gif={gif} />
       </div>
       <button
         type="button"

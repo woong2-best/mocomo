@@ -683,6 +683,7 @@
   "comments.hideReplies": "Hide replies",
   "comments.replyingTo": "Replying to @{username}",
   "comments.cancelReply": "Cancel reply",
+  "comments.unknownUser": "Unknown",
   "post.views": "{count} views",
   "post.menu.ariaLabel": "Post menu",
   "post.menu.delete": "Delete",

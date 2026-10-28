@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { ImageIcon, Loader2, Sticker, X } from "lucide-react";
+import { ImageIcon, Loader2, Send, Sticker, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   notifyCommentAdded,
@@ -15,6 +15,7 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { uploadImageBlob } from "@/lib/client-upload";
 import { isGalleryImageFile, normalizeGalleryImageFile } from "@/lib/gallery-image-upload";
 import { CommentAttachPreview } from "@/components/post/comment-media-view";
+import { CommentCircleAvatar, commentDisplayName } from "@/components/post/comment-circle-avatar";
 import { GiphyGifPicker } from "@/components/post/tenor-gif-picker";
 
 type Attach = { mediaType: "PHOTO" | "GIF"; mediaUrl: string; previewUrl: string };
@@ -33,6 +34,7 @@ export function CommentForm({
   autoFocus,
   inputRef,
   onSubmitted,
+  variant = "default",
 }: {
   postId: string;
   parentId?: string;
@@ -47,6 +49,7 @@ export function CommentForm({
   autoFocus?: boolean;
   inputRef?: RefObject<HTMLTextAreaElement | null>;
   onSubmitted?: () => void;
+  variant?: "default" | "reels";
 }) {
   const { t } = useLocale();
   const [content, setContent] = useState("");
@@ -108,15 +111,17 @@ export function CommentForm({
     }
   }
 
-  async function submit() {
-    const text = content.trim();
-    if ((!text && !attach) || !user || submitting || uploading) return;
-    if (attach?.mediaType === "PHOTO" && attach.mediaUrl.startsWith("blob:")) return;
+  async function submit(opts?: { attach?: Attach | null; gifOnly?: boolean }) {
+    const sent = opts && "attach" in opts ? opts.attach ?? null : attach;
+    const text = opts?.gifOnly ? "" : content.trim();
+    if ((!text && !sent) || !user || submitting || uploading) return;
+    if (sent?.mediaType === "PHOTO" && sent.mediaUrl.startsWith("blob:")) return;
 
     const pendingId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setContent("");
-    const sent = attach;
-    setAttach(null);
+    if (!opts?.gifOnly) {
+      setContent("");
+      setAttach(null);
+    }
     setError("");
     setSubmitting(true);
 
@@ -164,8 +169,10 @@ export function CommentForm({
       router.refresh();
     } catch (err) {
       notifyCommentFailed(postId, pendingId);
-      setContent(text);
-      setAttach(sent);
+      if (!opts?.gifOnly) {
+        setContent(text);
+        setAttach(sent);
+      }
       setError(err instanceof Error ? err.message : t("ui.couldn_t_post_comment"));
     } finally {
       setSubmitting(false);
@@ -222,34 +229,43 @@ export function CommentForm({
           }}
         />
       ) : null}
-      <div className="flex items-end gap-2">
-        <div className="flex shrink-0 items-center gap-0.5 pb-1">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(e) => void pickPhoto(e.target.files?.[0])}
+      <div className={cn("flex gap-2", variant === "reels" ? "items-center" : "items-end")}>
+        {variant === "reels" && user ? (
+          <CommentCircleAvatar
+            image={user.image}
+            name={commentDisplayName({ username: user.username, name: user.name })}
+            size={32}
           />
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
-            disabled={!!attach || uploading}
-            onClick={() => fileRef.current?.click()}
-            aria-label={t("comments.attachPhoto")}
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
-            disabled={!!attach || uploading}
-            onClick={() => setGifOpen(true)}
-            aria-label={t("comments.attachGif")}
-          >
-            <Sticker className="h-4 w-4" />
-          </button>
-        </div>
+        ) : null}
+        {variant === "default" ? (
+          <div className="flex shrink-0 items-center gap-0.5 pb-1">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => void pickPhoto(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+              disabled={!!attach || uploading}
+              onClick={() => fileRef.current?.click()}
+              aria-label={t("comments.attachPhoto")}
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+              disabled={!!attach || uploading}
+              onClick={() => setGifOpen(true)}
+              aria-label={t("comments.attachGif")}
+            >
+              <Sticker className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
         <textarea
           ref={fieldRef}
           value={content}
@@ -265,11 +281,53 @@ export function CommentForm({
             inputClassName,
           )}
         />
-        <Button type="submit" size="sm" disabled={!canSubmit}>
-          {submitLabel ?? t("star.badge.post")}
-        </Button>
+        {variant === "reels" ? (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => void pickPhoto(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/55 hover:bg-white/10 hover:text-white disabled:opacity-40"
+              disabled={!!attach || uploading}
+              onClick={() => fileRef.current?.click()}
+              aria-label={t("comments.attachPhoto")}
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-[22px] min-w-8 shrink-0 items-center justify-center rounded-md border border-white/70 px-1.5 text-[10px] font-extrabold tracking-wide text-white/85 disabled:border-white/25 disabled:text-white/25"
+              disabled={!!attach || uploading || submitting}
+              onClick={() => setGifOpen(true)}
+              aria-label={t("comments.attachGif")}
+            >
+              GIF
+            </button>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full disabled:opacity-30"
+              aria-label={submitLabel ?? t("star.badge.post")}
+            >
+              {submitting || uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-[#6BA3E8]" />
+              ) : (
+                <Send className={cn("h-4 w-4", canSubmit ? "text-[#6BA3E8]" : "text-white/25")} />
+              )}
+            </button>
+          </>
+        ) : (
+          <Button type="submit" size="sm" disabled={!canSubmit}>
+            {submitLabel ?? t("star.badge.post")}
+          </Button>
+        )}
       </div>
-      {content.trim() ? (
+      {content.trim() && variant !== "reels" ? (
         <p className="px-1 text-[11px] text-muted-foreground">
           {t("ui.enter_to_post_shift_enter_for")}
         </p>
@@ -279,7 +337,16 @@ export function CommentForm({
         open={gifOpen}
         onClose={() => setGifOpen(false)}
         onPick={(gif) => {
-          setAttach({ mediaType: "GIF", mediaUrl: gif.playUrl, previewUrl: gif.previewUrl });
+          const picked = {
+            mediaType: "GIF" as const,
+            mediaUrl: gif.playUrl,
+            previewUrl: gif.previewUrl,
+          };
+          if (variant === "reels") {
+            void submit({ attach: picked, gifOnly: true });
+            return;
+          }
+          setAttach(picked);
           setError("");
         }}
       />
