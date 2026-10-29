@@ -14,11 +14,11 @@ export function SearchPageChrome({
   return (
     <div
       className={cn(
-        "mx-auto min-h-[calc(100dvh-3.5rem)] w-full min-w-0 max-w-7xl px-4 lg:px-6 pt-2",
+        "mx-auto min-h-[calc(100dvh-3.5rem)] w-full max-w-[600px] pt-2",
         !isNativeApp && "pb-nav lg:pb-6"
       )}
     >
-      <div className="min-w-0">{children}</div>
+      {children}
     </div>
   );
 }

@@ -7,7 +7,6 @@ import { useCallback, useEffect, useState } from "react";
 import { FeedTimelinePostCard } from "@/components/feed/feed-timeline-post-card";
 import type { HashtagFeedPost, HashtagSort } from "@/lib/hashtag-search";
 import { useLocale } from "@/components/providers/locale-provider";
-import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { cn } from "@/lib/utils";
 
 function formatPostCount(n: number, locale: string) {
@@ -38,7 +37,6 @@ export function HashtagSearchFeed({
   paymentsEnabled?: boolean;
 }) {
   const { locale } = useLocale();
-  const { isNativeApp } = useClientPlatform();
   const [sort, setSort] = useState<HashtagSort>(initialSort);
 
   useEffect(() => {
@@ -73,18 +71,12 @@ export function HashtagSearchFeed({
   const posts = sort === "top" ? postsTop : postsLatest;
 
   return (
-    <div className="space-y-0 -mx-4">
-      <p className="px-4 py-2 text-sm text-muted-foreground border-b border-border/60">
+    <div className="w-full max-w-[600px] mx-auto">
+      <p className="px-4 py-2 text-sm text-muted-foreground border-b border-border">
         {formatPostCount(total, locale)}
       </p>
 
-      <nav
-        className={cn(
-          "sticky z-40 flex border-b border-border/80 bg-background/95 backdrop-blur-md -mx-4 px-4",
-          isNativeApp ? "top-[calc(3.25rem+env(safe-area-inset-top,0px))]" : "top-14"
-        )}
-        aria-label={"Hashtag filters"}
-      >
+      <nav className="flex w-full border-b border-border" aria-label={"Hashtag filters"}>
         {tabs.map((tab) => {
           const active = sort === tab.id;
           return (
@@ -93,25 +85,24 @@ export function HashtagSearchFeed({
               type="button"
               onClick={() => selectSort(tab.id)}
               className={cn(
-                "relative flex-1 py-3 text-center text-sm font-semibold transition-colors",
-                active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                "flex-1 text-center py-4 text-sm font-semibold transition-colors border-b-2",
+                active
+                  ? "border-folk-cobalt text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               {tab.label}
-              {active && (
-                <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-folk-cobalt" aria-hidden />
-              )}
             </button>
           );
         })}
       </nav>
 
-      <div className="divide-y divide-border/70">
+      <div className="pt-4">
         {posts.length === 0 ? (
           <p className="px-4 py-10 text-sm text-muted-foreground text-center">{emptyMsg}</p>
         ) : (
           posts.map((post) => (
-            <div key={post.id} className="px-2 py-1">
+            <div key={post.id} className="border-b border-border/70 px-2 py-1">
               <FeedTimelinePostCard post={post} paymentsEnabled={paymentsEnabled} />
             </div>
           ))
