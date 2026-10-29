@@ -39,7 +39,11 @@ export async function POST(req: NextRequest) {
     userId: auth.user.id,
     provider: parsed.data.provider,
   });
-  const origin = req.nextUrl.origin;
+  const origin = (
+    process.env.AUTH_URL?.trim() ||
+    process.env.NEXTAUTH_URL?.trim() ||
+    "https://mocomo.net"
+  ).replace(/\/$/, "");
   const start = new URL(PROFILE_SOCIAL_CONNECT_PATH[parsed.data.provider], origin);
   start.searchParams.set("link", ticket);
   return NextResponse.json({ url: start.toString() });

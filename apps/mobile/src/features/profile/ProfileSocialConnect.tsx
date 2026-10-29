@@ -14,6 +14,8 @@ import {
   type ProfileSocialId,
 } from "@/features/profile/profile-social";
 
+WebBrowser.maybeCompleteAuthSession();
+
 const OAUTH_REDIRECT = "mocomo://oauth";
 
 type SocialItem = { id: ProfileSocialId; href: string | null };
@@ -43,7 +45,9 @@ export function ProfileSocialConnect({
     setBusy(id);
     try {
       const { url } = await startProfileSocialConnect(id);
-      const result = await WebBrowser.openAuthSessionAsync(url, OAUTH_REDIRECT);
+      const result = await WebBrowser.openAuthSessionAsync(url, OAUTH_REDIRECT, {
+        showInRecents: true,
+      });
       if (result.type === "success") {
         showIslandToast("Saved", t("m.profile.social_connected"));
         onConnected?.();

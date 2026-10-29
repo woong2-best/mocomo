@@ -59,7 +59,9 @@
         "NSLocationWhenInUseUsageDescription": "MoCoMo uses your location once while the app is open to confirm arrival at a meetup place.",
         "LSApplicationQueriesSchemes": [
           "instagram-stories",
-          "instagram"
+          "instagram",
+          "tiktok",
+          "snssdk1233"
         ],
         "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait",
