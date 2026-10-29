@@ -109,6 +109,7 @@ export function MessageRoomScreen() {
   const composerBottomPad = keyboardOpen ? 8 : Math.max(insets.bottom, 8);
   const canSendText = !!draft.trim() && !busy && !recording;
   const usedTrade = room?.usedTrade ?? null;
+  const digitalTrade = usedTrade?.digital === true;
   const listingSold = usedTrade?.listingStatus === "SOLD";
   const [reportOpen, setReportOpen] = useState(false);
   const [roomLockedLocal, setRoomLockedLocal] = useState(false);
@@ -230,7 +231,7 @@ export function MessageRoomScreen() {
   const canSend =
     !roomLocked &&
     !messagingBlocked &&
-    !listingSold &&
+    !(listingSold && !digitalTrade) &&
     (room?.type !== "DM" || room.canMessage !== false);
   const composerLockNote = listingSold
     ? t("actions.s1mmunw")
@@ -423,7 +424,7 @@ export function MessageRoomScreen() {
           ) : null}
         </View>
       </View>
-      {usedTrade?.listingId ? <DigitalDeliveryCard listingId={usedTrade.listingId} /> : null}
+      {digitalTrade && usedTrade?.listingId ? <DigitalDeliveryCard listingId={usedTrade.listingId} /> : null}
 
       {!isGroup && peerId ? (
         <PostReportSheet

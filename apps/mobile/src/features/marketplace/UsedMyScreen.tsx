@@ -78,12 +78,15 @@ export function UsedMyScreen() {
           </Text>
           <Text style={styles.price}>{formatUsedPrice(item.price, item.currency, t)}</Text>
           {isDigitalListing(item) ? (
-            <Text style={styles.sub}>{digitalSalesStep(item.subcultureMeta, t)}</Text>
-          ) : null}
-          <Text style={styles.sub}>
-            {displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd")} ·{" "}
-            {formatUsedTimeAgo(item.createdAt, t)}
-          </Text>
+            <Text style={styles.sub}>
+              {digitalSalesStep(item.subcultureMeta, t)} · {formatUsedTimeAgo(item.createdAt, t)}
+            </Text>
+          ) : (
+            <Text style={styles.sub}>
+              {displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd")} ·{" "}
+              {formatUsedTimeAgo(item.createdAt, t)}
+            </Text>
+          )}
         </View>
       </Pressable>
     ),

@@ -382,10 +382,14 @@ export function MarketplaceDetailScreen() {
               conditionGrade={item.conditionGrade}
               tradeMode={item.tradeMode}
             />
-            <Text style={styles.sub}>
-              {displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd")}
-              {item.seller?.username ? ` · @${item.seller.username}` : ""}
-            </Text>
+            {isDigitalListing(item) ? (
+              item.seller?.username ? <Text style={styles.sub}>@{item.seller.username}</Text> : null
+            ) : (
+              <Text style={styles.sub}>
+                {displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd")}
+                {item.seller?.username ? ` · @${item.seller.username}` : ""}
+              </Text>
+            )}
             {item.meetPlace?.trim() && !isDigitalListing(item) ? (
               <Text style={styles.meetPlace}>
                 {t("m.marketplace.meetup")} · {item.meetPlace.trim()}

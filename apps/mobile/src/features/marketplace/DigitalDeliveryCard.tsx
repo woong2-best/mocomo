@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { fetchDigitalDelivery, postDigitalDelivery, type DigitalDeliveryView } from "@/api/marketplace";
+import { validateCloudShareUrl } from "@/features/marketplace/cloud-share-url";
 import { useI18n } from "@/i18n/I18nProvider";
-
-const CLOUD_SHARE_URL_PATTERN =
-  /^https:\/\/(?:drive\.google\.com|docs\.google\.com|(?:www\.)?dropbox\.com|dl\.dropboxusercontent\.com)\/\S+$/i;
 
 const NAVY = "#0b1f3a";
 const MINT = "#7ef0d2";
@@ -57,12 +55,16 @@ export function DigitalDeliveryCard({ listingId }: { listingId: string }) {
 
   async function run(
     action: "start" | "upload" | "approve" | "dispute",
-    file?: { cloudShareUrl?: string; sharePassword?: string; fileName?: string }
+    file?: { cloudShareUrl?: string; sharePassword?: string; fileName?: string; disputeReason?: string }
   ) {
     setBusy(true);
     setNote("");
     try {
       const res = await postDigitalDelivery(listingId, { action, ...file });
+      if (res.error) {
+        setNote(res.error);
+        return;
+      }
       if (res.delivery) setDelivery(res.delivery);
       else await reload();
     } catch (error) {
@@ -73,15 +75,15 @@ export function DigitalDeliveryCard({ listingId }: { listingId: string }) {
   }
 
   function submitLink() {
-    const href = cloudUrl.trim();
-    if (!CLOUD_SHARE_URL_PATTERN.test(href)) {
+    const checked = validateCloudShareUrl(cloudUrl);
+    if (!checked.ok) {
       setNote(t("m.market.track.cloud_invalid"));
       return;
     }
     void run("upload", {
-      cloudShareUrl: href,
+      cloudShareUrl: checked.href,
       sharePassword: password,
-      fileName: href.includes("dropbox.com") ? "Dropbox" : "Google Drive",
+      fileName: checked.provider === "google" ? "Google Drive" : "Dropbox",
     });
   }
 
@@ -125,7 +127,7 @@ export function DigitalDeliveryCard({ listingId }: { listingId: string }) {
           />
           {delivery.status === "held" ? (
             <Pressable style={styles.ghost} disabled={busy} onPress={() => void run("start")}>
-              <Text style={styles.ghostText}>{t("m.market.track.in_progress")}</Text>
+              <Text style={styles.ghostText}>{t("m.market.track.start_work")}</Text>
             </Pressable>
           ) : null}
           <Pressable style={styles.mint} disabled={busy} onPress={submitLink}>
@@ -150,7 +152,11 @@ export function DigitalDeliveryCard({ listingId }: { listingId: string }) {
         </Pressable>
       ) : null}
       {role === "buyer" && delivery.status === "uploaded" ? (
-        <Pressable style={styles.ghost} disabled={busy} onPress={() => void run("dispute")}>
+        <Pressable
+          style={styles.ghost}
+          disabled={busy}
+          onPress={() => void run("dispute", { disputeReason: "Requirements do not match" })}
+        >
           <Text style={styles.ghostText}>{t("m.commission.dispute")}</Text>
         </Pressable>
       ) : null}

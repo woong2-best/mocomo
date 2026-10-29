@@ -331,10 +331,12 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
                 {item.title || t("m.marketplace.listing")}
               </Text>
               <Text style={styles.meta} numberOfLines={1}>
-                {[
-                  displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd"),
-                  formatUsedTimeAgo(item.createdAt, t),
-                ].join(" · ")}
+                {isDigitalListing(item)
+                  ? formatUsedTimeAgo(item.createdAt, t)
+                  : [
+                      displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd"),
+                      formatUsedTimeAgo(item.createdAt, t),
+                    ].join(" · ")}
               </Text>
               <Text style={styles.price}>
                 {auction
@@ -521,14 +523,14 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         </Pressable>
       </View>
       {filterBar}
-      {!hubLane && scope === "physical" ? (
+      {!hubLane && isCombined ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.chipScroller}
           contentContainerStyle={styles.catRow}
         >
-          {hubForTrack("physical").map((item) => {
+          {hubForTrack(scope).map((item) => {
             const active = browse.source === "hub" && browse.id === item.id;
             return (
               <Pressable
@@ -742,12 +744,13 @@ function createStyles(colors: ThemeColors) {
     trackText: { fontWeight: "800", fontSize: 14, color: colors.brand, textAlign: "center" },
     trackTextOn: { color: colors.textOnAccent },
     cat: {
+      flexShrink: 0,
       paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: 999,
       borderWidth: 1.5,
     },
-    catText: { fontWeight: "800", fontSize: 13 },
+    catText: { fontWeight: "800", fontSize: 13, flexShrink: 0 },
     row: {
       flexDirection: "row",
       paddingHorizontal: 14,

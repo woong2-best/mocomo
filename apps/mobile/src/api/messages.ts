@@ -104,6 +104,7 @@ export type DirectTradeView = {
 
 export type UsedTradeRoomContext = {
   listingId: string;
+  digital?: boolean;
   listingTitle: string;
   listingStatus: string;
   saleType?: string;
