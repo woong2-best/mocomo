@@ -29,8 +29,6 @@ export function HeaderSearch({
   const searchContext = getHeaderSearchContext(pathname ?? "");
   const placeholder = t(searchContext.placeholderKey);
   const isOnSearchPage = pathname === "/search";
-  const urlScope = searchParams.get("scope");
-  const isSocialScope = searchContext.scope === "social" || urlScope === "social";
   const usesPageQuery = isOnSearchPage || searchContext.inPage;
   const urlQuery = usesPageQuery ? (searchParams.get("q") ?? "") : "";
   const [q, setQ] = useState(usesPageQuery ? urlQuery : defaultQuery);
@@ -201,17 +199,21 @@ export function HeaderSearch({
       }).catch(() => undefined);
     }
 
-    if (searchContext.inPage) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("q", term);
-      const qs = params.toString();
+    const stayInSection =
+      searchContext.inPage &&
+      searchContext.basePath !== "/" &&
+      searchContext.basePath !== "/search";
+
+    if (stayInSection) {
+      const sectionParams = new URLSearchParams(searchParams.toString());
+      sectionParams.set("q", term);
+      const qs = sectionParams.toString();
       router.replace(qs ? `${searchContext.basePath}?${qs}` : searchContext.basePath);
       return;
     }
 
     const params = new URLSearchParams();
     params.set("q", term);
-    if (isSocialScope) params.set("scope", "social");
     if (isOnSearchPage) {
       const currentFilter = searchParams.get("f");
       if (currentFilter) params.set("f", currentFilter);
