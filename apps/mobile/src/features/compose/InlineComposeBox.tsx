@@ -58,6 +58,7 @@ import {
   isGeneralPostOverGraphemeLimit,
   remainingGeneralPostGraphemes,
 } from "@/lib/post-content-limit";
+import { hasMeaningfulPostCaption } from "@/lib/post-hashtags";
 
 type Props = {
   avatarUrl?: string | null;
@@ -205,7 +206,7 @@ export function InlineComposeBox({
   const canPost =
     !busy &&
     !overPostLimit &&
-    (content.trim().length > 0 || media.length > 0 || !!poll || !!quotedPostId);
+    (hasMeaningfulPostCaption(content) || media.length > 0 || !!quotedPostId);
 
   const composeLightboxImages = useMemo(
     () =>

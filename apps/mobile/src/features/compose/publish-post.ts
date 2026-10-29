@@ -5,6 +5,10 @@ import { validatePollDraft } from "@/features/compose/compose-types";
 import { translate } from "@/i18n/runtime";
 import { normalizeMediaDurationSec } from "@/features/feed/feedMediaDuration";
 import { isGeneralPostOverGraphemeLimit } from "@/lib/post-content-limit";
+import {
+  hasMeaningfulPostCaption,
+  HASHTAG_ONLY_POST_ERROR,
+} from "@/lib/post-hashtags";
 
 function guessMime(filename: string, fallback: string) {
   const lower = filename.toLowerCase();
@@ -53,11 +57,13 @@ export async function publishComposePost(input: {
   if (input.poll) {
     const pollErr = validatePollDraft(input.poll, locale);
     if (pollErr) throw new Error(pollErr);
-    if (!content) {
+    if (!hasMeaningfulPostCaption(content)) {
       throw new Error(translate("m.compose.write_the_poll_question_in_the"));
     }
-  } else if (!content && input.media.length === 0 && !input.quotedPostId) {
-    throw new Error(translate("m.compose.add_text_or_a_photo"));
+  } else if (!hasMeaningfulPostCaption(content) && input.media.length === 0 && !input.quotedPostId) {
+    throw new Error(
+      translate(content ? HASHTAG_ONLY_POST_ERROR : "m.compose.add_text_or_a_photo")
+    );
   }
 
   const media = [];

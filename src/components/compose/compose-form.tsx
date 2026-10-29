@@ -49,6 +49,7 @@ import {
   remainingGeneralPostGraphemes,
   validateGeneralPostContentLength,
 } from "@/lib/post-content-limit";
+import { hasMeaningfulPostCaption } from "@/lib/post-hashtags";
 import { notifyPostPublished } from "@/lib/feed-live-sync";
 import {
   FLASH_POST_STORAGE_KEY,
@@ -125,7 +126,9 @@ export function ComposeForm({
     enforcePostLimit && isGeneralPostOverGraphemeLimit(content);
   const canSubmit =
     !overPostLimit &&
-    (content.trim().length > 0 || media.length > 0 || (isQuoteCompose && !submitBusy));
+    (hasMeaningfulPostCaption(content) ||
+      media.length > 0 ||
+      (isQuoteCompose && !submitBusy));
   const instantPriceCents = parseUsdDollarsToCents(instantPriceUsd);
   const paidMediaCents = media.reduce((max, m) => Math.max(max, m.priceKrw ?? 0), 0);
   const showInstantPurchase = visibility !== "PUBLIC" && contentRating !== "ADULT";
@@ -204,7 +207,13 @@ export function ComposeForm({
     const contentText =
       content.trim() || String(form.get("content") ?? "").trim();
 
-    if (!contentText && media.length === 0 && !quotedPostId) return;
+    if (!hasMeaningfulPostCaption(contentText) && media.length === 0 && !quotedPostId) {
+      if (contentText) {
+        setError(t("compose.hashtagOnly"));
+        return;
+      }
+      return;
+    }
 
     const lengthErr = validateGeneralPostContentLength(contentText, communityId);
     if (lengthErr) {
@@ -216,6 +225,10 @@ export function ComposeForm({
       const pollErr = validatePostPollInput(poll);
       if (pollErr) {
         setError(pollErr);
+        return;
+      }
+      if (!hasMeaningfulPostCaption(contentText)) {
+        setError(t("compose.hashtagOnly"));
         return;
       }
     }

@@ -19,13 +19,9 @@ import { useLocale } from "@/components/providers/locale-provider";
 import { userDisplayName } from "@/lib/user-public-select";
 import { reelCollabStack } from "@/lib/reels/collaborators";
 import type { ReelAuthor } from "@/lib/reels/types";
+import { splitReelOverlayCaption } from "@/lib/post-hashtags";
 
-export function buildVideoCaptionText(
-  title: string | null | undefined,
-  content: string
-): string {
-  return [title?.trim(), content.trim()].filter(Boolean).join("\n");
-}
+export { buildVideoCaptionText } from "@/lib/post-hashtags";
 
 type Props = {
   username: string;
@@ -36,6 +32,8 @@ type Props = {
   collaborators?: ReelAuthor[] | null;
   title?: string | null;
   content: string;
+  /** NOTE slides already show the writing on the card — overlay keeps hashtags only. */
+  hideOverlayCaption?: boolean;
   /** Extra content below caption (e.g. multi-video index). */
   footer?: React.ReactNode;
   className?: string;
@@ -49,6 +47,7 @@ export function VideoOverlayCaption({
   collaborators,
   title,
   content,
+  hideOverlayCaption = false,
   footer,
   className,
 }: Props) {
@@ -59,8 +58,15 @@ export function VideoOverlayCaption({
   const [truncatable, setTruncatable] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
 
-  const captionText = buildVideoCaptionText(title, content);
-  const hasCaption = captionText.length > 0;
+  const { overlay, hashtagLine } = useMemo(
+    () => splitReelOverlayCaption(title, content),
+    [title, content]
+  );
+  const overlayText = hideOverlayCaption ? "" : overlay;
+  const captionText = expanded
+    ? [overlayText, hashtagLine].filter(Boolean).join("\n")
+    : overlayText;
+  const hasCaption = overlayText.length > 0 || hashtagLine.length > 0;
 
   const author = useMemo<ReelAuthor>(
     () => ({
@@ -89,7 +95,7 @@ export function VideoOverlayCaption({
   useEffect(() => {
     setExpanded(false);
     setRosterOpen(false);
-  }, [captionText, author.id]);
+  }, [overlayText, hashtagLine, author.id]);
 
   useEffect(() => {
     const el = captionRef.current;
@@ -99,16 +105,17 @@ export function VideoOverlayCaption({
     }
     const check = () => {
       setTruncatable(
-        el.scrollHeight > el.clientHeight + 1 ||
-          captionText.includes("\n") ||
-          captionText.length > 48
+        hashtagLine.length > 0 ||
+          el.scrollHeight > el.clientHeight + 1 ||
+          overlayText.includes("\n") ||
+          overlayText.length > 48
       );
     };
     check();
     const ro = new ResizeObserver(check);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [captionText, expanded, hasCaption]);
+  }, [hashtagLine, overlayText, expanded, hasCaption]);
 
   const toggle = useCallback(() => {
     if (!hasCaption || (!expanded && !truncatable)) return;
@@ -268,9 +275,13 @@ export function VideoOverlayCaption({
                       : "line-clamp-1"
                   )}
                 >
-                  <LinkifiedText text={captionText} as="span" stopPropagation />
+                  {captionText ? (
+                    <LinkifiedText text={captionText} as="span" stopPropagation />
+                  ) : (
+                    <span className="text-white/80">{i18n("reels.sd4f4ci")}</span>
+                  )}
                 </div>
-                {!expanded && truncatable ? (
+                {!expanded && truncatable && captionText ? (
                   <span className="sr-only">{i18n("reels.sd4f4ci")}</span>
                 ) : null}
               </button>

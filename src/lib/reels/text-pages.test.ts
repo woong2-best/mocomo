@@ -62,6 +62,15 @@ test("puts the title above the body", () => {
   assert.equal(pages[0], "제목\n\n본문");
 });
 
+test("keeps writing on the note and drops hashtags from the card", () => {
+  const pages = reelNotePages(null, "오늘 날씨 좋다 #daily #mood");
+  assert.equal(pages[0], "오늘 날씨 좋다");
+});
+
+test("keeps a blank note slide when the post is only hashtags", () => {
+  assert.deepEqual(reelNotePages(null, "#daily #mood"), [""]);
+});
+
 test("empty text has no note page", () => {
   assert.deepEqual(paginateReelNote("  \n\n"), []);
   assert.deepEqual(reelNotePages(null, "   "), []);

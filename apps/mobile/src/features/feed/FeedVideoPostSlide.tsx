@@ -28,9 +28,9 @@ import { cachedImageSource, IMAGE_CACHE_POLICY } from "@/perf/image";
 import { spacing } from "@/theme/tokens";
 import { ReelAuthorMeta } from "@/features/reels/ReelAuthorMeta";
 import {
-  buildVideoCaptionText,
   CollapsibleVideoCaption,
   collapsibleCaptionStyles,
+  splitVideoCaption,
 } from "@/ui/CollapsibleVideoCaption";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
 import { PostReportSheet } from "@/features/feed/PostReportSheet";
@@ -393,13 +393,12 @@ function FeedVideoPostSlideInner({
   const [shareOpen, setShareOpen] = useState(false);
 
   const current = slides[videoIndex] ?? slides[0];
-  const captionText = useMemo(
-    () =>
-      current?.mediaType === "NOTE"
-        ? ""
-        : buildVideoCaptionText(current?.title, current?.content ?? ""),
-    [current?.content, current?.mediaType, current?.title]
-  );
+  const { overlay: captionText, hashtagLine: captionHashtags } = useMemo(() => {
+    const parts = splitVideoCaption(current?.title, current?.content ?? "");
+    return current?.mediaType === "NOTE"
+      ? { overlay: "", hashtagLine: parts.hashtagLine }
+      : parts;
+  }, [current?.content, current?.mediaType, current?.title]);
   const chromeHidden = fastForward || pinchZooming || commentsOpen;
 
   const stopFastForward = useCallback(() => {
@@ -756,9 +755,10 @@ function FeedVideoPostSlideInner({
           author={current.author}
           collaborators={current.collaborators}
         />
-        {captionText ? (
+        {captionText || captionHashtags ? (
           <CollapsibleVideoCaption
             text={captionText}
+            description={captionHashtags}
             style={styles.caption}
             resetKey={`${group.postId}:${current.id}`}
             onExpandedChange={setCaptionExpanded}

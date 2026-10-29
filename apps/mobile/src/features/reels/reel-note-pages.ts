@@ -3,6 +3,8 @@
  * The viewer measures the card and paginates so each note page fills the frame.
  */
 
+import { splitPostCaptionAndHashtags } from "@/lib/post-hashtags";
+
 export const NOTE_LINE_PX = 32;
 export const NOTE_INSET_PX = 0;
 export const NOTE_PAD_TOP_PX = 8;
@@ -118,8 +120,10 @@ export function reelNoteText(
   title: string | null | undefined,
   content: string | null | undefined
 ): string {
-  const body = (content ?? "").replace(/\r\n/g, "\n").replace(/^\n+|\n+$/g, "");
-  const heading = (title ?? "").trim();
+  const body = splitPostCaptionAndHashtags(
+    (content ?? "").replace(/\r\n/g, "\n").replace(/^\n+|\n+$/g, "")
+  ).caption;
+  const heading = splitPostCaptionAndHashtags(title ?? "").caption;
   if (!heading) return body;
   if (!body) return heading;
   if (body.startsWith(heading)) return body;
@@ -149,7 +153,11 @@ export function reelNotePages(
   content: string | null | undefined
 ): string[] {
   const text = reelNoteText(title, content);
-  return text.trim() ? [text] : [];
+  if (text.trim()) return [text];
+  const { hashtagLine } = splitPostCaptionAndHashtags(
+    [title ?? "", content ?? ""].join("\n")
+  );
+  return hashtagLine ? [""] : [];
 }
 
 type NoteSlide = {

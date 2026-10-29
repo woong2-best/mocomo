@@ -37,6 +37,7 @@ import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
 import { communityUi } from "@/features/community/community-ui";
+import { hasMeaningfulPostCaption } from "@/lib/post-hashtags";
 
 type PostsTab = "all" | "concept" | "notice";
 
@@ -141,8 +142,11 @@ export function CommunityServerScreen() {
     async (media?: { url: string; type: "IMAGE" | "VIDEO" }) => {
       if (!item?.id || !item.isMember || posting) return;
       const content = draft.trim();
-      if (!content && !media) {
-        showIslandError(copy.postTitle, copy.postNeedContent);
+      if (!hasMeaningfulPostCaption(content) && !media) {
+        showIslandError(
+          copy.postTitle,
+          content ? t("m.compose.hashtag_only") : copy.postNeedContent
+        );
         return;
       }
       setPosting(true);
@@ -164,7 +168,7 @@ export function CommunityServerScreen() {
         setPosting(false);
       }
     },
-    [copy, draft, item?.id, item?.isMember, posting, queryClient, route.params.slug]
+    [copy, draft, item?.id, item?.isMember, posting, queryClient, route.params.slug, t]
   );
 
   const pickQnaMedia = useCallback(

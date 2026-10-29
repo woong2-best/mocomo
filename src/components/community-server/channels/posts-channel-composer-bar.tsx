@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { notifyPostPublished } from "@/lib/feed-live-sync";
 import { FileDropZone } from "@/components/media/file-drop-zone";
 import { isGalleryVideoFile } from "@/lib/gallery-video-upload";
+import { hasMeaningfulPostCaption } from "@/lib/post-hashtags";
 
 const MAX_VOICE_SEC = 120;
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif";
@@ -55,7 +56,7 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
 
   const canCompose =
     (isMember || isOwner) && hasPermission(permissions, "createPosts");
-  const canSend = !!draft.trim() && !uploading && !recording;
+  const canSend = hasMeaningfulPostCaption(draft) && !uploading && !recording;
 
   const stopMicStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -245,7 +246,12 @@ export function PostsChannelComposerBar({ communityId }: { communityId: string }
 
   function sendText() {
     const text = draft.trim();
-    if (!text || uploading || recording) return;
+    if (!hasMeaningfulPostCaption(text) || uploading || recording) {
+      if (text && !hasMeaningfulPostCaption(text)) {
+        setError(t("compose.hashtagOnly"));
+      }
+      return;
+    }
     void publishPost(text);
   }
 

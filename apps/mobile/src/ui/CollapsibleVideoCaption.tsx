@@ -5,29 +5,30 @@ import {
   StyleSheet,
   type StyleProp,
   type TextStyle,
-  type NativeSyntheticEvent,
-  type TextLayoutEventData,
 } from "react-native";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { useI18n } from "@/i18n/I18nProvider";
+import { splitReelOverlayCaption } from "@/lib/post-hashtags";
+
+export { buildVideoCaptionText } from "@/lib/post-hashtags";
 
 type Props = {
   text: string;
+  /** Hashtags shown only after the viewer opens the description. */
+  description?: string;
   style?: StyleProp<TextStyle>;
   /** Reset expand when post/video changes. */
   resetKey?: string;
   onExpandedChange?: (expanded: boolean) => void;
 };
 
-export function buildVideoCaptionText(
-  title: string | null | undefined,
-  content: string
-): string {
-  return [title?.trim(), content.trim()].filter(Boolean).join("\n");
+export function splitVideoCaption(title: string | null | undefined, content: string) {
+  return splitReelOverlayCaption(title, content);
 }
 
 export function CollapsibleVideoCaption({
   text,
+  description,
   style,
   resetKey,
   onExpandedChange,
@@ -35,39 +36,36 @@ export function CollapsibleVideoCaption({
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
+  const overlay = text.trim();
+  const extra = (description ?? "").trim();
+  const display = expanded ? [overlay, extra].filter(Boolean).join("\n") : overlay;
 
   useEffect(() => {
     setExpanded(false);
-    setCanExpand(text.includes("\n") || text.length > 48);
-  }, [resetKey, text]);
+    setCanExpand(extra.length > 0 || overlay.includes("\n") || overlay.length > 48);
+  }, [resetKey, overlay, extra]);
 
   useEffect(() => {
     onExpandedChange?.(expanded);
   }, [expanded, onExpandedChange]);
 
-  const onTextLayout = useCallback(
-    (e: NativeSyntheticEvent<TextLayoutEventData>) => {
-      if (expanded) return;
-      setCanExpand(e.nativeEvent.lines.length > 1);
-    },
-    [expanded]
-  );
-
   const toggle = useCallback(() => {
-    if (!text.trim()) return;
+    if (!overlay && !extra) return;
     if (!expanded && !canExpand) return;
     setExpanded((prev) => !prev);
-  }, [canExpand, expanded, text]);
+  }, [canExpand, expanded, extra, overlay]);
 
-  if (!text.trim()) return null;
+  if (!overlay && !extra) return null;
 
-  const caption = (
+  const caption = display ? (
     <TranslatableText
-      text={text}
+      text={display}
       style={style}
       numberOfLines={expanded ? undefined : 1}
       lightLinks
     />
+  ) : (
+    <TranslatableText text="…" style={style} lightLinks />
   );
 
   return (

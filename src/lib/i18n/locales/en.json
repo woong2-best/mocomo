@@ -876,6 +876,7 @@
   "compose.collabFollowing": "Following",
   "compose.collabMax": "Maximum collaborators reached.",
   "compose.contentTooLong": "Posts can be up to 350 characters.",
+  "compose.hashtagOnly": "Add a caption or a photo. Hashtags alone aren't enough.",
   "collab.inviteBanner": "You've been invited as a collaborator on this post.",
   "collab.accept": "Accept",
   "collab.reject": "Decline",

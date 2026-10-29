@@ -394,7 +394,8 @@ function FeedVideoPostSlideBody({
                     authorId={activeReel.author.id}
                     collaborators={activeReel.collaborators}
                     title={reel.mediaType === "NOTE" ? null : activeReel.title}
-                    content={reel.mediaType === "NOTE" ? "" : activeReel.content}
+                    content={activeReel.content}
+                    hideOverlayCaption={reel.mediaType === "NOTE"}
                   />
 
                   {multiVideo && (

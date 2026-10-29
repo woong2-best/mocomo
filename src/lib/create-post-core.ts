@@ -19,6 +19,11 @@ import { clampMediaInt } from "@/lib/video-metadata";
 import { validateSaleMediaPricing } from "@/lib/money";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { extractHashtagNames } from "@/lib/linkify";
+import {
+  extractHashtagNamesLoose,
+  hasMeaningfulPostCaption,
+  HASHTAG_ONLY_POST_ERROR,
+} from "@/lib/post-hashtags";
 import { isCommunityScopedPost } from "@/lib/post-scope";
 import { validateGeneralPostContentLength } from "@/lib/post-content-limit";
 import { loadMemberPermissions } from "@/lib/community-server/member-permissions";
@@ -91,11 +96,18 @@ export async function createPostForUser(
     quotedIsNsfw = quoted.isNsfw || quoted.contentRating === "ADULT";
   }
 
+  const hasCaption =
+    hasMeaningfulPostCaption(content) ||
+    hasMeaningfulPostCaption(data.title ?? "");
+
   if (data.poll) {
     const pollErr = validatePostPollInput(data.poll);
     if (pollErr) return { error: pollErr };
-    if (!content) return { error: "Add your poll question in the body." };
-  } else if (!content && !hasMediaInput && !quotedPostId) {
+    if (!hasMeaningfulPostCaption(content)) {
+      return { error: "Add your poll question in the body." };
+    }
+  } else if (!hasCaption && !hasMediaInput && !quotedPostId) {
+    if (content) return { error: HASHTAG_ONLY_POST_ERROR };
     return { error: "Enter content." };
   }
 
@@ -252,7 +264,11 @@ export async function createPostForUser(
     });
 
     const explicitTags = (data.tagNames ?? []).map((t) => t.trim()).filter(Boolean);
-    const contentTags = extractHashtagNames(content);
+    const contentTags = [
+      ...extractHashtagNames(content),
+      ...extractHashtagNamesLoose(content),
+      ...extractHashtagNamesLoose(data.title ?? ""),
+    ];
     const tagKeySet = new Set<string>();
     const tagNames: string[] = [];
     for (const name of [...explicitTags, ...contentTags]) {
