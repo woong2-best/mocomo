@@ -24,6 +24,8 @@ export function isTermsGateExemptApiPath(pathname: string): boolean {
   if (pathname === "/api/sidebar" || pathname.startsWith("/api/sidebar/")) return true;
   if (pathname === "/api/home-chrome") return true;
   if (pathname === "/api/build-id") return true;
+  // Machine endpoint returns its own 404. Do not replace that with the terms JSON.
+  if (pathname === "/api/ai") return true;
   return false;
 }
 

@@ -64,11 +64,15 @@ export const MUTATING_API_ORIGIN_EXEMPT_PREFIXES = [
   "/api/mobile/",
 ] as const;
 
+/** Exact paths only. A prefix of "/api/ai" would also exempt "/api/airplane". */
+const MUTATING_API_ORIGIN_EXEMPT_EXACT = new Set<string>(["/api/ai"]);
+
 export function shouldGuardMutatingApiOrigin(
   pathname: string,
   method: string
 ): boolean {
   if (!pathname.startsWith("/api/")) return false;
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) return false;
+  if (MUTATING_API_ORIGIN_EXEMPT_EXACT.has(pathname)) return false;
   return !MUTATING_API_ORIGIN_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
 }
