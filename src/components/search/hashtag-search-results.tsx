@@ -1,47 +1,43 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
-import { HashtagSearchFeed } from "@/components/search/hashtag-search-feed";
-import {
-  getCachedHashtagPostCount,
-  getCachedHashtagPosts,
-  type HashtagSort,
-} from "@/lib/hashtag-search";
-import { getServerTranslator } from "@/lib/i18n/server";
+import { SearchPageFeed } from "@/components/search/search-page-feed";
+import { getCachedHashtagPosts } from "@/lib/hashtag-search";
 import { getAuthUserId } from "@/lib/auth";
 import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
 import { isPaymentsConfigured } from "@/lib/payments";
+import type { SearchPageFilter } from "@/lib/search-page-shared";
+import type { GridPost } from "@/components/feed/feed-post-card";
 
 export async function HashtagSearchResults({
   tag,
-  sort,
+  query,
+  filter,
+  scope = "global",
 }: {
   tag: string;
-  sort: HashtagSort;
+  query: string;
+  filter: SearchPageFilter;
+  scope?: "global" | "social";
 }) {
-  const { locale } = await getServerTranslator();
-  const [viewerId, postsTopRaw, postsLatestRaw, total] = await Promise.all([
-    getAuthUserId(),
+  const viewerId = await getAuthUserId();
+  const [postsTopRaw, postsLatestRaw] = await Promise.all([
     getCachedHashtagPosts(tag, "top"),
     getCachedHashtagPosts(tag, "latest"),
-    getCachedHashtagPostCount(tag),
   ]);
   const [postsTop, postsLatest] = await Promise.all([
     attachWebPaidMediaPlayback(postsTopRaw, viewerId),
     attachWebPaidMediaPlayback(postsLatestRaw, viewerId),
   ]);
 
-  const emptyMsg =
-    "No posts with this hashtag yet.";
-
   return (
-    <HashtagSearchFeed
-      tag={tag}
-      initialSort={sort}
-      postsTop={postsTop}
-      postsLatest={postsLatest}
-      total={total}
-      emptyMsg={emptyMsg}
+    <SearchPageFeed
+      query={query}
+      scope={scope}
+      initialFilter={filter}
+      users={[]}
+      postsTop={postsTop as Array<GridPost & { createdAt: string | Date }>}
+      postsLatest={postsLatest as Array<GridPost & { createdAt: string | Date }>}
+      animes={[]}
+      related={[]}
+      viewerId={viewerId}
       paymentsEnabled={isPaymentsConfigured()}
     />
   );

@@ -4,13 +4,8 @@ import { HashtagSearchResults } from "@/components/search/hashtag-search-results
 import { SearchPageChrome } from "@/components/search/search-page-chrome";
 import { CardRowsSkeleton } from "@/components/ui/content-skeletons";
 import { parseHashtagFromQuery } from "@/lib/hashtag-search";
-import type { HashtagSort } from "@/lib/hashtag-search";
 import { parseSearchPageFilter } from "@/lib/search-page-shared";
 import { getServerTranslator } from "@/lib/i18n/server";
-
-function parseSort(raw: string | undefined): HashtagSort {
-  return raw === "latest" ? "latest" : "top";
-}
 
 export default async function SearchPage({
   searchParams,
@@ -21,8 +16,7 @@ export default async function SearchPage({
   const query = q?.trim() || "";
   const scope = scopeParam === "social" ? "social" : "global";
   const hashtagTag = parseHashtagFromQuery(query);
-  const sort = parseSort(sortParam);
-  const filter = parseSearchPageFilter(filterParam);
+  const filter = parseSearchPageFilter(filterParam ?? (sortParam === "latest" ? "latest" : undefined));
   const { t } = await getServerTranslator();
 
   return (
@@ -30,7 +24,7 @@ export default async function SearchPage({
       {query ? (
         hashtagTag ? (
           <Suspense fallback={<CardRowsSkeleton rows={6} />}>
-            <HashtagSearchResults tag={hashtagTag} sort={sort} />
+            <HashtagSearchResults tag={hashtagTag} query={query} filter={filter} scope={scope} />
           </Suspense>
         ) : (
           <Suspense fallback={<CardRowsSkeleton rows={8} />}>
