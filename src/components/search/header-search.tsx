@@ -331,7 +331,12 @@ export function HeaderSearch({
       {showDropdown ? (
         <div
           data-search-dropdown-panel
-          className="absolute top-full left-0 z-[220] mt-2 w-full max-w-[420px] overflow-hidden rounded-lg border border-border/80 bg-background shadow-lg"
+          className={cn(
+            "absolute top-full left-0 z-[220] mt-1.5 overflow-hidden bg-background",
+            showTypingPreview
+              ? "w-full max-w-[420px] rounded-lg border border-border/80 shadow-lg"
+              : "w-full rounded-xl border-2 border-folk-terracotta/50 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+          )}
         >
           {showTypingPreview ? (
             <SearchPreviewPanel
