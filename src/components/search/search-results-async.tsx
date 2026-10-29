@@ -1,163 +1,56 @@
-import { createTranslator } from "@/lib/i18n/messages";
-const t = createTranslator("en");
-
-import Link from "next/link";
-import { unstable_cache } from "next/cache";
-import { enrichSearchUsersWithFollowStatus, runFastSearch } from "@/lib/search-fast";
 import { getAuthUserId } from "@/lib/auth";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
-import { displayAnimeTitle } from "@/lib/anime-display-title";
-import { getRequestLocale } from "@/lib/i18n/server";
-import { userDisplayName } from "@/lib/user-public-select";
-import { isLiveFeatureEnabled } from "@/lib/live-feature";
+import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
 import { recordSearchEvent } from "@/lib/search/record";
 import { getRelatedSearchQueries } from "@/lib/search/suggest";
-import { resolveCanViewNsfw } from "@/lib/nsfw-viewer-access";
+import { enrichSearchPageUsers, getCachedSearchPage } from "@/lib/search-page";
+import type { SearchPageFilter } from "@/lib/search-page-shared";
+import { attachWebPaidMediaPlayback } from "@/lib/paid-media-playback";
+import { isPaymentsConfigured } from "@/lib/payments";
+import { SearchPageFeed } from "@/components/search/search-page-feed";
 
 export async function SearchResultsAsync({
   query,
   scope = "global",
+  filter = "top",
 }: {
   query: string;
   scope?: "global" | "social";
+  filter?: SearchPageFilter;
 }) {
-  if (!query) return null;
   const q = query.trim();
-  if (q.length < 1) {
-    return (
-      <p className="text-sm text-muted-foreground">{t("search.s1tx7jn5")}</p>
-    );
-  }
+  if (q.length < 1) return null;
 
-  const searchKey = q.toLowerCase().slice(0, 80);
   const viewerId = await getAuthUserId();
-  const [locale, canViewNsfw] = await Promise.all([
-    getRequestLocale(),
-    resolveCanViewNsfw(viewerId),
-  ]);
-  const cached = await unstable_cache(
-    () => runFastSearch(q, canViewNsfw),
-    ["fast-search-page-v3-nsfw", searchKey, canViewNsfw ? "adult" : "safe", scope],
-    { revalidate: 30 }
-  )();
-  const users = await enrichSearchUsersWithFollowStatus(viewerId, cached.users);
+  const canViewNsfw = await resolveCanViewNsfw(viewerId);
+  const cached = await getCachedSearchPage(q, canViewNsfw);
+  const users = await enrichSearchPageUsers(viewerId, cached.users);
   const animes = scope === "social" ? [] : cached.animes;
-  const posts = cached.posts;
-  const liveStreams = scope === "social" ? [] : cached.liveStreams;
-  const resultCount =
-    users.length + animes.length + posts.length + liveStreams.length;
+  const [postsTop, postsLatest] = await Promise.all([
+    attachWebPaidMediaPlayback(cached.postsTop, viewerId),
+    attachWebPaidMediaPlayback(cached.postsLatest, viewerId),
+  ]);
+
+  const resultCount = users.length + animes.length + postsLatest.length;
   void recordSearchEvent({
     rawQuery: q,
     resultCount,
     userId: viewerId,
   }).catch(() => undefined);
+
   const related = await getRelatedSearchQueries(q, 8).catch(() => []);
 
   return (
-    <>
-      {isLiveFeatureEnabled() && liveStreams.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.stunxr8")}</h2>
-          {liveStreams.map((ch) => (
-            <Link key={ch.id} href={`/voice/${ch.id}`} className="block text-sm py-1 hover:text-primary">
-              🔴 {ch.name} <span className="text-muted-foreground text-xs">({ch.category})</span>
-            </Link>
-          ))}
-        </section>
-      )}
-      {animes.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.syjxk")}</h2>
-          <div className="space-y-2">
-            {animes.map((a) => (
-              <Link
-                key={a.slug}
-                href={`/anime/${a.slug}`}
-                className="flex items-center gap-3 rounded-xl border border-border/60 p-2 hover:border-primary/40 hover:bg-muted/40 transition-colors"
-              >
-                <div className="h-16 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                  {a.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={a.coverUrl} alt={a.title} className="h-full w-full object-cover" loading="lazy" />
-                  ) : null}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-medium truncate">
-                    {displayAnimeTitle(
-                      { title: a.title, titleEn: a.titleEn ?? null, slug: a.slug },
-                      locale
-                    )}
-                  </p>
-                  <p className="text-[11px] text-primary/70 mt-0.5">{t("nav.anime")}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-      {users.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.sxs2o")}</h2>
-          <div className="space-y-1">
-            {users.map((u) => {
-              const displayName = userDisplayName(u);
-              return (
-                <Link
-                  key={u.username}
-                  href={`/u/${u.username}`}
-                  className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-muted/50"
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={u.image ?? undefined} />
-                    <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <span>
-                    <DisplayNameWithSupportTier
-                      name={displayName}
-                      tier={u.supportTierSent}
-                      nameClassName="font-medium"
-                      compact
-                    />
-                    <span className="block text-xs text-muted-foreground">@{u.username}</span>
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
-      <section>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.sq80a4")}</h2>
-        {posts.length === 0 && <p className="text-xs text-muted-foreground">{t("settings.none")}</p>}
-        {posts.map((p) => (
-          <Link key={p.id} href={`/post/${p.id}`}>
-            <Card className="mb-2 hover:border-primary/30">
-              <CardContent className="p-3 text-sm line-clamp-2">{p.title || p.content}</CardContent>
-            </Card>
-          </Link>
-        ))}
-      </section>
-      {animes.length === 0 && users.length === 0 && posts.length === 0 && (
-        <p className="text-sm text-muted-foreground">{t("search.s1ilpk74")}</p>
-      )}
-      {related.length > 0 && (
-        <section className="pt-2">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">{t("search.slb69a3")}</h2>
-          <div className="flex flex-wrap gap-2">
-            {related.map((r) => (
-              <Link
-                key={r.normalized}
-                href={`/search?q=${encodeURIComponent(r.query)}${scope === "social" ? "&scope=social" : ""}`}
-                className="rounded-full border px-3 py-1 text-xs hover:border-primary/40 hover:bg-muted/50"
-              >
-                {r.query}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-    </>
+    <SearchPageFeed
+      query={q}
+      scope={scope}
+      initialFilter={filter}
+      users={users}
+      postsTop={postsTop}
+      postsLatest={postsLatest}
+      animes={animes}
+      related={related}
+      viewerId={viewerId}
+      paymentsEnabled={isPaymentsConfigured()}
+    />
   );
 }

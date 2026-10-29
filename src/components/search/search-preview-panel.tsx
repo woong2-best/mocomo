@@ -233,7 +233,7 @@ export function SearchPreviewPanel({
         className="w-full px-4 py-3 text-sm font-medium text-folk-cobalt border-t border-border/60 hover:bg-muted/40 transition-colors text-left"
         onClick={onFullSearch}
       >
-        「{trimmed}」 전체 검색
+        {t("search.searchAll", { q: trimmed })}
       </button>
     </div>
   );

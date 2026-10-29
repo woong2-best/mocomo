@@ -13,8 +13,14 @@ export function SearchPageChrome({
   const { isNativeApp } = useClientPlatform();
 
   return (
-    <div className={cn("max-w-2xl mx-auto min-w-0", !isNativeApp && "pb-nav lg:pb-6")}>
-      <div className={cn("min-w-0", compact ? "px-0 py-0" : "p-4 space-y-6")}>{children}</div>
+    <div
+      className={cn(
+        "mx-auto min-h-[calc(100dvh-3.5rem)] w-full min-w-0 max-w-2xl",
+        "lg:border-x lg:border-border/70",
+        !isNativeApp && "pb-nav lg:pb-0"
+      )}
+    >
+      <div className={cn("min-w-0", compact ? "" : "px-0")}>{children}</div>
     </div>
   );
 }

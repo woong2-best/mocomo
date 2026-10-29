@@ -183,7 +183,7 @@ export function HeaderSearch({
     const el = wrapRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const width = Math.min(Math.max(rect.width, 320), window.innerWidth - 24);
+    const width = Math.min(Math.max(rect.width, 280), Math.min(420, window.innerWidth - 24));
     const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
     setPanelRect({ top: rect.bottom + 6, left, width });
   }, []);
@@ -243,12 +243,14 @@ export function HeaderSearch({
       return;
     }
 
-    if (isSocialScope) {
-      router.push(`/search?q=${encodeURIComponent(term)}&scope=social`);
-      return;
+    const params = new URLSearchParams();
+    params.set("q", term);
+    if (isSocialScope) params.set("scope", "social");
+    if (isOnSearchPage) {
+      const currentFilter = searchParams.get("f");
+      if (currentFilter) params.set("f", currentFilter);
     }
-
-    router.push(`/search?q=${encodeURIComponent(term)}`);
+    router.push(`/search?${params.toString()}`);
   }
 
   function clearQuery() {
