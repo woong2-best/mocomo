@@ -15,7 +15,7 @@ import {
   nsfwViewerSelect,
 } from "@/lib/nsfw-viewer-access";
 import {
-  MARKETPLACE_CATEGORIES,
+  isMarketplaceCategory,
   listingTypeLabel,
 } from "@/lib/marketplace/constants";
 import { validateShipToCountries } from "@/lib/marketplace/shipping-config";
@@ -259,7 +259,7 @@ export async function createMarketplaceListingForUser(
     return settlementRequiredResult("/market/sell-item");
   }
 
-  if (!MARKETPLACE_CATEGORIES.includes(input.category as (typeof MARKETPLACE_CATEGORIES)[number])) {
+  if (!isMarketplaceCategory(input.category)) {
     return { error: "actions.s172og7" };
   }
   if (!Number.isFinite(input.priceAmount) || input.priceAmount < 0) {

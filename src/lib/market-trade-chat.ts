@@ -14,6 +14,8 @@ import {
   serializeChatMessageForRelay,
 } from "@/lib/chat-message-serialize";
 import { relayChatMessageToSocket } from "@/lib/chat-socket-relay";
+import { isDigitalListing } from "@/lib/market-tracks";
+import { ensureDigitalMocoEscrow } from "@/lib/moco-escrow";
 import { reactivateChatMember, reactivateChatMembers } from "@/lib/chat-exit";
 
 /** 판매 완료된 상품 대화에는 새 메시지를 넣지 않는다. 예약 중은 그대로 보낸다. */
@@ -56,6 +58,10 @@ export async function openMarketListingChat(actorId: string, listingId: string) 
     where: { listingId_buyerId: { listingId, buyerId } },
     select: { roomId: true },
   });
+  if (!existing && listing.saleType !== "AUCTION" && isDigitalListing(listing) && buyerId === actorId) {
+    const held = await ensureDigitalMocoEscrow({ buyerId, listingId });
+    if ("error" in held) return { error: held.error };
+  }
   if (existing) {
     await reactivateChatMember(existing.roomId, actorId);
     await db.chatRoom.update({

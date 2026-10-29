@@ -10,8 +10,8 @@ export {
 export const USED_SELL_KINDS = [
   { id: "FIGURE", label: "Figures & Models" },
   { id: "TCG", label: "TCG" },
-  { id: "GOODS", label: "Character goods" },
-  { id: "BOOK", label: "Books" },
+  { id: "GOODS", label: "Character Goods" },
+  { id: "BOOK", label: "Manga & Doujinshi" },
   { id: "GAMES", label: "Games" },
   { id: "COSPLAY", label: "Cosplay" },
   { id: "DIGITAL", label: "Digital" },

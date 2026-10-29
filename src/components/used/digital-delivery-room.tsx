@@ -2,17 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { getDigitalDelivery, updateDigitalDelivery } from "@/actions/digital-delivery";
-import { FileDropZone } from "@/components/media/file-drop-zone";
-import { applyImageWatermarkBlob } from "@/lib/media-watermark-canvas";
-import { uploadAudioBlob, uploadImageBlob, uploadVideoBlob } from "@/lib/client-upload";
+import { validateCloudShareUrl } from "@/lib/digital-cloud/cloud-share-url";
 import { useLocale } from "@/components/providers/locale-provider";
 
 type Delivery = {
   status: string;
   fileUrl?: string;
   fileName?: string;
-  previewUrl?: string;
+  cloudShareUrl?: string;
+  sharePassword?: string;
+  autoApproveAt?: string;
 };
+
+const STEPS = [
+  ["held", "market.track.paymentHeld"],
+  ["progress", "market.track.inProgress"],
+  ["uploaded", "market.track.fileUploaded"],
+  ["completed", "market.track.completed"],
+] as const;
+
+function stepIndex(status: string) {
+  if (status === "progress") return 1;
+  if (status === "uploaded") return 2;
+  if (status === "completed") return 3;
+  return 0;
+}
 
 export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
   const { t } = useLocale();
@@ -21,9 +35,8 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
   const [digital, setDigital] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
-  const [localPreview, setLocalPreview] = useState<{ url: string; kind: "image" | "video" } | null>(
-    null
-  );
+  const [cloudUrl, setCloudUrl] = useState("");
+  const [password, setPassword] = useState("");
 
   async function reload() {
     const res = await getDigitalDelivery(listingId);
@@ -38,7 +51,14 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
 
   if (!digital || !delivery) return null;
 
-  async function run(action: "start" | "upload" | "approve" | "dispute", file?: { fileUrl?: string; fileName?: string; previewUrl?: string; disputeReason?: string }) {
+  const index = stepIndex(delivery.status);
+  const shareUrl = delivery.cloudShareUrl || delivery.fileUrl;
+  const canDownload = role === "buyer" && !!shareUrl && (delivery.status === "uploaded" || delivery.status === "completed");
+
+  async function run(
+    action: "start" | "upload" | "approve" | "dispute",
+    file?: { cloudShareUrl?: string; sharePassword?: string; fileName?: string; disputeReason?: string }
+  ) {
     setBusy(true);
     setNote("");
     const res = await updateDigitalDelivery({ listingId, action, ...file });
@@ -47,119 +67,132 @@ export function DigitalDeliveryRoom({ listingId }: { listingId: string }) {
       setNote(res.error);
       return;
     }
-    if ("delivery" in res) setDelivery(res.delivery);
+    if ("delivery" in res && res.delivery) setDelivery(res.delivery);
+    else await reload();
   }
 
-  async function onFile(file: File | null) {
-    if (!file) return;
-    setBusy(true);
-    setNote("");
-    const localUrl = URL.createObjectURL(file);
-    const kind = file.type.startsWith("video/")
-      ? "video"
-      : file.type.startsWith("image/")
-        ? "image"
-        : null;
-    if (kind) setLocalPreview({ url: localUrl, kind });
-    else URL.revokeObjectURL(localUrl);
-    try {
-      let original: string;
-      let previewUrl: string | undefined;
-      if (file.type.startsWith("image/")) {
-        original = await uploadImageBlob(file, file.name);
-        const marked = await applyImageWatermarkBlob(file, "MoCoMo", { diagonal: true, corner: true });
-        previewUrl = await uploadImageBlob(marked, `preview-${file.name}`);
-      } else if (file.type.startsWith("video/")) {
-        original = await uploadVideoBlob(file, file.name);
-      } else if (file.type.startsWith("audio/")) {
-        original = await uploadAudioBlob(file, file.name);
-      } else {
-        throw new Error("Upload an image, audio, or video file.");
-      }
-      await run("upload", { fileUrl: original, fileName: file.name, previewUrl });
-    } catch (error) {
-      setNote(error instanceof Error ? error.message : "Upload failed.");
-      setBusy(false);
-    } finally {
-      if (kind) URL.revokeObjectURL(localUrl);
-      setLocalPreview(null);
+  function submitLink() {
+    const checked = validateCloudShareUrl(cloudUrl);
+    if (!checked.ok) {
+      setNote(t("market.track.cloudInvalid"));
+      return;
     }
+    void run("upload", {
+      cloudShareUrl: checked.href,
+      sharePassword: password,
+      fileName: checked.provider === "google" ? "Google Drive" : "Dropbox",
+    });
   }
 
   return (
-    <section className="mx-4 mb-4 rounded-2xl border border-border bg-card p-4 space-y-3">
-      <p className="text-sm font-extrabold">{t("market.track.deliverWork")}</p>
-      <ol className="flex flex-wrap gap-2 text-[11px]">
-        {(
-          [
-            ["held", t("market.track.paymentHeld")],
-            ["progress", t("market.track.inProgress")],
-            ["uploaded", t("market.track.fileUploaded")],
-            ["completed", t("market.track.completed")],
-          ] as const
-        ).map(([id, label]) => (
-          <li key={id} className={delivery.status === id ? "font-extrabold text-folk-cobalt" : "text-muted-foreground"}>
-            {label}
-          </li>
-        ))}
+    <section className="mx-4 mb-4 space-y-4 rounded-2xl border border-white/10 bg-[#0b1f3a] p-4 text-[#f7fafc]">
+      <div>
+        <p className="text-base font-extrabold text-white">{t("market.track.deliverWork")}</p>
+        <p className="mt-1 text-sm font-semibold leading-snug text-[#ffe08a]">{t("market.commission.autoNote")}</p>
+      </div>
+
+      <ol className="grid grid-cols-4 gap-2">
+        {STEPS.map(([id, key], step) => {
+          const current = step === index;
+          const done = step < index;
+          return (
+            <li key={id} className="min-w-0">
+              <div
+                className="h-1.5 rounded-full"
+                style={{ background: current || done ? "#7ef0d2" : "rgba(255,255,255,0.2)" }}
+              />
+              <p
+                className="mt-2 text-[11px] font-bold leading-tight break-words"
+                style={{ color: current ? "#7ef0d2" : done ? "#f7fafc" : "#c5d0e0" }}
+              >
+                {t(key)}
+              </p>
+            </li>
+          );
+        })}
       </ol>
-      {localPreview?.kind === "video" ? (
-        <video src={localPreview.url} className="max-h-48 w-full rounded-lg object-contain" muted playsInline />
-      ) : localPreview?.kind === "image" || (delivery.previewUrl && delivery.status !== "completed") ? (
-        <img
-          src={localPreview?.url ?? delivery.previewUrl}
-          alt=""
-          className="max-h-48 rounded-lg object-contain"
-        />
-      ) : delivery.status !== "completed" ? (
-        <p className="text-xs text-muted-foreground">{delivery.fileName ?? t("market.track.fileUploaded")}</p>
-      ) : null}
-      {role === "seller" && delivery.status === "held" ? (
-        <button type="button" className="rounded-xl bg-folk-cobalt px-3 py-2 text-sm font-bold text-white" disabled={busy} onClick={() => void run("start")}>
-          {t("market.track.startWork")}
-        </button>
-      ) : null}
-      {role === "seller" && delivery.status !== "completed" ? (
-        <FileDropZone
-          className="rounded-xl"
-          disabled={busy}
-          hint={t("media.dropHint")}
-          onFiles={(files) => {
-            void onFile(files[0] ?? null);
-          }}
-        >
-          <label className="file-drop-zone__pad cursor-pointer">
-            <span className="rounded-xl bg-folk-terracotta px-3 py-2 text-sm font-bold text-white">
-              {t("market.track.deliverWork")}
-            </span>
-            <span className="text-xs">{t("media.dropHint")}</span>
-            <input
-              type="file"
-              accept="image/*,video/*,audio/*"
-              className="sr-only"
-              disabled={busy}
-              onChange={(event) => void onFile(event.target.files?.[0] ?? null)}
-            />
+
+      {role === "seller" && (delivery.status === "held" || delivery.status === "progress") ? (
+        <div className="space-y-2">
+          <label className="block text-sm font-bold text-white" htmlFor={`cloud-url-${listingId}`}>
+            {t("market.track.cloudUrl")}
           </label>
-        </FileDropZone>
+          <input
+            id={`cloud-url-${listingId}`}
+            value={cloudUrl}
+            onChange={(event) => setCloudUrl(event.target.value)}
+            placeholder="https://drive.google.com/file/d/..."
+            autoComplete="off"
+            className="w-full rounded-xl border border-white/30 bg-white/10 px-3 py-3 text-sm font-semibold text-white placeholder:text-[#c5d0e0]"
+          />
+          <label className="block text-sm font-bold text-white" htmlFor={`cloud-password-${listingId}`}>
+            {t("market.track.cloudPassword")}
+          </label>
+          <input
+            id={`cloud-password-${listingId}`}
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
+            className="w-full rounded-xl border border-white/30 bg-white/10 px-3 py-3 text-sm font-semibold text-white placeholder:text-[#c5d0e0]"
+          />
+          {delivery.status === "held" ? (
+            <button
+              type="button"
+              className="w-full rounded-xl border border-white/40 px-3 py-3 text-sm font-extrabold text-white disabled:opacity-50"
+              disabled={busy}
+              onClick={() => void run("start")}
+            >
+              {t("market.track.startWork")}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="w-full rounded-xl bg-[#7ef0d2] px-3 py-3 text-sm font-extrabold text-[#0b1f3a] disabled:opacity-50"
+            disabled={busy}
+            onClick={submitLink}
+          >
+            {t("market.track.deliverWork")}
+          </button>
+        </div>
+      ) : null}
+
+      {canDownload ? (
+        <a
+          className="block w-full rounded-xl bg-white px-3 py-3 text-center text-sm font-extrabold text-[#0b1f3a]"
+          href={shareUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t("market.track.downloadFile")}
+        </a>
+      ) : null}
+      {canDownload && delivery.sharePassword ? (
+        <p className="text-sm font-semibold text-[#f7fafc]">
+          {t("market.track.cloudPassword")}: <span className="font-mono text-[#7ef0d2]">{delivery.sharePassword}</span>
+        </p>
       ) : null}
       {role === "buyer" && delivery.status === "uploaded" ? (
-        <button type="button" className="rounded-xl bg-folk-cobalt px-3 py-2 text-sm font-bold text-white" disabled={busy} onClick={() => void run("approve")}>
-          {t("market.track.approveDownload")}
+        <button
+          type="button"
+          className="w-full rounded-xl bg-[#7ef0d2] px-3 py-3 text-sm font-extrabold text-[#0b1f3a] disabled:opacity-50"
+          disabled={busy}
+          onClick={() => void run("approve")}
+        >
+          {t("market.track.approvePurchase")}
         </button>
       ) : null}
       {role === "buyer" && delivery.status === "uploaded" ? (
-        <button type="button" className="rounded-xl border px-3 py-2 text-sm font-bold" disabled={busy} onClick={() => void run("dispute", { disputeReason: "Requirements do not match" })}>
+        <button
+          type="button"
+          className="w-full rounded-xl border border-white/40 px-3 py-3 text-sm font-extrabold text-white disabled:opacity-50"
+          disabled={busy}
+          onClick={() => void run("dispute", { disputeReason: "Requirements do not match" })}
+        >
           {t("market.commission.dispute")}
         </button>
       ) : null}
-      <p className="text-xs text-muted-foreground">{t("market.commission.autoNote")}</p>
-      {role === "buyer" && delivery.status === "completed" && delivery.fileUrl ? (
-        <a className="text-sm font-bold text-folk-cobalt underline" href={delivery.fileUrl}>
-          {delivery.fileName || t("market.track.approveDownload")}
-        </a>
-      ) : null}
-      {note ? <p className="text-xs text-destructive">{note}</p> : null}
+      {note ? <p className="text-sm font-bold text-[#ffb4b4]">{note}</p> : null}
     </section>
   );
 }

@@ -108,7 +108,7 @@ export function UsedMarketChips({
               <Menu className="h-4 w-4" />
               <span className="hidden sm:inline">{t("common.menu")}</span>
             </summary>
-            <div className="absolute right-0 z-40 mt-2 max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-lg">
+            <div className="absolute right-0 z-40 mt-2 max-h-[70vh] w-max min-w-56 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-lg">
               <Link
                 href={href({ ...keep, track: track === "all" ? null : track, category: null, product: null })}
                 className="block rounded-lg px-3 py-2 text-sm font-extrabold"
@@ -122,7 +122,7 @@ export function UsedMarketChips({
                 <Link
                   key={c.id}
                   href={href({ ...keep, track: "physical", category: c.id, product: null, lane: null })}
-                  className={cn("block rounded-lg px-3 py-2 text-sm", category === c.id && "font-extrabold text-folk-cobalt")}
+                  className={cn("block whitespace-nowrap rounded-lg px-3 py-2 text-sm", category === c.id && "font-extrabold text-folk-cobalt")}
                 >
                   {t(c.key)}
                 </Link>
@@ -134,7 +134,7 @@ export function UsedMarketChips({
                 <Link
                   key={c.id}
                   href={href({ ...keep, track: "digital", product: c.id, category: null, lane: null })}
-                  className={cn("block rounded-lg px-3 py-2 text-sm", product === c.id && "font-extrabold text-folk-cobalt")}
+                  className={cn("block whitespace-nowrap rounded-lg px-3 py-2 text-sm", product === c.id && "font-extrabold text-folk-cobalt")}
                 >
                   {t(c.key)}
                 </Link>
@@ -149,6 +149,33 @@ export function UsedMarketChips({
           {t("ui.sell")}
         </Link>
       </div>
+
+      {!personal ? (
+        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
+          <Link
+            href={href({ ...keep, track: track === "all" ? null : track, lane: null, category: null, product: null })}
+            className={chip(!categoryActive)}
+          >
+            {t("market.track.all")}
+          </Link>
+          {(track === "digital" ? DIGITAL_MARKET_CATEGORIES : PHYSICAL_MARKET_CATEGORIES).map((item) => {
+            const active = track === "digital" ? product === item.id : category === item.id;
+            return (
+              <Link
+                key={item.id}
+                href={href(
+                  track === "digital"
+                    ? { ...keep, track: "digital", product: item.id, category: null, lane: null }
+                    : { ...keep, track: "physical", category: item.id, product: null, lane: null }
+                )}
+                className={chip(active)}
+              >
+                {t(item.key)}
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
 
       {personal || track === "digital" ? null : (
         <form action="/market" method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">

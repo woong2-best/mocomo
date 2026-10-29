@@ -172,6 +172,9 @@ export type DigitalDeliveryView = {
   fileUrl?: string;
   fileName?: string;
   previewUrl?: string;
+  cloudShareUrl?: string;
+  sharePassword?: string;
+  autoApproveAt?: string;
 };
 
 export async function fetchDigitalDelivery(listingId: string) {
@@ -190,6 +193,11 @@ export async function postDigitalDelivery(
     fileName?: string;
     previewUrl?: string;
     disputeReason?: string;
+    cloudShareUrl?: string;
+    sharePassword?: string;
+    fileSha256?: string;
+    fileMimeType?: string;
+    fileSizeBytes?: number;
   }
 ) {
   return apiRequest<{ delivery: DigitalDeliveryView | null; error?: string }>(

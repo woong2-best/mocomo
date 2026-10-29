@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isProduction, verifyInternalSecret } from "@/lib/api-security";
+import { sweepDueMocoEscrowApprovals } from "@/lib/moco-escrow";
 import { autoConfirmMarketplaceOrdersBatch } from "@/lib/marketplace/fulfillment";
 
 export const dynamic = "force-dynamic";
@@ -11,5 +12,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const result = await autoConfirmMarketplaceOrdersBatch();
-  return NextResponse.json({ ok: true, ...result });
+  const moco = await sweepDueMocoEscrowApprovals();
+  return NextResponse.json({ ok: true, ...result, moco });
 }

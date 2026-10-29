@@ -21,7 +21,16 @@ export const MARKETPLACE_LISTING_TYPES: {
 export const MARKETPLACE_BROWSE_LISTING_TYPES = MARKETPLACE_LISTING_TYPES;
 
 export const MARKETPLACE_CATEGORIES = [
+  "Figures & Models",
+  "TCG",
+  "Character Goods",
+  "Manga & Doujinshi",
+  "Games",
   "Cosplay",
+] as const;
+
+/** Older listing categories still accepted when an existing item is edited. */
+const LEGACY_MARKETPLACE_CATEGORIES = [
   "Goods",
   "Figures",
   "TCG · trading cards",
@@ -35,6 +44,13 @@ export const MARKETPLACE_CATEGORIES = [
   "Costumes · props",
   "Other",
 ] as const;
+
+export function isMarketplaceCategory(value: string): boolean {
+  return (
+    (MARKETPLACE_CATEGORIES as readonly string[]).includes(value) ||
+    (LEGACY_MARKETPLACE_CATEGORIES as readonly string[]).includes(value)
+  );
+}
 
 /** @deprecated Prefer shipping-config carriers (KR_POST, US_USPS, INTL_EMS, etc). Kept for legacy reads. */
 export const MARKETPLACE_SHIPPING_METHODS = [

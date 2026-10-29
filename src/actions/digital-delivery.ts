@@ -1,7 +1,7 @@
 "use server";
 
 import { auth, requireAdmin, requireAuth } from "@/lib/auth";
-import { maybeAutoApproveDigitalDelivery, mutateDigitalDelivery } from "@/lib/digital-delivery";
+import { attachCloudShareSecret, maybeAutoApproveDigitalDelivery, mutateDigitalDelivery } from "@/lib/digital-delivery";
 import { publicDigitalDelivery, readDigitalDelivery, isDigitalListing } from "@/lib/market-tracks";
 import { db } from "@/lib/db";
 
@@ -12,6 +12,11 @@ export async function updateDigitalDelivery(input: {
   fileName?: string;
   previewUrl?: string;
   disputeReason?: string;
+  cloudShareUrl?: string;
+  sharePassword?: string;
+  fileSha256?: string;
+  fileMimeType?: string;
+  fileSizeBytes?: number;
 }) {
   const user = await requireAuth();
   return mutateDigitalDelivery(user.id, input.listingId, input.action, {
@@ -19,6 +24,11 @@ export async function updateDigitalDelivery(input: {
     fileName: input.fileName,
     previewUrl: input.previewUrl,
     disputeReason: input.disputeReason,
+    cloudShareUrl: input.cloudShareUrl,
+    sharePassword: input.sharePassword,
+    fileSha256: input.fileSha256,
+    fileMimeType: input.fileMimeType,
+    fileSizeBytes: input.fileSizeBytes,
   });
 }
 
@@ -48,9 +58,10 @@ export async function getDigitalDelivery(listingId: string) {
   });
   const role = listing.sellerId === userId ? "seller" : buyerChat || orderItem ? "buyer" : "other";
   const refreshed = digital ? await maybeAutoApproveDigitalDelivery(listingId, userId) : state;
-  const view = publicDigitalDelivery(refreshed ?? state, role === "seller" ? "seller" : "buyer");
+  const view = publicDigitalDelivery(refreshed ?? state, role === "seller" ? "seller" : role === "buyer" ? "buyer" : "other");
+  const delivery = await attachCloudShareSecret(listingId, role === "seller" || role === "buyer" ? role : "other", view);
   return {
-    delivery: role === "other" && view ? { ...view, fileUrl: undefined, previewUrl: undefined } : view,
+    delivery,
     role,
     digital,
   };

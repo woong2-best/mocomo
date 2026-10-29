@@ -15,6 +15,8 @@ describe("used market query routing", () => {
     expect(matchUsedBrowseCategory("TCG")).toBe("TCG");
     expect(matchUsedBrowseCategory("Fashion")).toBe("COSPLAY");
     expect(matchUsedBrowseCategory("Cosplay")).toBe("COSPLAY");
+    expect(matchUsedBrowseCategory("Manga & Doujinshi")).toBe("BOOK");
+    expect(matchUsedBrowseCategory("Books")).toBe("BOOK");
   });
 
   it("does not treat a partial name as an exact category", () => {
@@ -36,7 +38,7 @@ describe("used market query routing", () => {
       { category: "GOODS", productType: "TCG_CARD" },
       { category: "BOOK", productType: null },
     ]);
-    expect(facets.map((facet) => facet.id)).toEqual(["FIGURE", "BOOK", "GOODS", "TCG"]);
+    expect(facets.map((facet) => facet.id)).toEqual(["FIGURE", "GOODS", "BOOK", "TCG"]);
     expect(facets[0]?.count).toBe(2);
     expect(listingMatchesBrowseCategory({ category: "GOODS", productType: "TCG_CARD" }, "TCG")).toBe(
       true

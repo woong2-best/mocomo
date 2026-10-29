@@ -149,6 +149,8 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
       ? (await getMocoBalanceSnapshot(session.user.id)).availableMocoBalance
       : null;
 
+  const digitalListing = isDigitalListing(listing);
+
   const statusBadge =
 
     status !== "SELLING"
@@ -325,11 +327,11 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
               </>
             ) : null}
           </p>
-          {listing.meetPlace?.trim() ? (
+          {digitalListing || !listing.meetPlace?.trim() ? null : (
             <p className="text-sm font-semibold text-foreground">
               {t("ui.preferred_meetup")} · {listing.meetPlace.trim()}
             </p>
-          ) : null}
+          )}
         </div>
 
 
@@ -470,11 +472,13 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
           characterName={listing.characterName}
         />
 
-        <UsedMeetLocation
-          map={meetMap}
-          region={listing.region}
-          meetPlace={listing.meetPlace}
-        />
+        {digitalListing ? null : (
+          <UsedMeetLocation
+            map={meetMap}
+            region={listing.region}
+            meetPlace={listing.meetPlace}
+          />
+        )}
 
         {isAuction && !auctionLive && listing.winningBidderId && status !== "SOLD" ? (
           <UsedAuctionTradeComplete
@@ -556,7 +560,7 @@ export default async function UsedDetailPage({ params }: { params: Promise<{ id:
 
           viewerAdultVerified={viewerAdultVerified}
 
-          digital={isDigitalListing(listing)}
+          digital={digitalListing}
 
         />
         </>

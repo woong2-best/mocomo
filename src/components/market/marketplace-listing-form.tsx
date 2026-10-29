@@ -208,20 +208,23 @@ export function MarketplaceListingForm() {
           onChange={setSubculture}
           disabled={pending}
         />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <select
-            className="rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            {MARKETPLACE_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t("market.sm1dzed")} />
+        <div className="flex flex-wrap gap-2">
+          {MARKETPLACE_CATEGORIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCategory(c)}
+              className={
+                category === c
+                  ? "shrink-0 whitespace-nowrap rounded-full bg-folk-cobalt px-3.5 py-2 text-sm font-extrabold text-white"
+                  : "shrink-0 whitespace-nowrap rounded-full border border-border bg-background px-3.5 py-2 text-sm font-extrabold text-folk-cobalt"
+              }
+            >
+              {c}
+            </button>
+          ))}
         </div>
+        <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t("market.sm1dzed")} />
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
             type="number"

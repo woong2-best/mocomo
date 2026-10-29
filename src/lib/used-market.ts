@@ -66,9 +66,9 @@ export const MAX_USED_LISTING_PRICE_LABEL = formatUsd(MAX_USED_LISTING_PRICE_USD
 
 /** DB 저장·글쓰기용 카테고리 */
 export const USED_CATEGORIES = [
-  { id: "FIGURE", label: "Figures / dolls" },
-  { id: "GOODS", label: "Character goods" },
-  { id: "BOOK", label: "Books / media" },
+  { id: "FIGURE", label: "Figures & Models" },
+  { id: "GOODS", label: "Character Goods" },
+  { id: "BOOK", label: "Manga & Doujinshi" },
   { id: "COSPLAY", label: "Cosplay" },
   { id: "FASHION", label: "Fashion" },
   { id: "DIGITAL", label: "Digital / electronics" },
@@ -80,7 +80,7 @@ export const USED_MARKET_BROWSE_CATEGORIES = [
   { id: "FIGURE", label: "Figures & Models" },
   { id: "TCG", label: "TCG" },
   { id: "GOODS", label: "Character Goods" },
-  { id: "BOOK", label: "Books" },
+  { id: "BOOK", label: "Manga & Doujinshi" },
   { id: "GAMES", label: "Games" },
   { id: "COSPLAY", label: "Cosplay" },
 ] as const;
@@ -143,11 +143,11 @@ export {
 
 const USED_CATEGORY_LABELS: Record<string, string> = {
   DIGITAL: "Digital / electronics",
-  FIGURE: "Figures / dolls",
-  GOODS: "Character goods",
-  COSPLAY: "Cosplay / fashion",
-  FASHION: "Cosplay / fashion",
-  BOOK: "Books / media",
+  FIGURE: "Figures & Models",
+  GOODS: "Character Goods",
+  COSPLAY: "Cosplay",
+  FASHION: "Cosplay",
+  BOOK: "Manga & Doujinshi",
   OTHER: "Other",
 };
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { requireMobileApiUser } from "@/lib/api-mobile-auth";
-import { maybeAutoApproveDigitalDelivery, mutateDigitalDelivery } from "@/lib/digital-delivery";
+import { attachCloudShareSecret, maybeAutoApproveDigitalDelivery, mutateDigitalDelivery } from "@/lib/digital-delivery";
 import { isDigitalListing, publicDigitalDelivery, readDigitalDelivery } from "@/lib/market-tracks";
 import { db } from "@/lib/db";
 
@@ -12,6 +12,11 @@ const bodySchema = z.object({
   fileName: z.string().max(180).optional(),
   previewUrl: z.string().max(2000).optional(),
   disputeReason: z.string().max(500).optional(),
+  cloudShareUrl: z.string().max(2000).optional(),
+  sharePassword: z.string().max(128).optional(),
+  fileSha256: z.string().max(64).optional(),
+  fileMimeType: z.string().max(120).optional(),
+  fileSizeBytes: z.number().int().positive().max(2_000_000_000).optional(),
 });
 
 export async function GET(
@@ -42,11 +47,12 @@ export async function GET(
     refreshed ??
     readDigitalDelivery(listing.subcultureMeta) ??
     ({ kind: "commission" as const, status: "held" as const });
-  const view = publicDigitalDelivery(state, role === "seller" ? "seller" : "buyer");
+  const view = publicDigitalDelivery(state, role === "seller" ? "seller" : role === "buyer" ? "buyer" : "other");
+  const delivery = await attachCloudShareSecret(id, role === "seller" || role === "buyer" ? role : "other", view);
   return NextResponse.json({
     digital: true,
     role,
-    delivery: role === "other" && view ? { ...view, fileUrl: undefined, previewUrl: undefined } : view,
+    delivery,
   });
 }
 
@@ -63,8 +69,8 @@ export async function POST(
   if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   const result = await mutateDigitalDelivery(auth.user.id, id, parsed.data.action, parsed.data);
   if ("error" in result) return NextResponse.json(result, { status: 400 });
-  const role = parsed.data.action === "approve" ? "buyer" : "seller";
-  return NextResponse.json({
-    delivery: publicDigitalDelivery(result.delivery, role),
-  });
+  const role = parsed.data.action === "approve" || parsed.data.action === "dispute" ? "buyer" : "seller";
+  const view = publicDigitalDelivery(result.delivery, role);
+  const delivery = await attachCloudShareSecret(id, role, view);
+  return NextResponse.json({ delivery });
 }

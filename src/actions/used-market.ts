@@ -32,7 +32,9 @@ import {
   isAuctionLive,
   standardAuctionEndsAt,
 } from "@/lib/used-auction";
-import { isDigitalProductType, marketTrackWhere } from "@/lib/market-tracks";
+import { isDigitalListing, isDigitalProductType, marketTrackWhere } from "@/lib/market-tracks";
+import { ensureDigitalMocoEscrow } from "@/lib/moco-escrow";
+import { openMarketListingChat } from "@/lib/market-trade-chat";
 import { USED_AUCTION_RETIRED, USED_AUCTION_RETIRED_MSG } from "@/lib/retired-product-features";
 import {
   maxUsedListingPrice,
@@ -57,7 +59,6 @@ import { geocodeMeetQuery } from "@/lib/maps/geocode";
 import { normalizeMeetCountry } from "@/lib/maps/select-engine";
 import { assertAuctionPostAccess, assertUsedMarketAccess } from "@/lib/used-market-access";
 import { releaseAllListingDepositsExcept } from "@/lib/auction-deposit";
-import { openMarketListingChat } from "@/lib/market-trade-chat";
 import { confirmAuctionTradeComplete } from "@/lib/used-auction-trade-complete";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { assertCanPublishNsfwContent, nsfwViewerSelect } from "@/lib/nsfw-viewer-access";
@@ -962,6 +963,17 @@ export async function startUsedTradeChat(listingId: string) {
     if (!("roomId" in opened) || !opened.roomId) return { error: "actions.s1k5cvor" };
     revalidatePath(`/market/${listingId}`);
     return { roomId: opened.roomId };
+  }
+
+  if (isDigitalListing(listing)) {
+    const existingChat = await db.usedListingChat.findUnique({
+      where: { listingId_buyerId: { listingId, buyerId: user.id } },
+      select: { id: true },
+    });
+    if (!existingChat) {
+      const held = await ensureDigitalMocoEscrow({ buyerId: user.id, listingId });
+      if ("error" in held) return { error: held.error };
+    }
   }
 
   const dm = await getOrCreateDM(listing.sellerId);

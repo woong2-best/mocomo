@@ -521,6 +521,38 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
         </Pressable>
       </View>
       {filterBar}
+      {!hubLane && scope === "physical" ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipScroller}
+          contentContainerStyle={styles.catRow}
+        >
+          {hubForTrack("physical").map((item) => {
+            const active = browse.source === "hub" && browse.id === item.id;
+            return (
+              <Pressable
+                key={item.id}
+                onPress={() => selectHubCategory(item.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={[
+                  styles.cat,
+                  {
+                    flexShrink: 0,
+                    backgroundColor: active ? colors.brand : colors.surfaceRaised,
+                    borderColor: active ? colors.brand : colors.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.catText, { color: active ? colors.textOnAccent : colors.brand }]}>
+                  {t(item.labelKey)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
       <View style={styles.listWrap}>
       <FlatList
         data={query.isError ? [] : feedRows}

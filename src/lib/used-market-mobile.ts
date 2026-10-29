@@ -1090,6 +1090,7 @@ export async function getMobileUsedTradeRoomContext(userId: string, roomId: stri
     isBuyer,
     isSeller,
     canRequestTrade:
+      !isDigitalListing(listing) &&
       (isBuyer || isSeller) &&
       listing.status === "SELLING" &&
       listing.saleType === "FIXED" &&
@@ -1125,11 +1126,12 @@ export async function createMobileUsedTradeRequest(
     where: { listingId, roomId },
     include: {
       listing: {
-        select: { id: true, sellerId: true, status: true, saleType: true, title: true },
+        select: { id: true, sellerId: true, status: true, saleType: true, title: true, category: true, productType: true },
       },
     },
   });
   if (!link?.listing) return { error: "Trade requests aren't available in this chat." as const };
+  if (isDigitalListing(link.listing)) return { error: "Digital trades do not use a meetup." as const };
   const listing = link.listing;
   const isBuyer = link.buyerId === userId;
   const isSeller = listing.sellerId === userId;

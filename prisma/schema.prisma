@@ -222,6 +222,15 @@ enum PaymentRail {
 enum MarketplaceCheckoutMode {
   STRIPE
   DIRECT_TRADE
+  /** Digital goods paid from the buyer's MOCO balance into seller escrow. */
+  MOCO
+}
+
+enum MocoEscrowStatus {
+  PENDING
+  APPROVED
+  DISPUTED
+  REFUNDED
 }
 
 model User {
@@ -5108,6 +5117,13 @@ model PlatformWallet {
   userId          String   @unique
   /** purchasedMoco — 마켓·경매 충전분 (환불·인출·정산 등급 불가) */
   mocoPoints      Int      @default(0)
+  /**
+   * Spendable MOCO. Kept equal to mocoPoints by the wallet trigger.
+   * Column name matches the escrow ledger: available_moco.
+   */
+  availableMoco   Int      @default(0) @map("available_moco")
+  /** Seller funds held until digital delivery is approved or refunded. */
+  pendingMoco     Int      @default(0) @map("pending_moco")
   /** 0–9 on mocoPoints */
   mocoPointsTenths Int     @default(0)
   /** 0–9, extra 0.01 purchased MOCO (QnA bounty) */
@@ -7429,6 +7445,19 @@ model MarketplaceOrder {
   /** Stripe Transfer id after escrow release */
   stripeTransferId   String?
   escrowHeld         Boolean                @default(true)
+  /** MOCO escrow state for digital delivery. Null on card and bank orders. */
+  mocoEscrowStatus   MocoEscrowStatus?      @map("moco_escrow_status")
+  /** Whole MOCO moved from the buyer into the seller's pending balance. */
+  mocoAmount         Int?                   @map("moco_amount")
+  /** Whitelisted Google Drive or Dropbox share link. File bytes are not stored. */
+  cloudShareUrl      String?                @map("cloud_share_url")
+  /** AES-256-GCM blob for an optional share password. Never plaintext. */
+  cloudShareSecret   Json?                  @map("cloud_share_secret")
+  fileSha256         String?                @map("file_sha256")
+  fileSizeBytes      Int?                   @map("file_size_bytes")
+  fileMimeType       String?                @map("file_mime_type")
+  /** When pending MOCO moves to the seller's available balance if nobody disputes. */
+  autoApproveAt      DateTime?              @map("auto_approve_at")
   settledAt          DateTime?
   settlementHeldReason String?
   /** Stripe manual-capture auth hold expiry (synced from PI capture_before) */
@@ -7476,6 +7505,7 @@ model MarketplaceOrder {
   @@index([status, autoConfirmAt])
   @@index([settlementStatus, confirmedAt])
   @@index([adminReviewRequired, createdAt])
+  @@index([mocoEscrowStatus, autoApproveAt])
 }
 
 model MarketplaceOrderItem {

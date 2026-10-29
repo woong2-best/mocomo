@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { isDigitalListing } from "@/lib/market-tracks";
 import { db } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
 import { formatUsedPrice } from "@/lib/used-market";
@@ -52,6 +53,8 @@ const tradeInclude = {
       title: true,
       price: true,
       currency: true,
+      category: true,
+      productType: true,
       currentBidAmount: true,
       meetPlace: true,
       meetLat: true,
@@ -85,6 +88,7 @@ async function depositStatusFor(listingId: string, userId: string): Promise<stri
 }
 
 async function toView(trade: TradeRow, userId: string): Promise<DirectTradeView | null> {
+  if (isDigitalListing(trade.listing)) return null;
   const role = roleOf(trade, userId);
   if (!role) return null;
   const otherRole: Role = role === "buyer" ? "seller" : "buyer";
@@ -241,6 +245,7 @@ export async function getDirectTradeView(
         ? await loadTrade({ roomId: key.roomId })
         : null;
   if (!trade) return null;
+  if (isDigitalListing(trade.listing)) return null;
   return toView(trade, userId);
 }
 
@@ -290,6 +295,7 @@ async function notify(userId: string, actorId: string | undefined, title: string
 async function requireParty(listingId: string, userId: string) {
   const trade = await loadTrade({ listingId });
   if (!trade) return { error: "No in-person meetup scheduled." as const };
+  if (isDigitalListing(trade.listing)) return { error: "Digital trades do not use a meetup." as const };
   const role = roleOf(trade, userId);
   if (!role) return { error: "You are not a party to this trade." as const };
   return { trade, role };

@@ -386,7 +386,7 @@ export function MarketplaceDetailScreen() {
               {displayUsedRegion(item.region || "", t) || t("m.marketplace.location_tbd")}
               {item.seller?.username ? ` · @${item.seller.username}` : ""}
             </Text>
-            {item.meetPlace?.trim() ? (
+            {item.meetPlace?.trim() && !isDigitalListing(item) ? (
               <Text style={styles.meetPlace}>
                 {t("m.marketplace.meetup")} · {item.meetPlace.trim()}
               </Text>
@@ -443,7 +443,11 @@ export function MarketplaceDetailScreen() {
                       }
                     }}
                   >
-                    <Text style={styles.btnText}>{t("m.common.message")}</Text>
+                    <Text style={styles.btnText}>
+                      {isDigitalListing(item) && !item.buyerChatRoomId
+                        ? t("m.market.track.pay_with_moco")
+                        : t("m.common.message")}
+                    </Text>
                   </Pressable>
                 </View>
               ) : null

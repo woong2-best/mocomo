@@ -32,8 +32,8 @@ export type UsedUiText = TFn;
 const CATALOG_LABEL_EN: Record<string, string> = {
   FIGURE: "Figures & Models",
   TCG: "TCG",
-  GOODS: "Character goods",
-  BOOK: "Books",
+  GOODS: "Character Goods",
+  BOOK: "Manga & Doujinshi",
   GAMES: "Games",
   COSPLAY: "Cosplay",
   DIGITAL: "Digital",

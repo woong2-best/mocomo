@@ -21,9 +21,16 @@ export type DigitalDeliveryState = {
   fileUrl?: string;
   fileName?: string;
   previewUrl?: string;
+  cloudShareUrl?: string;
+  fileSha256?: string;
+  fileMimeType?: string;
+  fileSizeBytes?: number;
+  autoApproveAt?: string;
   approvedAt?: string;
   uploadedAt?: string;
   disputed?: boolean;
+  /** Present only on the authenticated buyer or seller response. Never stored in listing JSON. */
+  sharePassword?: string;
 };
 
 export const DIGITAL_AUTO_APPROVE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -58,12 +65,18 @@ export function readDigitalDelivery(meta: unknown): DigitalDeliveryState | null 
   if (status !== "held" && status !== "progress" && status !== "uploaded" && status !== "completed") {
     return null;
   }
+  const size = typeof row.fileSizeBytes === "number" && Number.isFinite(row.fileSizeBytes) ? row.fileSizeBytes : undefined;
   return {
     kind: row.kind === "commission" ? "commission" : "ready",
     status,
     fileUrl: typeof row.fileUrl === "string" ? row.fileUrl : undefined,
     fileName: typeof row.fileName === "string" ? row.fileName : undefined,
     previewUrl: typeof row.previewUrl === "string" ? row.previewUrl : undefined,
+    cloudShareUrl: typeof row.cloudShareUrl === "string" ? row.cloudShareUrl : undefined,
+    fileSha256: typeof row.fileSha256 === "string" ? row.fileSha256 : undefined,
+    fileMimeType: typeof row.fileMimeType === "string" ? row.fileMimeType : undefined,
+    fileSizeBytes: size,
+    autoApproveAt: typeof row.autoApproveAt === "string" ? row.autoApproveAt : undefined,
     approvedAt: typeof row.approvedAt === "string" ? row.approvedAt : undefined,
     uploadedAt: typeof row.uploadedAt === "string" ? row.uploadedAt : undefined,
     disputed: row.disputed === true,
@@ -74,15 +87,21 @@ export function digitalDeliveryCompleted(meta: unknown): boolean {
   return readDigitalDelivery(meta)?.status === "completed";
 }
 
-/** Buyer-facing copy of a delivery. Original file stays hidden until approval. */
+/** Buyer can open the cloud link once the seller has delivered it. The share password is attached later. */
 export function publicDigitalDelivery(
   state: DigitalDeliveryState | null,
   role: "buyer" | "seller" | "other"
 ): DigitalDeliveryState | null {
   if (!state) return null;
-  if (role === "seller" || state.status === "completed") return state;
+  const linkReady = state.status === "uploaded" || state.status === "completed";
+  const cloudShareUrl = role === "seller" || (role === "buyer" && linkReady) ? state.cloudShareUrl : undefined;
+  if (role === "other") {
+    return { ...state, fileUrl: undefined, previewUrl: undefined, cloudShareUrl: undefined, sharePassword: undefined };
+  }
   return {
     ...state,
-    fileUrl: undefined,
+    cloudShareUrl,
+    fileUrl: cloudShareUrl ?? (role === "seller" || state.status === "completed" ? state.fileUrl : undefined),
+    sharePassword: undefined,
   };
 }

@@ -15,6 +15,7 @@ type UsedTradeContext = {
   listingId: string;
   isBuyer: boolean;
   canRequestTrade: boolean;
+  digital?: boolean;
   approvedMeet?: {
     requestId: string;
     showCompletionPrompt: boolean;
@@ -55,7 +56,7 @@ export function ChatUsedTradePanel({
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`/api/used/trade-room/${encodeURIComponent(roomId)}`);
-      const body = (await res.json()) as { usedTrade?: UsedTradeContext | null };
+      const body = (await res.json()) as { usedTrade?: (UsedTradeContext & { digital?: boolean }) | null };
       setCtx(body.usedTrade ?? null);
     } catch {
       setCtx(null);
@@ -108,7 +109,7 @@ export function ChatUsedTradePanel({
     }
   }
 
-  if (!ctx) return null;
+  if (!ctx || ctx.digital) return null;
 
   return (
     <div className="shrink-0 border-t border-border/60 bg-background px-3 py-2 space-y-2">

@@ -39,7 +39,8 @@ export function labelContainsTerm(label: string, term: string): boolean {
 
 function browseAliases(id: string, label: string): string[] {
   const short = label.split(" / ")[0] ?? label;
-  return [label, short, id];
+  const extra = id === "BOOK" ? ["Books", "Manga", "Doujinshi"] : id === "GOODS" ? ["Character goods"] : [];
+  return [label, short, id, ...extra];
 }
 
 /**

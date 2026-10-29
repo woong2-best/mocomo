@@ -213,7 +213,9 @@ export function UsedDetailBottomBar({
         >
           {loading
             ? t("live.external.connecting")
-            : t("ui.message_seller")}
+            : digital
+              ? t("market.track.payWithMoco")
+              : t("ui.message_seller")}
         </Button>
       ) : (
         <Button asChild size="lg" className="h-12 w-full rounded-[10px] bg-folk-terracotta font-bold text-white hover:bg-folk-terracotta/90">
