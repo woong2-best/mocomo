@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 
 export function SearchPageChrome({
   children,
-  compact = false,
 }: {
   children: React.ReactNode;
   compact?: boolean;
@@ -15,12 +14,11 @@ export function SearchPageChrome({
   return (
     <div
       className={cn(
-        "mx-auto min-h-[calc(100dvh-3.5rem)] w-full min-w-0 max-w-2xl",
-        "lg:border-x lg:border-border/70",
-        !isNativeApp && "pb-nav lg:pb-0"
+        "mx-auto min-h-[calc(100dvh-3.5rem)] w-full min-w-0 max-w-7xl px-4 lg:px-6 pt-2",
+        !isNativeApp && "pb-nav lg:pb-6"
       )}
     >
-      <div className={cn("min-w-0", compact ? "" : "px-0")}>{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
