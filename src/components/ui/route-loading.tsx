@@ -12,9 +12,9 @@ export function RouteLoading(_props?: {
   className?: string;
 }) {
   useEffect(() => {
-    topProgress.start();
+    topProgress.start("route-loading");
     return () => {
-      topProgress.done();
+      topProgress.done("route-loading");
     };
   }, []);
 

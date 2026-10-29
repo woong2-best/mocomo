@@ -3,7 +3,11 @@
 import { Suspense, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { TopProgressBar } from "@/components/ui/top-progress-bar";
-import { installTopProgressFetch, topProgress } from "@/lib/top-progress";
+import {
+  handleTopProgressPageShow,
+  installTopProgressFetch,
+  topProgress,
+} from "@/lib/top-progress";
 
 export function TopProgressProvider({ children }: { children: React.ReactNode }) {
   return (
@@ -51,18 +55,24 @@ function TopProgressEffects() {
         return;
       }
 
-      topProgress.start();
+      topProgress.start(`click ${url.pathname}${url.search}`);
     };
 
     const onPopState = () => {
-      topProgress.start();
+      topProgress.start("popstate");
+    };
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      handleTopProgressPageShow(event);
     };
 
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", onPopState);
+    window.addEventListener("pageshow", onPageShow);
     return () => {
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("pageshow", onPageShow);
     };
   }, []);
 
@@ -71,7 +81,7 @@ function TopProgressEffects() {
     prevRouteKey.current = routeKey;
     // Releases the click/popstate hold. In-flight RSC fetches keep their own ref-count
     // until the payload arrives — that is what keeps the bar honest like X/Twitter.
-    topProgress.done();
+    topProgress.done("route");
   }, [routeKey]);
 
   return null;

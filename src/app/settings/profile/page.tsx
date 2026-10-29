@@ -16,41 +16,55 @@ import {
   listProfileSocialManageItems,
 } from "@/lib/profile-social";
 
+async function timed<T>(label: string, work: () => Promise<T>): Promise<T> {
+  const started = Date.now();
+  try {
+    return await work();
+  } finally {
+    console.info(`[settings/profile:timing] ${label} ${Date.now() - started}ms`);
+  }
+}
+
 export default async function ProfileSettingsPage() {
-  const session = await auth();
+  const session = await timed("auth", () => auth());
   if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/settings/profile");
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      profile: true,
-      cosplayerProfile: {
-        include: {
-          photos: { orderBy: { createdAt: "desc" } },
+  const user = await timed("db.user.findUnique", () =>
+    db.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        profile: true,
+        cosplayerProfile: {
+          include: {
+            photos: { orderBy: { createdAt: "desc" } },
+          },
         },
       },
-    },
-  });
+    })
+  );
   if (!user) redirect("/auth/signin");
 
   const sns = (user.profile?.snsLinks ?? {}) as { location?: string; website?: string };
   const birth = splitStoredBirthDate(user.birthDate);
-  const recentUsernameChanges = await db.usernameChangeLog.findMany({
-    where: {
-      userId: user.id,
-      createdAt: { gte: usernameChangeWindowStart() },
-    },
-    orderBy: { createdAt: "asc" },
-    select: { createdAt: true },
-  });
-  const resetAt = usernameChangeResetAt(recentUsernameChanges);
 
-  const streamingAccounts = await listUserStreamingAccounts(user.id);
-  const [socialConnected, socialAvailable, socialItems] = await Promise.all([
-    listConnectedProfileSocialIds(user.id),
-    Promise.resolve(getProfileSocialConnectAvailability()),
-    listProfileSocialManageItems(user.id),
-  ]);
+  const [recentUsernameChanges, streamingAccounts, socialConnected, socialAvailable, socialItems] =
+    await Promise.all([
+      timed("usernameChangeLog", () =>
+        db.usernameChangeLog.findMany({
+          where: {
+            userId: user.id,
+            createdAt: { gte: usernameChangeWindowStart() },
+          },
+          orderBy: { createdAt: "asc" },
+          select: { createdAt: true },
+        })
+      ),
+      timed("streamingAccounts", () => listUserStreamingAccounts(user.id)),
+      timed("socialConnected", () => listConnectedProfileSocialIds(user.id)),
+      timed("socialAvailable", async () => getProfileSocialConnectAvailability()),
+      timed("socialItems", () => listProfileSocialManageItems(user.id)),
+    ]);
+  const resetAt = usernameChangeResetAt(recentUsernameChanges);
 
   const cosplayPhotos: CosplayGalleryPhoto[] =
     user.cosplayerProfile?.photos.map((p) => ({

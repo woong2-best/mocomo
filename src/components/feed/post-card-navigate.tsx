@@ -30,7 +30,7 @@ export function usePostCardNavigate(href: string) {
       openInNewTab();
       return;
     }
-    topProgress.start();
+    topProgress.start(`router-push ${href}`);
     router.push(href);
   }
 

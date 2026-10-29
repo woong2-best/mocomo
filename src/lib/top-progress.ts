@@ -25,22 +25,49 @@ export const TOP_PROGRESS_IDLE: TopProgressSnapshot = {
 };
 
 /**
- * When work outlives this, the bar stops advancing and parks at the hold width
- * rather than disappearing. A bar that vanishes while the app is still waiting
- * reads as "nothing is happening".
+ * When work outlives this, keep creeping so the bar does not look frozen.
+ * Complete still happens only when the ref-count hits 0.
  */
-const STALL_AFTER_MS = 4_000;
-/** Width the bar parks at while still waiting. */
-const STALL_PROGRESS = 0.92;
+export const STALL_AFTER_MS = 4_000;
+/** Width where the first crawl hands off to the slow stall crawl. */
+export const STALL_PROGRESS = 0.92;
+/** Slow crawl ceiling — never 100% until done(). */
+export const STALL_CEILING = 0.99;
+/** Time to ease from STALL_PROGRESS to STALL_CEILING. */
+export const STALL_CRAWL_MS = 20_000;
+export const STALL_TICK_MS = 400;
 /** Hard ceiling — past this something is genuinely wrong, so clear the bar. */
-const ABANDON_AFTER_MS = 30_000;
+export const ABANDON_AFTER_MS = 30_000;
+/** Click/popstate start with no route change and no tracked fetch. */
+export const ORPHAN_HOLD_MS = 1_500;
 
 function nextFrame(): Promise<void> {
-  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => resolve());
+      return;
+    }
+    setTimeout(resolve, 0);
+  });
+}
+
+function isProgressDebug(): boolean {
+  return process.env.NEXT_PUBLIC_DEBUG_PROGRESS === "1";
+}
+
+function isNavigationHint(reason?: string): boolean {
+  if (!reason) return false;
+  return /^(click|popstate|router-push)\b/.test(reason);
+}
+
+function isFetchReason(reason?: string): boolean {
+  return !!reason && /^fetch\b/.test(reason);
 }
 
 class TopProgressController {
   private count = 0;
+  private hintHolds = 0;
+  private fetchHolds = 0;
   private progress = 0;
   private active = false;
   private fading = false;
@@ -48,9 +75,12 @@ class TopProgressController {
   private safetyTimer: ReturnType<typeof setTimeout> | null = null;
   private abandonTimer: ReturnType<typeof setTimeout> | null = null;
   private crawlTimer: ReturnType<typeof setTimeout> | null = null;
+  private orphanTimer: ReturnType<typeof setTimeout> | null = null;
   private finishPromise: Promise<void> | null = null;
   private listeners = new Set<Listener>();
   private cached: TopProgressSnapshot = TOP_PROGRESS_IDLE;
+  private sessionStartedAt = 0;
+  private stallElapsedMs = 0;
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -61,9 +91,18 @@ class TopProgressController {
     return this.cached;
   }
 
-  start(): void {
+  start(reason?: string): void {
     if (typeof window === "undefined") return;
     this.count += 1;
+    if (isNavigationHint(reason)) {
+      this.hintHolds += 1;
+      this.armOrphanHold();
+    } else if (isFetchReason(reason)) {
+      this.fetchHolds += 1;
+    }
+
+    if (this.count === 1) this.sessionStartedAt = Date.now();
+    this.debug("start", reason);
     if (this.count !== 1) return;
 
     if (this.hideTimer) {
@@ -79,32 +118,48 @@ class TopProgressController {
     this.armSafetyOnce();
   }
 
-  done(): void {
+  done(reason?: string): void {
     if (typeof window === "undefined") return;
     if (this.count <= 0) return;
+    this.accountRelease(reason);
     this.count -= 1;
+    this.debug("done", reason);
+    if (this.hintHolds <= 0) this.clearOrphanHold();
+    if (isFetchReason(reason)) this.tryReleaseOrphan();
     if (this.count > 0) return;
     void this.paintThenFinish();
   }
 
-  fail(): void {
+  fail(reason?: string): void {
     if (typeof window === "undefined") return;
     if (this.count <= 0) return;
+    this.accountRelease(reason);
     this.count -= 1;
+    this.debug("fail", reason);
+    if (this.hintHolds <= 0) this.clearOrphanHold();
+    if (isFetchReason(reason)) this.tryReleaseOrphan();
     if (this.count > 0) return;
     this.reset();
   }
 
   /** Force-finish — drains all holds, then finishes on next paint. */
-  complete(): void {
+  complete(reason?: string): void {
     if (typeof window === "undefined") return;
     if (!this.active && this.count === 0) return;
     this.count = 0;
+    this.hintHolds = 0;
+    this.fetchHolds = 0;
+    this.clearOrphanHold();
+    this.debug("complete", reason);
     void this.paintThenFinish();
   }
 
-  forceReset(): void {
+  forceReset(reason?: string): void {
     this.count = 0;
+    this.hintHolds = 0;
+    this.fetchHolds = 0;
+    this.clearOrphanHold();
+    this.debug("forceReset", reason);
     this.reset();
   }
 
@@ -118,23 +173,124 @@ class TopProgressController {
     return this.count > 0;
   }
 
+  /** Test helper — run the 4s stall handoff immediately. */
+  enterStallNow(): void {
+    this.enterStall("stall");
+  }
+
+  /** Test helper — advance the 92%→99% crawl by one tick (or `dtMs`). */
+  advanceStallCrawl(dtMs = STALL_TICK_MS): void {
+    this.stallElapsedMs += dtMs;
+    this.applyStallProgress();
+    if (this.stallElapsedMs < STALL_CRAWL_MS && this.active) {
+      this.scheduleStallTick();
+    }
+  }
+
+  /** Test helper — run the orphan-hold check immediately. */
+  releaseOrphanIfIdle(): void {
+    this.tryReleaseOrphan();
+  }
+
+  private elapsedMs(): number {
+    if (!this.sessionStartedAt) return 0;
+    return Date.now() - this.sessionStartedAt;
+  }
+
+  private debug(event: string, reason?: string): void {
+    if (!isProgressDebug()) return;
+    console.debug("[top-progress]", event, {
+      reason: reason ?? "(none)",
+      elapsedMs: this.elapsedMs(),
+      count: this.count,
+      hintHolds: this.hintHolds,
+      fetchHolds: this.fetchHolds,
+      progress: this.progress,
+    });
+  }
+
+  private accountRelease(reason?: string): void {
+    if (isFetchReason(reason)) {
+      this.fetchHolds = Math.max(0, this.fetchHolds - 1);
+      return;
+    }
+    if (this.hintHolds > 0 && (isNavigationHint(reason) || reason === "route" || reason === "orphan" || !reason)) {
+      this.hintHolds = Math.max(0, this.hintHolds - 1);
+    }
+  }
+
+  private armOrphanHold(): void {
+    this.clearOrphanHold();
+    this.orphanTimer = setTimeout(() => {
+      this.orphanTimer = null;
+      this.tryReleaseOrphan();
+    }, ORPHAN_HOLD_MS);
+  }
+
+  private clearOrphanHold(): void {
+    if (this.orphanTimer) {
+      clearTimeout(this.orphanTimer);
+      this.orphanTimer = null;
+    }
+  }
+
+  private tryReleaseOrphan(): void {
+    if (this.hintHolds <= 0) {
+      this.clearOrphanHold();
+      return;
+    }
+    if (this.fetchHolds > 0) return;
+    this.debug("orphan", "no route change and no tracked fetch");
+    this.done("orphan");
+  }
+
   private armSafetyOnce(): void {
     if (this.safetyTimer) return; // do not refresh
     this.safetyTimer = setTimeout(() => {
       this.safetyTimer = null;
       if (this.count === 0 && !this.active) return;
-      // Still waiting: hold instead of vanishing.
-      this.clearCrawl();
-      this.progress = STALL_PROGRESS;
-      this.emit();
+      this.enterStall("stall");
       this.abandonTimer = setTimeout(() => {
         this.abandonTimer = null;
         if (this.count > 0 || this.active) {
+          this.debug("abandon", "stall/abandon deadline");
           this.count = 0;
+          this.hintHolds = 0;
+          this.fetchHolds = 0;
+          this.clearOrphanHold();
           this.reset();
         }
       }, ABANDON_AFTER_MS - STALL_AFTER_MS);
     }, STALL_AFTER_MS);
+  }
+
+  private enterStall(reason: string): void {
+    this.clearCrawl();
+    this.stallElapsedMs = 0;
+    this.progress = STALL_PROGRESS;
+    this.debug(reason, "92% handoff — slow crawl to 99%");
+    this.emit();
+    this.scheduleStallTick();
+  }
+
+  private scheduleStallTick(): void {
+    this.clearCrawl();
+    this.crawlTimer = setTimeout(() => {
+      this.crawlTimer = null;
+      if (!this.active) return;
+      this.stallElapsedMs += STALL_TICK_MS;
+      this.applyStallProgress();
+      if (this.stallElapsedMs < STALL_CRAWL_MS && this.count > 0) {
+        this.scheduleStallTick();
+      }
+    }, STALL_TICK_MS);
+  }
+
+  private applyStallProgress(): void {
+    if (!this.active) return;
+    const t = Math.min(1, this.stallElapsedMs / STALL_CRAWL_MS);
+    this.progress = STALL_PROGRESS + (STALL_CEILING - STALL_PROGRESS) * t;
+    this.emit();
   }
 
   private clearSafety(): void {
@@ -186,6 +342,7 @@ class TopProgressController {
   private finish(): void {
     this.clearCrawl();
     this.clearSafety();
+    this.clearOrphanHold();
     this.progress = 1;
     this.fading = false;
     this.active = true;
@@ -207,6 +364,7 @@ class TopProgressController {
   private reset(): void {
     this.clearCrawl();
     this.clearSafety();
+    this.clearOrphanHold();
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
       this.hideTimer = null;
@@ -214,6 +372,8 @@ class TopProgressController {
     this.active = false;
     this.fading = false;
     this.progress = 0;
+    this.sessionStartedAt = 0;
+    this.stallElapsedMs = 0;
     this.emit();
   }
 
@@ -236,6 +396,12 @@ class TopProgressController {
 }
 
 export const topProgress = new TopProgressController();
+
+/** bfcache restore — drop a bar that was mid-flight when the tab was frozen. */
+export function handleTopProgressPageShow(event: { persisted: boolean }): void {
+  if (!event.persisted) return;
+  topProgress.forceReset("pageshow-bfcache");
+}
 
 function resolveUrl(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
@@ -318,16 +484,25 @@ export function installTopProgressFetch(): () => void {
     const trackNavigation = isNextNavigationFetch(input, init);
     const track = trackMutation || trackNavigation;
 
-    // Always ref-count navigation fetches — even if click already started the bar.
-    // Otherwise URL change calls done() while RSC is still in flight and the bar dies early.
-    if (track) topProgress.start();
+    let fetchReason: string | undefined;
+    if (track) {
+      const method = resolveMethod(input, init);
+      let url = resolveUrl(input);
+      try {
+        url = new URL(url, window.location.origin).pathname;
+      } catch {
+        /* keep raw */
+      }
+      fetchReason = `fetch ${method} ${url}`;
+      topProgress.start(fetchReason);
+    }
 
     try {
       const res = await original(input, init);
-      if (track) topProgress.done();
+      if (track) topProgress.done(fetchReason);
       return res;
     } catch (err) {
-      if (track) topProgress.fail();
+      if (track) topProgress.fail(fetchReason);
       throw err;
     }
   };
