@@ -68,10 +68,10 @@ export function getHeaderSearchContext(pathname: string): HeaderSearchContext {
   }
   if (isCommunityFeedPath(path)) {
     return {
-      scope: "social",
+      scope: "global",
       placeholderKey: "search.headerPlaceholder.global",
-      basePath: "/",
-      inPage: true,
+      basePath: "/search",
+      inPage: false,
     };
   }
   if (

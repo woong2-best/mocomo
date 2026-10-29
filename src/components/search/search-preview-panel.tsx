@@ -71,8 +71,8 @@ export function SearchPreviewPanel({
     <div
       style={style}
       className={cn(
-        "relative isolate overflow-hidden rounded-2xl border border-border/80 bg-background shadow-xl",
-        "max-h-[min(72vh,440px)] overflow-y-auto overscroll-contain",
+        "relative isolate overflow-hidden rounded-lg bg-background",
+        "max-h-[min(60vh,360px)] overflow-y-auto overscroll-contain",
         className
       )}
     >

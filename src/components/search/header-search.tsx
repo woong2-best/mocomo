@@ -1,7 +1,6 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import type { FastSearchResult } from "@/lib/search-fast";
@@ -13,11 +12,6 @@ import { getHeaderSearchContext } from "@/lib/header-search-context";
 import { loadRecentSearches, rememberRecentSearch, removeRecentSearch } from "@/lib/recent-searches";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
-
-type PanelRect = { top: number; left: number; width: number };
-
-/** Body-level overlay so previews never fight page cards / stacking contexts. */
-const SEARCH_PREVIEW_Z = 220;
 
 export function HeaderSearch({
   variant = "header",
@@ -46,16 +40,19 @@ export function HeaderSearch({
   const [recentsPending, setRecentsPending] = useState(false);
   const [usedRanking, setUsedRanking] = useState<SidebarSearchRankingItem[]>([]);
   const [rankingPending, setRankingPending] = useState(false);
-  const [panelRect, setPanelRect] = useState<PanelRect | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [pending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const suppressOpenRef = useRef(false);
 
-  useEffect(() => {
-    setMounted(true);
+  const closeDropdown = useCallback(() => {
+    suppressOpenRef.current = true;
+    abortRef.current?.abort();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setOpen(false);
+    setResults(null);
   }, []);
 
   const refreshRecents = useCallback(() => {
@@ -86,8 +83,8 @@ export function HeaderSearch({
           signal: ac.signal,
         });
         const body = await res.json();
-        if (!res.ok || !body.ok) {
-          setResults(null);
+        if (!res.ok || !body.ok || suppressOpenRef.current) {
+          if (!suppressOpenRef.current) setResults(null);
           return;
         }
         setResults({
@@ -97,9 +94,8 @@ export function HeaderSearch({
           posts: body.posts ?? [],
           liveStreams: body.liveStreams ?? [],
         });
-        setOpen(true);
       } catch {
-        if (!ac.signal.aborted) setResults(null);
+        if (!ac.signal.aborted && !suppressOpenRef.current) setResults(null);
       }
     });
   }, []);
@@ -107,15 +103,14 @@ export function HeaderSearch({
   useEffect(() => {
     if (usesPageQuery) {
       setQ(urlQuery);
-      setOpen(false);
-      setResults(null);
+      closeDropdown();
       return;
     }
     setQ(defaultQuery);
-  }, [defaultQuery, usesPageQuery, urlQuery]);
+  }, [defaultQuery, usesPageQuery, urlQuery, closeDropdown]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || suppressOpenRef.current) return;
     const trimmed = q.trim();
     if (trimmed.length >= 1 && !searchContext.inPage) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -128,11 +123,10 @@ export function HeaderSearch({
   }, [q, open, fetchPreview, searchContext.inPage]);
 
   useEffect(() => {
-    setOpen(false);
-    setResults(null);
+    closeDropdown();
     setRecents([]);
     setUsedRanking([]);
-  }, [pathname]);
+  }, [pathname, closeDropdown]);
 
   useEffect(() => {
     if (!open || searchContext.scope !== "used" || q.trim().length >= 1) {
@@ -165,7 +159,6 @@ export function HeaderSearch({
     function onDoc(e: MouseEvent) {
       const target = e.target as Node;
       if (wrapRef.current?.contains(target)) return;
-      if (target instanceof Element && target.closest("[data-search-dropdown-panel]")) return;
       setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
@@ -179,45 +172,18 @@ export function HeaderSearch({
     };
   }, []);
 
-  const updatePanelRect = useCallback(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const width = Math.min(Math.max(rect.width, 280), Math.min(420, window.innerWidth - 24));
-    const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
-    setPanelRect({ top: rect.bottom + 6, left, width });
-  }, []);
-
   const trimmed = q.trim();
   const showTypingPreview = open && trimmed.length >= 1 && !searchContext.inPage;
   const showRankingPanel = open && !showTypingPreview;
   const showDropdown = showTypingPreview || showRankingPanel;
-
-  useLayoutEffect(() => {
-    if (!showDropdown) {
-      setPanelRect(null);
-      return;
-    }
-    updatePanelRect();
-    const onScroll = (e: Event) => {
-      const target = e.target;
-      if (target instanceof Element && target.closest("[data-search-dropdown-panel]")) return;
-      setOpen(false);
-    };
-    window.addEventListener("resize", updatePanelRect);
-    window.addEventListener("scroll", onScroll, true);
-    return () => {
-      window.removeEventListener("resize", updatePanelRect);
-      window.removeEventListener("scroll", onScroll, true);
-    };
-  }, [showDropdown, updatePanelRect, q, results, pending, recents, recentsPending, usedRanking, rankingPending]);
 
   function goFullSearch(e?: React.FormEvent, nextTerm?: string) {
     e?.preventDefault();
     const term = (nextTerm ?? q).trim();
     if (term.length < 1) return;
     setQ(term);
-    setOpen(false);
+    closeDropdown();
+    inputRef.current?.blur();
     setRecents(rememberRecentSearch(searchContext.scope, term));
 
     if (
@@ -254,6 +220,7 @@ export function HeaderSearch({
   }
 
   function clearQuery() {
+    suppressOpenRef.current = false;
     setQ("");
     setResults(null);
     setOpen(true);
@@ -272,6 +239,7 @@ export function HeaderSearch({
   }
 
   function onInputFocus() {
+    suppressOpenRef.current = false;
     setOpen(true);
     refreshRecents();
     if (!searchContext.inPage && trimmed.length >= 1) {
@@ -291,129 +259,113 @@ export function HeaderSearch({
     (results?.posts.length ?? 0) > 0 ||
     (results?.liveStreams.length ?? 0) > 0;
 
-  const dropdownPanel =
-    showDropdown &&
-    mounted &&
-    panelRect &&
-    createPortal(
-      <div
-        data-search-dropdown-panel
-        className="pointer-events-auto overflow-hidden rounded-xl border-2 border-folk-terracotta/50 bg-background shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
-        style={{
-          position: "fixed",
-          top: panelRect.top,
-          left: panelRect.left,
-          width: panelRect.width,
-          zIndex: SEARCH_PREVIEW_Z,
-        }}
-      >
-        {showTypingPreview ? (
-          <SearchPreviewPanel
-            trimmed={trimmed}
-            pending={pending}
-            results={results}
-            hasHits={hasHits}
-            onClose={() => setOpen(false)}
-            onFullSearch={() => goFullSearch()}
-          />
-        ) : (
-          <div>
-            {searchContext.scope === "used" && (rankingPending || usedRanking.length > 0) ? (
-              <div className="border-b border-border/60">
-                <p className="px-4 pt-3 text-xs font-semibold text-muted-foreground">
-                  {t("used.query.recommended")}
-                </p>
-                <SearchRankingFocusPanel
-                  scope="used"
-                  items={usedRanking}
-                  pending={rankingPending}
-                  onPick={() => setOpen(false)}
-                />
-              </div>
-            ) : null}
-            <SearchRecentFocusPanel
-              items={recents}
-              pending={recentsPending}
-              filter={searchContext.inPage ? q : undefined}
-              onPick={(term) => goFullSearch(undefined, term)}
-              onRemove={handleRemoveRecent}
-            />
-          </div>
-        )}
-      </div>,
-      document.body
-    );
-
   return (
-    <>
-      <div
-        ref={wrapRef}
-        className={cn("relative w-full min-w-0", variant === "page" && "z-[1]", className)}
+    <div
+      ref={wrapRef}
+      className={cn("relative w-full min-w-0 overflow-visible", variant === "page" && "z-[1]", className)}
+    >
+      <form
+        onSubmit={goFullSearch}
+        className={cn(
+          "flex w-full items-stretch overflow-hidden rounded-xl border-2 border-folk-cobalt/35 bg-background shadow-[2px_3px_0_hsl(var(--folk-cobalt)/0.1)] transition-all",
+          "focus-within:border-folk-terracotta focus-within:shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]",
+          showDropdown && "border-folk-terracotta shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]"
+        )}
+        role="search"
       >
-        <form
-          onSubmit={goFullSearch}
-          className={cn(
-            "flex w-full items-stretch overflow-hidden rounded-xl border-2 border-folk-cobalt/35 bg-background shadow-[2px_3px_0_hsl(var(--folk-cobalt)/0.1)] transition-all",
-            "focus-within:border-folk-terracotta focus-within:shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]",
-            showDropdown && "border-folk-terracotta shadow-[3px_4px_0_hsl(var(--folk-terracotta)/0.18)]"
-          )}
-          role="search"
-        >
-          <div className="relative flex min-w-0 flex-1 items-center">
-            <input
-              ref={inputRef}
-              name="q"
-              type="search"
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setOpen(true);
-                if (!searchContext.inPage && e.target.value.trim().length >= 1) {
-                  /* preview fetched via effect */
-                } else if (e.target.value.trim().length < 1) {
-                  setResults(null);
-                  refreshRecents();
-                }
-              }}
-              onFocus={onInputFocus}
-              onKeyDown={(e) => {
-                if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
-                e.preventDefault();
-                goFullSearch();
-              }}
-              aria-label={placeholder}
-              placeholder={placeholder}
-              autoComplete="off"
-              enterKeyHint="search"
-              className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none placeholder:text-muted-foreground/70"
-            />
-            {pending && !q && (
-              <Loader2 className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-            )}
-            {q.length > 0 && !pending && (
-              <button
-                type="button"
-                onClick={clearQuery}
-                className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60"
-                aria-label={t("search.clearAria")}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-            {pending && q.length > 0 && (
-              <Loader2 className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-            )}
-          </div>
-          <button
-            type="submit"
-            className="inline-flex h-11 shrink-0 items-center justify-center bg-folk-terracotta px-3.5 text-white transition-colors hover:brightness-110"
+        <div className="relative flex min-w-0 flex-1 items-center">
+          <input
+            ref={inputRef}
+            name="q"
+            type="search"
+            value={q}
+            onChange={(e) => {
+              suppressOpenRef.current = false;
+              setQ(e.target.value);
+              setOpen(true);
+              if (e.target.value.trim().length < 1) {
+                setResults(null);
+                refreshRecents();
+              }
+            }}
+            onFocus={onInputFocus}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+              e.preventDefault();
+              goFullSearch();
+            }}
             aria-label={placeholder}
-          >
-            <Search className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-        </form>
-      </div>
-      {dropdownPanel}
-    </>
+            placeholder={placeholder}
+            autoComplete="off"
+            enterKeyHint="search"
+            className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none placeholder:text-muted-foreground/70"
+          />
+          {pending && !q && (
+            <Loader2 className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+          )}
+          {q.length > 0 && !pending && (
+            <button
+              type="button"
+              onClick={clearQuery}
+              className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60"
+              aria-label={t("search.clearAria")}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          {pending && q.length > 0 && (
+            <Loader2 className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        <button
+          type="submit"
+          className="inline-flex h-11 shrink-0 items-center justify-center bg-folk-terracotta px-3.5 text-white transition-colors hover:brightness-110"
+          aria-label={placeholder}
+        >
+          <Search className="h-4 w-4" strokeWidth={2.5} />
+        </button>
+      </form>
+
+      {showDropdown ? (
+        <div
+          data-search-dropdown-panel
+          className="absolute top-full left-0 z-[220] mt-2 w-full max-w-[420px] overflow-hidden rounded-lg border border-border/80 bg-background shadow-lg"
+        >
+          {showTypingPreview ? (
+            <SearchPreviewPanel
+              trimmed={trimmed}
+              pending={pending}
+              results={results}
+              hasHits={hasHits}
+              onClose={closeDropdown}
+              onFullSearch={() => goFullSearch()}
+            />
+          ) : (
+            <div>
+              {searchContext.scope === "used" && (rankingPending || usedRanking.length > 0) ? (
+                <div className="border-b border-border/60">
+                  <p className="px-4 pt-3 text-xs font-semibold text-muted-foreground">
+                    {t("used.query.recommended")}
+                  </p>
+                  <SearchRankingFocusPanel
+                    scope="used"
+                    items={usedRanking}
+                    pending={rankingPending}
+                    onPick={closeDropdown}
+                  />
+                </div>
+              ) : null}
+              <SearchRecentFocusPanel
+                items={recents}
+                pending={recentsPending}
+                filter={searchContext.inPage ? q : undefined}
+                onPick={(term) => goFullSearch(undefined, term)}
+                onRemove={handleRemoveRecent}
+              />
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }

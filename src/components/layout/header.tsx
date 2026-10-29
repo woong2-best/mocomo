@@ -56,7 +56,7 @@ export function Header() {
         <div className="lg:hidden">
           <MobileHubHeader />
         </div>
-        <header className="sticky top-0 z-[150] hidden lg:flex min-h-14 items-center gap-2 sm:gap-3 border-b border-border bg-background/95 backdrop-blur-md px-3 sm:px-5 pt-safe pb-1">
+        <header className="sticky top-0 z-[150] hidden lg:flex min-h-14 items-center gap-2 sm:gap-3 overflow-visible border-b border-border bg-background/95 backdrop-blur-md px-3 sm:px-5 pt-safe pb-1">
           <SidebarToggleButton />
           <HeaderSearchSlot className="app-header-interactive flex flex-1 justify-center max-w-2xl mx-auto min-w-0" />
           <div className="app-header-interactive flex items-center gap-0.5 sm:gap-1.5 shrink-0">
@@ -69,7 +69,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-[150] flex min-h-14 items-center gap-2 sm:gap-3 border-b border-border bg-background/95 backdrop-blur-md px-3 sm:px-5 pt-safe pb-1">
+      <header className="sticky top-0 z-[150] flex min-h-14 items-center gap-2 sm:gap-3 overflow-visible border-b border-border bg-background/95 backdrop-blur-md px-3 sm:px-5 pt-safe pb-1">
         <div className="app-header-interactive flex items-center gap-2 shrink-0 lg:hidden">
           <MobileMenuButton onClick={() => setMenuOpen(true)} />
           <Link

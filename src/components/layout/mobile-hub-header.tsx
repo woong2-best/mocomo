@@ -35,7 +35,7 @@ export function MobileHubHeader({ className }: { className?: string }) {
     <>
       <header
         className={cn(
-          "sticky top-0 z-[150] flex items-center gap-2 px-3 pt-safe pb-2 bg-background/95 backdrop-blur-md border-b border-border/60",
+          "sticky top-0 z-[150] flex items-center gap-2 overflow-visible px-3 pt-safe pb-2 bg-background/95 backdrop-blur-md border-b border-border/60",
           className
         )}
       >
