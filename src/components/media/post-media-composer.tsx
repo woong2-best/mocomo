@@ -610,19 +610,13 @@ export const PostMediaComposer = forwardRef<
     "h-9 w-9 rounded-full flex items-center justify-center text-primary hover:bg-primary/10 transition-colors disabled:opacity-40";
 
   function openImageDropPad() {
-    if (showDropPad) {
-      galleryInputRef.current?.click();
-      return;
-    }
     setShowDropPad(true);
+    galleryInputRef.current?.click();
   }
 
   function openVideoDropPad() {
-    if (showDropPad) {
-      pickVideoFiles();
-      return;
-    }
     setShowDropPad(true);
+    pickVideoFiles();
   }
 
   const toolbarIcons = (
