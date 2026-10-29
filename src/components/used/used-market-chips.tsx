@@ -150,33 +150,6 @@ export function UsedMarketChips({
         </Link>
       </div>
 
-      {!personal ? (
-        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-          <Link
-            href={href({ ...keep, track: track === "all" ? null : track, lane: null, category: null, product: null })}
-            className={chip(!categoryActive)}
-          >
-            {t("market.track.all")}
-          </Link>
-          {(track === "digital" ? DIGITAL_MARKET_CATEGORIES : PHYSICAL_MARKET_CATEGORIES).map((item) => {
-            const active = track === "digital" ? product === item.id : category === item.id;
-            return (
-              <Link
-                key={item.id}
-                href={href(
-                  track === "digital"
-                    ? { ...keep, track: "digital", product: item.id, category: null, lane: null }
-                    : { ...keep, track: "physical", category: item.id, product: null, lane: null }
-                )}
-                className={chip(active)}
-              >
-                {t(item.key)}
-              </Link>
-            );
-          })}
-        </div>
-      ) : null}
-
       {personal || track === "digital" ? null : (
         <form action="/market" method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {track !== "all" ? <input type="hidden" name="track" value={track} /> : null}
