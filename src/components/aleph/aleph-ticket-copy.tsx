@@ -33,6 +33,7 @@ export function AlephTicketCopy() {
       <code
         onClick={() => void copyTicket()}
         className="block w-full cursor-pointer select-all rounded-xl border border-white/20 bg-black/60 px-5 py-4 text-center font-mono text-sm leading-relaxed text-white shadow-[0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md sm:text-lg"
+      >
         {ALEPH_TICKET_COMMAND}
       </code>
       <button
