@@ -14,6 +14,7 @@ const HANGUL_ALLOWLIST = new Set([
   "src/lib/maps/geocode.ts",
   "src/lib/world-countries.ts",
   "src/lib/legal-content.ts",
+  "src/lib/aleph-ticket.ts",
   "src/lib/anime-wiki-infobox.ts",
   "src/lib/anime-wiki-seeds.ts",
   "src/lib/i18n/countries.ts",

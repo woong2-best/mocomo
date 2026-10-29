@@ -34,5 +34,6 @@ export function isTermsGateExemptPagePath(pathname: string): boolean {
   if (pathname.startsWith("/legal")) return true;
   if (pathname === "/terms" || pathname.startsWith("/terms/")) return true;
   if (pathname === "/privacy" || pathname.startsWith("/privacy/")) return true;
+  if (pathname === "/aleph" || pathname.startsWith("/aleph/")) return true;
   return false;
 }

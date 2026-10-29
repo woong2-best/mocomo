@@ -6,6 +6,7 @@ const t = createTranslator("en");
 import Link from "next/link";
 import { useLocale } from "@/components/providers/locale-provider";
 import { LegalEntityFooterNotice } from "@/components/legal/legal-entity-notice";
+import { ALEPH_PATH } from "@/lib/aleph-ticket";
 import type { MessageKey } from "@/lib/i18n/messages";
 
 const links: { href: string; labelKey: MessageKey }[] = [
@@ -38,6 +39,14 @@ export function LegalFooterLinks({ className = "" }: { className?: string }) {
         ))}
       </nav>
       <LegalEntityFooterNotice />
+      <div className="flex justify-end">
+        <Link
+          href={ALEPH_PATH}
+          className="text-xs text-muted-foreground hover:text-primary hover:underline"
+        >
+          {t("aleph.footer")}
+        </Link>
+      </div>
     </div>
   );
 }

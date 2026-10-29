@@ -1,11 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka, Geist, Geist_Mono } from "next/font/google";
-import { ThemeProvider } from "next-themes";
-import { AppProviders } from "@/components/providers/app-providers";
-import { ShellRouter } from "@/components/layout/shell-router";
 import { HomeChromeStyle } from "@/components/home/home-chrome-style";
 import { HomeChromeSync } from "@/components/home/home-chrome-sync";
 import { RightPanelHydrated } from "@/components/layout/right-panel-hydrated";
+import { RootChrome } from "@/components/layout/root-chrome";
 import { BRAND } from "@/lib/brand";
 import { getPublicSiteOrigin } from "@/lib/site-url";
 import { DEFAULT_GUEST_COUNTRY } from "@/lib/i18n/config";
@@ -82,17 +80,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <HomeChromeStyle />
         <HomeChromeSync />
         <div className="folk-app-shell">
-          <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
-            <AppProviders>
-              <ShellRouter
-                rightPanel={
-                  <RightPanelHydrated initialData={null} countryCode={DEFAULT_GUEST_COUNTRY} />
-                }
-              >
-                {children}
-              </ShellRouter>
-            </AppProviders>
-          </ThemeProvider>
+          <RootChrome
+            rightPanel={
+              <RightPanelHydrated initialData={null} countryCode={DEFAULT_GUEST_COUNTRY} />
+            }
+          >
+            {children}
+          </RootChrome>
         </div>
       </body>
     </html>
