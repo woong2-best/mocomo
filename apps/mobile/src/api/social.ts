@@ -33,6 +33,30 @@ export async function searchAll(q: string) {
   return apiRequest<SearchResult>(`${MobileApi.search}?${params}`, { auth: true });
 }
 
+export type SearchPageUser = {
+  id: string;
+  username: string;
+  name: string | null;
+  image: string | null;
+  supportTierSent?: string | null;
+  bio: string | null;
+  postsLocked?: boolean;
+  isFollowing?: boolean;
+  followsYou?: boolean;
+};
+
+export type SearchPageResult = {
+  users: SearchPageUser[];
+  postsTop: FeedPost[];
+  postsLatest: FeedPost[];
+  paymentsEnabled?: boolean;
+};
+
+export async function searchPage(q: string) {
+  const params = new URLSearchParams({ q });
+  return apiRequest<SearchPageResult>(`${MobileApi.searchPage}?${params}`, { auth: true });
+}
+
 export async function fetchPostDetail(id: string) {
   return apiRequest<{ post: FeedPost & { starred?: boolean } }>(MobileApi.post(id), {
     auth: true,

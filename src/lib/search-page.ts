@@ -37,7 +37,7 @@ function searchUserWhere(q: string): Prisma.UserWhereInput {
       };
 }
 
-function searchPostWhere(
+export function searchPostWhere(
   q: string,
   canViewNsfw: boolean,
   excludeAuthorIds?: Set<string>
@@ -118,7 +118,7 @@ async function fetchSearchPagePosts(
   }
 }
 
-async function fetchSearchPageUsersRaw(q: string, excludeAuthorIds?: Set<string>, take = 16) {
+export async function fetchSearchPageUsersRaw(q: string, excludeAuthorIds?: Set<string>, take = 16) {
   const excludeAuthors = blockedIdList(excludeAuthorIds ?? new Set());
   const rows = await db.user.findMany({
     where: {

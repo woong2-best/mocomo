@@ -45,7 +45,6 @@ import {
   type InfiniteFeedData,
 } from "@/features/feed/silent-feed-refresh";
 import { fetchWeeklyHighlights, type HighlightItem } from "@/api/highlights";
-import { searchAll, type SearchResult } from "@/api/social";
 import { prefetchPostComments } from "@/api/post-comments-query";
 import { useUserProfileNav, type UserProfileSeed } from "@/features/profile/user-profile-nav";
 import { useAuth } from "@/auth/AuthContext";
@@ -56,7 +55,6 @@ import { recordPostViewOnce } from "@/lib/post-view";
 import { warmDrawerBundles, warmTabBundles } from "@/navigation/tab-warmup";
 import { floatingTabClearance } from "@/navigation/tab-layout";
 import { PerformanceBudgets } from "@/perf/budgets";
-import { FolkAvatar } from "@/ui/FolkAvatar";
 import { resolveVideoPoster } from "@/lib/video-poster";
 import { prefetchImageUrls } from "@/perf/image";
 import { perfMeasure } from "@/perf/mark";
@@ -143,7 +141,7 @@ export function FeedScreen() {
   const alarmUnread = alarmQuery.data?.badge ?? alarmQuery.data?.unread ?? 0;
   const queryClient = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
+  const { open: openUserProfile } = useUserProfileNav();
   const isFocused = useIsFocused();
   const isFocusedRef = useRef(isFocused);
   isFocusedRef.current = isFocused;
@@ -161,7 +159,6 @@ export function FeedScreen() {
   const [previewArmed, setPreviewArmed] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQ, setSearchQ] = useState("");
-  const [searchSubmitted, setSearchSubmitted] = useState("");
   const [isFeedScrolling, setIsFeedScrolling] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const showScrollTopRef = useRef(false);
@@ -178,13 +175,7 @@ export function FeedScreen() {
     queryKey: ["mobile-highlights"],
     queryFn: fetchWeeklyHighlights,
     staleTime: 60_000,
-    enabled: searchFocused && !searchSubmitted,
-  });
-
-  const searchQuery = useQuery({
-    queryKey: ["mobile-search", searchSubmitted],
-    queryFn: () => searchAll(searchSubmitted),
-    enabled: searchSubmitted.length > 0,
+    enabled: searchFocused,
   });
   const bottomPad = floatingTabClearance(insets.bottom);
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
@@ -518,23 +509,23 @@ export function FeedScreen() {
           ref={searchRef}
           variant="pill"
           value={searchQ}
-          onChangeText={(t) => {
-            setSearchQ(t);
-            if (!t.trim()) setSearchSubmitted("");
-          }}
+          onChangeText={setSearchQ}
           onFocus={() => setSearchFocused(true)}
           onBlur={() => {
             setTimeout(() => setSearchFocused(false), 180);
           }}
           onClear={() => {
             setSearchQ("");
-            setSearchSubmitted("");
             setSearchFocused(false);
             searchRef.current?.blur();
           }}
           onSubmitEditing={() => {
             const trimmed = searchQ.trim();
-            if (trimmed) setSearchSubmitted(trimmed);
+            if (!trimmed) return;
+            setSearchFocused(false);
+            setSearchQ("");
+            searchRef.current?.blur();
+            navigation.navigate("Search", { q: trimmed });
           }}
           placeholder={t("common.search")}
           containerStyle={{ flex: 1 }}
@@ -572,48 +563,22 @@ export function FeedScreen() {
             style={styles.searchBackdrop}
             onPress={() => {
               setSearchFocused(false);
-              setSearchSubmitted("");
               setSearchQ("");
               searchRef.current?.blur();
             }}
           />
           <View style={[styles.searchPanel, { backgroundColor: colors.surfaceRaised, borderColor: colors.hairline }]}>
             <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
-              {searchSubmitted && searchQuery.data ? (
-                <SearchResultsPanel
-                  data={searchQuery.data}
-                  colors={colors}
-                  onPressPost={(id) => {
-                    setSearchFocused(false);
-                    searchRef.current?.blur();
-                    navigation.navigate("Reels", { postId: id });
-                  }}
-                  onPressInUser={(user) => prefetchUserProfile(user)}
-                  onPressUser={(user) => {
-                    setSearchFocused(false);
-                    searchRef.current?.blur();
-                    openUserProfile(user);
-                  }}
-                  onPressAnime={(slug) => {
-                    setSearchFocused(false);
-                    searchRef.current?.blur();
-                    navigation.navigate("AnimeDetail", { slug });
-                  }}
-                />
-              ) : searchSubmitted && searchQuery.isLoading ? (
-                <ActivityIndicator style={{ marginVertical: 24 }} color={colors.terracotta} />
-              ) : (
-                <HighlightsPanel
-                  topLiked={highlightsQuery.data?.topLiked ?? []}
-                  topViewed={highlightsQuery.data?.topViewed ?? []}
-                  colors={colors}
-                  onPressPost={(id) => {
-                    setSearchFocused(false);
-                    searchRef.current?.blur();
-                    navigation.navigate("Reels", { postId: id });
-                  }}
-                />
-              )}
+              <HighlightsPanel
+                topLiked={highlightsQuery.data?.topLiked ?? []}
+                topViewed={highlightsQuery.data?.topViewed ?? []}
+                colors={colors}
+                onPressPost={(id) => {
+                  setSearchFocused(false);
+                  searchRef.current?.blur();
+                  navigation.navigate("Reels", { postId: id });
+                }}
+              />
             </ScrollView>
           </View>
         </View>
@@ -811,65 +776,6 @@ function HighlightTable({
           </View>
           <Text style={{ width: 50, marginLeft: 4, textAlign: "right", fontSize: 12, fontWeight: "600", color: colors.text }}>{item.author.name || item.author.username}</Text>
           <Text style={{ width: 40, textAlign: "right", fontSize: 12, fontWeight: "700", color: colors.text }}>{item[statKey]}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-/* ─── Search results panel ─── */
-
-function SearchResultsPanel({
-  data,
-  colors,
-  onPressPost,
-  onPressInUser,
-  onPressUser,
-  onPressAnime,
-}: {
-  data: SearchResult;
-  colors: ThemeColors;
-  onPressPost: (id: string) => void;
-  onPressInUser?: (user: UserProfileSeed) => void;
-  onPressUser: (user: UserProfileSeed) => void;
-  onPressAnime: (slug: string) => void;
-}) {
-  const { t } = useI18n();
-  const total = data.users.length + data.posts.length + data.animes.length + data.liveStreams.length;
-  if (total === 0) {
-    return (
-      <Text style={{ color: colors.textMuted, padding: 16, fontWeight: "600" }}>
-        {t("m.common.no_results")}
-      </Text>
-    );
-  }
-  return (
-    <View style={{ padding: 8, gap: 4 }}>
-      {data.users.map((person) => (
-        <Pressable
-          key={`u-${person.id}`}
-          onPressIn={() => onPressInUser?.(person)}
-          onPress={() => onPressUser(person)}
-          style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 8, gap: 8 }}
-        >
-          <FolkAvatar uri={person.image} name={person.name || person.username} size={28} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{person.name || person.username}</Text>
-            <Text style={{ fontSize: 11, color: colors.textMuted }}>@{person.username}</Text>
-          </View>
-          <Text style={{ fontSize: 10, fontWeight: "700", color: colors.terracotta }}>{t("m.common.people")}</Text>
-        </Pressable>
-      ))}
-      {data.posts.map((p) => (
-        <Pressable key={`p-${p.id}`} onPress={() => onPressPost(p.id)} style={{ paddingVertical: 8, paddingHorizontal: 8 }}>
-          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>{t("m.common.posts")}</Text>
-          <Text numberOfLines={2} style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{p.title || p.content.slice(0, 80)}</Text>
-        </Pressable>
-      ))}
-      {data.animes.map((a) => (
-        <Pressable key={`a-${a.slug}`} onPress={() => onPressAnime(a.slug)} style={{ paddingVertical: 8, paddingHorizontal: 8 }}>
-          <Text style={{ fontSize: 10, fontWeight: "800", color: colors.terracotta, marginBottom: 2 }}>{t("m.common.culture_wiki")}</Text>
-          <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{a.title}</Text>
         </Pressable>
       ))}
     </View>

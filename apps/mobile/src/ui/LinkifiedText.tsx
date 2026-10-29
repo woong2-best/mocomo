@@ -75,7 +75,7 @@ export function LinkifiedText({
             <Text
               key={`h-${i}`}
               style={[{ color: mentionColor, fontWeight: "700" }, mentionStyle]}
-              onPress={() => navigation.navigate("Search")}
+              onPress={() => navigation.navigate("Search", { q: part.label })}
             >
               {part.label}
             </Text>

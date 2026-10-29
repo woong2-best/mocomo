@@ -105,7 +105,7 @@ export type RootStackParamList = {
     image?: string | null;
   };
   PostDetail: { id: string };
-  Search: undefined;
+  Search: { q?: string } | undefined;
   Reels: { postId?: string; mediaId?: string; mediaIndex?: number } | undefined;
   Activity: undefined;
   StarList: undefined;

@@ -32,6 +32,11 @@ export async function openUserLink(
         openUserProfile(navigation, { username: decodeURIComponent(username) });
         return;
       }
+      if (u.pathname === "/search" || u.pathname.startsWith("/search/")) {
+        const q = u.searchParams.get("q")?.trim();
+        navigation.navigate("Search", q ? { q } : undefined);
+        return;
+      }
     }
   } catch {
     /* external fallback */

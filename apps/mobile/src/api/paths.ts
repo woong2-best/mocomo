@@ -23,6 +23,7 @@ export const MobileApi = {
   ads: "/api/mobile/ads",
   reels: "/api/mobile/reels",
   search: "/api/mobile/search",
+  searchPage: "/api/mobile/search/page",
   post: (id: string) => `/api/mobile/posts/${id}`,
   postView: (id: string) => `/api/mobile/posts/${id}/view`,
   postShareCard: (id: string) => `/api/mobile/posts/${id}/share-card`,
