@@ -1038,6 +1038,8 @@
   "legal.accountDeletion": "Delete account",
   "legal.policy": "Community policy",
   "aleph.footer": "MoCoMo Aleph",
+  "aleph.copy": "Copy",
+  "aleph.copied": "Copied",
   "market.unavailable": "Marketplace is available in Stripe-supported regions only. Community features remain available.",
   "market.stripeDisclaimer": "Stripe secure checkout · Free seller onboarding · 10% platform fee · Sellers are responsible for shipping.",
   "market.mediatorNotice": "MoCoMo is a technology mediator, not a carrier. Shipping, damage, and loss liability rest with the seller and the carrier.",

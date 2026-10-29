@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import {
-  ALEPH_TICKET_COMMAND,
-  ALEPH_TICKET_HEADING,
-  ALEPH_TITLE,
-} from "@/lib/aleph-ticket";
+import Image from "next/image";
+import { AlephTicketCopy } from "@/components/aleph/aleph-ticket-copy";
+import { ALEPH_TITLE } from "@/lib/aleph-ticket";
 
 export const metadata: Metadata = {
   title: ALEPH_TITLE,
@@ -12,13 +10,25 @@ export const metadata: Metadata = {
 
 export default function AlephTicketPage() {
   return (
-    <main className="fixed inset-0 z-[100] flex items-center justify-center bg-black px-6 text-white [font-family:var(--font-geist-sans),system-ui,sans-serif]">
-      <div className="max-w-3xl text-center">
-        <p className="text-3xl font-medium tracking-tight sm:text-4xl">{ALEPH_TITLE}</p>
-        <p className="mt-6 text-lg text-white/80">{ALEPH_TICKET_HEADING}</p>
-        <p className="mt-6 break-all font-mono text-sm text-white sm:text-base">
-          {ALEPH_TICKET_COMMAND}
-        </p>
+    <main className="fixed inset-0 z-[100] overflow-hidden bg-black text-white [font-family:var(--font-geist-sans),system-ui,sans-serif]">
+      <Image
+        src="/images/aleph-bg.jpg"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
+      />
+      <div className="absolute inset-0 bg-black/20" />
+      <div className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-6 py-16">
+        <h1 className="flex flex-wrap items-baseline justify-center gap-x-5 gap-y-2 text-center font-folk-display">
+          <span className="text-6xl font-semibold tracking-tight sm:text-8xl md:text-9xl">MoCoMo</span>
+          <span className="translate-y-[-0.15em] text-2xl font-light tracking-[0.4em] text-white/65 sm:text-3xl md:text-4xl">
+            X
+          </span>
+          <span className="text-6xl font-semibold tracking-tight sm:text-8xl md:text-9xl">Aleph</span>
+        </h1>
+        <AlephTicketCopy />
       </div>
     </main>
   );
