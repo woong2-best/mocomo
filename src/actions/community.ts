@@ -8,6 +8,7 @@ import { calcHotScore } from "@/lib/utils";
 import { MediaType, VoteType } from "@prisma/client";
 import { submitContentReport } from "@/actions/report";
 import { notifyPostComment, notifyPostVote } from "@/lib/notifications";
+import { mentionWriteFields, resolveContentMentions } from "@/lib/mentions";
 
 function createPostErrorMessage(code: string): string {
   switch (code) {
@@ -86,8 +87,10 @@ export async function createComment(postId: string, content: string, parentId?: 
     });
     parentCommentAuthorId = parent?.authorId;
   }
+  const mentions = await resolveContentMentions(content, user.id);
+  if ("error" in mentions) return { error: mentions.error };
   const comment = await db.comment.create({
-    data: { content, authorId: user.id, postId, parentId },
+    data: { content, ...mentionWriteFields(mentions), authorId: user.id, postId, parentId },
     include: { author: { select: { id: true, username: true, image: true } } },
   });
   if (post) {
@@ -98,6 +101,7 @@ export async function createComment(postId: string, content: string, parentId?: 
       actorId: user.id,
       parentCommentAuthorId,
       content,
+      mentionedUserIds: mentions.notifyUserIds,
     });
   }
   revalidatePath(`/post/${postId}`);

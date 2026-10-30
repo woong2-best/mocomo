@@ -5,19 +5,26 @@ import { auth } from "@/lib/auth";
 import { getContactSettings, saveContactSettings } from "@/lib/contact-audience";
 
 const audience = z.enum(["EVERYONE", "FOLLOWING_ONLY"]);
+const mentionAudience = z.enum(["EVERYONE", "FOLLOWING_ONLY", "NOBODY"]);
 
 const schema = z
   .object({
     messageRequestAudience: audience.optional(),
     callRequestAudience: audience.optional(),
+    mentionAudience: mentionAudience.optional(),
   })
-  .refine((value) => value.messageRequestAudience || value.callRequestAudience, {
-    message: "actions.s59uesp",
-  });
+  .refine(
+    (value) =>
+      value.messageRequestAudience || value.callRequestAudience || value.mentionAudience,
+    {
+      message: "actions.s59uesp",
+    }
+  );
 
 export async function updateContactAudience(data: {
   messageRequestAudience?: "EVERYONE" | "FOLLOWING_ONLY";
   callRequestAudience?: "EVERYONE" | "FOLLOWING_ONLY";
+  mentionAudience?: "EVERYONE" | "FOLLOWING_ONLY" | "NOBODY";
 }) {
   const parsed = schema.safeParse(data);
   if (!parsed.success) return { error: "actions.slqeo1f" as const };

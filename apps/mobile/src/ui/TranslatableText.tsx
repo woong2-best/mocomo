@@ -16,6 +16,7 @@ type Props = {
   onBackgroundPress?: () => void;
   /** Kept for callers; translation only runs after the reader taps. */
   translateActive?: boolean;
+  mentionStates?: unknown;
 };
 
 export function TranslatableText({
@@ -27,6 +28,7 @@ export function TranslatableText({
   lightLinks,
   onBackgroundPress,
   translateActive = true,
+  mentionStates,
 }: Props) {
   const { locale, t } = useI18n();
   const { colors } = useTheme();
@@ -57,6 +59,7 @@ export function TranslatableText({
         mentionStyle={mentionStyle}
         lightLinks={lightLinks}
         onBackgroundPress={onBackgroundPress}
+        mentionStates={mentionStates}
       />
     );
   }
@@ -96,6 +99,7 @@ export function TranslatableText({
         mentionStyle={mentionStyle}
         lightLinks={lightLinks}
         onBackgroundPress={onBackgroundPress}
+        mentionStates={mentionStates}
       />
     </View>
   );

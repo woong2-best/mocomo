@@ -25,6 +25,7 @@ function fromSerialized(c: SerializedComment): ListComment {
   return {
     id: c.id,
     content: c.content,
+    mentionStates: c.mentionStates,
     likeCount: c.likeCount,
     likedByMe: c.likedByMe,
     isPinned: c.isPinned,
@@ -35,6 +36,7 @@ function fromSerialized(c: SerializedComment): ListComment {
     replies: (c.replies ?? []).map((r) => ({
       id: r.id,
       content: r.content,
+      mentionStates: r.mentionStates,
       likeCount: r.likeCount,
       likedByMe: r.likedByMe,
       mediaType: r.mediaType,

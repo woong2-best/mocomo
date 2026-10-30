@@ -150,6 +150,7 @@ export const MobileApi = {
   supportTiers: "/api/mobile/support/tiers",
   walletMocoHistory: "/api/mobile/wallet/moco-history",
   contactSettings: "/api/mobile/me/contact-settings",
+  mentionSearch: "/api/mobile/users/mention-search",
   creatorDmMarketing: "/api/mobile/me/creator-dm-marketing",
   creatorDmMarketingBulk: "/api/mobile/me/creator-dm-marketing/bulk",
   starMarketCheckout: (id: string) => `/api/mobile/market/${id}/checkout`,

@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getProfileTabContentMeta, getProfileTabInitialPayload } from "@/actions/profile-page";
 import { ProfileTabContent } from "@/components/profile/profile-tab-content";
+import { resolveCurrentUsername } from "@/lib/username-lookup";
 
 export default async function UserProfilePage({
   params,
@@ -16,7 +17,13 @@ export default async function UserProfilePage({
     getProfileTabContentMeta(username),
     getProfileTabInitialPayload(username, sp.tab, sp.sort, sp.kind),
   ]);
-  if (!meta) notFound();
+  if (!meta) {
+    const current = await resolveCurrentUsername(username);
+    if (current && current.toLowerCase() !== username.toLowerCase()) {
+      redirect(`/u/${encodeURIComponent(current)}`);
+    }
+    notFound();
+  }
 
   return (
     <ProfileTabContent username={username} meta={meta} initialPayload={initialPayload} />

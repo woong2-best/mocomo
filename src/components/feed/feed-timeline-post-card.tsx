@@ -169,6 +169,7 @@ export function FeedTimelinePostCard({
               {hideQnaBody || !post.content ? null : (
                 <TranslatableText
                   text={post.content}
+                  mentionStates={(post as { mentionStates?: unknown }).mentionStates}
                   as="p"
                   stopPropagation
                   className="text-[15px] whitespace-pre-wrap break-words line-clamp-[8]"

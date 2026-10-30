@@ -19,6 +19,7 @@ import { clampMediaInt } from "@/lib/video-metadata";
 import { validateSaleMediaPricing } from "@/lib/money";
 import { assertAdultContentNotMonetized } from "@/lib/adult-monetization-ban";
 import { extractHashtagNames } from "@/lib/linkify";
+import { mentionWriteFields, resolveContentMentions } from "@/lib/mentions";
 import {
   extractHashtagNamesLoose,
   hasMeaningfulPostCaption,
@@ -211,11 +212,16 @@ export async function createPostForUser(
       data.contentRating ?? (data.isNsfw ? "ADULT" : "GENERAL");
     if (quotedIsNsfw) contentRating = "ADULT";
 
+    const mentionText = [data.title, content].filter(Boolean).join("\n");
+    const mentions = await resolveContentMentions(mentionText, user.id);
+    if ("error" in mentions) return { error: mentions.error };
+
     const post = await db.$transaction(async (tx) => {
       const created = await tx.post.create({
       data: {
         title: data.title?.trim() || null,
         content,
+        ...mentionWriteFields(mentions),
         authorId: user.id,
         communityId,
         animeId,
@@ -301,7 +307,13 @@ export async function createPostForUser(
     }
 
     if (!isCommunityScopedPost({ communityId })) {
-      void notifyNewPostMentions(post.id, user.id, data.title, content);
+      void notifyNewPostMentions(
+        post.id,
+        user.id,
+        data.title,
+        content,
+        mentions.notifyUserIds
+      );
       void db.feedRecommendation
         .deleteMany({ where: { userId: user.id } })
         .catch((e) => console.error("[createPost] feedRecommendation", e));

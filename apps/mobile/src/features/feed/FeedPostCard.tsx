@@ -475,6 +475,7 @@ function FeedPostCardInner({
       ) : post.content ? (
         <TranslatableText
           text={post.content}
+          mentionStates={post.mentionStates}
           style={styles.content}
           linkStyle={isQna ? qnaDetailLinkTextStyle : undefined}
           numberOfLines={expandBody ? undefined : 8}

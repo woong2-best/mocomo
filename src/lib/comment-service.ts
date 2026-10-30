@@ -50,6 +50,7 @@ export type SerializedReplyToUser = {
 export type SerializedReply = {
   id: string;
   content: string;
+  mentionStates?: unknown;
   createdAt: string;
   updatedAt: string;
   likeCount: number;
@@ -65,6 +66,7 @@ export type SerializedReply = {
 export type SerializedComment = {
   id: string;
   content: string;
+  mentionStates?: unknown;
   createdAt: string;
   updatedAt: string;
   likeCount: number;
@@ -109,6 +111,7 @@ function serializeAuthor(
 const commentSelectBase = {
   id: true,
   content: true,
+  mentionStates: true,
   createdAt: true,
   updatedAt: true,
   likeCount: true,
@@ -282,6 +285,7 @@ async function mapComments(
     return {
     id: c.id,
     content: c.content,
+    mentionStates: (c as { mentionStates?: unknown }).mentionStates ?? null,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
     likeCount: c.likeCount,
@@ -301,6 +305,7 @@ async function mapComments(
     replies: visibleReplies.map((r) => ({
       id: r.id,
       content: r.content,
+      mentionStates: (r as { mentionStates?: unknown }).mentionStates ?? null,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
       likeCount: r.likeCount,

@@ -20,6 +20,7 @@ const profileTimelinePostSelect = {
   id: true,
   title: true,
   content: true,
+  mentionStates: true,
   postType: true,
   createdAt: true,
   isNsfw: true,
@@ -68,9 +69,7 @@ export async function GET(
   }
 
   const viewerId = await getMobileUserId(req);
-  const user = await db.user.findFirst({
-    where: { username: { equals: username, mode: "insensitive" } },
-    select: {
+  const userSelect = {
       id: true,
       username: true,
       name: true,
@@ -85,11 +84,27 @@ export async function GET(
       profileMainPostId: true,
       profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true, snsLinks: true } },
       _count: { select: { posts: true, followers: true, following: true } },
-    },
+  } as const;
+  let user = await db.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+    select: userSelect,
   });
+  if (!user || user.deletedAt) {
+    const log = await db.usernameChangeLog.findFirst({
+      where: { oldUsername: { equals: username, mode: "insensitive" } },
+      orderBy: { createdAt: "desc" },
+      select: { userId: true },
+    });
+    if (log) {
+      user = await db.user.findFirst({
+        where: { id: log.userId, deletedAt: null },
+        select: userSelect,
+      });
+    }
+  }
 
   if (!user || user.deletedAt) {
-    return NextResponse.json({ error: "User not found." }, { status: 404 });
+    return NextResponse.json({ error: "This user doesn’t exist." }, { status: 404 });
   }
 
   let following = false;

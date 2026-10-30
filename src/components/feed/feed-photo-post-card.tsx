@@ -243,6 +243,7 @@ export function FeedPhotoPostCard({
             </Link>
             <TranslatableText
               text={captionPreview}
+              mentionStates={(post as { mentionStates?: unknown }).mentionStates}
               as="span"
               stopPropagation
               className="whitespace-pre-wrap break-words"

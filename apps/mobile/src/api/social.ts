@@ -73,6 +73,7 @@ export type CommentReplyToUser = {
 export type CommentItem = {
   id: string;
   content: string;
+  mentionStates?: unknown;
   createdAt: string;
   likeCount?: number;
   liked?: boolean;

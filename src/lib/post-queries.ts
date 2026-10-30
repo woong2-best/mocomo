@@ -34,6 +34,7 @@ const postDetailSelect = {
   id: true,
   title: true,
   content: true,
+  mentionStates: true,
   removedAt: true,
   createdAt: true,
   isPinned: true,

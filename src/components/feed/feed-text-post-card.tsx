@@ -163,6 +163,7 @@ export function FeedTextPostCard({
           >
             <TranslatableText
               text={post.content}
+              mentionStates={(post as { mentionStates?: unknown }).mentionStates}
               as="p"
               stopPropagation
               className="text-sm text-foreground/85 line-clamp-[8] whitespace-pre-wrap"

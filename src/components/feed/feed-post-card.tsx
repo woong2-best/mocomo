@@ -188,7 +188,12 @@ export function FeedPostCard({
               </Link>
             )}
             <div className="text-sm text-foreground/85 line-clamp-[8]">
-              <TranslatableText text={post.content} as="span" stopPropagation />
+              <TranslatableText
+                text={post.content}
+                mentionStates={(post as { mentionStates?: unknown }).mentionStates}
+                as="span"
+                stopPropagation
+              />
             </div>
           </div>
         )}

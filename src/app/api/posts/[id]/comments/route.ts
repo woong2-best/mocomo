@@ -14,6 +14,7 @@ import type { PostCommentSort } from "@/lib/post-queries";
 import { assertUserBlockInteractionAllowed } from "@/lib/user-block";
 import { parseCommentMediaInput, serializeCommentMedia } from "@/lib/comment-media";
 import { resolveCommentReplyTarget } from "@/lib/comment-reply-target";
+import { mentionWriteFields, resolveContentMentions } from "@/lib/mentions";
 
 function parseSort(raw: string | null, isQna: boolean): PostCommentSort {
   if (isQna) {
@@ -177,9 +178,15 @@ export async function POST(
       select: userPublicSelect,
     });
 
+    const mentions = await resolveContentMentions(content, user.id);
+    if ("error" in mentions) {
+      return NextResponse.json({ error: mentions.error }, { status: 400 });
+    }
+
     const comment = await db.comment.create({
       data: {
         content,
+        ...mentionWriteFields(mentions),
         authorId: user.id,
         postId,
         parentId,
@@ -211,6 +218,7 @@ export async function POST(
       actorId: user.id,
       parentCommentAuthorId,
       content: content || (media.mediaType === "GIF" ? "GIF" : "Photo"),
+      mentionedUserIds: mentions.notifyUserIds,
     });
 
     revalidatePath(`/post/${postId}`);

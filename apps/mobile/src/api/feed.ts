@@ -21,6 +21,7 @@ export type FeedPost = {
   id: string;
   title: string | null;
   content: string;
+  mentionStates?: unknown;
   postType: string;
   createdAt: string;
   isNsfw: boolean;

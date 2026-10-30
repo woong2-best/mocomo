@@ -93,6 +93,7 @@ export function PostCard({ post, paymentsEnabled = false }: PostCardProps) {
           )}
           <TranslatableText
             text={post.content}
+            mentionStates={(post as { mentionStates?: unknown }).mentionStates}
             as="p"
             stopPropagation
             className="text-sm text-foreground/90 line-clamp-[8] whitespace-pre-wrap"

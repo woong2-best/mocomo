@@ -59,6 +59,8 @@ import {
   remainingGeneralPostGraphemes,
 } from "@/lib/post-content-limit";
 import { hasMeaningfulPostCaption } from "@/lib/post-hashtags";
+import { MentionSuggestBar } from "@/features/compose/MentionSuggestBar";
+import { useMentionSuggest } from "@/features/compose/useMentionSuggest";
 
 type Props = {
   avatarUrl?: string | null;
@@ -153,6 +155,11 @@ export function InlineComposeBox({
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
 
   const [content, setContent] = useState("");
+  const [caret, setCaret] = useState(0);
+  const mention = useMentionSuggest(content, caret, (next, nextCaret) => {
+    setContent(next);
+    setCaret(nextCaret);
+  });
   const [media, setMedia] = useState<LocalMediaDraft[]>([]);
   const [poll, setPoll] = useState<PollDraft | null>(null);
   const [collaborators, setCollaborators] = useState<CollaboratorDraft[]>([]);
@@ -492,7 +499,11 @@ export function InlineComposeBox({
             placeholder="Dreaming of what?"
             placeholderTextColor={colors.textMuted}
             value={content}
-            onChangeText={setContent}
+            onChangeText={(text) => {
+              setContent(text);
+              setCaret(text.length);
+            }}
+            onSelectionChange={(e) => setCaret(e.nativeEvent.selection.end)}
             editable={!busy}
           />
         </Pressable>
@@ -565,6 +576,10 @@ export function InlineComposeBox({
             </Pressable>
           ))}
         </View>
+      ) : null}
+
+      {mention.open ? (
+        <MentionSuggestBar users={mention.users} onSelect={mention.insert} />
       ) : null}
 
       <View style={styles.toolbar}>

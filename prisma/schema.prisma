@@ -325,6 +325,8 @@ model User {
   messageRequestAudience ContactAudience @default(EVERYONE)
   /** 통화 허용. EVERYONE = On, FOLLOWING_ONLY = Off (내가 팔로우하는 사람만) */
   callRequestAudience    ContactAudience @default(EVERYONE)
+  /** @멘션 허용. NOBODY = 검색·알림 차단 */
+  mentionAudience        MentionAudience @default(EVERYONE)
   /** Stripe Connect Custom 계정 ID (stripe_account_id) */
   stripeConnectAccountId String?
   /** payouts_enabled && requirements clear 시각 (웹훅·return URL 동기화) */
@@ -756,6 +758,7 @@ model UsernameChangeLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([oldUsername])
 }
 
 /** 분쟁 대응 — 생년월일 최초 입력과 이후 변경. 이전 값 null 은 최초 입력 */
@@ -1265,6 +1268,10 @@ model Post {
   title       String?
   /** UTF-8 TEXT (Postgres). General posts: 350 grapheme clusters in create-post-core. QnA (`communityId` set) is uncapped. */
   content     String   @db.Text
+  /** Resolved mention user IDs (privacy-allowed only). Survives username changes. */
+  mentionedUserIds String[] @default([])
+  /** lowercase username → active | blocked | denied */
+  mentionStates    Json?
   authorId    String
   communityId String?
   animeId     String?
@@ -1428,6 +1435,8 @@ enum CommentMediaType {
 model Comment {
   id        String    @id @default(cuid())
   content   String    @db.Text
+  mentionedUserIds String[] @default([])
+  mentionStates    Json?
   authorId  String
   postId    String
   parentId  String?
@@ -2281,6 +2290,12 @@ model VoiceCall {
 enum ContactAudience {
   EVERYONE
   FOLLOWING_ONLY
+}
+
+enum MentionAudience {
+  EVERYONE
+  FOLLOWING_ONLY
+  NOBODY
 }
 
 enum CallBookingStatus {

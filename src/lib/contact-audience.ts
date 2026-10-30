@@ -1,4 +1,4 @@
-import type { ContactAudience } from "@prisma/client";
+import type { ContactAudience, MentionAudience } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   CALL_NOT_ALLOWED,
@@ -13,11 +13,13 @@ export type ContactAudienceValue = ContactAudience;
 export type ContactSettings = {
   messageRequestAudience: ContactAudience;
   callRequestAudience: ContactAudience;
+  mentionAudience: MentionAudience;
 };
 
 const DEFAULT_SETTINGS: ContactSettings = {
   messageRequestAudience: "EVERYONE",
   callRequestAudience: "EVERYONE",
+  mentionAudience: "EVERYONE",
 };
 
 export async function getContactSettings(userId: string): Promise<ContactSettings> {
@@ -26,12 +28,14 @@ export async function getContactSettings(userId: string): Promise<ContactSetting
     select: {
       messageRequestAudience: true,
       callRequestAudience: true,
+      mentionAudience: true,
     },
   });
   if (!user) return DEFAULT_SETTINGS;
   return {
     messageRequestAudience: user.messageRequestAudience,
     callRequestAudience: user.callRequestAudience,
+    mentionAudience: user.mentionAudience,
   };
 }
 
@@ -42,6 +46,7 @@ export async function saveContactSettings(
   const data: Partial<ContactSettings> = {};
   if (patch.messageRequestAudience) data.messageRequestAudience = patch.messageRequestAudience;
   if (patch.callRequestAudience) data.callRequestAudience = patch.callRequestAudience;
+  if (patch.mentionAudience) data.mentionAudience = patch.mentionAudience;
   if (Object.keys(data).length === 0) return getContactSettings(userId);
 
   const updated = await db.user.update({
@@ -50,6 +55,7 @@ export async function saveContactSettings(
     select: {
       messageRequestAudience: true,
       callRequestAudience: true,
+      mentionAudience: true,
     },
   });
   return updated;

@@ -218,6 +218,7 @@ export async function notifyPostComment(params: {
   actorId: string;
   parentCommentAuthorId?: string | null;
   content: string;
+  mentionedUserIds?: string[];
   /** 익명 게시물 댓글 알림만 작성자 숨김 (QnA 답글은 공개). */
   anonymous?: boolean;
 }) {
@@ -264,6 +265,7 @@ export async function notifyPostComment(params: {
       link,
       context: "Comment",
       excludeUserIds: parentCommentAuthorId ? [parentCommentAuthorId] : [],
+      mentionedUserIds: params.mentionedUserIds,
     });
   }
 }
@@ -322,16 +324,23 @@ export async function notifyMentionsInText(params: {
   link: string;
   context?: string;
   excludeUserIds?: string[];
+  mentionedUserIds?: string[];
 }) {
-  const usernames = extractMentionUsernames(params.text);
-  if (usernames.length === 0) return;
-
-  const users = await db.user.findMany({
-    where: {
-      username: { in: usernames, mode: "insensitive" },
-    },
-    select: { id: true, username: true },
-  });
+  const resolvedIds = params.mentionedUserIds?.filter(Boolean) ?? [];
+  let userIds = [...new Set(resolvedIds)];
+  if (userIds.length === 0) {
+    const usernames = extractMentionUsernames(params.text);
+    if (usernames.length === 0) return;
+    const users = await db.user.findMany({
+      where: {
+        username: { in: usernames, mode: "insensitive" },
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    userIds = users.map((u) => u.id);
+  }
+  if (userIds.length === 0) return;
 
   const actor = await getActor(params.actorId);
   const label = actorLabel(actor);
@@ -339,10 +348,10 @@ export async function notifyMentionsInText(params: {
   const ctx = params.context ?? "Post";
 
   const items: NotificationInput[] = [];
-  for (const u of users) {
-    if (exclude.has(u.id)) continue;
+  for (const userId of userIds) {
+    if (exclude.has(userId)) continue;
     items.push({
-      userId: u.id,
+      userId,
       actorId: params.actorId,
       type: "mention",
       title: "Mention",
@@ -451,7 +460,8 @@ export async function notifyNewPostMentions(
   postId: string,
   authorId: string,
   title: string | null | undefined,
-  content: string
+  content: string,
+  mentionedUserIds?: string[]
 ) {
   const text = [title, content].filter(Boolean).join("\n");
   await notifyMentionsInText({
@@ -460,6 +470,7 @@ export async function notifyNewPostMentions(
     link: `/post/${postId}`,
     context: "Post",
     excludeUserIds: [authorId],
+    mentionedUserIds,
   });
 }
 

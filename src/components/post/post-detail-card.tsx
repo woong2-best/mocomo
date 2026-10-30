@@ -103,7 +103,12 @@ export function PostDetailCard({
           </h1>
         )}
         {post.content ? (
-          <TranslatableText text={post.content} as="p" className="whitespace-pre-wrap" />
+          <TranslatableText
+            text={post.content}
+            mentionStates={(post as { mentionStates?: unknown }).mentionStates}
+            as="p"
+            className="whitespace-pre-wrap"
+          />
         ) : null}
         {quotedPostBlocked ? (
           <BlockedQuotedPostCard className="mt-3" />

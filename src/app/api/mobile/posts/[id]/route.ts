@@ -37,6 +37,7 @@ export async function GET(
       id: true,
       title: true,
       content: true,
+      mentionStates: true,
       postType: true,
       removedAt: true,
       createdAt: true,

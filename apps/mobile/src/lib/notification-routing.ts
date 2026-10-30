@@ -20,7 +20,7 @@ export function resolveNotificationPath(input: NotificationRouteInput): string |
 
 export type MobileNotificationRoute =
   | { name: "MessageRoom"; params: { roomId: string; title?: string } }
-  | { name: "PostDetail"; params: { id: string } }
+  | { name: "PostDetail"; params: { id: string; commentId?: string } }
   | { name: "UserProfile"; params: { username: string; name?: string | null; image?: string | null } }
   | { name: "LiveDetail"; params: { id: string } }
   | { name: "MarketplaceDetail"; params: { id: string } };
@@ -38,7 +38,8 @@ export function resolveMobileNotificationRoute(
 
   const postId = path.match(/\/post\/([^/?#]+)/)?.[1];
   if (postId) {
-    return { name: "PostDetail", params: { id: postId } };
+    const commentId = path.match(/#comment-([^/?#]+)/)?.[1];
+    return { name: "PostDetail", params: { id: postId, commentId } };
   }
 
   const username = path.match(/^\/u\/([^/?#]+)/)?.[1];

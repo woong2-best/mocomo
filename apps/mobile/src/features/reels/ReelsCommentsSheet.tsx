@@ -38,6 +38,8 @@ import { useUserProfileNav } from "@/features/profile/user-profile-nav";
 import { showIslandError } from "@/ui/IslandToast";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useKeyboardBottomInset } from "@/lib/use-keyboard-inset";
+import { MentionSuggestBar } from "@/features/compose/MentionSuggestBar";
+import { useMentionSuggest } from "@/features/compose/useMentionSuggest";
 import type { ReelsUi } from "@/features/reels/reels-ui";
 import {
   REELS_COMMENT_DURATION_MS,
@@ -99,6 +101,11 @@ export function ReelsCommentsSheet({
   const { open: openUserProfile } = useUserProfileNav();
   const queryClient = useQueryClient();
   const inputRef = useRef<TextInput>(null);
+  const [caret, setCaret] = useState(0);
+  const mention = useMentionSuggest(draft, caret, (next, nextCaret) => {
+    onDraftChange(next);
+    setCaret(nextCaret);
+  });
   const [replyTarget, setReplyTarget] = useState<CommentReplyTarget | null>(null);
   const [expandNonceById, setExpandNonceById] = useState<Record<string, number>>({});
   const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
@@ -368,6 +375,9 @@ export function ReelsCommentsSheet({
           </Pressable>
         </View>
       ) : null}
+      {mention.open ? (
+        <MentionSuggestBar users={mention.users} onSelect={mention.insert} />
+      ) : null}
       <View style={styles.commentInputRow}>
         <CommentAvatar uri={user?.image} name={meName} size={32} />
         <TextInput
@@ -376,7 +386,11 @@ export function ReelsCommentsSheet({
           placeholder={replyTarget ? t("m.feed.write_a_reply") : copy.commentPh}
           placeholderTextColor="rgba(255,255,255,0.45)"
           value={draft}
-          onChangeText={onDraftChange}
+          onChangeText={(text) => {
+            onDraftChange(text);
+            setCaret(text.length);
+          }}
+          onSelectionChange={(e) => setCaret(e.nativeEvent.selection.end)}
           onSubmitEditing={() => sendNow()}
           returnKeyType="send"
         />

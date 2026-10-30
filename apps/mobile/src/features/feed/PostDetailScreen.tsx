@@ -54,6 +54,8 @@ import { useTheme } from "@/theme/ThemeContext";
 import { radii, spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
 import { useI18n } from "@/i18n/I18nProvider";
+import { MentionSuggestBar } from "@/features/compose/MentionSuggestBar";
+import { useMentionSuggest } from "@/features/compose/useMentionSuggest";
 
 export function PostDetailScreen() {
   const { t } = useI18n();
@@ -67,9 +69,16 @@ export function PostDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "PostDetail">>();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [caret, setCaret] = useState(0);
+  const mention = useMentionSuggest(draft, caret, (next, nextCaret) => {
+    setDraft(next);
+    setCaret(nextCaret);
+  });
   const [replyTarget, setReplyTarget] = useState<CommentReplyTarget | null>(null);
   const [expandNonceById, setExpandNonceById] = useState<Record<string, number>>({});
   const inputRef = useRef<TextInput>(null);
+  const listRef = useRef<FlatList>(null);
+  const didFocusComment = useRef(false);
   const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -77,6 +86,7 @@ export function PostDetailScreen() {
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const postId = route.params.id;
+  const focusCommentId = route.params.commentId;
 
   const onPressVideo = useCallback(
     (id: string, mediaId?: string, mediaIndex?: number) => {
@@ -144,6 +154,16 @@ export function PostDetailScreen() {
   }, [buckets, isQnaPost, post?.acceptedCommentId, t]);
 
   const commentsEmpty = buckets.pinned.length + buckets.top.length + buckets.recent.length === 0;
+
+  useEffect(() => {
+    if (!focusCommentId || didFocusComment.current || commentRows.length === 0) return;
+    const index = commentRows.findIndex((row) => row.kind === "comment" && row.id === focusCommentId);
+    if (index < 0) return;
+    didFocusComment.current = true;
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.2 });
+    });
+  }, [commentRows, focusCommentId]);
   const canPinComments = !isQnaPost && !!user?.id && user.id === post?.author?.id;
 
   const commentMut = useMutation({
@@ -341,8 +361,18 @@ export function PostDetailScreen() {
           keyboardVerticalOffset={0}
         >
           <FlatList
+            ref={listRef}
             data={commentRows}
             keyExtractor={(item) => item.id}
+            onScrollToIndexFailed={(info) => {
+              setTimeout(() => {
+                listRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: true,
+                  viewPosition: 0.2,
+                });
+              }, 250);
+            }}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 24 }}
             ListHeaderComponent={
@@ -405,7 +435,7 @@ export function PostDetailScreen() {
                 !post.acceptedCommentId &&
                 !isOwn;
               return (
-                <View style={styles.comment}>
+                <View style={[styles.comment, item.id === focusCommentId && styles.commentFocus]}>
                   {selected ? (
                     <Text style={styles.selectedBanner}>{t("qna.selected_banner")}</Text>
                   ) : null}
@@ -473,7 +503,11 @@ export function PostDetailScreen() {
                     </View>
                   </View>
                   {item.content ? (
-                    <TranslatableText text={item.content} style={styles.commentBody} />
+                    <TranslatableText
+                      text={item.content}
+                      mentionStates={item.mentionStates}
+                      style={styles.commentBody}
+                    />
                   ) : null}
                   <CommentMediaBlock mediaType={item.mediaType} mediaUrl={item.mediaUrl} />
                   {user ? (
@@ -520,6 +554,9 @@ export function PostDetailScreen() {
                 </Pressable>
               </View>
             ) : null}
+            {mention.open ? (
+              <MentionSuggestBar users={mention.users} onSelect={mention.insert} />
+            ) : null}
             <View style={styles.composer}>
               <Pressable
                 style={styles.iconBtn}
@@ -547,7 +584,11 @@ export function PostDetailScreen() {
                 ref={inputRef}
                 style={styles.input}
                 value={draft}
-                onChangeText={setDraft}
+                onChangeText={(text) => {
+                  setDraft(text);
+                  setCaret(text.length);
+                }}
+                onSelectionChange={(e) => setCaret(e.nativeEvent.selection.end)}
                 placeholder={
                   replyTarget
                     ? t("m.feed.write_a_reply")
@@ -627,6 +668,11 @@ function createThemedStyles(colors: ThemeColors) {
       paddingVertical: spacing.sm,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.hairline,
+    },
+    commentFocus: {
+      backgroundColor: colors.surface,
+      borderRadius: radii.md,
+      paddingHorizontal: spacing.sm,
     },
     commentTopRow: {
       flexDirection: "row",

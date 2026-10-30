@@ -25,6 +25,7 @@ import { CommentMediaThumb } from "@/components/post/comment-media-view";
 export type PostCommentRowData = {
   id: string;
   content: string;
+  mentionStates?: unknown;
   likeCount: number;
   likedByMe: boolean;
   mediaType?: "NONE" | "PHOTO" | "GIF" | null;
@@ -178,6 +179,7 @@ export function PostCommentRow({
         {comment.content ? (
           <TranslatableText
             text={comment.content}
+            mentionStates={comment.mentionStates}
             as="p"
             className="text-sm mt-1 whitespace-pre-wrap"
           />

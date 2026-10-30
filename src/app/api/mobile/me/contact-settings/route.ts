@@ -5,15 +5,21 @@ import { rateLimitPublicApi } from "@/lib/api-security";
 import { getContactSettings, saveContactSettings } from "@/lib/contact-audience";
 
 const audience = z.enum(["EVERYONE", "FOLLOWING_ONLY"]);
+const mentionAudience = z.enum(["EVERYONE", "FOLLOWING_ONLY", "NOBODY"]);
 
 const bodySchema = z
   .object({
     messageRequestAudience: audience.optional(),
     callRequestAudience: audience.optional(),
+    mentionAudience: mentionAudience.optional(),
   })
-  .refine((value) => value.messageRequestAudience || value.callRequestAudience, {
-    message: "Not found.",
-  });
+  .refine(
+    (value) =>
+      value.messageRequestAudience || value.callRequestAudience || value.mentionAudience,
+    {
+      message: "Not found.",
+    }
+  );
 
 /** GET/PUT /api/mobile/me/contact-settings */
 export async function GET(req: NextRequest) {

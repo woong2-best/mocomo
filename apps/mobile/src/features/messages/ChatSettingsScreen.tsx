@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { ContactAudienceSettingsCard } from "@/features/settings/ContactAudienceSettingsCard";
+import { MentionAudienceSettingsCard } from "@/features/settings/MentionAudienceSettingsCard";
 import { useI18n } from "@/i18n/I18nProvider";
 import { AppHeader } from "@/ui/AppHeader";
 import { Screen } from "@/ui/Screen";
@@ -17,12 +18,14 @@ export function ChatSettingsScreen() {
   return (
     <Screen safeTop={false}>
       <AppHeader
+        safe
         title={t("m.messages.chat_settings")}
         leftLabel={t("common.back")}
         onLeftPress={() => navigation.goBack()}
       />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <ContactAudienceSettingsCard />
+        <MentionAudienceSettingsCard />
       </ScrollView>
     </Screen>
   );

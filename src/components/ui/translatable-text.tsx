@@ -22,6 +22,7 @@ export function TranslatableText({
   as = "span",
   stopPropagation = false,
   showLinkPreview = true,
+  mentionStates,
 }: {
   text: string;
   className?: string;
@@ -30,6 +31,7 @@ export function TranslatableText({
   stopPropagation?: boolean;
   /** 본문 첫 URL의 OG/유튜브 카드 (기본 on) */
   showLinkPreview?: boolean;
+  mentionStates?: unknown;
 }) {
   const { t } = useLocale();
   const { preference } = usePostTranslate();
@@ -74,6 +76,7 @@ export function TranslatableText({
         className={cn(className, showingTranslation && "text-foreground")}
         linkClassName={linkClassName}
         stopPropagation={stopPropagation}
+        mentionStates={mentionStates}
       />
     </div>
   );
@@ -95,6 +98,7 @@ export function TranslatableText({
         className={className}
         linkClassName={linkClassName}
         stopPropagation={stopPropagation}
+        mentionStates={mentionStates}
       />
     );
   }

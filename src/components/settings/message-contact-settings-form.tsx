@@ -11,10 +11,12 @@ import { updateContactAudience } from "@/actions/contact-audience";
 import { cn } from "@/lib/utils";
 
 type Audience = "EVERYONE" | "FOLLOWING_ONLY";
+type MentionAudience = "EVERYONE" | "FOLLOWING_ONLY" | "NOBODY";
 
 type Settings = {
   messageRequestAudience: Audience;
   callRequestAudience: Audience;
+  mentionAudience: MentionAudience;
 };
 
 function Choice({
@@ -52,8 +54,11 @@ function Choice({
 
 export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
   const router = useRouter();
-  const [settings, setSettings] = useState(initial);
-  const [loading, setLoading] = useState<"message" | "call" | null>(null);
+  const [settings, setSettings] = useState({
+    ...initial,
+    mentionAudience: initial.mentionAudience ?? "EVERYONE",
+  });
+  const [loading, setLoading] = useState<"message" | "call" | "mention" | null>(null);
   const [error, setError] = useState("");
 
   async function selectMessage(next: Audience) {
@@ -61,6 +66,20 @@ export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
     setLoading("message");
     setError("");
     const result = await updateContactAudience({ messageRequestAudience: next });
+    setLoading(null);
+    if ("error" in result && result.error) {
+      setError(errorText(result.error));
+      return;
+    }
+    if ("settings" in result && result.settings) setSettings(result.settings);
+    router.refresh();
+  }
+
+  async function selectMention(next: MentionAudience) {
+    if (next === settings.mentionAudience || loading) return;
+    setLoading("mention");
+    setError("");
+    const result = await updateContactAudience({ mentionAudience: next });
     setLoading(null);
     if ("error" in result && result.error) {
       setError(errorText(result.error));
@@ -127,6 +146,34 @@ export function MessageContactSettingsForm({ initial }: { initial: Settings }) {
           description={t("settings.s1kcv2qa")}
           disabled={loading !== null}
           onSelect={() => void selectCall("FOLLOWING_ONLY")}
+        />
+      </section>
+
+      <section className="space-y-3" role="radiogroup" aria-label="Who can mention you">
+        <div>
+          <h2 className="font-semibold">{t("settings.whoCanMentionYou")}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t("settings.whoCanMentionYouDesc")}</p>
+        </div>
+        <Choice
+          selected={settings.mentionAudience === "EVERYONE"}
+          title={t("settings.everyone")}
+          description={t("settings.mentionEveryoneDesc")}
+          disabled={loading !== null}
+          onSelect={() => void selectMention("EVERYONE")}
+        />
+        <Choice
+          selected={settings.mentionAudience === "FOLLOWING_ONLY"}
+          title={t("settings.mentionFollowing")}
+          description={t("settings.mentionFollowingDesc")}
+          disabled={loading !== null}
+          onSelect={() => void selectMention("FOLLOWING_ONLY")}
+        />
+        <Choice
+          selected={settings.mentionAudience === "NOBODY"}
+          title={t("settings.mentionNobody")}
+          description={t("settings.mentionNobodyDesc")}
+          disabled={loading !== null}
+          onSelect={() => void selectMention("NOBODY")}
         />
       </section>
 

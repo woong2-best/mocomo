@@ -9,17 +9,13 @@ import {
   type KeyboardEvent,
   type TextareaHTMLAttributes,
 } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { userDisplayName } from "@/lib/user-public-select";
+import {
+  MentionSuggestList,
+  type MentionSuggestUser,
+} from "@/components/compose/mention-suggest-list";
+import { getMentionContext, insertMentionToken } from "@/lib/mention-utils";
 import { parseLinkifyParts } from "@/lib/linkify";
 import { cn } from "@/lib/utils";
-
-type MentionUser = {
-  id: string;
-  username: string;
-  name: string | null;
-  image: string | null;
-};
 
 type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange"> & {
   value: string;
@@ -28,17 +24,6 @@ type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChan
 };
 
 const tokenClass = "text-folk-cobalt font-semibold";
-
-function getMentionContext(
-  text: string,
-  cursor: number
-): { query: string; start: number } | null {
-  const before = text.slice(0, cursor);
-  const match = before.match(/(?:^|\s)@([a-zA-Z0-9_]*)$/);
-  if (!match) return null;
-  const query = match[1] ?? "";
-  return { query, start: cursor - query.length - 1 };
-}
 
 export function ComposeRichTextarea({
   value,
@@ -52,7 +37,7 @@ export function ComposeRichTextarea({
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
-  const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([]);
+  const [mentionUsers, setMentionUsers] = useState<MentionSuggestUser[]>([]);
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionStart, setMentionStart] = useState(0);
   const [mentionQuery, setMentionQuery] = useState("");
@@ -98,17 +83,13 @@ export function ComposeRichTextarea({
     (username: string) => {
       const ta = textareaRef.current;
       const cursor = ta?.selectionStart ?? value.length;
-      const before = value.slice(0, mentionStart);
-      const after = value.slice(cursor);
-      const spacer = after.startsWith(" ") || after.length === 0 ? "" : " ";
-      const next = `${before}@${username}${spacer}${after}`;
+      const { next, caret } = insertMentionToken(value, mentionStart, cursor, username);
       onChange(next);
       setMentionOpen(false);
       requestAnimationFrame(() => {
         if (!ta) return;
-        const pos = mentionStart + username.length + 2 + spacer.length;
         ta.focus();
-        ta.setSelectionRange(pos, pos);
+        ta.setSelectionRange(caret, caret);
       });
     },
     [mentionStart, onChange, value]
@@ -124,11 +105,11 @@ export function ComposeRichTextarea({
       void (async () => {
         try {
           const res = await fetch(
-            `/api/users/collab-search?q=${encodeURIComponent(mentionQuery)}`,
+            `/api/users/mention-search?q=${encodeURIComponent(mentionQuery)}`,
             { credentials: "include" }
           );
           if (!res.ok || cancelled) return;
-          const data = (await res.json()) as { users?: MentionUser[] };
+          const data = (await res.json()) as { users?: MentionSuggestUser[] };
           if (!cancelled) {
             setMentionUsers(Array.isArray(data.users) ? data.users : []);
           }
@@ -250,39 +231,11 @@ export function ComposeRichTextarea({
       </div>
 
       {mentionOpen && mentionUsers.length > 0 ? (
-        <ul
-          role="listbox"
-          className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-popover py-1 shadow-lg"
-        >
-          {mentionUsers.map((user, index) => (
-            <li key={user.id} role="option" aria-selected={index === activeIndex}>
-              <button
-                type="button"
-                className={cn(
-                  "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/70",
-                  index === activeIndex && "bg-muted/70"
-                )}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => insertMention(user.username)}
-              >
-                <Avatar className="h-7 w-7 shrink-0">
-                  <AvatarImage src={user.image ?? undefined} alt="" />
-                  <AvatarFallback className="text-xs">
-                    {user.username.slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">
-                    {userDisplayName(user)}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    @{user.username}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <MentionSuggestList
+          users={mentionUsers}
+          activeIndex={activeIndex}
+          onSelect={insertMention}
+        />
       ) : null}
     </div>
   );

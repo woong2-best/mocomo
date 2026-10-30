@@ -134,6 +134,7 @@ export function CommentThreadExtras({
                   {reply.content ? (
                     <TranslatableText
                       text={reply.content}
+                      mentionStates={reply.mentionStates}
                       style={[styles.replyBody, light && styles.replyBodyLight]}
                       lightLinks={light}
                     />

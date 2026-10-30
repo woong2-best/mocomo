@@ -17,6 +17,11 @@ import { isGalleryImageFile, normalizeGalleryImageFile } from "@/lib/gallery-ima
 import { CommentAttachPreview } from "@/components/post/comment-media-view";
 import { CommentCircleAvatar, commentDisplayName } from "@/components/post/comment-circle-avatar";
 import { GiphyGifPicker } from "@/components/post/tenor-gif-picker";
+import {
+  MentionSuggestList,
+  type MentionSuggestUser,
+} from "@/components/compose/mention-suggest-list";
+import { getMentionContext, insertMentionToken } from "@/lib/mention-utils";
 
 type Attach = { mediaType: "PHOTO" | "GIF"; mediaUrl: string; previewUrl: string };
 
@@ -53,6 +58,11 @@ export function CommentForm({
 }) {
   const { t } = useLocale();
   const [content, setContent] = useState("");
+  const [mentionUsers, setMentionUsers] = useState<MentionSuggestUser[]>([]);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionStart, setMentionStart] = useState(0);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const [attach, setAttach] = useState<Attach | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
   const [error, setError] = useState("");
@@ -66,6 +76,57 @@ export function CommentForm({
   const session = useSession();
   const user = session?.data?.user;
   const canSubmit = Boolean((content.trim() || attach) && user && !submitting && !uploading);
+
+  function updateMentionContext(text: string, cursor: number) {
+    const ctx = getMentionContext(text, cursor);
+    if (ctx) {
+      setMentionStart(ctx.start);
+      setMentionQuery(ctx.query);
+      setMentionOpen(true);
+      setActiveIndex(0);
+      return;
+    }
+    setMentionOpen(false);
+  }
+
+  useEffect(() => {
+    if (!mentionOpen) {
+      setMentionUsers([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(
+            `/api/users/mention-search?q=${encodeURIComponent(mentionQuery)}`,
+            { credentials: "include" }
+          );
+          if (!res.ok || cancelled) return;
+          const data = (await res.json()) as { users?: MentionSuggestUser[] };
+          if (!cancelled) setMentionUsers(Array.isArray(data.users) ? data.users : []);
+        } catch {
+          if (!cancelled) setMentionUsers([]);
+        }
+      })();
+    }, 220);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [mentionOpen, mentionQuery]);
+
+  function insertMention(username: string) {
+    const el = fieldRef.current;
+    const cursor = el?.selectionStart ?? content.length;
+    const { next, caret } = insertMentionToken(content, mentionStart, cursor, username);
+    setContent(next);
+    setMentionOpen(false);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(caret, caret);
+    });
+  }
 
   useEffect(() => {
     if (!replyToUsername) return;
@@ -180,6 +241,29 @@ export function CommentForm({
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionOpen && mentionUsers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIndex((i) => (i + 1) % mentionUsers.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIndex((i) => (i - 1 + mentionUsers.length) % mentionUsers.length);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        const user = mentionUsers[activeIndex];
+        if (user) insertMention(user.username);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMentionOpen(false);
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void submit();
@@ -266,21 +350,46 @@ export function CommentForm({
             </button>
           </div>
         ) : null}
-        <textarea
-          ref={fieldRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onKeyDown={onKeyDown}
-          rows={1}
-          autoFocus={autoFocus}
-          placeholder={
-            placeholder ?? (parentId ? t("ui.write_a_reply") : t("post.writeComment"))
-          }
-          className={cn(
-            "max-h-28 min-h-10 flex-1 resize-none rounded-full border border-border bg-background/50 px-4 py-2.5 text-sm leading-snug focus:outline-none focus:ring-2 focus:ring-primary/40",
-            inputClassName,
-          )}
-        />
+        <div className="relative min-w-0 flex-1">
+          {mentionOpen && mentionUsers.length > 0 ? (
+            <MentionSuggestList
+              users={mentionUsers}
+              activeIndex={activeIndex}
+              onSelect={insertMention}
+              variant="inline"
+            />
+          ) : null}
+          <textarea
+            ref={fieldRef}
+            value={content}
+            onChange={(e) => {
+              setContent(e.target.value);
+              updateMentionContext(e.target.value, e.target.selectionStart ?? e.target.value.length);
+            }}
+            onKeyUp={(e) =>
+              updateMentionContext(
+                e.currentTarget.value,
+                e.currentTarget.selectionStart ?? e.currentTarget.value.length
+              )
+            }
+            onClick={(e) =>
+              updateMentionContext(
+                e.currentTarget.value,
+                e.currentTarget.selectionStart ?? e.currentTarget.value.length
+              )
+            }
+            onKeyDown={onKeyDown}
+            rows={1}
+            autoFocus={autoFocus}
+            placeholder={
+              placeholder ?? (parentId ? t("ui.write_a_reply") : t("post.writeComment"))
+            }
+            className={cn(
+              "max-h-28 min-h-10 w-full resize-none rounded-full border border-border bg-background/50 px-4 py-2.5 text-sm leading-snug focus:outline-none focus:ring-2 focus:ring-primary/40",
+              inputClassName,
+            )}
+          />
+        </div>
         {variant === "reels" ? (
           <>
             <input
