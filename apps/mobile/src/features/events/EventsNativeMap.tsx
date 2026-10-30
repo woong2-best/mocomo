@@ -16,6 +16,11 @@ import {
   viewForPile,
 } from "@/maps/pin-clump";
 import { globeCenterForCountry } from "@/navigation/DrawerMapLibreGlobe";
+import {
+  PINK_MAP_PIN_IMAGE_ID,
+  PINK_MAP_PIN_ICON_SIZE,
+  PINK_MAP_PIN_ICON_SIZE_SELECTED,
+} from "@/maps/pink-map-pin";
 
 type ViewConfig = { lat: number; lng: number; zoom: number };
 
@@ -183,6 +188,7 @@ export function EventsNativeMap({
         Map: ComponentType<Record<string, unknown>>;
         Camera: ComponentType<Record<string, unknown>>;
         GeoJSONSource: ComponentType<Record<string, unknown>>;
+        Images: ComponentType<Record<string, unknown>>;
         Layer: ComponentType<Record<string, unknown>>;
       };
     } catch {
@@ -207,11 +213,11 @@ export function EventsNativeMap({
     [usablePins, selectedId]
   );
 
-  if (!MLRN?.Map) {
+  if (!MLRN?.Map || !MLRN.Images) {
     return <MapFallback style={style} />;
   }
 
-  const { Map, Camera, GeoJSONSource, Layer } = MLRN;
+  const { Map, Camera, GeoJSONSource, Images, Layer } = MLRN;
 
   return (
     <View style={[styles.wrap, style]}>
@@ -258,6 +264,11 @@ export function EventsNativeMap({
           duration={focused ? 700 : explore ? 500 : 350}
           easing={focused ? "fly" : "ease"}
         />
+        <Images
+          images={{
+            [PINK_MAP_PIN_IMAGE_ID]: require("../../../assets/maps/pink-map-pin.png"),
+          }}
+        />
         <GeoJSONSource
           id="event-pins"
           data={geojson}
@@ -286,14 +297,21 @@ export function EventsNativeMap({
           }
         >
           <Layer
-            id="event-pins-circle"
-            type="circle"
-            paint={{
-              "circle-radius": ["case", ["==", ["get", "selected"], 1], 8, 7],
-              "circle-color": ["get", "color"],
-              "circle-stroke-width": 0,
-              "circle-pitch-alignment": "viewport",
-              "circle-pitch-scale": "viewport",
+            id="event-pins-symbol"
+            type="symbol"
+            layout={{
+              "icon-image": PINK_MAP_PIN_IMAGE_ID,
+              "icon-size": [
+                "case",
+                ["==", ["get", "selected"], 1],
+                PINK_MAP_PIN_ICON_SIZE_SELECTED,
+                PINK_MAP_PIN_ICON_SIZE,
+              ],
+              "icon-anchor": "bottom",
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+              "icon-pitch-alignment": "viewport",
+              "icon-rotation-alignment": "viewport",
             }}
           />
         </GeoJSONSource>

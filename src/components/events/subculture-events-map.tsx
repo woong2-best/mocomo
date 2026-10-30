@@ -29,6 +29,11 @@ import {
   ESRI_WORLD_IMAGERY_TILES,
   MAPLIBRE_GLYPHS_URL,
 } from "@/lib/maps/esri-satellite";
+import {
+  PINK_MAP_PIN_IMAGE_ID,
+  PINK_MAP_PIN_PUBLIC_URL,
+  pinkMapPinSymbolLayout,
+} from "@/lib/maps/pink-map-pin";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -311,39 +316,45 @@ export function SubcultureEventsMap({
       map.on("moveend", emitZoom);
 
       map.once("load", () => {
-        // Globe after full style+worker init (style.load alone can race worker setup)
-        try {
-          map.setProjection({ type: "globe" });
-        } catch {
-          /* mercator fallback */
-        }
-        if (!map.getSource("event-pins")) {
-          map.addSource("event-pins", {
-            type: "geojson",
-            data: pinsToGeoJSON(pins, pinHalo),
-          });
-          map.addLayer({
-            id: "event-pins-dot",
-            type: "circle",
-            source: "event-pins",
-            paint: {
-              "circle-radius": pinHalo ? 8 : 7,
-              "circle-color": ["get", "color"],
-              "circle-stroke-width": 0,
-              "circle-pitch-alignment": "viewport",
-              "circle-pitch-scale": "viewport",
-            },
-          });
-        }
-        resize();
-        if (respectDefaultView && defaultView) {
-          map.setCenter([defaultView.lng, defaultView.lat]);
-          map.setZoom(defaultView.zoom);
-        } else {
-          fitMapToPins(map, pins, defaultView);
-        }
-        emitZoom();
-        setReady(true);
+        void (async () => {
+          // Globe after full style+worker init (style.load alone can race worker setup)
+          try {
+            map.setProjection({ type: "globe" });
+          } catch {
+            /* mercator fallback */
+          }
+          if (!map.hasImage(PINK_MAP_PIN_IMAGE_ID)) {
+            try {
+              const loaded = await map.loadImage(PINK_MAP_PIN_PUBLIC_URL);
+              if (!map.hasImage(PINK_MAP_PIN_IMAGE_ID)) {
+                map.addImage(PINK_MAP_PIN_IMAGE_ID, loaded.data);
+              }
+            } catch (err) {
+              console.error("[subculture-events-map] pin image", err);
+            }
+          }
+          if (!map.getSource("event-pins")) {
+            map.addSource("event-pins", {
+              type: "geojson",
+              data: pinsToGeoJSON(pins, pinHalo),
+            });
+            map.addLayer({
+              id: "event-pins-dot",
+              type: "symbol",
+              source: "event-pins",
+              layout: pinkMapPinSymbolLayout(pinHalo),
+            });
+          }
+          resize();
+          if (respectDefaultView && defaultView) {
+            map.setCenter([defaultView.lng, defaultView.lat]);
+            map.setZoom(defaultView.zoom);
+          } else {
+            fitMapToPins(map, pins, defaultView);
+          }
+          emitZoom();
+          if (!cancelled) setReady(true);
+        })();
       });
       map.once("error", (event) => {
         console.error("[subculture-events-map]", event.error ?? event);
@@ -383,7 +394,7 @@ export function SubcultureEventsMap({
           closeButton: false,
           maxWidth: "240px",
           className: "subculture-map-popup",
-          offset: 12,
+          offset: 22,
         })
           .setLngLat([pin.lng, pin.lat])
           .setHTML(buildPinPopupHtml(pin))

@@ -8,6 +8,8 @@ import { eventPinColor } from "@/features/events/event-map-colors";
 import type { Locale } from "@/i18n";
 import { translate } from "@/i18n/runtime";
 import { MAPLIBRE_GLYPHS_URL } from "@/maps/map-styles";
+import { PINK_MAP_PIN_DATA_URI } from "@/maps/pink-map-pin-data";
+import { PINK_MAP_PIN_IMAGE_ID, PINK_MAP_PIN_SYMBOL_LAYOUT } from "@/maps/pink-map-pin";
 
 const MAPLIBRE_VERSION = "6.1.0";
 
@@ -397,7 +399,7 @@ if (!maplibregl) {
       + '<div class="popup-links"><a href="#" data-url="' + esc(googleSearch(pin)) + '">' + esc(UI.googleSearch) + "</a>"
       + '<a href="#" data-url="' + esc(place.url) + '">' + esc(place.label) + "</a></div></div>";
     if (popup) popup.remove();
-    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 14 })
+    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 22 })
       .setLngLat([pin.lng, pin.lat])
       .setHTML(html)
       .addTo(map);
@@ -452,10 +454,6 @@ if (!maplibregl) {
     map.resize();
   };
   const PIN_BUFFER = 28;
-  const circlePitch = {
-    "circle-pitch-alignment": "viewport",
-    "circle-pitch-scale": "viewport"
-  };
   const projectPin = (pin) => {
     try { return map.project([pin.lng, pin.lat]); } catch (e) { return null; }
   };
@@ -546,21 +544,23 @@ if (!maplibregl) {
     showPin(pin);
     return true;
   };
-  map.on("load", () => {
+  map.on("load", async () => {
     frame();
     map.addSource("event-pins", {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] }
     });
+    try {
+      const loaded = await map.loadImage(${JSON.stringify(PINK_MAP_PIN_DATA_URI)});
+      if (!map.hasImage(${JSON.stringify(PINK_MAP_PIN_IMAGE_ID)})) {
+        map.addImage(${JSON.stringify(PINK_MAP_PIN_IMAGE_ID)}, loaded.data);
+      }
+    } catch (e) {}
     map.addLayer({
       id: "event-pins-dot",
-      type: "circle",
+      type: "symbol",
       source: "event-pins",
-      paint: Object.assign({
-        "circle-radius": 7,
-        "circle-color": ["get", "color"],
-        "circle-stroke-width": 0
-      }, circlePitch)
+      layout: ${JSON.stringify(PINK_MAP_PIN_SYMBOL_LAYOUT)}
     });
     visibleKey = "";
     publishVisible();
