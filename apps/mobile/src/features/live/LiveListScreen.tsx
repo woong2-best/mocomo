@@ -170,7 +170,7 @@ export function LiveListScreen() {
             style={styles.backHit}
             accessibilityLabel={copy.back}
           >
-            <Ionicons name="chevron-back" size={26} color={featured ? "#FFFFFF" : colors.text} />
+            <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
           </Pressable>
           <LiveGlassSearch value={searchQ} onChangeText={setSearchQ} expandedWidth={searchWidth} />
         </View>
@@ -193,7 +193,7 @@ export function LiveListScreen() {
               <View
                 style={{
                   paddingTop: featured ? 0 : insets.top + 48,
-                  backgroundColor: featured ? "#000" : colors.background,
+                  backgroundColor: "#000",
                 }}
               >
                 {showAiHero ? (
@@ -212,10 +212,10 @@ export function LiveListScreen() {
                 <LiveSlantTabs active={category} onSelect={selectCategory} />
               </View>
             }
-            style={{ backgroundColor: colors.background }}
+            style={{ backgroundColor: "#000" }}
             contentContainerStyle={{
               paddingBottom: insets.bottom + 28,
-              backgroundColor: colors.background,
+              backgroundColor: "#000",
             }}
             onEndReachedThreshold={0.5}
             onEndReached={() => {
@@ -229,6 +229,8 @@ export function LiveListScreen() {
                 <ActivityIndicator style={{ marginTop: 48 }} color={colors.terracotta} />
               ) : searchNorm && !hero && !showAiHero ? (
                 <Text style={styles.empty}>{copy.noSearchResults}</Text>
+              ) : !waitingFirst && !searchNorm && !hero && !showAiHero ? (
+                <Text style={styles.empty}>{copy.noLiveCurrently}</Text>
               ) : null
             }
             ListFooterComponent={
@@ -274,8 +276,8 @@ export function LiveListScreen() {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: colors.background },
-    fill: { flex: 1 },
+    root: { flex: 1, backgroundColor: "#000" },
+    fill: { flex: 1, backgroundColor: "#000" },
     chrome: {
       position: "absolute",
       top: 0,
@@ -297,9 +299,10 @@ function createStyles(colors: ThemeColors) {
     center: { padding: spacing.lg, alignItems: "center" },
     error: { color: colors.danger, fontWeight: "600", marginBottom: 12 },
     empty: {
-      color: colors.textMuted,
+      color: "#9A9A9A",
       textAlign: "center",
-      marginTop: 36,
+      marginTop: 28,
+      paddingHorizontal: 24,
       fontSize: 14,
       fontWeight: "600",
     },

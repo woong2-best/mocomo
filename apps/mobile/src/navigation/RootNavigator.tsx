@@ -202,6 +202,7 @@ export function RootNavigator() {
             <Stack.Screen
               name="LiveList"
               getComponent={() => require("@/features/live/LiveListScreen").LiveListScreen}
+              options={{ contentStyle: { backgroundColor: "#000" } }}
             />
             <Stack.Screen
               name="MocoLive"

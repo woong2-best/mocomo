@@ -10,6 +10,7 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "m.nav.following_v",
   "m.nav.followers_v",
   "m.common.live",
+  "m.live.no_live_currently_in_progress",
   "m.live.studio.tag",
   "nav.market",
   "nav.live",

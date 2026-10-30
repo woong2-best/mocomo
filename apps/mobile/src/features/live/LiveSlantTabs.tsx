@@ -4,10 +4,11 @@ import Svg, { Polygon } from "react-native-svg";
 import { MOBILE_LIVE_CATEGORIES, type MobileLiveCategoryId } from "@/features/live/live-categories";
 
 const BAR_H = 46;
-const GLOW_PAD = 8;
 const SLANT = (22 * Math.PI) / 180;
 const SHIFT = BAR_H * Math.tan(SLANT);
 const FONT = 13;
+const STROKE = 1.2;
+const STROKE_ON = 2;
 
 const TABS = MOBILE_LIVE_CATEGORIES.map((tab) => ({ id: tab.id, label: tab.tab }));
 
@@ -46,11 +47,14 @@ function buildSlots(screenW: number): { slots: Slot[]; contentW: number } {
     const left = x;
     const right = left + topW;
     x = right;
-    const bottomLeft = index === 0 ? 0 : left - shift;
-    const bottomRight = index === last ? contentW : right - shift;
-    const top = GLOW_PAD;
-    const bottom = GLOW_PAD + BAR_H;
-    const points = `${left},${top} ${right},${top} ${bottomRight},${bottom} ${bottomLeft},${bottom}`;
+    const inset = STROKE_ON / 2;
+    const topLeft = index === 0 ? inset : left;
+    const topRight = index === last ? contentW - inset : right;
+    const bottomLeft = index === 0 ? inset : left - shift;
+    const bottomRight = index === last ? contentW - inset : right - shift;
+    const top = inset;
+    const bottom = BAR_H - inset;
+    const points = `${topLeft},${top} ${topRight},${top} ${bottomRight},${bottom} ${bottomLeft},${bottom}`;
     const labelShift = index === 0 || index === last ? -shift / 4 : -shift / 2;
     return { id: tab.id, label: tab.label, points, left, topW, labelShift };
   });
@@ -77,22 +81,8 @@ export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect }: P
       style={styles.bar}
       contentContainerStyle={{ width: contentW }}
     >
-      <View style={{ width: contentW, height: BAR_H + GLOW_PAD * 2 }}>
-        <Svg width={contentW} height={BAR_H + GLOW_PAD * 2} pointerEvents="none">
-          {slots
-            .filter((slot) => slot.id === active)
-            .map((slot) => (
-              <Polygon
-                key={`${slot.id}-glow`}
-                points={slot.points}
-                fill="#1a6aff"
-                fillOpacity={0.28}
-                stroke="#1a6aff"
-                strokeWidth={10}
-                strokeOpacity={0.95}
-                strokeLinejoin="round"
-              />
-            ))}
+      <View style={{ width: contentW, height: BAR_H, overflow: "hidden" }}>
+        <Svg width={contentW} height={BAR_H} pointerEvents="none">
           {ordered.map((slot) => {
             const on = slot.id === active;
             return (
@@ -101,7 +91,7 @@ export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect }: P
                 points={slot.points}
                 fill={on ? "#000000" : "#0a0a0a"}
                 stroke={on ? "#4da3ff" : "#8A8A8A"}
-                strokeWidth={on ? 2.6 : 1.25}
+                strokeWidth={on ? STROKE_ON : STROKE}
                 strokeLinejoin="miter"
               />
             );
@@ -138,13 +128,14 @@ export const LiveSlantTabs = memo(function LiveSlantTabs({ active, onSelect }: P
 
 const styles = StyleSheet.create({
   bar: {
-    height: BAR_H + GLOW_PAD * 2,
+    height: BAR_H,
     width: "100%",
     backgroundColor: "#000",
+    overflow: "hidden",
   },
   hit: {
     position: "absolute",
-    top: GLOW_PAD,
+    top: 0,
     height: BAR_H,
     alignItems: "center",
     justifyContent: "center",
@@ -160,8 +151,5 @@ const styles = StyleSheet.create({
   },
   labelOn: {
     color: "#FFFFFF",
-    textShadowColor: "#1a6aff",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
   },
 });

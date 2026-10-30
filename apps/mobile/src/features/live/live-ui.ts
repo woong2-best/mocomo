@@ -32,6 +32,7 @@ export function liveUi(t: TFn) {
     chatUnavailable: t("m.live.you_cannot_join_this_chat"),
     tapRetry: t("m.live.tap_to_retry"),
     noLiveNow: t("m.live.no_live_streams_right_now"),
+    noLiveCurrently: t("m.live.no_live_currently_in_progress"),
     noLiveSub: t("m.live.new_streams_will_appear_here_when"),
     openLiveA11y: (title: string) => t("m.live.open_live_title", { title: String(title) }),
     noStreamsEmpty: t("m.live.no_streams_are_live"),
