@@ -77,6 +77,7 @@ export const feedPostListSelectNoPoll = {
   id: true,
   title: true,
   content: true,
+  mentionStates: true,
   postType: true,
   createdAt: true,
   isNsfw: true,
