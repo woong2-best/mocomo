@@ -2,11 +2,13 @@
  * Product labels that stay English in every UI language.
  * ML Kit must not rewrite these — it produced broken Hangul for Follow / Market / LIVE
  * and marketplace category chips (All, Figures & Models, Cosplay, Physical).
+ * Wallet screens stay English on purpose (balance, payout, transfer, Stripe).
  */
 export const KEEP_ENGLISH_KEY_PREFIXES = [
   "m.used.catalog.",
   "m.catalog.",
   "m.market.scope.",
+  "m.wallet.",
 ] as const;
 
 export const KEEP_ENGLISH_UI_KEYS = new Set([
@@ -25,6 +27,8 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "nav.communities",
   "nav.anime",
   "nav.wallet",
+  "m.common.wallet",
+  "m.discover.wallet",
   "nav.studio",
   "common.search",
   "m.common.search",
