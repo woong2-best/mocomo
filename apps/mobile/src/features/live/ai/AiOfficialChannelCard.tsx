@@ -5,7 +5,7 @@ import type { AiStageFiles } from "@/features/live/ai/ai-speak";
 import { useVrmStill } from "@/features/live/ai/vrm-still-cache";
 import { liveCategoryEnglish } from "@/features/live/live-categories";
 import { API_BASE_URL } from "@/config/env";
-import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { IMAGE_CACHE_POLICY, liveStillDecodeSize } from "@/perf/image";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/theme/ThemeContext";
 import { FolkAvatar } from "@/ui/FolkAvatar";
@@ -20,6 +20,7 @@ type Props = {
   sub?: string;
   accent?: string;
   stage: AiStageFiles;
+  fallbackPoster?: number;
 };
 
 function absUrl(url: string | null | undefined): string | null {
@@ -38,12 +39,14 @@ function AiOfficialChannelCardInner({
   sub,
   accent,
   stage,
+  fallbackPoster,
 }: Props) {
   const { t } = useI18n();
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const thumbW = Math.round(Math.min(width * 0.42, 188));
   const thumbH = Math.round(thumbW * (9 / 16));
+  const decode = liveStillDecodeSize(thumbW, thumbH);
   const displayName = host ?? t("m.live.ai_host_name");
   const still = useVrmStill(stage.characterId);
   const backdrop = absUrl(stage.backdropUrl);
@@ -57,20 +60,31 @@ function AiOfficialChannelCardInner({
       >
         {still ? (
           <Image
-            source={{ uri: still }}
+            source={{ uri: still, width: decode.width, height: decode.height }}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             cachePolicy={IMAGE_CACHE_POLICY}
             recyclingKey={still}
+            allowDownscaling={false}
             transition={0}
           />
         ) : backdrop ? (
           <Image
-            source={{ uri: backdrop }}
+            source={{ uri: backdrop, width: decode.width, height: decode.height }}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             cachePolicy={IMAGE_CACHE_POLICY}
             recyclingKey={backdrop}
+            allowDownscaling={false}
+            transition={0}
+          />
+        ) : fallbackPoster != null ? (
+          <Image
+            source={fallbackPoster}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy={IMAGE_CACHE_POLICY}
+            allowDownscaling={false}
             transition={0}
           />
         ) : null}
@@ -123,6 +137,7 @@ export function AiStageHero({
   host,
   hostUsername,
   hostImage,
+  fallbackPoster,
 }: {
   onPress: () => void;
   onPressHost?: () => void;
@@ -130,12 +145,13 @@ export function AiStageHero({
   host?: string;
   hostUsername?: string;
   hostImage?: string | null;
+  fallbackPoster?: number;
 }) {
   const { width } = useWindowDimensions();
   const height = Math.round(width * (9 / 16));
+  const decode = liveStillDecodeSize(width, height);
   const still = useVrmStill(stage.characterId);
   const backdrop = absUrl(stage.backdropUrl);
-  const poster = still ?? backdrop;
   return (
     <View style={{ width, backgroundColor: "#000" }}>
       <Pressable
@@ -143,13 +159,36 @@ export function AiStageHero({
         accessibilityRole="button"
         style={{ width, height, backgroundColor: "#000", overflow: "hidden" }}
       >
-        {poster ? (
+        {still ? (
           <Image
-            source={{ uri: poster }}
+            source={{ uri: still, width: decode.width, height: decode.height }}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             cachePolicy={IMAGE_CACHE_POLICY}
-            recyclingKey={poster}
+            recyclingKey={still}
+            allowDownscaling={false}
+            priority="high"
+            transition={0}
+          />
+        ) : backdrop ? (
+          <Image
+            source={{ uri: backdrop, width: decode.width, height: decode.height }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy={IMAGE_CACHE_POLICY}
+            recyclingKey={backdrop}
+            allowDownscaling={false}
+            priority="high"
+            transition={0}
+          />
+        ) : fallbackPoster != null ? (
+          <Image
+            source={fallbackPoster}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy={IMAGE_CACHE_POLICY}
+            allowDownscaling={false}
+            priority="high"
             transition={0}
           />
         ) : (

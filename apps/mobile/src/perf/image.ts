@@ -13,9 +13,30 @@ export function feedMediaDecodeWidth(layoutWidth: number): number {
   return Math.round(layoutWidth * dpr);
 }
 
+/**
+ * Culture Wiki hero/body photos fill the phone width. Decode at device pixels
+ * so a list-tile downsample is never stretched across the infobox.
+ */
+export function wikiMediaDecodeWidth(layoutWidth: number): number {
+  const dpr = Math.min(PixelRatio.get(), 3);
+  return Math.max(1, Math.round(layoutWidth * dpr));
+}
+
 export function avatarDecodeSize(layoutSize: number): number {
   const dpr = Math.min(PixelRatio.get(), 2.5);
   return Math.round(layoutSize * dpr);
+}
+
+/** Hub / room stills fill the phone width — decode at device pixels. */
+export function liveStillDecodeSize(layoutWidth: number, layoutHeight: number): {
+  width: number;
+  height: number;
+} {
+  const dpr = Math.min(PixelRatio.get(), 3);
+  return {
+    width: Math.max(1, Math.round(layoutWidth * dpr)),
+    height: Math.max(1, Math.round(layoutHeight * dpr)),
+  };
 }
 
 /**

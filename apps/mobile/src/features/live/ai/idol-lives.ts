@@ -1,5 +1,7 @@
 import type { LiveAvatarHost, LiveAvatarId } from "@/api/live";
 
+export const ZELIE_LIVE_POSTER = require("../../../../assets/moco-live-poster.png");
+
 export const IDOL_LIVES = [
   {
     id: "airi" as const,

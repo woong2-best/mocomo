@@ -8,12 +8,17 @@ export function vrmStageDocument(opts: {
   /** Website grid uses bust. The watch room uses stage. */
   framing?: "bust" | "stage";
   maxPixelRatio?: number;
+  antialias?: boolean;
+  /** Snapshot the ready frame for the hub. Off for tiny list/warmer views. */
+  saveStill?: boolean;
 }): string {
   const vrmUrl = JSON.stringify(opts.vrmUrl);
   const backdropUrl = JSON.stringify(opts.backdropUrl ?? "");
   const characterId = JSON.stringify(opts.characterId);
   const framing = JSON.stringify(opts.framing === "bust" ? "bust" : "stage");
-  const maxPixelRatio = Number.isFinite(opts.maxPixelRatio) ? Number(opts.maxPixelRatio) : 1.5;
+  const maxPixelRatio = Number.isFinite(opts.maxPixelRatio) ? Number(opts.maxPixelRatio) : 2.5;
+  const antialias = opts.antialias !== false;
+  const saveStill = opts.saveStill !== false;
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -47,6 +52,9 @@ const BACKDROP = ${backdropUrl};
 const CHARACTER = ${characterId};
 const FRAMING = ${framing};
 const MAX_DPR = ${maxPixelRatio};
+const ANTIALIAS = ${antialias ? "true" : "false"};
+const SAVE_STILL = ${saveStill ? "true" : "false"};
+const STILL_MIN_W = 1280;
 const post = (msg) => { try { window.ReactNativeWebView.postMessage(JSON.stringify(msg)); } catch (e) {} };
 if (BACKDROP) document.body.style.backgroundImage = "url(" + JSON.stringify(BACKDROP).slice(1, -1) + ")";
 
@@ -279,7 +287,7 @@ try {
   const { GLTFLoader } = await importRetry("three/addons/loaders/GLTFLoader.js", 3);
   const { VRMLoaderPlugin, VRMUtils } = await importRetry("@pixiv/three-vrm", 3);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: "low-power", preserveDrawingBuffer: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: ANTIALIAS, alpha: true, powerPreference: "default", preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
@@ -416,16 +424,58 @@ try {
   document.addEventListener("visibilitychange", () => {
     pageVisible = document.visibilityState !== "hidden";
   });
+  function restoreView() {
+    const cssW = Math.max(window.innerWidth, 1);
+    const cssH = Math.max(window.innerHeight, 1);
+    camera.aspect = cssW / cssH;
+    camera.updateProjectionMatrix();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
+    renderer.setSize(cssW, cssH, false);
+  }
   function captureStill() {
+    if (!SAVE_STILL) return;
+    const cssW = Math.max(window.innerWidth, 1);
+    const cssH = Math.max(window.innerHeight, 1);
+    const aspect = cssW / cssH;
+    const captureW = Math.max(Math.round(cssW * Math.min(window.devicePixelRatio || 1, MAX_DPR)), STILL_MIN_W);
+    const captureH = Math.max(2, Math.round(captureW / aspect));
+    renderer.setPixelRatio(1);
+    renderer.setSize(captureW, captureH, false);
+    camera.aspect = captureW / captureH;
+    camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
     const canvas = renderer.domElement;
     const snap = document.createElement("canvas");
     snap.width = canvas.width;
     snap.height = canvas.height;
     const ctx = snap.getContext("2d");
+    let vrmFrame = null;
+    if (ctx) {
+      try {
+        const copy = document.createElement("canvas");
+        copy.width = canvas.width;
+        copy.height = canvas.height;
+        const copyCtx = copy.getContext("2d");
+        if (copyCtx) {
+          copyCtx.drawImage(canvas, 0, 0);
+          vrmFrame = copy;
+        }
+      } catch (e) {}
+    }
+    restoreView();
     if (!ctx) return;
+    ctx.fillStyle = "#241c33";
+    ctx.fillRect(0, 0, snap.width, snap.height);
     const finish = () => {
-      try { ctx.drawImage(canvas, 0, 0); } catch (e) {}
-      try { post({ type: "snapshot", dataUrl: snap.toDataURL("image/jpeg", 0.82) }); } catch (e) {}
+      if (vrmFrame) try { ctx.drawImage(vrmFrame, 0, 0); } catch (e) {}
+      try {
+        post({
+          type: "snapshot",
+          dataUrl: snap.toDataURL("image/jpeg", 0.92),
+          width: snap.width,
+          height: snap.height,
+        });
+      } catch (e) {}
     };
     if (!BACKDROP) { finish(); return; }
     const img = new Image();
@@ -472,7 +522,7 @@ try {
     renderer.render(scene, camera);
     if (!postedReady) {
       readyFrames += 1;
-      if (readyFrames >= 3) {
+      if (readyFrames >= 16) {
         postedReady = true;
         captureStill();
         post({ type: "ready" });

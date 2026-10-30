@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import * as FileSystem from "expo-file-system/legacy";
 
-const DIR = `${FileSystem.documentDirectory ?? FileSystem.cacheDirectory}vrm-stills/`;
+const ROOT = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
+const DIR = `${ROOT}vrm-stills-v3/`;
+const LEGACY_DIRS = [`${ROOT}vrm-stills/`, `${ROOT}vrm-stills-v2/`];
+/** Drop list/warmer snapshots that would stretch across the hub hero. */
+const MIN_STILL_WIDTH = 960;
 
 const ALIAS: Record<string, string> = {
   zelie: "zelie",
@@ -47,6 +51,12 @@ export function hydrateVrmStills(): Promise<void> {
   if (hydratePromise) return hydratePromise;
   hydratePromise = (async () => {
     try {
+      for (const old of LEGACY_DIRS) {
+        const leftover = await FileSystem.getInfoAsync(old);
+        if (leftover.exists) {
+          await FileSystem.deleteAsync(old, { idempotent: true }).catch(() => undefined);
+        }
+      }
       const info = await FileSystem.getInfoAsync(DIR);
       if (!info.exists) {
         await FileSystem.makeDirectoryAsync(DIR, { intermediates: true });
@@ -65,11 +75,16 @@ export function hydrateVrmStills(): Promise<void> {
   return hydratePromise;
 }
 
-export async function saveVrmStill(characterId: string, dataUrl: string): Promise<void> {
+export async function saveVrmStill(
+  characterId: string,
+  dataUrl: string,
+  size?: { width?: number; height?: number }
+): Promise<void> {
   const id = canonicalVrmId(characterId);
+  if (size?.width != null && size.width < MIN_STILL_WIDTH) return;
   const match = /^data:image\/(?:jpeg|jpg|png);base64,(.+)$/i.exec(dataUrl.trim());
   const bytes = match?.[1];
-  if (!bytes) return;
+  if (!bytes || bytes.length < 20_000) return;
   await FileSystem.makeDirectoryAsync(DIR, { intermediates: true }).catch(() => undefined);
   const path = stillPath(id);
   await FileSystem.writeAsStringAsync(path, bytes, {

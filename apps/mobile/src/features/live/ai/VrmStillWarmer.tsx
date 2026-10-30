@@ -23,6 +23,7 @@ export function VrmStillWarmer({ stages }: { stages: AiStageFiles[] }) {
         framing="bust"
         maxPixelRatio={1}
         inList
+        saveStill={false}
       />
     </View>
   );

@@ -18,12 +18,14 @@ type Props = {
   vrmUrl: string;
   backdropUrl: string | null;
   characterId: string;
-  /** Old still. Shown only when this stage has no room backdrop or cached frame. */
+  /** Loading stand-in when no cached room still exists. */
   poster?: number;
   framing?: "bust" | "stage";
   maxPixelRatio?: number;
   /** Inside a scroll list — skip Android hardware layers that blank WebGL. */
   inList?: boolean;
+  /** Persist a hub still. Off for off-screen / list WebViews. */
+  saveStill?: boolean;
 };
 
 function absUrl(url: string): string {
@@ -40,7 +42,7 @@ function NativeVoice({ uri }: { uri: string }) {
 }
 
 export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
-  { vrmUrl, backdropUrl, characterId, poster, framing = "stage", maxPixelRatio = 1.5, inList = false },
+  { vrmUrl, backdropUrl, characterId, poster, framing = "stage", maxPixelRatio = 2.5, inList = false, saveStill },
   ref
 ) {
   const webRef = useRef<WebView>(null);
@@ -50,6 +52,7 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
   const lastAudio = useRef<string | null>(null);
   const thinkingRef = useRef(false);
   const retries = useRef(0);
+  const persistStill = saveStill ?? !inList;
   const still = useVrmStill(characterId);
   const html = useMemo(
     () =>
@@ -59,8 +62,10 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
         characterId,
         framing,
         maxPixelRatio,
+        antialias: true,
+        saveStill: persistStill,
       }),
-    [backdropUrl, characterId, framing, maxPixelRatio, vrmUrl]
+    [backdropUrl, characterId, framing, maxPixelRatio, persistStill, vrmUrl]
   );
   const source = useMemo(() => ({ html, baseUrl: API_BASE_URL }), [html]);
   const backdropUri = backdropUrl ? absUrl(backdropUrl) : null;
@@ -94,9 +99,14 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
   };
 
   const onMessage = (event: WebViewMessageEvent) => {
-    let msg: { type?: string; dataUrl?: string } | null = null;
+    let msg: { type?: string; dataUrl?: string; width?: number; height?: number } | null = null;
     try {
-      msg = JSON.parse(event.nativeEvent.data) as { type?: string; dataUrl?: string };
+      msg = JSON.parse(event.nativeEvent.data) as {
+        type?: string;
+        dataUrl?: string;
+        width?: number;
+        height?: number;
+      };
     } catch {
       return;
     }
@@ -108,7 +118,7 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
       }
     }
     if (msg?.type === "snapshot" && typeof msg.dataUrl === "string") {
-      void saveVrmStill(characterId, msg.dataUrl);
+      void saveVrmStill(characterId, msg.dataUrl, { width: msg.width, height: msg.height });
     }
     if (msg?.type === "audio-fallback" && lastAudio.current) {
       setNativePlay({ id: Date.now(), uri: `data:audio/mpeg;base64,${lastAudio.current}` });
@@ -127,12 +137,19 @@ export const AiVrmStage = forwardRef<AiVrmHandle, Props>(function AiVrmStage(
           contentFit="cover"
           cachePolicy={IMAGE_CACHE_POLICY}
           recyclingKey={still}
+          allowDownscaling={false}
           transition={0}
         />
-      ) : backdropUri ? (
-        <Image source={{ uri: backdropUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy={IMAGE_CACHE_POLICY} />
       ) : poster != null ? (
-        <Image source={poster} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <Image source={poster} style={StyleSheet.absoluteFill} contentFit="cover" allowDownscaling={false} />
+      ) : backdropUri ? (
+        <Image
+          source={{ uri: backdropUri }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          cachePolicy={IMAGE_CACHE_POLICY}
+          allowDownscaling={false}
+        />
       ) : null}
       <WebView
         ref={webRef}

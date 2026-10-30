@@ -13,7 +13,7 @@ import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
 import { AiOfficialChannelCard, AiStageHero } from "@/features/live/ai/AiOfficialChannelCard";
 import { fetchAiStages, stageForCharacter } from "@/features/live/ai/ai-speak";
 import { hydrateVrmStills } from "@/features/live/ai/vrm-still-cache";
-import { hostFromAvatarMap, IDOL_LIVES } from "@/features/live/ai/idol-lives";
+import { hostFromAvatarMap, IDOL_LIVES, ZELIE_LIVE_POSTER } from "@/features/live/ai/idol-lives";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
 import { sanitizeLiveListItems } from "@/features/live/live-hub-sanitize";
@@ -197,6 +197,7 @@ export function LiveListScreen() {
                     host={zelieHost.name}
                     hostUsername={zelieHost.username}
                     hostImage={zelieHost.image}
+                    fallbackPoster={ZELIE_LIVE_POSTER}
                     onPress={() => navigation.navigate("MocoLive")}
                     onPressHost={() => openProfile(zelieHost.username, zelieHost.name, zelieHost.image)}
                   />
@@ -248,6 +249,7 @@ export function LiveListScreen() {
                           hostUsername={host.username}
                           hostImage={host.image}
                           sub={t(idol.roleKey)}
+                          fallbackPoster={idol.poster}
                           onPress={() => navigation.navigate("IdolLive", { member: idol.id })}
                           onPressHost={() => openProfile(host.username, host.name, host.image)}
                         />
