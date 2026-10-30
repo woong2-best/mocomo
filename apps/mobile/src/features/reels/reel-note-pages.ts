@@ -10,11 +10,14 @@ export const NOTE_LINE_PX = 32;
 export const NOTE_INSET_PX = 0;
 /** ReelsScreen header: 4 + 40 back + 8 pad + 8 gap under the chevron. */
 export const NOTE_CHROME_BELOW_INSET_PX = 60;
-/** Matches FeedVideoPostSlide `meta.right` — left of like/save/share/comment. */
-export const NOTE_PAD_RIGHT_PX = 72;
+/**
+ * Rail is `right: 10` + 28 icon + count. Keep a gap so digits cannot
+ * paint under like / comment / save / share / flag.
+ */
+export const NOTE_PAD_RIGHT_PX = 96;
 /** Author row (`bottom: 28` + 36 avatar + hashtag line) above the profile. */
-export const NOTE_PAD_BOTTOM_PX = 108;
-export const NOTE_PAD_LEFT_PX = 16;
+export const NOTE_PAD_BOTTOM_PX = 112;
+export const NOTE_PAD_LEFT_PX = 20;
 /** @deprecated Use noteSafePads().top — kept so older callers still compile. */
 export const NOTE_PAD_TOP_PX = NOTE_CHROME_BELOW_INSET_PX;
 export const NOTE_JAMO_PX = 14.7;
