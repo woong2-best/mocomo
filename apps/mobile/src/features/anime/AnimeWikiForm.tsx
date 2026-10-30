@@ -1,14 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Keyboard,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -33,12 +30,9 @@ import {
 } from "@/features/anime/anime-genres";
 import { useI18n } from "@/i18n/I18nProvider";
 import { animeUi } from "@/features/anime/anime-ui";
-import { WikiContent } from "@/features/anime/WikiContent";
+import { WikiArticleSourceEditor } from "@/features/anime/WikiArticleSourceEditor";
 import { WikiInfobox } from "@/features/anime/WikiInfobox";
 import { WikiInfoboxEditor } from "@/features/anime/WikiInfoboxEditor";
-import { applyYoutubePaste } from "@/features/anime/wiki-youtube";
-import { insertWikiTemplate, WIKI_MORE_INSERTS } from "@/features/anime/wiki-insert";
-import { useKeyboardLift } from "@/lib/use-keyboard-inset";
 import { characterNames } from "@/features/anime/wiki-article";
 import {
   DEFAULT_WIKI_BODY,
@@ -107,10 +101,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, presetTitle, initial }:
   const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
-  const { keyboardLift } = useKeyboardLift();
   const queryClient = useQueryClient();
-  const bodyInputRef = useRef<TextInput>(null);
-  const selectionRef = useRef({ start: 0, end: 0 });
 
   const initialGenre: MobileAnimeGenreId =
     (initial?.genre as MobileAnimeGenreId | undefined) &&
@@ -153,9 +144,7 @@ export function AnimeWikiForm({ mode, slug, presetGenre, presetTitle, initial }:
   const [bannerUrl, setBannerUrl] = useState<string | null>(initial?.bannerUrl ?? null);
   const [localBannerUri, setLocalBannerUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [pane, setPane] = useState<"edit" | "preview">("edit");
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [bodyFocused, setBodyFocused] = useState(false);
+  const [articleOpen, setArticleOpen] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (body: AnimeCreatePayload) =>
@@ -205,30 +194,17 @@ export function AnimeWikiForm({ mode, slug, presetGenre, presetTitle, initial }:
     }
   }
 
-  async function insertBodyImage() {
+  async function pickArticleImage() {
     setUploading(true);
     try {
       const picked = await pickAndUploadImage(undefined, copy.photoLibPerm);
-      if (!picked) return;
-      setBody((v) => `${v.trim() ? `${v.trim()}\n\n` : ""}![${copy.photoCaption}](${picked.url})\n\n`);
+      return picked?.url ?? null;
     } catch (e) {
       showIslandError(copy.saveFailTitle, e instanceof Error ? e.message : copy.photoFail);
+      return null;
     } finally {
       setUploading(false);
     }
-  }
-
-  function insertTemplate(template: string) {
-    const { start, end } = selectionRef.current;
-    const result = insertWikiTemplate(body, start, end, template);
-    setBody(result.next);
-    selectionRef.current = { start: result.caret, end: result.caret };
-    requestAnimationFrame(() => {
-      bodyInputRef.current?.focus();
-      bodyInputRef.current?.setNativeProps?.({
-        selection: { start: result.caret, end: result.caret },
-      });
-    });
   }
 
   function onSubmit() {
@@ -268,70 +244,6 @@ export function AnimeWikiForm({ mode, slug, presetGenre, presetTitle, initial }:
   }
 
   const busy = mutation.isPending || uploading;
-  const dockToolbar = pane === "edit" && bodyFocused && keyboardLift > 0;
-
-  function renderArticleToolbar(docked: boolean) {
-    return (
-      <View style={[styles.iconToolbar, docked && styles.iconToolbarDocked]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.iconToolbarRow}
-        >
-          <Pressable
-            onPress={() => void insertBodyImage()}
-            disabled={busy}
-            style={styles.iconBtn}
-            accessibilityRole="button"
-            accessibilityLabel={copy.photoUploadBtn}
-          >
-            <Ionicons name="image-outline" size={22} color={colors.brand} />
-          </Pressable>
-          <Pressable
-            onPress={() => insertTemplate("**|**")}
-            disabled={busy}
-            style={styles.iconBtn}
-            accessibilityRole="button"
-            accessibilityLabel={copy.boldBtn}
-          >
-            <Ionicons name="text" size={22} color={colors.brand} />
-          </Pressable>
-          <Pressable
-            onPress={() => insertTemplate("[[|]]")}
-            disabled={busy}
-            style={styles.iconBtn}
-            accessibilityRole="button"
-            accessibilityLabel={copy.wikilinkBtn}
-          >
-            <Ionicons name="link-outline" size={22} color={colors.brand} />
-          </Pressable>
-          <Pressable
-            onPress={() => insertTemplate("\n== | ==\n")}
-            disabled={busy}
-            style={styles.iconBtn}
-            accessibilityRole="button"
-            accessibilityLabel={copy.headingBtn}
-          >
-            <Ionicons name="text-outline" size={22} color={colors.brand} />
-          </Pressable>
-          <View style={styles.iconDivider} />
-          <Pressable
-            onPress={() => {
-              Keyboard.dismiss();
-              setMoreOpen(true);
-            }}
-            disabled={busy}
-            style={styles.iconBtn}
-            accessibilityRole="button"
-            accessibilityLabel={copy.moreBtn}
-          >
-            <Ionicons name="ellipsis-horizontal" size={22} color={colors.brand} />
-          </Pressable>
-        </ScrollView>
-      </View>
-    );
-  }
 
   return (
     <Screen style={styles.screen}>
@@ -459,61 +371,36 @@ export function AnimeWikiForm({ mode, slug, presetGenre, presetTitle, initial }:
           <Label text={copy.bodyLabel} colors={colors} />
           <Text style={styles.englishOnlyNotice}>{copy.bodyHelp}</Text>
           <Text style={styles.help}>{copy.youtubePasteHint}</Text>
-          <View style={styles.articleCard}>
-            <View style={styles.tabs} accessibilityRole="tablist">
-              <Pressable
-                onPress={() => setPane("edit")}
-                style={[styles.tab, pane === "edit" && styles.tabActive]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: pane === "edit" }}
-              >
-                <Text style={[styles.tabText, pane === "edit" && styles.tabTextActive]}>{copy.editTab}</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setPane("preview");
-                  setBodyFocused(false);
-                  Keyboard.dismiss();
-                }}
-                style={[styles.tab, pane === "preview" && styles.tabActive]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: pane === "preview" }}
-              >
-                <Text style={[styles.tabText, pane === "preview" && styles.tabTextActive]}>{copy.preview}</Text>
-              </Pressable>
+          <Pressable
+            onPress={() => setArticleOpen(true)}
+            style={styles.articleLaunch}
+            accessibilityRole="button"
+            accessibilityLabel={copy.articleOpenHint}
+          >
+            <View style={styles.articleLaunchTabs}>
+              <Text style={styles.articleLaunchTabActive}>{copy.editTab}</Text>
+              <Text style={styles.articleLaunchTab}>{copy.preview}</Text>
             </View>
-            {pane === "edit" && !dockToolbar ? renderArticleToolbar(false) : null}
-            {pane === "preview" ? (
-              <View style={styles.previewPane}>
-                {body.trim() ? (
-                  <WikiContent source={body} />
-                ) : (
-                  <Text style={styles.help}>{copy.previewEmpty}</Text>
-                )}
+            <View style={styles.articleLaunchBody}>
+              <View style={styles.articleLaunchRail}>
+                <Ionicons name="camera-outline" size={16} color={colors.brand} />
+                <Ionicons name="link-outline" size={16} color={colors.brand} />
+                <Text style={styles.articleLaunchGlyph}>A</Text>
+                <Text style={styles.articleLaunchGlyph}>B</Text>
+                <Text style={[styles.articleLaunchGlyph, styles.articleLaunchGlyphItalic]}>I</Text>
+                <Ionicons name="remove-outline" size={16} color={colors.brand} />
+                <Ionicons name="eye-off-outline" size={16} color={colors.brand} />
               </View>
-            ) : (
-              <KeyboardAwareTextInput
-                ref={bodyInputRef}
-                style={[styles.input, styles.textAreaLg, styles.articleInput]}
-                value={body}
-                onChangeText={(next) => setBody(applyYoutubePaste(body, next))}
-                onSelectionChange={(e) => {
-                  selectionRef.current = e.nativeEvent.selection;
-                }}
-                onFocus={() => setBodyFocused(true)}
-                onBlur={() => setBodyFocused(false)}
-                placeholder={copy.synopsisPh}
-                placeholderTextColor={colors.textMuted}
-                multiline
-                scrollEnabled
-                nestedScrollEnabled
-                textAlignVertical="top"
-                autoCorrect={false}
-                spellCheck={false}
-                blurOnSubmit={false}
-              />
-            )}
-          </View>
+              <Text style={styles.articleLaunchSource} numberOfLines={10}>
+                {body.trim() || copy.articlePlaceholder}
+              </Text>
+            </View>
+            <View style={styles.articleLaunchBar}>
+              <Ionicons name="create-outline" size={18} color={colors.brand} />
+              <Text style={styles.articleLaunchHint}>{copy.articleOpenHint}</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.brand} />
+            </View>
+          </Pressable>
 
           <Label text={copy.tagsLabel} colors={colors} />
           <KeyboardAwareTextInput
@@ -548,37 +435,16 @@ export function AnimeWikiForm({ mode, slug, presetGenre, presetTitle, initial }:
             disabled={busy}
           />
       </KeyboardAwareScrollView>
-      {dockToolbar ? (
-        <View style={[styles.dockedToolbarWrap, { bottom: keyboardLift }]} pointerEvents="box-none">
-          {renderArticleToolbar(true)}
-        </View>
-      ) : null}
-      <Modal visible={moreOpen} transparent animationType="slide" onRequestClose={() => setMoreOpen(false)}>
-        <View style={styles.sheetRoot}>
-        <Pressable style={styles.sheetBackdrop} onPress={() => setMoreOpen(false)} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
-          <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>{copy.moreTitle}</Text>
-          <View style={styles.sheetGrid}>
-            {WIKI_MORE_INSERTS.map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={() => {
-                  insertTemplate(item.template);
-                  setMoreOpen(false);
-                }}
-                style={styles.sheetItem}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
-              >
-                <Ionicons name={item.icon} size={22} color={colors.brand} />
-                <Text style={styles.sheetItemLabel}>{item.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-        </View>
-      </Modal>
+      <WikiArticleSourceEditor
+        visible={articleOpen}
+        title={title.trim() || copy.bodyLabel}
+        body={body}
+        busy={busy}
+        copy={copy}
+        onChangeBody={setBody}
+        onClose={() => setArticleOpen(false)}
+        onPickImage={pickArticleImage}
+      />
     </Screen>
   );
 }
@@ -625,22 +491,83 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
       fontSize: 15,
     },
-    textArea: {
-      minHeight: 120,
-      maxHeight: 200,
-      paddingTop: 10,
+    articleLaunch: {
+      marginTop: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.md,
+      backgroundColor: colors.surfaceRaised,
+      overflow: "hidden",
     },
-    textAreaLg: {
-      minHeight: 280,
-      maxHeight: 480,
-      paddingTop: 10,
+    articleLaunchTabs: {
+      flexDirection: "row",
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.muted,
+    },
+    articleLaunchTab: {
+      flex: 1,
+      textAlign: "center",
+      paddingVertical: 10,
+      fontSize: 13,
+      fontWeight: "700",
+      color: colors.textMuted,
+    },
+    articleLaunchTabActive: {
+      flex: 1,
+      textAlign: "center",
+      paddingVertical: 10,
+      fontSize: 13,
+      fontWeight: "700",
+      color: colors.text,
+      backgroundColor: colors.surfaceRaised,
+    },
+    articleLaunchBody: {
+      flexDirection: "row",
+      minHeight: 188,
+    },
+    articleLaunchRail: {
+      width: 40,
+      alignItems: "center",
+      paddingVertical: 10,
+      gap: 10,
+      borderRightWidth: 1,
+      borderRightColor: colors.border,
+      backgroundColor: colors.surfaceRaised,
+    },
+    articleLaunchGlyph: {
+      fontSize: 13,
+      fontWeight: "800",
+      color: colors.brand,
+    },
+    articleLaunchGlyphItalic: {
+      fontStyle: "italic",
+    },
+    articleLaunchSource: {
+      flex: 1,
+      paddingHorizontal: 12,
+      paddingTop: 12,
+      paddingBottom: 10,
+      color: colors.text,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       fontSize: 14,
+      lineHeight: 22,
     },
-    textAreaSm: {
-      minHeight: 88,
-      maxHeight: 140,
-      paddingTop: 10,
+    articleLaunchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.muted,
+    },
+    articleLaunchHint: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "700",
+      color: colors.brand,
     },
     genreScroll: {
       marginTop: 6,
@@ -724,140 +651,6 @@ function createStyles(colors: ThemeColors) {
       justifyContent: "center",
       gap: 6,
       flexDirection: "row",
-    },
-    articleCard: {
-      marginTop: 6,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: radii.md,
-      backgroundColor: colors.surfaceRaised,
-      overflow: "hidden",
-    },
-    tabs: {
-      flexDirection: "row",
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      backgroundColor: colors.muted,
-    },
-    tab: {
-      flex: 1,
-      alignItems: "center",
-      paddingVertical: 10,
-    },
-    tabActive: {
-      backgroundColor: colors.surfaceRaised,
-    },
-    tabText: {
-      fontSize: 13,
-      fontWeight: "700",
-      color: colors.textMuted,
-    },
-    tabTextActive: {
-      color: colors.text,
-    },
-    iconToolbar: {
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      backgroundColor: colors.surfaceRaised,
-    },
-    iconToolbarDocked: {
-      borderBottomWidth: 0,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
-    },
-    iconToolbarRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 6,
-      paddingVertical: 4,
-    },
-    iconBtn: {
-      width: 44,
-      height: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    iconDivider: {
-      width: 1,
-      height: 20,
-      marginHorizontal: 4,
-      backgroundColor: colors.border,
-    },
-    articleInput: {
-      marginTop: 0,
-      borderWidth: 0,
-      borderRadius: 0,
-    },
-    previewPane: {
-      minHeight: 280,
-      padding: 12,
-    },
-    dockedToolbarWrap: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      zIndex: 20,
-    },
-    sheetRoot: {
-      flex: 1,
-      justifyContent: "flex-end",
-    },
-    sheetBackdrop: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: "rgba(0,0,0,0.4)",
-    },
-    sheet: {
-      backgroundColor: colors.surfaceRaised,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      paddingHorizontal: 16,
-      paddingTop: 8,
-    },
-    sheetHandle: {
-      alignSelf: "center",
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.border,
-      marginBottom: 12,
-    },
-    sheetTitle: {
-      fontSize: 16,
-      fontWeight: "800",
-      color: colors.text,
-      marginBottom: 12,
-    },
-    sheetGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-    },
-    sheetItem: {
-      width: "23%",
-      minWidth: 72,
-      flexGrow: 1,
-      alignItems: "center",
-      gap: 6,
-      paddingVertical: 12,
-      borderRadius: radii.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.muted,
-    },
-    sheetItemLabel: {
-      fontSize: 11,
-      fontWeight: "700",
-      color: colors.text,
-      textAlign: "center",
-    },
-    preview: {
-      marginTop: 8,
-      padding: 12,
-      borderRadius: radii.md,
-      borderWidth: 1,
-      borderStyle: "dashed",
-      borderColor: colors.border,
-      backgroundColor: colors.muted,
     },
     previewLabel: {
       fontSize: 10,
