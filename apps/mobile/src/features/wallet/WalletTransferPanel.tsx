@@ -282,7 +282,7 @@ export function WalletTransferPanel() {
         editable={!pending && !overlay}
         autoCapitalize="none"
         autoCorrect={false}
-        placeholder="@username"
+        placeholder="@user id"
         placeholderTextColor="rgba(0,0,0,0.35)"
         onChangeText={(v) => {
           setUsername(v.replace(/\s/g, ""));

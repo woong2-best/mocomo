@@ -343,7 +343,7 @@ export function WalletMocoTransferStation({ purchasedMoco, userImageUrl }: Props
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              placeholder="@username"
+              placeholder="@user id"
               onChange={(e) => {
                 setUsername(e.target.value.replace(/\s/g, ""));
                 setRecipientLabel("");
