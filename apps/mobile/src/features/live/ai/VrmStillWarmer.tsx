@@ -5,14 +5,13 @@ import type { AiStageFiles } from "@/features/live/ai/ai-speak";
 import { subscribeVrmStills, vrmStillUri } from "@/features/live/ai/vrm-still-cache";
 
 /**
- * After the hub hero has a still (so its WebGL is gone), render one
- * remaining character at a time and persist the frame. Cards then stay
- * filled without four live WebViews.
+ * Capture one missing still off-screen. Do not mount this on a scroll list —
+ * Android WebView ignores opacity/overflow and paints the model over siblings.
  */
 export function VrmStillWarmer({ stages }: { stages: AiStageFiles[] }) {
   const [, setTick] = useState(0);
   useEffect(() => subscribeVrmStills(() => setTick((n) => n + 1)), []);
-  const next = vrmStillUri("zelie") ? stages.find((row) => !vrmStillUri(row.characterId)) : null;
+  const next = stages.find((row) => !vrmStillUri(row.characterId)) ?? null;
   if (!next) return null;
   return (
     <View pointerEvents="none" style={styles.hidden} collapsable={false}>
@@ -34,9 +33,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 192,
     height: 108,
-    left: 0,
-    top: 0,
-    opacity: 0.01,
+    left: -400,
+    top: -400,
+    opacity: 0,
     zIndex: 0,
     overflow: "hidden",
   },

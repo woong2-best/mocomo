@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
-import { AiVrmStage } from "@/features/live/ai/AiVrmStage";
 import type { AiStageFiles } from "@/features/live/ai/ai-speak";
 import { useVrmStill } from "@/features/live/ai/vrm-still-cache";
 import { liveCategoryEnglish } from "@/features/live/live-categories";
@@ -116,11 +115,10 @@ function AiOfficialChannelCardInner({
 
 export const AiOfficialChannelCard = memo(AiOfficialChannelCardInner);
 
-/** Featured stage on the hub. Same model and room as the website tile. */
+/** Featured room on the hub. Still or backdrop only — a live WebView overflows Android lists. */
 export function AiStageHero({
   onPress,
   onPressHost,
-  hint,
   stage,
   host,
   hostUsername,
@@ -128,7 +126,6 @@ export function AiStageHero({
 }: {
   onPress: () => void;
   onPressHost?: () => void;
-  hint: string;
   stage: AiStageFiles;
   host?: string;
   hostUsername?: string;
@@ -137,31 +134,27 @@ export function AiStageHero({
   const { width } = useWindowDimensions();
   const height = Math.round(width * (9 / 16));
   const still = useVrmStill(stage.characterId);
+  const backdrop = absUrl(stage.backdropUrl);
+  const poster = still ?? backdrop;
   return (
-    <View style={{ width, height, backgroundColor: "#000", overflow: "hidden" }} collapsable={false}>
-      <Pressable onPress={onPress} accessibilityRole="button" style={StyleSheet.absoluteFill}>
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {still ? (
-            <Image
-              source={{ uri: still }}
-              style={StyleSheet.absoluteFill}
-              contentFit="cover"
-              cachePolicy={IMAGE_CACHE_POLICY}
-              recyclingKey={still}
-              transition={0}
-            />
-          ) : (
-            <AiVrmStage
-              vrmUrl={stage.vrmUrl}
-              backdropUrl={stage.backdropUrl}
-              characterId={stage.characterId}
-              framing="bust"
-              maxPixelRatio={1}
-              inList
-            />
-          )}
-        </View>
-        <Text style={styles.heroHint}>{hint}</Text>
+    <View style={{ width, backgroundColor: "#000" }}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        style={{ width, height, backgroundColor: "#000", overflow: "hidden" }}
+      >
+        {poster ? (
+          <Image
+            source={{ uri: poster }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            cachePolicy={IMAGE_CACHE_POLICY}
+            recyclingKey={poster}
+            transition={0}
+          />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: "#241c33" }]} />
+        )}
       </Pressable>
       {host || hostUsername ? (
         <Pressable
@@ -211,30 +204,14 @@ const styles = StyleSheet.create({
   host: { fontWeight: "700", fontSize: 13 },
   handle: { fontWeight: "600", fontSize: 11 },
   sub: { fontWeight: "600", fontSize: 12 },
-  heroHint: {
-    position: "absolute",
-    right: 16,
-    top: "38%",
-    width: "42%",
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 18,
-    textAlign: "left",
-  },
   heroHost: {
-    position: "absolute",
-    left: 12,
-    bottom: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    maxWidth: "55%",
-    paddingRight: 10,
-    paddingVertical: 4,
-    paddingLeft: 4,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
+    backgroundColor: "#000",
   },
   heroHostName: { color: "#fff", fontWeight: "800", fontSize: 13 },
   heroHandle: { color: "rgba(255,255,255,0.78)", fontWeight: "600", fontSize: 11 },

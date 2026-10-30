@@ -13,7 +13,6 @@ import { LiveBrowseHero, LiveBrowseRow } from "@/features/live/LiveBrowseRow";
 import { AiOfficialChannelCard, AiStageHero } from "@/features/live/ai/AiOfficialChannelCard";
 import { fetchAiStages, stageForCharacter } from "@/features/live/ai/ai-speak";
 import { hydrateVrmStills } from "@/features/live/ai/vrm-still-cache";
-import { VrmStillWarmer } from "@/features/live/ai/VrmStillWarmer";
 import { hostFromAvatarMap, IDOL_LIVES } from "@/features/live/ai/idol-lives";
 import { LiveGlassSearch } from "@/features/live/LiveGlassSearch";
 import { LiveSlantTabs } from "@/features/live/LiveSlantTabs";
@@ -50,10 +49,6 @@ export function LiveListScreen() {
     staleTime: 5 * 60_000,
   });
   const zelieStage = stageForCharacter("zelie", stagesQuery.data);
-  const warmStages = useMemo(
-    () => ["zelie", "cleo", "mio", "nangnang"].map((id) => stageForCharacter(id, stagesQuery.data)),
-    [stagesQuery.data]
-  );
   const avatarsQuery = useQuery({
     queryKey: ["mobile-live-avatars"],
     queryFn: fetchLiveAvatarHosts,
@@ -198,7 +193,6 @@ export function LiveListScreen() {
               >
                 {showAiHero ? (
                   <AiStageHero
-                    hint={t("m.live.no_messages_yet_say_hello")}
                     stage={zelieStage}
                     host={zelieHost.name}
                     hostUsername={zelieHost.username}
@@ -268,7 +262,6 @@ export function LiveListScreen() {
             }
           />
         )}
-        {showAiHero ? <VrmStillWarmer stages={warmStages} /> : null}
       </View>
     </ScreenErrorBoundary>
   );
