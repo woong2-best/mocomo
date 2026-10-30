@@ -2392,7 +2392,7 @@
   "m.search.tab.media": "Media",
   "m.search.empty_people": "No people found.",
   "m.search.empty_posts": "No posts found.",
-  "m.search.empty_media": "No media found.",
+  "m.search.empty_media": "No media.",
   "m.search.see_all_people": "See all people",
   "m.settings.blocked_accounts": "Blocked accounts",
   "m.settings.blocked_accounts_desc": "People you blocked, newest first. Unblock them here.",

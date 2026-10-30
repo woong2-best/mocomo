@@ -5,6 +5,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -36,13 +37,28 @@ const TABS: { id: Filter; labelKey: "m.search.tab.top" | "m.search.tab.latest" |
   { id: "media", labelKey: "m.search.tab.media" },
 ];
 
+const MEDIA_COLS = 3;
+const MEDIA_GAP = 1;
+
+function isVisualMedia(m: FeedPost["media"][number] | null | undefined) {
+  if (!m || m.type === "AUDIO") return false;
+  return Boolean(m.url || m.posterUrl);
+}
+
+function mediaTileUri(m: FeedPost["media"][number]) {
+  const raw = m.type === "VIDEO" ? m.posterUrl || m.url : m.url;
+  return typeof raw === "string" && raw.length > 0 ? raw : null;
+}
+
 function hasVisualMedia(post: FeedPost) {
-  return (post.media ?? []).some((m) => m.url && m.type !== "AUDIO");
+  return (Array.isArray(post.media) ? post.media : []).some(isVisualMedia);
 }
 
 export function SearchScreen() {
   const { t } = useI18n();
   const { colors } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  const mediaTileSize = Math.floor((windowWidth - MEDIA_GAP * (MEDIA_COLS - 1)) / MEDIA_COLS);
   const styles = useMemo(() => createThemedStyles(colors), [colors]);
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -96,9 +112,10 @@ export function SearchScreen() {
   const mediaTiles = useMemo(
     () =>
       mediaPosts.flatMap((post) =>
-        (post.media ?? [])
-          .filter((m) => m.type !== "AUDIO" && (m.url || m.posterUrl))
+        (Array.isArray(post.media) ? post.media : [])
+          .filter(isVisualMedia)
           .map((media, index) => ({ post, media, index }))
+          .filter((tile) => mediaTileUri(tile.media))
       ),
     [mediaPosts]
   );
@@ -167,19 +184,25 @@ export function SearchScreen() {
       ) : (
         filter === "media" ? (
         <FlatList
+          key="search-media-grid"
+          style={{ flex: 1 }}
           data={mediaTiles}
-          numColumns={3}
+          numColumns={MEDIA_COLS}
           keyExtractor={(item) => `${item.post.id}-${item.media.id ?? item.index}`}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={
+            mediaTiles.length === 0 ? styles.mediaEmptyWrap : { paddingBottom: 40 }
+          }
+          columnWrapperStyle={mediaTiles.length > 0 ? styles.mediaRow : undefined}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={<Text style={styles.hint}>{emptyLabel}</Text>}
           renderItem={({ item }) => {
             const isVideo = item.media.type === "VIDEO";
-            const uri = isVideo ? item.media.posterUrl || item.media.url : item.media.url;
+            const uri = mediaTileUri(item.media);
+            if (!uri) return <View style={{ width: mediaTileSize, height: mediaTileSize }} />;
             return (
               <Pressable
                 onPress={() => navigation.navigate("PostDetail", { id: item.post.id })}
-                style={styles.mediaTile}
+                style={[styles.mediaTile, { width: mediaTileSize, height: mediaTileSize }]}
               >
                 <Image source={{ uri }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
                 {isVideo ? (
@@ -196,6 +219,8 @@ export function SearchScreen() {
         />
       ) : (
         <FlatList
+          key="search-list"
+          style={{ flex: 1 }}
           data={listData}
           keyExtractor={(item, index) =>
             item.kind === "user"
@@ -364,11 +389,12 @@ function createThemedStyles(colors: ThemeColors) {
     error: { color: colors.danger, padding: spacing.lg, fontWeight: "600" },
     moreBtn: { paddingHorizontal: spacing.md, paddingVertical: 14 },
     moreLabel: { color: colors.cobalt, fontWeight: "700", fontSize: 14 },
+    mediaEmptyWrap: { flexGrow: 1, justifyContent: "center", paddingBottom: 40 },
+    mediaRow: { gap: MEDIA_GAP },
     mediaTile: {
-      flex: 1,
-      aspectRatio: 1,
       backgroundColor: "#111",
-      margin: 0.5,
+      overflow: "hidden",
+      marginBottom: MEDIA_GAP,
     },
     mediaDur: {
       position: "absolute",
