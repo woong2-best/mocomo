@@ -29,6 +29,26 @@ export function mapPinInnerRadius(selected = false): number {
     : MAP_PIN_INNER_RADIUS;
 }
 
+/** Side-drawer globe — small filled dots with white stroke (not full-screen ring pins). */
+export function mapPinGlobeDotLayers() {
+  return {
+    shadow: {
+      "circle-radius": 8,
+      "circle-color": "rgba(0,0,0,0.22)",
+      "circle-blur": 0.35,
+      "circle-translate": [0, 1],
+      "circle-pitch-alignment": "viewport" as const,
+    },
+    dot: {
+      "circle-radius": 7,
+      "circle-color": ["get", "color"],
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#ffffff",
+      "circle-pitch-alignment": "viewport" as const,
+    },
+  };
+}
+
 export function mapPinCircleLayers(selectedExpr = false) {
   const outer = selectedExpr
     ? (["case", ["==", ["get", "selected"], 1], mapPinOuterRadius(true), mapPinOuterRadius()] as unknown)
