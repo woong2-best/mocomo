@@ -41,9 +41,9 @@ export function loginErrorMessage(code: string | undefined, fallback?: string): 
     case "account_pending_recovery":
       return "Deletion is pending. Sign in within 30 days to cancel deletion and restore your account.";
     case "oauth_only":
-      return "This email is registered with Discord, Google, LINE, or similar. Use social sign-in below.";
+      return "This account uses Discord, Google, LINE, or similar. Use social sign-in below.";
     case "invalid_credentials":
-      return "Incorrect email or password.";
+      return "Incorrect ID or password.";
     case "Configuration":
       return "Sign-in configuration error. Try again later or use social sign-in.";
     default:

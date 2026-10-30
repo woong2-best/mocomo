@@ -145,3 +145,15 @@ export function credentialsUserHasJwtFields(
 ): boolean {
   return !!user?.username;
 }
+
+/**
+ * Email verification only applies when there is an address to verify.
+ * Username-only accounts (live avatars) have no email — ID + password is enough.
+ */
+export function credentialsNeedEmailVerification(user: {
+  email?: string | null;
+  emailVerified?: Date | null;
+}): boolean {
+  if (user.emailVerified) return false;
+  return Boolean(user.email?.trim());
+}

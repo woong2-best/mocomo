@@ -35,7 +35,15 @@ function isPlatformBootstrapUser(user: { username: string; email?: string | null
 async function findByUsername(username: string) {
   return db.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
-    select: { id: true, username: true, email: true, role: true, passwordHash: true, image: true },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      emailVerified: true,
+      role: true,
+      passwordHash: true,
+      image: true,
+    },
   });
 }
 
@@ -66,6 +74,8 @@ export async function ensureAvatarAccount(profile: AvatarAccountDef): Promise<st
           locale: "en",
           countryCode: "KR",
           role: "ADMIN",
+          // No mailbox — ID + password is the login. Do not leave emailVerified pending.
+          emailVerified: new Date(),
           ...(passwordHash ? { passwordHash } : {}),
         },
         select: { id: true },
@@ -84,6 +94,7 @@ export async function ensureAvatarAccount(profile: AvatarAccountDef): Promise<st
     (legacy) => row.username.trim().toLowerCase() === legacy.trim().toLowerCase()
   );
   const clearStockImage = !!row.image && profileImageForLiveAvatar(row.image) === null;
+  const markVerified = !row.emailVerified && !row.email?.trim();
 
   try {
     await db.user.update({
@@ -93,6 +104,7 @@ export async function ensureAvatarAccount(profile: AvatarAccountDef): Promise<st
         ...(clearStockImage ? { image: null } : {}),
         role: "ADMIN",
         adminDisabledAt: null,
+        ...(markVerified ? { emailVerified: new Date() } : {}),
         ...(passwordHash ? { passwordHash } : {}),
       },
     });
@@ -106,6 +118,7 @@ export async function ensureAvatarAccount(profile: AvatarAccountDef): Promise<st
         ...(clearStockImage ? { image: null } : {}),
         role: "ADMIN",
         adminDisabledAt: null,
+        ...(markVerified ? { emailVerified: new Date() } : {}),
         ...(passwordHash ? { passwordHash } : {}),
       },
     });

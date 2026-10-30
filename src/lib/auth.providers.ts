@@ -6,18 +6,18 @@ import { getRequestIp } from "@/lib/request-ip";
 const credentialsProvider = Credentials({
   name: "credentials",
   credentials: {
-    email: { label: "Email", type: "email" },
+    email: { label: "ID", type: "text" },
     password: { label: "Password", type: "password" },
   },
   async authorize(credentials) {
-    if (!credentials?.email || !credentials?.password) return null;
+    const loginId =
+      credentials?.email ||
+      (credentials as { username?: unknown })?.username ||
+      (credentials as { login?: unknown })?.login;
+    if (!loginId || !credentials?.password) return null;
     const { authenticateCredentialsUser } = await import("@/lib/mobile-credentials-login");
     const ip = await getRequestIp();
-    return authenticateCredentialsUser(
-      String(credentials.email),
-      String(credentials.password),
-      ip
-    );
+    return authenticateCredentialsUser(String(loginId), String(credentials.password), ip);
   },
 });
 

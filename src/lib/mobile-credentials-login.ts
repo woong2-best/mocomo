@@ -6,6 +6,7 @@ import { recoverDeletedAccount } from "@/lib/account-deletion-server";
 import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/auth-rate-limit";
 import {
   CREDENTIALS_JWT_USER_SELECT,
+  credentialsNeedEmailVerification,
   toCredentialsAuthUser,
   type CredentialsJwtUser,
 } from "@/lib/auth-credentials";
@@ -129,7 +130,7 @@ export async function authenticateCredentialsUser(
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return fail();
 
-  if (!user.emailVerified) {
+  if (credentialsNeedEmailVerification(user)) {
     logFail("email_not_verified", user);
     throw new LoginEmailNotVerifiedError();
   }
