@@ -84,9 +84,10 @@ const CATALOG_LABEL_EN: Record<string, string> = {
   SELL_OR_TRADE: "Sell or trade",
 };
 
-export function usedCatalogLabel(id: string, t: UsedUiText = translate): string {
+export function usedCatalogLabel(id: string, _t: UsedUiText = translate): string {
   const key = `m.used.catalog.${id}`;
-  if (englishText(key) !== key) return t(key);
+  const fromMessages = englishText(key);
+  if (fromMessages !== key) return fromMessages;
   return CATALOG_LABEL_EN[id] ?? id;
 }
 

@@ -1,7 +1,14 @@
 /**
  * Product labels that stay English in every UI language.
- * ML Kit must not rewrite these — it produced 다다음 / 추종자 / 시장 / 라이브 / 별.
+ * ML Kit must not rewrite these — it produced broken Hangul for Follow / Market / LIVE
+ * and marketplace category chips (All, Figures & Models, Cosplay, Physical).
  */
+export const KEEP_ENGLISH_KEY_PREFIXES = [
+  "m.used.catalog.",
+  "m.catalog.",
+  "m.market.scope.",
+] as const;
+
 export const KEEP_ENGLISH_UI_KEYS = new Set([
   "m.common.follow",
   "m.common.following",
@@ -19,6 +26,28 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "nav.anime",
   "nav.wallet",
   "nav.studio",
+  "common.search",
+  "m.common.search",
+  "m.common.all",
+  "m.common.recently_viewed",
+  "m.common.recommended",
+  "m.marketplace.tcg",
+  "m.marketplace.books",
+  "m.marketplace.purchases",
+  "m.marketplace.sales",
+  "m.marketplace.favorites",
+  "m.market.track.all",
+  "m.market.track.physical",
+  "m.market.track.digital",
+  "m.market.track.figures_models",
+  "m.market.track.games",
+  "m.market.track.cosplay",
+  "m.market.track.vtuber_3d",
+  "m.market.track.streamer_assets",
+  "m.market.track.emotes_badges",
+  "m.market.track.illustration",
+  "m.market.track.audio_music",
+  "m.market.track.creator_resources",
   "m.star.clear_all",
   "m.star.clear_all_saves",
   "m.feed.instagram",
@@ -45,4 +74,4 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
 ]);
 
 export const KEEP_ENGLISH_TOKENS_RE =
-  /\b(Follow|Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories|WhatsApp|SMS|Repost|Reposted|Quote|Subculture Map|Places|Maid Cafe|Hotel products|Venue|Venues|Featured|Picks|Goods)\b/g;
+  /\b(Follow|Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|All|Search|Physical|Digital|Purchases|Sales|Favorites|TCG|Cosplay|Doujinshi|Figures|Models|Recommended|Delete All|Cos|Instagram|Instagram Stories|WhatsApp|SMS|Repost|Reposted|Quote|Subculture Map|Places|Maid Cafe|Hotel products|Venue|Venues|Featured|Picks|Goods)\b/g;

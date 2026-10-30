@@ -510,7 +510,7 @@ export function MarketplaceListScreen({ mode = "stack", lane = "used" }: Props) 
             setTimeout(() => setSearchFocused(false), 180);
           }}
           onSubmitEditing={() => saveSearch(q)}
-          placeholder={t("common.search")}
+          placeholder="Search"
           containerStyle={{ flex: 1 }}
         />
         <Pressable
