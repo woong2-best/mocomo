@@ -27,7 +27,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.78) 42%, #000 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.16) 48%, rgba(0, 0, 0, 0.42) 100%);
 }
 
 .aleph-landing header {
@@ -39,7 +39,7 @@
   align-items: center;
   padding: 22px 40px;
   border-bottom: 1px solid var(--aleph-line);
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(16px);
 }
 
@@ -97,9 +97,8 @@
   width: 120px;
   height: auto;
   object-fit: contain;
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
-  background: #fff;
+  background: transparent;
+  box-shadow: none;
 }
 
 .aleph-landing .product-meta {
@@ -375,7 +374,6 @@
   .aleph-landing .product-icon {
     width: 84px;
     height: auto;
-    border-radius: 10px;
   }
 
   .aleph-landing .spine {
