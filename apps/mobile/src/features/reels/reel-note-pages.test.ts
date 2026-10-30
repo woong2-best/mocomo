@@ -2,13 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   NOTE_CHROME_BELOW_INSET_PX,
+  NOTE_LATIN_PX,
   NOTE_LINE_PX,
   NOTE_PAD_BOTTOM_PX,
   NOTE_PAD_LEFT_PX,
   NOTE_PAD_RIGHT_PX,
+  noteLineTracking,
   notePageBudget,
   noteSafePads,
   paginateReelNote,
+  wrapReelNoteVisual,
 } from "./reel-note-pages";
 
 test("text reels sit below the back button and left of the action rail", () => {
@@ -25,10 +28,14 @@ test("text reels sit below the back button and left of the action rail", () => {
 test("a digit run wraps before the action rail", () => {
   const pads = noteSafePads(47);
   const budget = notePageBudget(390, 844, pads);
-  const wrapped = paginateReelNote("1".repeat(40), budget);
-  const longest = Math.max(...wrapped.flatMap((page) => page.split("\n").map((row) => row.length)));
-  assert.ok((longest * 11.6) <= (budget.lineWidthPx ?? 0) + 0.01);
+  const rows = wrapReelNoteVisual("1".repeat(40), budget);
+  const longest = Math.max(...rows.map((row) => row.length));
+  assert.ok(longest * NOTE_LATIN_PX <= (budget.lineWidthPx ?? 0) + 0.01);
   assert.ok((budget.lineWidthPx ?? 0) <= 390 - 96 - 20);
+  const full = rows[0]!;
+  const track = noteLineTracking(full, budget.lineWidthPx ?? 0, budget);
+  assert.ok(track >= 0);
+  assert.ok(track < 4);
 });
 
 test("pagination uses the chrome-safe box so a page cannot reach the overlays", () => {

@@ -22,7 +22,8 @@ export const NOTE_PAD_LEFT_PX = 20;
 export const NOTE_PAD_TOP_PX = NOTE_CHROME_BELOW_INSET_PX;
 export const NOTE_JAMO_PX = 14.7;
 export const NOTE_HANGUL_PX = 14.7;
-export const NOTE_LATIN_PX = 11.6;
+/** Wide enough that a row of 1s cannot paint past the measured box. */
+export const NOTE_LATIN_PX = 13.2;
 export const NOTE_SPACE_PX = 4.13;
 export const NOTE_UNIT_PX = 8.5;
 
@@ -161,7 +162,7 @@ export function reelNoteText(
   return `${heading}\n\n${body}`;
 }
 
-export function paginateReelNote(raw: string, budget: NotePageBudget): string[] {
+export function wrapReelNoteVisual(raw: string, budget: NotePageBudget): string[] {
   const text = raw.replace(/\r\n/g, "\n").replace(/^\n+|\n+$/g, "");
   if (!text.trim()) return [];
   const visual: string[] = [];
@@ -172,6 +173,27 @@ export function paginateReelNote(raw: string, budget: NotePageBudget): string[] 
         : wrapReelNoteLine(line, budget.unitsPerLine))
     );
   }
+  return visual;
+}
+
+/** Stretch a full line to the column so the right edge matches, like web justify. */
+export function noteLineTracking(
+  line: string,
+  boxW: number,
+  budget: NotePageBudget
+): number {
+  const chars = Array.from(line);
+  if (chars.length < 2 || boxW <= 0) return 0;
+  let natural = 0;
+  for (const ch of chars) natural += glyphPx(ch, budget);
+  const extra = boxW - natural;
+  if (extra < 0.5) return 0;
+  return extra / (chars.length - 1);
+}
+
+export function paginateReelNote(raw: string, budget: NotePageBudget): string[] {
+  const visual = wrapReelNoteVisual(raw, budget);
+  if (visual.length === 0) return [];
   const pages: string[] = [];
   for (let i = 0; i < visual.length; i += budget.linesPerPage) {
     pages.push(visual.slice(i, i + budget.linesPerPage).join("\n"));
