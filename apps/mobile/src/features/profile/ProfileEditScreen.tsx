@@ -99,6 +99,8 @@ export function ProfileEditScreen() {
   const [uploading, setUploading] = useState<"avatar" | "banner" | "video" | null>(null);
   const [socialConnected, setSocialConnected] = useState<ProfileSocialId[]>([]);
   const [socialAvailable, setSocialAvailable] = useState<Record<ProfileSocialId, boolean>>({
+    youtube: true,
+    twitch: true,
     facebook: true,
     instagram: true,
     twitter: true,

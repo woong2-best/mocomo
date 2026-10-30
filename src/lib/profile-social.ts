@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { decryptOAuthPayload, isOAuthVaultProvider } from "@/lib/oauth-vault";
 import { isFacebookOAuthConfigured } from "@/lib/facebook-oauth";
 import { isInstagramOAuthConfigured } from "@/lib/instagram-oauth";
+import { isYoutubeStreamingOAuthConfigured } from "@/lib/streaming-accounts/providers/youtube";
+import { isTwitchStreamingOAuthConfigured } from "@/lib/streaming-accounts/providers/twitch";
 
 export const PROFILE_SOCIAL_PROVIDERS = [
   "facebook",
@@ -11,24 +13,35 @@ export const PROFILE_SOCIAL_PROVIDERS = [
   "tiktok",
 ] as const;
 
+export const PROFILE_STREAMING_SOCIAL_IDS = ["youtube", "twitch"] as const;
+
 export type ProfileSocialId = (typeof PROFILE_SOCIAL_PROVIDERS)[number];
+export type ProfileStreamingSocialId = (typeof PROFILE_STREAMING_SOCIAL_IDS)[number];
+export type ProfileConnectId = ProfileSocialId | ProfileStreamingSocialId;
 
 export type ProfileSocialLink = {
-  id: ProfileSocialId;
+  id: ProfileConnectId;
   href: string | null;
   label: string;
   iconSrc: string;
 };
 
 const META: Record<
-  ProfileSocialId,
+  ProfileConnectId,
   { label: string; iconSrc: string }
 > = {
+  youtube: { label: "YouTube", iconSrc: "/brand/youtube.svg" },
+  twitch: { label: "Twitch", iconSrc: "/brand/twitch.svg" },
   facebook: { label: "Facebook", iconSrc: "/brand/facebook.png" },
   instagram: { label: "Instagram", iconSrc: "/brand/instagram.png" },
   twitter: { label: "X", iconSrc: "/brand/twitter.png" },
   naver: { label: "CHZZK", iconSrc: "/brand/chzzk.png" },
   tiktok: { label: "TikTok", iconSrc: "/brand/tiktok.png" },
+};
+
+const STREAMING_PLATFORM: Record<ProfileStreamingSocialId, "YOUTUBE" | "TWITCH"> = {
+  youtube: "YOUTUBE",
+  twitch: "TWITCH",
 };
 
 function hrefFor(id: ProfileSocialId, sub: string | null, handle: string | null): string | null {
@@ -86,13 +99,21 @@ export function isTikTokOAuthConfigured(): boolean {
   );
 }
 
-export function getProfileSocialConnectAvailability() {
+export function getProfileSocialConnectAvailability(): Record<ProfileSocialId, boolean> {
   return {
     facebook: isFacebookOAuthConfigured(),
     instagram: isInstagramOAuthConfigured(),
     twitter: isTwitterOAuthConfigured(),
     naver: isNaverOAuthConfigured(),
     tiktok: isTikTokOAuthConfigured(),
+  };
+}
+
+export function getProfileConnectAvailability(): Record<ProfileConnectId, boolean> {
+  return {
+    youtube: isYoutubeStreamingOAuthConfigured(),
+    twitch: isTwitchStreamingOAuthConfigured(),
+    ...getProfileSocialConnectAvailability(),
   };
 }
 
@@ -166,20 +187,89 @@ async function loadConnectedSocialItems(userId: string): Promise<ProfileSocialIt
   return items;
 }
 
+async function loadStreamingSocialItems(userId: string): Promise<ProfileSocialItem[]> {
+  const [profile, rows] = await Promise.all([
+    db.profile.findUnique({
+      where: { userId },
+      select: { showYoutubeOnProfile: true, showTwitchOnProfile: true },
+    }),
+    db.connectedStreamingAccount.findMany({
+      where: {
+        userId,
+        platform: { in: ["YOUTUBE", "TWITCH"] },
+        verified: true,
+        revokedAt: null,
+      },
+      select: { platform: true, channelUrl: true },
+    }),
+  ]);
+  const items: ProfileSocialItem[] = [];
+  for (const id of PROFILE_STREAMING_SOCIAL_IDS) {
+    const row = rows.find((r) => r.platform === STREAMING_PLATFORM[id]);
+    if (!row) continue;
+    const displayed =
+      id === "youtube"
+        ? profile?.showYoutubeOnProfile === true
+        : profile?.showTwitchOnProfile === true;
+    items.push({
+      id,
+      href: row.channelUrl,
+      displayed,
+      ...META[id],
+    });
+  }
+  return items;
+}
+
 export async function listProfileSocialLinks(userId: string): Promise<ProfileSocialLink[]> {
-  return (await loadConnectedSocialItems(userId)).map(({ displayed: _shown, ...link }) => link);
+  const [social, streaming] = await Promise.all([
+    loadConnectedSocialItems(userId),
+    loadStreamingSocialItems(userId),
+  ]);
+  return [
+    ...streaming.filter((item) => item.displayed),
+    ...social,
+  ].map(({ displayed: _shown, ...link }) => link);
 }
 
 export async function listProfileSocialManageItems(userId: string): Promise<ProfileSocialItem[]> {
-  return loadConnectedSocialItems(userId);
+  const [streaming, social] = await Promise.all([
+    loadStreamingSocialItems(userId),
+    loadConnectedSocialItems(userId),
+  ]);
+  return [...streaming, ...social];
 }
 
-export async function listConnectedProfileSocialIds(userId: string): Promise<ProfileSocialId[]> {
-  const rows = await db.account.findMany({
-    where: { userId, provider: { in: [...PROFILE_SOCIAL_PROVIDERS] } },
-    select: { provider: true },
+export async function listConnectedProfileSocialIds(userId: string): Promise<ProfileConnectId[]> {
+  const [socialRows, streamingItems] = await Promise.all([
+    db.account.findMany({
+      where: { userId, provider: { in: [...PROFILE_SOCIAL_PROVIDERS] } },
+      select: { provider: true },
+    }),
+    loadStreamingSocialItems(userId),
+  ]);
+  const social = PROFILE_SOCIAL_PROVIDERS.filter((id) =>
+    socialRows.some((r) => r.provider === id)
+  );
+  const streaming = PROFILE_STREAMING_SOCIAL_IDS.filter((id) =>
+    streamingItems.some((item) => item.id === id && item.displayed)
+  );
+  return [...streaming, ...social];
+}
+
+export async function enableStreamingOnProfile(
+  userId: string,
+  id: ProfileStreamingSocialId
+): Promise<void> {
+  const data =
+    id === "youtube"
+      ? { showYoutubeOnProfile: true }
+      : { showTwitchOnProfile: true };
+  await db.profile.upsert({
+    where: { userId },
+    create: { userId, ...data },
+    update: data,
   });
-  return PROFILE_SOCIAL_PROVIDERS.filter((id) => rows.some((r) => r.provider === id));
 }
 
 export async function setProfileSocialDisplayed(

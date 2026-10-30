@@ -889,10 +889,10 @@ model Profile {
   nicknameEffect String?
   /** 프로필에 생일(월·일) 공개 */
   showBirthdayOnProfile Boolean @default(false)
-  /** 검증된 YouTube 채널 링크를 프로필에 표시 */
-  showYoutubeOnProfile Boolean @default(true)
-  /** 검증된 Twitch 채널 링크를 프로필에 표시 */
-  showTwitchOnProfile Boolean @default(true)
+  /** More Connect Moment에서 켠 경우에만 공개 프로필에 YouTube 표시 */
+  showYoutubeOnProfile Boolean @default(false)
+  /** More Connect Moment에서 켠 경우에만 공개 프로필에 Twitch 표시 */
+  showTwitchOnProfile Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

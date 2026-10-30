@@ -126,7 +126,6 @@ export async function ProfileHeaderAsync({ username }: { username: string }) {
         blockedViewer={header.relationship.blockedViewer}
         mutedByViewer={header.relationship.mutedByViewer}
         liveBroadcast={liveBroadcast}
-        streamingChannelLinks={header.streamingChannelLinks}
         socialLinks={header.socialLinks}
         actionBar={
           header.isSelf ? undefined : header.relationship.blockedByViewer || header.relationship.blockedViewer ? null : (

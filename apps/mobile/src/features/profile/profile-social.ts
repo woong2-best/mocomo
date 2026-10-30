@@ -1,4 +1,15 @@
-export const PROFILE_SOCIAL_IDS = ["facebook", "instagram", "twitter", "naver", "tiktok"] as const;
+import type { ComponentType } from "react";
+import { YoutubeMark, TwitchMark } from "@/features/live/StreamingBrandMark";
+
+export const PROFILE_SOCIAL_IDS = [
+  "youtube",
+  "twitch",
+  "facebook",
+  "instagram",
+  "twitter",
+  "naver",
+  "tiktok",
+] as const;
 export type ProfileSocialId = (typeof PROFILE_SOCIAL_IDS)[number];
 
 export type ProfileSocialLink = {
@@ -10,8 +21,14 @@ export type ProfileSocialLink = {
 
 export const PROFILE_SOCIAL_META: Record<
   ProfileSocialId,
-  { label: string; icon: number }
+  {
+    label: string;
+    icon?: number;
+    Mark?: ComponentType<{ height?: number }>;
+  }
 > = {
+  youtube: { label: "YouTube", Mark: YoutubeMark },
+  twitch: { label: "Twitch", Mark: TwitchMark },
   facebook: {
     label: "Facebook",
     icon: require("../../../assets/brand/facebook.png"),

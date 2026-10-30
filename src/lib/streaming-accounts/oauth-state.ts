@@ -7,7 +7,21 @@ type StatePayload = {
   platform: string;
   nonce: string;
   exp: number;
+  returnTo?: string;
+  showOnProfile?: boolean;
 };
+
+const SAFE_RETURN_TO = new Set([
+  "/settings/profile",
+  "/settings/streaming-accounts",
+  "/auth/mobile/social-connected",
+]);
+
+export function safeStreamingReturnTo(raw: string | null | undefined): string {
+  const path = (raw ?? "").trim();
+  if (SAFE_RETURN_TO.has(path)) return path;
+  return "/settings/streaming-accounts";
+}
 
 function stateSecret(): string {
   const s =
@@ -22,12 +36,18 @@ function sign(data: string): string {
   return createHmac("sha256", stateSecret()).update(data).digest("base64url");
 }
 
-export function mintStreamingOAuthState(userId: string, platform: string): string {
+export function mintStreamingOAuthState(
+  userId: string,
+  platform: string,
+  extras?: { returnTo?: string; showOnProfile?: boolean }
+): string {
   const payload: StatePayload = {
     userId,
     platform,
     nonce: randomBytes(16).toString("hex"),
     exp: Date.now() + STATE_TTL_MS,
+    ...(extras?.returnTo ? { returnTo: safeStreamingReturnTo(extras.returnTo) } : {}),
+    ...(extras?.showOnProfile ? { showOnProfile: true } : {}),
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}.${sign(body)}`;
@@ -36,7 +56,7 @@ export function mintStreamingOAuthState(userId: string, platform: string): strin
 export function verifyStreamingOAuthState(
   state: string,
   expectedPlatform: string
-): { userId: string } | { error: string } {
+): { userId: string; returnTo: string; showOnProfile: boolean } | { error: string } {
   const parts = state.split(".");
   if (parts.length !== 2) return { error: "Invalid OAuth state." };
   const [body, sig] = parts;
@@ -60,7 +80,11 @@ export function verifyStreamingOAuthState(
       return { error: "Platform does not match." };
     }
     if (!payload.userId) return { error: "User information is missing." };
-    return { userId: payload.userId };
+    return {
+      userId: payload.userId,
+      returnTo: safeStreamingReturnTo(payload.returnTo),
+      showOnProfile: payload.showOnProfile === true,
+    };
   } catch {
     return { error: "Could not parse OAuth state." };
   }

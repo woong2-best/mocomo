@@ -17,13 +17,17 @@ export function ProfileSocialIcons({
     <View style={{ flexDirection: "row", alignItems: "center", gap, flexShrink: 0 }}>
       {links.map((link) => {
         const meta = PROFILE_SOCIAL_META[link.id];
-        const mark = (
+        if (!meta) return null;
+        const Mark = meta.Mark;
+        const mark = Mark ? (
+          <Mark height={size} />
+        ) : meta.icon ? (
           <Image
             source={meta.icon}
             style={{ width: size, height: size }}
             resizeMode="contain"
           />
-        );
+        ) : null;
         if (!link.href) {
           return (
             <View key={link.id} accessibilityLabel={link.label}>

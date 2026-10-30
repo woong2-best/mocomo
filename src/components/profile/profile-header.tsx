@@ -24,9 +24,7 @@ import { ProfileFollowCounts } from "@/components/profile/profile-follow-counts"
 import { ProfileLiveBanner } from "@/components/profile/profile-live-banner";
 import { ProfileBannerMedia } from "@/components/profile/profile-banner-media";
 import type { ProfileLiveBroadcast } from "@/lib/profile-live-broadcast";
-import { ProfileStreamingChannelButtons } from "@/components/profile/profile-streaming-channel-buttons";
 import { ProfileSocialIcons } from "@/components/profile/profile-social-icons";
-import type { ProfileStreamingChannelLink } from "@/lib/profile-public-streaming";
 import type { ProfileSocialLink } from "@/lib/profile-social";
 
 type SnsLinks = { website?: string; location?: string; twitter?: string };
@@ -41,7 +39,6 @@ export function ProfileHeader({
   mutedByViewer = false,
   actionBar,
   liveBroadcast = null,
-  streamingChannelLinks = [],
   socialLinks = [],
 }: {
   user: {
@@ -82,7 +79,6 @@ export function ProfileHeader({
   mutedByViewer?: boolean;
   actionBar?: ReactNode | null;
   liveBroadcast?: ProfileLiveBroadcast | null;
-  streamingChannelLinks?: ProfileStreamingChannelLink[];
   socialLinks?: ProfileSocialLink[];
 }) {
   const sns = (user.profile?.snsLinks ?? {}) as SnsLinks;
@@ -160,9 +156,6 @@ export function ProfileHeader({
 
           {!isBlocked && (
             <div className="mb-1 flex min-w-0 max-w-[min(100%,20rem)] flex-wrap items-center justify-end gap-2 sm:max-w-none">
-              {streamingChannelLinks.length > 0 ? (
-                <ProfileStreamingChannelButtons links={streamingChannelLinks} />
-              ) : null}
               {isSelf ? (
                 <Link href="/settings/profile">
                   <Button variant="outline" className="rounded-full font-bold px-5 shrink-0">

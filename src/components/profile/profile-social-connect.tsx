@@ -1,15 +1,16 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-
-type ProfileSocialId = "facebook" | "instagram" | "twitter" | "naver" | "tiktok";
+import type { ProfileConnectId } from "@/lib/profile-social";
 
 type ManageItem = {
-  id: ProfileSocialId;
+  id: ProfileConnectId;
   href: string | null;
 };
 
-const CONNECT_PATH: Record<ProfileSocialId, string> = {
+const CONNECT_PATH: Record<ProfileConnectId, string> = {
+  youtube: "/api/profile/streaming-connect/youtube",
+  twitch: "/api/profile/streaming-connect/twitch",
   facebook: "/api/auth/facebook",
   instagram: "/api/auth/instagram",
   twitter: "/api/auth/twitter",
@@ -17,7 +18,9 @@ const CONNECT_PATH: Record<ProfileSocialId, string> = {
   tiktok: "/api/auth/tiktok",
 };
 
-const BUTTONS: { id: ProfileSocialId; label: string; iconSrc: string }[] = [
+const BUTTONS: { id: ProfileConnectId; label: string; iconSrc: string }[] = [
+  { id: "youtube", label: "YouTube", iconSrc: "/brand/youtube.svg" },
+  { id: "twitch", label: "Twitch", iconSrc: "/brand/twitch.svg" },
   { id: "facebook", label: "Facebook", iconSrc: "/brand/facebook.png" },
   { id: "instagram", label: "Instagram", iconSrc: "/brand/instagram.png" },
   { id: "twitter", label: "X", iconSrc: "/brand/twitter.png" },
@@ -30,8 +33,8 @@ export function ProfileSocialConnect({
   available,
   items,
 }: {
-  connected: ProfileSocialId[];
-  available: Record<ProfileSocialId, boolean>;
+  connected: ProfileConnectId[];
+  available: Record<ProfileConnectId, boolean>;
   items: ManageItem[];
 }) {
   return (
@@ -42,6 +45,7 @@ export function ProfileSocialConnect({
           {BUTTONS.map((btn) => {
             const item = items.find((row) => row.id === btn.id);
             const isOn = connected.includes(btn.id);
+            const canConnect = available[btn.id] || Boolean(item);
             const connectHref = `${CONNECT_PATH[btn.id]}?returnTo=${encodeURIComponent("/settings/profile")}`;
             const pageHref = item?.href ?? null;
             const img = (
@@ -49,24 +53,11 @@ export function ProfileSocialConnect({
               <img
                 src={btn.iconSrc}
                 alt=""
-                className={`h-9 w-9 object-contain${available[btn.id] || isOn ? "" : " opacity-40"}`}
+                className={`h-9 w-9 object-contain${canConnect || isOn ? "" : " opacity-40"}`}
                 width={36}
                 height={36}
               />
             );
-            if (available[btn.id]) {
-              return (
-                <a
-                  key={btn.id}
-                  href={connectHref}
-                  aria-label={`Connect ${btn.label}`}
-                  title={`Connect ${btn.label}`}
-                  className="inline-flex"
-                >
-                  {img}
-                </a>
-              );
-            }
             if (isOn && pageHref) {
               return (
                 <a
@@ -76,6 +67,19 @@ export function ProfileSocialConnect({
                   rel="noopener noreferrer"
                   aria-label={btn.label}
                   title={btn.label}
+                  className="inline-flex"
+                >
+                  {img}
+                </a>
+              );
+            }
+            if (canConnect) {
+              return (
+                <a
+                  key={btn.id}
+                  href={connectHref}
+                  aria-label={`Connect ${btn.label}`}
+                  title={`Connect ${btn.label}`}
                   className="inline-flex"
                 >
                   {img}

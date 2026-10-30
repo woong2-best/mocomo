@@ -32,7 +32,7 @@ import { hydrateUserOAuthProfile } from "@/lib/oauth-vault";
 import { isPublicHttpUrl } from "@/lib/displayable-image-url";
 import { evaluateMoneyAge, toPublicMoneyAge } from "@/lib/money-age-policy";
 import {
-  getProfileSocialConnectAvailability,
+  getProfileConnectAvailability,
   listConnectedProfileSocialIds,
   listProfileSocialManageItems,
 } from "@/lib/profile-social";
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
   const settings = await getProfileSettingsForUser(userId);
   const [socialConnected, socialAvailable, socialItems] = await Promise.all([
     listConnectedProfileSocialIds(userId),
-    Promise.resolve(getProfileSocialConnectAvailability()),
+    Promise.resolve(getProfileConnectAvailability()),
     listProfileSocialManageItems(userId),
   ]);
   const storedImage = user.image;

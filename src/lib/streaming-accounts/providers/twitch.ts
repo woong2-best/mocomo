@@ -5,6 +5,10 @@ import type {
 } from "../types";
 import { parseExternalLiveSource } from "@/lib/live-external/parse";
 
+export function isTwitchStreamingOAuthConfigured(): boolean {
+  return twitchCreds() !== null;
+}
+
 function twitchCreds(): { clientId: string; clientSecret: string } | null {
   const clientId = process.env.TWITCH_CLIENT_ID?.trim();
   const clientSecret = process.env.TWITCH_CLIENT_SECRET?.trim();

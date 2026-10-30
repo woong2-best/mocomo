@@ -13,6 +13,10 @@ function youtubeApiKey(): string | null {
   );
 }
 
+export function isYoutubeStreamingOAuthConfigured(): boolean {
+  return googleClientCreds() !== null;
+}
+
 function googleClientCreds(): { clientId: string; clientSecret: string } | null {
   const clientId = (
     process.env.YOUTUBE_STREAMING_CLIENT_ID ||

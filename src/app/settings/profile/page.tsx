@@ -9,9 +9,8 @@ import {
   usernameChangeWindowStart,
   usernameChangesRemaining,
 } from "@/lib/username-policy";
-import { listUserStreamingAccounts } from "@/lib/streaming-accounts/service";
 import {
-  getProfileSocialConnectAvailability,
+  getProfileConnectAvailability,
   listConnectedProfileSocialIds,
   listProfileSocialManageItems,
 } from "@/lib/profile-social";
@@ -47,7 +46,7 @@ export default async function ProfileSettingsPage() {
   const sns = (user.profile?.snsLinks ?? {}) as { location?: string; website?: string };
   const birth = splitStoredBirthDate(user.birthDate);
 
-  const [recentUsernameChanges, streamingAccounts, socialConnected, socialAvailable, socialItems] =
+  const [recentUsernameChanges, socialConnected, socialAvailable, socialItems] =
     await Promise.all([
       timed("usernameChangeLog", () =>
         db.usernameChangeLog.findMany({
@@ -59,9 +58,8 @@ export default async function ProfileSettingsPage() {
           select: { createdAt: true },
         })
       ),
-      timed("streamingAccounts", () => listUserStreamingAccounts(user.id)),
       timed("socialConnected", () => listConnectedProfileSocialIds(user.id)),
-      timed("socialAvailable", async () => getProfileSocialConnectAvailability()),
+      timed("socialAvailable", async () => getProfileConnectAvailability()),
       timed("socialItems", () => listProfileSocialManageItems(user.id)),
     ]);
   const resetAt = usernameChangeResetAt(recentUsernameChanges);
@@ -92,8 +90,6 @@ export default async function ProfileSettingsPage() {
         birthMonth: birth.month,
         birthDay: birth.day,
         showBirthdayOnProfile: user.profile?.showBirthdayOnProfile ?? false,
-        showYoutubeOnProfile: user.profile?.showYoutubeOnProfile ?? true,
-        showTwitchOnProfile: user.profile?.showTwitchOnProfile ?? true,
         usernameChangesRemaining: usernameChangesRemaining(recentUsernameChanges.length),
         usernameChangeResetAt: resetAt?.toISOString() ?? null,
       }}
@@ -102,7 +98,6 @@ export default async function ProfileSettingsPage() {
           ? { username: user.username, photos: cosplayPhotos }
           : null
       }
-      streamingAccounts={streamingAccounts}
       socialConnected={socialConnected}
       socialAvailable={socialAvailable}
       socialItems={socialItems}

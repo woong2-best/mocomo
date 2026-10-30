@@ -16,8 +16,8 @@ async function resolveProfileVisibility(
   userId: string,
   profile: ProfileVisibility | null | undefined
 ): Promise<{ showYoutube: boolean; showTwitch: boolean }> {
-  let showYoutube = profile?.showYoutubeOnProfile ?? true;
-  let showTwitch = profile?.showTwitchOnProfile ?? true;
+  let showYoutube = profile?.showYoutubeOnProfile ?? false;
+  let showTwitch = profile?.showTwitchOnProfile ?? false;
 
   if (
     profile &&
@@ -34,8 +34,8 @@ async function resolveProfileVisibility(
         showTwitch = row.showTwitchOnProfile;
       }
     } catch {
-      showYoutube = true;
-      showTwitch = true;
+      showYoutube = false;
+      showTwitch = false;
     }
   }
 
@@ -46,13 +46,13 @@ export async function getVisibleProfileStreamingLinks(
   userId: string,
   profile: ProfileVisibility | null | undefined
 ): Promise<ProfileStreamingChannelLink[]> {
-  let showYoutube = true;
-  let showTwitch = true;
+  let showYoutube = false;
+  let showTwitch = false;
   try {
     ({ showYoutube, showTwitch } = await resolveProfileVisibility(userId, profile));
   } catch {
-    showYoutube = true;
-    showTwitch = true;
+    showYoutube = false;
+    showTwitch = false;
   }
 
   if (!showYoutube && !showTwitch) return [];

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { isConnectablePlatform } from "@/lib/streaming-accounts/types";
 import { completeOAuthConnect } from "@/lib/streaming-accounts/service";
-import { verifyStreamingOAuthState } from "@/lib/streaming-accounts/oauth-state";
+import {
+  safeStreamingReturnTo,
+  verifyStreamingOAuthState,
+} from "@/lib/streaming-accounts/oauth-state";
 import { revalidateProfileStreamingForUser } from "@/lib/revalidate-profile-streaming";
+import { enableStreamingOnProfile } from "@/lib/profile-social";
 
 export async function GET(
   req: Request,
@@ -15,33 +19,46 @@ export async function GET(
   const state = url.searchParams.get("state");
   const oauthError = url.searchParams.get("error");
 
-  const settingsUrl = new URL("/settings/streaming-accounts", req.url);
+  const statePayload =
+    state && isConnectablePlatform(platform)
+      ? verifyStreamingOAuthState(state, platform)
+      : { error: "invalid_callback" };
+  const returnTo =
+    "error" in statePayload
+      ? "/settings/streaming-accounts"
+      : safeStreamingReturnTo(statePayload.returnTo);
+  const dest = new URL(returnTo, req.url);
 
   if (oauthError) {
     const message =
       oauthError === "access_denied"
         ? "Sign-in was cancelled or the app still needs approval. Please try again."
         : oauthError;
-    settingsUrl.searchParams.set("error", message);
-    return NextResponse.redirect(settingsUrl);
+    dest.searchParams.set("error", message);
+    return NextResponse.redirect(dest);
   }
 
   if (!isConnectablePlatform(platform) || !code || !state) {
-    settingsUrl.searchParams.set("error", "invalid_callback");
-    return NextResponse.redirect(settingsUrl);
+    dest.searchParams.set("error", "invalid_callback");
+    return NextResponse.redirect(dest);
   }
 
   const result = await completeOAuthConnect(platform, code, state);
   if (!result.ok) {
-    settingsUrl.searchParams.set("error", result.error);
-    return NextResponse.redirect(settingsUrl);
+    dest.searchParams.set("error", result.error);
+    return NextResponse.redirect(dest);
   }
 
-  const statePayload = verifyStreamingOAuthState(state, platform);
   if (!("error" in statePayload)) {
+    if (statePayload.showOnProfile) {
+      await enableStreamingOnProfile(
+        statePayload.userId,
+        platform === "TWITCH" ? "twitch" : "youtube"
+      );
+    }
     await revalidateProfileStreamingForUser(statePayload.userId);
   }
 
-  settingsUrl.searchParams.set("connected", platform);
-  return NextResponse.redirect(settingsUrl);
+  dest.searchParams.set("connected", platform);
+  return NextResponse.redirect(dest);
 }

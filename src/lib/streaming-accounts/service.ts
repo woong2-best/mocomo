@@ -165,14 +165,15 @@ export async function getVerifiedAccountsForUser(userId: string) {
 
 export function startOAuthConnect(
   userId: string,
-  platform: ConnectableStreamingPlatform
+  platform: ConnectableStreamingPlatform,
+  extras?: { returnTo?: string; showOnProfile?: boolean }
 ): { url: string } | { error: string } {
   const provider = getStreamingProvider(platform);
   if (!provider.supportsOAuth) {
     return { error: "This platform does not support OAuth connection." };
   }
   const redirectUri = streamingOAuthRedirectUri(platform);
-  const state = mintStreamingOAuthState(userId, platform);
+  const state = mintStreamingOAuthState(userId, platform, extras);
   const url = provider.getConnectUrl(state, redirectUri);
   if (!url) {
     return {

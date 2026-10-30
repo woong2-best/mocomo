@@ -4,7 +4,6 @@ import * as WebBrowser from "expo-web-browser";
 import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
 import { useTheme } from "@/theme/ThemeContext";
-import { spacing } from "@/theme/tokens";
 import { useI18n } from "@/i18n/I18nProvider";
 import { startProfileSocialConnect } from "@/api/profile";
 import {
@@ -41,7 +40,7 @@ export function ProfileSocialConnect({
   const itemById = useMemo(() => new Map(items.map((row) => [row.id, row])), [items]);
 
   async function connect(id: ProfileSocialId) {
-    if (busy || !available[id]) return;
+    if (busy) return;
     setBusy(id);
     try {
       const { url } = await startProfileSocialConnect(id);
@@ -77,40 +76,41 @@ export function ProfileSocialConnect({
           const meta = PROFILE_SOCIAL_META[id];
           const isOn = connectedSet.has(id);
           const item = itemById.get(id);
-          const canConnect = available[id];
+          const canConnect = available[id] || Boolean(item);
+          const Mark = meta.Mark;
           return (
             <Pressable
               key={id}
               onPress={() =>
-                canConnect ? void connect(id) : void openPage(item?.href ?? null)
+                isOn && item?.href
+                  ? void openPage(item.href)
+                  : canConnect
+                    ? void connect(id)
+                    : undefined
               }
               disabled={(!canConnect && !item?.href) || busy !== null}
               accessibilityRole="button"
               accessibilityLabel={meta.label}
             >
-              <Image
-                source={meta.icon}
-                style={{
-                  width: size,
-                  height: size,
-                  opacity: canConnect || isOn ? 1 : 0.4,
-                }}
-                resizeMode="contain"
-              />
+              {Mark ? (
+                <View style={{ opacity: canConnect || isOn ? 1 : 0.4 }}>
+                  <Mark height={size} />
+                </View>
+              ) : meta.icon ? (
+                <Image
+                  source={meta.icon}
+                  style={{
+                    width: size,
+                    height: size,
+                    opacity: canConnect || isOn ? 1 : 0.4,
+                  }}
+                  resizeMode="contain"
+                />
+              ) : null}
             </Pressable>
           );
         })}
       </View>
-      <Text
-        style={{
-          marginTop: spacing.sm,
-          fontSize: 12,
-          color: colors.textMuted,
-          fontWeight: "600",
-        }}
-      >
-        {t("m.profile.more_connect_hint")}
-      </Text>
     </FolkCard>
   );
 }

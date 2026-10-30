@@ -33,10 +33,8 @@ import {
 import Link from "next/link";
 import { AppPageChrome } from "@/components/layout/app-page-chrome";
 import { sanitizeBirthDigitInput } from "@/lib/birth-date";
-import { ProfileStreamingSettings } from "@/components/profile/profile-streaming-settings";
 import { ProfileSocialConnect } from "@/components/profile/profile-social-connect";
-import type { StreamingAccountPublic } from "@/lib/streaming-accounts/types";
-import type { ProfileSocialId, ProfileSocialItem } from "@/lib/profile-social";
+import type { ProfileConnectId, ProfileSocialItem } from "@/lib/profile-social";
 
 function clampBirthDigits(e: React.FormEvent<HTMLInputElement>, maxLength: number) {
   const el = e.currentTarget;
@@ -62,23 +60,19 @@ type Initial = {
   birthMonth: string;
   birthDay: string;
   showBirthdayOnProfile: boolean;
-  showYoutubeOnProfile: boolean;
-  showTwitchOnProfile: boolean;
 };
 
 export function ProfileSettingsForm({
   initial,
   cosplayerProfile,
-  streamingAccounts = [],
   socialConnected = [],
   socialAvailable,
   socialItems = [],
 }: {
   initial: Initial;
   cosplayerProfile: { username: string; photos: CosplayGalleryPhoto[] } | null;
-  streamingAccounts?: StreamingAccountPublic[];
-  socialConnected?: ProfileSocialId[];
-  socialAvailable?: Record<ProfileSocialId, boolean>;
+  socialConnected?: ProfileConnectId[];
+  socialAvailable?: Record<ProfileConnectId, boolean>;
   socialItems?: ProfileSocialItem[];
 }) {
   const [msg, setMsg] = useState("");
@@ -146,8 +140,6 @@ export function ProfileSettingsForm({
       favoriteTags: tags,
       showNsfw: form.get("showNsfw") === "on",
       showBirthdayOnProfile: form.get("showBirthdayOnProfile") === "on",
-      showYoutubeOnProfile: form.get("showYoutubeOnProfile") === "on",
-      showTwitchOnProfile: form.get("showTwitchOnProfile") === "on",
       ...(clearBirth
         ? { clearBirthDate: true }
         : {
@@ -207,6 +199,8 @@ export function ProfileSettingsForm({
         connected={socialConnected}
         available={
           socialAvailable ?? {
+            youtube: true,
+            twitch: true,
             facebook: true,
             instagram: true,
             twitter: true,
@@ -215,12 +209,6 @@ export function ProfileSettingsForm({
           }
         }
         items={socialItems}
-      />
-
-      <ProfileStreamingSettings
-        accounts={streamingAccounts}
-        showYoutubeOnProfile={initial.showYoutubeOnProfile}
-        showTwitchOnProfile={initial.showTwitchOnProfile}
       />
 
       <Card className="rounded-2xl">
