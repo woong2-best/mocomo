@@ -18,6 +18,7 @@ import { saveWalletBootstrap } from "@/api/wallet-bootstrap-cache";
 import { fetchStripeConnectStatus } from "@/api/stripe-connect";
 import { fetchSettlementStatus } from "@/api/settlement";
 import { WalletTransferPanel } from "@/features/wallet/WalletTransferPanel";
+import { KeyboardAwareScrollView } from "@/ui/KeyboardAwareScrollView";
 import { GemBalancePanel } from "@/features/wallet/GemBalancePanel";
 import { WalletMembershipStrip } from "@/features/wallet/WalletMembershipStrip";
 import { SupportTiersPanel } from "@/features/support/SupportTiersPanel";
@@ -144,9 +145,12 @@ export function WalletScreen() {
               <GemBalancePanel />
             </ScrollView>
         ) : tab === "transfer" ? (
-            <ScrollView contentContainerStyle={styles.listBody} showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView
+              contentContainerStyle={[styles.listBody, { paddingBottom: 80 }]}
+              showsVerticalScrollIndicator={false}
+            >
               <WalletTransferPanel />
-            </ScrollView>
+            </KeyboardAwareScrollView>
         ) : tab === "tier" ? (
           <SupportTiersPanel />
         ) : earningsLoading ? (

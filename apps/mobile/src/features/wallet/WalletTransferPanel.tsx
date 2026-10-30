@@ -7,7 +7,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +25,7 @@ import {
   sanitizeMocoDecimalInput,
 } from "@/lib/moco-amount";
 import { FolkButton } from "@/ui/FolkButton";
+import { KeyboardAwareTextInput } from "@/ui/KeyboardAwareScrollView";
 import { ATM_LETTER_MESSAGE_MAX } from "@/lib/chat-atm-letter";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -277,7 +277,7 @@ export function WalletTransferPanel() {
       <Text style={styles.balanceLine}>{formatMocoCount(held)} MOCO</Text>
 
       <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.recipient_username")}</Text>
-      <TextInput
+      <KeyboardAwareTextInput
         value={username}
         editable={!pending && !overlay}
         autoCapitalize="none"
@@ -292,7 +292,7 @@ export function WalletTransferPanel() {
       />
 
       <Text style={[styles.fieldKicker, styles.fieldKickerSpaced]}>{t("m.wallet.letter")}</Text>
-      <TextInput
+      <KeyboardAwareTextInput
         value={letter}
         editable={!pending && !overlay}
         multiline
@@ -318,7 +318,7 @@ export function WalletTransferPanel() {
         </View>
       ) : (
         <View style={styles.amountSlot}>
-          <TextInput
+          <KeyboardAwareTextInput
             value={amount}
             editable={!pending && !overlay}
             keyboardType="decimal-pad"
