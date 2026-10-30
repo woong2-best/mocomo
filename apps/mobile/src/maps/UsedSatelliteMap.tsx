@@ -68,7 +68,6 @@ function mapHtml(
     width: 16px; height: 16px;
     border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
-    border: 2px solid #fff;
     box-shadow: 0 1px 4px rgba(0,0,0,.5);
   }
   .maplibregl-popup-content {

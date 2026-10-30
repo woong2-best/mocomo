@@ -559,8 +559,7 @@ if (!maplibregl) {
       paint: Object.assign({
         "circle-radius": 7,
         "circle-color": ["get", "color"],
-        "circle-stroke-width": 2,
-        "circle-stroke-color": "#ffffff"
+        "circle-stroke-width": 0
       }, circlePitch)
     });
     visibleKey = "";

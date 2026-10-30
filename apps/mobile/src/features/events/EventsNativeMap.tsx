@@ -291,8 +291,7 @@ export function EventsNativeMap({
             paint={{
               "circle-radius": ["case", ["==", ["get", "selected"], 1], 8, 7],
               "circle-color": ["get", "color"],
-              "circle-stroke-width": 2,
-              "circle-stroke-color": "#ffffff",
+              "circle-stroke-width": 0,
               "circle-pitch-alignment": "viewport",
               "circle-pitch-scale": "viewport",
             }}

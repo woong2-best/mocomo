@@ -329,8 +329,7 @@ export function SubcultureEventsMap({
             paint: {
               "circle-radius": pinHalo ? 8 : 7,
               "circle-color": ["get", "color"],
-              "circle-stroke-width": pinHalo ? 3 : 2,
-              "circle-stroke-color": "#ffffff",
+              "circle-stroke-width": 0,
               "circle-pitch-alignment": "viewport",
               "circle-pitch-scale": "viewport",
             },
