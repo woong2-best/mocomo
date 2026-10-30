@@ -1,14 +1,16 @@
-/** Pin colors aligned with web `SUBCULTURE_EVENT_CATEGORY_COLORS` */
+import { mapPinColorForCategory } from "@/maps/map-pin";
+
+/** Pin colors aligned with web circular pink / green / blue pins */
 export const EVENT_PIN_COLORS: Record<string, string> = {
-  comic: "#8b5cf6",
-  anime: "#3b82f6",
-  cosplay: "#d946ef",
-  goods: "#f59e0b",
-  maid_cafe: "#ec4899",
-  user_recommendation: "#22c55e",
-  other: "#64748b",
+  comic: "#2196F3",
+  anime: "#2196F3",
+  cosplay: "#2196F3",
+  goods: "#2196F3",
+  maid_cafe: "#ff69b4",
+  user_recommendation: "#4CAF50",
+  other: "#2196F3",
 };
 
 export function eventPinColor(category: string) {
-  return EVENT_PIN_COLORS[category] ?? EVENT_PIN_COLORS.other;
+  return mapPinColorForCategory(category);
 }

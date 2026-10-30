@@ -8,8 +8,7 @@ import { eventPinColor } from "@/features/events/event-map-colors";
 import type { Locale } from "@/i18n";
 import { translate } from "@/i18n/runtime";
 import { MAPLIBRE_GLYPHS_URL } from "@/maps/map-styles";
-import { PINK_MAP_PIN_DATA_URI } from "@/maps/pink-map-pin-data";
-import { PINK_MAP_PIN_IMAGE_ID, PINK_MAP_PIN_SYMBOL_LAYOUT } from "@/maps/pink-map-pin";
+import { mapPinCircleLayers } from "@/maps/map-pin";
 
 const MAPLIBRE_VERSION = "6.1.0";
 
@@ -550,17 +549,24 @@ if (!maplibregl) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] }
     });
-    try {
-      const loaded = await map.loadImage(${JSON.stringify(PINK_MAP_PIN_DATA_URI)});
-      if (!map.hasImage(${JSON.stringify(PINK_MAP_PIN_IMAGE_ID)})) {
-        map.addImage(${JSON.stringify(PINK_MAP_PIN_IMAGE_ID)}, loaded.data);
-      }
-    } catch (e) {}
+    const pinPaint = ${JSON.stringify(mapPinCircleLayers())};
     map.addLayer({
-      id: "event-pins-dot",
-      type: "symbol",
+      id: "event-pins-shadow",
+      type: "circle",
       source: "event-pins",
-      layout: ${JSON.stringify(PINK_MAP_PIN_SYMBOL_LAYOUT)}
+      paint: pinPaint.shadow
+    });
+    map.addLayer({
+      id: "event-pins-outer",
+      type: "circle",
+      source: "event-pins",
+      paint: pinPaint.outer
+    });
+    map.addLayer({
+      id: "event-pins-inner",
+      type: "circle",
+      source: "event-pins",
+      paint: pinPaint.inner
     });
     visibleKey = "";
     publishVisible();

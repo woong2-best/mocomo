@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Linking, StyleSheet, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import * as Haptics from "expo-haptics";
-import { PINK_MAP_PIN_DATA_URI } from "@/maps/pink-map-pin-data";
+import { MAP_PIN_PINK } from "@/maps/map-pin";
 
 const MAPLIBRE_VERSION = "6.1.0";
 const ESRI_SATELLITE_MAX_ZOOM = 19;
@@ -66,10 +66,24 @@ function mapHtml(
   .maplibregl-canvas-container, .maplibregl-canvas { background: ${bg} !important; }
   .maplibregl-ctrl-attrib, .maplibregl-ctrl-logo, .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { display: none !important; }
   .pin {
-    width: 19px;
-    height: 24px;
-    display: block;
+    width: 40px;
+    height: 40px;
+    background-color: ${MAP_PIN_PINK};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: transform 0.2s ease;
     pointer-events: auto;
+  }
+  .pin:hover { transform: scale(1.1); }
+  .pin-inner {
+    width: 18px;
+    height: 18px;
+    background-color: #fff;
+    border-radius: 50%;
   }
   .maplibregl-popup-content {
     border-radius: 12px;
@@ -179,16 +193,18 @@ if (!maplibregl) {
       next.add(pin.id);
       const prev = markers.get(pin.id);
       if (prev) prev.remove();
-      const el = document.createElement("img");
+      const el = document.createElement("div");
       el.className = "pin";
-      el.src = ${JSON.stringify(PINK_MAP_PIN_DATA_URI)};
-      el.alt = "";
+      el.style.backgroundColor = /^#[0-9A-Fa-f]{6}$/.test(pin.color || "") ? pin.color : ${JSON.stringify(MAP_PIN_PINK)};
+      const inner = document.createElement("div");
+      inner.className = "pin-inner";
+      el.appendChild(inner);
       el.addEventListener("click", (event) => {
         event.stopPropagation();
         event.preventDefault();
         showPin(pin);
       });
-      const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
+      const marker = new maplibregl.Marker({ element: el, anchor: "center" })
         .setLngLat([pin.lng, pin.lat])
         .addTo(map);
       markers.set(pin.id, marker);

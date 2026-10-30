@@ -1,6 +1,6 @@
 export type ScreenPt = { x: number; y: number };
 
-export const CLUMP_RADIUS_PX = 28;
+export const CLUMP_RADIUS_PX = 44;
 /** Zoom that splits a stacked pile into separate pins at their real spots. */
 export const CLUMP_SEPARATE_MAX_ZOOM = 16;
 /** Isolated pin tap — building / rooftop. */

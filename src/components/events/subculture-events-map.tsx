@@ -12,7 +12,6 @@ import type {
 import type { MapEventPin } from "@/lib/subculture-events";
 import { googleSearchUrlForEvent } from "@/lib/subculture-event-pins";
 import { eventCountryFlag } from "@/lib/subculture-event-countries";
-import { SUBCULTURE_EVENT_CATEGORY_COLORS } from "@/lib/subculture-event-types";
 import { collapseMapLibreAttribution } from "@/lib/maps/maplibre-attribution";
 import { loadMapLibre } from "@/lib/maps/maplibre-loader";
 import {
@@ -30,10 +29,9 @@ import {
   MAPLIBRE_GLYPHS_URL,
 } from "@/lib/maps/esri-satellite";
 import {
-  PINK_MAP_PIN_IMAGE_ID,
-  PINK_MAP_PIN_PUBLIC_URL,
-  pinkMapPinSymbolLayout,
-} from "@/lib/maps/pink-map-pin";
+  mapPinCirclePaint,
+  mapPinColorForCategory,
+} from "@/lib/maps/map-pin";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -91,11 +89,10 @@ function safeHttpUrl(url: string | null | undefined): string | null {
 }
 
 /** Pins within this many screen pixels count as one pile. */
-const CLUMP_RADIUS_PX = 28;
+const CLUMP_RADIUS_PX = 44;
 
 function pinColor(category: string, halo: boolean) {
-  if (halo) return "#ff4d9a";
-  return SUBCULTURE_EVENT_CATEGORY_COLORS[category] ?? SUBCULTURE_EVENT_CATEGORY_COLORS.other;
+  return mapPinColorForCategory(category, halo);
 }
 
 function pinsToGeoJSON(pins: MapEventPin[], halo: boolean) {
@@ -139,7 +136,7 @@ function buildPinPopupHtml(pin: MapEventPin): string {
     pin.source === "official" || pin.source === "auto"
       ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--official">Official</span>'
       : pin.category === "maid_cafe"
-        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--maid">Maid cafe</span>'
+        ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--maid notranslate" translate="no">Maid Cafe</span>'
         : pin.category === "user_recommendation"
           ? '<span class="subculture-map-popup-badge subculture-map-popup-badge--ongoing">Community pick</span>'
           : "";
@@ -323,26 +320,29 @@ export function SubcultureEventsMap({
           } catch {
             /* mercator fallback */
           }
-          if (!map.hasImage(PINK_MAP_PIN_IMAGE_ID)) {
-            try {
-              const loaded = await map.loadImage(PINK_MAP_PIN_PUBLIC_URL);
-              if (!map.hasImage(PINK_MAP_PIN_IMAGE_ID)) {
-                map.addImage(PINK_MAP_PIN_IMAGE_ID, loaded.data);
-              }
-            } catch (err) {
-              console.error("[subculture-events-map] pin image", err);
-            }
-          }
           if (!map.getSource("event-pins")) {
             map.addSource("event-pins", {
               type: "geojson",
               data: pinsToGeoJSON(pins, pinHalo),
+              promoteId: "id",
             });
             map.addLayer({
-              id: "event-pins-dot",
-              type: "symbol",
+              id: "event-pins-shadow",
+              type: "circle",
               source: "event-pins",
-              layout: pinkMapPinSymbolLayout(pinHalo),
+              paint: mapPinCirclePaint("shadow", pinHalo),
+            });
+            map.addLayer({
+              id: "event-pins-outer",
+              type: "circle",
+              source: "event-pins",
+              paint: mapPinCirclePaint("outer", pinHalo),
+            });
+            map.addLayer({
+              id: "event-pins-inner",
+              type: "circle",
+              source: "event-pins",
+              paint: mapPinCirclePaint("inner", pinHalo),
             });
           }
           resize();
@@ -394,7 +394,7 @@ export function SubcultureEventsMap({
           closeButton: false,
           maxWidth: "240px",
           className: "subculture-map-popup",
-          offset: 22,
+          offset: 24,
         })
           .setLngLat([pin.lng, pin.lat])
           .setHTML(buildPinPopupHtml(pin))
@@ -411,10 +411,32 @@ export function SubcultureEventsMap({
         onPinClick?.(pin);
       };
 
+      let hoveredPinId: string | number | null = null;
+      const setPinHover = (id: string | number | null) => {
+        if (hoveredPinId === id) return;
+        if (hoveredPinId != null) {
+          try {
+            map.setFeatureState({ source: "event-pins", id: hoveredPinId }, { hover: false });
+          } catch {
+            /* ignore */
+          }
+        }
+        hoveredPinId = id;
+        if (id != null) {
+          try {
+            map.setFeatureState({ source: "event-pins", id }, { hover: true });
+          } catch {
+            /* ignore */
+          }
+        }
+      };
       map.on("mousemove", (event) => {
         if (!interactive) return;
-        map.getCanvas().style.cursor = pileAtPoint(event.point).length > 0 ? "pointer" : "";
+        const pile = pileAtPoint(event.point);
+        map.getCanvas().style.cursor = pile.length > 0 ? "pointer" : "";
+        setPinHover(pile[0]?.id ?? null);
       });
+      map.getCanvas().addEventListener("mouseleave", () => setPinHover(null));
       map.on("click", (event) => {
         if (interactive) {
           const pile = pileAtPoint(event.point);
@@ -551,8 +573,11 @@ export function SubcultureEventsMap({
         )}
       />
       {pinDropMode && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none rounded-full bg-emerald-600/90 px-3 py-1.5 text-xs font-medium text-white shadow-lg">
-          지도를 클릭해 장소를 추가하세요
+        <div
+          className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none rounded-full bg-emerald-600/90 px-3 py-1.5 text-xs font-medium text-white shadow-lg"
+          translate="no"
+        >
+          {i18n("events.sby91fj")}
         </div>
       )}
       {!ready && (

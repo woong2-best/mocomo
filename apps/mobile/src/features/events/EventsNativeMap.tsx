@@ -16,16 +16,13 @@ import {
   viewForPile,
 } from "@/maps/pin-clump";
 import { globeCenterForCountry } from "@/navigation/DrawerMapLibreGlobe";
-import {
-  PINK_MAP_PIN_IMAGE_ID,
-  PINK_MAP_PIN_ICON_SIZE,
-  PINK_MAP_PIN_ICON_SIZE_SELECTED,
-} from "@/maps/pink-map-pin";
+import { mapPinCircleLayers } from "@/maps/map-pin";
 
 type ViewConfig = { lat: number; lng: number; zoom: number };
 
 /** Screen-pixel pad around a tap. The pin graphic stays small. */
-const PIN_HITBOX = { top: 20, right: 20, bottom: 20, left: 20 };
+const PIN_HITBOX = { top: 24, right: 24, bottom: 24, left: 24 };
+const PIN_CIRCLES = mapPinCircleLayers(true);
 
 function validPins(pins: MapEventPin[]) {
   return pins.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
@@ -188,7 +185,6 @@ export function EventsNativeMap({
         Map: ComponentType<Record<string, unknown>>;
         Camera: ComponentType<Record<string, unknown>>;
         GeoJSONSource: ComponentType<Record<string, unknown>>;
-        Images: ComponentType<Record<string, unknown>>;
         Layer: ComponentType<Record<string, unknown>>;
       };
     } catch {
@@ -213,11 +209,11 @@ export function EventsNativeMap({
     [usablePins, selectedId]
   );
 
-  if (!MLRN?.Map || !MLRN.Images) {
+  if (!MLRN?.Map) {
     return <MapFallback style={style} />;
   }
 
-  const { Map, Camera, GeoJSONSource, Images, Layer } = MLRN;
+  const { Map, Camera, GeoJSONSource, Layer } = MLRN;
 
   return (
     <View style={[styles.wrap, style]}>
@@ -264,11 +260,6 @@ export function EventsNativeMap({
           duration={focused ? 700 : explore ? 500 : 350}
           easing={focused ? "fly" : "ease"}
         />
-        <Images
-          images={{
-            [PINK_MAP_PIN_IMAGE_ID]: require("../../../assets/maps/pink-map-pin.png"),
-          }}
-        />
         <GeoJSONSource
           id="event-pins"
           data={geojson}
@@ -296,24 +287,9 @@ export function EventsNativeMap({
                 }
           }
         >
-          <Layer
-            id="event-pins-symbol"
-            type="symbol"
-            layout={{
-              "icon-image": PINK_MAP_PIN_IMAGE_ID,
-              "icon-size": [
-                "case",
-                ["==", ["get", "selected"], 1],
-                PINK_MAP_PIN_ICON_SIZE_SELECTED,
-                PINK_MAP_PIN_ICON_SIZE,
-              ],
-              "icon-anchor": "bottom",
-              "icon-allow-overlap": true,
-              "icon-ignore-placement": true,
-              "icon-pitch-alignment": "viewport",
-              "icon-rotation-alignment": "viewport",
-            }}
-          />
+          <Layer id="event-pins-shadow" type="circle" paint={PIN_CIRCLES.shadow} />
+          <Layer id="event-pins-outer" type="circle" paint={PIN_CIRCLES.outer} />
+          <Layer id="event-pins-inner" type="circle" paint={PIN_CIRCLES.inner} />
         </GeoJSONSource>
       </Map>
     </View>

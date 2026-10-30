@@ -12,7 +12,7 @@ import {
   ESRI_WORLD_IMAGERY_TILES,
   MAPLIBRE_GLYPHS_URL,
 } from "@/lib/maps/esri-satellite";
-import { createPinkMapPinElement } from "@/lib/maps/pink-map-pin";
+import { createMapPinElement } from "@/lib/maps/map-pin";
 import type { MeetCoords } from "@/lib/maps/types";
 import { cn } from "@/lib/utils";
 
@@ -152,8 +152,8 @@ export function MapLibreMeetMapCanvas({
 
         if (marker) {
           markerRef.current = new maplibregl.Marker({
-            element: createPinkMapPinElement(),
-            anchor: "bottom",
+            element: createMapPinElement(),
+            anchor: "center",
           })
             .setLngLat([marker.lng, marker.lat])
             .addTo(map);
@@ -202,8 +202,8 @@ export function MapLibreMeetMapCanvas({
         markerRef.current.setLngLat([marker.lng, marker.lat]);
       } else {
         markerRef.current = new maplibregl.Marker({
-          element: createPinkMapPinElement(),
-          anchor: "bottom",
+          element: createMapPinElement(),
+          anchor: "center",
         })
           .setLngLat([marker.lng, marker.lat])
           .addTo(map);

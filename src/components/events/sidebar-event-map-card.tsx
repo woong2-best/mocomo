@@ -106,7 +106,8 @@ export function SidebarEventMapCard({
         <div className="relative flex items-center justify-end">
           <Link
             href="/events/map"
-            className="map-glass-control map-glass-pill pointer-events-auto absolute left-1/2 -translate-x-1/2"
+            className="map-glass-control map-glass-pill pointer-events-auto absolute left-1/2 -translate-x-1/2 notranslate"
+            translate="no"
           >
             {i18n("sidebar.eventsMapExpand")}
           </Link>

@@ -131,9 +131,10 @@ function EventsMapSidePanel({
   const panelBody = (
     <div
       className={cn(
-        "events-map-overlay pointer-events-auto flex flex-col min-h-0 rounded-2xl border border-white/15 bg-black/55 backdrop-blur-md shadow-2xl overflow-hidden",
+        "events-map-overlay notranslate pointer-events-auto flex flex-col min-h-0 rounded-2xl border border-white/15 bg-black/55 backdrop-blur-md shadow-2xl overflow-hidden",
         panelOpen ? (showToggle ? "w-72 xl:w-80" : "w-full") : "hidden"
       )}
+      translate="no"
     >
       <div className="shrink-0 border-b border-white/10">
         <div className="flex items-center gap-1 px-2 pt-2 pb-1">
@@ -149,11 +150,12 @@ function EventsMapSidePanel({
                 }
               }}
               className={cn(
-                "flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                "notranslate flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors",
                 activeTab === tab.id
                   ? "bg-white/15 text-white"
                   : "text-white/60 hover:text-white/85 hover:bg-white/5"
               )}
+              translate="no"
             >
               {tab.label}
             </button>

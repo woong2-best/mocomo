@@ -31,7 +31,18 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "m.feed.undo_repost",
   "m.feed.quote",
   "m.feed.quote_post",
+  "sidebar.eventsMapTitle",
+  "sidebar.eventsMapExpand",
+  "m.events.subculture_map",
+  "m.events.venues",
+  "m.events.maid_caf",
+  "m.events.maid_caf_s",
+  "m.events.picks",
+  "m.events.place_name",
+  "m.events.goods",
+  "m.events.pick",
+  "m.events.user_pick",
 ]);
 
 export const KEEP_ENGLISH_TOKENS_RE =
-  /\b(Follow|Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories|WhatsApp|SMS|Repost|Reposted|Quote)\b/g;
+  /\b(Follow|Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories|WhatsApp|SMS|Repost|Reposted|Quote|Subculture Map|Places|Maid Cafe|Hotel products|Venue|Venues|Featured|Picks|Goods)\b/g;
