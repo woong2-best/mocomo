@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Orbitron } from "next/font/google";
 import Image from "next/image";
 import { AlephTicketCopy } from "@/components/aleph/aleph-ticket-copy";
 import { ALEPH_TITLE } from "@/lib/aleph-ticket";
+
+const alephWordmark = Orbitron({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: ALEPH_TITLE,
@@ -10,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function AlephTicketPage() {
   return (
-    <main className="fixed inset-0 z-[100] overflow-hidden bg-black text-white [font-family:var(--font-geist-sans),system-ui,sans-serif]">
+    <main className="fixed inset-0 z-[100] overflow-hidden bg-black text-white">
       <Image
         src="/images/aleph-bg.jpg"
         alt=""
@@ -19,14 +26,15 @@ export default function AlephTicketPage() {
         sizes="100vw"
         className="object-cover"
       />
-      <div className="absolute inset-0 bg-black/20" />
-      <div className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-6 py-16">
-        <h1 className="flex flex-wrap items-baseline justify-center gap-x-5 gap-y-2 text-center font-folk-display">
-          <span className="text-6xl font-semibold tracking-tight sm:text-8xl md:text-9xl">MoCoMo</span>
-          <span className="translate-y-[-0.15em] text-2xl font-light tracking-[0.4em] text-white/65 sm:text-3xl md:text-4xl">
-            X
-          </span>
-          <span className="text-6xl font-semibold tracking-tight sm:text-8xl md:text-9xl">Aleph</span>
+      <div className="absolute inset-0 bg-black/25" />
+      <div className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-4 py-16 sm:px-6">
+        <h1
+          className={`${alephWordmark.className} flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-center font-normal uppercase sm:gap-x-7`}
+          style={{ fontFamily: alephWordmark.style.fontFamily, fontWeight: 400 }}
+        >
+          <span className="text-[clamp(2.1rem,7vw,4.8rem)] tracking-[0.14em]">MoCoMo</span>
+          <span className="text-[clamp(1.5rem,5vw,3.1rem)] tracking-[0.22em] text-white/80">X</span>
+          <span className="text-[clamp(2.1rem,7vw,4.8rem)] tracking-[0.14em]">Aleph</span>
         </h1>
         <AlephTicketCopy />
       </div>
