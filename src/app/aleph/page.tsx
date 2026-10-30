@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Orbitron } from "next/font/google";
-import Image from "next/image";
 import { AlephTicketCopy } from "@/components/aleph/aleph-ticket-copy";
 import { ALEPH_TITLE } from "@/lib/aleph-ticket";
 
@@ -17,16 +16,10 @@ export const metadata: Metadata = {
 
 export default function AlephTicketPage() {
   return (
-    <main className="fixed inset-0 z-[100] overflow-hidden bg-black text-white">
-      <Image
-        src="/images/aleph-bg.jpg"
-        alt=""
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover"
-      />
-      <div className="absolute inset-0 bg-black/25" />
+    <main
+      className="fixed inset-0 z-[100] overflow-hidden bg-black bg-cover bg-center bg-no-repeat text-white"
+      style={{ backgroundImage: "url(/images/aleph-bg.jpg)" }}
+    >
       <div className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-4 py-16 sm:px-6">
         <h1
           className={`${alephWordmark.className} flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-center font-normal uppercase sm:gap-x-7`}
