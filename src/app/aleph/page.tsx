@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
-import { Orbitron } from "next/font/google";
+import Link from "next/link";
 import { AlephTicketCopy } from "@/components/aleph/aleph-ticket-copy";
 import { ALEPH_TITLE } from "@/lib/aleph-ticket";
+import { createTranslator } from "@/lib/i18n/messages";
+import "./aleph-landing.css";
 
-const alephWordmark = Orbitron({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  display: "swap",
-});
+const t = createTranslator("en");
 
 export const metadata: Metadata = {
   title: ALEPH_TITLE,
@@ -16,21 +14,60 @@ export const metadata: Metadata = {
 
 export default function AlephTicketPage() {
   return (
-    <main
-      className="fixed inset-0 z-[100] overflow-hidden bg-black bg-cover bg-center bg-no-repeat text-white"
-      style={{ backgroundImage: "url(/images/aleph-bg.jpg)" }}
-    >
-      <div className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-4 py-16 sm:px-6">
-        <h1
-          className={`${alephWordmark.className} flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-center font-normal uppercase sm:gap-x-7`}
-          style={{ fontFamily: alephWordmark.style.fontFamily, fontWeight: 400 }}
-        >
-          <span className="text-[clamp(2.1rem,7vw,4.8rem)] tracking-[0.14em]">MoCoMo</span>
-          <span className="text-[clamp(1.5rem,5vw,3.1rem)] tracking-[0.22em] text-white/80">X</span>
-          <span className="text-[clamp(2.1rem,7vw,4.8rem)] tracking-[0.14em]">Aleph</span>
-        </h1>
+    <main className="aleph-landing">
+      <div className="aleph-landing-bg" aria-hidden="true" />
+
+      <header>
+        <Link href="/">{t("aleph.headerBrand")}</Link>
+        <span>{t("aleph.headerMeta")}</span>
+      </header>
+
+      <section className="hero">
+        <div className="hero-content">
+          <div className="eyebrow">{t("aleph.eyebrow")}</div>
+          <h1>
+            {t("aleph.heroTitle")}
+            <br />
+            <span>{t("aleph.heroTitleMark")}</span>
+          </h1>
+          <p className="hero-copy">{t("aleph.heroCopy")}</p>
+          <div className="scroll-hint">{t("aleph.scrollHint")}</div>
+        </div>
+      </section>
+
+      <section className="info-section">
+        <div className="info-grid">
+          <div className="number">{t("aleph.s01Number")}</div>
+          <div className="info-content">
+            <h2>{t("aleph.s01Title")}</h2>
+            <p className="info-copy">{t("aleph.s01Copy")}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="info-section">
+        <div className="info-grid">
+          <div className="number">{t("aleph.s02Number")}</div>
+          <div className="info-content">
+            <h2>{t("aleph.s02Title")}</h2>
+            <p className="info-copy">{t("aleph.s02Copy")}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="info-section">
+        <div className="info-grid">
+          <div className="number">{t("aleph.s03Number")}</div>
+          <div className="info-content">
+            <h2>{t("aleph.s03Title")}</h2>
+            <p className="info-copy">{t("aleph.s03Copy")}</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
         <AlephTicketCopy />
-      </div>
+      </section>
     </main>
   );
 }

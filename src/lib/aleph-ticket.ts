@@ -2,7 +2,7 @@
 
 export const ALEPH_PATH = "/aleph";
 
-export const ALEPH_TITLE = "MoCoMo X Aleph";
+export const ALEPH_TITLE = "MoCoMo × Aleph";
 
 export const ALEPH_PUBLIC_AGENT_SIG = "MoCoMo-Aleph-public-2026";
 
