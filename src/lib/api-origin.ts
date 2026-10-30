@@ -62,6 +62,8 @@ export const MUTATING_API_ORIGIN_EXEMPT_PREFIXES = [
   "/api/auth/csrf",
   // RN Bearer clients have no browser Origin; mutating /api/mobile/* requires Bearer.
   "/api/mobile/",
+  // Aleph semantic cache: machine agents authenticate with Bearer keys, no browser Origin.
+  "/api/aleph/",
 ] as const;
 
 /** Exact paths only. A prefix of "/api/ai" would also exempt "/api/airplane". */
