@@ -86,39 +86,6 @@ export default function AlephTicketPage() {
           <section className="section">
             <div className="section-head">
               <div className="section-index">03</div>
-              <h2>{t("aleph.catTitle")}</h2>
-            </div>
-            <div className="stack">
-              <div className="row">
-                <div>
-                  <span className="cat-key">subculture</span>
-                </div>
-                <p className="cat-copy">{t("aleph.catSubculture")}</p>
-              </div>
-              <div className="row">
-                <div>
-                  <span className="cat-key">c2c-security</span>
-                </div>
-                <p className="cat-copy">{t("aleph.catSecurity")}</p>
-              </div>
-              <div className="row">
-                <div>
-                  <span className="cat-key">vrm-livehost</span>
-                </div>
-                <p className="cat-copy">{t("aleph.catVrm")}</p>
-              </div>
-              <div className="row">
-                <div>
-                  <span className="cat-key">recommendation-graph</span>
-                </div>
-                <p className="cat-copy">{t("aleph.catReco")}</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="section">
-            <div className="section-head">
-              <div className="section-index">04</div>
               <h2>{t("aleph.sigTitle")}</h2>
             </div>
             <AlephTicketCopy />
@@ -126,7 +93,7 @@ export default function AlephTicketPage() {
 
           <section className="section">
             <div className="section-head">
-              <div className="section-index">05</div>
+              <div className="section-index">04</div>
               <h2>{t("aleph.termsTitle")}</h2>
             </div>
             <AlephTerms />
