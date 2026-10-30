@@ -6,7 +6,7 @@ import type { ReelItem } from "@/lib/reels/types";
 import { mapReelCollaborators } from "@/lib/reels/collaborators";
 import { REELS_PAGE_SIZE } from "@/lib/reels/constants";
 import { isHlsUrl } from "@/lib/reels/playback-url";
-import { reelNotePages } from "@/lib/reels/text-pages";
+import { reelNotePagesForViewer } from "@/lib/reels/text-pages";
 import { platformPostWhere } from "@/lib/post-scope";
 import { blockedIdList } from "@/lib/user-block";
 import { postCollaboratorsHeaderInclude } from "@/lib/post-collaborator-select";
@@ -135,16 +135,18 @@ function mapReelSlides(
     });
   }
 
-  reelNotePages(post.title, post.content).forEach((noteText, index) => {
-    const id = `${post.id}:note:${index}`;
-    slides.push({
-      ...shared,
-      id,
-      mediaType: "NOTE",
-      noteText,
-      media: blankNoteMedia(id),
-    });
-  });
+  reelNotePagesForViewer(post.title, post.content, slides.length > 0).forEach(
+    (noteText, index) => {
+      const id = `${post.id}:note:${index}`;
+      slides.push({
+        ...shared,
+        id,
+        mediaType: "NOTE",
+        noteText,
+        media: blankNoteMedia(id),
+      });
+    }
+  );
 
   return slides;
 }
@@ -301,7 +303,7 @@ export function getCachedReelsPage(cursor: string | null, limit: number) {
   const cacheKey = cursor ?? "__head__";
   return unstable_cache(
     () => fetchReelsPage(cursor, limit),
-    ["reels-page-v9-note-fill", cacheKey, String(limit)],
+    ["reels-page-v10-media-caption", cacheKey, String(limit)],
     { revalidate: 20, tags: [FEED_POSTS_CACHE_TAG] }
   )();
 }

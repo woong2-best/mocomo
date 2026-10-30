@@ -6,6 +6,7 @@ import {
   notePageBudget,
   paginateReelNote,
   reelNotePages,
+  reelNotePagesForViewer,
   wrapReelNoteLine,
 } from "./text-pages";
 
@@ -74,6 +75,11 @@ test("keeps a blank note slide when the post is only hashtags", () => {
 test("empty text has no note page", () => {
   assert.deepEqual(paginateReelNote("  \n\n"), []);
   assert.deepEqual(reelNotePages(null, "   "), []);
+});
+
+test("media posts do not get an extra note slide", () => {
+  assert.deepEqual(reelNotePagesForViewer(null, "설명은 캡션으로", true), []);
+  assert.deepEqual(reelNotePagesForViewer(null, "글만 있는 글", false), ["글만 있는 글"]);
 });
 
 test("expands one full note into pages and leaves photos in place", () => {

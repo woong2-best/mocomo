@@ -3,7 +3,7 @@ import type { FeedLayoutItem } from "@/components/feed/feed-dual-column-layout";
 import type { ReelItem } from "@/lib/reels/types";
 import { mapReelCollaborators } from "@/lib/reels/collaborators";
 import { isHlsUrl } from "@/lib/reels/playback-url";
-import { reelNotePages } from "@/lib/reels/text-pages";
+import { reelNotePagesForViewer } from "@/lib/reels/text-pages";
 
 export const FEED_VIDEO_VIEWER_HISTORY_KEY = "mocomoFeedVideoViewer";
 
@@ -104,7 +104,7 @@ function noteSlidesForPost(
   if (post.communityId || post.community?.slug) return [];
   const createdAt =
     typeof post.createdAt === "string" ? post.createdAt : post.createdAt.toISOString();
-  return reelNotePages(post.title, post.content).map((noteText, index) => {
+  return reelNotePagesForViewer(post.title, post.content, false).map((noteText, index) => {
     const id = `${post.id}:note:${index}`;
     return {
       id,
@@ -148,7 +148,7 @@ function noteSlidesForPost(
 /**
  * Group playable photos and videos by post (timeline order).
  * Vertical nav = between groups; horizontal nav = within a group.
- * Typed text is extra sideways pages. A text-only post is a note.
+ * A text-only post is a note. Media + caption stays on the media — no extra page.
  */
 export function buildFeedVideoGroups(
   items: FeedLayoutItem[],
@@ -169,9 +169,11 @@ export function buildFeedVideoGroups(
       );
       if (reel) videos.push(reel);
     }
-    videos.push(
-      ...noteSlidesForPost(post, likedIds.has(post.id), starredIds.has(post.id))
-    );
+    if (videos.length === 0) {
+      videos.push(
+        ...noteSlidesForPost(post, likedIds.has(post.id), starredIds.has(post.id))
+      );
+    }
     if (videos.length > 0) {
       groups.push({ postId: post.id, videos });
     }

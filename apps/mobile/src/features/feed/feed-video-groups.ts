@@ -2,7 +2,7 @@ import type { FeedMedia, FeedPost } from "@/api/feed";
 import type { ReelItem } from "@/api/reels";
 import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { mapReelCollaborators } from "@/features/reels/reel-collaborators";
-import { reelNotePages } from "@/features/reels/reel-note-pages";
+import { reelNotePagesForViewer } from "@/features/reels/reel-note-pages";
 
 export type FeedVideoGroup = {
   postId: string;
@@ -131,7 +131,7 @@ export function stabilizeVideoGroups(
 
 function noteSlidesForPost(post: FeedPost, paymentsEnabled?: boolean): ReelItem[] {
   if (post.communityId || post.community?.slug) return [];
-  return reelNotePages(post.title, post.content).map((noteText, index) => {
+  return reelNotePagesForViewer(post.title, post.content, false).map((noteText, index) => {
     const id = `${post.id}:note:${index}`;
     return {
       id,
@@ -173,7 +173,7 @@ function noteSlidesForPost(post: FeedPost, paymentsEnabled?: boolean): ReelItem[
   });
 }
 
-/** Vertical = post groups; horizontal = videos inside a post. Text is extra pages. */
+/** Vertical = post groups; horizontal = videos inside a post. Text-only posts are notes. */
 export function buildFeedVideoGroups(
   posts: FeedPost[],
   paymentsEnabled?: boolean
@@ -185,7 +185,9 @@ export function buildFeedVideoGroups(
       const reel = postVideoToReelItem(post, m, paymentsEnabled);
       if (reel) videos.push(reel);
     }
-    videos.push(...noteSlidesForPost(post, paymentsEnabled));
+    if (videos.length === 0) {
+      videos.push(...noteSlidesForPost(post, paymentsEnabled));
+    }
     if (videos.length > 0) groups.push({ postId: post.id, videos });
   }
   return groups;

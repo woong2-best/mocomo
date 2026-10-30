@@ -160,6 +160,19 @@ export function reelNotePages(
   return hashtagLine ? [""] : [];
 }
 
+/**
+ * Note slides are only for text-only posts.
+ * Photo/video posts keep the writing in the caption overlay — no extra black page.
+ */
+export function reelNotePagesForViewer(
+  title: string | null | undefined,
+  content: string | null | undefined,
+  hasVisualMedia: boolean
+): string[] {
+  if (hasVisualMedia) return [];
+  return reelNotePages(title, content);
+}
+
 type NoteSlide = {
   id: string;
   mediaType?: string;
