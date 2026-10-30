@@ -20,7 +20,10 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "nav.studio",
   "m.star.clear_all",
   "m.star.clear_all_saves",
+  "m.feed.instagram",
   "m.feed.instagram_stories",
+  "m.feed.sms",
+  "m.feed.whatsapp",
   "m.profile.more_connect_moment",
   "m.feed.gif_powered",
   "m.feed.repost",
@@ -30,4 +33,4 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
 ]);
 
 export const KEEP_ENGLISH_TOKENS_RE =
-  /\b(Follow|Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories|Repost|Reposted|Quote)\b/g;
+  /\b(Follow|Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories|WhatsApp|SMS|Repost|Reposted|Quote)\b/g;

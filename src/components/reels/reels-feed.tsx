@@ -32,7 +32,10 @@ import { engageStar } from "@/lib/post-engage-client";
 import { getVideoPlaybackController } from "@/lib/video-playback";
 import { prefetchPostComments } from "@/lib/comments-prefetch-cache";
 import { useLocale } from "@/components/providers/locale-provider";
-import { absoluteUrl, copyShareUrl } from "@/lib/post-share";
+import { MobileShareSheet } from "@/components/share/mobile-share-sheet";
+import { isMobileViewport } from "@/hooks/use-mobile-viewport";
+import { absoluteUrl, buildPostShareMessage, copyShareUrl } from "@/lib/post-share";
+import { pushInfoToast } from "@/lib/published-toast-store";
 import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
 type Props = {
@@ -269,8 +272,14 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
     setMenu({ open: true, x, y, index });
   }, []);
 
+  const [shareTarget, setShareTarget] = useState<ReelItem | null>(null);
+
   const shareReel = useCallback(
     async (reel: ReelItem) => {
+      if (isMobileViewport()) {
+        setShareTarget(reel);
+        return;
+      }
       const url = absoluteUrl(`/reels?v=${reel.postId}`);
       await copyShareUrl(url, i18n("toast.linkCopied"));
     },
@@ -438,6 +447,33 @@ export function ReelsFeed({ initialItems, initialCursor, startPostId }: Props) {
           onAction={onMenuAction}
         />
       )}
+      <MobileShareSheet
+        open={!!shareTarget}
+        onOpenChange={(next) => {
+          if (!next) setShareTarget(null);
+        }}
+        url={shareTarget ? absoluteUrl(`/reels?v=${shareTarget.postId}`) : ""}
+        shareMessage={
+          shareTarget
+            ? buildPostShareMessage({
+                postId: shareTarget.postId,
+                authorUsername: shareTarget.author.username,
+                title: shareTarget.title,
+                content: shareTarget.content,
+              })
+            : ""
+        }
+        postId={shareTarget?.postId}
+        onCopied={() => pushInfoToast({ message: i18n("toast.linkCopied"), durationMs: 2500 })}
+        onSharedDm={(roomId) =>
+          pushInfoToast({
+            message: i18n("share.s10g9agl"),
+            detail: i18n("share.sgmvy14"),
+            href: `/messages/${roomId}`,
+            durationMs: 4500,
+          })
+        }
+      />
       </div>
     </div>
   );

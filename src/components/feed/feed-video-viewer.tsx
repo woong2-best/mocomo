@@ -34,7 +34,10 @@ import {
 import { FeedVideoPostSlide } from "@/components/feed/feed-video-post-slide";
 import { ReelsCommentsPanel } from "@/components/reels/reels-comments-panel";
 import { useLocale } from "@/components/providers/locale-provider";
-import { copyShareUrl, postUrl } from "@/lib/post-share";
+import { MobileShareSheet } from "@/components/share/mobile-share-sheet";
+import { isMobileViewport } from "@/hooks/use-mobile-viewport";
+import { buildPostShareMessage, copyShareUrl, postUrl } from "@/lib/post-share";
+import { pushInfoToast } from "@/lib/published-toast-store";
 import { scrollPortToSelector } from "@/lib/reels/scroll-port";
 
 type ColumnBox = { top: number; left: number; width: number; height: number };
@@ -386,8 +389,14 @@ export function FeedVideoViewer({
     setMenu({ open: true, x, y, index });
   }, []);
 
+  const [shareTarget, setShareTarget] = useState<ReelItem | null>(null);
+
   const shareReel = useCallback(
     async (reel: ReelItem) => {
+      if (isMobileViewport()) {
+        setShareTarget(reel);
+        return;
+      }
       await copyShareUrl(postUrl(reel.postId), t("toast.linkCopied"));
     },
     [t]
@@ -579,6 +588,34 @@ export function FeedVideoViewer({
           onAction={onMenuAction}
         />
       )}
+
+      <MobileShareSheet
+        open={!!shareTarget}
+        onOpenChange={(next) => {
+          if (!next) setShareTarget(null);
+        }}
+        url={shareTarget ? postUrl(shareTarget.postId) : ""}
+        shareMessage={
+          shareTarget
+            ? buildPostShareMessage({
+                postId: shareTarget.postId,
+                authorUsername: shareTarget.author.username,
+                title: shareTarget.title,
+                content: shareTarget.content,
+              })
+            : ""
+        }
+        postId={shareTarget?.postId}
+        onCopied={() => pushInfoToast({ message: t("toast.linkCopied"), durationMs: 2500 })}
+        onSharedDm={(roomId) =>
+          pushInfoToast({
+            message: t("share.s10g9agl"),
+            detail: t("share.sgmvy14"),
+            href: `/messages/${roomId}`,
+            durationMs: 4500,
+          })
+        }
+      />
 
       </div>
     </div>,

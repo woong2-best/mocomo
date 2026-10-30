@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ShareToMessageDialog } from "@/components/share/share-to-message-dialog";
+import { MobileShareSheet } from "@/components/share/mobile-share-sheet";
 import { usePublishedToastOptional } from "@/components/providers/published-toast-provider";
 import { cn } from "@/lib/utils";
 import {
@@ -46,6 +47,7 @@ export function ContentShareMenu({
   const session = useSession();
   const publishedToast = usePublishedToastOptional();
   const [open, setOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -76,8 +78,7 @@ export function ContentShareMenu({
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      markCopied();
       setOpen(false);
     } catch {
       onActionError?.(t("share.srsq7vp"));
@@ -96,13 +97,40 @@ export function ContentShareMenu({
     setDmOpen(true);
   }
 
+  function markCopied() {
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+    publishedToast?.showInfoToast({
+      message: t("share.swp53h8"),
+      durationMs: 2500,
+    });
+  }
+
   return (
     <>
+      <button
+        type="button"
+        className={cn(buttonClass, "lg:hidden", className)}
+        aria-label={copied ? t("share.swp53h8") : t("toast.share")}
+        title={copied ? t("share.swp53h8") : t("toast.share")}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setSheetOpen(true);
+        }}
+      >
+        {copied ? (
+          <Check className={cn(iconClass, accent.check)} strokeWidth={1.5} />
+        ) : (
+          <ShareGlobeIcon className={iconClass} />
+        )}
+      </button>
+
       <DropdownMenu open={open} onOpenChange={setOpen} modal>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className={cn(buttonClass, className)}
+            className={cn(buttonClass, "hidden lg:flex", className)}
             aria-label={copied ? t("share.swp53h8") : t("toast.share")}
             title={copied ? t("share.swp53h8") : t("toast.share")}
             onClick={(e) => {
@@ -147,6 +175,24 @@ export function ContentShareMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <MobileShareSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        url={url}
+        shareMessage={shareMessage}
+        postId={postId}
+        onActionError={onActionError}
+        onCopied={markCopied}
+        onSharedDm={(roomId) => {
+          publishedToast?.showInfoToast({
+            message: t("share.s10g9agl"),
+            detail: t("share.sgmvy14"),
+            href: `/messages/${roomId}`,
+            durationMs: 4500,
+          });
+        }}
+      />
 
       <ShareToMessageDialog
         open={dmOpen}

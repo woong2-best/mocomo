@@ -19,6 +19,13 @@ export type ParsedChatPostShare = {
   structured: boolean;
 };
 
+export function encodePostShareMessage(postId: string, note?: string): string {
+  const id = postId.trim();
+  const marker = `${POST_SHARE_MARKER_PREFIX}${id}${POST_SHARE_MARKER_SUFFIX}`;
+  const n = (note ?? "").trim();
+  return n ? `${n}\n\n${marker}` : marker;
+}
+
 export function parseChatPostShare(
   content: string | null | undefined
 ): ParsedChatPostShare | null {
