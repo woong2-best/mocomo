@@ -171,8 +171,9 @@ export function HeaderSearch({
   }, []);
 
   const trimmed = q.trim();
-  const showTypingPreview = open && trimmed.length >= 1 && !searchContext.inPage;
-  const showRankingPanel = open && !showTypingPreview;
+  const showTypingPreview =
+    open && trimmed.length >= 1 && !searchContext.inPage && !isOnSearchPage;
+  const showRankingPanel = open && trimmed.length < 1;
   const showDropdown = showTypingPreview || showRankingPanel;
 
   function goFullSearch(e?: React.FormEvent, nextTerm?: string) {
@@ -279,7 +280,7 @@ export function HeaderSearch({
           <input
             ref={inputRef}
             name="q"
-            type="search"
+            type="text"
             value={q}
             onChange={(e) => {
               suppressOpenRef.current = false;
@@ -300,7 +301,7 @@ export function HeaderSearch({
             placeholder={placeholder}
             autoComplete="off"
             enterKeyHint="search"
-            className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none placeholder:text-muted-foreground/70"
+            className="h-11 w-full bg-transparent px-3 pr-9 text-sm outline-none placeholder:text-muted-foreground/70 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
           />
           {pending && !q && (
             <Loader2 className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />

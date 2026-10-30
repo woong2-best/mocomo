@@ -19,6 +19,8 @@ import { FolkAvatar } from "@/ui/FolkAvatar";
 import { Screen } from "@/ui/Screen";
 import { SearchField } from "@/ui/SearchField";
 import { AppHeader } from "@/ui/AppHeader";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/ThemeContext";
 import { spacing, type ThemeColors } from "@/theme/tokens";
 import type { RootStackParamList } from "@/navigation/types";
@@ -91,16 +93,25 @@ export function SearchScreen() {
     });
   }, [postsLatest, postsTop]);
 
+  const mediaTiles = useMemo(
+    () =>
+      mediaPosts.flatMap((post) =>
+        (post.media ?? [])
+          .filter((m) => m.type !== "AUDIO" && (m.url || m.posterUrl))
+          .map((media, index) => ({ post, media, index }))
+      ),
+    [mediaPosts]
+  );
+
   const listData = useMemo(() => {
     if (filter === "people") return users.map((u) => ({ kind: "user" as const, user: u }));
     if (filter === "latest") return postsLatest.map((p) => ({ kind: "post" as const, post: p }));
-    if (filter === "media") return mediaPosts.map((p) => ({ kind: "post" as const, post: p }));
     const rows: Array<{ kind: "user"; user: SearchPageUser } | { kind: "post"; post: FeedPost } | { kind: "more" }> = [];
     for (const u of topPreviewUsers) rows.push({ kind: "user", user: u });
     if (users.length > topPreviewUsers.length) rows.push({ kind: "more" });
     for (const p of postsTop) rows.push({ kind: "post", post: p });
     return rows;
-  }, [filter, mediaPosts, postsLatest, postsTop, topPreviewUsers, users]);
+  }, [filter, postsLatest, postsTop, topPreviewUsers, users]);
 
   const emptyLabel =
     filter === "people"
@@ -152,6 +163,36 @@ export function SearchScreen() {
       ) : query.isError ? (
         <Text style={styles.error}>{t("m.search.search_failed")}</Text>
       ) : (
+        filter === "media" ? (
+        <FlatList
+          data={mediaTiles}
+          numColumns={3}
+          keyExtractor={(item) => `${item.post.id}-${item.media.id ?? item.index}`}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={<Text style={styles.hint}>{emptyLabel}</Text>}
+          renderItem={({ item }) => {
+            const isVideo = item.media.type === "VIDEO";
+            const uri = isVideo ? item.media.posterUrl || item.media.url : item.media.url;
+            return (
+              <Pressable
+                onPress={() => navigation.navigate("PostDetail", { id: item.post.id })}
+                style={styles.mediaTile}
+              >
+                <Image source={{ uri }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+                {isVideo ? (
+                  <View style={styles.mediaDur}>
+                    <Ionicons name="play" size={11} color="#fff" />
+                    <Text style={styles.mediaDurText}>
+                      {formatMediaDuration(item.media.duration)}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          }}
+        />
+      ) : (
         <FlatList
           data={listData}
           keyExtractor={(item, index) =>
@@ -196,9 +237,17 @@ export function SearchScreen() {
             );
           }}
         />
+        )
       )}
     </Screen>
   );
+}
+
+function formatMediaDuration(sec?: number | null) {
+  if (!sec || sec <= 0 || !Number.isFinite(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function SearchUserRow({
@@ -313,5 +362,24 @@ function createThemedStyles(colors: ThemeColors) {
     error: { color: colors.danger, padding: spacing.lg, fontWeight: "600" },
     moreBtn: { paddingHorizontal: spacing.md, paddingVertical: 14 },
     moreLabel: { color: colors.cobalt, fontWeight: "700", fontSize: 14 },
+    mediaTile: {
+      flex: 1,
+      aspectRatio: 1,
+      backgroundColor: "#111",
+      margin: 0.5,
+    },
+    mediaDur: {
+      position: "absolute",
+      left: 6,
+      bottom: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      backgroundColor: "rgba(0,0,0,0.75)",
+      borderRadius: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    mediaDurText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   });
 }

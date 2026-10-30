@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Play } from "lucide-react";
 import { FeedTimelinePostCard } from "@/components/feed/feed-timeline-post-card";
 import { SearchUserRow } from "@/components/search/search-user-row";
 import { displayAnimeTitle } from "@/lib/anime-display-title";
@@ -111,7 +112,7 @@ export function SearchPageFeed({
         })}
       </nav>
 
-      <div className="pt-4">
+      <div className={filter === "media" ? "" : "pt-4"}>
         {filter === "people" ? (
           <PeopleList users={users} viewerId={viewerId} empty={t("search.emptyPeople")} />
         ) : null}
@@ -125,11 +126,7 @@ export function SearchPageFeed({
         ) : null}
 
         {filter === "media" ? (
-          <PostList
-            posts={mediaPosts}
-            paymentsEnabled={paymentsEnabled}
-            empty={t("search.emptyMedia")}
-          />
+          <MediaGrid posts={mediaPosts} empty={t("search.emptyMedia")} />
         ) : null}
 
         {filter === "top" ? (
@@ -240,6 +237,59 @@ function PeopleList({
           className="border-b border-border/70"
         />
       ))}
+    </div>
+  );
+}
+
+function formatDuration(sec: number | null | undefined): string | null {
+  if (!sec || sec <= 0 || !Number.isFinite(sec)) return null;
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function MediaGrid({
+  posts,
+  empty,
+}: {
+  posts: Array<GridPost & { createdAt: string | Date }>;
+  empty: string;
+}) {
+  const tiles = posts.flatMap((post) =>
+    (post.media ?? [])
+      .filter((m) => m.type !== "AUDIO" && (m.url || m.posterUrl))
+      .map((media, index) => ({ post, media, index }))
+  );
+  if (tiles.length === 0) {
+    return <p className="px-4 py-12 text-center text-sm text-muted-foreground">{empty}</p>;
+  }
+  return (
+    <div className="grid grid-cols-3 gap-px bg-border/50">
+      {tiles.map(({ post, media, index }) => {
+        const isVideo = media.type === "VIDEO";
+        const src = isVideo ? media.posterUrl || media.url : media.url;
+        const duration = isVideo ? formatDuration(media.duration) : null;
+        return (
+          <Link
+            key={`${post.id}-${media.id ?? index}`}
+            href={`/post/${post.id}`}
+            className="relative aspect-square min-w-0 overflow-hidden bg-neutral-900"
+          >
+            {isVideo && !media.posterUrl ? (
+              <video src={media.url} preload="metadata" muted playsInline className="h-full w-full object-cover" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+            )}
+            {isVideo ? (
+              <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-white">
+                <Play className="h-3 w-3 fill-current" />
+                {duration ?? "0:00"}
+              </span>
+            ) : null}
+          </Link>
+        );
+      })}
     </div>
   );
 }
