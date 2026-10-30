@@ -1,6 +1,7 @@
-import { Image, Linking, Pressable, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 import type { ProfileSocialLink } from "@/features/profile/profile-social";
 import { PROFILE_SOCIAL_META, socialIconSize } from "@/features/profile/profile-social";
+import { ProfileSocialMark } from "@/features/profile/ProfileSocialMark";
 
 export function ProfileSocialIcons({
   links,
@@ -18,16 +19,7 @@ export function ProfileSocialIcons({
       {links.map((link) => {
         const meta = PROFILE_SOCIAL_META[link.id];
         if (!meta) return null;
-        const Mark = meta.Mark;
-        const mark = Mark ? (
-          <Mark height={size} />
-        ) : meta.icon ? (
-          <Image
-            source={meta.icon}
-            style={{ width: size, height: size }}
-            resizeMode="contain"
-          />
-        ) : null;
+        const mark = <ProfileSocialMark id={link.id} size={size} />;
         if (!link.href) {
           return (
             <View key={link.id} accessibilityLabel={link.label}>

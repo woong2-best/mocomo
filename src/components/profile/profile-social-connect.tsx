@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileSocialMark } from "@/components/profile/profile-social-mark";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ProfileConnectId } from "@/lib/profile-social";
 
@@ -14,6 +15,7 @@ const CONNECT_PATH: Record<ProfileConnectId, string> = {
   facebook: "/api/auth/facebook",
   instagram: "/api/auth/instagram",
   twitter: "/api/auth/twitter",
+  discord: "/api/auth/discord",
   naver: "/api/auth/naver",
   tiktok: "/api/auth/tiktok",
 };
@@ -24,6 +26,7 @@ const BUTTONS: { id: ProfileConnectId; label: string; iconSrc: string }[] = [
   { id: "facebook", label: "Facebook", iconSrc: "/brand/facebook.png" },
   { id: "instagram", label: "Instagram", iconSrc: "/brand/instagram.png" },
   { id: "twitter", label: "X", iconSrc: "/brand/twitter.png" },
+  { id: "discord", label: "Discord", iconSrc: "/brand/discord.png" },
   { id: "naver", label: "CHZZK", iconSrc: "/brand/chzzk.png" },
   { id: "tiktok", label: "TikTok", iconSrc: "/brand/tiktok.png" },
 ];
@@ -41,7 +44,7 @@ export function ProfileSocialConnect({
     <Card className="rounded-2xl">
       <CardContent className="pt-5 pb-5">
         <h2 className="text-base font-semibold">More Connect Moment</h2>
-        <div className="mt-4 flex flex-wrap items-start gap-5">
+        <div className="mt-4 flex flex-wrap items-center gap-5">
           {BUTTONS.map((btn) => {
             const item = items.find((row) => row.id === btn.id);
             const isOn = connected.includes(btn.id);
@@ -49,13 +52,10 @@ export function ProfileSocialConnect({
             const connectHref = `${CONNECT_PATH[btn.id]}?returnTo=${encodeURIComponent("/settings/profile")}`;
             const pageHref = item?.href ?? null;
             const img = (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={btn.iconSrc}
-                alt=""
-                className={`h-9 w-9 object-contain${canConnect || isOn ? "" : " opacity-40"}`}
-                width={36}
-                height={36}
+              <ProfileSocialMark
+                id={btn.id}
+                iconSrc={btn.iconSrc}
+                dimmed={!(canConnect || isOn)}
               />
             );
             if (isOn && pageHref) {

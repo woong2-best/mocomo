@@ -204,6 +204,7 @@ export function ProfileSettingsForm({
             facebook: true,
             instagram: true,
             twitter: true,
+            discord: false,
             naver: true,
             tiktok: false,
           }

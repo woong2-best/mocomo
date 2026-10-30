@@ -104,6 +104,7 @@ export function ProfileEditScreen() {
     facebook: true,
     instagram: true,
     twitter: true,
+    discord: true,
     naver: true,
     tiktok: true,
   });

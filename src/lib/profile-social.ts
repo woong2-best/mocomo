@@ -1,14 +1,18 @@
 import { db } from "@/lib/db";
 import { decryptOAuthPayload, isOAuthVaultProvider } from "@/lib/oauth-vault";
+import { isDiscordOAuthConfigured } from "@/lib/discord-oauth";
 import { isFacebookOAuthConfigured } from "@/lib/facebook-oauth";
 import { isInstagramOAuthConfigured } from "@/lib/instagram-oauth";
 import { isYoutubeStreamingOAuthConfigured } from "@/lib/streaming-accounts/providers/youtube";
 import { isTwitchStreamingOAuthConfigured } from "@/lib/streaming-accounts/providers/twitch";
 
+export { isDiscordOAuthConfigured };
+
 export const PROFILE_SOCIAL_PROVIDERS = [
   "facebook",
   "instagram",
   "twitter",
+  "discord",
   "naver",
   "tiktok",
 ] as const;
@@ -35,9 +39,26 @@ const META: Record<
   facebook: { label: "Facebook", iconSrc: "/brand/facebook.png" },
   instagram: { label: "Instagram", iconSrc: "/brand/instagram.png" },
   twitter: { label: "X", iconSrc: "/brand/twitter.png" },
+  discord: { label: "Discord", iconSrc: "/brand/discord.png" },
   naver: { label: "CHZZK", iconSrc: "/brand/chzzk.png" },
   tiktok: { label: "TikTok", iconSrc: "/brand/tiktok.png" },
 };
+
+/** Optical size vs a 36px slot. TikTok is line-art and still reads small after crop. */
+const ICON_SCALE: Record<ProfileConnectId, number> = {
+  youtube: 1.06,
+  twitch: 1,
+  facebook: 1,
+  instagram: 1,
+  twitter: 1.04,
+  discord: 1.08,
+  naver: 1,
+  tiktok: 1.22,
+};
+
+export function profileSocialIconScale(id: ProfileConnectId): number {
+  return ICON_SCALE[id] ?? 1;
+}
 
 const STREAMING_PLATFORM: Record<ProfileStreamingSocialId, "YOUTUBE" | "TWITCH"> = {
   youtube: "YOUTUBE",
@@ -67,6 +88,9 @@ function hrefFor(id: ProfileSocialId, sub: string | null, handle: string | null)
     return raw
       ? `https://www.tiktok.com/search/user?q=${encodeURIComponent(raw)}`
       : "https://www.tiktok.com";
+  }
+  if (id === "discord" && sub) {
+    return `https://discord.com/users/${encodeURIComponent(sub)}`;
   }
   return null;
 }
@@ -104,6 +128,7 @@ export function getProfileSocialConnectAvailability(): Record<ProfileSocialId, b
     facebook: isFacebookOAuthConfigured(),
     instagram: isInstagramOAuthConfigured(),
     twitter: isTwitterOAuthConfigured(),
+    discord: isDiscordOAuthConfigured(),
     naver: isNaverOAuthConfigured(),
     tiktok: isTikTokOAuthConfigured(),
   };
@@ -138,6 +163,7 @@ export function readSocialDisplay(raw: unknown): Record<ProfileSocialId, boolean
     facebook: shown.facebook === true,
     instagram: shown.instagram === true,
     twitter: shown.twitter === true,
+    discord: shown.discord === true,
     naver: shown.naver === true,
     tiktok: shown.tiktok === true,
   };
@@ -171,8 +197,8 @@ async function loadConnectedSocialItems(userId: string): Promise<ProfileSocialIt
     let handle: string | null = null;
     if (isOAuthVaultProvider(row.provider)) {
       const payload = decryptOAuthPayload(row.provider, row);
-      sub = payload?.sub ?? null;
-      handle = payload?.name ?? null;
+      sub = payload?.sub ?? row.providerAccountId;
+      handle = payload?.name ?? (row.id_token?.trim() || null);
     } else {
       sub = row.providerAccountId;
       handle = row.id_token?.trim() || null;
@@ -299,6 +325,7 @@ export const PROFILE_SOCIAL_CONNECT_PATH: Record<ProfileSocialId, string> = {
   facebook: "/api/auth/facebook",
   instagram: "/api/auth/instagram",
   twitter: "/api/auth/twitter",
+  discord: "/api/auth/discord",
   naver: "/api/auth/naver",
   tiktok: "/api/auth/tiktok",
 };

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Image, Linking, Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Linking, Pressable, Text, useWindowDimensions, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { FolkCard } from "@/ui/FolkCard";
 import { showIslandError, showIslandToast } from "@/ui/IslandToast";
@@ -12,6 +12,7 @@ import {
   socialIconSize,
   type ProfileSocialId,
 } from "@/features/profile/profile-social";
+import { ProfileSocialMark } from "@/features/profile/ProfileSocialMark";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -71,13 +72,12 @@ export function ProfileSocialConnect({
       <Text style={{ fontSize: 16, fontWeight: "800", color: colors.brand, marginBottom: 12 }}>
         More Connect Moment
       </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", gap }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap }}>
         {PROFILE_SOCIAL_IDS.map((id) => {
           const meta = PROFILE_SOCIAL_META[id];
           const isOn = connectedSet.has(id);
           const item = itemById.get(id);
           const canConnect = available[id] || Boolean(item);
-          const Mark = meta.Mark;
           return (
             <Pressable
               key={id}
@@ -92,21 +92,9 @@ export function ProfileSocialConnect({
               accessibilityRole="button"
               accessibilityLabel={meta.label}
             >
-              {Mark ? (
-                <View style={{ opacity: canConnect || isOn ? 1 : 0.4 }}>
-                  <Mark height={size} />
-                </View>
-              ) : meta.icon ? (
-                <Image
-                  source={meta.icon}
-                  style={{
-                    width: size,
-                    height: size,
-                    opacity: canConnect || isOn ? 1 : 0.4,
-                  }}
-                  resizeMode="contain"
-                />
-              ) : null}
+              <View style={{ opacity: canConnect || isOn ? 1 : 0.4 }}>
+                <ProfileSocialMark id={id} size={size} />
+              </View>
             </Pressable>
           );
         })}

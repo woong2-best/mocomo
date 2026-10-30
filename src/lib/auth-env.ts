@@ -92,6 +92,13 @@ export function getProductionSecurityStatus(): ProductionSecurityStatus {
   if (auth.tiktokOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
     issues.push("OAUTH_ENCRYPTION_KEY missing while TikTok OAuth enabled");
   }
+  const discordProfileOAuth = Boolean(
+    (process.env.AUTH_DISCORD_ID?.trim() || process.env.DISCORD_CLIENT_ID?.trim()) &&
+      (process.env.AUTH_DISCORD_SECRET?.trim() || process.env.DISCORD_CLIENT_SECRET?.trim())
+  );
+  if (discordProfileOAuth && !process.env.OAUTH_ENCRYPTION_KEY?.trim()) {
+    issues.push("OAUTH_ENCRYPTION_KEY missing while Discord OAuth enabled");
+  }
   if (
     !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
     !process.env.TURNSTILE_SECRET_KEY?.trim()

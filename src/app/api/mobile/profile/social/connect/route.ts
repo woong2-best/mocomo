@@ -17,7 +17,16 @@ import {
 } from "@/lib/streaming-accounts/service";
 
 const bodySchema = z.object({
-  provider: z.enum(["youtube", "twitch", "facebook", "instagram", "twitter", "naver", "tiktok"]),
+  provider: z.enum([
+    "youtube",
+    "twitch",
+    "facebook",
+    "instagram",
+    "twitter",
+    "discord",
+    "naver",
+    "tiktok",
+  ]),
 });
 
 function appOrigin() {

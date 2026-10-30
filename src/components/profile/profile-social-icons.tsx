@@ -1,3 +1,4 @@
+import { ProfileSocialMark } from "@/components/profile/profile-social-mark";
 import type { ProfileSocialLink } from "@/lib/profile-social";
 
 export function ProfileSocialIcons({
@@ -12,17 +13,7 @@ export function ProfileSocialIcons({
   return (
     <div className={`flex shrink-0 items-center gap-2.5 ${className}`}>
       {links.map((link) => {
-        const inner = (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={link.iconSrc}
-            alt=""
-            className="h-8 w-8 object-contain sm:h-9 sm:w-9"
-            width={36}
-            height={36}
-            decoding="async"
-          />
-        );
+        const inner = <ProfileSocialMark id={link.id} iconSrc={link.iconSrc} />;
         if (!link.href) {
           return (
             <span key={link.id} title={link.label} className="inline-flex">
