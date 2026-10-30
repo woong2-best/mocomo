@@ -59,10 +59,12 @@
 .aleph-landing header span,
 .aleph-landing .mono,
 .aleph-landing .section-index,
-.aleph-landing .badge,
 .aleph-landing .spec-key,
 .aleph-landing .cat-key,
-.aleph-landing .eyebrow {
+.aleph-landing .product-version,
+.aleph-landing .product-publisher,
+.aleph-landing .product-chip,
+.aleph-landing .terms-meta {
   font-family: var(--font-geist-mono), "Courier New", Courier, monospace;
 }
 
@@ -70,25 +72,6 @@
   color: #71717a;
   font-size: 11px;
   letter-spacing: 0.16em;
-}
-
-.aleph-landing .version-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.aleph-landing .mascot {
-  display: block;
-  width: auto;
-  height: 28px;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
-}
-
-.aleph-landing .badge .mascot {
-  height: 40px;
-  border-radius: 4px;
 }
 
 .aleph-landing .shell {
@@ -100,29 +83,33 @@
 }
 
 .aleph-landing .hero {
-  padding-bottom: 96px;
-  border-bottom: 1px solid var(--aleph-line);
+  padding-bottom: 80px;
 }
 
-.aleph-landing .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  color: #a1a1aa;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+.aleph-landing .product {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
 }
 
-.aleph-landing .badge em {
-  color: var(--aleph-cyan);
-  font-style: normal;
+.aleph-landing .product-icon {
+  display: block;
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: #fff;
+}
+
+.aleph-landing .product-meta {
+  min-width: 0;
+  padding-top: 4px;
 }
 
 .aleph-landing h1,
-.aleph-landing h2 {
+.aleph-landing h2,
+.aleph-landing h3 {
   margin: 0;
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif !important;
   letter-spacing: -0.05em;
@@ -130,48 +117,107 @@
 }
 
 .aleph-landing h1 {
-  margin: 28px 0 16px;
   color: #fff;
-  font-size: clamp(44px, 8vw, 88px);
+  font-size: clamp(32px, 5vw, 52px);
   font-weight: 700;
-  line-height: 0.95;
+  line-height: 1;
 }
 
 .aleph-landing h1 span {
   color: #a1a1aa;
 }
 
-.aleph-landing .hero-sub {
-  margin: 0;
+.aleph-landing .product-version {
+  margin-top: 12px;
   color: #e4e4e7;
-  font-size: clamp(18px, 2.4vw, 28px);
+  font-size: 14px;
+}
+
+.aleph-landing .product-publisher {
+  margin-top: 4px;
+  color: #a1a1aa;
+  font-size: 13px;
+}
+
+.aleph-landing .product-chip {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  color: #a1a1aa;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.aleph-landing .hero-sub {
+  max-width: 720px;
+  margin: 36px 0 0;
+  color: #fafafa;
+  font-size: clamp(20px, 2.4vw, 28px);
   font-weight: 500;
   letter-spacing: -0.03em;
+  line-height: 1.35;
 }
 
 .aleph-landing .hero-copy {
   max-width: 640px;
-  margin: 24px 0 0;
+  margin: 16px 0 0;
   color: #a1a1aa;
   font-size: 16px;
   line-height: 1.8;
 }
 
+.aleph-landing .spine {
+  position: relative;
+  padding-left: 56px;
+}
+
+.aleph-landing .spine::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 15px;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(103, 232, 249, 0.75),
+    rgba(103, 232, 249, 0.22) 50%,
+    rgba(103, 232, 249, 0.08)
+  );
+  box-shadow: 0 0 12px rgba(103, 232, 249, 0.28);
+}
+
 .aleph-landing .section {
-  padding: 72px 0 0;
+  position: relative;
+  padding: 56px 0 8px;
 }
 
 .aleph-landing .section-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .aleph-landing .section-index {
+  position: absolute;
+  top: 56px;
+  left: -56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(103, 232, 249, 0.7);
+  border-radius: 999px;
+  background: #050505;
   color: var(--aleph-cyan);
-  font-size: 12px;
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 0 6px rgba(0, 0, 0, 0.88), 0 0 18px rgba(103, 232, 249, 0.28);
 }
 
 .aleph-landing h2 {
@@ -277,6 +323,41 @@
   color: #166534;
 }
 
+.aleph-landing .terms {
+  padding: 8px 4px 0;
+  color: #a1a1aa;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.aleph-landing .terms-meta {
+  margin: 0 0 20px;
+  color: #71717a;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.aleph-landing .terms h3 {
+  margin: 28px 0 10px;
+  color: #fafafa;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.aleph-landing .terms p {
+  margin: 0 0 12px;
+}
+
+.aleph-landing .terms strong {
+  color: #e4e4e7;
+  font-weight: 600;
+}
+
+.aleph-landing .terms-note {
+  color: #71717a;
+  font-style: italic;
+}
+
 @media (max-width: 720px) {
   .aleph-landing header {
     padding: 18px 20px;
@@ -285,6 +366,26 @@
   .aleph-landing .shell {
     width: calc(100% - 32px);
     padding-top: 48px;
+  }
+
+  .aleph-landing .product {
+    gap: 18px;
+  }
+
+  .aleph-landing .product-icon {
+    width: 84px;
+    height: auto;
+    border-radius: 10px;
+  }
+
+  .aleph-landing .spine {
+    padding-left: 44px;
+  }
+
+  .aleph-landing .section-index {
+    left: -44px;
+    width: 28px;
+    height: 28px;
   }
 
   .aleph-landing .row {
