@@ -6,10 +6,12 @@ import { useTheme } from "@/theme/ThemeContext";
 import { spacing, typography } from "@/theme/tokens";
 
 type Props = {
-  title: string;
+  title?: string;
   leftLabel?: string;
   onLeftPress?: () => void;
   leftSlot?: React.ReactNode;
+  /** Replaces the centered title — used when the header itself is the search field. */
+  centerSlot?: React.ReactNode;
   rightSlot?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   safe?: boolean;
@@ -22,6 +24,7 @@ export function AppHeader({
   leftLabel,
   onLeftPress,
   leftSlot,
+  centerSlot,
   rightSlot,
   style,
   // Screen already pads status-bar inset by default — keep false to avoid double gap.
@@ -44,7 +47,7 @@ export function AppHeader({
       ]}
     >
       <View style={styles.row}>
-        <View style={styles.side}>
+        <View style={centerSlot ? styles.sideCompact : styles.side}>
           {leftSlot
             ? leftSlot
             : onLeftPress
@@ -61,10 +64,16 @@ export function AppHeader({
                 )
               : null}
         </View>
-        <Text style={[styles.title, { color: colors.brand }]} numberOfLines={1}>
-          {title}
-        </Text>
-        <View style={[styles.side, styles.sideRight]}>{rightSlot}</View>
+        {centerSlot ? (
+          <View style={styles.centerFill}>{centerSlot}</View>
+        ) : (
+          <Text style={[styles.title, { color: colors.brand }]} numberOfLines={1}>
+            {title}
+          </Text>
+        )}
+        {centerSlot && !rightSlot ? null : (
+          <View style={[styles.side, styles.sideRight]}>{rightSlot}</View>
+        )}
       </View>
     </View>
   );
@@ -81,7 +90,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   side: { width: 72, justifyContent: "center" },
+  sideCompact: { justifyContent: "center", marginRight: 4 },
   sideRight: { alignItems: "flex-end" },
+  centerFill: { flex: 1, minWidth: 0 },
   backHit: { marginLeft: -6, padding: 2 },
   title: {
     flex: 1,

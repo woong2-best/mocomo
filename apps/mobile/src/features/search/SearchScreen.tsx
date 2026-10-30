@@ -123,21 +123,23 @@ export function SearchScreen() {
   return (
     <Screen>
       <AppHeader
-        title={t("m.common.search")}
         leftLabel={t("m.common.back")}
         onLeftPress={() => navigation.goBack()}
         border={false}
+        style={{ backgroundColor: colors.background }}
+        centerSlot={
+          <SearchField
+            value={q}
+            onChangeText={setQ}
+            onClear={() => submit("")}
+            onSubmitEditing={() => submit(q)}
+            placeholder={t("common.search")}
+            autoFocus={!paramQ}
+            variant="pill"
+            containerStyle={styles.searchInHeader}
+          />
+        }
       />
-      <View style={styles.searchRow}>
-        <SearchField
-          value={q}
-          onChangeText={setQ}
-          onClear={() => submit("")}
-          onSubmitEditing={() => submit(q)}
-          placeholder={t("common.search")}
-          autoFocus={!paramQ}
-        />
-      </View>
 
       <View style={styles.tabs}>
         {TABS.map((tab) => {
@@ -337,7 +339,7 @@ const stylesUser = StyleSheet.create({
 
 function createThemedStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    searchRow: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+    searchInHeader: { flex: 1 },
     tabs: {
       flexDirection: "row",
       borderBottomWidth: StyleSheet.hairlineWidth,
