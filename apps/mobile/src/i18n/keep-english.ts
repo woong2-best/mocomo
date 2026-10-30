@@ -23,7 +23,11 @@ export const KEEP_ENGLISH_UI_KEYS = new Set([
   "m.feed.instagram_stories",
   "m.profile.more_connect_moment",
   "m.feed.gif_powered",
+  "m.feed.repost",
+  "m.feed.undo_repost",
+  "m.feed.quote",
+  "m.feed.quote_post",
 ]);
 
 export const KEEP_ENGLISH_TOKENS_RE =
-  /\b(Follow|Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories)\b/g;
+  /\b(Follow|Following|Followers|Requested|Market|LIVE|Live|STAR|QnA|Q&A|Culture Wiki|Wallet|Studio|ALL|Delete All|Cos|Instagram|Instagram Stories|Repost|Reposted|Quote)\b/g;
