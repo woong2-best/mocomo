@@ -283,17 +283,16 @@ export function AnimeForm({
             onChange={setBody}
             placeholder={t("wiki.editor.placeholder")}
             onInfobox={() => infoboxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            preview={
+              body.trim() ? (
+                <WikiLinkStatusProvider value={previewLinks}>
+                  <WikiContent source={body} />
+                </WikiLinkStatusProvider>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t("wiki.editor.previewEmpty")}</p>
+              )
+            }
           />
-          {body.trim() ? (
-            <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 min-h-[120px] overflow-y-auto">
-              <p className="text-[10px] font-semibold text-muted-foreground mb-2">
-                {t("wiki.editor.preview")}
-              </p>
-              <WikiLinkStatusProvider value={previewLinks}>
-                <WikiContent source={body} />
-              </WikiLinkStatusProvider>
-            </div>
-          ) : null}
         </CardContent>
       </Card>
 

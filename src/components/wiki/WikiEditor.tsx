@@ -11,8 +11,12 @@ import {
   useState,
 } from "react";
 import { getCaretCoordinates } from "@/lib/wiki/caret";
+import { createPortal } from "react-dom";
 import { Play, X } from "lucide-react";
+import { WikiContent } from "@/components/anime/wiki-content";
 import { EditorToolbar } from "@/components/wiki/EditorToolbar";
+import { WikiEditorMoreSheet } from "@/components/wiki/WikiEditorMoreSheet";
+import { WikiYoutubeModal } from "@/components/wiki/WikiYoutubeModal";
 import { TitleSuggestPopover, type PopoverPlacement } from "@/components/wiki/TitleSuggestPopover";
 import { createTranslator } from "@/lib/i18n/messages";
 
@@ -65,6 +69,8 @@ export type WikiEditorProps = {
   liveTitles?: boolean;
   /** Open the structured Article info editor instead of inserting raw infobox markup. */
   onInfobox?: () => void;
+  /** Custom preview (e.g. wiki link status). Falls back to `WikiContent`. */
+  preview?: React.ReactNode;
 };
 
 type PopoverState = {
@@ -113,6 +119,7 @@ export function WikiEditor({
   variant = "document",
   placeholder,
   onInfobox,
+  preview,
 }: WikiEditorProps) {
   const bodyOnly = variant === "body";
   const isControlled = value !== undefined;
@@ -149,6 +156,11 @@ export function WikiEditor({
   });
   const [youtubeOpen, setYoutubeOpen] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [pane, setPane] = useState<"edit" | "preview">("edit");
+  const [editorFocused, setEditorFocused] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [imeInset, setImeInset] = useState(0);
 
   const listId = useId();
   const [remoteTitles, setRemoteTitles] = useState<WikiTitle[]>([]);
@@ -340,6 +352,33 @@ export function WikiEditor({
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [evaluateContext]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setImeInset(0);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      setImeInset(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    update();
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
@@ -550,6 +589,29 @@ export function WikiEditor({
       ? popover
       : null;
 
+  const dockToolbar = pane === "edit" && isMobile && editorFocused && imeInset > 0;
+
+  const toolbar = (
+    <EditorToolbar
+      variant={variant}
+      className={dockToolbar ? "border-t shadow-[0_-4px_16px_rgba(0,0,0,0.08)]" : "border-b"}
+      style={dockToolbar ? { bottom: imeInset } : undefined}
+      onMacro={handleMacro}
+      onPickImage={() => {
+        caretForInsert();
+        imageInputRef.current?.click();
+      }}
+      onPickVideo={() => {
+        caretForInsert();
+        if (onUploadVideo) videoInputRef.current?.click();
+        else setYoutubeOpen(true);
+      }}
+      onMore={() => setMoreOpen(true)}
+      imageBusy={imageBusy}
+      videoBusy={videoBusy}
+    />
+  );
+
   return (
     <FileDropZone
       ref={wrapperRef}
@@ -570,24 +632,34 @@ export function WikiEditor({
         if (video) void handleVideoFile(video);
       }}
     >
-      <EditorToolbar
-        variant={variant}
-        onMacro={handleMacro}
-        onInfobox={onInfobox}
-        onPickImage={() => {
-          caretForInsert();
-          imageInputRef.current?.click();
-        }}
-        onPickVideo={() => {
-          caretForInsert();
-          if (onUploadVideo) videoInputRef.current?.click();
-          else setYoutubeOpen((open) => !open);
-        }}
-        onPickCover={() => coverInputRef.current?.click()}
-        onPickBanner={() => bannerInputRef.current?.click()}
-        imageBusy={imageBusy}
-        videoBusy={videoBusy}
-      />
+      <div className="flex border-b border-border/80 bg-muted/30 px-1.5" role="tablist" aria-label="Article editor">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={pane === "edit"}
+          onClick={() => setPane("edit")}
+          className={cn(
+            "flex-1 rounded-t-lg px-3 py-2.5 text-sm font-semibold",
+            pane === "edit" ? "bg-card text-foreground" : "text-muted-foreground"
+          )}
+        >
+          {t("wiki.editor.edit")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={pane === "preview"}
+          onClick={() => setPane("preview")}
+          className={cn(
+            "flex-1 rounded-t-lg px-3 py-2.5 text-sm font-semibold",
+            pane === "preview" ? "bg-card text-foreground" : "text-muted-foreground"
+          )}
+        >
+          {t("wiki.editor.preview")}
+        </button>
+      </div>
+
+      {pane === "edit" && !dockToolbar ? toolbar : null}
 
       <input
         ref={imageInputRef}
@@ -638,34 +710,33 @@ export function WikiEditor({
         </>
       )}
 
-      {youtubeOpen ? (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/70 bg-muted/30 px-3 py-2">
-          <input
-            type="url"
-            value={youtubeUrl}
-            onChange={(e) => {
-              setYoutubeUrl(e.target.value);
-              setMediaError("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleYoutubeInsert();
-              }
-            }}
-            placeholder={t("anime.sr7fl2u")}
-            className="h-8 max-w-md flex-1 rounded-xl border border-border bg-background px-3 text-sm"
-          />
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={handleYoutubeInsert}
-            className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium"
-          >
-            {t("anime.s8h0lq5")}
-          </button>
-        </div>
-      ) : null}
+      <WikiYoutubeModal
+        open={youtubeOpen}
+        url={youtubeUrl}
+        error={mediaError}
+        onUrlChange={(value) => {
+          setYoutubeUrl(value);
+          setMediaError("");
+        }}
+        onClose={() => {
+          setYoutubeOpen(false);
+          setMediaError("");
+        }}
+        onInsert={handleYoutubeInsert}
+      />
+
+      <WikiEditorMoreSheet
+        open={moreOpen}
+        variant={variant}
+        onClose={() => setMoreOpen(false)}
+        onMacro={(macro) => {
+          handleMacro(macro);
+          setMoreOpen(false);
+        }}
+        onPickCover={() => coverInputRef.current?.click()}
+        onPickBanner={() => bannerInputRef.current?.click()}
+        onInfobox={onInfobox}
+      />
 
       {!bodyOnly && previews.length > 0 ? (
         <div className="flex flex-wrap gap-3 border-b border-border/70 bg-muted/20 px-3 py-2">
@@ -696,83 +767,108 @@ export function WikiEditor({
         </div>
       ) : null}
 
-      {mediaError ? (
+      {mediaError && !youtubeOpen ? (
         <p className="px-3 pt-2 text-xs text-destructive" role="alert">
           {mediaError}
         </p>
       ) : null}
 
-      <div
-        className={cn(
-          "flex w-full flex-col bg-background px-4 py-3",
-          bodyOnly ? "min-h-[520px]" : "min-h-[480px]"
-        )}
-      >
-        {parts.map((part, index) =>
-          part.type === "text" ? (
-            <textarea
-              key={`text-${index}`}
-              ref={(el) => {
-                textareaRefs.current[index] = el;
-              }}
-              value={part.value}
-              spellCheck={false}
-              aria-autocomplete="list"
-              aria-controls={visiblePopover && focusedPartRef.current === index ? listId : undefined}
-              aria-expanded={visiblePopover && focusedPartRef.current === index ? true : undefined}
-              placeholder={index === 0 && parts.length === 1 ? placeholder : undefined}
-              rows={1}
-              className={cn(
-                "w-full resize-none overflow-hidden bg-transparent font-mono text-sm leading-relaxed text-foreground outline-none",
-                "focus:ring-0",
-                parts.length === 1
-                  ? bodyOnly
-                    ? "min-h-[496px]"
-                    : "min-h-[456px]"
-                  : part.value
-                    ? "min-h-[1.5rem]"
-                    : "min-h-6"
-              )}
-              onFocus={() => {
-                focusedPartRef.current = index;
-                rememberCaret(index);
-              }}
-              onChange={(e) => {
-                applyPartText(index, e.target.value);
-                if (!composingRef.current) scheduleEvaluate();
-              }}
-              onKeyDown={onTextareaKeyDown}
-              onKeyUp={() => {
-                rememberCaret(index);
-                if (!composingRef.current) scheduleEvaluate();
-              }}
-              onClick={() => {
-                rememberCaret(index);
-                scheduleEvaluate();
-              }}
-              onSelect={() => {
-                rememberCaret(index);
-                scheduleEvaluate();
-              }}
-              onScroll={() => evaluateContext()}
-              onCompositionStart={() => {
-                composingRef.current = true;
-              }}
-              onCompositionEnd={() => {
-                composingRef.current = false;
-                rememberCaret(index);
-                scheduleEvaluate();
-              }}
-            />
-          ) : (
-            <WikiEditorInlineMedia
-              key={`media-${index}-${part.item.snippet}`}
-              item={part.item}
-              onRemove={() => removeMediaPart(index)}
-            />
-          )
-        )}
-      </div>
+      {pane === "preview" ? (
+        <div
+          className={cn(
+            "overflow-y-auto bg-background px-4 py-3",
+            bodyOnly ? "min-h-[520px]" : "min-h-[480px]"
+          )}
+        >
+          {preview ??
+            (text.trim() ? (
+              <WikiContent source={text} />
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("wiki.editor.previewEmpty")}</p>
+            ))}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "flex w-full flex-col bg-background px-4 py-3",
+            bodyOnly ? "min-h-[520px]" : "min-h-[480px]",
+            dockToolbar && "pb-16"
+          )}
+        >
+          {parts.map((part, index) =>
+            part.type === "text" ? (
+              <textarea
+                key={`text-${index}`}
+                ref={(el) => {
+                  textareaRefs.current[index] = el;
+                }}
+                value={part.value}
+                spellCheck={false}
+                aria-autocomplete="list"
+                aria-controls={visiblePopover && focusedPartRef.current === index ? listId : undefined}
+                aria-expanded={visiblePopover && focusedPartRef.current === index ? true : undefined}
+                placeholder={index === 0 && parts.length === 1 ? placeholder : undefined}
+                rows={1}
+                className={cn(
+                  "w-full resize-none overflow-hidden bg-transparent font-mono text-sm leading-relaxed text-foreground outline-none",
+                  "focus:ring-0",
+                  parts.length === 1
+                    ? bodyOnly
+                      ? "min-h-[496px]"
+                      : "min-h-[456px]"
+                    : part.value
+                      ? "min-h-[1.5rem]"
+                      : "min-h-6"
+                )}
+                onFocus={() => {
+                  focusedPartRef.current = index;
+                  rememberCaret(index);
+                  setEditorFocused(true);
+                }}
+                onBlur={() => {
+                  window.setTimeout(() => {
+                    const root = wrapperRef.current;
+                    if (root && root.contains(document.activeElement)) return;
+                    setEditorFocused(false);
+                  }, 0);
+                }}
+                onChange={(e) => {
+                  applyPartText(index, e.target.value);
+                  if (!composingRef.current) scheduleEvaluate();
+                }}
+                onKeyDown={onTextareaKeyDown}
+                onKeyUp={() => {
+                  rememberCaret(index);
+                  if (!composingRef.current) scheduleEvaluate();
+                }}
+                onClick={() => {
+                  rememberCaret(index);
+                  scheduleEvaluate();
+                }}
+                onSelect={() => {
+                  rememberCaret(index);
+                  scheduleEvaluate();
+                }}
+                onScroll={() => evaluateContext()}
+                onCompositionStart={() => {
+                  composingRef.current = true;
+                }}
+                onCompositionEnd={() => {
+                  composingRef.current = false;
+                  rememberCaret(index);
+                  scheduleEvaluate();
+                }}
+              />
+            ) : (
+              <WikiEditorInlineMedia
+                key={`media-${index}-${part.item.snippet}`}
+                item={part.item}
+                onRemove={() => removeMediaPart(index)}
+              />
+            )
+          )}
+        </div>
+      )}
 
       {visiblePopover ? (
         <TitleSuggestPopover
@@ -791,6 +887,10 @@ export function WikiEditor({
           optionRefs={optionRefs}
         />
       ) : null}
+
+      {dockToolbar && typeof document !== "undefined"
+        ? createPortal(<div className="fixed inset-x-0 z-40">{toolbar}</div>, document.body)
+        : null}
 
       {showSubmit && onSubmit ? (
         <div className="border-t border-border/80 p-3">

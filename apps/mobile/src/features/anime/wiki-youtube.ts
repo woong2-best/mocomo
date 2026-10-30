@@ -72,6 +72,42 @@ function parseVideoEmbed(raw: string): WikiVideo | null {
   return null;
 }
 
+const YOUTUBE_URL_RE =
+  /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?(?:[^#\s]*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)[a-zA-Z0-9_-]{6,}[^\s]*/gi;
+
+/** Move pasted YouTube URLs onto their own line so the article renderer embeds them. */
+export function promoteYoutubeUrlsToOwnLines(text: string): string {
+  const lines = text.split("\n");
+  const out: string[] = [];
+  for (const line of lines) {
+    const matches = [...line.matchAll(YOUTUBE_URL_RE)];
+    if (matches.length === 0) {
+      out.push(line);
+      continue;
+    }
+    if (matches.length === 1 && line.trim() === matches[0][0]) {
+      out.push(line.trim());
+      continue;
+    }
+    let last = 0;
+    for (const match of matches) {
+      const start = match.index ?? 0;
+      const before = line.slice(last, start).trim();
+      if (before) out.push(before);
+      out.push(match[0]);
+      last = start + match[0].length;
+    }
+    const after = line.slice(last).trim();
+    if (after) out.push(after);
+  }
+  return out.join("\n");
+}
+
+export function applyYoutubePaste(prev: string, next: string): string {
+  if (next.length <= prev.length + 8) return next;
+  return promoteYoutubeUrlsToOwnLines(next);
+}
+
 export function extractYoutubeId(line: string): string | null {
   const video = parseWikiVideoLine(line);
   if (video?.kind === "youtube") return video.id;
