@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showIslandError, showIslandInfo } from "@/ui/IslandToast";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -49,7 +50,11 @@ import {
 import { PostShareSheet } from "@/features/share/PostShareSheet";
 import { storyPostFromReel } from "@/features/share/instagram-story-post";
 import { ReelNotePage } from "@/features/reels/ReelNotePage";
-import { expandReelNoteSlides, notePageBudget } from "@/features/reels/reel-note-pages";
+import {
+  expandReelNoteSlides,
+  notePageBudget,
+  noteSafePads,
+} from "@/features/reels/reel-note-pages";
 
 const FAST_PLAYBACK_RATE = 2;
 
@@ -358,9 +363,14 @@ function FeedVideoPostSlideInner({
   const stageWidth = stageWidthProp ?? width;
   const stageLeft = stageLeftProp ?? 0;
   const isWide = stageLeft > 0 || stageWidth < width;
+  const insets = useSafeAreaInsets();
   const slides = useMemo(
-    () => expandReelNoteSlides(group.videos, notePageBudget(stageWidth, height)),
-    [group.videos, height, stageWidth]
+    () =>
+      expandReelNoteSlides(
+        group.videos,
+        notePageBudget(stageWidth, height, noteSafePads(insets.top))
+      ),
+    [group.videos, height, insets.top, stageWidth]
   );
   const { t } = useI18n();
   const queryClient = useQueryClient();

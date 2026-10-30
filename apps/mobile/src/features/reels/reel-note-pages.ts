@@ -1,21 +1,44 @@
 /**
- * Keep in sync with src/lib/reels/text-pages.ts.
- * The viewer measures the card and paginates so each note page fills the frame.
+ * Keep wrap/paginate math in sync with src/lib/reels/text-pages.ts.
+ * Mobile pads also clear Reels chrome (back, rail, author) so a text-only
+ * note never sits under those overlays.
  */
 
 import { splitPostCaptionAndHashtags } from "@/lib/post-hashtags";
 
 export const NOTE_LINE_PX = 32;
 export const NOTE_INSET_PX = 0;
-export const NOTE_PAD_TOP_PX = 8;
-export const NOTE_PAD_BOTTOM_PX = 76;
+/** ReelsScreen header: 4 + 40 back + 8 pad + 8 gap under the chevron. */
+export const NOTE_CHROME_BELOW_INSET_PX = 60;
+/** Matches FeedVideoPostSlide `meta.right` — left of like/save/share/comment. */
+export const NOTE_PAD_RIGHT_PX = 72;
+/** Author row (`bottom: 28` + 36 avatar + hashtag line) above the profile. */
+export const NOTE_PAD_BOTTOM_PX = 108;
 export const NOTE_PAD_LEFT_PX = 16;
-export const NOTE_PAD_RIGHT_PX = 12;
+/** @deprecated Use noteSafePads().top — kept so older callers still compile. */
+export const NOTE_PAD_TOP_PX = NOTE_CHROME_BELOW_INSET_PX;
 export const NOTE_JAMO_PX = 14.7;
 export const NOTE_HANGUL_PX = 14.7;
 export const NOTE_LATIN_PX = 11.6;
 export const NOTE_SPACE_PX = 4.13;
 export const NOTE_UNIT_PX = 8.5;
+
+export type NoteSafePads = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+
+/** Text box inside the red safe frame on a text reel. */
+export function noteSafePads(topInset = 0): NoteSafePads {
+  return {
+    top: topInset + NOTE_CHROME_BELOW_INSET_PX,
+    right: NOTE_PAD_RIGHT_PX,
+    bottom: NOTE_PAD_BOTTOM_PX,
+    left: NOTE_PAD_LEFT_PX,
+  };
+}
 
 export type NotePageBudget = {
   unitsPerLine: number;
@@ -27,11 +50,16 @@ export type NotePageBudget = {
   spacePx?: number;
 };
 
-export function notePageBudget(frameWidth: number, frameHeight: number): NotePageBudget {
+export function notePageBudget(
+  frameWidth: number,
+  frameHeight: number,
+  pads?: Partial<NoteSafePads>
+): NotePageBudget {
+  const box = { ...noteSafePads(), ...pads };
   const paperW = Math.max(0, frameWidth - NOTE_INSET_PX * 2);
   const paperH = Math.max(0, frameHeight - NOTE_INSET_PX * 2);
-  const textW = Math.max(80, paperW - NOTE_PAD_LEFT_PX - NOTE_PAD_RIGHT_PX);
-  const textH = Math.max(NOTE_LINE_PX, paperH - NOTE_PAD_TOP_PX - NOTE_PAD_BOTTOM_PX);
+  const textW = Math.max(80, paperW - box.left - box.right);
+  const textH = Math.max(NOTE_LINE_PX, paperH - box.top - box.bottom);
   return {
     unitsPerLine: Math.max(20, Math.floor(textW / NOTE_UNIT_PX)),
     linesPerPage: Math.max(8, Math.floor(textH / NOTE_LINE_PX)),
