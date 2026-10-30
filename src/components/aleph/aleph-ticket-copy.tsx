@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { createTranslator } from "@/lib/i18n/messages";
-import { ALEPH_PUBLIC_AGENT_SIG, ALEPH_TICKET_COMMAND, ALEPH_VERSION } from "@/lib/aleph-ticket";
+import {
+  ALEPH_ENDPOINT_LABEL,
+  ALEPH_PROTOCOL_LABEL,
+  ALEPH_SIGNATURE_LINE,
+  ALEPH_TICKET_COMMAND,
+} from "@/lib/aleph-ticket";
 
 const t = createTranslator("en");
 
@@ -36,10 +41,17 @@ export function AlephTicketCopy() {
         </button>
       </div>
       <pre className="terminal">
-        <span className="comment">{`# MoCoMo Aleph Public Access Token (v${ALEPH_VERSION})`}</span>
-        {`
-$env:M2M_AGENT_SIG="${ALEPH_PUBLIC_AGENT_SIG}"
-$env:ALEPH_VERSION="${ALEPH_VERSION}"`}
+        <span className="key">Endpoint</span>
+        {"   "}
+        {ALEPH_ENDPOINT_LABEL}
+        {"\n"}
+        <span className="key">Protocol</span>
+        {"   "}
+        {ALEPH_PROTOCOL_LABEL}
+        {"\n"}
+        <span className="key">Signature</span>
+        {"  "}
+        {ALEPH_SIGNATURE_LINE}
       </pre>
     </div>
   );

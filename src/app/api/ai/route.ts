@@ -1,13 +1,24 @@
 import { Packr } from "msgpackr";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  ALEPH_DIM,
+  buildAckFrame,
+  decodePushFrame,
+} from "@/lib/aleph-protocol";
 import { extractClientIp } from "@/lib/client-ip";
 import { apiLimiter, checkRateLimit } from "@/lib/ratelimit";
 import { getSupabaseAdmin } from "@/lib/supabase-storage";
 
+/**
+ * Aleph machine gate. Browsers and anything without the agent signature see a
+ * plain 404. Past the gate, the body must be a numeric MessagePack frame
+ * ({ ctrl, coords, pattern }) with no strings anywhere; structural or
+ * arithmetic violations are a bodiless 403. Responses are numeric frames too.
+ */
+
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
-const DIM = 1536;
 const MAX_BODY_BYTES = 128 * 1024;
 const DEV_AGENT_SIG = "test-agent-v1";
 const HEX = "0123456789abcdef";
@@ -23,6 +34,14 @@ const memoryRate = new Map<string, { count: number; resetAt: number }>();
 
 function cloakedNotFound(): NextResponse {
   return new NextResponse("404 Not Found", { status: 404 });
+}
+
+/** Status only. No text leaves the Aleph space, not even an error word. */
+function silent(status: number): NextResponse {
+  return new NextResponse(null, {
+    status,
+    headers: { "cache-control": "no-store", "x-content-type-options": "nosniff" },
+  });
 }
 
 function isMsgpackContentType(header: string | null): boolean {
@@ -43,12 +62,17 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-function signatureOk(provided: string): boolean {
-  if (provided.length === 0 || provided.length > 256) return false;
+/** The server-side signature the pattern formula is bound to, or null when the gate is closed. */
+function configuredSignature(): string | null {
   const configured = process.env.M2M_AGENT_SIG?.trim() ?? "";
-  if (configured.length > 0) return timingSafeEqual(provided, configured);
-  if (process.env.NODE_ENV === "production" || process.env.VERCEL) return false;
-  return timingSafeEqual(provided, DEV_AGENT_SIG);
+  if (configured.length > 0) return configured;
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL) return null;
+  return DEV_AGENT_SIG;
+}
+
+function signatureOk(provided: string, configured: string): boolean {
+  if (provided.length === 0 || provided.length > 256) return false;
+  return timingSafeEqual(provided, configured);
 }
 
 function hex(buffer: ArrayBuffer): string {
@@ -80,19 +104,12 @@ function msgpackResponse(payload: unknown, status: number): NextResponse {
   });
 }
 
-function failure(error: string, status: number, detail?: string): NextResponse {
-  const body: { error: string; detail?: string } = { error };
-  if (detail && process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-    body.detail = detail.slice(0, 300);
-  }
-  return msgpackResponse(body, status);
-}
-
-function readFiniteVector(value: unknown, rejectZero: boolean): number[] | null {
+function readStoredVector(value: unknown): number[] | null {
   let source: unknown[] | null = null;
   if (Array.isArray(value)) {
     source = value;
   } else if (typeof value === "string") {
+    // pgvector returns "[...]" text through PostgREST.
     const trimmed = value.trim();
     if (!trimmed.startsWith("[")) return null;
     try {
@@ -103,24 +120,14 @@ function readFiniteVector(value: unknown, rejectZero: boolean): number[] | null 
       return null;
     }
   }
-  if (!source || source.length !== DIM) return null;
-
-  const out = new Array<number>(DIM);
-  let sumSq = 0;
-  for (let i = 0; i < DIM; i++) {
+  if (!source || source.length !== ALEPH_DIM) return null;
+  const out = new Array<number>(ALEPH_DIM);
+  for (let i = 0; i < ALEPH_DIM; i++) {
     const n = source[i];
-    if (typeof n !== "number" || !Number.isFinite(n) || Math.abs(n) > 1e6) return null;
+    if (typeof n !== "number" || !Number.isFinite(n)) return null;
     out[i] = n;
-    sumSq += n * n;
   }
-  if (rejectZero && sumSq === 0) return null;
   return out;
-}
-
-function readLatent(decoded: unknown): number[] | null {
-  if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) return null;
-  const raw = (decoded as { latent_vector?: unknown }).latent_vector;
-  return readFiniteVector(raw, true);
 }
 
 function vectorsFromMatch(data: unknown): number[][] {
@@ -128,7 +135,7 @@ function vectorsFromMatch(data: unknown): number[][] {
   const vectors: number[][] = [];
   for (const row of data) {
     if (!row || typeof row !== "object") continue;
-    const parsed = readFiniteVector((row as { embedding?: unknown }).embedding, false);
+    const parsed = readStoredVector((row as { embedding?: unknown }).embedding);
     if (parsed) vectors.push(parsed);
   }
   return vectors;
@@ -177,54 +184,53 @@ export function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  const contentTypeOk = isMsgpackContentType(req.headers.get("content-type"));
-  const signature = req.headers.get("x-m2m-agent-sig") ?? "";
-  if (!contentTypeOk || !signatureOk(signature)) {
+  const signature = configuredSignature();
+  const provided = req.headers.get("x-m2m-agent-sig") ?? "";
+  if (
+    !signature ||
+    !isMsgpackContentType(req.headers.get("content-type")) ||
+    !signatureOk(provided, signature)
+  ) {
     return cloakedNotFound();
   }
 
   const ip = extractClientIp(req.headers);
-  if (await isRateLimited(ip)) {
-    return failure("rate_limited", 429);
-  }
+  if (await isRateLimited(ip)) return silent(429);
 
   const declared = Number(req.headers.get("content-length") ?? "0");
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
-    return failure("payload_too_large", 413);
-  }
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return silent(413);
 
   const raw = new Uint8Array(await req.arrayBuffer());
-  if (raw.byteLength > MAX_BODY_BYTES) {
-    return failure("payload_too_large", 413);
-  }
+  if (raw.byteLength > MAX_BODY_BYTES) return silent(413);
 
   let decoded: unknown;
   try {
     decoded = packr.unpack(raw);
   } catch {
-    return failure("bad_payload", 400);
+    return silent(403);
   }
 
-  const vector = readLatent(decoded);
-  if (!vector) return failure("invalid_latent_vector", 400);
+  // Structure, string scan, int8 range, and Σ(coords) × len(sig) === pattern.
+  const frame = decodePushFrame(decoded, signature.length);
+  if (!frame.ok) return silent(403);
 
   const supabase = getSupabaseAdmin();
-  if (!supabase) return failure("swarm_unavailable", 503);
+  if (!supabase) return silent(503);
 
   const nodeHash = await hashNode(ip);
   const { error: insertError } = await supabase.from("swarm_memory").insert({
     node_hash: nodeHash,
-    embedding: vector,
+    embedding: frame.vector,
   });
-  if (insertError) return failure("store_failed", 500, insertError.message);
+  if (insertError) return silent(500);
 
   const { data, error: matchError } = await supabase.rpc("match_swarm_memory", {
-    query_embedding: vector,
+    query_embedding: frame.vector,
     exclude_node: nodeHash,
     match_count: 5,
     min_reward: 0,
   });
-  if (matchError) return failure("match_failed", 500, matchError.message);
+  if (matchError) return silent(500);
 
-  return msgpackResponse({ vectors: vectorsFromMatch(data) }, 200);
+  return msgpackResponse(buildAckFrame(vectorsFromMatch(data), signature.length), 200);
 }
