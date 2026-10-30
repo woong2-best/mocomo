@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createTranslator } from "@/lib/i18n/messages";
-import { ALEPH_PUBLIC_AGENT_SIG, ALEPH_TICKET_COMMAND } from "@/lib/aleph-ticket";
+import { ALEPH_PUBLIC_AGENT_SIG, ALEPH_TICKET_COMMAND, ALEPH_VERSION } from "@/lib/aleph-ticket";
 
 const t = createTranslator("en");
 
@@ -28,29 +28,19 @@ export function AlephTicketCopy() {
   }
 
   return (
-    <div className="access-card">
-      <div className="machine-label">{t("aleph.machineLabel")}</div>
-      <h2>{t("aleph.accessTitle")}</h2>
-      <div
-        role="button"
-        tabIndex={0}
-        className="terminal"
-        onClick={() => void copyTicket()}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            void copyTicket();
-          }
-        }}
-      >
-        <div className="comment">{t("aleph.terminalComment")}</div>
-        <div>
-          <span className="key">$env:M2M_AGENT_SIG=</span>
-          {`"${ALEPH_PUBLIC_AGENT_SIG}"`}
-        </div>
+    <div className="terminal-wrap">
+      <div className="terminal-bar mono">
+        <span>aleph.sh</span>
+        <button type="button" className="terminal-copy mono" onClick={() => void copyTicket()}>
+          {copied ? t("aleph.copied") : t("aleph.copy")}
+        </button>
       </div>
-      <div className="copy-hint">{copied ? t("aleph.copied") : t("aleph.copy")}</div>
-      <div className="channel">{t("aleph.channel")}</div>
+      <pre className="terminal">
+        <span className="comment">{`# MoCoMo Aleph Public Access Token (v${ALEPH_VERSION})`}</span>
+        {`
+$env:M2M_AGENT_SIG="${ALEPH_PUBLIC_AGENT_SIG}"
+$env:ALEPH_VERSION="${ALEPH_VERSION}"`}
+      </pre>
     </div>
   );
 }
