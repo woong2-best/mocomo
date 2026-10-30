@@ -19,12 +19,16 @@ export default function AlephTicketPage() {
 
       <header>
         <Link href="/">{t("aleph.headerBrand")}</Link>
-        <span>{ALEPH_VERSION_LABEL}</span>
+        <span className="version-mark">
+          <img className="mascot" src="/images/aleph-mascot.png" alt="" />
+          {ALEPH_VERSION_LABEL}
+        </span>
       </header>
 
       <div className="shell">
         <section className="hero">
           <div className="badge">
+            <img className="mascot" src="/images/aleph-mascot.png" alt="" />
             <em>{ALEPH_VERSION_LABEL}</em>
             <span>/</span>
             {t("aleph.badgeProtocol")}

@@ -72,6 +72,25 @@
   letter-spacing: 0.16em;
 }
 
+.aleph-landing .version-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aleph-landing .mascot {
+  display: block;
+  width: auto;
+  height: 28px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.aleph-landing .badge .mascot {
+  height: 40px;
+  border-radius: 4px;
+}
+
 .aleph-landing .shell {
   position: relative;
   z-index: 1;
