@@ -4,6 +4,7 @@ import { View } from "react-native";
 type Props = {
   width: number;
   height: number;
+  resetKey?: string;
   children: ReactNode;
 };
 
@@ -19,6 +20,12 @@ export class ReelSlotBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[ReelSlotBoundary]", error, info.componentStack);
+  }
+
+  componentDidUpdate(prev: Props) {
+    if (this.state.failed && prev.resetKey !== this.props.resetKey) {
+      this.setState({ failed: false });
+    }
   }
 
   render() {

@@ -591,7 +591,7 @@ export function ReelsScreen() {
     ({ item, index }: { item: ReelsSlot; index: number }) => {
       if (item.kind === "ad") {
         return (
-          <ReelSlotBoundary width={width} height={height}>
+          <ReelSlotBoundary width={width} height={height} resetKey={item.key}>
             <ReelSponsoredSlide
               ad={item.ad}
               width={width}
@@ -604,21 +604,23 @@ export function ReelsScreen() {
       }
       const near = Math.abs(index - activeSlot) <= PerformanceBudgets.reelsPrebufferNeighbors;
       return (
-        <FeedVideoPostSlide
-          group={item.group}
-          width={width}
-          height={height}
-          stageWidth={chrome.stageWidth}
-          stageLeft={chrome.stageLeft}
-          active={index === activeSlot}
-          loadPlayer={near}
-          initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
-          onOpenComments={openComments}
-          onPrefetchComments={prefetchComments}
-          onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
-          onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
-          commentsOpen={index === activeSlot && isCommentOpen}
-        />
+        <ReelSlotBoundary width={width} height={height} resetKey={item.key}>
+          <FeedVideoPostSlide
+            group={item.group}
+            width={width}
+            height={height}
+            stageWidth={chrome.stageWidth}
+            stageLeft={chrome.stageLeft}
+            active={index === activeSlot}
+            loadPlayer={near}
+            initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
+            onOpenComments={openComments}
+            onPrefetchComments={prefetchComments}
+            onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
+            onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
+            commentsOpen={index === activeSlot && isCommentOpen}
+          />
+        </ReelSlotBoundary>
       );
     },
     [

@@ -34,6 +34,29 @@ function withScreenBoundary<P extends object>(label: string, Screen: ComponentTy
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+let boundedPostDetailScreen: ComponentType | null = null;
+let boundedReelsScreen: ComponentType | null = null;
+
+function getBoundedPostDetailScreen(): ComponentType {
+  if (!boundedPostDetailScreen) {
+    boundedPostDetailScreen = withScreenBoundary(
+      "PostDetail",
+      require("@/features/feed/PostDetailScreen").PostDetailScreen,
+    );
+  }
+  return boundedPostDetailScreen;
+}
+
+function getBoundedReelsScreen(): ComponentType {
+  if (!boundedReelsScreen) {
+    boundedReelsScreen = withScreenBoundary(
+      "Reels",
+      require("@/features/reels/ReelsScreen").ReelsScreen,
+    );
+  }
+  return boundedReelsScreen;
+}
+
 function UsedTabScreen() {
   const { MarketplaceListScreen } = require("@/features/marketplace/MarketplaceListScreen") as {
     MarketplaceListScreen: ComponentType<{ mode?: "tab" | "stack" }>;
@@ -386,24 +409,14 @@ export function RootNavigator() {
               name="UserProfile"
               getComponent={() => require("@/features/profile/UserProfileScreen").UserProfileScreen}
             />
-            <Stack.Screen
-              name="PostDetail"
-              getComponent={() =>
-                withScreenBoundary(
-                  "PostDetail",
-                  require("@/features/feed/PostDetailScreen").PostDetailScreen,
-                )
-              }
-            />
+            <Stack.Screen name="PostDetail" getComponent={getBoundedPostDetailScreen} />
             <Stack.Screen
               name="Search"
               getComponent={() => require("@/features/search/SearchScreen").SearchScreen}
             />
             <Stack.Screen
               name="Reels"
-              getComponent={() =>
-                withScreenBoundary("Reels", require("@/features/reels/ReelsScreen").ReelsScreen)
-              }
+              getComponent={getBoundedReelsScreen}
               options={{
                 animation: "fade",
                 gestureEnabled: true,

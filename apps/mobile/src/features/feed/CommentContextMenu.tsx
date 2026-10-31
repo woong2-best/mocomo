@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "#000",
   },
   menu: {

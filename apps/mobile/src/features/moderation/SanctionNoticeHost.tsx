@@ -73,7 +73,8 @@ export function SanctionNoticeHost() {
   const cardBg = colors.surfaceRaised;
 
   function dismiss() {
-    void ackSanctionNotice(notice.id).finally(() => setNotice(null));
+    const id = notice.id;
+    void ackSanctionNotice(id).finally(() => setNotice(null));
   }
 
   return (
