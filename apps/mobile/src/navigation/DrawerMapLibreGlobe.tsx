@@ -404,7 +404,7 @@ if (!maplibregl) {
       + '<div class="popup-links"><a href="#" data-url="' + esc(googleSearch(pin)) + '">' + esc(UI.googleSearch) + "</a>"
       + '<a href="#" data-url="' + esc(place.url) + '">' + esc(place.label) + "</a></div></div>";
     if (popup) popup.remove();
-    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 12 })
+    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 24 })
       .setLngLat([pin.lng, pin.lat])
       .setHTML(html)
       .addTo(map);

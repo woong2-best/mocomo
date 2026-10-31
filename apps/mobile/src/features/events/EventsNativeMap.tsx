@@ -20,7 +20,7 @@ import { mapPinImageIdForCategory, mapPinSymbolLayout } from "@/maps/map-pin";
 type ViewConfig = { lat: number; lng: number; zoom: number };
 
 /** Screen-pixel pad around a tap. The pin graphic stays small. */
-const PIN_HITBOX = { top: 20, right: 20, bottom: 20, left: 20 };
+const PIN_HITBOX = { top: 24, right: 24, bottom: 24, left: 24 };
 const PIN_LAYOUT = mapPinSymbolLayout(true);
 
 function validPins(pins: MapEventPin[]) {

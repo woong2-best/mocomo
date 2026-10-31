@@ -219,7 +219,7 @@ export function MapLibreMeetMapCanvas({
             closeButton: true,
             closeOnClick: true,
             maxWidth: "240px",
-            offset: 12,
+            offset: 24,
           })
             .setLngLat([marker.lng, marker.lat])
             .setHTML(popupHtml(markerPopup))

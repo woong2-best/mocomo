@@ -90,7 +90,7 @@ function safeHttpUrl(url: string | null | undefined): string | null {
 }
 
 /** Pins within this many screen pixels count as one pile. */
-const CLUMP_RADIUS_PX = 28;
+const CLUMP_RADIUS_PX = 44;
 
 function pinsToGeoJSON(pins: MapEventPin[]) {
   return {
@@ -384,7 +384,7 @@ export function SubcultureEventsMap({
           closeButton: false,
           maxWidth: "240px",
           className: "subculture-map-popup",
-          offset: 12,
+          offset: 24,
         })
           .setLngLat([pin.lng, pin.lat])
           .setHTML(buildPinPopupHtml(pin))

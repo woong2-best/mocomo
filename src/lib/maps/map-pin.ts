@@ -1,4 +1,4 @@
-/** Category map pins — 14px circles matching the original event dots. */
+/** Category map pins — 40px circles, same as the previous round pins. */
 
 export type MapPinKind = "maid" | "user" | "event";
 
@@ -6,11 +6,11 @@ export const MAP_PIN_PINK = "#ff69b4";
 export const MAP_PIN_GREEN = "#22c55e";
 export const MAP_PIN_BLUE = "#3b82f6";
 
-/** Original event-map circle diameter (`circle-radius: 7`). */
-export const MAP_PIN_SIZE_PX = 14;
-export const MAP_PIN_SOURCE_PX = 56;
+/** Previous circular pin diameter. */
+export const MAP_PIN_SIZE_PX = 40;
+export const MAP_PIN_SOURCE_PX = 160;
 export const MAP_PIN_ICON_SIZE = MAP_PIN_SIZE_PX / MAP_PIN_SOURCE_PX;
-export const MAP_PIN_ICON_SIZE_SELECTED = 16 / MAP_PIN_SOURCE_PX;
+export const MAP_PIN_ICON_SIZE_SELECTED = 44 / MAP_PIN_SOURCE_PX;
 
 export const MAP_PIN_IMAGE_IDS = {
   maid: "pin-maid",
