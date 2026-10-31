@@ -36,8 +36,8 @@ export function CollapsibleVideoCaption({
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
-  const overlay = text.trim();
-  const extra = (description ?? "").trim();
+  const overlay = String(text ?? "").trim();
+  const extra = String(description ?? "").trim();
   const display = expanded ? [overlay, extra].filter(Boolean).join("\n") : overlay;
 
   useEffect(() => {

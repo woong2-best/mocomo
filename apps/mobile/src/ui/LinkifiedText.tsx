@@ -8,7 +8,11 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { parseLinkifyParts } from "@/lib/linkify";
+import { parseLinkifyParts, type LinkifyPart } from "@/lib/linkify";
+import { useUserProfileNav } from "@/features/profile/user-profile-nav";
+import { openUserLink } from "@/lib/open-user-link";
+import { useTheme } from "@/theme/ThemeContext";
+import type { RootStackParamList } from "@/navigation/types";
 
 type MentionState = "active" | "blocked" | "denied";
 
@@ -22,10 +26,15 @@ function parseMentionStates(raw: unknown): Record<string, MentionState> | undefi
   }
   return Object.keys(out).length ? out : undefined;
 }
-import { useUserProfileNav } from "@/features/profile/user-profile-nav";
-import { openUserLink } from "@/lib/open-user-link";
-import { useTheme } from "@/theme/ThemeContext";
-import type { RootStackParamList } from "@/navigation/types";
+
+function safeLinkifyParts(text: unknown): LinkifyPart[] {
+  const value = typeof text === "string" ? text : String(text ?? "");
+  try {
+    return parseLinkifyParts(value);
+  } catch {
+    return value ? [{ type: "text", value }] : [];
+  }
+}
 
 type Props = {
   text: string;
@@ -57,7 +66,7 @@ export function LinkifiedText({
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const { colors } = useTheme();
-  const parts = useMemo(() => parseLinkifyParts(text), [text]);
+  const parts = useMemo(() => safeLinkifyParts(text), [text]);
   const states = useMemo(() => parseMentionStates(mentionStates), [mentionStates]);
 
   const linkColor = lightLinks ? "#BFDBFE" : colors.cobalt;
@@ -97,16 +106,20 @@ export function LinkifiedText({
             </Text>
           );
         }
+        if (part.type !== "mention" || !part.username) {
+          return <Text key={`t-${i}`}>{"label" in part ? part.label : ""}</Text>;
+        }
         const state = states?.[part.username.toLowerCase()];
         if (state === "blocked" || state === "denied") {
           return <Text key={`m-${i}`}>{part.label}</Text>;
         }
+        const username = part.username;
         return (
           <Text
             key={`m-${i}`}
             style={[{ color: mentionColor, fontWeight: "700" }, mentionStyle]}
-              onPressIn={() => prefetchUserProfile({ username: part.username })}
-              onPress={() => openUserProfile({ username: part.username })}
+            onPressIn={() => prefetchUserProfile({ username })}
+            onPress={() => openUserProfile({ username })}
           >
             {part.label}
           </Text>

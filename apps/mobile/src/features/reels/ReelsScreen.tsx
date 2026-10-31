@@ -57,6 +57,7 @@ import {
 } from "@/features/feed/feed-video-groups";
 import { FeedVideoPostSlide } from "@/features/feed/FeedVideoPostSlide";
 import { ReelSponsoredSlide } from "@/features/reels/ReelSponsoredSlide";
+import { ReelSlotBoundary } from "@/features/reels/ReelSlotBoundary";
 import { ReelsWideNavRail } from "@/features/reels/ReelsWideNavRail";
 import { computeReelsChromeLayout } from "@/features/reels/reels-wide-layout";
 import {
@@ -590,32 +591,36 @@ export function ReelsScreen() {
     ({ item, index }: { item: ReelsSlot; index: number }) => {
       if (item.kind === "ad") {
         return (
-          <ReelSponsoredSlide
-            ad={item.ad}
-            width={width}
-            height={height}
-            stageWidth={chrome.stageWidth}
-            stageLeft={chrome.stageLeft}
-          />
+          <ReelSlotBoundary width={width} height={height}>
+            <ReelSponsoredSlide
+              ad={item.ad}
+              width={width}
+              height={height}
+              stageWidth={chrome.stageWidth}
+              stageLeft={chrome.stageLeft}
+            />
+          </ReelSlotBoundary>
         );
       }
       const near = Math.abs(index - activeSlot) <= PerformanceBudgets.reelsPrebufferNeighbors;
       return (
-        <FeedVideoPostSlide
-          group={item.group}
-          width={width}
-          height={height}
-          stageWidth={chrome.stageWidth}
-          stageLeft={chrome.stageLeft}
-          active={index === activeSlot}
-          loadPlayer={near}
-          initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
-          onOpenComments={openComments}
-          onPrefetchComments={prefetchComments}
-          onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
-          onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
-          commentsOpen={index === activeSlot && isCommentOpen}
-        />
+        <ReelSlotBoundary width={width} height={height}>
+          <FeedVideoPostSlide
+            group={item.group}
+            width={width}
+            height={height}
+            stageWidth={chrome.stageWidth}
+            stageLeft={chrome.stageLeft}
+            active={index === activeSlot}
+            loadPlayer={near}
+            initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
+            onOpenComments={openComments}
+            onPrefetchComments={prefetchComments}
+            onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
+            onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
+            commentsOpen={index === activeSlot && isCommentOpen}
+          />
+        </ReelSlotBoundary>
       );
     },
     [
@@ -678,6 +683,7 @@ export function ReelsScreen() {
   );
 
   const hideChrome = chromeHidden || pinchZooming || isCommentOpen;
+  const activeIsAd = slots[activeSlot]?.kind === "ad";
 
   if (feedQuery.isLoading && groups.length === 0) {
     return (
@@ -689,7 +695,7 @@ export function ReelsScreen() {
 
   return (
     <View style={styles.root}>
-      {!hideChrome ? (
+      {!hideChrome && !activeIsAd ? (
         <View style={[styles.header, { paddingTop: insets.top + 4 }]} pointerEvents="box-none">
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={28} color="#fff" />
