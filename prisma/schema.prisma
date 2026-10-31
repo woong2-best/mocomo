@@ -896,6 +896,10 @@ model Profile {
   showYoutubeOnProfile Boolean @default(false)
   /** More Connect Moment에서 켠 경우에만 공개 프로필에 Twitch 표시 */
   showTwitchOnProfile Boolean @default(false)
+  /** UI 표시용 팔로워 수 (null이면 실제 Follow 집계) */
+  displayFollowerCount Int?
+  /** UI 표시용 팔로잉 수 (null이면 실제 Follow 집계) */
+  displayFollowingCount Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

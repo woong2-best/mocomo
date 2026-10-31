@@ -37,6 +37,7 @@ import {
   listConnectedProfileSocialIds,
   listProfileSocialManageItems,
 } from "@/lib/profile-social";
+import { resolveProfileFollowCounts } from "@/lib/profile-follow-counts";
 
 const meSelect = {
   id: true,
@@ -61,7 +62,15 @@ const meSelect = {
   premiumTier: true,
   passwordHash: true,
   currentTermsVersion: true,
-  profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true } },
+  profile: {
+    select: {
+      bio: true,
+      bannerUrl: true,
+      bannerVideoUrl: true,
+      displayFollowerCount: true,
+      displayFollowingCount: true,
+    },
+  },
   _count: { select: { posts: true, followers: true, following: true } },
 } as const;
 
@@ -109,6 +118,7 @@ export async function GET(req: NextRequest) {
   if (storedImage && !isPublicHttpUrl(storedImage)) {
     void db.user.update({ where: { id: user.id }, data: { image: null } }).catch(() => undefined);
   }
+  const publicFollowCounts = resolveProfileFollowCounts(user.profile, user._count);
   const displayed = await hydrateUserOAuthProfile({
     id: user.id,
     name: user.name,
@@ -134,8 +144,8 @@ export async function GET(req: NextRequest) {
       createdAt: user.createdAt.toISOString(),
       counts: {
         posts: user._count.posts,
-        followers: user._count.followers,
-        following: user._count.following,
+        followers: publicFollowCounts.followerCount,
+        following: publicFollowCounts.followingCount,
       },
       hasPassword: Boolean(user.passwordHash),
       socialConnected,

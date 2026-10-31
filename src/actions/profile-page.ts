@@ -63,6 +63,7 @@ import {
   type ProfileStreamingChannelLink,
 } from "@/lib/profile-public-streaming";
 import { listProfileSocialLinks } from "@/lib/profile-social";
+import { resolveProfileFollowCounts } from "@/lib/profile-follow-counts";
 
 const PAGE_SIZE = 10;
 const MEDIA_GRID_PAGE_SIZE = 30;
@@ -136,6 +137,8 @@ const profileUserSelect = {
       showBirthdayOnProfile: true,
       showYoutubeOnProfile: true,
       showTwitchOnProfile: true,
+      displayFollowerCount: true,
+      displayFollowingCount: true,
     },
   },
   cosplayerProfile: {
@@ -311,6 +314,15 @@ export const getProfileHeader = cache(async function getProfileHeader(username: 
     ? []
     : await getVisibleProfileStreamingLinks(user.id, user.profile);
   const socialLinks = profileBlocked ? [] : await listProfileSocialLinks(user.id);
+  const publicFollowCounts = resolveProfileFollowCounts(user.profile, user._count);
+  shownUser = {
+    ...shownUser,
+    _count: {
+      ...shownUser._count,
+      followers: publicFollowCounts.followerCount,
+      following: publicFollowCounts.followingCount,
+    },
+  };
 
   return {
     user: shownUser,

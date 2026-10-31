@@ -6,6 +6,7 @@ import { isSubscriptionActive } from "@/lib/creator-subscription";
 import type { ConnectionTab } from "@/lib/user-connections";
 import { VERIFIED_TIER_FLOOR } from "@/lib/user-connections";
 import type { SupportTierLevel } from "@prisma/client";
+import { resolveProfileFollowCounts } from "@/lib/profile-follow-counts";
 
 const userSelect = {
   id: true,
@@ -143,12 +144,14 @@ export async function getUserConnections(
       id: true,
       username: true,
       name: true,
-      _count: { select: { followers: true } },
+      profile: { select: { displayFollowerCount: true, displayFollowingCount: true } },
+      _count: { select: { followers: true, following: true } },
     },
   });
   if (!profileUser) return null;
 
   const displayName = profileUser.name?.trim() || profileUser.username;
+  const { followerCount } = resolveProfileFollowCounts(profileUser.profile, profileUser._count);
   let users: ConnectionUser[] = [];
 
   if (tab === "followers") {
@@ -244,7 +247,7 @@ export async function getUserConnections(
       id: profileUser.id,
       username: profileUser.username,
       displayName,
-      followerCount: profileUser._count.followers,
+      followerCount,
     },
     tab,
     users,

@@ -15,6 +15,7 @@ import { contactPermissions } from "@/lib/contact-audience";
 import { getUserRelationship, isProfileBlocked } from "@/lib/user-relationship";
 import { quotedPostPreviewSelect } from "@/lib/quoted-post";
 import { listProfileSocialLinks } from "@/lib/profile-social";
+import { resolveProfileFollowCounts } from "@/lib/profile-follow-counts";
 
 const profileTimelinePostSelect = {
   id: true,
@@ -82,7 +83,16 @@ export async function GET(
       creatorSubscriptionPriceKrw: true,
       postsLocked: true,
       profileMainPostId: true,
-      profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true, snsLinks: true } },
+      profile: {
+        select: {
+          bio: true,
+          bannerUrl: true,
+          bannerVideoUrl: true,
+          snsLinks: true,
+          displayFollowerCount: true,
+          displayFollowingCount: true,
+        },
+      },
       _count: { select: { posts: true, followers: true, following: true } },
   } as const;
   let user = await db.user.findFirst({
@@ -282,6 +292,7 @@ export async function GET(
   });
   const sns = (user.profile?.snsLinks ?? {}) as { location?: string; website?: string };
   const socialLinks = profileBlocked ? [] : await listProfileSocialLinks(user.id);
+  const publicFollowCounts = resolveProfileFollowCounts(user.profile, user._count);
 
   return NextResponse.json({
     user: {
@@ -299,8 +310,8 @@ export async function GET(
       createdAt: toIsoDate(user.createdAt),
       counts: {
         posts: user._count.posts,
-        followers: user._count.followers,
-        following: user._count.following,
+        followers: publicFollowCounts.followerCount,
+        following: publicFollowCounts.followingCount,
       },
       following,
       followRequested,
