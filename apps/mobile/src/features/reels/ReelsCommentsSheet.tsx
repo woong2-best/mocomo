@@ -495,16 +495,18 @@ export function ReelsCommentsSheet({
         }}
       />
     </Animated.View>
-    <CommentContextMenu
-      visible={!!menuComment}
-      onClose={() => setMenuComment(null)}
-      handlePin={menuComment ? () => actions.handlePin(menuComment) : undefined}
-      handleShare={menuComment ? () => actions.handleShare(menuComment) : undefined}
-      handleQuite={menuComment ? () => actions.handleQuite(menuComment) : undefined}
-      handleReport={menuComment ? () => actions.handleReport(menuComment) : undefined}
-      handleBlock={menuComment ? () => actions.handleBlock(menuComment) : undefined}
-      handleDelete={menuComment ? () => actions.handleDelete(menuComment) : undefined}
-    />
+    {menuComment ? (
+      <CommentContextMenu
+        visible
+        onClose={() => setMenuComment(null)}
+        handlePin={() => actions.handlePin(menuComment)}
+        handleShare={() => actions.handleShare(menuComment)}
+        handleQuite={() => actions.handleQuite(menuComment)}
+        handleReport={() => actions.handleReport(menuComment)}
+        handleBlock={() => actions.handleBlock(menuComment)}
+        handleDelete={() => actions.handleDelete(menuComment)}
+      />
+    ) : null}
     </>
   );
 }

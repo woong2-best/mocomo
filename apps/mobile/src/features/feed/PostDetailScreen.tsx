@@ -669,16 +669,18 @@ export function PostDetailScreen() {
           })
         }
       />
-      <CommentContextMenu
-        visible={!!menuComment}
-        onClose={() => setMenuComment(null)}
-        handlePin={menuComment ? () => commentActions.handlePin(menuComment) : undefined}
-        handleShare={menuComment ? () => commentActions.handleShare(menuComment) : undefined}
-        handleQuite={menuComment ? () => commentActions.handleQuite(menuComment) : undefined}
-        handleReport={menuComment ? () => commentActions.handleReport(menuComment) : undefined}
-        handleBlock={menuComment ? () => commentActions.handleBlock(menuComment) : undefined}
-        handleDelete={menuComment ? () => commentActions.handleDelete(menuComment) : undefined}
-      />
+      {menuComment ? (
+        <CommentContextMenu
+          visible
+          onClose={() => setMenuComment(null)}
+          handlePin={() => commentActions.handlePin(menuComment)}
+          handleShare={() => commentActions.handleShare(menuComment)}
+          handleQuite={() => commentActions.handleQuite(menuComment)}
+          handleReport={() => commentActions.handleReport(menuComment)}
+          handleBlock={() => commentActions.handleBlock(menuComment)}
+          handleDelete={() => commentActions.handleDelete(menuComment)}
+        />
+      ) : null}
     </Screen>
   );
 }

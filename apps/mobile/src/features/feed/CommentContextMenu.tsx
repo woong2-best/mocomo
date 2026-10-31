@@ -1,11 +1,13 @@
-import { useEffect, type ComponentProps } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
+import { useEffect, useRef } from "react";
+import {
+  Animated,
   Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -23,8 +25,6 @@ type Props = CommentContextMenuHandlers & {
   onClose: () => void;
 };
 
-type IconName = ComponentProps<typeof Ionicons>["name"];
-
 const BACKDROP_MS = 200;
 const MENU_MS = 250;
 const MENU_EASE = Easing.bezier(0.25, 1, 0.5, 1);
@@ -41,28 +41,27 @@ export function CommentContextMenu({
   handleDelete,
 }: Props) {
   const { t } = useI18n();
-  const backdrop = useSharedValue(0);
-  const menu = useSharedValue(0);
+  const backdrop = useRef(new Animated.Value(0)).current;
+  const menu = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    backdrop.value = withTiming(visible ? 0.4 : 0, {
-      duration: BACKDROP_MS,
-      easing: Easing.out(Easing.ease),
-    });
-    menu.value = withTiming(visible ? 1 : 0, {
-      duration: MENU_MS,
-      easing: MENU_EASE,
-    });
+    Animated.parallel([
+      Animated.timing(backdrop, {
+        toValue: visible ? 0.4 : 0,
+        duration: BACKDROP_MS,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(menu, {
+        toValue: visible ? 1 : 0,
+        duration: MENU_MS,
+        easing: MENU_EASE,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [backdrop, menu, visible]);
 
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: backdrop.value,
-  }));
-
-  const menuStyle = useAnimatedStyle(() => ({
-    opacity: menu.value,
-    transform: [{ scale: 0.9 + menu.value * 0.1 }],
-  }));
+  if (!visible) return null;
 
   const run = (fn?: () => void) => {
     fn?.();
@@ -72,7 +71,7 @@ export function CommentContextMenu({
   const items: {
     id: string;
     label: string;
-    icon: IconName;
+    icon: keyof typeof Ionicons.glyphMap;
     destructive?: boolean;
     onSelect: () => void;
   }[] = [
@@ -108,23 +107,38 @@ export function CommentContextMenu({
 
   return (
     <Modal
-      visible={visible}
+      visible
       transparent
       animationType="none"
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={styles.root} pointerEvents={visible ? "auto" : "none"}>
+      <View style={styles.root}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
-          <Animated.View style={[styles.backdrop, backdropStyle]} />
+          <Animated.View style={[styles.backdrop, { opacity: backdrop }]} />
         </Pressable>
-        <Animated.View style={[styles.menu, menuStyle]} accessibilityRole="menu">
+        <Animated.View
+          style={[
+            styles.menu,
+            {
+              opacity: menu,
+              transform: [
+                {
+                  scale: menu.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.9, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           {items.map((item, index) => {
             const color = item.destructive ? DESTRUCTIVE : "#fff";
             return (
               <Pressable
                 key={item.id}
-                accessibilityRole="menuitem"
+                accessibilityRole="button"
                 onPress={item.onSelect}
                 style={({ pressed }) => [
                   styles.row,

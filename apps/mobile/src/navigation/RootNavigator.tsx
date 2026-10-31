@@ -17,6 +17,19 @@ import {
   folkLightNavigationTheme,
 } from "@/theme/navigation-theme";
 import type { RootStackParamList, RootTabParamList } from "@/navigation/types";
+import { ScreenErrorBoundary } from "@/ui/ScreenErrorBoundary";
+
+function withScreenBoundary<P extends object>(label: string, Screen: ComponentType<P>) {
+  function Bounded(props: P) {
+    return (
+      <ScreenErrorBoundary label={label}>
+        <Screen {...props} />
+      </ScreenErrorBoundary>
+    );
+  }
+  Bounded.displayName = `Bounded${label}`;
+  return Bounded;
+}
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -375,7 +388,12 @@ export function RootNavigator() {
             />
             <Stack.Screen
               name="PostDetail"
-              getComponent={() => require("@/features/feed/PostDetailScreen").PostDetailScreen}
+              getComponent={() =>
+                withScreenBoundary(
+                  "PostDetail",
+                  require("@/features/feed/PostDetailScreen").PostDetailScreen,
+                )
+              }
             />
             <Stack.Screen
               name="Search"
@@ -383,7 +401,9 @@ export function RootNavigator() {
             />
             <Stack.Screen
               name="Reels"
-              getComponent={() => require("@/features/reels/ReelsScreen").ReelsScreen}
+              getComponent={() =>
+                withScreenBoundary("Reels", require("@/features/reels/ReelsScreen").ReelsScreen)
+              }
               options={{
                 animation: "fade",
                 gestureEnabled: true,
