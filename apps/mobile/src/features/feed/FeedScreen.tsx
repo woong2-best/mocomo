@@ -221,9 +221,17 @@ export function FeedScreen() {
       const task = InteractionManager.runAfterInteractions(() => {
         warmTabBundles();
         warmDrawerBundles();
-        require("@/features/reels/ReelsScreen");
+        try {
+          require("@/features/reels/ReelsScreen");
+        } catch (err) {
+          console.error("[feed] warm ReelsScreen failed", err);
+        }
         setTimeout(() => {
-          require("@/features/messages/MessageRoomScreen");
+          try {
+            require("@/features/messages/MessageRoomScreen");
+          } catch (err) {
+            console.error("[feed] warm MessageRoomScreen failed", err);
+          }
         }, 1800);
       });
       return () => task.cancel();

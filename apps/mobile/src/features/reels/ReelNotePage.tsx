@@ -10,11 +10,18 @@ import {
 
 const MAX_LINE_PX = 96;
 
-const EMOJI_RE =
-  /(\p{Extended_Pictographic}(?:\uFE0F|\u20E3)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\u20E3)?)*)/gu;
+function splitEmojiParts(line: string): string[] {
+  try {
+    return line.split(
+      /(\p{Extended_Pictographic}(?:\uFE0F|\u20E3)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\u20E3)?)*)/gu
+    );
+  } catch {
+    return [line];
+  }
+}
 
 function renderLine(line: string, key: string) {
-  return line.split(EMOJI_RE).map((part, i) =>
+  return splitEmojiParts(line).map((part, i) =>
     i % 2 === 1 ? (
       <Text key={`${key}-${i}`}>{part}</Text>
     ) : (
