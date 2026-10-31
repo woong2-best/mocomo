@@ -7,7 +7,6 @@ import {
   NOTE_PAD_BOTTOM_PX,
   NOTE_PAD_LEFT_PX,
   NOTE_PAD_RIGHT_PX,
-  noteLineTracking,
   notePageBudget,
   noteSafePads,
   paginateReelNote,
@@ -32,10 +31,6 @@ test("a digit run wraps before the action rail", () => {
   const longest = Math.max(...rows.map((row) => row.length));
   assert.ok(longest * NOTE_LATIN_PX <= (budget.lineWidthPx ?? 0) + 0.01);
   assert.ok((budget.lineWidthPx ?? 0) <= 390 - 96 - 20);
-  const full = rows[0]!;
-  const track = noteLineTracking(full, budget.lineWidthPx ?? 0, budget);
-  assert.ok(track >= 0);
-  assert.ok(track < 4);
 });
 
 test("pagination uses the chrome-safe box so a page cannot reach the overlays", () => {

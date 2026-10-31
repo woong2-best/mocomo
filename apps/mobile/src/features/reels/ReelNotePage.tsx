@@ -30,29 +30,31 @@ export function ReelNotePage({ text }: { text: string }) {
   const insets = useSafeAreaInsets();
   const pads = useMemo(() => noteSafePads(insets.top), [insets.top]);
   const [box, setBox] = useState({ w: 0, h: 0 });
-  const [tracks, setTracks] = useState<number[]>([]);
 
   const onColumnLayout = (e: LayoutChangeEvent) => {
     const w = Math.round(e.nativeEvent.layout.width);
     const h = Math.round(e.nativeEvent.layout.height);
     if (w < 8 || h < 8) return;
-    setBox((prev) => {
-      if (prev.w === w && prev.h === h) return prev;
-      setTracks([]);
-      return { w, h };
-    });
+    setBox((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
   };
 
   const budget = useMemo(
     () =>
       box.w > 0
-        ? notePageBudget(box.w + pads.left + pads.right, box.h + pads.top + pads.bottom, pads)
+        ? {
+            ...notePageBudget(
+              box.w + pads.left + pads.right,
+              box.h + pads.top + pads.bottom,
+              pads
+            ),
+            lineWidthPx: box.w,
+          }
         : null,
     [box.h, box.w, pads]
   );
   const lines = useMemo(
-    () => (budget ? wrapReelNoteVisual(text, { ...budget, lineWidthPx: box.w }) : []),
-    [budget, box.w, text]
+    () => (budget ? wrapReelNoteVisual(text, budget) : []),
+    [budget, text]
   );
   const linePx =
     box.h > 0 && lines.length > 0
@@ -74,30 +76,15 @@ export function ReelNotePage({ text }: { text: string }) {
       <View style={styles.column} onLayout={onColumnLayout}>
         {lines.map((line, i) => (
           <Text
-            key={`${box.w}:${i}:${line}`}
+            key={`${box.w}:${i}:${line.slice(0, 24)}`}
             numberOfLines={1}
             ellipsizeMode="clip"
-            onTextLayout={(e) => {
-              if (i === lines.length - 1 || box.w <= 0) return;
-              setTracks((prev) => {
-                if ((prev[i] ?? 0) > 0) return prev;
-                const drawn = e.nativeEvent.lines[0]?.width ?? 0;
-                if (drawn <= 1) return prev;
-                const gaps = Math.max(1, Array.from(line).length - 1);
-                const next = Math.max(0, (box.w - drawn) / gaps);
-                if (next < 0.15) return prev;
-                const copy = prev.slice();
-                copy[i] = next;
-                return copy;
-              });
-            }}
             style={[
               styles.row,
               {
                 width: box.w,
                 height: linePx,
                 lineHeight: linePx,
-                letterSpacing: i === lines.length - 1 ? 0 : tracks[i] ?? 0,
               },
             ]}
           >
