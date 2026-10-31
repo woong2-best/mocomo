@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SupportTierLevel } from "@prisma/client";
 import { getConversationMeta, formatChatListTime } from "@/lib/chat-display";
+import { userAvatarFallbackInitial } from "@/lib/user-public-select";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { useClientPlatform } from "@/components/providers/client-platform-provider";
 import { useAppSocket } from "@/components/providers/app-socket-provider";
@@ -111,8 +112,11 @@ export function ConversationList({
                     <span className="relative shrink-0">
                       <Avatar className="h-12 w-12 ring-1 ring-border/40">
                         <AvatarImage src={meta.displayImage ?? undefined} />
-                        <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-violet-500/30 to-pink-500/30">
-                          {meta.displayName[0]?.toUpperCase() ?? "?"}
+                        <AvatarFallback className="text-sm font-semibold">
+                          {userAvatarFallbackInitial({
+                            username: meta.profileUsername ?? meta.displayName,
+                            name: meta.displayName,
+                          })}
                         </AvatarFallback>
                       </Avatar>
                       {online ? (

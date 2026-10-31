@@ -21,6 +21,7 @@ import { areUsersBlocked, filterDmInboxByBlock, getBlockedUserIdSet } from "@/li
 import { presentMobileUsedListingMessages } from "@/lib/used-listing-share-card";
 import { usedListingChatSendBlock } from "@/lib/market-trade-chat";
 import { reactivateChatMember, reactivateChatMembers } from "@/lib/chat-exit";
+import { withHydratedChatMemberImages } from "@/lib/chat-inbox-images";
 
 async function assertRoomMember(
   roomId: string,
@@ -110,7 +111,8 @@ export async function listMobileDmInbox(userId: string) {
   });
 
   const blocked = await getBlockedUserIdSet(userId);
-  const mapped = rooms.map((room) => {
+  const roomsWithImages = await withHydratedChatMemberImages(rooms);
+  const mapped = roomsWithImages.map((room) => {
     const meta = getConversationMeta(room, userId);
     const me = room.members.find((m) => m.userId === userId);
     const last = room.messages[0];

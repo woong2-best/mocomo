@@ -5,6 +5,7 @@ import { ChatHeader } from "@/components/messages/chat-header";
 import { getConversationMeta } from "@/lib/chat-display";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { chatMemberUserSelect } from "@/lib/user-public-select";
+import { withHydratedChatMemberImages } from "@/lib/chat-inbox-images";
 
 export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
   const session = await getCachedSession();
@@ -26,9 +27,12 @@ export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
   if (!isMember) notFound();
 
   const locale = await getRequestLocale();
-  const meta = getConversationMeta(room, session.user.id, locale);
+  const [roomWithImages] = await withHydratedChatMemberImages([room]);
+  const meta = getConversationMeta(roomWithImages, session.user.id, locale);
   const otherMember =
-    room.type === "DM" ? room.members.find((m) => m.userId !== session.user.id)?.user : undefined;
+    roomWithImages.type === "DM"
+      ? roomWithImages.members.find((m) => m.userId !== session.user.id)?.user
+      : undefined;
 
   return (
     <ChatHeader
@@ -42,7 +46,7 @@ export async function ChatHeaderAsync({ roomId }: { roomId: string }) {
       otherTimeZone={otherMember?.timeZone}
       viewerUserId={session.user.id}
       memberCount={room.members.length}
-      members={room.members.map((m) => ({
+      members={roomWithImages.members.map((m) => ({
         id: m.user.id,
         username: m.user.username,
         name: m.user.name,

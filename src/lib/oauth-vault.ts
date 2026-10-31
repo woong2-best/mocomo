@@ -343,3 +343,25 @@ export async function hydrateUserOAuthProfile<
 
   return { ...sanitized, name, image, email };
 }
+
+/** Batch inbox/search hydration when User.image is empty but OAuth vault has a photo. */
+export async function hydratePublicUserImagesById(
+  userIds: string[]
+): Promise<Map<string, string | null>> {
+  const unique = [...new Set(userIds)];
+  if (unique.length === 0) return new Map();
+
+  const rows = await db.user.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, name: true, image: true, email: true, passwordHash: true },
+  });
+
+  const out = new Map<string, string | null>();
+  await Promise.all(
+    rows.map(async (row) => {
+      const hydrated = await hydrateUserOAuthProfile(row);
+      out.set(row.id, displayableImageUrl(hydrated.image));
+    })
+  );
+  return out;
+}

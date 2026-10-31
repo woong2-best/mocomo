@@ -31,6 +31,7 @@ import { dmSendBlockReason, incomingContactDecision } from "@/lib/contact-audien
 import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 import { usedListingChatSendBlock } from "@/lib/market-trade-chat";
 import { exitChatForUser, reactivateChatMember, reactivateChatMembers } from "@/lib/chat-exit";
+import { withHydratedChatMemberImages } from "@/lib/chat-inbox-images";
 
 export async function createChatRoom(data: {
   name?: string;
@@ -133,8 +134,9 @@ export async function getChatRooms(forUserId?: string) {
     orderBy: { updatedAt: "desc" },
   });
   const blocked = await getBlockedUserIdSet(userId);
+  const roomsWithImages = await withHydratedChatMemberImages(rooms);
   return filterDmInboxByBlock(
-    rooms.map((room) => ({
+    roomsWithImages.map((room) => ({
       ...room,
       otherUserId:
         room.type === "DM"

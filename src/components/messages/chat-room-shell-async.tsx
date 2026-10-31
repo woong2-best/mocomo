@@ -17,6 +17,7 @@ import { contactPermissions } from "@/lib/contact-audience";
 import { MESSAGE_REQUEST_BLOCKED } from "@/lib/contact-audience-copy";
 import { areUsersBlocked } from "@/lib/user-block";
 import { CHAT_REPORT_LOCK_MESSAGE_EN, CHAT_REPORT_LOCK_MESSAGE_KO } from "@/lib/chat-report-copy";
+import { withHydratedChatMemberImages } from "@/lib/chat-inbox-images";
 
 export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   const session = await getCachedSession();
@@ -44,12 +45,13 @@ export async function ChatRoomShellAsync({ roomId }: { roomId: string }) {
   if (!myMembership.isActive) redirect("/messages");
 
   const locale = await getRequestLocale();
-  const meta = getConversationMeta(room, session.user.id, locale);
+  const [roomWithImages] = await withHydratedChatMemberImages([room]);
+  const meta = getConversationMeta(roomWithImages, session.user.id, locale);
   const isMarket = room.type === "MARKET";
   const roomLocked = room.status === "READ_ONLY";
   const otherMember =
-    room.type === "DM" || isMarket
-      ? room.members.find((m) => m.userId !== session.user.id)?.user
+    roomWithImages.type === "DM" || isMarket
+      ? roomWithImages.members.find((m) => m.userId !== session.user.id)?.user
       : undefined;
 
   const dmBlocked =
