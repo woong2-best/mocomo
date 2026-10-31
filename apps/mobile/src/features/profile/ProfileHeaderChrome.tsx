@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ProfileUser } from "@/api/social";
 import { openDm } from "@/api/messages";
 import { AVATAR_CACHE_LAYOUT } from "@/perf/image";
-import { FolkAvatar } from "@/ui/FolkAvatar";
+import { FolkAvatar, avatarSquircleRadius } from "@/ui/FolkAvatar";
 import { showIslandError } from "@/ui/IslandToast";
 import { ProfileBannerMedia } from "@/features/profile/ProfileBannerMedia";
 import { ProfileSocialIcons } from "@/features/profile/ProfileSocialIcons";
@@ -137,12 +137,14 @@ export function ProfileHeaderChrome({
       </View>
 
       <View style={styles.avatarRow}>
-        <FolkAvatar
-          uri={user.image}
-          name={display}
-          size={AVATAR_CACHE_LAYOUT}
-          priority="high"
-        />
+        <View style={styles.profileAvatarRing}>
+          <FolkAvatar
+            uri={user.image}
+            name={display}
+            size={AVATAR_CACHE_LAYOUT}
+            priority="high"
+          />
+        </View>
         {!user.isSelf ? (
           <View style={styles.actionRow}>
             {pending ? (
@@ -356,6 +358,12 @@ function createStyles(colors: ThemeColors, bannerTopInset: number) {
       justifyContent: "space-between",
       paddingHorizontal: spacing.md,
       marginTop: -40,
+    },
+    /** Web profile header: `ring-4 ring-background` — separates avatar from banner. */
+    profileAvatarRing: {
+      padding: 4,
+      borderRadius: avatarSquircleRadius(AVATAR_CACHE_LAYOUT) + 4,
+      backgroundColor: colors.background,
     },
     actionRow: {
       flexDirection: "row",
