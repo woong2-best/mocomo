@@ -167,7 +167,7 @@ if (!maplibregl) {
       : "";
     const html = '<strong class="popup-title">' + esc(pin.title || "Meetup place") + "</strong>" + placeLine + meta + linkBlock;
     if (popup) popup.remove();
-    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 24 })
+    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 16 })
       .setLngLat([pin.lng, pin.lat])
       .setHTML(html)
       .addTo(map);
