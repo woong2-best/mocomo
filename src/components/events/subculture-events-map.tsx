@@ -29,8 +29,9 @@ import {
   MAPLIBRE_GLYPHS_URL,
 } from "@/lib/maps/esri-satellite";
 import {
-  mapPinCirclePaint,
-  mapPinColorForCategory,
+  addMapPinImages,
+  mapPinImageIdForCategory,
+  mapPinSymbolLayout,
 } from "@/lib/maps/map-pin";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -89,13 +90,9 @@ function safeHttpUrl(url: string | null | undefined): string | null {
 }
 
 /** Pins within this many screen pixels count as one pile. */
-const CLUMP_RADIUS_PX = 44;
+const CLUMP_RADIUS_PX = 28;
 
-function pinColor(category: string, halo: boolean) {
-  return mapPinColorForCategory(category, halo);
-}
-
-function pinsToGeoJSON(pins: MapEventPin[], halo: boolean) {
+function pinsToGeoJSON(pins: MapEventPin[]) {
   return {
     type: "FeatureCollection" as const,
     features: pins
@@ -104,7 +101,7 @@ function pinsToGeoJSON(pins: MapEventPin[], halo: boolean) {
         type: "Feature" as const,
         id: pin.id,
         geometry: { type: "Point" as const, coordinates: [pin.lng, pin.lat] },
-        properties: { id: pin.id, color: pinColor(pin.category, halo) },
+        properties: { id: pin.id, icon: mapPinImageIdForCategory(pin.category) },
       })),
   };
 }
@@ -320,29 +317,22 @@ export function SubcultureEventsMap({
           } catch {
             /* mercator fallback */
           }
+          try {
+            await addMapPinImages(map);
+          } catch (err) {
+            console.error("[subculture-events-map] pin image", err);
+          }
           if (!map.getSource("event-pins")) {
             map.addSource("event-pins", {
               type: "geojson",
-              data: pinsToGeoJSON(pins, pinHalo),
+              data: pinsToGeoJSON(pins),
               promoteId: "id",
             });
             map.addLayer({
-              id: "event-pins-shadow",
-              type: "circle",
+              id: "event-pins-icon",
+              type: "symbol",
               source: "event-pins",
-              paint: mapPinCirclePaint("shadow", pinHalo),
-            });
-            map.addLayer({
-              id: "event-pins-outer",
-              type: "circle",
-              source: "event-pins",
-              paint: mapPinCirclePaint("outer", pinHalo),
-            });
-            map.addLayer({
-              id: "event-pins-inner",
-              type: "circle",
-              source: "event-pins",
-              paint: mapPinCirclePaint("inner", pinHalo),
+              layout: mapPinSymbolLayout(),
             });
           }
           resize();
@@ -394,7 +384,7 @@ export function SubcultureEventsMap({
           closeButton: false,
           maxWidth: "240px",
           className: "subculture-map-popup",
-          offset: 24,
+          offset: 12,
         })
           .setLngLat([pin.lng, pin.lat])
           .setHTML(buildPinPopupHtml(pin))

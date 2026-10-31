@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Linking, StyleSheet, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import * as Haptics from "expo-haptics";
-import { MAP_PIN_PINK } from "@/maps/map-pin";
+import { MAP_PIN_DATA_URI_BY_KIND, MAP_PIN_PINK, MAP_PIN_SIZE_PX } from "@/maps/map-pin";
 
 const MAPLIBRE_VERSION = "6.1.0";
 const ESRI_SATELLITE_MAX_ZOOM = 19;
@@ -66,24 +66,11 @@ function mapHtml(
   .maplibregl-canvas-container, .maplibregl-canvas { background: ${bg} !important; }
   .maplibregl-ctrl-attrib, .maplibregl-ctrl-logo, .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { display: none !important; }
   .pin {
-    width: 40px;
-    height: 40px;
-    background-color: ${MAP_PIN_PINK};
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    width: ${MAP_PIN_SIZE_PX}px;
+    height: ${MAP_PIN_SIZE_PX}px;
+    display: block;
     cursor: pointer;
-    transition: transform 0.2s ease;
     pointer-events: auto;
-  }
-  .pin:hover { transform: scale(1.1); }
-  .pin-inner {
-    width: 18px;
-    height: 18px;
-    background-color: #fff;
-    border-radius: 50%;
   }
   .maplibregl-popup-content {
     border-radius: 12px;
@@ -180,7 +167,7 @@ if (!maplibregl) {
       : "";
     const html = '<strong class="popup-title">' + esc(pin.title || "Meetup place") + "</strong>" + placeLine + meta + linkBlock;
     if (popup) popup.remove();
-    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 22 })
+    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 12 })
       .setLngLat([pin.lng, pin.lat])
       .setHTML(html)
       .addTo(map);
@@ -193,12 +180,14 @@ if (!maplibregl) {
       next.add(pin.id);
       const prev = markers.get(pin.id);
       if (prev) prev.remove();
-      const el = document.createElement("div");
+      const el = document.createElement("img");
       el.className = "pin";
-      el.style.backgroundColor = /^#[0-9A-Fa-f]{6}$/.test(pin.color || "") ? pin.color : ${JSON.stringify(MAP_PIN_PINK)};
-      const inner = document.createElement("div");
-      inner.className = "pin-inner";
-      el.appendChild(inner);
+      const color = String(pin.color || ${JSON.stringify(MAP_PIN_PINK)}).toLowerCase();
+      const uris = ${JSON.stringify(MAP_PIN_DATA_URI_BY_KIND)};
+      el.src = color === "#ff69b4" || color === "#ec4899" ? uris.maid
+        : color === "#22c55e" || color === "#4caf50" ? uris.user
+        : uris.event;
+      el.alt = "";
       el.addEventListener("click", (event) => {
         event.stopPropagation();
         event.preventDefault();

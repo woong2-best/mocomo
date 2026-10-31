@@ -1,88 +1,86 @@
-/** Circular map pin — colored ring + white center. */
+/** Category map pins — 14px circles matching the original event dots. */
+
+export type MapPinKind = "maid" | "user" | "event";
 
 export const MAP_PIN_PINK = "#ff69b4";
-export const MAP_PIN_GREEN = "#4CAF50";
-export const MAP_PIN_BLUE = "#2196F3";
+export const MAP_PIN_GREEN = "#22c55e";
+export const MAP_PIN_BLUE = "#3b82f6";
 
-export const MAP_PIN_SIZE_PX = 40;
-export const MAP_PIN_INNER_PX = 18;
-export const MAP_PIN_OUTER_RADIUS = MAP_PIN_SIZE_PX / 2;
-export const MAP_PIN_INNER_RADIUS = MAP_PIN_INNER_PX / 2;
-export const MAP_PIN_SCALE_HOVER = 1.1;
+/** Original event-map circle diameter (`circle-radius: 7`). */
+export const MAP_PIN_SIZE_PX = 14;
+export const MAP_PIN_SOURCE_PX = 56;
+export const MAP_PIN_ICON_SIZE = MAP_PIN_SIZE_PX / MAP_PIN_SOURCE_PX;
+export const MAP_PIN_ICON_SIZE_SELECTED = 16 / MAP_PIN_SOURCE_PX;
 
-export function mapPinColorForCategory(category: string, halo = false): string {
-  if (halo) return MAP_PIN_PINK;
-  if (category === "user_recommendation") return MAP_PIN_GREEN;
-  if (category === "maid_cafe") return MAP_PIN_PINK;
+export const MAP_PIN_IMAGE_IDS = {
+  maid: "pin-maid",
+  user: "pin-user",
+  event: "pin-event",
+} as const;
+
+export const MAP_PIN_PUBLIC_URLS = {
+  maid: "/maps/pin-maid.png",
+  user: "/maps/pin-user.png",
+  event: "/maps/pin-event.png",
+} as const;
+
+export function mapPinKindForCategory(category: string): MapPinKind {
+  if (category === "maid_cafe") return "maid";
+  if (category === "user_recommendation") return "user";
+  return "event";
+}
+
+export function mapPinColorForCategory(category: string): string {
+  const kind = mapPinKindForCategory(category);
+  if (kind === "maid") return MAP_PIN_PINK;
+  if (kind === "user") return MAP_PIN_GREEN;
   return MAP_PIN_BLUE;
 }
 
-export function mapPinOuterRadius(selected = false): number {
-  return selected
-    ? Math.round(MAP_PIN_OUTER_RADIUS * MAP_PIN_SCALE_HOVER)
-    : MAP_PIN_OUTER_RADIUS;
+export function mapPinImageIdForCategory(category: string): string {
+  return MAP_PIN_IMAGE_IDS[mapPinKindForCategory(category)];
 }
 
-export function mapPinInnerRadius(selected = false): number {
-  return selected
-    ? Math.round(MAP_PIN_INNER_RADIUS * MAP_PIN_SCALE_HOVER)
-    : MAP_PIN_INNER_RADIUS;
-}
-
-function hoverRadius(base: number, hover: number, locked: boolean) {
-  if (locked) return hover;
-  return [
-    "case",
-    ["boolean", ["feature-state", "hover"], false],
-    hover,
-    base,
-  ] as unknown as number;
-}
-
-export function mapPinCirclePaint(kind: "shadow" | "outer" | "inner", selected = false) {
-  const outer = mapPinOuterRadius(false);
-  const inner = mapPinInnerRadius(false);
-  const hoverOuter = mapPinOuterRadius(true);
-  const hoverInner = mapPinInnerRadius(true);
-  if (kind === "shadow") {
-    return {
-      "circle-radius": hoverRadius(outer + 2, hoverOuter + 2, selected),
-      "circle-color": "rgba(0,0,0,0.25)",
-      "circle-blur": 0.35,
-      "circle-translate": [0, 2] as [number, number],
-      "circle-pitch-alignment": "viewport" as const,
-    };
-  }
-  if (kind === "inner") {
-    return {
-      "circle-radius": hoverRadius(inner, hoverInner, selected),
-      "circle-color": "#ffffff",
-      "circle-pitch-alignment": "viewport" as const,
-    };
-  }
+export function mapPinSymbolLayout(selected = false) {
   return {
-    "circle-radius": hoverRadius(outer, hoverOuter, selected),
-    "circle-color": ["get", "color"] as unknown as string,
-    "circle-pitch-alignment": "viewport" as const,
+    "icon-image": ["get", "icon"] as unknown as string,
+    "icon-size": selected ? MAP_PIN_ICON_SIZE_SELECTED : MAP_PIN_ICON_SIZE,
+    "icon-anchor": "center" as const,
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
+    "icon-pitch-alignment": "viewport" as const,
+    "icon-rotation-alignment": "viewport" as const,
   };
 }
 
-export function createMapPinElement(color = MAP_PIN_PINK, sizePx = MAP_PIN_SIZE_PX): HTMLDivElement {
-  const el = document.createElement("div");
+export async function addMapPinImages(map: {
+  hasImage: (id: string) => boolean;
+  loadImage: (url: string) => Promise<{ data: unknown }>;
+  addImage: (id: string, image: unknown) => unknown;
+}) {
+  for (const kind of Object.keys(MAP_PIN_IMAGE_IDS) as MapPinKind[]) {
+    const id = MAP_PIN_IMAGE_IDS[kind];
+    if (map.hasImage(id)) continue;
+    const loaded = await map.loadImage(MAP_PIN_PUBLIC_URLS[kind]);
+    if (!map.hasImage(id)) map.addImage(id, loaded.data);
+  }
+}
+
+export function createMapPinElement(kind: MapPinKind = "event"): HTMLImageElement {
+  const el = document.createElement("img");
   el.className = "mocomo-map-pin";
-  el.style.width = `${sizePx}px`;
-  el.style.height = `${sizePx}px`;
-  el.style.backgroundColor = color;
-  const inner = document.createElement("div");
-  inner.className = "mocomo-map-pin-inner";
-  const innerSize = Math.max(1, Math.round((sizePx * MAP_PIN_INNER_PX) / MAP_PIN_SIZE_PX));
-  inner.style.width = `${innerSize}px`;
-  inner.style.height = `${innerSize}px`;
-  el.appendChild(inner);
+  el.src = MAP_PIN_PUBLIC_URLS[kind];
+  el.alt = "";
+  el.draggable = false;
+  el.width = MAP_PIN_SIZE_PX;
+  el.height = MAP_PIN_SIZE_PX;
+  el.style.width = `${MAP_PIN_SIZE_PX}px`;
+  el.style.height = `${MAP_PIN_SIZE_PX}px`;
+  el.style.display = "block";
   return el;
 }
 
 /** @deprecated Use createMapPinElement */
-export function createPinkMapPinElement(sizePx = MAP_PIN_SIZE_PX): HTMLDivElement {
-  return createMapPinElement(MAP_PIN_PINK, sizePx);
+export function createPinkMapPinElement(): HTMLImageElement {
+  return createMapPinElement("maid");
 }

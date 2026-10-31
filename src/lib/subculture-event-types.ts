@@ -30,13 +30,13 @@ export const SUBCULTURE_EVENT_CATEGORY_LABELS: Record<string, string> = {
 
 /** 지도 핀 색 (범례·MapLibre 공통) — pink / green / blue circular pins */
 export const SUBCULTURE_EVENT_CATEGORY_COLORS: Record<string, string> = {
-  comic: "#2196F3",
-  anime: "#2196F3",
-  cosplay: "#2196F3",
-  goods: "#2196F3",
+  comic: "#3b82f6",
+  anime: "#3b82f6",
+  cosplay: "#3b82f6",
+  goods: "#3b82f6",
   maid_cafe: "#ff69b4",
-  user_recommendation: "#4CAF50",
-  other: "#2196F3",
+  user_recommendation: "#22c55e",
+  other: "#3b82f6",
 };
 
 /** 행사 지도 사이드 패널 탭 — keep English; do not machine-translate */

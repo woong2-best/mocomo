@@ -89,7 +89,7 @@ export function MeetMap({
         id: "meet",
         lat: active.lat,
         lng: active.lng,
-        color: "#ff69b4",
+        color: "#3b82f6",
         title: resolvedPinTitle,
         place: mode === "pick" ? pinPlace || t("m.maps.search_for_an_address") : undefined,
         searchUrl: mode === "view" ? pinSearchUrl : undefined,

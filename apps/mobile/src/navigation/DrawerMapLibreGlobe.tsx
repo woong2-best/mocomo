@@ -8,7 +8,12 @@ import { eventPinColor } from "@/features/events/event-map-colors";
 import type { Locale } from "@/i18n";
 import { translate } from "@/i18n/runtime";
 import { MAPLIBRE_GLYPHS_URL } from "@/maps/map-styles";
-import { mapPinGlobeDotLayers } from "@/maps/map-pin";
+import {
+  MAP_PIN_DATA_URI_BY_KIND,
+  MAP_PIN_IMAGE_IDS,
+  mapPinImageIdForCategory,
+  mapPinSymbolLayout,
+} from "@/maps/map-pin";
 
 const MAPLIBRE_VERSION = "6.1.0";
 
@@ -125,6 +130,7 @@ function globePins(pins: MapEventPin[]) {
       lat: pin.lat,
       lng: pin.lng,
       color: eventPinColor(pin.category),
+      icon: mapPinImageIdForCategory(pin.category),
       title: pin.title,
       venue: pin.venueName,
       category: pin.category,
@@ -321,7 +327,7 @@ if (!maplibregl) {
     geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
     properties: {
       id: pin.id,
-      color: /^#[0-9A-Fa-f]{6}$/.test(pin.color || "") ? pin.color : "#A78BFA"
+      icon: pin.icon || "pin-event"
     }
   });
   const publishVisible = () => {
@@ -398,7 +404,7 @@ if (!maplibregl) {
       + '<div class="popup-links"><a href="#" data-url="' + esc(googleSearch(pin)) + '">' + esc(UI.googleSearch) + "</a>"
       + '<a href="#" data-url="' + esc(place.url) + '">' + esc(place.label) + "</a></div></div>";
     if (popup) popup.remove();
-    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 22 })
+    popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: "230px", offset: 12 })
       .setLngLat([pin.lng, pin.lat])
       .setHTML(html)
       .addTo(map);
@@ -549,18 +555,20 @@ if (!maplibregl) {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] }
     });
-    const pinPaint = ${JSON.stringify(mapPinGlobeDotLayers())};
+    const pinImages = ${JSON.stringify(MAP_PIN_IMAGE_IDS)};
+    const pinUris = ${JSON.stringify(MAP_PIN_DATA_URI_BY_KIND)};
+    try {
+      for (const kind of Object.keys(pinImages)) {
+        const id = pinImages[kind];
+        const loaded = await map.loadImage(pinUris[kind]);
+        if (!map.hasImage(id)) map.addImage(id, loaded.data);
+      }
+    } catch (e) {}
     map.addLayer({
-      id: "event-pins-shadow",
-      type: "circle",
+      id: "event-pins-icon",
+      type: "symbol",
       source: "event-pins",
-      paint: pinPaint.shadow
-    });
-    map.addLayer({
-      id: "event-pins-dot",
-      type: "circle",
-      source: "event-pins",
-      paint: pinPaint.dot
+      layout: ${JSON.stringify(mapPinSymbolLayout())}
     });
     visibleKey = "";
     publishVisible();

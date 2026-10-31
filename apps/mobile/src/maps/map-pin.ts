@@ -1,80 +1,53 @@
-/** Circular map pin — colored ring + white center. */
+import { MAP_PIN_DATA_URIS } from "@/maps/map-pin-data";
+
+/** Category map pins — 14px circles matching the original event dots. */
+
+export type MapPinKind = "maid" | "user" | "event";
 
 export const MAP_PIN_PINK = "#ff69b4";
-export const MAP_PIN_GREEN = "#4CAF50";
-export const MAP_PIN_BLUE = "#2196F3";
+export const MAP_PIN_GREEN = "#22c55e";
+export const MAP_PIN_BLUE = "#3b82f6";
 
-export const MAP_PIN_SIZE_PX = 40;
-export const MAP_PIN_INNER_PX = 18;
-export const MAP_PIN_OUTER_RADIUS = MAP_PIN_SIZE_PX / 2;
-export const MAP_PIN_INNER_RADIUS = MAP_PIN_INNER_PX / 2;
-export const MAP_PIN_SCALE_HOVER = 1.1;
+export const MAP_PIN_SIZE_PX = 14;
+export const MAP_PIN_SOURCE_PX = 56;
+export const MAP_PIN_ICON_SIZE = MAP_PIN_SIZE_PX / MAP_PIN_SOURCE_PX;
+export const MAP_PIN_ICON_SIZE_SELECTED = 16 / MAP_PIN_SOURCE_PX;
 
-export function mapPinColorForCategory(category: string, halo = false): string {
-  if (halo) return MAP_PIN_PINK;
-  if (category === "user_recommendation") return MAP_PIN_GREEN;
-  if (category === "maid_cafe") return MAP_PIN_PINK;
+export const MAP_PIN_IMAGE_IDS = {
+  maid: "pin-maid",
+  user: "pin-user",
+  event: "pin-event",
+} as const;
+
+export const MAP_PIN_DATA_URI_BY_KIND = MAP_PIN_DATA_URIS;
+
+export function mapPinKindForCategory(category: string): MapPinKind {
+  if (category === "maid_cafe") return "maid";
+  if (category === "user_recommendation") return "user";
+  return "event";
+}
+
+export function mapPinColorForCategory(category: string): string {
+  const kind = mapPinKindForCategory(category);
+  if (kind === "maid") return MAP_PIN_PINK;
+  if (kind === "user") return MAP_PIN_GREEN;
   return MAP_PIN_BLUE;
 }
 
-export function mapPinOuterRadius(selected = false): number {
-  return selected
-    ? Math.round(MAP_PIN_OUTER_RADIUS * MAP_PIN_SCALE_HOVER)
-    : MAP_PIN_OUTER_RADIUS;
+export function mapPinImageIdForCategory(category: string): string {
+  return MAP_PIN_IMAGE_IDS[mapPinKindForCategory(category)];
 }
 
-export function mapPinInnerRadius(selected = false): number {
-  return selected
-    ? Math.round(MAP_PIN_INNER_RADIUS * MAP_PIN_SCALE_HOVER)
-    : MAP_PIN_INNER_RADIUS;
-}
-
-/** Side-drawer globe — small filled dots with white stroke (not full-screen ring pins). */
-export function mapPinGlobeDotLayers() {
+export function mapPinSymbolLayout(selectedExpr = false) {
   return {
-    shadow: {
-      "circle-radius": 8,
-      "circle-color": "rgba(0,0,0,0.22)",
-      "circle-blur": 0.35,
-      "circle-translate": [0, 1],
-      "circle-pitch-alignment": "viewport" as const,
-    },
-    dot: {
-      "circle-radius": 7,
-      "circle-color": ["get", "color"],
-      "circle-stroke-width": 2,
-      "circle-stroke-color": "#ffffff",
-      "circle-pitch-alignment": "viewport" as const,
-    },
-  };
-}
-
-export function mapPinCircleLayers(selectedExpr = false) {
-  const outer = selectedExpr
-    ? (["case", ["==", ["get", "selected"], 1], mapPinOuterRadius(true), mapPinOuterRadius()] as unknown)
-    : mapPinOuterRadius();
-  const inner = selectedExpr
-    ? (["case", ["==", ["get", "selected"], 1], mapPinInnerRadius(true), mapPinInnerRadius()] as unknown)
-    : mapPinInnerRadius();
-  return {
-    shadow: {
-      "circle-radius": selectedExpr
-        ? (["case", ["==", ["get", "selected"], 1], mapPinOuterRadius(true) + 2, mapPinOuterRadius() + 2] as unknown)
-        : mapPinOuterRadius() + 2,
-      "circle-color": "rgba(0,0,0,0.25)",
-      "circle-blur": 0.35,
-      "circle-translate": [0, 2],
-      "circle-pitch-alignment": "viewport",
-    },
-    outer: {
-      "circle-radius": outer,
-      "circle-color": ["get", "color"],
-      "circle-pitch-alignment": "viewport",
-    },
-    inner: {
-      "circle-radius": inner,
-      "circle-color": "#ffffff",
-      "circle-pitch-alignment": "viewport",
-    },
+    "icon-image": ["get", "icon"],
+    "icon-size": selectedExpr
+      ? (["case", ["==", ["get", "selected"], 1], MAP_PIN_ICON_SIZE_SELECTED, MAP_PIN_ICON_SIZE] as unknown)
+      : MAP_PIN_ICON_SIZE,
+    "icon-anchor": "center" as const,
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
+    "icon-pitch-alignment": "viewport" as const,
+    "icon-rotation-alignment": "viewport" as const,
   };
 }

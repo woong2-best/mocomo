@@ -1,14 +1,14 @@
 import { mapPinColorForCategory } from "@/maps/map-pin";
 
-/** Pin colors aligned with web circular pink / green / blue pins */
+/** Pin colors aligned with web maid / user / event icons */
 export const EVENT_PIN_COLORS: Record<string, string> = {
-  comic: "#2196F3",
-  anime: "#2196F3",
-  cosplay: "#2196F3",
-  goods: "#2196F3",
+  comic: "#3b82f6",
+  anime: "#3b82f6",
+  cosplay: "#3b82f6",
+  goods: "#3b82f6",
   maid_cafe: "#ff69b4",
-  user_recommendation: "#4CAF50",
-  other: "#2196F3",
+  user_recommendation: "#22c55e",
+  other: "#3b82f6",
 };
 
 export function eventPinColor(category: string) {

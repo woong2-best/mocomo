@@ -3,6 +3,6 @@ export {
   MAP_PIN_GREEN,
   MAP_PIN_PINK,
   mapPinColorForCategory,
-  mapPinInnerRadius,
-  mapPinOuterRadius,
+  mapPinKindForCategory,
+  mapPinSymbolLayout,
 } from "@/maps/map-pin";
