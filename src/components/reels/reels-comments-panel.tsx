@@ -566,7 +566,11 @@ function CommentRow({
                 className="mt-0.5 text-[14px] leading-snug whitespace-pre-wrap break-words text-white"
               />
             ) : null}
-            <CommentMediaThumb mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
+            <CommentMediaThumb
+              mediaType={comment.mediaType}
+              mediaUrl={comment.mediaUrl}
+              mediaMeta={comment.mediaMeta}
+            />
           </div>
 
           <div className="ml-1 flex shrink-0 flex-col items-center gap-1 pt-0.5">
@@ -991,6 +995,7 @@ export function ReelsCommentsPanel({
                       isEdited: false,
                       mediaType: c.mediaType ?? "NONE",
                       mediaUrl: c.mediaUrl ?? null,
+                      mediaMeta: c.mediaMeta ?? null,
                       author,
                     },
                   ],
@@ -1023,6 +1028,7 @@ export function ReelsCommentsPanel({
           replyCount: 0,
           mediaType: c.mediaType ?? "NONE",
           mediaUrl: c.mediaUrl ?? null,
+          mediaMeta: c.mediaMeta ?? null,
           author,
           replies: [],
         };

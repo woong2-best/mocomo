@@ -12,6 +12,7 @@ import {
 } from "@/lib/comment-service";
 import type { PostCommentSort } from "@/lib/post-queries";
 import { assertUserBlockInteractionAllowed } from "@/lib/user-block";
+import type { Prisma } from "@prisma/client";
 import { parseCommentMediaInput, serializeCommentMedia } from "@/lib/comment-media";
 import { resolveCommentReplyTarget } from "@/lib/comment-reply-target";
 import { mentionWriteFields, resolveContentMentions } from "@/lib/mentions";
@@ -193,6 +194,7 @@ export async function POST(
         replyToUserId,
         mediaType: media.mediaType,
         mediaUrl: media.mediaUrl,
+        mediaMeta: (media.mediaMeta ?? undefined) as Prisma.InputJsonValue | undefined,
       },
       select: {
         id: true,
@@ -203,6 +205,7 @@ export async function POST(
         pinnedAt: true,
         mediaType: true,
         mediaUrl: true,
+        mediaMeta: true,
         authorId: true,
         parentId: true,
         replyToUserId: true,

@@ -30,6 +30,8 @@ import {
 } from "@/features/feed/CommentThreadExtras";
 import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
 import { TenorGifSheet } from "@/features/feed/TenorGifSheet";
+import type { CommentGifMeta } from "@/lib/giphy-meta";
+import { subscribeGiphySearch } from "@/lib/giphy-search-events";
 import { uploadLocalFile } from "@/api/upload-file";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -79,8 +81,20 @@ export function PostDetailScreen() {
   const inputRef = useRef<TextInput>(null);
   const listRef = useRef<FlatList>(null);
   const didFocusComment = useRef(false);
-  const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
+  const [attach, setAttach] = useState<{
+    mediaType: "PHOTO" | "GIF";
+    mediaUrl: string;
+    mediaMeta?: CommentGifMeta | null;
+  } | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
+  const [gifQuery, setGifQuery] = useState("");
+
+  useEffect(() => {
+    return subscribeGiphySearch((query) => {
+      setGifQuery(query);
+      setGifOpen(true);
+    });
+  }, []);
   const [uploading, setUploading] = useState(false);
   const [menuComment, setMenuComment] = useState<CommentItem | null>(null);
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
@@ -169,7 +183,7 @@ export function PostDetailScreen() {
   const commentMut = useMutation({
     mutationFn: (input: {
       content: string;
-      media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null;
+      media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string; mediaMeta?: CommentGifMeta | null } | null;
       reply?: CommentReplyTarget | null;
     }) =>
       createPostComment(
@@ -191,6 +205,7 @@ export function PostDetailScreen() {
         createdAt: new Date().toISOString(),
         mediaType: input.media?.mediaType ?? "NONE",
         mediaUrl: input.media?.mediaUrl ?? null,
+        mediaMeta: input.media?.mediaMeta ?? null,
         parentId: input.reply?.rootId ?? null,
         replyCount: 0,
         author: {
@@ -509,7 +524,11 @@ export function PostDetailScreen() {
                       style={styles.commentBody}
                     />
                   ) : null}
-                  <CommentMediaBlock mediaType={item.mediaType} mediaUrl={item.mediaUrl} />
+                  <CommentMediaBlock
+                    mediaType={item.mediaType}
+                    mediaUrl={item.mediaUrl}
+                    mediaMeta={item.mediaMeta}
+                  />
                   {user ? (
                     <CommentThreadExtras
                       comment={item}
@@ -572,7 +591,10 @@ export function PostDetailScreen() {
               </Pressable>
               <Pressable
                 style={styles.iconBtn}
-                onPress={() => setGifOpen(true)}
+                onPress={() => {
+                  setGifQuery("");
+                  setGifOpen(true);
+                }}
                 disabled={!!attach || uploading}
                 accessibilityLabel={t("m.feed.attach_gif")}
               >
@@ -632,8 +654,20 @@ export function PostDetailScreen() {
       )}
       <TenorGifSheet
         visible={gifOpen}
+        initialQuery={gifQuery}
         onClose={() => setGifOpen(false)}
-        onPick={(url) => setAttach({ mediaType: "GIF", mediaUrl: url })}
+        onPick={(gif) =>
+          setAttach({
+            mediaType: "GIF",
+            mediaUrl: gif.playUrl,
+            mediaMeta: {
+              source: "giphy",
+              id: gif.id,
+              title: gif.title ?? null,
+              user: gif.user ?? null,
+            },
+          })
+        }
       />
       {menuComment ? (
         <PostCommentOverflowMenu

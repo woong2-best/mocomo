@@ -1,6 +1,7 @@
 import { apiRequest } from "@/api/client";
 import { MobileApi } from "@/api/paths";
 import type { FeedPost } from "@/api/feed";
+import type { CommentGifMeta, GiphyCreator } from "@/lib/giphy-meta";
 import { normalizeProfileUsername } from "@/lib/profile-username";
 
 export type SearchResult = {
@@ -64,6 +65,7 @@ export async function fetchPostDetail(id: string) {
 }
 
 export type CommentMediaType = "NONE" | "PHOTO" | "GIF";
+export type { CommentGifMeta, GiphyCreator };
 
 export type CommentReplyToUser = {
   id: string;
@@ -82,6 +84,7 @@ export type CommentItem = {
   acceptedAt?: string | null;
   mediaType?: CommentMediaType | null;
   mediaUrl?: string | null;
+  mediaMeta?: CommentGifMeta | null;
   parentId?: string | null;
   replyCount?: number;
   replyToUser?: CommentReplyToUser;
@@ -123,7 +126,7 @@ export async function acceptQnaAnswer(postId: string, commentId: string) {
 export async function createPostComment(
   postId: string,
   content: string,
-  media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null,
+  media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string; mediaMeta?: CommentGifMeta | null } | null,
   reply?: { parentId: string; replyToUserId?: string } | null
 ) {
   return apiRequest<{ comment: CommentItem }>(MobileApi.postComments(postId), {
@@ -134,6 +137,7 @@ export async function createPostComment(
       replyToUserId: reply?.replyToUserId,
       mediaType: media?.mediaType ?? "NONE",
       mediaUrl: media?.mediaUrl ?? null,
+      mediaMeta: media?.mediaMeta ?? null,
     },
   });
 }
@@ -151,6 +155,8 @@ export type GiphyGifItem = {
   id: string;
   previewUrl: string;
   playUrl: string;
+  title?: string | null;
+  user?: GiphyCreator | null;
 };
 
 /** @deprecated Use GiphyGifItem */

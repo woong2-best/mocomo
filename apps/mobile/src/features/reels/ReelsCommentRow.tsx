@@ -75,7 +75,11 @@ export function ReelsCommentRow({
         {comment.content ? (
           <TranslatableText text={comment.content} style={styles.body} lightLinks />
         ) : null}
-        <CommentMediaBlock mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
+        <CommentMediaBlock
+          mediaType={comment.mediaType}
+          mediaUrl={comment.mediaUrl}
+          mediaMeta={comment.mediaMeta}
+        />
         <CommentThreadExtras
           comment={comment}
           rootId={comment.id}

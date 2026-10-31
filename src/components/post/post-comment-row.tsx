@@ -21,6 +21,7 @@ import type { SupportTierLevel } from "@prisma/client";
 import { cn, formatNumber } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 import { CommentMediaThumb } from "@/components/post/comment-media-view";
+import type { CommentGifMeta } from "@/lib/giphy-meta";
 
 export type PostCommentRowData = {
   id: string;
@@ -30,6 +31,7 @@ export type PostCommentRowData = {
   likedByMe: boolean;
   mediaType?: "NONE" | "PHOTO" | "GIF" | null;
   mediaUrl?: string | null;
+  mediaMeta?: CommentGifMeta | null;
   author: {
     id: string;
     name: string | null;
@@ -184,7 +186,11 @@ export function PostCommentRow({
             className="text-sm mt-1 whitespace-pre-wrap"
           />
         ) : null}
-        <CommentMediaThumb mediaType={comment.mediaType} mediaUrl={comment.mediaUrl} />
+        <CommentMediaThumb
+          mediaType={comment.mediaType}
+          mediaUrl={comment.mediaUrl}
+          mediaMeta={comment.mediaMeta}
+        />
         {onReply && viewerId ? (
           <button
             type="button"

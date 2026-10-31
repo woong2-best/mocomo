@@ -1,5 +1,7 @@
 "use client";
 
+import type { CommentGifMeta } from "@/lib/giphy-meta";
+
 export const COMMENT_ADDED_EVENT = "mocomo:comment-added";
 export const COMMENT_CONFIRMED_EVENT = "mocomo:comment-confirmed";
 export const COMMENT_FAILED_EVENT = "mocomo:comment-failed";
@@ -22,6 +24,7 @@ export type OptimisticComment = {
   pending?: boolean;
   mediaType?: "NONE" | "PHOTO" | "GIF";
   mediaUrl?: string | null;
+  mediaMeta?: CommentGifMeta | null;
   author: OptimisticCommentAuthor;
   replies: { id: string; content: string; author: OptimisticCommentAuthor }[];
 };

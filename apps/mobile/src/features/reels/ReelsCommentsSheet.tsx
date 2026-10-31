@@ -25,6 +25,8 @@ import { CommentAvatar } from "@/features/feed/CommentAvatar";
 import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
 import { ReelsCommentRow } from "@/features/reels/ReelsCommentRow";
 import { TenorGifSheet } from "@/features/feed/TenorGifSheet";
+import type { CommentGifMeta } from "@/lib/giphy-meta";
+import { subscribeGiphySearch } from "@/lib/giphy-search-events";
 import { uploadLocalFile } from "@/api/upload-file";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -72,7 +74,7 @@ type Props = {
   copy: ReelsUi;
   onDraftChange: (text: string) => void;
   onSubmit: (
-    media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null,
+    media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string; mediaMeta?: CommentGifMeta | null } | null,
     reply?: CommentReplyTarget | null
   ) => void;
   onClosed: () => void;
@@ -108,8 +110,20 @@ export function ReelsCommentsSheet({
   });
   const [replyTarget, setReplyTarget] = useState<CommentReplyTarget | null>(null);
   const [expandNonceById, setExpandNonceById] = useState<Record<string, number>>({});
-  const [attach, setAttach] = useState<{ mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null>(null);
+  const [attach, setAttach] = useState<{
+    mediaType: "PHOTO" | "GIF";
+    mediaUrl: string;
+    mediaMeta?: CommentGifMeta | null;
+  } | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
+  const [gifQuery, setGifQuery] = useState("");
+
+  useEffect(() => {
+    return subscribeGiphySearch((query) => {
+      setGifQuery(query);
+      setGifOpen(true);
+    });
+  }, []);
   const [uploading, setUploading] = useState(false);
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
@@ -208,7 +222,7 @@ export function ReelsCommentsSheet({
   const meName = user?.username || user?.name || t("m.feed.unknown_user");
 
   const sendNow = useCallback(
-    (media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null) => {
+    (media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string; mediaMeta?: CommentGifMeta | null } | null) => {
       const reply = replyTarget;
       if (reply) {
         setExpandNonceById((prev) => ({
@@ -426,7 +440,10 @@ export function ReelsCommentsSheet({
           <Ionicons name="image-outline" size={20} color="rgba(255,255,255,0.7)" />
         </Pressable>
         <Pressable
-          onPress={() => setGifOpen(true)}
+          onPress={() => {
+            setGifQuery("");
+            setGifOpen(true);
+          }}
           disabled={!!attach || uploading || busy}
           hitSlop={8}
           accessibilityLabel={t("m.feed.attach_gif")}
@@ -455,10 +472,20 @@ export function ReelsCommentsSheet({
       </View>
       <TenorGifSheet
         visible={gifOpen}
+        initialQuery={gifQuery}
         onClose={() => setGifOpen(false)}
-        onPick={(url) => {
+        onPick={(gif) => {
           if (busy || uploading) return;
-          sendNow({ mediaType: "GIF", mediaUrl: url });
+          sendNow({
+            mediaType: "GIF",
+            mediaUrl: gif.playUrl,
+            mediaMeta: {
+              source: "giphy",
+              id: gif.id,
+              title: gif.title ?? null,
+              user: gif.user ?? null,
+            },
+          });
         }}
       />
     </Animated.View>

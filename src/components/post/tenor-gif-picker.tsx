@@ -3,26 +3,46 @@
 import { useEffect, useState } from "react";
 import { Loader2, Search, X } from "lucide-react";
 import { useLocale } from "@/components/providers/locale-provider";
+import type { GiphyCreator } from "@/lib/giphy-meta";
 import { cn } from "@/lib/utils";
 
-export type PickedGif = { playUrl: string; previewUrl: string };
+export type PickedGif = {
+  playUrl: string;
+  previewUrl: string;
+  title: string | null;
+  user: GiphyCreator | null;
+  id?: string;
+};
 
-type Item = { id: string; previewUrl: string; playUrl: string };
+type Item = {
+  id: string;
+  previewUrl: string;
+  playUrl: string;
+  title?: string | null;
+  user?: GiphyCreator | null;
+};
 
 export function GiphyGifPicker({
   open,
+  initialQuery = "",
   onClose,
   onPick,
 }: {
   open: boolean;
+  initialQuery?: string;
   onClose: () => void;
   onPick: (gif: PickedGif) => void;
 }) {
   const { t } = useLocale();
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setQ(initialQuery);
+  }, [open, initialQuery]);
 
   useEffect(() => {
     if (!open) return;
@@ -120,7 +140,13 @@ export function GiphyGifPicker({
                     "transition-transform active:scale-[0.98]",
                   )}
                   onClick={() => {
-                    onPick({ playUrl: item.playUrl, previewUrl: item.previewUrl });
+                    onPick({
+                      id: item.id,
+                      playUrl: item.playUrl,
+                      previewUrl: item.previewUrl,
+                      title: item.title ?? null,
+                      user: item.user ?? null,
+                    });
                     onClose();
                   }}
                 >

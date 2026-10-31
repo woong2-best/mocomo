@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
-import type { CommentMediaType } from "@/api/social";
+import type { CommentGifMeta, CommentMediaType } from "@/api/social";
+import { GiphyCreatorSheet } from "@/features/feed/GiphyCreatorSheet";
 
 const COMMENT_MEDIA = {
   width: 220,
@@ -56,13 +57,17 @@ function LoopVideo({
 export function CommentMediaBlock({
   mediaType,
   mediaUrl,
+  mediaMeta,
   variant = "comment",
 }: {
   mediaType?: CommentMediaType | null;
   mediaUrl?: string | null;
+  mediaMeta?: CommentGifMeta | null;
   variant?: "comment" | "preview";
 }) {
   const [open, setOpen] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
+  const didLongPress = useRef(false);
   if ((mediaType !== "PHOTO" && mediaType !== "GIF") || !mediaUrl) return null;
   const source = mediaType === "GIF" ? displayGifUrl(mediaUrl) : mediaUrl;
   const video = mediaType === "GIF" && isVideoUrl(source);
@@ -71,7 +76,19 @@ export function CommentMediaBlock({
   return (
     <>
       <Pressable
-        onPress={() => setOpen(true)}
+        delayLongPress={500}
+        onLongPress={() => {
+          if (mediaType !== "GIF") return;
+          didLongPress.current = true;
+          setCreatorOpen(true);
+        }}
+        onPress={() => {
+          if (didLongPress.current) {
+            didLongPress.current = false;
+            return;
+          }
+          setOpen(true);
+        }}
         style={[styles.thumbWrap, { width: box.width, height: box.height }]}
       >
         {video ? (
@@ -104,6 +121,13 @@ export function CommentMediaBlock({
           </View>
         </Pressable>
       </Modal>
+      {mediaType === "GIF" ? (
+        <GiphyCreatorSheet
+          visible={creatorOpen}
+          meta={mediaMeta}
+          onClose={() => setCreatorOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

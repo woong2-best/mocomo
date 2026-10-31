@@ -3,12 +3,16 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { commentGifDisplayUrl, isCommentGifPlaybackUrl } from "@/lib/comment-media";
+import type { CommentGifMeta } from "@/lib/giphy-meta";
+import { useLongPress } from "@/hooks/use-long-press";
+import { GiphyCreatorSheet } from "@/components/post/giphy-creator-sheet";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
 
 export type CommentMediaViewProps = {
   mediaType?: "NONE" | "PHOTO" | "GIF" | null;
   mediaUrl?: string | null;
+  mediaMeta?: CommentGifMeta | null;
   className?: string;
 };
 
@@ -73,11 +77,16 @@ function MediaFrame({
   );
 }
 
-export function CommentMediaThumb({ mediaType, mediaUrl, className }: CommentMediaViewProps) {
+export function CommentMediaThumb({ mediaType, mediaUrl, mediaMeta, className }: CommentMediaViewProps) {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
-  if ((mediaType !== "PHOTO" && mediaType !== "GIF") || !mediaUrl) return null;
+  const [creatorOpen, setCreatorOpen] = useState(false);
   const gif = mediaType === "GIF";
+  const longPress = useLongPress(() => {
+    if (gif) setCreatorOpen(true);
+  }, { disabled: !gif });
+
+  if ((mediaType !== "PHOTO" && mediaType !== "GIF") || !mediaUrl) return null;
 
   return (
     <>
@@ -87,9 +96,14 @@ export function CommentMediaThumb({ mediaType, mediaUrl, className }: CommentMed
         className={cn(
           "relative mt-2 mb-1 block h-[140px] w-[220px] max-w-full shrink-0",
           "cursor-zoom-in overflow-hidden rounded-[12px] bg-neutral-800",
+          "select-none [-webkit-touch-callout:none] [-webkit-user-drag:none]",
           className,
         )}
-        onClick={() => setOpen(true)}
+        {...longPress.handlers}
+        onClick={() => {
+          if (longPress.consumeLongPress()) return;
+          setOpen(true);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -104,8 +118,16 @@ export function CommentMediaThumb({ mediaType, mediaUrl, className }: CommentMed
         open={open}
         mediaType={mediaType}
         mediaUrl={mediaUrl}
+        mediaMeta={mediaMeta}
         onClose={() => setOpen(false)}
       />
+      {gif ? (
+        <GiphyCreatorSheet
+          open={creatorOpen}
+          meta={mediaMeta}
+          onClose={() => setCreatorOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

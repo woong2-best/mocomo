@@ -17,13 +17,20 @@ import { isGalleryImageFile, normalizeGalleryImageFile } from "@/lib/gallery-ima
 import { CommentAttachPreview } from "@/components/post/comment-media-view";
 import { CommentCircleAvatar, commentDisplayName } from "@/components/post/comment-circle-avatar";
 import { GiphyGifPicker } from "@/components/post/tenor-gif-picker";
+import type { CommentGifMeta } from "@/lib/giphy-meta";
+import { subscribeGiphySearch } from "@/lib/giphy-search-events";
 import {
   MentionSuggestList,
   type MentionSuggestUser,
 } from "@/components/compose/mention-suggest-list";
 import { getMentionContext, insertMentionToken } from "@/lib/mention-utils";
 
-type Attach = { mediaType: "PHOTO" | "GIF"; mediaUrl: string; previewUrl: string };
+type Attach = {
+  mediaType: "PHOTO" | "GIF";
+  mediaUrl: string;
+  previewUrl: string;
+  mediaMeta?: CommentGifMeta | null;
+};
 
 export function CommentForm({
   postId,
@@ -65,6 +72,7 @@ export function CommentForm({
   const [activeIndex, setActiveIndex] = useState(0);
   const [attach, setAttach] = useState<Attach | null>(null);
   const [gifOpen, setGifOpen] = useState(false);
+  const [gifQuery, setGifQuery] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -127,6 +135,13 @@ export function CommentForm({
       el?.setSelectionRange(caret, caret);
     });
   }
+
+  useEffect(() => {
+    return subscribeGiphySearch((query) => {
+      setGifQuery(query);
+      setGifOpen(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (!replyToUsername) return;
@@ -194,6 +209,7 @@ export function CommentForm({
       pending: true,
       mediaType: sent?.mediaType ?? "NONE",
       mediaUrl: sent?.mediaUrl ?? null,
+      mediaMeta: sent?.mediaMeta ?? null,
       author: {
         id: user.id,
         name: user.name ?? null,
@@ -215,6 +231,7 @@ export function CommentForm({
           replyToUserId,
           mediaType: sent?.mediaType ?? "NONE",
           mediaUrl: sent?.mediaUrl ?? null,
+          mediaMeta: sent?.mediaMeta ?? null,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -343,7 +360,10 @@ export function CommentForm({
               type="button"
               className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
               disabled={!!attach || uploading}
-              onClick={() => setGifOpen(true)}
+              onClick={() => {
+                setGifQuery("");
+                setGifOpen(true);
+              }}
               aria-label={t("comments.attachGif")}
             >
               <Sticker className="h-4 w-4" />
@@ -412,7 +432,10 @@ export function CommentForm({
               type="button"
               className="inline-flex h-[22px] min-w-8 shrink-0 items-center justify-center rounded-md border border-white/70 px-1.5 text-[10px] font-extrabold tracking-wide text-white/85 disabled:border-white/25 disabled:text-white/25"
               disabled={!!attach || uploading || submitting}
-              onClick={() => setGifOpen(true)}
+              onClick={() => {
+                setGifQuery("");
+                setGifOpen(true);
+              }}
               aria-label={t("comments.attachGif")}
             >
               GIF
@@ -444,12 +467,19 @@ export function CommentForm({
       {error && <p className="text-xs text-destructive">{error}</p>}
       <GiphyGifPicker
         open={gifOpen}
+        initialQuery={gifQuery}
         onClose={() => setGifOpen(false)}
         onPick={(gif) => {
           const picked = {
             mediaType: "GIF" as const,
             mediaUrl: gif.playUrl,
             previewUrl: gif.previewUrl,
+            mediaMeta: {
+              source: "giphy" as const,
+              id: gif.id,
+              title: gif.title,
+              user: gif.user,
+            },
           };
           if (variant === "reels") {
             void submit({ attach: picked, gifOnly: true });

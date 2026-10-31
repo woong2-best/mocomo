@@ -31,6 +31,7 @@ function fromSerialized(c: SerializedComment): ListComment {
     isPinned: c.isPinned,
     mediaType: c.mediaType,
     mediaUrl: c.mediaUrl,
+    mediaMeta: c.mediaMeta,
     author: c.author,
     replyCount: c.replyCount,
     replies: (c.replies ?? []).map((r) => ({
@@ -41,6 +42,7 @@ function fromSerialized(c: SerializedComment): ListComment {
       likedByMe: r.likedByMe,
       mediaType: r.mediaType,
       mediaUrl: r.mediaUrl,
+      mediaMeta: r.mediaMeta,
       author: r.author,
     })),
   };
@@ -56,6 +58,7 @@ function optimisticToList(c: OptimisticComment): ListComment {
     isPinned: false,
     mediaType: c.mediaType,
     mediaUrl: c.mediaUrl,
+    mediaMeta: c.mediaMeta,
     author: {
       id: c.author.id ?? c.author.username,
       name: c.author.name,
@@ -157,6 +160,7 @@ export function PostCommentsList({
                       likedByMe: false,
                       mediaType: comment.mediaType,
                       mediaUrl: comment.mediaUrl,
+                      mediaMeta: comment.mediaMeta,
                       author: {
                         id: comment.author.id ?? comment.author.username,
                         name: comment.author.name,
@@ -384,6 +388,7 @@ function CommentThreadCard({
         likedByMe: r.likedByMe,
         mediaType: r.mediaType,
         mediaUrl: r.mediaUrl,
+        mediaMeta: r.mediaMeta,
         author: r.author,
       }));
       setReplies((prev) => {

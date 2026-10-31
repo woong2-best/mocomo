@@ -27,12 +27,14 @@ const PICKER = {
 
 export function TenorGifSheet({
   visible,
+  initialQuery = "",
   onClose,
   onPick,
 }: {
   visible: boolean;
+  initialQuery?: string;
   onClose: () => void;
-  onPick: (url: string) => void;
+  onPick: (gif: GiphyGifItem) => void;
 }) {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
@@ -50,10 +52,13 @@ export function TenorGifSheet({
   }, [visible, q]);
 
   useEffect(() => {
-    if (visible) return;
-    setQ("");
-    setError("");
-  }, [visible]);
+    if (!visible) {
+      setQ("");
+      setError("");
+      return;
+    }
+    setQ(initialQuery);
+  }, [visible, initialQuery]);
 
   async function load(query: string) {
     setLoading(true);
@@ -122,7 +127,7 @@ export function TenorGifSheet({
                   <Pressable
                     style={styles.cell}
                     onPress={() => {
-                      onPick(item.playUrl);
+                      onPick(item);
                       onClose();
                     }}
                   >

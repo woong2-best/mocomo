@@ -30,6 +30,7 @@ import { fetchFeedPage, type FeedPost } from "@/api/feed";
 import { fetchPostDetail } from "@/api/social";
 import { fetchReelsAds } from "@/api/ads";
 import { createPostComment } from "@/api/social";
+import type { CommentGifMeta } from "@/lib/giphy-meta";
 import type { CommentReplyTarget } from "@/features/feed/CommentThreadExtras";
 import {
   parseCommentBuckets,
@@ -548,7 +549,7 @@ export function ReelsScreen() {
   );
 
   const submitComment = useCallback(async (
-    media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string } | null,
+    media?: { mediaType: "PHOTO" | "GIF"; mediaUrl: string; mediaMeta?: CommentGifMeta | null } | null,
     reply?: CommentReplyTarget | null
   ) => {
     if (!commentsPostId || commentBusy) return;

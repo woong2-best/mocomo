@@ -1,4 +1,5 @@
 import { isGiphyMediaUrl } from "@/lib/comment-media";
+import { parseGiphyCreator, type GiphyCreator } from "@/lib/giphy-meta";
 
 export type GiphyPlatform = "web" | "android" | "ios";
 
@@ -6,6 +7,8 @@ export type GiphyGifItem = {
   id: string;
   previewUrl: string;
   playUrl: string;
+  title: string | null;
+  user: GiphyCreator | null;
 };
 
 type GiphyImage = {
@@ -16,6 +19,12 @@ type GiphyImage = {
 
 type GiphyRow = {
   id?: string;
+  title?: string;
+  user?: {
+    username?: string;
+    display_name?: string;
+    avatar_url?: string;
+  } | null;
   images?: {
     original?: GiphyImage;
     original_still?: GiphyImage;
@@ -88,7 +97,14 @@ export function mapGiphyRow(row: GiphyRow): GiphyGifItem | null {
     previewUrl,
   );
   if (!id || !previewUrl || !playUrl) return null;
-  return { id, previewUrl, playUrl };
+  const title = row.title?.trim() ? row.title.trim().slice(0, 200) : null;
+  return {
+    id,
+    previewUrl,
+    playUrl,
+    title,
+    user: parseGiphyCreator(row.user),
+  };
 }
 
 export async function searchGiphyGifs(q: string, platform: GiphyPlatform = "web"): Promise<GiphyGifItem[]> {

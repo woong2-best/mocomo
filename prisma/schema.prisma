@@ -1445,6 +1445,8 @@ model Comment {
   /** One photo or one GIF. Null = text only. */
   mediaType CommentMediaType?
   mediaUrl  String?
+  /** GIPHY creator + title for GIF comments. JSONB: { source, id, title, user }. */
+  mediaMeta Json?
   /** Denormalized like count for popular sort / feed speed */
   likeCount Int       @default(0)
   /** Top-level pin; null = not pinned. Max 3 per post enforced in API. */

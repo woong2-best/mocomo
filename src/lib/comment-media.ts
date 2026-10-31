@@ -1,9 +1,12 @@
+import { parseCommentGifMeta, type CommentGifMeta } from "@/lib/giphy-meta";
+
 export type CommentMediaKind = "NONE" | "PHOTO" | "GIF";
 export type CommentMediaStored = "PHOTO" | "GIF";
 
 export type CommentMediaPayload = {
   mediaType: CommentMediaKind;
   mediaUrl: string | null;
+  mediaMeta: CommentGifMeta | null;
 };
 
 const MAX_URL = 2048;
@@ -23,12 +26,17 @@ const GIPHY_HOSTS = new Set([
 export function serializeCommentMedia(row: {
   mediaType?: "PHOTO" | "GIF" | null;
   mediaUrl?: string | null;
+  mediaMeta?: unknown;
 }): CommentMediaPayload {
   const url = row.mediaUrl?.trim() ?? "";
   if ((row.mediaType === "PHOTO" || row.mediaType === "GIF") && url) {
-    return { mediaType: row.mediaType, mediaUrl: url };
+    return {
+      mediaType: row.mediaType,
+      mediaUrl: url,
+      mediaMeta: row.mediaType === "GIF" ? parseCommentGifMeta(row.mediaMeta) : null,
+    };
   }
-  return { mediaType: "NONE", mediaUrl: null };
+  return { mediaType: "NONE", mediaUrl: null, mediaMeta: null };
 }
 
 function httpsHost(raw: string): string | null {
@@ -113,9 +121,11 @@ export function parseCommentMediaInput(body: {
   content?: unknown;
   mediaType?: unknown;
   mediaUrl?: unknown;
+  mediaMeta?: unknown;
   media_type?: unknown;
   media_url?: unknown;
-}): { ok: true; content: string; mediaType: CommentMediaStored | null; mediaUrl: string | null } | { ok: false; error: string } {
+  media_meta?: unknown;
+}): { ok: true; content: string; mediaType: CommentMediaStored | null; mediaUrl: string | null; mediaMeta: CommentGifMeta | null } | { ok: false; error: string } {
   const content = typeof body.content === "string" ? body.content.trim() : "";
   if (content.length > 4000) return { ok: false, error: "Check your comment content." };
 
@@ -132,7 +142,7 @@ export function parseCommentMediaInput(body: {
   const url = typeof rawUrl === "string" ? rawUrl.trim() : "";
   if (type === "NONE" || !url) {
     if (!content) return { ok: false, error: "Check your comment content." };
-    return { ok: true, content, mediaType: null, mediaUrl: null };
+    return { ok: true, content, mediaType: null, mediaUrl: null, mediaMeta: null };
   }
   if (url.length > MAX_URL) return { ok: false, error: "Media URL is too long." };
   if (type === "PHOTO" && !isCommentPhotoUrl(url)) {
@@ -141,5 +151,7 @@ export function parseCommentMediaInput(body: {
   if (type === "GIF" && !isCommentGifUrl(url)) {
     return { ok: false, error: "That GIF could not be attached." };
   }
-  return { ok: true, content, mediaType: type, mediaUrl: url };
+  const mediaMeta =
+    type === "GIF" ? parseCommentGifMeta(body.mediaMeta ?? body.media_meta) : null;
+  return { ok: true, content, mediaType: type, mediaUrl: url, mediaMeta };
 }

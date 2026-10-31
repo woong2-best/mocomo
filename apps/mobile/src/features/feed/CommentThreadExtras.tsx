@@ -139,7 +139,11 @@ export function CommentThreadExtras({
                       lightLinks={light}
                     />
                   ) : null}
-                  <CommentMediaBlock mediaType={reply.mediaType} mediaUrl={reply.mediaUrl} />
+                  <CommentMediaBlock
+                    mediaType={reply.mediaType}
+                    mediaUrl={reply.mediaUrl}
+                    mediaMeta={reply.mediaMeta}
+                  />
                   <Pressable
                     onPress={() =>
                       onReply({

@@ -41,7 +41,31 @@ test("Giphy rows prefer GIF URLs so Android can paint the picker tiles", () => {
     id: "abc",
     previewUrl: "https://media.giphy.com/media/abc/100.gif",
     playUrl: "https://media.giphy.com/media/abc/200.gif",
+    title: null,
+    user: null,
   });
+});
+
+test("Giphy rows keep official creator fields for long-press attribution", () => {
+  const item = mapGiphyRow({
+    id: "abc",
+    title: "Happy Dance GIF",
+    user: {
+      username: "studio",
+      display_name: "Studio",
+      avatar_url: "https://media.giphy.com/avatars/studio/face.gif",
+    },
+    images: {
+      fixed_height_small: { url: "https://media.giphy.com/media/abc/100.gif" },
+      fixed_height: { url: "https://media.giphy.com/media/abc/200.gif" },
+    },
+  });
+  assert.deepEqual(item?.user, {
+    username: "studio",
+    displayName: "Studio",
+    avatarUrl: "https://media.giphy.com/avatars/studio/face.gif",
+  });
+  assert.equal(item?.title, "Happy Dance GIF");
 });
 
 test("resolveGiphyPlatform prefers the app header over the user agent", () => {

@@ -119,6 +119,7 @@ const commentSelectBase = {
   acceptedAt: true,
   mediaType: true,
   mediaUrl: true,
+  mediaMeta: true,
   authorId: true,
   parentId: true,
   replyToUserId: true,
@@ -222,6 +223,7 @@ async function mapComments(
     acceptedAt?: Date | null;
     mediaType?: "PHOTO" | "GIF" | null;
     mediaUrl?: string | null;
+    mediaMeta?: unknown;
     authorId: string;
     parentId?: string | null;
     replyToUserId?: string | null;
@@ -242,6 +244,7 @@ async function mapComments(
       likeCount: number;
       mediaType?: "PHOTO" | "GIF" | null;
       mediaUrl?: string | null;
+      mediaMeta?: unknown;
       authorId: string;
       parentId?: string | null;
       replyToUserId?: string | null;
@@ -810,6 +813,7 @@ export async function getCommentRepliesPage(params: {
       likeCount: true,
       mediaType: true,
       mediaUrl: true,
+      mediaMeta: true,
       authorId: true,
       parentId: true,
       replyToUserId: true,

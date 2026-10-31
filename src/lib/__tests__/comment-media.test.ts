@@ -38,11 +38,17 @@ test("a comment needs text or one attachment", () => {
     content: "",
     mediaType: "GIF",
     mediaUrl: "https://media.giphy.com/media/abc/giphy.webp",
+    mediaMeta: {
+      title: "happy, dance",
+      user: { username: "studio", display_name: "Studio", avatar_url: "" },
+    },
   });
   assert.equal(gif.ok, true);
   if (gif.ok) {
     assert.equal(gif.mediaType, "GIF");
     assert.equal(gif.content, "");
+    assert.equal(gif.mediaMeta?.user?.username, "studio");
+    assert.equal(gif.mediaMeta?.title, "happy, dance");
   }
   const bad = parseCommentMediaInput({
     content: "",
@@ -53,10 +59,11 @@ test("a comment needs text or one attachment", () => {
 });
 
 test("empty media serializes as NONE", () => {
-  assert.deepEqual(serializeCommentMedia({}), { mediaType: "NONE", mediaUrl: null });
+  assert.deepEqual(serializeCommentMedia({}), { mediaType: "NONE", mediaUrl: null, mediaMeta: null });
   assert.deepEqual(serializeCommentMedia({ mediaType: "PHOTO", mediaUrl: "https://mocomo.net/uploads/x.jpg" }), {
     mediaType: "PHOTO",
     mediaUrl: "https://mocomo.net/uploads/x.jpg",
+    mediaMeta: null,
   });
 });
 
