@@ -6,7 +6,7 @@ const t = createTranslator("en");
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage, avatarShapeClass } from "@/components/ui/avatar";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
 import { userDisplayName } from "@/lib/user-public-select";
 import type { SupportTierLevel } from "@prisma/client";
@@ -266,7 +266,11 @@ export function PostCollaboratorsHeader({
             return (
               <span
                 key={u.id}
-                className={cn("relative rounded-full ring-2 ring-background", hasCollab ? stackOverlap : stackSize)}
+                className={cn(
+                  "relative overflow-hidden ring-2 ring-background",
+                  avatarShapeClass,
+                  hasCollab ? stackOverlap : stackSize
+                )}
                 title={ANONYMOUS_DISPLAY_NAME}
               >
                 {avatar}
@@ -278,7 +282,8 @@ export function PostCollaboratorsHeader({
               key={u.id}
               href={`/u/${u.username}`}
               className={cn(
-                "relative rounded-full ring-2 ring-background",
+                "relative overflow-hidden ring-2 ring-background",
+                avatarShapeClass,
                 hasCollab ? stackOverlap : stackSize,
                 i > 0 && "-ml-2.5"
               )}
