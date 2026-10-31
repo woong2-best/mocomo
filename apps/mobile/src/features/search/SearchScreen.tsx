@@ -12,10 +12,16 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import { searchPage, toggleFollowUser, type SearchPageUser } from "@/api/social";
-import type { FeedPost } from "@/api/feed";
+import { resolveAbsolutePlaybackUrl } from "@/api/watermark";
+import type { FeedMedia, FeedPost } from "@/api/feed";
 import { useAuth } from "@/auth/AuthContext";
+import { LockedMediaTile } from "@/components/media/LockedMediaTile";
+import type { PaidMediaMonetization } from "@/components/media/paid-media-types";
 import { FeedPostCard } from "@/features/feed/FeedPostCard";
 import { useUserProfileNav } from "@/features/profile/user-profile-nav";
+import { posterToImageSource, useFeedVideoPoster } from "@/lib/video-thumbnail";
+import { resolveVideoPoster } from "@/lib/video-poster";
+import { cachedImageSource, feedMediaDecodeWidth, IMAGE_CACHE_POLICY } from "@/perf/image";
 import { FolkAvatar } from "@/ui/FolkAvatar";
 import { Screen } from "@/ui/Screen";
 import { SearchField } from "@/ui/SearchField";
@@ -40,18 +46,39 @@ const TABS: { id: Filter; labelKey: "m.search.tab.top" | "m.search.tab.latest" |
 const MEDIA_COLS = 3;
 const MEDIA_GAP = 1;
 
-function isVisualMedia(m: FeedPost["media"][number] | null | undefined) {
-  if (!m || m.type === "AUDIO") return false;
-  return Boolean(m.url || m.posterUrl);
+function looksLikeVideoUrl(url: string) {
+  return /\.(mp4|m3u8|webm|mov|m4s)(\?|#|$)/i.test(url) || url.includes(".m3u8");
 }
 
-function mediaTileUri(m: FeedPost["media"][number]) {
-  const raw = m.type === "VIDEO" ? m.posterUrl || m.url : m.url;
-  return typeof raw === "string" && raw.length > 0 ? raw : null;
+function isVideoMedia(m: FeedMedia) {
+  return m.type === "VIDEO" || looksLikeVideoUrl(m.url?.trim() || m.hlsUrl?.trim() || "");
+}
+
+function isVisualMedia(m: FeedPost["media"][number] | null | undefined) {
+  if (!m || m.type === "AUDIO") return false;
+  return Boolean(m.url || m.posterUrl || m.hlsUrl || m.streamUid);
+}
+
+function resolveStillUri(raw: string | null | undefined) {
+  const url = raw?.trim();
+  if (!url || looksLikeVideoUrl(url)) return null;
+  return resolveAbsolutePlaybackUrl(url);
 }
 
 function hasVisualMedia(post: FeedPost) {
   return (Array.isArray(post.media) ? post.media : []).some(isVisualMedia);
+}
+
+function searchMediaMonetization(post: FeedPost, paymentsEnabled: boolean): PaidMediaMonetization {
+  return {
+    postId: post.id,
+    authorId: post.author.id,
+    authorUsername: post.author.username,
+    paymentsEnabled: paymentsEnabled || post.paymentsEnabled || false,
+    subscribedToAuthor: post.subscribedToAuthor ?? false,
+    subscriptionPriceKrw: post.author.creatorSubscriptionPriceKrw ?? null,
+    postInstantPurchasePriceKrw: post.instantPurchasePriceKrw ?? null,
+  };
 }
 
 export function SearchScreen() {
@@ -115,7 +142,6 @@ export function SearchScreen() {
         (Array.isArray(post.media) ? post.media : [])
           .filter(isVisualMedia)
           .map((media, index) => ({ post, media, index }))
-          .filter((tile) => mediaTileUri(tile.media))
       ),
     [mediaPosts]
   );
@@ -195,27 +221,15 @@ export function SearchScreen() {
           columnWrapperStyle={mediaTiles.length > 0 ? styles.mediaRow : undefined}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={<Text style={styles.hint}>{emptyLabel}</Text>}
-          renderItem={({ item }) => {
-            const isVideo = item.media.type === "VIDEO";
-            const uri = mediaTileUri(item.media);
-            if (!uri) return <View style={{ width: mediaTileSize, height: mediaTileSize }} />;
-            return (
-              <Pressable
-                onPress={() => navigation.navigate("PostDetail", { id: item.post.id })}
-                style={[styles.mediaTile, { width: mediaTileSize, height: mediaTileSize }]}
-              >
-                <Image source={{ uri }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-                {isVideo ? (
-                  <View style={styles.mediaDur}>
-                    <Ionicons name="play" size={11} color="#fff" />
-                    <Text style={styles.mediaDurText}>
-                      {formatMediaDuration(item.media.duration)}
-                    </Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          }}
+          renderItem={({ item }) => (
+            <SearchMediaTile
+              post={item.post}
+              media={item.media}
+              size={mediaTileSize}
+              paymentsEnabled={paymentsEnabled}
+              onPress={() => navigation.navigate("PostDetail", { id: item.post.id })}
+            />
+          )}
         />
       ) : (
         <FlatList
@@ -269,6 +283,102 @@ export function SearchScreen() {
     </Screen>
   );
 }
+
+function SearchMediaTile({
+  post,
+  media,
+  size,
+  paymentsEnabled,
+  onPress,
+}: {
+  post: FeedPost;
+  media: FeedMedia;
+  size: number;
+  paymentsEnabled: boolean;
+  onPress: () => void;
+}) {
+  const isVideo = isVideoMedia(media);
+  const imageStill = resolveStillUri(media.url) || resolveStillUri(media.posterUrl);
+  const poster = useFeedVideoPoster(
+    isVideo
+      ? {
+          ...media,
+          url: media.url?.trim() ? resolveAbsolutePlaybackUrl(media.url.trim()) : media.url,
+          hlsUrl: media.hlsUrl?.trim()
+            ? resolveAbsolutePlaybackUrl(media.hlsUrl.trim())
+            : media.hlsUrl,
+          posterUrl: resolveStillUri(media.posterUrl),
+        }
+      : {
+          ...media,
+          url: imageStill ?? "",
+          posterUrl: imageStill,
+          hlsUrl: null,
+        }
+  );
+  const decode = feedMediaDecodeWidth(size);
+  const source = poster
+    ? (posterToImageSource(poster, (uri) =>
+        cachedImageSource(resolveAbsolutePlaybackUrl(uri), decode)
+      ) as object)
+    : null;
+  const recyclingKey =
+    (typeof poster === "string" && poster) ||
+    imageStill ||
+    resolveVideoPoster(media) ||
+    media.id ||
+    media.url;
+
+  if (media.locked) {
+    return (
+      <Pressable onPress={onPress} style={{ width: size, height: size, marginBottom: MEDIA_GAP }}>
+        <LockedMediaTile media={media} monetization={searchMediaMonetization(post, paymentsEnabled)} />
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable onPress={onPress} style={[tileStyles.tile, { width: size, height: size }]}>
+      {source ? (
+        <Image
+          source={source}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          cachePolicy={IMAGE_CACHE_POLICY}
+          recyclingKey={recyclingKey}
+          transition={0}
+        />
+      ) : null}
+      {isVideo ? (
+        <View style={tileStyles.mediaDur}>
+          <Ionicons name="play" size={11} color="#fff" />
+          <Text style={tileStyles.mediaDurText}>{formatMediaDuration(media.duration)}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+const tileStyles = StyleSheet.create({
+  tile: {
+    backgroundColor: "#1c2433",
+    overflow: "hidden",
+    marginBottom: MEDIA_GAP,
+  },
+  mediaDur: {
+    position: "absolute",
+    left: 6,
+    bottom: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  mediaDurText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+});
 
 function formatMediaDuration(sec?: number | null) {
   if (!sec || sec <= 0 || !Number.isFinite(sec)) return "0:00";
@@ -391,23 +501,5 @@ function createThemedStyles(colors: ThemeColors) {
     moreLabel: { color: colors.cobalt, fontWeight: "700", fontSize: 14 },
     mediaEmptyWrap: { flexGrow: 1, justifyContent: "center", paddingBottom: 40 },
     mediaRow: { gap: MEDIA_GAP },
-    mediaTile: {
-      backgroundColor: "#111",
-      overflow: "hidden",
-      marginBottom: MEDIA_GAP,
-    },
-    mediaDur: {
-      position: "absolute",
-      left: 6,
-      bottom: 6,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 3,
-      backgroundColor: "rgba(0,0,0,0.75)",
-      borderRadius: 4,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-    },
-    mediaDurText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   });
 }

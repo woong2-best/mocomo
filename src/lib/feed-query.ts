@@ -161,6 +161,7 @@ const mobileFeedMediaPreview = {
     duration: true,
     hlsUrl: true,
     posterUrl: true,
+    streamUid: true,
   },
 } as const;
 
