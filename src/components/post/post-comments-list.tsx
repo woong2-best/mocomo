@@ -9,6 +9,7 @@ import {
   COMMENT_ADDED_EVENT,
   COMMENT_CONFIRMED_EVENT,
   COMMENT_FAILED_EVENT,
+  COMMENT_REMOVED_EVENT,
   type OptimisticComment,
 } from "@/lib/comment-optimistic-sync";
 import type { SerializedComment, SerializedReply } from "@/lib/comment-service";
@@ -225,13 +226,33 @@ export function PostCommentsList({
       setComments(drop);
     }
 
+    function onRemoved(e: Event) {
+      const detail = (e as CustomEvent<{ postId: string; commentId: string }>).detail;
+      if (!detail || detail.postId !== postId) return;
+      const drop = (list: ListComment[]) =>
+        list
+          .filter((c) => c.id !== detail.commentId)
+          .map((c) => ({
+            ...c,
+            replyCount: c.replies.some((r) => r.id === detail.commentId)
+              ? Math.max(0, c.replyCount - 1)
+              : c.replyCount,
+            replies: c.replies.filter((r) => r.id !== detail.commentId),
+          }));
+      setPinned(drop);
+      setTop(drop);
+      setComments(drop);
+    }
+
     window.addEventListener(COMMENT_ADDED_EVENT, onAdded);
     window.addEventListener(COMMENT_CONFIRMED_EVENT, onConfirmed);
     window.addEventListener(COMMENT_FAILED_EVENT, onFailed);
+    window.addEventListener(COMMENT_REMOVED_EVENT, onRemoved);
     return () => {
       window.removeEventListener(COMMENT_ADDED_EVENT, onAdded);
       window.removeEventListener(COMMENT_CONFIRMED_EVENT, onConfirmed);
       window.removeEventListener(COMMENT_FAILED_EVENT, onFailed);
+      window.removeEventListener(COMMENT_REMOVED_EVENT, onRemoved);
     };
   }, [onReplyPosted, postId, ranked]);
 

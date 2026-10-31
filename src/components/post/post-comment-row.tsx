@@ -5,18 +5,18 @@ const t = createTranslator("en");
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Heart, MoreHorizontal } from "lucide-react";
+import { Heart, MoreVertical } from "lucide-react";
 import { TranslatableText } from "@/components/ui/translatable-text";
 import { DisplayNameWithSupportTier } from "@/components/user/display-name-with-support-tier";
+import { CommentContextMenu } from "@/components/post/comment-context-menu";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { submitContentReport } from "@/actions/report";
-import { blockUserAction } from "@/actions/user-relationship";
+  blockCommentAuthorAction,
+  deleteCommentAction,
+  pinCommentAction,
+  quiteCommentAuthorAction,
+  reportCommentAction,
+  shareCommentAction,
+} from "@/lib/comment-context-actions";
 import type { SupportTierLevel } from "@prisma/client";
 import { cn, formatNumber } from "@/lib/utils";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -77,6 +77,8 @@ export function PostCommentRow({
   const [liked, setLiked] = useState(comment.likedByMe);
   const [likeCount, setLikeCount] = useState(comment.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
 
   useEffect(() => {
     setLiked(comment.likedByMe);
@@ -122,49 +124,45 @@ export function PostCommentRow({
     }
   }
 
-  async function pin(next: boolean) {
-    const res = await fetch(`/api/comments/${comment.id}/pin`, {
-      method: next ? "POST" : "DELETE",
-      credentials: "include",
+  function handlePin() {
+    void pinCommentAction(comment.id, !isPinned)
+      .then(() => onPinnedChange?.(comment.id, !isPinned))
+      .catch((err) => window.alert(err instanceof Error ? err.message : t("ui.failed")));
+  }
+
+  function handleShare() {
+    void shareCommentAction(postId, comment.id).catch(() => {
+      /* ignore share cancel */
     });
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    if (!res.ok) {
-      window.alert(body.error || t("ui.failed"));
-      return;
-    }
-    onPinnedChange?.(comment.id, next);
   }
 
-  async function copyLink() {
-    const url = `${window.location.origin}/post/${postId}#comment-${comment.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      /* ignore */
-    }
+  function handleQuite() {
+    void quiteCommentAuthorAction(comment.author.id, comment.author.username)
+      .then(() => window.alert(t("post.menu.mutedToast")))
+      .catch((err) => window.alert(err instanceof Error ? err.message : t("ui.failed")));
   }
 
-  async function report() {
-    const res = await submitContentReport({
-      targetType: "COMMENT",
-      targetId: comment.id,
-      reason: "SPAM",
-      reportedUserId: comment.author.id,
-      postId,
+  function handleReport() {
+    void reportCommentAction({
       commentId: comment.id,
-    });
-    window.alert(
-      res.error ?? t("ui.report_submitted")
-    );
+      authorId: comment.author.id,
+      postId,
+    })
+      .then(() => window.alert(t("ui.report_submitted")))
+      .catch((err) => window.alert(err instanceof Error ? err.message : t("ui.failed")));
   }
 
-  async function block() {
-    const res = await blockUserAction(comment.author.id, comment.author.username);
-    if (res.error) {
-      window.alert(res.error);
-      return;
-    }
-    window.alert(t("post.menu.blockDone"));
+  function handleBlock() {
+    void blockCommentAuthorAction(comment.author.id, comment.author.username)
+      .then(() => window.alert(t("post.menu.blockDone")))
+      .catch((err) => window.alert(err instanceof Error ? err.message : t("ui.failed")));
+  }
+
+  function handleDelete() {
+    if (!window.confirm(t("comments.deleteConfirm"))) return;
+    void deleteCommentAction(postId, comment.id).catch((err) =>
+      window.alert(err instanceof Error ? err.message : t("ui.failed"))
+    );
   }
 
   return (
@@ -206,39 +204,7 @@ export function PostCommentRow({
           </p>
         ) : null}
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        {viewerId ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label={t("ui.comment_menu")}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[10rem]">
-              {canPin && !isReply ? (
-                <DropdownMenuItem onClick={() => void pin(!isPinned)}>
-                  {isPinned ? t("comments.unpin") : t("comments.pin")}
-                </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuItem onClick={() => void copyLink()}>{t("toast.copyLink")}</DropdownMenuItem>
-              {!isMine ? (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => void report()}>
-                    {t("report.title")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void block()}>
-                    {t("live.studio.ban")}
-                  </DropdownMenuItem>
-                </>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
+      <div className="flex shrink-0 flex-col items-center gap-0.5">
         <button
           type="button"
           className={cn(
@@ -258,6 +224,32 @@ export function PostCommentRow({
           <Heart className={cn("h-4 w-4", liked && "fill-current")} />
           <span className="tabular-nums">{formatNumber(likeCount)}</span>
         </button>
+        {viewerId ? (
+          <>
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label={t("ui.comment_menu")}
+              onClick={(e) => {
+                setMenuAnchor(e.currentTarget.getBoundingClientRect());
+                setMenuOpen(true);
+              }}
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+            <CommentContextMenu
+              open={menuOpen}
+              onClose={() => setMenuOpen(false)}
+              anchor={menuAnchor}
+              handlePin={canPin && !isReply ? handlePin : undefined}
+              handleShare={handleShare}
+              handleQuite={isMine ? undefined : handleQuite}
+              handleReport={isMine ? undefined : handleReport}
+              handleBlock={isMine ? undefined : handleBlock}
+              handleDelete={isMine || canPin ? handleDelete : undefined}
+            />
+          </>
+        ) : null}
       </div>
     </div>
   );

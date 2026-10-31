@@ -23,7 +23,8 @@ import {
   toggleCommentLike,
   type CommentItem,
 } from "@/api/social";
-import { PostCommentOverflowMenu } from "@/features/feed/PostCommentOverflowMenu";
+import { CommentContextMenu } from "@/features/feed/CommentContextMenu";
+import { useCommentContextActions } from "@/features/feed/useCommentContextActions";
 import {
   CommentThreadExtras,
   type CommentReplyTarget,
@@ -35,6 +36,7 @@ import { subscribeGiphySearch } from "@/lib/giphy-search-events";
 import { uploadLocalFile } from "@/api/upload-file";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import {
   mapCommentBuckets,
   parseCommentBuckets,
@@ -101,6 +103,7 @@ export function PostDetailScreen() {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const postId = route.params.id;
   const focusCommentId = route.params.commentId;
+  const commentActions = useCommentContextActions(postId);
 
   const onPressVideo = useCallback(
     (id: string, mediaId?: string, mediaIndex?: number) => {
@@ -178,8 +181,6 @@ export function PostDetailScreen() {
       listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.2 });
     });
   }, [commentRows, focusCommentId]);
-  const canPinComments = !isQnaPost && !!user?.id && user.id === post?.author?.id;
-
   const commentMut = useMutation({
     mutationFn: (input: {
       content: string;
@@ -450,7 +451,14 @@ export function PostDetailScreen() {
                 !post.acceptedCommentId &&
                 !isOwn;
               return (
-                <View style={[styles.comment, item.id === focusCommentId && styles.commentFocus]}>
+                <Pressable
+                  style={[styles.comment, item.id === focusCommentId && styles.commentFocus]}
+                  delayLongPress={500}
+                  onLongPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setMenuComment(item);
+                  }}
+                >
                   {selected ? (
                     <Text style={styles.selectedBanner}>{t("qna.selected_banner")}</Text>
                   ) : null}
@@ -484,15 +492,6 @@ export function PostDetailScreen() {
                           disabled={!!acceptingId}
                         >
                           <Text style={styles.acceptBtnText}>{t("qna.accept")}</Text>
-                        </Pressable>
-                      ) : null}
-                      {user && (!isOwn || canPinComments) ? (
-                        <Pressable
-                          style={styles.iconBtn}
-                          onPress={() => setMenuComment(item)}
-                          accessibilityLabel={t("m.feed.comment_menu")}
-                        >
-                          <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
                         </Pressable>
                       ) : null}
                       <Pressable
@@ -535,10 +534,11 @@ export function PostDetailScreen() {
                       rootId={item.id}
                       expandNonce={expandNonceById[item.id]}
                       onReply={startReply}
+                      onLongPress={setMenuComment}
                       onOpenAuthor={(username) => openUserProfile({ username })}
                     />
                   ) : null}
-                </View>
+                </Pressable>
               );
             }}
           />
@@ -669,19 +669,16 @@ export function PostDetailScreen() {
           })
         }
       />
-      {menuComment ? (
-        <PostCommentOverflowMenu
-          visible={!!menuComment}
-          onClose={() => setMenuComment(null)}
-          postId={postId}
-          commentId={menuComment.id}
-          authorId={menuComment.author.id}
-          authorUsername={menuComment.author.username}
-          isOwnComment={user?.id === menuComment.author.id}
-          canPin={canPinComments}
-          isPinned={!!menuComment.isPinned}
-        />
-      ) : null}
+      <CommentContextMenu
+        visible={!!menuComment}
+        onClose={() => setMenuComment(null)}
+        handlePin={menuComment ? () => commentActions.handlePin(menuComment) : undefined}
+        handleShare={menuComment ? () => commentActions.handleShare(menuComment) : undefined}
+        handleQuite={menuComment ? () => commentActions.handleQuite(menuComment) : undefined}
+        handleReport={menuComment ? () => commentActions.handleReport(menuComment) : undefined}
+        handleBlock={menuComment ? () => commentActions.handleBlock(menuComment) : undefined}
+        handleDelete={menuComment ? () => commentActions.handleDelete(menuComment) : undefined}
+      />
     </Screen>
   );
 }

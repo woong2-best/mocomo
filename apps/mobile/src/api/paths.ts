@@ -44,6 +44,7 @@ export const MobileApi = {
   commentLike: (id: string) => `/api/mobile/comments/${id}/like`,
   commentPin: (id: string) => `/api/mobile/comments/${id}/pin`,
   commentReplies: (id: string) => `/api/mobile/comments/${id}/replies`,
+  comment: (id: string) => `/api/mobile/comments/${id}`,
   follow: "/api/mobile/follow",
   following: "/api/mobile/follow/following",
   followRequests: "/api/mobile/follow/requests",

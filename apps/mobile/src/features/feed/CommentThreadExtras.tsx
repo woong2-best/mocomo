@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { fetchCommentReplies, type CommentItem } from "@/api/social";
 import { CommentAvatar } from "@/features/feed/CommentAvatar";
 import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
@@ -19,6 +20,7 @@ type Props = {
   light?: boolean;
   expandNonce?: number;
   onReply: (target: CommentReplyTarget) => void;
+  onLongPress?: (comment: CommentItem) => void;
   onOpenAuthor?: (username: string) => void;
 };
 
@@ -32,6 +34,7 @@ export function CommentThreadExtras({
   light = false,
   expandNonce,
   onReply,
+  onLongPress,
   onOpenAuthor,
 }: Props) {
   const { t } = useI18n();
@@ -104,7 +107,20 @@ export function CommentThreadExtras({
             const nickname = replyName(reply, unknown);
             const timeLabel = formatCommentTimeAgo(reply.createdAt);
             return (
-              <View key={reply.id} style={styles.replyRow} nativeID={`comment-${reply.id}`}>
+              <Pressable
+                key={reply.id}
+                style={styles.replyRow}
+                nativeID={`comment-${reply.id}`}
+                delayLongPress={500}
+                onLongPress={
+                  onLongPress
+                    ? () => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        onLongPress(reply);
+                      }
+                    : undefined
+                }
+              >
                 <Pressable
                   onPress={() => onOpenAuthor?.(reply.author.username)}
                   disabled={!onOpenAuthor}
@@ -160,7 +176,7 @@ export function CommentThreadExtras({
                     </Text>
                   </Pressable>
                 </View>
-              </View>
+              </Pressable>
             );
           })
         : null}

@@ -24,6 +24,8 @@ import { type CommentReplyTarget } from "@/features/feed/CommentThreadExtras";
 import { CommentAvatar } from "@/features/feed/CommentAvatar";
 import { CommentMediaBlock } from "@/features/feed/CommentMediaBlock";
 import { ReelsCommentRow } from "@/features/reels/ReelsCommentRow";
+import { CommentContextMenu } from "@/features/feed/CommentContextMenu";
+import { useCommentContextActions } from "@/features/feed/useCommentContextActions";
 import { TenorGifSheet } from "@/features/feed/TenorGifSheet";
 import type { CommentGifMeta } from "@/lib/giphy-meta";
 import { subscribeGiphySearch } from "@/lib/giphy-search-events";
@@ -126,6 +128,8 @@ export function ReelsCommentsSheet({
   }, []);
   const [uploading, setUploading] = useState(false);
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
+  const [menuComment, setMenuComment] = useState<CommentItem | null>(null);
+  const actions = useCommentContextActions(commentsPostId);
   const insets = useSafeAreaInsets();
   const keyboardOverlap = useKeyboardBottomInset();
   const restingLayerRef = useRef(layerHeight);
@@ -289,6 +293,7 @@ export function ReelsCommentsSheet({
   );
 
   return (
+    <>
     <Animated.View
       pointerEvents={commentsPostId ? "auto" : "none"}
       style={[
@@ -342,6 +347,7 @@ export function ReelsCommentsSheet({
                   }}
                   onLike={(row) => void toggleLike(row)}
                   onPin={togglePin}
+                  onLongPress={setMenuComment}
                   onOpenAuthor={(username) => openUserProfile({ username })}
                 />
               )}
@@ -489,6 +495,17 @@ export function ReelsCommentsSheet({
         }}
       />
     </Animated.View>
+    <CommentContextMenu
+      visible={!!menuComment}
+      onClose={() => setMenuComment(null)}
+      handlePin={menuComment ? () => actions.handlePin(menuComment) : undefined}
+      handleShare={menuComment ? () => actions.handleShare(menuComment) : undefined}
+      handleQuite={menuComment ? () => actions.handleQuite(menuComment) : undefined}
+      handleReport={menuComment ? () => actions.handleReport(menuComment) : undefined}
+      handleBlock={menuComment ? () => actions.handleBlock(menuComment) : undefined}
+      handleDelete={menuComment ? () => actions.handleDelete(menuComment) : undefined}
+    />
+    </>
   );
 }
 

@@ -19,7 +19,7 @@ import {
   ArrowDownWideNarrow,
   Heart,
   Loader2,
-  MoreHorizontal,
+  MoreVertical,
   Pin,
   X,
 } from "lucide-react";
@@ -27,13 +27,15 @@ import { CommentForm } from "@/components/post/comment-form";
 import { CommentMediaThumb } from "@/components/post/comment-media-view";
 import { CommentCircleAvatar, commentDisplayName } from "@/components/post/comment-circle-avatar";
 import { LinkifiedText } from "@/components/ui/linkified-text";
+import { CommentContextMenu } from "@/components/post/comment-context-menu";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  blockCommentAuthorAction,
+  deleteCommentAction,
+  pinCommentAction,
+  quiteCommentAuthorAction,
+  reportCommentAction,
+  shareCommentAction,
+} from "@/lib/comment-context-actions";
 import {
   COMMENT_ADDED_EVENT,
   COMMENT_CONFIRMED_EVENT,
@@ -44,9 +46,6 @@ import {
 } from "@/lib/comment-optimistic-sync";
 import { needsTranslation } from "@/lib/text-language";
 import { useLocale } from "@/components/providers/locale-provider";
-import { submitContentReport } from "@/actions/report";
-import { blockUserAction } from "@/actions/user-relationship";
-import { suspendUserTemporary } from "@/actions/admin";
 import type { SerializedComment, SerializedReply } from "@/lib/comment-service";
 import {
   getPrefetchedComments,
@@ -133,7 +132,7 @@ function CommentMenu({
   viewerId,
   isPostOwner,
   isAdmin,
-  onEdit,
+  onEdit: _onEdit,
   onDeleted,
   onPinnedChange,
 }: {
@@ -151,152 +150,85 @@ function CommentMenu({
   const canPin = !isReply && (isPostOwner || isAdmin);
   const canDelete = isMine || isPostOwner || isAdmin;
   const isPinned = "isPinned" in comment && comment.isPinned;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
 
-  async function copyLink() {
-    const url = `${window.location.origin}/post/${postId}#comment-${comment.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      /* ignore */
-    }
+  function handlePin() {
+    void pinCommentAction(comment.id, !isPinned)
+      .then(() => onPinnedChange(!isPinned))
+      .catch((err) =>
+        window.alert(err instanceof Error ? err.message : i18n("reels.symiql8"))
+      );
   }
 
-  async function pin(next: boolean) {
-    const res = await fetch(`/api/comments/${comment.id}/pin`, {
-      method: next ? "POST" : "DELETE",
-      credentials: "include",
+  function handleShare() {
+    void shareCommentAction(postId, comment.id).catch(() => {
+      /* ignore share cancel */
     });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      window.alert(typeof body.error === "string" ? body.error : i18n("reels.symiql8"));
-      return;
-    }
-    onPinnedChange(next);
   }
 
-  async function remove() {
-    if (!window.confirm(i18n("reels.s187gtiz"))) return;
-    const hard = isAdmin && !isMine ? "?hard=1" : "";
-    const res = await fetch(`/api/comments/${comment.id}${hard}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      window.alert(typeof body.error === "string" ? body.error : i18n("reels.sqez72a"));
-      return;
-    }
-    onDeleted();
+  function handleQuite() {
+    void quiteCommentAuthorAction(comment.author.id, comment.author.username)
+      .then(() => window.alert(i18n("post.menu.mutedToast")))
+      .catch((err) =>
+        window.alert(err instanceof Error ? err.message : i18n("reels.symiql8"))
+      );
   }
 
-  async function hide() {
-    if (!window.confirm(i18n("reels.s1tnovle"))) return;
-    const res = await fetch(`/api/comments/${comment.id}/hide`, {
-      method: "POST",
-      credentials: "include",
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      window.alert(typeof body.error === "string" ? body.error : i18n("reels.s2utjt5"));
-      return;
-    }
-    onDeleted();
-  }
-
-  async function report() {
-    const res = await submitContentReport({
-      targetType: "COMMENT",
-      targetId: comment.id,
-      reason: "SPAM",
-      reportedUserId: comment.author.id,
-      postId,
+  function handleReport() {
+    void reportCommentAction({
       commentId: comment.id,
-    });
-    window.alert(res.error ?? i18n("reels.s1xj77n8"));
+      authorId: comment.author.id,
+      postId,
+    })
+      .then(() => window.alert(i18n("reels.s1xj77n8")))
+      .catch((err) =>
+        window.alert(err instanceof Error ? err.message : i18n("reels.symiql8"))
+      );
   }
 
-  async function block() {
-    const res = await blockUserAction(comment.author.id, comment.author.username);
-    window.alert(res.error ?? i18n("post.menu.blockDone"));
+  function handleBlock() {
+    void blockCommentAuthorAction(comment.author.id, comment.author.username)
+      .then(() => window.alert(i18n("post.menu.blockDone")))
+      .catch((err) =>
+        window.alert(err instanceof Error ? err.message : i18n("post.menu.blockDone"))
+      );
   }
 
-  async function sanction() {
-    if (!window.confirm(`Restrict @${comment.author.username} for 7 days?`)) return;
-    const until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await suspendUserTemporary(
-      comment.author.id,
-      i18n("reels.sljf4an"),
-      until
-    );
-    window.alert(i18n("reels.svy3aii"));
+  function handleDelete() {
+    if (!window.confirm(i18n("reels.s187gtiz"))) return;
+    void deleteCommentAction(postId, comment.id)
+      .then(() => onDeleted())
+      .catch((err) =>
+        window.alert(err instanceof Error ? err.message : i18n("reels.sqez72a"))
+      );
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-white/35 hover:bg-white/10 hover:text-white/70"
-          aria-label={i18n("reels.sbu7hhv")}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="min-w-[10rem] border-white/10 bg-neutral-900 text-white"
+    <>
+      <button
+        type="button"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full text-white/35 hover:bg-white/10 hover:text-white/70"
+        aria-label={i18n("reels.sbu7hhv")}
+        onClick={(e) => {
+          setMenuAnchor(e.currentTarget.getBoundingClientRect());
+          setMenuOpen(true);
+        }}
       >
-        {canPin && (
-          <DropdownMenuItem
-            className="focus:bg-white/10"
-            onClick={() => void pin(!isPinned)}
-          >
-            {isPinned ? i18n("reels.s1pxa7lf") : i18n("reels.sui45")}
-          </DropdownMenuItem>
-        )}
-        {isMine && (
-          <DropdownMenuItem className="focus:bg-white/10" onClick={onEdit}>
-            Edit
-          </DropdownMenuItem>
-        )}
-        {canDelete && (
-          <DropdownMenuItem
-            className="text-red-300 focus:bg-white/10 focus:text-red-200"
-            onClick={() => void remove()}
-          >
-            Delete
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem className="focus:bg-white/10" onClick={() => void copyLink()}>
-          Copy link
-        </DropdownMenuItem>
-        {!isMine && (
-          <>
-            <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem className="focus:bg-white/10" onClick={() => void report()}>
-              Report
-            </DropdownMenuItem>
-            <DropdownMenuItem className="focus:bg-white/10" onClick={() => void block()}>
-              Block
-            </DropdownMenuItem>
-          </>
-        )}
-        {isAdmin && !isMine && (
-          <>
-            <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem className="focus:bg-white/10" onClick={() => void hide()}>
-              Hide
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-red-300 focus:bg-white/10 focus:text-red-200"
-              onClick={() => void sanction()}
-            >
-              Restrict account
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      <CommentContextMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        anchor={menuAnchor}
+        handlePin={canPin ? handlePin : undefined}
+        handleShare={handleShare}
+        handleQuite={isMine ? undefined : handleQuite}
+        handleReport={isMine ? undefined : handleReport}
+        handleBlock={isMine ? undefined : handleBlock}
+        handleDelete={canDelete ? handleDelete : undefined}
+      />
+    </>
   );
 }
 
@@ -573,7 +505,27 @@ function CommentRow({
             />
           </div>
 
-          <div className="ml-1 flex shrink-0 flex-col items-center gap-1 pt-0.5">
+          <div className="ml-1 flex shrink-0 flex-col items-center gap-0.5 pt-0.5">
+            <button
+              type="button"
+              className="p-1 text-white/40 transition-transform active:scale-90 hover:text-white"
+              aria-label={liked ? i18n("reels.su52o21") : i18n("lib.notifications.s224a288614")}
+              aria-pressed={liked}
+              disabled={!viewerId || likeBusy}
+              onClick={() => void toggleLike()}
+            >
+              <Heart
+                className={cn(
+                  "h-3.5 w-3.5 transition-colors",
+                  liked && "fill-[#FF4D6D] text-[#FF4D6D]"
+                )}
+              />
+            </button>
+            {likeCount > 0 ? (
+              <span className={cn("text-[11px] font-semibold tabular-nums", liked ? "text-[#FF4D6D]" : "text-white/40")}>
+                {formatNumber(likeCount)}
+              </span>
+            ) : null}
             {viewerId ? (
               <CommentMenu
                 comment={comment}
@@ -594,26 +546,6 @@ function CommentRow({
                   })
                 }
               />
-            ) : null}
-            <button
-              type="button"
-              className="p-1 text-white/40 transition-transform active:scale-90 hover:text-white"
-              aria-label={liked ? i18n("reels.su52o21") : i18n("lib.notifications.s224a288614")}
-              aria-pressed={liked}
-              disabled={!viewerId || likeBusy}
-              onClick={() => void toggleLike()}
-            >
-              <Heart
-                className={cn(
-                  "h-3.5 w-3.5 transition-colors",
-                  liked && "fill-[#FF4D6D] text-[#FF4D6D]"
-                )}
-              />
-            </button>
-            {likeCount > 0 ? (
-              <span className={cn("text-[11px] font-semibold tabular-nums", liked ? "text-[#FF4D6D]" : "text-white/40")}>
-                {formatNumber(likeCount)}
-              </span>
             ) : null}
           </div>
         </div>

@@ -103,6 +103,26 @@ export function withOptimisticComment(
   };
 }
 
+export function removeCommentFromBuckets(
+  data: PostCommentsResponse | undefined,
+  commentId: string
+): PostCommentsResponse {
+  const buckets = parseCommentBuckets(data);
+  const drop = (list: CommentItem[]) => list.filter((c) => c.id !== commentId);
+  const removed =
+    buckets.pinned.some((c) => c.id === commentId) ||
+    buckets.top.some((c) => c.id === commentId) ||
+    buckets.recent.some((c) => c.id === commentId);
+  return {
+    ...(data ?? {}),
+    pinned: drop(buckets.pinned),
+    top: drop(buckets.top),
+    comments: drop(buckets.recent),
+    items: undefined,
+    total: Math.max(0, (data?.total ?? 0) - (removed ? 1 : 0)),
+  };
+}
+
 export function moveCommentPin(
   old: PostCommentsResponse | undefined,
   commentId: string,

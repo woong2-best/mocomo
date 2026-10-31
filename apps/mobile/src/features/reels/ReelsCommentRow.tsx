@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import type { CommentItem } from "@/api/social";
 import { CommentAvatar } from "@/features/feed/CommentAvatar";
@@ -20,6 +21,7 @@ export type ReelsCommentRowProps = {
   onReply: (target: CommentReplyTarget) => void;
   onLike?: (comment: CommentItem) => void;
   onPin?: (comment: CommentItem) => void;
+  onLongPress?: (comment: CommentItem) => void;
   onOpenAuthor?: (username: string) => void;
 };
 
@@ -36,6 +38,7 @@ export function ReelsCommentRow({
   onReply,
   onLike,
   onPin,
+  onLongPress,
   onOpenAuthor,
 }: ReelsCommentRowProps) {
   const { t } = useI18n();
@@ -44,8 +47,18 @@ export function ReelsCommentRow({
   const likeCount = comment.likeCount ?? 0;
   const timeLabel = formatCommentTimeAgo(comment.createdAt);
 
+  function openMenu() {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onLongPress?.(comment);
+  }
+
   return (
     <View style={styles.row} nativeID={`comment-${comment.id}`}>
+      <Pressable
+        style={styles.pressBody}
+        delayLongPress={500}
+        onLongPress={onLongPress ? openMenu : undefined}
+      >
       <Pressable
         onPress={() => onOpenAuthor?.(comment.author.username)}
         disabled={!onOpenAuthor}
@@ -86,9 +99,11 @@ export function ReelsCommentRow({
           light
           expandNonce={expandNonce}
           onReply={onReply}
+          onLongPress={onLongPress}
           onOpenAuthor={onOpenAuthor}
         />
       </View>
+      </Pressable>
 
       <View style={styles.trailing}>
         {canLike && onLike ? (
@@ -132,6 +147,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingVertical: 12,
     width: "100%",
+  },
+  pressBody: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    minWidth: 0,
   },
   content: {
     flex: 1,

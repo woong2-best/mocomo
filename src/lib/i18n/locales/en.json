@@ -666,6 +666,8 @@
   "comments.recent": "Latest",
   "comments.pin": "Pin comment",
   "comments.unpin": "Unpin",
+  "comments.deleteConfirm": "Delete this comment?",
+  "comments.deleteFailed": "Couldn't delete this comment.",
   "comments.more": "View more comments",
   "comments.sortRanked": "Top comments",
   "comments.attachPhoto": "Add a photo",

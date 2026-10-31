@@ -116,6 +116,12 @@ export async function pinPostComment(commentId: string, pinned: boolean) {
   });
 }
 
+export async function deletePostComment(commentId: string) {
+  return apiRequest<{ ok: boolean }>(MobileApi.comment(commentId), {
+    method: "DELETE",
+  });
+}
+
 export async function acceptQnaAnswer(postId: string, commentId: string) {
   return apiRequest<{ ok: boolean }>(MobileApi.postAcceptAnswer(postId), {
     method: "POST",
