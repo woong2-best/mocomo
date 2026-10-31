@@ -55,8 +55,8 @@ export function mapPinSymbolLayout(selected = false) {
 
 export async function addMapPinImages(map: {
   hasImage: (id: string) => boolean;
-  loadImage: (url: string) => Promise<{ data: unknown }>;
-  addImage: (id: string, image: unknown) => unknown;
+  loadImage: (url: string) => Promise<{ data: HTMLImageElement | ImageBitmap }>;
+  addImage: (id: string, image: HTMLImageElement | ImageBitmap) => unknown;
 }) {
   for (const kind of Object.keys(MAP_PIN_IMAGE_IDS) as MapPinKind[]) {
     const id = MAP_PIN_IMAGE_IDS[kind];
