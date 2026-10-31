@@ -251,8 +251,6 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
 }
 
 function reelEqual(a: Props, b: Props) {
-  const { colors } = useTheme();
-
   return (
     a.item.id === b.item.id &&
     a.active === b.active &&
