@@ -61,6 +61,10 @@ export function eventsUi(t: TFn) {
     cancel: t("m.common.cancel"),
     selectedCoords: (lat: number, lng: number) =>
       t("m.events.selected_lat_lng", { lat: String(lat.toFixed(5)), lng: String(lng.toFixed(5)) }),
+    recCoordsHint: t("m.events.map_tap_or_type_coords"),
+    latPh: t("m.events.latitude_lat"),
+    lngPh: t("m.events.longitude_lng"),
+    invalidCoords: t("m.events.enter_valid_coordinates"),
     placeNamePh: t("m.events.place_name"),
     memoPh: t("m.events.short_note_optional"),
     placeNameRequired: t("m.events.enter_a_place_name"),

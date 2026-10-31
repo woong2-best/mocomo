@@ -6,7 +6,7 @@ const i18n = createTranslator("en");
 
 import { errorText } from "@/lib/i18n/error-text";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,16 +49,24 @@ function filterMapPinsByTab(pins: MapEventPin[], tab: EventMapPanelTab): MapEven
   return pins.filter((p) => p.category !== "user_recommendation");
 }
 
+function formatCoordInput(n: number) {
+  return n.toFixed(5);
+}
+
+function parseCoordInput(raw: string): number | null {
+  const n = Number.parseFloat(raw.trim().replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
 function EventsMapSidePanel({
   activeTab,
   onTabChange,
   pins,
   panelOpen,
   onTogglePanel,
-  addMode,
-  onAddModeChange,
-  pendingCoords,
-  onPendingCoordsClear,
+  defaultPickCoords,
+  pickedCoords,
+  onPickedCoordsChange,
   onRecommendationCreated,
   showToggle = true,
 }: {
@@ -67,10 +75,9 @@ function EventsMapSidePanel({
   pins: MapEventPin[];
   panelOpen: boolean;
   onTogglePanel: () => void;
-  addMode: boolean;
-  onAddModeChange: (next: boolean) => void;
-  pendingCoords: { lat: number; lng: number } | null;
-  onPendingCoordsClear: () => void;
+  defaultPickCoords: { lat: number; lng: number };
+  pickedCoords: { lat: number; lng: number } | null;
+  onPickedCoordsChange: (coords: { lat: number; lng: number } | null) => void;
   onRecommendationCreated: (pin: MapEventPin) => void;
   showToggle?: boolean;
 }) {
@@ -78,19 +85,48 @@ function EventsMapSidePanel({
   const tabPins = useMemo(() => filterListPinsByTab(pins, activeTab), [pins, activeTab]);
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
+  const [latInput, setLatInput] = useState("");
+  const [lngInput, setLngInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
+  const resetRecommendationForm = useCallback(() => {
+    setTitle("");
+    setNote("");
+    setFormError("");
+    onPickedCoordsChange(null);
+    setLatInput(formatCoordInput(defaultPickCoords.lat));
+    setLngInput(formatCoordInput(defaultPickCoords.lng));
+  }, [defaultPickCoords.lat, defaultPickCoords.lng, onPickedCoordsChange]);
+
   useEffect(() => {
-    if (!pendingCoords) {
-      setTitle("");
-      setNote("");
-      setFormError("");
+    if (activeTab !== "recommendation") return;
+    if (pickedCoords) {
+      setLatInput(formatCoordInput(pickedCoords.lat));
+      setLngInput(formatCoordInput(pickedCoords.lng));
+      return;
     }
-  }, [pendingCoords]);
+    if (!latInput && !lngInput) {
+      setLatInput(formatCoordInput(defaultPickCoords.lat));
+      setLngInput(formatCoordInput(defaultPickCoords.lng));
+    }
+  }, [
+    activeTab,
+    pickedCoords,
+    defaultPickCoords.lat,
+    defaultPickCoords.lng,
+    latInput,
+    lngInput,
+  ]);
 
   const handleSubmitRecommendation = async () => {
-    if (!pendingCoords || !title.trim()) {
+    const lat = parseCoordInput(latInput);
+    const lng = parseCoordInput(lngInput);
+    if (lat == null || lng == null || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      setFormError("올바른 위도·경도를 입력하세요.");
+      return;
+    }
+    if (!title.trim()) {
       setFormError(i18n("events.s1s1bl0n"));
       return;
     }
@@ -107,8 +143,8 @@ function EventsMapSidePanel({
         body: JSON.stringify({
           title: title.trim(),
           description: note.trim() || undefined,
-          lat: pendingCoords.lat,
-          lng: pendingCoords.lng,
+          lat,
+          lng,
         }),
       });
       const body = (await res.json()) as { pin?: MapEventPin; error?: string };
@@ -117,10 +153,7 @@ function EventsMapSidePanel({
         return;
       }
       onRecommendationCreated(body.pin);
-      onPendingCoordsClear();
-      onAddModeChange(false);
-      setTitle("");
-      setNote("");
+      resetRecommendationForm();
     } catch {
       setFormError(i18n("events.sog10vg"));
     } finally {
@@ -145,8 +178,7 @@ function EventsMapSidePanel({
               onClick={() => {
                 onTabChange(tab.id);
                 if (tab.id !== "recommendation") {
-                  onAddModeChange(false);
-                  onPendingCoordsClear();
+                  onPickedCoordsChange(null);
                 }
               }}
               className={cn(
@@ -170,39 +202,36 @@ function EventsMapSidePanel({
               variant="secondary"
               className="h-7 rounded-lg bg-emerald-600/90 text-white hover:bg-emerald-600 border-0 px-2.5"
               onClick={() => {
-                if (addMode) {
-                  onAddModeChange(false);
-                  onPendingCoordsClear();
-                  return;
-                }
-                if (!session?.user) {
-                  setFormError(i18n("events.s14jarhq"));
-                  return;
-                }
-                onAddModeChange(true);
+                resetRecommendationForm();
+                onTabChange("venue");
               }}
             >
-              {addMode ? (
-                <>
-                  <X className="h-3.5 w-3.5 mr-1" />
-                  취소
-                </>
-              ) : (
-                <>
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  추가
-                </>
-              )}
+              <X className="h-3.5 w-3.5 mr-1" />
+              취소
             </Button>
           </div>
         )}
       </div>
 
-      {pendingCoords && activeTab === "recommendation" && (
+      {activeTab === "recommendation" && (
         <div className="shrink-0 border-b border-white/10 px-3 py-3 space-y-2 bg-emerald-950/40">
-          <p className="text-[11px] text-emerald-200/90">
-            선택 좌표 · {pendingCoords.lat.toFixed(5)}, {pendingCoords.lng.toFixed(5)}
-          </p>
+          <p className="text-[10px] text-emerald-200/80">지도를 탭하면 좌표가 채워집니다 · 직접 입력도 가능</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              value={latInput}
+              onChange={(e) => setLatInput(e.target.value)}
+              placeholder="위도 (lat)"
+              inputMode="decimal"
+              className="h-9 rounded-lg bg-black/30 border-white/15 text-white placeholder:text-white/40"
+            />
+            <Input
+              value={lngInput}
+              onChange={(e) => setLngInput(e.target.value)}
+              placeholder="경도 (lng)"
+              inputMode="decimal"
+              className="h-9 rounded-lg bg-black/30 border-white/15 text-white placeholder:text-white/40"
+            />
+          </div>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -233,7 +262,7 @@ function EventsMapSidePanel({
               size="sm"
               variant="ghost"
               className="h-8 rounded-lg text-white/80 hover:text-white hover:bg-white/10"
-              onClick={onPendingCoordsClear}
+              onClick={resetRecommendationForm}
             >
               취소
             </Button>
@@ -241,29 +270,16 @@ function EventsMapSidePanel({
         </div>
       )}
 
-      {!pendingCoords && formError && activeTab === "recommendation" && (
-        <p className="shrink-0 px-3 py-2 text-[11px] text-red-300 border-b border-white/10">
-          {formError}
-        </p>
-      )}
-
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-3 space-y-3 subculture-sidebar-scroll">
-        {addMode && !pendingCoords && activeTab === "recommendation" && (
-          <p className="text-xs text-emerald-200/80 text-center py-2">
-            지도에서 원하는 위치를 클릭하세요
-          </p>
-        )}
-        {tabPins.length === 0 ? (
+        {tabPins.length === 0 && activeTab !== "recommendation" ? (
           <Card className="rounded-xl bg-white/5 border-white/10 text-white">
             <CardContent className="p-6 text-center text-white/70 text-sm">
-              {activeTab === "recommendation"
-                ? i18n("events.s198jf6v")
-                : activeTab === "maid_cafe"
-                  ? i18n("events.szflaob")
-                  : i18n("events.s1psw04w")}
+              {activeTab === "maid_cafe"
+                ? i18n("events.szflaob")
+                : i18n("events.s1psw04w")}
             </CardContent>
           </Card>
-        ) : (
+        ) : tabPins.length === 0 ? null : (
           tabPins.map((p) => (
             <SubcultureEventPinCard key={p.id} pin={p} variant="sidebar" />
           ))
@@ -310,8 +326,7 @@ export function EventsMapView({
   const [mapZoom, setMapZoom] = useState(1.55);
   const [panelOpen, setPanelOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<EventMapPanelTab>("venue");
-  const [addMode, setAddMode] = useState(false);
-  const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(
+  const [pickedCoords, setPickedCoords] = useState<{ lat: number; lng: number } | null>(
     null
   );
   const [userRecommendations, setUserRecommendations] = useState<MapEventPin[]>([]);
@@ -354,12 +369,17 @@ export function EventsMapView({
     [allPins, activeTab]
   );
 
+  const defaultPickCoords = useMemo(
+    () => ({ lat: globeInitialView.lat, lng: globeInitialView.lng }),
+    [globeInitialView.lat, globeInitialView.lng]
+  );
+
   const handleMapClick = useCallback(
     (coords: { lat: number; lng: number }) => {
-      if (!addMode || activeTab !== "recommendation") return;
-      setPendingCoords(coords);
+      if (activeTab !== "recommendation") return;
+      setPickedCoords(coords);
     },
-    [addMode, activeTab]
+    [activeTab]
   );
 
   const handleRecommendationCreated = useCallback((pin: MapEventPin) => {
@@ -379,8 +399,8 @@ export function EventsMapView({
           defaultView={globeInitialView}
           respectDefaultView
           onZoomChange={handleZoomChange}
-          onMapClick={addMode ? handleMapClick : undefined}
-          pinDropMode={addMode && activeTab === "recommendation"}
+          onMapClick={activeTab === "recommendation" ? handleMapClick : undefined}
+          pinDropMode={activeTab === "recommendation"}
         />
       </div>
 
@@ -409,10 +429,9 @@ export function EventsMapView({
           pins={allPins}
           panelOpen={panelOpen}
           onTogglePanel={() => setPanelOpen((v) => !v)}
-          addMode={addMode}
-          onAddModeChange={setAddMode}
-          pendingCoords={pendingCoords}
-          onPendingCoordsClear={() => setPendingCoords(null)}
+          defaultPickCoords={defaultPickCoords}
+          pickedCoords={pickedCoords}
+          onPickedCoordsChange={setPickedCoords}
           onRecommendationCreated={handleRecommendationCreated}
         />
       </div>
@@ -424,10 +443,9 @@ export function EventsMapView({
           pins={allPins}
           panelOpen
           onTogglePanel={() => {}}
-          addMode={addMode}
-          onAddModeChange={setAddMode}
-          pendingCoords={pendingCoords}
-          onPendingCoordsClear={() => setPendingCoords(null)}
+          defaultPickCoords={defaultPickCoords}
+          pickedCoords={pickedCoords}
+          onPickedCoordsChange={setPickedCoords}
           onRecommendationCreated={handleRecommendationCreated}
           showToggle={false}
         />

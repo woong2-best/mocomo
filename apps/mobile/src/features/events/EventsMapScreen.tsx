@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -22,7 +22,7 @@ import {
   type MapEventPin,
 } from "@/api/events";
 import { eventPinColor } from "@/features/events/event-map-colors";
-import { EventsNativeMap } from "@/features/events/EventsNativeMap";
+import { EventsNativeMap, viewForEventPins } from "@/features/events/EventsNativeMap";
 import {
   ESRI_ATTRIBUTION,
   ESRI_ATTRIBUTION_URL,
@@ -86,6 +86,15 @@ function sortPinsByUserCountryThenDate(pins: MapEventPin[], userCountryCode: str
     if (aLocal !== bLocal) return aLocal - bLocal;
     return dateMs(a) - dateMs(b);
   });
+}
+
+function formatCoordInput(n: number) {
+  return n.toFixed(5);
+}
+
+function parseCoordInput(raw: string): number | null {
+  const n = Number.parseFloat(raw.trim().replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
 }
 
 function countryCode(country: string) {
@@ -408,10 +417,11 @@ export function EventsMapScreen() {
   const [tab, setTab] = useState<PanelTab>("venue");
   const [selected, setSelected] = useState<MapEventPin | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [addMode, setAddMode] = useState(false);
-  const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [pickedCoords, setPickedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [recTitle, setRecTitle] = useState("");
   const [recNote, setRecNote] = useState("");
+  const [latInput, setLatInput] = useState("");
+  const [lngInput, setLngInput] = useState("");
   const [formError, setFormError] = useState("");
   const userCountry = (user?.countryCode ?? "KR").toUpperCase();
 
@@ -420,15 +430,23 @@ export function EventsMapScreen() {
     queryFn: () => fetchEventsMap({ global: true }),
   });
 
+  const pins = query.data?.pins ?? [];
+  const pickMode = tab === "recommendation";
+  const defaultPickCoords = useMemo(
+    () => viewForEventPins(pins, true, userCountry),
+    [pins, userCountry]
+  );
+
   const createRec = useMutation({
     mutationFn: createEventMapRecommendation,
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["mobile-events-map", true] });
       setSelected(data.pin);
-      setPendingCoords(null);
+      setPickedCoords(null);
       setRecTitle("");
       setRecNote("");
-      setAddMode(false);
+      setLatInput(formatCoordInput(defaultPickCoords.lat));
+      setLngInput(formatCoordInput(defaultPickCoords.lng));
       setFormError("");
     },
     onError: (err: Error) => {
@@ -436,8 +454,28 @@ export function EventsMapScreen() {
     },
   });
 
-  const pins = query.data?.pins ?? [];
-  const pickMode = addMode && tab === "recommendation";
+  const resetRecommendationForm = () => {
+    setRecTitle("");
+    setRecNote("");
+    setFormError("");
+    setPickedCoords(null);
+    setLatInput(formatCoordInput(defaultPickCoords.lat));
+    setLngInput(formatCoordInput(defaultPickCoords.lng));
+  };
+
+  useEffect(() => {
+    if (tab !== "recommendation") return;
+    if (pickedCoords) {
+      setLatInput(formatCoordInput(pickedCoords.lat));
+      setLngInput(formatCoordInput(pickedCoords.lng));
+      return;
+    }
+    if (!latInput && !lngInput) {
+      setLatInput(formatCoordInput(defaultPickCoords.lat));
+      setLngInput(formatCoordInput(defaultPickCoords.lng));
+    }
+  }, [tab, pickedCoords, defaultPickCoords.lat, defaultPickCoords.lng, latInput, lngInput]);
+
   const listPins = useMemo(
     () => sortPinsByUserCountryThenDate(filterListPins(pins, tab), userCountry),
     [pins, tab, userCountry]
@@ -491,14 +529,14 @@ export function EventsMapScreen() {
               pickMode={pickMode}
               onMapPick={(coords) => {
                 if (!pickMode) return;
-                setPendingCoords(coords);
+                setPickedCoords(coords);
                 setFormError("");
               }}
               onSelectPin={(pin) => {
                 setSelected(pin);
               }}
             />
-            {pickMode && !pendingCoords ? (
+            {pickMode ? (
               <View style={styles.pickHint} pointerEvents="none">
                 <Text style={styles.pickHintText}>{copy.pickOnMap}</Text>
               </View>
@@ -534,8 +572,7 @@ export function EventsMapScreen() {
                         setTab(t.id);
                         setSelected(null);
                         if (t.id !== "recommendation") {
-                          setAddMode(false);
-                          setPendingCoords(null);
+                          setPickedCoords(null);
                           setFormError("");
                         }
                         if (t.id === "recommendation") {
@@ -555,39 +592,39 @@ export function EventsMapScreen() {
                 <View style={styles.recToolbar}>
                   <Text style={styles.recHint}>{copy.recHint}</Text>
                   <Pressable
-                    style={[styles.recAddBtn, addMode && styles.recAddBtnActive]}
+                    style={[styles.recAddBtn, styles.recAddBtnActive]}
                     onPress={() => {
-                      if (addMode) {
-                        setAddMode(false);
-                        setPendingCoords(null);
-                        setFormError("");
-                        return;
-                      }
-                      if (!user?.id) {
-                        setFormError(copy.loginToRec);
-                        return;
-                      }
-                      setFormError("");
-                      setAddMode(true);
+                      resetRecommendationForm();
+                      setTab("venue");
                     }}
                   >
-                    <Ionicons
-                      name={addMode ? "close" : "add"}
-                      size={14}
-                      color={addMode ? "#0B1020" : "#ECFDF5"}
-                    />
-                    <Text style={[styles.recAddText, addMode && styles.recAddTextActive]}>
-                      {addMode ? copy.cancel : copy.add}
-                    </Text>
+                    <Ionicons name="close" size={14} color="#0B1020" />
+                    <Text style={[styles.recAddText, styles.recAddTextActive]}>{copy.cancel}</Text>
                   </Pressable>
                 </View>
               ) : null}
 
-              {pendingCoords && tab === "recommendation" ? (
+              {tab === "recommendation" ? (
                 <View style={styles.recForm}>
-                  <Text style={styles.recCoords}>
-                    {copy.selectedCoords(pendingCoords.lat, pendingCoords.lng)}
-                  </Text>
+                  <Text style={styles.recCoords}>{copy.recCoordsHint}</Text>
+                  <View style={styles.recCoordRow}>
+                    <TextInput
+                      value={latInput}
+                      onChangeText={setLatInput}
+                      placeholder={copy.latPh}
+                      placeholderTextColor="rgba(255,255,255,0.35)"
+                      keyboardType="decimal-pad"
+                      style={[styles.recInput, styles.recCoordInput]}
+                    />
+                    <TextInput
+                      value={lngInput}
+                      onChangeText={setLngInput}
+                      placeholder={copy.lngPh}
+                      placeholderTextColor="rgba(255,255,255,0.35)"
+                      keyboardType="decimal-pad"
+                      style={[styles.recInput, styles.recCoordInput]}
+                    />
+                  </View>
                   <TextInput
                     value={recTitle}
                     onChangeText={setRecTitle}
@@ -613,16 +650,33 @@ export function EventsMapScreen() {
                       ]}
                       disabled={createRec.isPending}
                       onPress={() => {
-                        if (!pendingCoords || !recTitle.trim()) {
+                        const lat = parseCoordInput(latInput);
+                        const lng = parseCoordInput(lngInput);
+                        if (
+                          lat == null ||
+                          lng == null ||
+                          lat < -90 ||
+                          lat > 90 ||
+                          lng < -180 ||
+                          lng > 180
+                        ) {
+                          setFormError(copy.invalidCoords);
+                          return;
+                        }
+                        if (!recTitle.trim()) {
                           setFormError(copy.placeNameRequired);
+                          return;
+                        }
+                        if (!user?.id) {
+                          setFormError(copy.loginToRec);
                           return;
                         }
                         setFormError("");
                         createRec.mutate({
                           title: recTitle.trim(),
                           description: recNote.trim() || undefined,
-                          lat: pendingCoords.lat,
-                          lng: pendingCoords.lng,
+                          lat,
+                          lng,
                         });
                       }}
                     >
@@ -630,22 +684,11 @@ export function EventsMapScreen() {
                         {createRec.isPending ? copy.saving : copy.register}
                       </Text>
                     </Pressable>
-                    <Pressable
-                      style={styles.recCancel}
-                      onPress={() => {
-                        setPendingCoords(null);
-                        setRecTitle("");
-                        setRecNote("");
-                      }}
-                    >
+                    <Pressable style={styles.recCancel} onPress={resetRecommendationForm}>
                       <Text style={styles.recCancelText}>{copy.cancel}</Text>
                     </Pressable>
                   </View>
                 </View>
-              ) : null}
-
-              {!pendingCoords && formError && tab === "recommendation" ? (
-                <Text style={styles.recFormErrorBanner}>{formError}</Text>
               ) : null}
 
               <FlatList
@@ -657,9 +700,9 @@ export function EventsMapScreen() {
                 }
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
-                  <Text style={styles.emptyList}>
-                    {tab === "recommendation" ? copy.emptyRec : copy.emptyTab}
-                  </Text>
+                  tab === "recommendation" ? null : (
+                    <Text style={styles.emptyList}>{copy.emptyTab}</Text>
+                  )
                 }
                 renderItem={({ item }) => (
                   <EventPinCard
@@ -769,6 +812,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   recCoords: { color: "rgba(167,243,208,0.9)", fontSize: 11, fontWeight: "600" },
+  recCoordRow: { flexDirection: "row", gap: 8 },
+  recCoordInput: { flex: 1 },
   recInput: {
     height: 38,
     borderRadius: 10,
