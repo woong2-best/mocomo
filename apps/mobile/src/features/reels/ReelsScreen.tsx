@@ -604,23 +604,21 @@ export function ReelsScreen() {
       }
       const near = Math.abs(index - activeSlot) <= PerformanceBudgets.reelsPrebufferNeighbors;
       return (
-        <ReelSlotBoundary width={width} height={height}>
-          <FeedVideoPostSlide
-            group={item.group}
-            width={width}
-            height={height}
-            stageWidth={chrome.stageWidth}
-            stageLeft={chrome.stageLeft}
-            active={index === activeSlot}
-            loadPlayer={near}
-            initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
-            onOpenComments={openComments}
-            onPrefetchComments={prefetchComments}
-            onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
-            onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
-            commentsOpen={index === activeSlot && isCommentOpen}
-          />
-        </ReelSlotBoundary>
+        <FeedVideoPostSlide
+          group={item.group}
+          width={width}
+          height={height}
+          stageWidth={chrome.stageWidth}
+          stageLeft={chrome.stageLeft}
+          active={index === activeSlot}
+          loadPlayer={near}
+          initialVideoIndex={seedVideoByGroup[item.group.postId] ?? 0}
+          onOpenComments={openComments}
+          onPrefetchComments={prefetchComments}
+          onFastForwardChange={index === activeSlot ? onFastForwardChange : undefined}
+          onPinchZoomChange={index === activeSlot ? onPinchZoomChange : undefined}
+          commentsOpen={index === activeSlot && isCommentOpen}
+        />
       );
     },
     [

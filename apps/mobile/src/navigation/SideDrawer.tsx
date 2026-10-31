@@ -46,19 +46,29 @@ type ExploreItem = {
   color: string;
 };
 
+const EXPLORE_COLORS = FOLK_EXPLORE_COLORS ?? {
+  market: "#FF2D55",
+  live: "#FF8800",
+  star: "#2563EB",
+  qna: "#10B981",
+  cultureWiki: "#9333EA",
+  wallet: "#DC2626",
+  studio: "#06B6D4",
+};
+
 const EXPLORE: ExploreItem[] = [
-  { route: "Used", labelKey: "nav.market", icon: "cart-outline", color: FOLK_EXPLORE_COLORS.market },
-  { route: "LiveList", labelKey: "nav.live", icon: "radio-outline", color: FOLK_EXPLORE_COLORS.live },
-  { route: "StarList", labelKey: "nav.star", icon: "star-outline", color: FOLK_EXPLORE_COLORS.star },
+  { route: "Used", labelKey: "nav.market", icon: "cart-outline", color: EXPLORE_COLORS.market },
+  { route: "LiveList", labelKey: "nav.live", icon: "radio-outline", color: EXPLORE_COLORS.live },
+  { route: "StarList", labelKey: "nav.star", icon: "star-outline", color: EXPLORE_COLORS.star },
   {
     route: "CommunityList",
     labelKey: "nav.communities",
     icon: "people-outline",
-    color: FOLK_EXPLORE_COLORS.qna,
+    color: EXPLORE_COLORS.qna,
   },
-  { route: "AnimeList", labelKey: "nav.anime", icon: "book-outline", color: FOLK_EXPLORE_COLORS.cultureWiki },
-  { route: "Wallet", labelKey: "nav.wallet", icon: "wallet-outline", color: FOLK_EXPLORE_COLORS.wallet },
-  { route: "LiveStudio", labelKey: "nav.studio", icon: "tv-outline", color: FOLK_EXPLORE_COLORS.studio },
+  { route: "AnimeList", labelKey: "nav.anime", icon: "book-outline", color: EXPLORE_COLORS.cultureWiki },
+  { route: "Wallet", labelKey: "nav.wallet", icon: "wallet-outline", color: EXPLORE_COLORS.wallet },
+  { route: "LiveStudio", labelKey: "nav.studio", icon: "tv-outline", color: EXPLORE_COLORS.studio },
 ];
 
 const OPEN_MS = 280;

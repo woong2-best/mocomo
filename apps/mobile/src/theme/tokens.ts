@@ -88,7 +88,18 @@ export const lightColors: ThemeColors = {
   statusBarStyle: "dark",
 };
 
-/** Explore drawer — Live · Market · Ad (saturated violet; not pale lavender). */
+/** Explore drawer — icon + label accent per row. */
+export const FOLK_EXPLORE_COLORS = {
+  market: "#FF2D55",
+  live: "#FF8800",
+  star: "#2563EB",
+  qna: "#10B981",
+  cultureWiki: "#9333EA",
+  wallet: "#DC2626",
+  studio: "#06B6D4",
+} as const;
+
+/** @deprecated Use FOLK_EXPLORE_COLORS */
 export const FOLK_EXPLORE_ACCENT = "#8B5CF6";
 
 /**
