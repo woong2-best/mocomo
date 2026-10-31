@@ -18,6 +18,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
+import { GfIcon } from "@/ui/icons/GfIcon";
 import { useQueryClient } from "@tanstack/react-query";
 import { pinPostComment, toggleCommentLike, type CommentItem } from "@/api/social";
 import { type CommentReplyTarget } from "@/features/feed/CommentThreadExtras";
@@ -454,9 +455,10 @@ export function ReelsCommentsSheet({
           hitSlop={8}
           accessibilityLabel={t("m.feed.attach_gif")}
         >
-          <View style={[styles.gifChip, attach ? styles.gifChipOff : null]}>
-            <Text style={[styles.gifChipText, attach ? styles.gifChipTextOff : null]}>GIF</Text>
-          </View>
+          <GfIcon
+            height={14}
+            color={attach || uploading || busy ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.85)"}
+          />
         </Pressable>
         <Pressable
           onPress={() => sendNow()}
@@ -581,22 +583,4 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: "#fff",
   },
-  gifChip: {
-    minWidth: 32,
-    height: 22,
-    paddingHorizontal: 6,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.7)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  gifChipOff: { borderColor: "rgba(255,255,255,0.28)" },
-  gifChipText: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.4,
-  },
-  gifChipTextOff: { color: "rgba(255,255,255,0.28)" },
 });

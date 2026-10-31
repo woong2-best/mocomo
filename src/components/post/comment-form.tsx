@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { ImageIcon, Loader2, Send, Sticker, X } from "lucide-react";
+import { ImageIcon, Loader2, Send, X } from "lucide-react";
+import { GfIcon } from "@/components/icons/gf-icon";
 import { Button } from "@/components/ui/button";
 import {
   notifyCommentAdded,
@@ -366,7 +367,7 @@ export function CommentForm({
               }}
               aria-label={t("comments.attachGif")}
             >
-              <Sticker className="h-4 w-4" />
+              <GfIcon />
             </button>
           </div>
         ) : null}
@@ -430,7 +431,7 @@ export function CommentForm({
             </button>
             <button
               type="button"
-              className="inline-flex h-[22px] min-w-8 shrink-0 items-center justify-center rounded-md border border-white/70 px-1.5 text-[10px] font-extrabold tracking-wide text-white/85 disabled:border-white/25 disabled:text-white/25"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/10 hover:text-white disabled:opacity-40"
               disabled={!!attach || uploading || submitting}
               onClick={() => {
                 setGifQuery("");
@@ -438,7 +439,7 @@ export function CommentForm({
               }}
               aria-label={t("comments.attachGif")}
             >
-              GIF
+              <GfIcon />
             </button>
             <button
               type="submit"

@@ -36,6 +36,7 @@ import { subscribeGiphySearch } from "@/lib/giphy-search-events";
 import { uploadLocalFile } from "@/api/upload-file";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { GfIcon } from "@/ui/icons/GfIcon";
 import * as Haptics from "expo-haptics";
 import {
   mapCommentBuckets,
@@ -598,9 +599,10 @@ export function PostDetailScreen() {
                 disabled={!!attach || uploading}
                 accessibilityLabel={t("m.feed.attach_gif")}
               >
-                <View style={[styles.gifChip, attach ? styles.gifChipOff : null]}>
-                  <Text style={[styles.gifChipText, attach ? styles.gifChipTextOff : null]}>GIF</Text>
-                </View>
+                <GfIcon
+                  height={14}
+                  color={attach || uploading ? colors.textMuted : colors.cobalt}
+                />
               </Pressable>
               <TextInput
                 ref={inputRef}
@@ -732,24 +734,6 @@ function createThemedStyles(colors: ThemeColors) {
       alignItems: "center",
       justifyContent: "center",
     },
-    gifChip: {
-      minWidth: 32,
-      height: 22,
-      paddingHorizontal: 6,
-      borderRadius: 6,
-      borderWidth: 1.5,
-      borderColor: colors.cobalt,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    gifChipOff: { borderColor: colors.textMuted },
-    gifChipText: {
-      color: colors.cobalt,
-      fontSize: 10,
-      fontWeight: "800",
-      letterSpacing: 0.4,
-    },
-    gifChipTextOff: { color: colors.textMuted },
     likeBtn: {
       minWidth: 44,
       minHeight: 36,
