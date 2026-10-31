@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 const DOT_COUNT = 5;
@@ -74,16 +75,12 @@ export function MocoEarthTransferHero({
           priority
         />
         <div className="absolute inset-x-0 top-[36%] flex items-center justify-center gap-2 px-4">
-          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border-[3px] border-[#1B3A6B] bg-neutral-300 shadow-sm">
-            {userImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={userImageUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-neutral-200 text-xs font-bold text-neutral-600">
-                {userLabel.slice(0, 2).toUpperCase()}
-              </div>
-            )}
-          </div>
+          <Avatar className="h-12 w-12 shrink-0 border-[3px] border-[#1B3A6B] shadow-sm">
+            <AvatarImage src={userImageUrl} alt="" />
+            <AvatarFallback className="text-xs font-bold">
+              {userLabel.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
           <MocoTransferWaveDots active={transferActive} />
           <Image
             src="/mocomo-logo.png"

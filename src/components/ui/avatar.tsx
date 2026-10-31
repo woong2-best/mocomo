@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * MoCoMo folk avatar — squircle (rounded square), never a circle.
- * Outer pale cobalt ring + terracotta fallback (matches brand avatar chip).
+ * Terracotta letter fallback when no photo; no default outer ring (call sites add rings only when needed).
  */
 export const avatarShapeClass = "rounded-[28%]";
 
@@ -15,7 +15,6 @@ function Avatar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
     <div
       className={cn(
         "relative flex h-10 w-10 shrink-0 overflow-hidden",
-        "ring-2 ring-[hsl(var(--folk-cobalt)/0.28)] ring-offset-1 ring-offset-background",
         avatarShapeClass,
         className
       )}

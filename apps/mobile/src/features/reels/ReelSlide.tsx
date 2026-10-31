@@ -10,7 +10,8 @@ import { togglePostLike } from "@/api/feed";
 import { LockedMediaTile } from "@/components/media/LockedMediaTile";
 import { isPaidPlaybackPath } from "@/api/watermark";
 import { PaidVideoPlayer } from "@/components/media/PaidVideoPlayer";
-import { IMAGE_CACHE_POLICY, avatarDecodeSize } from "@/perf/image";
+import { IMAGE_CACHE_POLICY } from "@/perf/image";
+import { FolkAvatar } from "@/ui/FolkAvatar";
 import { useTheme } from "@/theme/ThemeContext";
 import { TranslatableText } from "@/ui/TranslatableText";
 import { SensitiveContentGate } from "@/ui/SensitiveContentGate";
@@ -167,8 +168,6 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
 
   const [liked, setLiked] = useState(!!item.liked);
   const [likeCount, setLikeCount] = useState(item.likeCount);
-  const avatarPx = avatarDecodeSize(44);
-
   const src = useMemo(() => {
     // Progressive URL first for faster start on mid Android; HLS when only option.
     const progressive = item.media.url?.trim();
@@ -231,16 +230,12 @@ function ReelSlideInner({ item, active, loadPlayer, height }: Props) {
         </View>
 
         <View style={styles.rail}>
-          {item.author.image ? (
-            <Image
-              source={{ uri: item.author.image, width: avatarPx, height: avatarPx }}
-              style={styles.avatar}
-              cachePolicy={IMAGE_CACHE_POLICY}
-              transition={0}
-            />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]} />
-          )}
+          <FolkAvatar
+            uri={item.author.image}
+            name={item.author.name || item.author.username}
+            size={44}
+            framed={false}
+          />
           <Pressable onPress={onLike} style={styles.railBtn} hitSlop={12}>
             <Text style={styles.railIcon}>{liked ? "♥" : "♡"}</Text>
             {showLikeCounts ? <Text style={styles.railCount}>{likeCount}</Text> : null}
@@ -292,8 +287,6 @@ function createThemedStyles(colors: ThemeColors) {
   meta: { flex: 1, paddingRight: spacing.md },
   caption: { color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 20 },
   rail: { alignItems: "center", gap: 18 },
-    avatar: { width: 44, height: 44, borderRadius: 12, borderWidth: 2, borderColor: "#fff" },
-  avatarFallback: { backgroundColor: colors.border },
   railBtn: { alignItems: "center" },
   railIcon: { color: "#fff", fontSize: 28 },
   railCount: { color: "#fff", fontSize: 12, fontWeight: "700", marginTop: 2 },

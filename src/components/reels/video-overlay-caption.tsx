@@ -132,7 +132,7 @@ export function VideoOverlayCaption({
         <Avatar
           key={u.id}
           className={cn(
-            "h-9 w-9 ring-2 ring-white/90 ring-offset-0",
+            "h-9 w-9",
             i > 0 && "-ml-2.5"
           )}
           style={{ zIndex: stackUsers.length - i }}

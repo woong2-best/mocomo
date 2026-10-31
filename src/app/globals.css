@@ -395,7 +395,7 @@ html[data-client="app"] .native-live-pad {
   @apply rounded-xl border-2 border-[hsl(var(--folk-cobalt)/0.35)] bg-card shadow-[3px_4px_0_hsl(var(--folk-cobalt)/0.12)] transition-all duration-300 ease-out;
 }
 .folk-avatar {
-  @apply relative shrink-0 overflow-hidden rounded-[28%] ring-2 ring-[hsl(var(--folk-cobalt)/0.28)] ring-offset-1 ring-offset-background;
+  @apply relative shrink-0 overflow-hidden rounded-[28%];
 }
 .folk-avatar-fallback {
   @apply flex h-full w-full items-center justify-center rounded-[28%] bg-folk-terracotta text-sm font-bold text-white;

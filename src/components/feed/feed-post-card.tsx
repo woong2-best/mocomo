@@ -137,12 +137,12 @@ export function FeedPostCard({
       <CardContent className="p-0 flex flex-col flex-1">
         <div className="flex items-center gap-2 p-3 pb-2">
           {anonymous ? (
-            <Avatar className="h-8 w-8 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all">
+            <Avatar className="h-8 w-8">
               <AvatarFallback>?</AvatarFallback>
             </Avatar>
           ) : (
             <Link href={`/u/${post.author.username}`}>
-              <Avatar className="h-8 w-8 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all">
+              <Avatar className="h-8 w-8">
                 <AvatarImage src={post.author.image} />
                 <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>

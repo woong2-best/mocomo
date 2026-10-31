@@ -353,9 +353,13 @@ export function WalletTransferPanel() {
       <View style={styles.earthHero}>
         <ImageBackground source={EARTH_BG} style={StyleSheet.absoluteFill} imageStyle={styles.earthImage}>
           <View style={styles.transferRow}>
-            <View style={styles.iconBox}>
-              <FolkAvatar uri={user?.image ?? null} name={user?.username ?? "me"} size={44} framed={false} />
-            </View>
+            <FolkAvatar
+              uri={user?.image ?? null}
+              name={user?.username ?? "me"}
+              size={48}
+              framed={false}
+              style={styles.transferAvatar}
+            />
             <TransferDots active={pending} />
             <View style={[styles.iconBox, styles.iconLogoBox]}>
               <Image source={LOGO} style={styles.logoImg} resizeMode="contain" />
@@ -680,13 +684,17 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
   },
+  transferAvatar: {
+    borderWidth: 3,
+    borderColor: "#1B3A6B",
+  },
   iconBox: {
     width: 48,
     height: 48,
     borderRadius: 12,
     borderWidth: 3,
     borderColor: "#1B3A6B",
-    backgroundColor: "#D8D8D8",
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",

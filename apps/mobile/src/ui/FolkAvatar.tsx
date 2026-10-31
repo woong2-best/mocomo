@@ -14,20 +14,20 @@ type Props = {
   name?: string | null;
   size?: number;
   style?: StyleProp<ViewStyle>;
-  /** Soft pale cobalt frame around the squircle */
+  /** Optional pale cobalt frame (off by default — avoids double borders in lists/reels/ATM). */
   framed?: boolean;
   priority?: ImageProps["priority"];
 };
 
 /**
- * Folk profile chip — terracotta fallback + pale cobalt ring, squircle only.
+ * Folk profile chip — terracotta fallback, squircle only.
  */
 export function FolkAvatar({
   uri,
   name,
   size = 40,
   style,
-  framed = true,
+  framed = false,
   priority = "normal",
 }: Props) {
   const { colors, isDark } = useTheme();

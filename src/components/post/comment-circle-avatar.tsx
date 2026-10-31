@@ -15,10 +15,7 @@ export function CommentCircleAvatar({ image, name, size = 36, className }: Props
   const letter = (name || "?").trim().slice(0, 1).toUpperCase() || "?";
 
   return (
-    <Avatar
-      className={cn("ring-0 ring-offset-0", className)}
-      style={{ width: size, height: size }}
-    >
+    <Avatar className={cn(className)} style={{ width: size, height: size }}>
       <AvatarImage src={image} alt="" />
       <AvatarFallback
         className="text-white"

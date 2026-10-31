@@ -99,7 +99,7 @@ export function FeedTextPostCard({
             <QnaQuestionMark className="scale-[0.85] origin-left" />
           ) : (
             <Link href={`/u/${post.author.username}`} onClick={(e) => e.stopPropagation()}>
-              <Avatar className="h-8 w-8 ring-2 ring-folk-gold/50 group-hover:ring-folk-terracotta/60 transition-all border-2 border-folk-cobalt/20">
+              <Avatar className="h-8 w-8">
                 <AvatarImage src={post.author.image ?? undefined} />
                 <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
