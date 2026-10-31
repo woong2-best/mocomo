@@ -1,4 +1,4 @@
-import { Image } from "react-native";
+import { Image } from "expo-image";
 
 type Props = {
   height?: number;
@@ -7,18 +7,17 @@ type Props = {
 
 const VIEW_W = 950;
 const VIEW_H = 580;
+const GF_MARK = require("./gf-mark.png");
 
-/**
- * Compact GF wordmark. PNG + tintColor — SVG elliptical arcs crash
- * Android's native renderer when drawn through react-native-svg.
- */
-export function GfIcon({ height = 14, color = "#fff" }: Props) {
+/** Compact GF wordmark for GIF attach buttons (PNG — SVG arcs crash Android native). */
+export function GfIcon({ height = 16, color = "#fff" }: Props) {
   const width = Math.round((height * VIEW_W) / VIEW_H);
   return (
     <Image
-      source={require("./gf-mark.png")}
+      source={GF_MARK}
       style={{ width, height, tintColor: color }}
-      resizeMode="contain"
+      contentFit="contain"
+      accessibilityLabel="GIF"
     />
   );
 }

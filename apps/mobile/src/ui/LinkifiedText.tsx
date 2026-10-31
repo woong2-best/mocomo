@@ -52,7 +52,7 @@ type Props = {
 };
 
 export function LinkifiedText({
-  text,
+  text: textProp,
   style,
   numberOfLines,
   linkStyle,
@@ -63,6 +63,7 @@ export function LinkifiedText({
   ellipsizeMode,
   mentionStates,
 }: Props) {
+  const text = typeof textProp === "string" ? textProp : String(textProp ?? "");
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { open: openUserProfile, prefetch: prefetchUserProfile } = useUserProfileNav();
   const { colors } = useTheme();

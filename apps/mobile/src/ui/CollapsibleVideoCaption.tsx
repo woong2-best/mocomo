@@ -7,6 +7,7 @@ import {
   type TextStyle,
 } from "react-native";
 import { TranslatableText } from "@/ui/TranslatableText";
+import { InlineRenderBoundary } from "@/ui/InlineRenderBoundary";
 import { useI18n } from "@/i18n/I18nProvider";
 import { splitReelOverlayCaption } from "@/lib/post-hashtags";
 
@@ -57,15 +58,19 @@ export function CollapsibleVideoCaption({
 
   if (!overlay && !extra) return null;
 
-  const caption = display ? (
-    <TranslatableText
-      text={display}
-      style={style}
-      numberOfLines={expanded ? undefined : 1}
-      lightLinks
-    />
-  ) : (
-    <TranslatableText text="…" style={style} lightLinks />
+  const caption = (
+    <InlineRenderBoundary fallbackText={display || overlay || extra} fallbackStyle={style} resetKey={resetKey}>
+      {display ? (
+        <TranslatableText
+          text={display}
+          style={style}
+          numberOfLines={expanded ? undefined : 1}
+          lightLinks
+        />
+      ) : (
+        <TranslatableText text="…" style={style} lightLinks />
+      )}
+    </InlineRenderBoundary>
   );
 
   return (
