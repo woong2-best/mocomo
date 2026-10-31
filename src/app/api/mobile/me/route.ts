@@ -9,6 +9,7 @@ import {
   getMobileUserId,
   requireMobileApiUser,
 } from "@/lib/api-mobile-auth";
+import { termsGateApiResponse } from "@/lib/legal/terms-agreement";
 import {
   isReadOnlySuspended,
   isServiceBanned,
@@ -59,6 +60,7 @@ const meSelect = {
   role: true,
   premiumTier: true,
   passwordHash: true,
+  currentTermsVersion: true,
   profile: { select: { bio: true, bannerUrl: true, bannerVideoUrl: true } },
   _count: { select: { posts: true, followers: true, following: true } },
 } as const;
@@ -87,6 +89,8 @@ export async function GET(req: NextRequest) {
   if (user.deletedAt) {
     return NextResponse.json({ error: "This account has been deleted." }, { status: 403 });
   }
+  const termsBlocked = await termsGateApiResponse(user.currentTermsVersion);
+  if (termsBlocked) return termsBlocked;
   await expireTemporarySuspensionIfNeeded(user);
   const refreshed = await db.user.findUnique({
     where: { id: user.id },

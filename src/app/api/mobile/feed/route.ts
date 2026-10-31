@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
+import { termsGateApiResponse } from "@/lib/legal/terms-agreement";
 import { resolveFeedPage, type FeedMode } from "@/lib/feed-ranking";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
 import { filterPostsByAudienceLock } from "@/lib/posts-lock";
@@ -30,12 +31,14 @@ export async function GET(req: NextRequest) {
     const viewerId = await getMobileUserId(req);
     let effectiveMode: FeedMode = viewerId ? mode : "latest";
 
-    if (viewerId && effectiveMode === "for_you") {
-      const prefs = await db.user.findUnique({
+    if (viewerId) {
+      const viewerPrefs = await db.user.findUnique({
         where: { id: viewerId },
-        select: { feedRecommendationEnabled: true },
+        select: { feedRecommendationEnabled: true, currentTermsVersion: true },
       });
-      if (prefs && !prefs.feedRecommendationEnabled) {
+      const termsBlocked = await termsGateApiResponse(viewerPrefs?.currentTermsVersion);
+      if (termsBlocked) return termsBlocked;
+      if (effectiveMode === "for_you" && viewerPrefs && !viewerPrefs.feedRecommendationEnabled) {
         effectiveMode = "latest";
       }
     }

@@ -16,11 +16,21 @@ import {
   type TermsAgreementInfo,
 } from "@/api/terms-agreement";
 import { subscribeTermsRequired } from "@/legal/terms-required-event";
+import { useAppForeground } from "@/api/app-foreground";
 import { useTheme } from "@/theme/ThemeContext";
 import { radii, type ThemeColors } from "@/theme/tokens";
 
+async function loadRequiredTerms(): Promise<TermsAgreementInfo | null> {
+  try {
+    return await fetchTermsAgreementStatus();
+  } catch {
+    /* 403 TERMS_REQUIRED is emitted by the API client */
+    return null;
+  }
+}
+
 export function TermsAgreementModalHost() {
-  const { status, signOut } = useAuth();
+  const { status, signOut, refreshMe } = useAuth();
   const { colors } = useTheme();
   const themed = useMemo(() => createThemed(colors), [colors]);
   const [terms, setTerms] = useState<TermsAgreementInfo | null>(null);
@@ -41,6 +51,7 @@ export function TermsAgreementModalHost() {
       return;
     }
     if (shownVersionRef.current === next.versionTag) {
+      setTerms((prev) => prev ?? next);
       return;
     }
     shownVersionRef.current = next.versionTag;
@@ -62,22 +73,26 @@ export function TermsAgreementModalHost() {
     }
     let cancelled = false;
     void (async () => {
-      try {
-        const next = await fetchTermsAgreementStatus();
-        if (cancelled) return;
-        if (!next) {
-          if (!acceptedVersionRef.current) openTerms(null);
-          return;
-        }
-        openTerms(next);
-      } catch {
-        /* 403 TERMS_REQUIRED is emitted by the API client */
+      const next = await loadRequiredTerms();
+      if (cancelled) return;
+      if (!next) {
+        if (!acceptedVersionRef.current) openTerms(null);
+        return;
       }
+      openTerms(next);
     })();
     return () => {
       cancelled = true;
     };
   }, [status, openTerms]);
+
+  useAppForeground((backgroundedMs) => {
+    if (status !== "signedIn" || backgroundedMs < 300) return;
+    void (async () => {
+      const next = await loadRequiredTerms();
+      if (next) openTerms(next);
+    })();
+  });
 
   const onAccept = useCallback(async () => {
     if (!agreed || accepting) return;
@@ -89,12 +104,13 @@ export function TermsAgreementModalHost() {
       shownVersionRef.current = null;
       setTerms(null);
       setAgreed(false);
+      await refreshMe();
     } catch {
       /* keep modal open */
     } finally {
       setAccepting(false);
     }
-  }, [agreed, accepting, terms?.versionTag]);
+  }, [agreed, accepting, refreshMe, terms?.versionTag]);
 
   const onDecline = useCallback(async () => {
     acceptedVersionRef.current = null;

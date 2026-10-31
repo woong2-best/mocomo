@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitPublicApi } from "@/lib/api-security";
+import { db } from "@/lib/db";
 import { getMobileUserId } from "@/lib/api-mobile-auth";
+import { termsGateApiResponse } from "@/lib/legal/terms-agreement";
 import { fetchReelsPage, getCachedReelsPage } from "@/lib/reels/query";
 import { getBlockedUserIdSet } from "@/lib/user-block";
 import { getPostEngagementForUser } from "@/lib/post-engagement";
@@ -12,6 +14,14 @@ export async function GET(req: NextRequest) {
     if (limited) return limited;
 
     const viewerId = await getMobileUserId(req);
+    if (viewerId) {
+      const viewer = await db.user.findUnique({
+        where: { id: viewerId },
+        select: { currentTermsVersion: true },
+      });
+      const termsBlocked = await termsGateApiResponse(viewer?.currentTermsVersion);
+      if (termsBlocked) return termsBlocked;
+    }
     const cursor = req.nextUrl.searchParams.get("cursor");
     const limit = Math.min(
       parseInt(req.nextUrl.searchParams.get("limit") || String(REELS_PAGE_SIZE), 10) ||
