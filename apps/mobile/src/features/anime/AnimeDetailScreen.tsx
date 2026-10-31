@@ -165,6 +165,7 @@ export function AnimeDetailScreen() {
     <Screen>
       <AppHeader
         title={item?.title ?? copy.work}
+        titleAlign="left"
         leftLabel={copy.back}
         onLeftPress={() => navigation.goBack()}
         rightSlot={
@@ -259,26 +260,6 @@ export function AnimeDetailScreen() {
                   ) : null}
                 </View>
               ) : null}
-              <View style={styles.actionRow}>
-                <FolkButton
-                  label={copy.edit}
-                  variant="secondary"
-                  style={styles.actionBtn}
-                  onPress={() => {
-                    if (authStatus !== "signedIn") {
-                      showIslandError(copy.loginRequired, copy.editLoginMsg);
-                      return;
-                    }
-                    navigation.navigate("AnimeEdit", { slug: item.slug });
-                  }}
-                />
-                <FolkButton
-                  label={copy.history}
-                  variant="secondary"
-                  style={styles.actionBtn}
-                  onPress={() => navigation.navigate("AnimeHistory", { slug: item.slug })}
-                />
-              </View>
             </View>
 
             {article.sections.length > 0 ? (
@@ -431,7 +412,5 @@ function createThemedStyles(colors: ThemeColors, isDark: boolean) {
     headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
     metaBox: { marginTop: spacing.sm, gap: 2 },
     metaText: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },
-    actionRow: { flexDirection: "row", gap: 8, marginTop: spacing.sm },
-    actionBtn: { flex: 1 },
   });
 }
